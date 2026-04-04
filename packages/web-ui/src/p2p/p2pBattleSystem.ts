@@ -76,11 +76,14 @@ function toTeamConfig(playerId: string, name: string, pets: PetSchemaType[]): Te
 }
 
 export function createWebGameRepository(dataStore: WebGameDataStoreLike) {
+  const toRawRecords = (ids: string[], byId: Record<string, unknown>): Record<string, unknown>[] =>
+    ids.map(id => asRawRecord(toRaw(byId[id])) as Record<string, unknown>)
+
   return createRepositoryFromRawData({
-    effects: dataStore.effects.allIds.map(id => asRawRecord(toRaw(dataStore.effects.byId[id]))),
-    marks: dataStore.marks.allIds.map(id => asRawRecord(toRaw(dataStore.marks.byId[id]))),
-    skills: dataStore.skills.allIds.map(id => asRawRecord(toRaw(dataStore.skills.byId[id]))),
-    species: dataStore.species.allIds.map(id => asRawRecord(toRaw(dataStore.species.byId[id]))),
+    effects: toRawRecords(dataStore.effects.allIds, dataStore.effects.byId),
+    marks: toRawRecords(dataStore.marks.allIds, dataStore.marks.byId),
+    skills: toRawRecords(dataStore.skills.allIds, dataStore.skills.byId),
+    species: toRawRecords(dataStore.species.allIds, dataStore.species.byId),
   })
 }
 

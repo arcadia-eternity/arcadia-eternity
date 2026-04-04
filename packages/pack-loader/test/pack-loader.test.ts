@@ -118,6 +118,85 @@ packages:
     expect(result.errors).toHaveLength(0)
   })
 
+  it('loads http pack dependencies in the same order semantics as node-fs', async () => {
+    const root = 'https://example.com/packs/root'
+    const common = 'https://example.com/packs/common'
+    const files: Record<string, string> = {
+      [`${root}/pack.json`]: JSON.stringify({
+        id: 'demo.root',
+        version: '1.0.0',
+        engine: 'seer2-v2',
+        dependencies: [
+          {
+            path: '../common/pack.json',
+            id: 'demo.common',
+          },
+        ],
+        data: {
+          effects: ['effect.yaml'],
+          marks: [],
+          skills: [],
+          species: [],
+        },
+      }),
+      [`${common}/pack.json`]: JSON.stringify({
+        id: 'demo.common',
+        version: '1.0.0',
+        engine: 'seer2-v2',
+        data: {
+          effects: ['effect.yaml'],
+          marks: [],
+          skills: [],
+          species: [],
+        },
+      }),
+      [`${common}/effect.yaml`]: `- id: effect_dep_only
+  trigger: OnDamage
+  priority: 1
+  apply:
+    type: addPower
+    target: useSkillContext
+    value: 5
+- id: effect_shared
+  trigger: OnDamage
+  priority: 1
+  apply:
+    type: addPower
+    target: useSkillContext
+    value: 1
+`,
+      [`${root}/effect.yaml`]: `- id: effect_shared
+  trigger: OnDamage
+  priority: 7
+  apply:
+    type: addPower
+    target: useSkillContext
+    value: 99
+`,
+    }
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL) => {
+        const key = String(input)
+        const body = files[key]
+        if (body === undefined) {
+          return new Response('not found', { status: 404 })
+        }
+        return new Response(body, { status: 200 })
+      }),
+    )
+
+    const loader = new PackLoader()
+    const result = await loader.load(root, { source: 'http' })
+    const summary = loader.summarize(result)
+
+    expect(summary.packId).toBe('demo.root')
+    expect(summary.effectCount).toBe(2)
+    expect(result.repository.getEffect('effect_shared').priority).toBe(7)
+    expect(result.errors).toHaveLength(0)
+  })
+
   it('fails http load when lockfile mismatches in enforce mode', async () => {
     const base = 'https://example.com/packs/bad'
     const files: Record<string, string> = {

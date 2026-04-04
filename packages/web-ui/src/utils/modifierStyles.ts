@@ -215,12 +215,15 @@ export function getModifierIcon(modifierType: string): string {
  */
 export function formatModifierValue(modifier: ModifierInfo): string {
   const value = modifier.value
+  const numericValue = typeof value === 'number' ? value : Number(value)
+  const hasNumericValue = Number.isFinite(numericValue)
+  const numericPrefix = hasNumericValue && numericValue > 0 ? '+' : ''
 
   switch (modifier.type) {
     case 'percent':
-      return `${value > 0 ? '+' : ''}${value}%`
+      return hasNumericValue ? `${numericPrefix}${numericValue}%` : `${value}%`
     case 'delta':
-      return `${value > 0 ? '+' : ''}${value}`
+      return hasNumericValue ? `${numericPrefix}${numericValue}` : String(value)
     case 'override':
       return `→${value}`
     case 'clampMax':

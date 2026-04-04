@@ -7,6 +7,7 @@ import { usePetStorageStore } from './petStorage'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig, type playerId } from '@arcadia-eternity/const'
 import type {
   CreatePrivateRoomRequest,
+  PrivateRoomBattleStartInfo,
   PrivateRoomEvent,
   PrivateRoomInfo,
   PrivateRoomPeerSignalEvent,
@@ -42,19 +43,6 @@ const buildRoomPeerTransportId = (roomCode: string, playerId: string): string =>
   const raw = `ae-${roomCode}-${playerId}`
   const sanitized = raw.replace(/[^A-Za-z0-9_-]/g, '_').replace(/^[^A-Za-z0-9]+/, '').replace(/[^A-Za-z0-9]+$/, '')
   return sanitized.length > 0 ? sanitized : `ae-${roomCode}`
-}
-
-const resolvePeerBrokerConfig = () => {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_WS_URL || window.location.origin
-  const url = new URL(apiBase, window.location.origin)
-  const configuredPath = (import.meta.env.VITE_PEERJS_PATH || '/peerjs').trim()
-  const peerPath = configuredPath.startsWith('/') ? configuredPath : `/${configuredPath}`
-  return {
-    host: url.hostname,
-    port: url.port ? Number(url.port) : undefined,
-    path: peerPath,
-    secure: url.protocol === 'https:',
-  }
 }
 
 const resolveP2PTimerConfig = (ruleSetId: string): Partial<TimerConfig> => {
@@ -608,7 +596,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         ? new ServerRelayPeerTransport()
         : new BrowserWebRTCPeerTransport({
             localPeerId: buildRoomPeerTransportId(currentRoom.value.config.roomCode, playerStore.player.id),
-            broker: resolvePeerBrokerConfig(),
           })
     transport.onStateChange(state => {
       if (state === 'connected') {
@@ -722,7 +709,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         ) {
           const [battleState, availableSelections] = await Promise.all([
             battleInterface.getState(),
-            battleInterface.getAvailableSelection(localPlayerId),
+            battleInterface.getAvailableSelection(),
           ])
 
           if (availableSelections.length > 0) {
@@ -746,9 +733,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         if (latestRoom) {
           currentRoom.value = latestRoom
         }
+        const room = currentRoom.value
+        if (!room) {
+          throw new Error('房间信息丢失，无法初始化 P2P 对战')
+        }
 
         await teardownPeerTransport()
-        peerSession.value = preparePrivateRoomPeerSession(currentRoom.value, playerStore.player.id, battleStartInfo)
+        peerSession.value = preparePrivateRoomPeerSession(room, playerStore.player.id, battleStartInfo)
         await setupPeerTransport()
 
         if (!isSpectator.value) {
@@ -888,6 +879,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       try {
         const latestRoom = await battleClientStore.getPrivateRoomInfo(roomCode)
+        if (!latestRoom) {
+          stopRoomPolling()
+          cleanup()
+          return
+        }
         const previousStatus = currentRoom.value?.status
         currentRoom.value = latestRoom
         await ensureP2PBattleHostAvailable()

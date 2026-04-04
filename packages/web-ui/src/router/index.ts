@@ -197,6 +197,14 @@ const routes: RouteRecordRaw[] = [
       title: '本地战报回放',
     },
   },
+  {
+    path: '/pack-editor',
+    name: 'PackWorkspaceEditor',
+    component: PackWorkspaceEditor,
+    meta: {
+      title: '数据包工作区管理',
+    },
+  },
 
   {
     path: '/:pathMatch(.*)*',
@@ -210,17 +218,6 @@ if (import.meta.env.DEV) {
   routes.push(...devOnlyRoutes)
 }
 
-const desktopOnlyRoutes: RouteRecordRaw[] = [
-  {
-    path: '/pack-editor',
-    name: 'PackWorkspaceEditor',
-    component: PackWorkspaceEditor,
-    meta: {
-      title: '数据包编辑器',
-    },
-  },
-]
-
 const webOnlyRoutes: RouteRecordRaw[] = [
   {
     path: '/download',
@@ -232,9 +229,7 @@ const webOnlyRoutes: RouteRecordRaw[] = [
   },
 ]
 
-if (isDesktop) {
-  routes.push(...desktopOnlyRoutes)
-} else {
+if (!isDesktop) {
   routes.push(...webOnlyRoutes)
 }
 

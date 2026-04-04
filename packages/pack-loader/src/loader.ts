@@ -12,6 +12,13 @@ type AssetLoadRecord = {
   raw: string
 }
 
+type HttpResolvedPack = {
+  manifest: V2DataPackManifest
+  manifestUrl: string
+  manifestRaw: string
+  dataRoot: URL
+}
+
 export class PackLoader {
   async load(packRef = 'builtin:base', options: PackLoaderOptions = {}): Promise<PackLoadResult> {
     const source = options.source ?? DEFAULT_SOURCE
@@ -72,70 +79,79 @@ export class PackLoader {
   private async loadFromHttp(packRef: string, options: PackLoaderOptions): Promise<PackLoadResult> {
     const errors: string[] = []
     const repository = new V2DataRepository()
-
-    const manifestUrl = this.toAbsoluteHttpUrl(this.resolveManifestUrl(packRef))
-    const manifestRaw = await this.fetchText(manifestUrl)
-    const manifest = JSON.parse(manifestRaw) as V2DataPackManifest
-    const lockfile = await this.loadLockfileFromHttp(manifestUrl, options, errors)
-    const dataRoot = this.resolveDirectoryUrl(manifest.paths?.dataDir ?? '.', manifestUrl)
-    const { records: assetRecords, conflicts } = await this.loadAssetsFromManifest(manifest, manifestUrl, options, errors)
+    const entryManifestUrl = this.toAbsoluteHttpUrl(this.resolveManifestUrl(packRef))
+    const { order: resolvedPacks, entry } = await this.resolveHttpPackLoadOrder(entryManifestUrl, options, errors)
+    const lockfile = await this.loadLockfileFromHttp(entry.manifestUrl, options, errors)
+    const assetRecords: AssetLoadRecord[] = []
+    let rootAssetRecords: AssetLoadRecord[] = []
+    for (const resolved of resolvedPacks) {
+      const { records } = await this.loadAssetsFromManifest(resolved.manifest, resolved.manifestUrl, options, errors)
+      assetRecords.push(...records)
+      if (resolved.manifestUrl === entry.manifestUrl) {
+        rootAssetRecords = records
+      }
+    }
+    const conflicts = this.detectAssetConflicts(assetRecords)
     const lockfileIssues = await this.validateLockfile(lockfile, {
-      pack: manifest,
-      packSource: manifestUrl,
-      packRaw: manifestRaw,
-      assets: assetRecords,
+      pack: entry.manifest,
+      packSource: entry.manifestUrl,
+      packRaw: entry.manifestRaw,
+      assets: rootAssetRecords,
     })
     this.assertLockfileIssues(lockfileIssues, options)
 
     const continueOnError = options.continueOnError ?? false
     const loadArrayFiles = async (
-      files: string[],
+      selectFiles: (manifest: V2DataPackManifest) => string[],
       parse: (raw: Record<string, unknown>) => { id: string },
       register: (id: string, value: unknown) => void,
       label: string,
     ): Promise<void> => {
-      for (const file of files) {
-        const fileUrl = new URL(file, dataRoot).toString()
-        try {
-          const rawItems = await this.fetchArray(fileUrl)
-          for (const rawItem of rawItems) {
-            try {
-              const parsed = parse(rawItem)
-              register(parsed.id, parsed)
-            } catch (error) {
-              const message = `${label} parse error (${file}): ${error instanceof Error ? error.message : String(error)}`
-              errors.push(message)
-              if (!continueOnError) throw error
+      for (const resolved of resolvedPacks) {
+        const files = selectFiles(resolved.manifest)
+        for (const file of files) {
+          const fileUrl = new URL(file, resolved.dataRoot).toString()
+          try {
+            const rawItems = await this.fetchArray(fileUrl)
+            for (const rawItem of rawItems) {
+              try {
+                const parsed = parse(rawItem)
+                register(parsed.id, parsed)
+              } catch (error) {
+                const message = `${label} parse error (${resolved.manifest.id}:${file}): ${error instanceof Error ? error.message : String(error)}`
+                errors.push(message)
+                if (!continueOnError) throw error
+              }
             }
+          } catch (error) {
+            const message = `${label} load error (${resolved.manifest.id}:${file}): ${error instanceof Error ? error.message : String(error)}`
+            errors.push(message)
+            if (!continueOnError) throw error
           }
-        } catch (error) {
-          const message = `${label} load error (${file}): ${error instanceof Error ? error.message : String(error)}`
-          errors.push(message)
-          if (!continueOnError) throw error
         }
       }
     }
 
     await loadArrayFiles(
-      manifest.data.effects,
+      current => current.data.effects,
       parseEffect,
       (id, value) => repository.registerEffect(id, value as ReturnType<typeof parseEffect>),
       'effect',
     )
     await loadArrayFiles(
-      manifest.data.marks,
+      current => current.data.marks,
       parseMark,
       (id, value) => repository.registerMark(id, value as ReturnType<typeof parseMark>),
       'mark',
     )
     await loadArrayFiles(
-      manifest.data.skills,
+      current => current.data.skills,
       parseSkill,
       (id, value) => repository.registerSkill(id, value as ReturnType<typeof parseSkill>),
       'skill',
     )
     await loadArrayFiles(
-      manifest.data.species,
+      current => current.data.species,
       parseSpecies,
       (id, value) => repository.registerSpecies(id, value as ReturnType<typeof parseSpecies>),
       'species',
@@ -144,7 +160,7 @@ export class PackLoader {
     return {
       repository,
       errors,
-      pack: manifest,
+      pack: entry.manifest,
       lockfile,
       lockfileIssues,
       assets: assetRecords.map(item => item.manifest),
@@ -152,6 +168,112 @@ export class PackLoader {
       source: 'http',
       packRef,
     }
+  }
+
+  private async resolveHttpPackLoadOrder(
+    entryManifestUrl: string,
+    options: PackLoaderOptions,
+    errors: string[],
+  ): Promise<{ order: HttpResolvedPack[]; entry: HttpResolvedPack }> {
+    const continueOnError = options.continueOnError ?? false
+    const state = new Map<string, 'visiting' | 'done'>()
+    const resolved = new Map<string, HttpResolvedPack>()
+    const order: HttpResolvedPack[] = []
+
+    const visit = async (
+      manifestUrlInput: string,
+      context?: {
+        fromManifestId?: string
+        expectedId?: string
+        optional?: boolean
+      },
+    ): Promise<void> => {
+      const manifestUrl = this.toAbsoluteHttpUrl(this.resolveManifestUrl(manifestUrlInput))
+      const currentState = state.get(manifestUrl)
+      if (currentState === 'done') return
+      if (currentState === 'visiting') {
+        const message = `pack dependency cycle detected: ${manifestUrl}`
+        if (context?.optional || continueOnError) {
+          errors.push(message)
+          return
+        }
+        throw new Error(message)
+      }
+
+      state.set(manifestUrl, 'visiting')
+
+      let manifestRaw = ''
+      let manifest: V2DataPackManifest
+      try {
+        manifestRaw = await this.fetchText(manifestUrl)
+        manifest = JSON.parse(manifestRaw) as V2DataPackManifest
+      } catch (error) {
+        state.delete(manifestUrl)
+        const message = `pack manifest load error (${manifestUrl}): ${error instanceof Error ? error.message : String(error)}`
+        if (context?.optional || continueOnError) {
+          errors.push(message)
+          return
+        }
+        throw new Error(message)
+      }
+
+      if (context?.expectedId && manifest.id !== context.expectedId) {
+        state.delete(manifestUrl)
+        const message = `pack id mismatch (${manifestUrl}): expected '${context.expectedId}', got '${manifest.id}'`
+        if (context.optional || continueOnError) {
+          errors.push(message)
+          return
+        }
+        throw new Error(message)
+      }
+
+      for (const dep of manifest.dependencies ?? []) {
+        const depManifestUrl = this.resolveHttpDependencyManifestUrl(dep.path, manifestUrl)
+        try {
+          await visit(depManifestUrl, {
+            fromManifestId: manifest.id,
+            expectedId: dep.id,
+            optional: dep.optional,
+          })
+        } catch (error) {
+          if (dep.optional || continueOnError) {
+            const message = `pack dependency warning (${manifest.id} -> ${dep.path}): ${error instanceof Error ? error.message : String(error)}`
+            errors.push(message)
+            continue
+          }
+          throw error
+        }
+      }
+
+      const item: HttpResolvedPack = {
+        manifest,
+        manifestUrl,
+        manifestRaw,
+        dataRoot: this.resolveDirectoryUrl(manifest.paths?.dataDir ?? '.', manifestUrl),
+      }
+      resolved.set(manifestUrl, item)
+      order.push(item)
+      state.set(manifestUrl, 'done')
+    }
+
+    await visit(entryManifestUrl)
+    const normalizedEntryManifestUrl = this.toAbsoluteHttpUrl(this.resolveManifestUrl(entryManifestUrl))
+    const entry = resolved.get(normalizedEntryManifestUrl)
+    if (!entry) {
+      throw new Error(`Failed to resolve entry pack manifest: ${normalizedEntryManifestUrl}`)
+    }
+
+    return { order, entry }
+  }
+
+  private resolveHttpDependencyManifestUrl(dependencyPath: string, manifestUrl: string): string {
+    if (dependencyPath.startsWith('http://') || dependencyPath.startsWith('https://')) {
+      return this.resolveManifestUrl(dependencyPath)
+    }
+    const normalized = dependencyPath.endsWith('.json')
+      ? dependencyPath
+      : `${dependencyPath.replace(/\/+$/, '')}/pack.json`
+    return new URL(normalized, manifestUrl).toString()
   }
 
   private async loadAssetsFromManifest(

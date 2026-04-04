@@ -50,6 +50,7 @@ export type SendPrivateRoomPeerSignalData = {
 
 type BattleClientOptions = {
   serverUrl: string
+  socketPath?: string
   autoReconnect?: boolean
   reconnectAttempts?: number
   actionTimeout?: number
@@ -93,6 +94,7 @@ export class BattleClient {
 
   constructor(options: BattleClientOptions) {
     this.options = {
+      socketPath: '/socket.io',
       autoReconnect: true,
       reconnectAttempts: 5,
       actionTimeout: 30000,
@@ -113,12 +115,19 @@ export class BattleClient {
       reconnection: this.options.autoReconnect,
       reconnectionAttempts: this.options.reconnectAttempts,
       reconnectionDelay: 1000,
+      path: this.normalizeSocketPath(this.options.socketPath),
     }
 
     // 初始化时设置认证信息
     this.updateSocketAuth(socketConfig)
 
     return io(this.options.serverUrl, socketConfig)
+  }
+
+  private normalizeSocketPath(pathValue: string): string {
+    const trimmed = pathValue.trim()
+    if (!trimmed) return '/socket.io'
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
   }
 
   private getOrCreateSessionId(): string {

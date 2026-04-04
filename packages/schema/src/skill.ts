@@ -1,7 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { ElementSchema } from './element'
-import { Category, IgnoreStageStrategy } from '@arcadia-eternity/const'
-import { AttackTargetOpinion } from '@arcadia-eternity/const'
+import { Category, Element, IgnoreStageStrategy, AttackTargetOpinion } from '@arcadia-eternity/const'
 import { StringEnum } from './utils'
 
 export const CategorySchema = StringEnum(Object.values(Category))
@@ -17,13 +15,19 @@ export const ignoreStageStrategySchema = StringEnum(
 export const SkillSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   sfxRef: Type.Optional(Type.String()),
-  element: ElementSchema,
-  category: CategorySchema,
-  power: Type.Integer({ minimum: 0 }),
-  rage: Type.Integer({ minimum: 0 }),
-  accuracy: Type.Number({ minimum: 0, maximum: 100 }),
-  priority: Type.Optional(Type.Integer()),
-  target: Type.Optional(AttackTargetOpinionSchema),
+  element: Type.Union(Object.values(Element).map(v => Type.Literal(v)), {
+    default: Element.Normal,
+  }),
+  category: Type.Union(Object.values(Category).map(v => Type.Literal(v)), {
+    default: Category.Physical,
+  }),
+  power: Type.Integer({ minimum: 0, default: 0 }),
+  rage: Type.Integer({ minimum: 0, default: 0 }),
+  accuracy: Type.Number({ minimum: 0, maximum: 100, default: 100 }),
+  priority: Type.Optional(Type.Integer({ default: 0 })),
+  target: Type.Optional(Type.Union(Object.values(AttackTargetOpinion).map(v => Type.Literal(v)), {
+    default: AttackTargetOpinion.opponent,
+  })),
   multihit: Type.Optional(
     Type.Union([Type.Number(), Type.Tuple([Type.Number(), Type.Number()])]),
   ),
@@ -35,7 +39,7 @@ export const SkillSchema = Type.Object({
     { default: IgnoreStageStrategy.none },
   ),
   tags: Type.Array(Type.String(), { default: [] }),
-  effect: Type.Optional(Type.Array(Type.String())),
+  effect: Type.Optional(Type.Array(Type.String(), { default: [] })),
 })
 
 export type SkillSchemaType = Static<typeof SkillSchema>

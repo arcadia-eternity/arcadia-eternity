@@ -1,9 +1,9 @@
-import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
+import type { RouteLocationNormalized } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
 
-export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
   const store = useBattleStore()
   const battleClientStore = useBattleClientStore()
 
@@ -14,24 +14,23 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
     const isP2PBattle = to.query.p2p === 'true'
     const hasRoomCode = typeof to.query.roomCode === 'string' && to.query.roomCode.length > 0
 
-    if (isPrivateRoomBattle && hasRoomCode && (isServerBattle || isP2PBattle)) {
-      return next()
-    }
+    if (isPrivateRoomBattle && hasRoomCode && (isServerBattle || isP2PBattle)) return true
 
     if (from.name === 'Lobby') {
       if (battleClientStore.currentState.matchmaking === 'idle') {
         ElMessage.warning('请先进入匹配队列')
-        return next('/')
+        return '/'
       }
-      return next()
-    } else if (from.name === 'LocalBattle') {
-      return next()
-    } else if (from.name === 'PrivateRoom') {
-      ElMessage.warning('无效的私人房间战斗参数')
-      return next('/')
-    } else {
-      return next('/')
+      return true
     }
+    if (from.name === 'LocalBattle') {
+      return true
+    }
+    if (from.name === 'PrivateRoom') {
+      ElMessage.warning('无效的私人房间战斗参数')
+      return '/'
+    }
+    return '/'
   }
 
   // 离开对战页面处理
@@ -39,23 +38,22 @@ export const battleGuard = (to: RouteLocationNormalized, from: RouteLocationNorm
     // 如果是回放模式或战斗已结束，直接清理并跳转
     if (store.isReplayMode || store.isBattleEnd) {
       store.resetBattle()
-      next()
-    } else {
-      // 正在进行的战斗需要确认
-      ElMessageBox.confirm('确定要离开对战吗？当前进度将会丢失', '警告', {
+      return true
+    }
+
+    // 正在进行的战斗需要确认
+    try {
+      await ElMessageBox.confirm('确定要离开对战吗？当前进度将会丢失', '警告', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning',
       })
-        .then(() => {
-          store.resetBattle()
-          next()
-        })
-        .catch(() => {
-          next(false)
-        })
+      store.resetBattle()
+      return true
+    } catch {
+      return false
     }
-  } else {
-    next()
   }
+
+  return true
 }

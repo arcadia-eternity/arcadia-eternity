@@ -292,14 +292,14 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   // 创建 HTTP 服务器
   const server = createServer(app)
   const peerServer = ExpressPeerServer(server, {
-    path: '/peerjs',
     proxied: true,
     corsOptions: finalConfig.cors,
   })
-  app.use(peerServer)
+  app.use('/peerjs', peerServer)
 
   // 创建 Socket.IO 服务器
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
+    path: '/socket.io',
     cors: finalConfig.cors,
     pingTimeout: 60000,
     pingInterval: 25000,

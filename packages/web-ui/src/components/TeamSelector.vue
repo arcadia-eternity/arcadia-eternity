@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useValidationStore } from '@/stores/validation'
 import { useGameDataStore } from '@/stores/gameData'

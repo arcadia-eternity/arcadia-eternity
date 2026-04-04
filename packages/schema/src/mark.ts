@@ -27,8 +27,8 @@ export const MarkSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   iconRef: Type.Optional(Type.String()),
   config: Type.Optional(MarkConfigSchema),
-  tags: Type.Optional(Type.Array(Type.String())),
-  effect: Type.Optional(Type.Array(Type.String())),
+  tags: Type.Optional(Type.Array(Type.String(), { default: [] })),
+  effect: Type.Optional(Type.Array(Type.String(), { default: [] })),
 })
 
 export type MarkSchemaType = Static<typeof MarkSchema>

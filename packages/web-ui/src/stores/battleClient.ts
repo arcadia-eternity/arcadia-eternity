@@ -5,7 +5,7 @@ import {
   type JoinSpectatorData,
   type SendPrivateRoomPeerSignalData,
 } from '@arcadia-eternity/client'
-import type { PrivateRoomBattleStartInfo } from '@arcadia-eternity/protocol'
+import type { PrivateRoomBattleStartInfo, PrivateRoomInfo } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
@@ -154,6 +154,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
     return new BattleClient({
       serverUrl: import.meta.env.VITE_WS_URL,
+      socketPath: import.meta.env.VITE_SOCKET_IO_PATH || '/socket.io',
       actionTimeout: 10000,
       sessionId: getOrCreateGlobalSessionId(), // 使用全局 sessionId // 10秒超时，比默认的30秒更快
       auth: {
@@ -407,20 +408,20 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.sendPrivateRoomPeerSignal(data)
   }
 
-  const getPrivateRoomInfo = async (roomCode: string): Promise<any> => {
+  const getPrivateRoomInfo = async (roomCode: string): Promise<PrivateRoomInfo | null> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
-    return await _instance.value.getPrivateRoomInfo(roomCode)
+    return (await _instance.value.getPrivateRoomInfo(roomCode)) as PrivateRoomInfo | null
   }
 
-  const getCurrentPrivateRoom = async (): Promise<any> => {
+  const getCurrentPrivateRoom = async (): Promise<PrivateRoomInfo | null> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
-    return await _instance.value.getCurrentPrivateRoom()
+    return (await _instance.value.getCurrentPrivateRoom()) as PrivateRoomInfo | null
   }
 
   const updatePrivateRoomRuleSet = async (data: { ruleSetId: string }): Promise<void> => {

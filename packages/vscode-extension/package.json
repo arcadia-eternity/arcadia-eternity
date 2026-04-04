@@ -1,0 +1,111 @@
+{
+  "name": "@arcadia-eternity/vscode-extension",
+  "displayName": "Arcadia Editor",
+  "description": "Arcadia data-pack editor extension for VS Code desktop and vscode.dev",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "arcadia-eternity",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.node.cjs",
+  "browser": "./dist/extension.browser.cjs",
+  "activationEvents": [
+    "onCommand:arcadiaEditor.quickOpenPackFile",
+    "onCommand:arcadiaEditor.openBattleSandbox",
+    "onCommand:arcadiaEditor.showEnvironmentCapabilities",
+    "onCustomEditor:arcadia.effectEditor",
+    "onCustomEditor:arcadia.formEditor"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "arcadiaEditor.quickOpenPackFile",
+        "title": "Arcadia: Quick Open Pack File"
+      },
+      {
+        "command": "arcadiaEditor.openBattleSandbox",
+        "title": "Arcadia: Open Battle Sandbox"
+      },
+      {
+        "command": "arcadiaEditor.showEnvironmentCapabilities",
+        "title": "Arcadia: Show Environment Capabilities"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "arcadia.effectEditor",
+        "displayName": "Arcadia Effect Editor",
+        "selector": [
+          {
+            "filenamePattern": "*effect*.yaml"
+          },
+          {
+            "filenamePattern": "*effect*.yml"
+          },
+          {
+            "filenamePattern": "*effect*.json"
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "arcadia.formEditor",
+        "displayName": "Arcadia Form Editor",
+        "selector": [
+          {
+            "filenamePattern": "*species*.yaml"
+          },
+          {
+            "filenamePattern": "*skill*.yaml"
+          },
+          {
+            "filenamePattern": "*mark*.yaml"
+          },
+          {
+            "filenamePattern": "*species*.yml"
+          },
+          {
+            "filenamePattern": "*skill*.yml"
+          },
+          {
+            "filenamePattern": "*mark*.yml"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "configuration": {
+      "title": "Arcadia Editor",
+      "properties": {
+        "arcadiaEditor.battleSandboxUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:4174/#/local-battle",
+          "description": "Battle sandbox URL used by Arcadia: Open Battle Sandbox command."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "run-s clear build:code build:types",
+    "clear": "rm -rf dist",
+    "build:code": "rollup -c",
+    "watch:code": "rollup -c --watch",
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.90.0"
+  }
+}

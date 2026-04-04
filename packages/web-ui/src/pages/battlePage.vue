@@ -3114,7 +3114,7 @@ watch(
                 class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-visible"
                 v-show="panelState === PanelState.SKILLS && !isSpectatorMode"
               >
-                <template v-for="skill in availableSkills" :key="skill._stableId">
+                <template v-for="skill in availableSkills" :key="skill.id">
                   <SkillButton
                     :skill="skill"
                     @click="handleSkillClick(skill.id)"

@@ -55,21 +55,36 @@ const isEditing = ref(false)
 const selectRef = ref()
 const tempValue = ref(props.modelValue ? [...props.modelValue] : [])
 
+type ArrayEditorEntry = {
+  id: string
+  name?: string
+}
+
+function asEntry(id: string, value: unknown): ArrayEditorEntry {
+  const raw = (value ?? {}) as Record<string, unknown>
+  const name = typeof raw.name === 'string' ? raw.name : undefined
+  return { id, name }
+}
+
 // 获取对应数据源
-const dataSource = computed(() => {
-  if (props.type != 'effect') return gameData.marks.byId
-  return gameData.effects.byId
+const dataSource = computed<Record<string, ArrayEditorEntry>>(() => {
+  const source = props.type !== 'effect'
+    ? (gameData.marks.byId as Record<string, unknown>)
+    : (gameData.effects.byId as Record<string, unknown>)
+  return Object.fromEntries(
+    Object.entries(source).map(([id, value]) => [id, asEntry(id, value)]),
+  )
 })
 
 const searchLoading = ref(false)
-const cachedOptions = ref(new Map())
-const filteredOptions = ref<any[]>([])
+const cachedOptions = ref(new Map<string, ArrayEditorEntry[]>())
+const filteredOptions = ref<ArrayEditorEntry[]>([])
 
 // 建立搜索索引
 const searchIndex = computed(() => {
   return Object.values(dataSource.value).map(item => ({
     id: item.id.toLowerCase(),
-    name: (item.name || '').toLowerCase(),
+    name: (item.name ?? '').toLowerCase(),
     original: item,
   }))
 })
@@ -102,7 +117,7 @@ const handleSearch = useDebounceFn(async (query: string) => {
   const cacheKey = query.toLowerCase()
 
   if (cachedOptions.value.has(cacheKey)) {
-    filteredOptions.value = cachedOptions.value.get(cacheKey)
+    filteredOptions.value = cachedOptions.value.get(cacheKey) ?? []
     searchLoading.value = false
     return
   }
@@ -114,7 +129,7 @@ const handleSearch = useDebounceFn(async (query: string) => {
 }, 300)
 
 // 实际搜索逻辑
-const performSearch = async (query: string) => {
+const performSearch = async (query: string): Promise<ArrayEditorEntry[]> => {
   const q = query.trim().toLowerCase()
   if (!q) return Object.values(dataSource.value).slice(0, 50)
 
@@ -129,7 +144,7 @@ const filteredItems = computed(() => {
   return props.modelValue
     ? props.modelValue.map(id => ({
         id,
-        name: props.type == 'effect' ? id : dataSource.value[id]?.name || id,
+        name: props.type === 'effect' ? id : (dataSource.value[id]?.name ?? id),
       }))
     : []
 })
@@ -171,7 +186,7 @@ const removeItem = (id: string) => {
 }
 
 // 标签样式
-const tagStyle = (item: any) => ({
+const tagStyle = (item: { id: string }) => ({
   backgroundColor: dataSource.value[item.id] ? '#e8f4ff' : '#f0f0f0',
   borderColor: dataSource.value[item.id] ? '#409eff' : '#ddd',
 })

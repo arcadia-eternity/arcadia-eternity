@@ -1,31 +1,48 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { ElementSchema } from './element'
+import { Element } from './element'
 
 export const LearnableSkillSchema = Type.Object({
   skill_id: Type.String(),
-  level: Type.Number(),
-  hidden: Type.Boolean(),
+  level: Type.Number({ default: 1 }),
+  hidden: Type.Boolean({ default: false }),
 })
 
 export const SpeciesSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
-  num: Type.Number(),
+  num: Type.Number({ default: 0 }),
   assetRef: Type.Optional(Type.String()),
-  element: ElementSchema,
-  baseStats: Type.Object({
-    hp: Type.Number(),
-    atk: Type.Number(),
-    spa: Type.Number(),
-    def: Type.Number(),
-    spd: Type.Number(),
-    spe: Type.Number(),
+  element: Type.Union(Object.values(Element).map(v => Type.Literal(v)), {
+    default: Element.Normal,
   }),
-  genderRatio: Type.Union([Type.Tuple([Type.Number(), Type.Number()]), Type.Null()]),
-  heightRange: Type.Tuple([Type.Number(), Type.Number()]),
-  weightRange: Type.Tuple([Type.Number(), Type.Number()]),
-  learnable_skills: Type.Array(LearnableSkillSchema),
-  ability: Type.Array(Type.String()),
-  emblem: Type.Array(Type.String()),
+  baseStats: Type.Object({
+    hp: Type.Number({ default: 100 }),
+    atk: Type.Number({ default: 100 }),
+    spa: Type.Number({ default: 100 }),
+    def: Type.Number({ default: 100 }),
+    spd: Type.Number({ default: 100 }),
+    spe: Type.Number({ default: 100 }),
+  }, {
+    default: {
+      hp: 100,
+      atk: 100,
+      spa: 100,
+      def: 100,
+      spd: 100,
+      spe: 100,
+    },
+  }),
+  genderRatio: Type.Union([Type.Tuple([Type.Number(), Type.Number()]), Type.Null()], {
+    default: [50, 50],
+  }),
+  heightRange: Type.Tuple([Type.Number(), Type.Number()], {
+    default: [10, 20],
+  }),
+  weightRange: Type.Tuple([Type.Number(), Type.Number()], {
+    default: [10, 20],
+  }),
+  learnable_skills: Type.Array(LearnableSkillSchema, { default: [] }),
+  ability: Type.Array(Type.String(), { default: [] }),
+  emblem: Type.Array(Type.String(), { default: [] }),
 })
 
 export type LearnableSkill = Static<typeof LearnableSkillSchema>

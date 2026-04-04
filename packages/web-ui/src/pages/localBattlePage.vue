@@ -2,6 +2,13 @@
   <div class="max-w-4xl w-full mx-auto p-6 min-h-[calc(100vh-60px)] flex flex-col justify-start gap-6">
     <h1 class="text-3xl font-bold text-center text-gray-800">本地对战测试</h1>
 
+    <div
+      v-if="workbenchLaunchPayload"
+      class="bg-blue-50 border border-blue-200 rounded-md px-4 py-3 text-sm text-blue-800"
+    >
+      已载入组合工作台配置：关联资源 {{ workbenchLaunchPayload.resources.length }} 个。
+    </div>
+
     <!-- 战斗配置面板 -->
     <div class="bg-gray-50 rounded-lg p-6 shadow-lg border border-gray-200">
       <h2 class="text-xl font-semibold text-center text-gray-700 mb-6">战斗配置</h2>
@@ -313,7 +320,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive, watch, computed, toRaw } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
@@ -321,14 +328,17 @@ import { LocalBattleSystemV2, createBattleFromConfig, createRepositoryFromRawDat
 import type { TeamConfig, BattleConfig as V2BattleConfig } from '@arcadia-eternity/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
+import { readBattleWorkbenchLaunch, type BattleWorkbenchLaunchPayload } from '@/utils/battleWorkbenchLaunch'
 
 const router = useRouter()
+const route = useRoute()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 const petStorage = usePetStorageStore()
 const dataStore = useGameDataStore()
 const errorMessage = ref<string | null>(null)
 const isLoading = ref(true)
+const workbenchLaunchPayload = ref<BattleWorkbenchLaunchPayload | null>(null)
 
 // 队伍选择
 const selectedPlayer1TeamIndex = ref(0)
@@ -337,6 +347,16 @@ const selectedPlayer2TeamIndex = ref(0)
 // 可用队伍列表（过滤掉空队伍）
 const availableTeams = computed(() => {
   return petStorage.teams.filter(team => team.pets.length > 0)
+})
+
+const validTeamIndexSet = computed(() => {
+  const output = new Set<number>()
+  petStorage.teams.forEach((team, index) => {
+    if (team.pets.length > 0) {
+      output.add(index)
+    }
+  })
+  return output
 })
 
 // 初始化队伍选择的函数
@@ -355,6 +375,37 @@ const initializeTeamSelection = () => {
   } else {
     selectedPlayer2TeamIndex.value = selectedPlayer1TeamIndex.value
   }
+}
+
+function parseQueryBoolean(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  return value === '1' || value.toLowerCase() === 'true'
+}
+
+function applyWorkbenchLaunchPayload(payload: BattleWorkbenchLaunchPayload): void {
+  workbenchLaunchPayload.value = payload
+
+  if (validTeamIndexSet.value.has(payload.selectedPlayer1TeamIndex)) {
+    selectedPlayer1TeamIndex.value = payload.selectedPlayer1TeamIndex
+  }
+  if (validTeamIndexSet.value.has(payload.selectedPlayer2TeamIndex)) {
+    selectedPlayer2TeamIndex.value = payload.selectedPlayer2TeamIndex
+  }
+
+  battleConfig.allowFaintSwitch = payload.battleConfig.allowFaintSwitch
+  battleConfig.showHidden = payload.battleConfig.showHidden
+  battleConfig.rngSeed = payload.battleConfig.rngSeed
+  battleConfig.teamSelection = {
+    ...payload.battleConfig.teamSelection,
+  }
+
+  Object.assign(timerConfig, {
+    ...DEFAULT_TIMER_CONFIG,
+    ...payload.timerConfig,
+  })
+
+  enableTurnTimeLimit.value = typeof timerConfig.turnTimeLimit === 'number'
+  enableTotalTimeLimit.value = typeof timerConfig.totalTimeLimit === 'number'
 }
 
 // 战斗配置
@@ -534,22 +585,37 @@ const loadPreset = (presetName: keyof typeof presets) => {
   enableTotalTimeLimit.value = preset.enableTotalTimeLimit
 }
 
-  onMounted(async () => {
+onMounted(async () => {
   // 初始化队伍选择
   initializeTeamSelection()
+
+  // 如果从组合工作台跳转，优先套用控制器配置
+  const launchKey = typeof route.query.launchKey === 'string' ? route.query.launchKey : ''
+  if (parseQueryBoolean(route.query.workbench) && launchKey.length > 0) {
+    const payload = readBattleWorkbenchLaunch(launchKey)
+    if (payload) {
+      applyWorkbenchLaunchPayload(payload)
+    } else {
+      errorMessage.value = '组合工作台启动参数无效或已过期'
+    }
+  }
 
   if (dataStore.loaded || dataStore.gameDataLoaded) {
     dataStore.gameDataLoaded = true
     isLoading.value = false
-    return
+  } else {
+    try {
+      await dataStore.initialize()
+      dataStore.gameDataLoaded = true
+    } catch (error) {
+      errorMessage.value = `资源加载失败: ${(error as Error).message}`
+    } finally {
+      isLoading.value = false
+    }
   }
-  try {
-    await dataStore.initialize()
-    dataStore.gameDataLoaded = true
-  } catch (error) {
-    errorMessage.value = `资源加载失败: ${(error as Error).message}`
-  } finally {
-    isLoading.value = false
+
+  if (parseQueryBoolean(route.query.autoStart) && !errorMessage.value) {
+    await startLocalBattle()
   }
 })
 

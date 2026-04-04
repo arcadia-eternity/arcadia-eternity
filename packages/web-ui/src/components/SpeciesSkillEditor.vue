@@ -129,7 +129,8 @@
 import { ref, computed, watchEffect } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useGameDataStore } from '@/stores/gameData'
-import type { LearnableSkill, Skill } from '@arcadia-eternity/schema'
+import type { LearnableSkill, SkillSchemaType } from '@arcadia-eternity/schema'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
   modelValue: LearnableSkill[]
@@ -145,6 +146,22 @@ const newItem = ref<LearnableSkill>({ skill_id: '', level: 1, hidden: false })
 
 const renderIndex = ref<number | null>(null)
 const shouldRenderAdd = ref(false)
+
+type SkillOption = SkillSchemaType & {
+  name?: string
+}
+
+const toSkillOption = (skill: SkillSchemaType): SkillOption => {
+  const raw = skill as SkillSchemaType & { name?: unknown }
+  return {
+    ...skill,
+    name: typeof raw.name === 'string' ? raw.name : undefined,
+  }
+}
+
+const getSkillDisplayName = (skill: SkillOption): string => {
+  return skill.name ?? skill.id
+}
 
 // Popover 显示控制
 const togglePopover = (index: number) => {
@@ -197,14 +214,14 @@ const startEdit = (index: number) => {
 
 // 虚拟滚动相关状态
 const searchLoading = ref(false)
-const cachedSkills = new Map<string, Skill[]>()
-const filteredSkills = ref<Skill[]>([])
+const cachedSkills = new Map<string, SkillOption[]>()
+const filteredSkills = ref<SkillOption[]>([])
 
 // 生成虚拟滚动选项
 const virtualOptions = computed(() => {
   const baseSkills = filteredSkills.value.map(skill => ({
     value: skill.id,
-    label: `${skill.name} (${skill.id})`,
+    label: `${getSkillDisplayName(skill)} (${skill.id})`,
     raw: skill,
   }))
 
@@ -240,12 +257,12 @@ const filterSkills = useDebounceFn(async (query = '') => {
 // 执行搜索逻辑
 const performSearch = (query: string) => {
   const q = query.trim().toLowerCase()
-  const allSkills = Object.values(gameData.skills.byId)
+  const allSkills = Object.values(gameData.skills.byId).map(toSkillOption)
 
   if (!q) return allSkills.slice(0, 50)
 
   return allSkills
-    .filter(skill => skill.id.toLowerCase().includes(q) || skill.name.toLowerCase().includes(q))
+    .filter(skill => skill.id.toLowerCase().includes(q) || (skill.name ?? '').toLowerCase().includes(q))
     .slice(0, 100)
 }
 
@@ -261,7 +278,8 @@ const handleSkillChange = (value: string) => {
 
 // 其他原有方法保持不变
 const getSkillName = (skillId: string) => {
-  return gameData.skills.byId[skillId]?.name || skillId
+  const skill = gameData.skills.byId[skillId]
+  return skill ? getSkillDisplayName(toSkillOption(skill)) : skillId
 }
 
 const confirmEdit = () => {

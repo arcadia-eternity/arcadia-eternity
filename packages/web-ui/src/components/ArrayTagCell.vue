@@ -76,7 +76,7 @@ const props = withDefaults(
   defineProps<{
     items?: Array<string | number | boolean | object>
     maxDisplay?: number
-    tagType?: '' | 'success' | 'info' | 'warning' | 'danger'
+    tagType?: 'primary' | 'success' | 'info' | 'warning' | 'danger'
     closable?: boolean
     editable?: boolean
     itemType?: 'string' | 'number' | 'json'
@@ -84,7 +84,7 @@ const props = withDefaults(
   }>(),
   {
     maxDisplay: 5,
-    tagType: '',
+    tagType: 'info',
     closable: false,
     editable: true,
     itemType: 'string',
@@ -178,7 +178,7 @@ const addNewItem = () => {
 
 // 删除项
 const removeItem = (index: number) => {
-  const removed = localItems.value.splice(index, 1)
+  localItems.value.splice(index, 1)
   saveChanges()
 }
 
