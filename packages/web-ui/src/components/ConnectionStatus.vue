@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed right-4 bottom-4 z-50 md:right-5 md:bottom-5">
+  <div>
     <!-- 连接状态指示器 -->
     <transition name="connection-status" mode="out-in">
       <div
@@ -35,22 +35,20 @@
           {{ isServerWaking ? '唤醒中...' : '连接中...' }}
         </el-tag>
 
-        <!-- 断线状态 - 更明显的提示 -->
-        <div
+        <!-- 断线状态 -->
+        <el-tag
           v-else
-          class="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg border-2 border-red-400 transition-all duration-300 hover:scale-105 hover:shadow-xl animate-pulse cursor-pointer"
+          type="danger"
+          effect="dark"
+          round
+          class="transition-all duration-300 hover:scale-105 cursor-pointer animate-pulse"
+          @click="handleReconnect"
         >
-          <div class="flex items-center space-x-2">
-            <el-icon :size="16" class="text-red-200">
-              <Warning />
-            </el-icon>
-            <span class="font-medium">连接断开</span>
-            <el-icon :size="14" class="text-red-200">
-              <Refresh />
-            </el-icon>
-          </div>
-          <div class="text-xs text-red-200 mt-1 text-center">点击立即重连</div>
-        </div>
+          <el-icon :size="14">
+            <Refresh />
+          </el-icon>
+          已断开
+        </el-tag>
       </div>
     </transition>
 

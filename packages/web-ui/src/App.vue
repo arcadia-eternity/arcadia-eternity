@@ -22,6 +22,7 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <ConnectionStatus />
           <el-tag type="info" effect="dark" class="text-xs" size="small">
             <el-icon :size="12"><User /></el-icon>
             {{ serverState.serverState.onlinePlayers }}
@@ -77,6 +78,8 @@
             <el-icon><House /></el-icon>
             房间: {{ privateRoomStore.currentRoom.config.roomCode }}
           </el-button>
+
+          <ConnectionStatus />
 
           <el-tag type="info" effect="dark">
             <el-icon><User /></el-icon>
@@ -383,9 +386,6 @@
         </div>
       </div>
     </main>
-
-    <!-- 连接状态组件 -->
-    <ConnectionStatus />
   </div>
 </template>
 
