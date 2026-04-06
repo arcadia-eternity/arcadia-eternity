@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.4...arcadia-eternity-v3.2.0) (2026-04-06)
+
+
+### ✨ Features
+
+* Add UI metadata and inline editors ([8e4eaaa](https://github.com/arcadia-eternity/arcadia-eternity/commit/8e4eaaab8b566116888aaaa34ee137c0068a36ca))
+* add VS Code extension and pack editor workbench ([cab7f0a](https://github.com/arcadia-eternity/arcadia-eternity/commit/cab7f0a90affd72763e8473c72b8f8491f08bf4c))
+* move connection status to nav bar ([79ca5db](https://github.com/arcadia-eternity/arcadia-eternity/commit/79ca5dbc1b9fadfab12054cae150e6f15745abbf))
+
+
+### 🐛 Bug Fixes
+
+* align icons and text inline in nav bar tags ([4d297b8](https://github.com/arcadia-eternity/arcadia-eternity/commit/4d297b8a17ec35a020da39a6046ac3f6b80ba7e8))
+
 ## [3.1.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.3...arcadia-eternity-v3.1.4) (2026-03-17)
 
 
