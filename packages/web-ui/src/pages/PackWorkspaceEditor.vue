@@ -11,13 +11,7 @@
         <el-icon><Files /></el-icon>
       </button>
 
-      <button
-        type="button"
-        class="activity-button"
-        title="刷新工作区"
-        :disabled="loading"
-        @click="refreshWorkspace"
-      >
+      <button type="button" class="activity-button" title="刷新工作区" :disabled="loading" @click="refreshWorkspace">
         <el-icon><RefreshRight /></el-icon>
       </button>
 
@@ -42,11 +36,7 @@
       </button>
     </aside>
 
-    <div
-      v-if="!sidebarCollapsed && compactMode"
-      class="sidebar-backdrop"
-      @click="sidebarCollapsed = true"
-    />
+    <div v-if="!sidebarCollapsed && compactMode" class="sidebar-backdrop" @click="sidebarCollapsed = true" />
 
     <aside
       v-if="!sidebarCollapsed"
@@ -81,11 +71,7 @@
             />
           </button>
 
-          <el-empty
-            v-if="packs.length === 0"
-            description="暂无数据包"
-            :image-size="56"
-          />
+          <el-empty v-if="packs.length === 0" description="暂无数据包" :image-size="56" />
         </div>
       </section>
 
@@ -137,11 +123,7 @@
       </section>
     </aside>
 
-    <div
-      v-if="!sidebarCollapsed && !compactMode"
-      class="sidebar-resizer"
-      @mousedown="startSidebarResize"
-    />
+    <div v-if="!sidebarCollapsed && !compactMode" class="sidebar-resizer" @mousedown="startSidebarResize" />
 
     <div class="workbench-main">
       <main class="editor-main">
@@ -168,9 +150,7 @@
             </span>
           </button>
 
-          <div v-if="openTabs.length === 0" class="tab-placeholder">
-            打开左侧文件开始编辑
-          </div>
+          <div v-if="openTabs.length === 0" class="tab-placeholder">打开左侧文件开始编辑</div>
         </header>
 
         <section class="editor-surface">
@@ -188,11 +168,7 @@
         </section>
       </main>
 
-      <div
-        v-if="controllerVisible && !compactMode"
-        class="controller-resizer"
-        @mousedown="startControllerResize"
-      />
+      <div v-if="controllerVisible && !compactMode" class="controller-resizer" @mousedown="startControllerResize" />
 
       <aside
         v-if="controllerVisible && !compactMode"
@@ -207,13 +183,7 @@
       </aside>
     </div>
 
-    <el-drawer
-      v-model="controllerDrawerVisible"
-      :with-header="false"
-      direction="rtl"
-      size="88%"
-      append-to-body
-    >
+    <el-drawer v-model="controllerDrawerVisible" :with-header="false" direction="rtl" size="88%" append-to-body>
       <BattleWorkbenchController
         :selected-pack-folder="selectedPackFolder"
         :selected-entry="selectedEntryForController"
@@ -223,31 +193,11 @@
 
     <el-dialog v-model="createDialogVisible" title="创建数据包" width="420px">
       <div class="space-y-3">
-        <el-input
-          v-model.trim="createForm.folderName"
-          maxlength="64"
-          clearable
-          placeholder="目录名（必填）"
-        />
-        <el-input
-          v-model.trim="createForm.packId"
-          maxlength="128"
-          clearable
-          placeholder="包 ID（可选）"
-        />
-        <el-input
-          v-model.trim="createForm.version"
-          maxlength="32"
-          clearable
-          placeholder="版本（可选）"
-        />
+        <el-input v-model.trim="createForm.folderName" maxlength="64" clearable placeholder="目录名（必填）" />
+        <el-input v-model.trim="createForm.packId" maxlength="128" clearable placeholder="包 ID（可选）" />
+        <el-input v-model.trim="createForm.version" maxlength="32" clearable placeholder="版本（可选）" />
         <el-select v-model="createForm.template" class="w-full">
-          <el-option
-            v-for="template in templates"
-            :key="template.id"
-            :label="template.name"
-            :value="template.id"
-          />
+          <el-option v-for="template in templates" :key="template.id" :label="template.name" :value="template.id" />
         </el-select>
       </div>
 
@@ -268,6 +218,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Document, Files, Folder, Monitor, Plus, RefreshRight } from '@element-plus/icons-vue'
 import { isDesktop } from '@/utils/env'
@@ -386,6 +337,7 @@ const controllerDrawerVisible = ref(false)
 const controllerWidth = ref(380)
 const controllerDragCleanup = ref<(() => void) | null>(null)
 
+const route = useRoute()
 const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 
@@ -514,16 +466,11 @@ function updateViewportMode(): void {
 
 function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
-  return value
-    .map(item => String(item ?? '').trim())
-    .filter(item => item.length > 0)
+  return value.map(item => String(item ?? '').trim()).filter(item => item.length > 0)
 }
 
 function normalizePath(pathValue: string): string {
-  return pathValue
-    .replace(/\\/g, '/')
-    .replace(/^\/+/, '')
-    .replace(/\/+/g, '/')
+  return pathValue.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/')
 }
 
 function hasTreeKey(nodes: PackFileTreeNode[], key: string): boolean {
@@ -564,7 +511,8 @@ function resolveDataPath(manifest: WorkspacePackManifest, fileRef: string): stri
 
 function resolveLocalePath(manifest: WorkspacePackManifest, locale: string, fileRef: string): string {
   const localesDirRaw = manifest.paths?.localesDir
-  const localesDir = typeof localesDirRaw === 'string' && localesDirRaw.trim().length > 0 ? localesDirRaw.trim() : 'locales'
+  const localesDir =
+    typeof localesDirRaw === 'string' && localesDirRaw.trim().length > 0 ? localesDirRaw.trim() : 'locales'
 
   const normalizedRef = fileRef.endsWith('.yaml') || fileRef.endsWith('.yml') ? fileRef : `${fileRef}.yaml`
   return `${normalizePath(localesDir).replace(/\/+$/, '')}/${normalizePath(locale)}/${normalizePath(normalizedRef)}`
@@ -600,9 +548,8 @@ function buildFileAnnotations(manifest: WorkspacePackManifest): Map<string, File
     }
   }
 
-  const locales = manifest.locales && typeof manifest.locales === 'object'
-    ? (manifest.locales as Record<string, unknown>)
-    : {}
+  const locales =
+    manifest.locales && typeof manifest.locales === 'object' ? (manifest.locales as Record<string, unknown>) : {}
 
   for (const [locale, files] of Object.entries(locales)) {
     for (const sourceFile of toStringArray(files)) {
@@ -960,9 +907,7 @@ const isPackToggling = (folderName: string): boolean => {
 }
 
 async function triggerRuntimeReload(folderName: string): Promise<void> {
-  const target = packs.value.find(
-    item => item.folderName.trim().toLowerCase() === folderName.trim().toLowerCase(),
-  )
+  const target = packs.value.find(item => item.folderName.trim().toLowerCase() === folderName.trim().toLowerCase())
   if (!target?.enabled) return
 
   const results = await Promise.allSettled([
@@ -1075,6 +1020,14 @@ onMounted(async () => {
   window.addEventListener('resize', updateViewportMode)
 
   await refreshWorkspace()
+
+  const autoOpenFile = route.query.open as string | undefined
+  if (autoOpenFile && selectedPackFolder.value) {
+    const entry = fileEntries.value.find(e => e.relativePath.endsWith(autoOpenFile))
+    if (entry) {
+      openEditorTab(selectedPackFolder.value, entry)
+    }
+  }
 })
 
 onBeforeUnmount(() => {
@@ -1117,7 +1070,9 @@ onBeforeUnmount(() => {
   color: #c4ccda;
   background: transparent;
   cursor: pointer;
-  transition: background-color 0.16s ease, color 0.16s ease;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
 }
 
 .activity-button:hover {

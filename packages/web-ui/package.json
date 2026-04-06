@@ -31,7 +31,7 @@
     "build-storybook": "storybook build",
     "dev:desktop": "run-p dev:desktop:web electron:dev",
     "dev:desktop:web": "vite --host localhost --port 5173 --strictPort",
-    "electron:dev": "wait-on http://localhost:5173 && cross-env ARCADIA_ELECTRON_DEV_SERVER_URL=http://localhost:5173 electron ./electron/main.mjs",
+    "electron:dev": "wait-on http://localhost:5173 && cross-env ARCADIA_ELECTRON_DEV_SERVER_URL=http://localhost:5173 electron ./electron/main.mjs --remote-debugging-port=9222",
     "build:desktop": "run-s build electron:pack",
     "electron:pack": "electron-builder",
     "electron:pack:publish": "electron-builder --publish always"

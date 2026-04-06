@@ -73,7 +73,13 @@
         </div>
 
         <div v-else-if="isEnumType" class="enum-editor">
-          <el-select v-model="localEnumValue" :placeholder="placeholder" clearable @clear="clearValue" @change="handleEnumChange">
+          <el-select
+            v-model="localEnumValue"
+            :placeholder="placeholder"
+            clearable
+            @clear="clearValue"
+            @change="handleEnumChange"
+          >
             <el-option v-for="option in enumOptions" :key="option.value" :label="option.label" :value="option.value" />
           </el-select>
         </div>
@@ -339,9 +345,7 @@ function resolveNumberSchemaOptions(schema: TSchema): {
   const max = typeof numberSchema.maximum === 'number' ? numberSchema.maximum : undefined
   const isInteger = KindGuard.IsInteger(schema)
   const baseStep = numberSchema.multipleOf
-  const step = typeof baseStep === 'number' && baseStep > 0
-    ? baseStep
-    : (isInteger ? 1 : 0.1)
+  const step = typeof baseStep === 'number' && baseStep > 0 ? baseStep : isInteger ? 1 : 0.1
   const precision = isInteger ? 0 : getDecimalPrecision(step)
 
   return {
@@ -386,10 +390,11 @@ function normalizeNumberValue(schema: TSchema, rawValue: unknown): number | unde
 }
 
 const numberOptions = computed(() => {
-  if (!isNumberType.value) return {
-    step: 1,
-    stepStrictly: false,
-  }
+  if (!isNumberType.value)
+    return {
+      step: 1,
+      stepStrictly: false,
+    }
   return resolveNumberSchemaOptions(unwrappedSchema.value)
 })
 
@@ -548,7 +553,9 @@ const stringSuggestionCatalog = computed<StringSuggestionOption[]>(() => {
   return []
 })
 
-const hasStringSuggestions = computed(() => isStringSchema(unwrappedSchema.value) && stringSuggestionCatalog.value.length > 0)
+const hasStringSuggestions = computed(
+  () => isStringSchema(unwrappedSchema.value) && stringSuggestionCatalog.value.length > 0,
+)
 
 const stringSuggestionOptions = computed(() => {
   return stringSuggestionCatalog.value.map(item => ({
@@ -859,86 +866,97 @@ watch(
 <style scoped>
 .optional-editor {
   position: relative;
-  margin: 8px 0;
+  margin: var(--ae-space-2) 0;
 }
 
 .optional-placeholder {
   cursor: pointer;
-  padding: 8px 12px;
-  border: 1px dashed var(--el-border-color);
-  border-radius: 4px;
+  padding: var(--ae-space-2) var(--ae-space-3);
+  border: 1px dashed var(--ae-border-default);
+  border-radius: var(--ae-radius-sm);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--el-text-color-secondary);
+  gap: var(--ae-space-2);
+  color: var(--ae-text-muted);
   transition: all 0.2s;
-  background-color: var(--el-fill-color-lighter);
+  background-color: var(--ae-bg-elevated);
 }
 
 .optional-placeholder:hover {
-  border-color: var(--el-color-primary);
-  background-color: var(--el-fill-color);
+  border-color: var(--ae-accent-primary);
+  background-color: var(--ae-accent-primary-subtle);
+  color: var(--ae-text-secondary);
 }
 
 .editor-container {
   position: relative;
   display: grid;
-  gap: 6px;
+  gap: var(--ae-space-1);
 }
 
 .editor-actions {
   display: inline-flex;
-  gap: 2px;
+  gap: var(--ae-space-1);
   justify-content: flex-end;
 }
 
 .null-placeholder {
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  background: var(--el-fill-color-lighter);
+  border: 1px dashed var(--ae-border-default);
+  border-radius: var(--ae-radius-md);
+  background: var(--ae-bg-elevated);
   min-height: 34px;
-  padding: 6px 8px;
+  padding: var(--ae-space-1) var(--ae-space-2);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--ae-space-2);
 }
 
 .null-pill {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  border: 1px solid var(--el-border-color);
-  background: #fff;
-  color: #6f4a1c;
-  font-size: 12px;
+  border: 1px solid var(--ae-border-default);
+  background: var(--ae-bg-overlay);
+  color: var(--ae-warning);
+  font-size: var(--ae-font-sm);
   line-height: 1;
-  padding: 4px 8px;
+  padding: var(--ae-space-1) var(--ae-space-2);
 }
 
 .null-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ae-space-1);
 }
 
 .nested-object {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 10px;
-  background: #fcfdff;
+  border: 1px solid var(--ae-border-subtle);
+  border-radius: var(--ae-radius-md);
+  padding: var(--ae-space-2);
+  background: var(--ae-bg-elevated);
+}
+
+.nested-object .nested-object {
+  padding: var(--ae-space-1);
+  border: none;
+  background: transparent;
+}
+
+.nested-object .nested-object .nested-object {
+  padding: 0;
 }
 
 .object-header {
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed var(--el-border-color);
+  margin-bottom: var(--ae-space-2);
+  padding-bottom: var(--ae-space-1);
+  border-bottom: 1px solid var(--ae-border-subtle);
 }
 
 .title {
-  font-size: 13px;
+  font-size: var(--ae-font-sm);
   font-weight: 600;
-  color: var(--el-text-color-regular);
+  color: var(--ae-text-primary);
 }
 
 .object-content {
@@ -946,69 +964,68 @@ watch(
 }
 
 .empty-tip {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
+  color: var(--ae-text-muted);
+  font-size: var(--ae-font-xs);
 }
 
 .object-fields {
   display: grid;
-  gap: 10px;
+  gap: var(--ae-space-3);
 }
 
 .object-field-row {
-  display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ae-space-1);
 }
 
 .field-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #5f6f86;
-  font-size: 12px;
-  padding-top: 6px;
+  gap: var(--ae-space-1);
+  color: var(--ae-text-secondary);
+  font-size: var(--ae-font-sm);
+  padding-top: var(--ae-space-1);
 }
 
 .optional-mark {
-  color: #8ea0bb;
-  font-size: 11px;
+  color: var(--ae-text-muted);
+  font-size: var(--ae-font-xs);
 }
 
 .array-editor {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 10px;
-  background: #fcfdff;
+  border: 1px solid var(--ae-border-subtle);
+  border-radius: var(--ae-radius-md);
+  padding: var(--ae-space-3);
+  background: var(--ae-bg-elevated);
 }
 
 .array-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ae-space-2);
 }
 
 .array-items {
   display: grid;
-  gap: 8px;
+  gap: var(--ae-space-2);
 }
 
 .array-item-row {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: var(--ae-space-2);
   align-items: start;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 8px;
+  border: 1px solid var(--ae-border-subtle);
+  border-radius: var(--ae-radius-md);
+  padding: var(--ae-space-2);
 }
 
 .array-index {
-  color: #6d7f99;
-  font-size: 12px;
-  padding-top: 8px;
+  color: var(--ae-text-muted);
+  font-size: var(--ae-font-sm);
+  padding-top: var(--ae-space-1);
 }
 
 .boolean-editor {
@@ -1017,13 +1034,21 @@ watch(
   min-height: 32px;
 }
 
+.number-editor {
+  width: 100%;
+}
+
+.number-editor :deep(.el-input-number) {
+  width: 100%;
+}
+
 .enum-editor :deep(.el-select) {
-  min-width: 180px;
+  min-width: 160px;
 }
 
 .text-editor {
   display: grid;
-  gap: 4px;
+  gap: var(--ae-space-1);
 }
 
 .text-editor :deep(.el-select-v2) {
@@ -1033,13 +1058,13 @@ watch(
 .suggestion-option {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--ae-space-1);
   min-width: 0;
 }
 
 .suggestion-option-icon {
   font-size: 16px;
-  color: #5877a7;
+  color: var(--ae-accent-primary);
   flex: 0 0 auto;
 }
 
@@ -1052,10 +1077,10 @@ watch(
 }
 
 .suggestion-option-image {
-  border-radius: 4px;
+  border-radius: var(--ae-radius-sm);
   object-fit: contain;
-  border: 1px solid #d8e2f0;
-  background: #ffffff;
+  border: 1px solid var(--ae-border-default);
+  background: var(--ae-bg-overlay);
 }
 
 .suggestion-option-element {
@@ -1074,49 +1099,49 @@ watch(
 }
 
 .suggestion-option-id {
-  font-size: 12px;
-  color: #24364f;
+  font-size: var(--ae-font-sm);
+  color: var(--ae-text-primary);
   white-space: nowrap;
 }
 
 .suggestion-option-relation {
   margin-left: auto;
   min-width: 0;
-  font-size: 11px;
-  color: #6c7e98;
+  font-size: var(--ae-font-xs);
+  color: var(--ae-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .relation-hint {
-  font-size: 11px;
-  color: #6c7e98;
+  font-size: var(--ae-font-xs);
+  color: var(--ae-text-muted);
   line-height: 1.3;
 }
 
 .tuple-editor {
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  padding: 12px;
+  border: 1px solid var(--ae-border-subtle);
+  border-radius: var(--ae-radius-sm);
+  padding: var(--ae-space-3);
   position: relative;
 }
 
 .tuple-header {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ae-space-2);
 }
 
 .error-icon {
-  color: #f56c6c;
-  margin-left: 8px;
+  color: var(--ae-error);
+  margin-left: var(--ae-space-2);
   cursor: help;
 }
 
 .tuple-items {
   display: grid;
-  gap: 8px;
+  gap: var(--ae-space-2);
 }
 
 .tuple-item :deep(.el-input-number) {
@@ -1124,17 +1149,18 @@ watch(
 }
 
 .error-field :deep(.el-input__inner) {
-  border-color: #f56c6c;
+  border-color: var(--ae-error);
+  background: var(--ae-error-subtle);
 }
 
 .error-message {
-  color: #f56c6c;
-  font-size: 12px;
-  margin-top: 4px;
+  color: var(--ae-error);
+  font-size: var(--ae-font-sm);
+  margin-top: var(--ae-space-1);
 }
 
 .unsupported-type {
-  color: #909399;
+  color: var(--ae-text-muted);
   font-style: italic;
 }
 
@@ -1154,6 +1180,5 @@ watch(
   .array-index {
     padding-top: 0;
   }
-
 }
 </style>

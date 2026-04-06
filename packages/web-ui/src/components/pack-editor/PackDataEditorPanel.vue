@@ -1,38 +1,55 @@
 <template>
-  <el-card shadow="never" class="schema-panel-root">
-    <section class="table-pane table-pane-full">
-      <div class="table-filter-row">
+  <div
+    class="grid grid-cols-1 md:grid-cols-[1fr_480px] gap-px h-full bg-[var(--ae-border-subtle)] rounded-md overflow-hidden"
+  >
+    <section class="bg-[var(--ae-bg-surface)] flex flex-col min-h-0 md:min-h-0 min-h-[300px]">
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-[var(--ae-border-subtle)]">
         <el-input
           v-model.trim="editorFilter"
           clearable
           placeholder="搜索 ID / 列值"
           :disabled="!editorDataFile"
+          size="small"
         />
         <el-tag size="small" effect="plain">{{ filteredRows.length }} 条</el-tag>
         <el-button
+          size="small"
           :loading="editorLoading"
           :disabled="!isDesktop || !packFolder || !editorDataFile"
           @click="() => loadEditorRecords()"
         >
           刷新
         </el-button>
+        <el-button
+          size="small"
+          type="primary"
+          :disabled="!isDesktop || !packFolder || !editorDataFile"
+          @click="addNewRecord"
+        >
+          新增
+        </el-button>
       </div>
 
-      <div class="tanstack-table-shell">
-        <table class="tanstack-table" v-if="table.getRowModel().rows.length > 0">
+      <div class="flex-1 min-h-0 overflow-auto">
+        <table class="w-full border-collapse text-xs md:text-sm" v-if="table.getRowModel().rows.length > 0">
           <thead>
             <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
               <th
                 v-for="header in headerGroup.headers"
                 :key="header.id"
                 :style="{ width: header.column.columnDef.size ? `${header.column.columnDef.size}px` : undefined }"
-                :class="{ sortable: header.column.getCanSort() }"
+                :class="[
+                  'border-b border-[var(--ae-border-default)] px-2 py-1 md:px-3 md:py-2 text-left text-sm font-semibold text-[var(--ae-text-secondary)] bg-[var(--ae-bg-elevated)] sticky top-0 z-[2] select-none',
+                  header.column.getCanSort() ? 'cursor-pointer hover:text-[var(--ae-text-primary)]' : '',
+                ]"
                 @click="toggleColumnSort(header.column)"
               >
                 <template v-if="!header.isPlaceholder">
-                  <div class="th-inner">
+                  <div class="flex items-center gap-1">
                     <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
-                    <span class="sort-indicator">{{ getSortIndicator(header.column.getIsSorted()) }}</span>
+                    <span class="inline-block min-w-[12px] font-bold text-[var(--ae-accent-primary)]">{{
+                      getSortIndicator(header.column.getIsSorted())
+                    }}</span>
                   </div>
                 </template>
               </th>
@@ -43,10 +60,19 @@
             <tr
               v-for="row in table.getRowModel().rows"
               :key="row.id"
-              :class="{ selected: selectedRowIndex === row.original.index }"
+              :class="[
+                'transition-colors hover:bg-[var(--ae-hover)]',
+                selectedRowIndex === row.original.index
+                  ? 'bg-[var(--ae-selected)] shadow-[inset_3px_0_0_var(--ae-accent-primary)]'
+                  : '',
+              ]"
               @click="selectEditorRow(row.original)"
             >
-              <td v-for="cell in row.getVisibleCells()" :key="cell.id">
+              <td
+                v-for="cell in row.getVisibleCells()"
+                :key="cell.id"
+                class="border-b border-[var(--ae-border-subtle)] px-2 py-1 md:px-3 md:py-2 text-sm text-[var(--ae-text-primary)] align-middle"
+              >
                 <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
               </td>
             </tr>
@@ -56,7 +82,10 @@
         <el-empty v-else description="当前数据文件暂无条目" :image-size="72" />
       </div>
 
-      <div class="table-pagination-row" v-if="filteredRows.length > 0">
+      <div
+        class="flex items-center justify-end px-3 py-2 border-t border-[var(--ae-border-subtle)] bg-[var(--ae-bg-elevated)]"
+        v-if="filteredRows.length > 0"
+      >
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -67,87 +96,77 @@
         />
       </div>
     </section>
-  </el-card>
 
-  <el-drawer
-    v-model="editorPanelVisible"
-    class="pack-editor-drawer"
-    direction="rtl"
-    :with-header="false"
-    :append-to-body="true"
-    size="min(760px, 92vw)"
-    modal-class="pack-editor-blur-overlay"
-  >
-    <el-empty
-      v-if="!editorDraft"
-      description="选择一条记录开始编辑"
-      :image-size="88"
-    />
-
-    <div v-else class="detail-content">
-      <div class="drawer-actions">
-        <el-button @click="editorPanelVisible = false">关闭</el-button>
-        <el-button
-          v-if="selectedRowIsAlias"
-          :disabled="!isDesktop || !packFolder || !editorDataFile || !editorDraft"
-          @click="detachAlias"
-        >
-          解除别名
-        </el-button>
-        <el-button
-          type="danger"
-          :disabled="!isDesktop || !packFolder || !editorDataFile || selectedRowIndex === null"
-          @click="deleteEditorRecord"
-        >
-          删除条目
-        </el-button>
-        <el-button
-          type="primary"
-          :loading="editorSaving"
-          :disabled="!isDesktop || !packFolder || !editorDataFile || !editorDraft"
-          @click="saveEditorRecord"
-        >
-          保存条目
-        </el-button>
-      </div>
-
-      <el-alert
-        show-icon
-        :closable="false"
-        :type="selectedRowIsAlias ? 'warning' : selectedRowHasMerge ? 'success' : 'info'"
-        :title="detailAlertTitle"
-      />
-
-      <div v-if="mergeRevertableKeys.length > 0" class="merge-revert-shell">
-        <div class="merge-revert-title">回退到继承值</div>
-        <div class="merge-revert-actions">
+    <aside
+      class="bg-[var(--ae-bg-surface)] flex flex-col min-h-0 md:max-h-none max-h-[50vh] border-t border-[var(--ae-border-subtle)] md:border-t-0"
+    >
+      <header class="flex items-center justify-between px-3 py-2 border-b border-[var(--ae-border-subtle)] shrink-0">
+        <span class="text-xs font-semibold text-[var(--ae-text-secondary)] uppercase tracking-wider">属性检查器</span>
+        <div class="flex gap-1" v-if="editorDraft">
           <el-button
-            v-for="key in mergeRevertableKeys"
-            :key="key"
+            v-if="selectedRowIsAlias"
             size="small"
-            @click="revertMergeKey(key)"
+            :disabled="!isDesktop || !packFolder || !editorDataFile || !editorDraft"
+            @click="detachAlias"
           >
-            回退 {{ key }}
+            解除别名
+          </el-button>
+          <el-button
+            size="small"
+            type="danger"
+            :disabled="!isDesktop || !packFolder || !editorDataFile || selectedRowIndex === null"
+            @click="deleteEditorRecord"
+          >
+            删除
+          </el-button>
+          <el-button
+            size="small"
+            type="primary"
+            :loading="editorSaving"
+            :disabled="!isDesktop || !packFolder || !editorDataFile || !editorDraft"
+            @click="saveEditorRecord"
+          >
+            保存
           </el-button>
         </div>
-        <div class="merge-revert-tip">回退后会从当前条目移除该字段，保存后由锚点/merge 提供值。</div>
-      </div>
+      </header>
 
-      <div class="schema-editor-shell" :class="{ readonly: selectedRowIsAlias }">
-        <OptionalFieldEditor
-          v-model="editorDraft"
-          :schema="schemaSpec.rowSchema"
-          :context-kind="kind"
-          field-path=""
-          label="条目"
-        />
+      <div class="flex-1 min-h-0 overflow-auto">
+        <el-empty v-if="!editorDraft" description="选择一条记录开始编辑" :image-size="64" />
+
+        <template v-else>
+          <el-alert
+            v-if="selectedRowIsAlias || selectedRowHasMerge"
+            show-icon
+            :closable="false"
+            :type="selectedRowIsAlias ? 'warning' : 'success'"
+            :title="detailAlertTitle"
+            class="mb-3"
+          />
+
+          <div v-if="mergeRevertableKeys.length > 0" class="mb-3 p-2 border border-dashed border-gray-300 rounded">
+            <div class="text-sm font-medium mb-2">回退到继承值</div>
+            <div class="flex flex-wrap gap-1">
+              <el-button v-for="key in mergeRevertableKeys" :key="key" size="small" @click="revertMergeKey(key)">
+                回退 {{ key }}
+              </el-button>
+            </div>
+          </div>
+
+          <PropertyInspector
+            v-model="editorDraft"
+            :schema="schemaSpec.rowSchema"
+            :context-kind="kind"
+            class="flex-1 min-h-0"
+          />
+        </template>
       </div>
-    </div>
-  </el-drawer>
+    </aside>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, h, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import i18next from 'i18next'
 import { Check, Close } from '@element-plus/icons-vue'
@@ -168,7 +187,7 @@ import type { TSchema } from '@sinclair/typebox'
 import { isDesktop } from '@/utils/env'
 import { useGameDataStore } from '@/stores/gameData'
 import { useResourceStore } from '@/stores/resource'
-import OptionalFieldEditor from '@/components/OptionalFieldEditor.vue'
+import PropertyInspector from '@/components/PropertyInspector.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import PetIcon from '@/components/PetIcon.vue'
 import MarkIcon from '@/components/MarkIcon.vue'
@@ -240,7 +259,6 @@ const editorFilter = ref('')
 const editorRows = ref<EditorRow[]>([])
 const selectedRowIndex = ref<number | null>(null)
 const editorDraft = ref<Record<string, unknown> | null>(null)
-const editorPanelVisible = ref(false)
 const editorManifest = ref<WorkspacePackManifest | null>(null)
 const datasetRef = ref<YamlAnchoredDataset | null>(null)
 
@@ -301,9 +319,7 @@ function cloneJson<T>(value: T): T {
 
 function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
-  return value
-    .map(item => String(item ?? '').trim())
-    .filter(item => item.length > 0)
+  return value.map(item => String(item ?? '').trim()).filter(item => item.length > 0)
 }
 
 function normalizeManifest(raw: Record<string, unknown>): WorkspacePackManifest {
@@ -341,7 +357,9 @@ function resolvePackDataPath(manifest: WorkspacePackManifest, fileRef: string): 
     throw new Error(`暂不支持编辑远程数据文件: ${fileRef}`)
   }
 
-  const cleanedFile = String(fileRef ?? '').replace(/^\/+/, '').trim()
+  const cleanedFile = String(fileRef ?? '')
+    .replace(/^\/+/, '')
+    .trim()
   if (!cleanedFile || cleanedFile.split('/').includes('..')) {
     throw new Error(`非法数据文件路径: ${fileRef}`)
   }
@@ -422,7 +440,10 @@ async function ensureManifestForEditor(): Promise<WorkspacePackManifest> {
   return cloneJson(manifest)
 }
 
-async function ensureSourceFileInManifest(manifest: WorkspacePackManifest, sourceFile: string): Promise<WorkspacePackManifest> {
+async function ensureSourceFileInManifest(
+  manifest: WorkspacePackManifest,
+  sourceFile: string,
+): Promise<WorkspacePackManifest> {
   const files = getKindFiles(manifest, kind.value)
   if (files.includes(sourceFile)) {
     return manifest
@@ -441,25 +462,25 @@ async function ensureSourceFileInManifest(manifest: WorkspacePackManifest, sourc
 }
 
 function resetEditorSelection(): void {
-  editorPanelVisible.value = false
   selectedRowIndex.value = null
   editorDraft.value = null
 }
 
-function selectEditorRow(row: EditorRow, options?: { openPanel?: boolean }): void {
+function selectEditorRow(row: EditorRow): void {
   selectedRowIndex.value = row.index
   editorDraft.value = cloneJson(row.value)
   syncPageForRow(row.index)
-  if (options?.openPanel !== false) {
-    editorPanelVisible.value = true
-  }
+}
+
+function addNewRecord(): void {
+  const defaultRecord = Value.Create(schemaSpec.value.rowSchema)
+  editorDraft.value = cloneJson(defaultRecord) as Record<string, unknown>
+  selectedRowIndex.value = null
 }
 
 async function triggerRuntimeReload(folderName: string): Promise<void> {
   const allPacks = await listWorkspacePacks()
-  const target = allPacks.find(
-    pack => String(pack.folderName).trim().toLowerCase() === folderName.trim().toLowerCase(),
-  )
+  const target = allPacks.find(pack => String(pack.folderName).trim().toLowerCase() === folderName.trim().toLowerCase())
   if (!target?.enabled) return
 
   const results = await Promise.allSettled([
@@ -492,8 +513,6 @@ async function loadEditorRecords(options?: { preferredId?: string; preferredInde
 
   editorLoading.value = true
   try {
-    const autoOpenPanel = editorPanelVisible.value
-
     const manifestResult = await readWorkspacePackManifest({ folderName: packFolder.value })
     const manifest = normalizeManifest(manifestResult.manifest)
     editorManifest.value = manifest
@@ -521,7 +540,7 @@ async function loadEditorRecords(options?: { preferredId?: string; preferredInde
     if (typeof preferredIndex === 'number') {
       const matchedByIndex = editorRows.value.find(row => row.index === preferredIndex)
       if (matchedByIndex) {
-        selectEditorRow(matchedByIndex, { openPanel: autoOpenPanel })
+        selectEditorRow(matchedByIndex)
         return
       }
     }
@@ -530,13 +549,13 @@ async function loadEditorRecords(options?: { preferredId?: string; preferredInde
     if (preferredId) {
       const matchedById = editorRows.value.find(row => row.id === preferredId)
       if (matchedById) {
-        selectEditorRow(matchedById, { openPanel: autoOpenPanel })
+        selectEditorRow(matchedById)
         return
       }
     }
 
     if (editorRows.value.length > 0) {
-      selectEditorRow(editorRows.value[0], { openPanel: autoOpenPanel })
+      selectEditorRow(editorRows.value[0])
     } else {
       resetEditorSelection()
     }
@@ -595,9 +614,7 @@ async function saveEditorRecord(): Promise<void> {
     return
   }
 
-  const duplicate = editorRows.value.find(
-    row => row.id === nextId && row.index !== selectedRowIndex.value,
-  )
+  const duplicate = editorRows.value.find(row => row.id === nextId && row.index !== selectedRowIndex.value)
   if (duplicate) {
     ElMessage.error(`ID 冲突: ${nextId}`)
     return
@@ -860,15 +877,12 @@ const tableColumns = computed<ColumnDef<EditorRow>[]>(() => {
   })
 
   const summaryColumns = schemaSpec.value.summaryColumns.map(column => {
-    return columnHelper.accessor(
-      row => getValueByPath(row.value, column.path),
-      {
-        id: column.id,
-        size: column.width,
-        header: column.label,
-        cell: info => renderSummaryCell(info.row.original, column.path),
-      },
-    )
+    return columnHelper.accessor(row => getValueByPath(row.value, column.path), {
+      id: column.id,
+      size: column.width,
+      header: column.label,
+      cell: info => renderSummaryCell(info.row.original, column.path),
+    })
   })
 
   return [metaColumn, ...summaryColumns]
@@ -896,14 +910,10 @@ const table = useVueTable({
     },
   },
   onSortingChange: updater => {
-    sorting.value = typeof updater === 'function'
-      ? updater(sorting.value)
-      : updater
+    sorting.value = typeof updater === 'function' ? updater(sorting.value) : updater
   },
   onPaginationChange: updater => {
-    pagination.value = typeof updater === 'function'
-      ? updater(pagination.value)
-      : updater
+    pagination.value = typeof updater === 'function' ? updater(pagination.value) : updater
   },
   getCoreRowModel: getCoreRowModel(),
   getSortedRowModel: getSortedRowModel(),
@@ -937,7 +947,11 @@ function syncPageForRow(rowIndex: number | null): void {
   }
 }
 
-function toggleColumnSort(column: { getCanSort: () => boolean; toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | 'asc' | 'desc' }): void {
+function toggleColumnSort(column: {
+  getCanSort: () => boolean
+  toggleSorting: (desc?: boolean) => void
+  getIsSorted: () => false | 'asc' | 'desc'
+}): void {
   if (!column.getCanSort()) return
   column.toggleSorting(column.getIsSorted() === 'asc')
 }
@@ -990,174 +1004,67 @@ watch(
   },
 )
 
+function navigateRows(direction: 'up' | 'down'): void {
+  const rows = filteredRows.value
+  if (rows.length === 0) return
+
+  const currentIndex = selectedRowIndex.value
+  if (currentIndex === null) {
+    selectEditorRow(direction === 'down' ? rows[0] : rows[rows.length - 1])
+    return
+  }
+
+  const currentPos = rows.findIndex(row => row.index === currentIndex)
+  const nextPos = direction === 'down' ? Math.min(currentPos + 1, rows.length - 1) : Math.max(currentPos - 1, 0)
+
+  if (nextPos !== currentPos) {
+    selectEditorRow(rows[nextPos])
+  }
+}
+
+function handleKeydown(event: KeyboardEvent): void {
+  const target = event.target as HTMLElement
+  const isInputFocused = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+
+  if (event.key === 'ArrowUp' && !isInputFocused) {
+    event.preventDefault()
+    navigateRows('up')
+  } else if (event.key === 'ArrowDown' && !isInputFocused) {
+    event.preventDefault()
+    navigateRows('down')
+  } else if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault()
+    if (editorDraft.value && !editorSaving.value) {
+      saveEditorRecord()
+    }
+  } else if (event.key === 'n' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault()
+    addNewRecord()
+  } else if (event.key === 'Delete' && !isInputFocused) {
+    event.preventDefault()
+    if (selectedRowIndex.value !== null) {
+      deleteEditorRecord()
+    }
+  } else if (event.key === 'Escape') {
+    resetEditorSelection()
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleKeydown)
   await loadEditorRecords()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
 <style scoped>
-.schema-panel-root {
-  --panel-bg: #f7f9fc;
-  --line: #dde4ef;
-  --line-strong: #c5d1e4;
-  --text-main: #1f2a3d;
-  --text-sub: #5f6f86;
-  --row-hover: #f2f6ff;
-  --row-active: #e8f0ff;
-}
-
-.schema-panel-root :deep(.el-card__body) {
-  padding: 0;
-}
-
-.table-pane {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #ffffff;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 620px;
-}
-
-.table-pane-full {
-  height: 100%;
-}
-
-.table-filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-.tanstack-table-shell {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-.table-pagination-row {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 8px 10px;
-  border-top: 1px solid var(--line);
-  background: #ffffff;
-}
-
-.tanstack-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 860px;
-}
-
-.tanstack-table th,
-.tanstack-table td {
-  border-bottom: 1px solid var(--line);
-  padding: 8px 10px;
-  text-align: left;
-  font-size: 12px;
-  color: var(--text-main);
-  vertical-align: middle;
-}
-
-.tanstack-table th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--panel-bg);
-  border-bottom-color: var(--line-strong);
-  font-weight: 700;
-  color: #32445f;
-  user-select: none;
-}
-
-.tanstack-table th.sortable {
-  cursor: pointer;
-}
-
-.th-inner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sort-indicator {
-  display: inline-block;
-  min-width: 12px;
-  color: #5f6f86;
-}
-
-.tanstack-table tbody tr:hover {
-  background: var(--row-hover);
-}
-
-.tanstack-table tbody tr.selected {
-  background: var(--row-active);
-}
-
-.detail-content {
-  height: 100%;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.drawer-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.schema-editor-shell {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: #fbfcff;
-}
-
-.schema-editor-shell.readonly {
-  opacity: 0.9;
-}
-
-.merge-revert-shell {
-  border: 1px dashed var(--line-strong);
-  border-radius: 8px;
-  background: #f7faff;
-  padding: 8px;
-  display: grid;
-  gap: 8px;
-}
-
-.merge-revert-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #39557a;
-}
-
-.merge-revert-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.merge-revert-tip {
-  font-size: 11px;
-  color: #6c7e98;
-}
-
 .cell-inline {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ae-space-1);
   min-width: 0;
   flex-wrap: wrap;
 }
@@ -1168,7 +1075,7 @@ onMounted(async () => {
   justify-content: center;
   width: 18px;
   height: 18px;
-  color: #55739f;
+  color: var(--ae-accent-primary);
 }
 
 .cell-icon :deep(svg) {
@@ -1190,11 +1097,11 @@ onMounted(async () => {
 }
 
 .cell-boolean-true {
-  color: #2f7f43;
+  color: var(--ae-success);
 }
 
 .cell-boolean-false {
-  color: #9a3a3a;
+  color: var(--ae-error);
 }
 
 .cell-value {
@@ -1206,54 +1113,45 @@ onMounted(async () => {
 }
 
 .cell-value-missing {
-  color: #7b8aa3;
+  color: var(--ae-text-muted);
   font-style: italic;
 }
 
 .cell-value-null {
-  color: #8a5c2d;
+  color: var(--ae-warning);
   font-style: italic;
 }
 
 .cell-sub-value {
   flex-basis: 100%;
-  font-size: 10px;
-  color: #6d7f99;
+  font-size: var(--ae-font-xs);
+  color: var(--ae-text-muted);
   line-height: 1.2;
 }
 
 .cell-badge {
   border-radius: 999px;
   padding: 1px 6px;
-  font-size: 10px;
+  font-size: var(--ae-font-xs);
   line-height: 1.5;
   border: 1px solid transparent;
 }
 
 .cell-badge.inherited {
-  background: #eef4ff;
-  color: #35527a;
-  border-color: #c9daf8;
+  background: var(--ae-info-subtle);
+  color: var(--ae-info);
+  border-color: transparent;
 }
 
 .cell-badge.overridden {
-  background: #fef5e9;
-  color: #7f4a15;
-  border-color: #f8d7ad;
+  background: var(--ae-warning-subtle);
+  color: var(--ae-warning);
+  border-color: transparent;
 }
 
 .cell-badge.default {
-  background: #f0f7ed;
-  color: #3b6c2f;
-  border-color: #cde5c3;
-}
-
-:global(.pack-editor-blur-overlay) {
-  background: rgba(17, 24, 39, 0.28) !important;
-  backdrop-filter: blur(8px);
-}
-
-:global(.pack-editor-drawer .el-drawer__body) {
-  padding: 0;
+  background: var(--ae-success-subtle);
+  color: var(--ae-success);
+  border-color: transparent;
 }
 </style>
