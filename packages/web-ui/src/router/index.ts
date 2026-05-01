@@ -5,6 +5,7 @@ const BattleView = () => import('../pages/battlePage.vue')
 // import LocalBattlePage from '../pages/localBattlePage.vue'
 const LocalBattlePage = () => import('../pages/localBattlePage.vue')
 const PackWorkspaceEditor = () => import('@/pages/PackWorkspaceEditor.vue')
+const DataEditorPage = () => import('@/features/data-editor/DataEditorPage.vue')
 
 // 路由守卫
 import { battleGuard } from './guards'
@@ -199,10 +200,18 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/pack-editor',
+    name: 'DataEditor',
+    component: DataEditorPage,
+    meta: {
+      title: '数据编辑器',
+    },
+  },
+  {
+    path: '/pack-editor-legacy',
     name: 'PackWorkspaceEditor',
     component: PackWorkspaceEditor,
     meta: {
-      title: '数据包工作区管理',
+      title: '数据包工作区管理 (旧版)',
     },
   },
 

@@ -85,7 +85,6 @@ declare module 'vue' {
     MarkDetail: typeof import('./src/components/dex/MarkDetail.vue')['default']
     MarkIcon: typeof import('./src/components/MarkIcon.vue')['default']
     ModifiedValue: typeof import('./src/components/battle/ModifiedValue.vue')['default']
-    MultihitEditor: typeof import('./src/components/MultihitEditor.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
     PackAssetPreviewEditor: typeof import('./src/components/pack-editor/PackAssetPreviewEditor.vue')['default']
     PackDataEditorPanel: typeof import('./src/components/pack-editor/PackDataEditorPanel.vue')['default']
