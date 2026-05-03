@@ -21,6 +21,7 @@ const species: EntityConfig = {
     emblem: [],
   }),
   summaryColumns: [
+    { id: 'icon', label: '', path: 'num', width: 32 },
     { id: 'id', label: 'ID', path: 'id', width: 180 },
     { id: 'num', label: '图鉴', path: 'num', width: 90 },
     { id: 'element', label: '属性', path: 'element', width: 110 },

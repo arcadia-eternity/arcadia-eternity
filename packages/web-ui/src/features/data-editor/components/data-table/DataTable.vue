@@ -16,6 +16,7 @@
 import { computed, ref, watch, h } from 'vue'
 import { translateEntityName, getValueByPath } from '../../schemas/editorSchemas'
 import { useGameConfig } from '../../game-config'
+import PetIcon from '@/components/PetIcon.vue'
 import {
   useVueTable,
   getCoreRowModel,
@@ -78,6 +79,18 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
   const defs: ColumnDef<Record<string, unknown>, unknown>[] = []
 
   for (const col of summaryCols) {
+    if (col.id === 'icon') {
+      defs.push({
+        id: 'icon',
+        accessorFn: (row) => (row.num as number) ?? 0,
+        header: '',
+        size: 36,
+        enableSorting: false,
+        cell: (info) => h(PetIcon, { id: (info.getValue() as number) ?? 999, class: 'cell-pet-icon' }),
+      })
+      continue
+    }
+
     if (col.id === 'id') {
       defs.push({
         id: 'id',
@@ -460,6 +473,15 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
   font-size: var(--ae-font-xs);
   color: var(--ae-text-primary);
+}
+
+/* ── Pet icon cell ── */
+.data-table__td :deep(.cell-pet-icon) {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ae-radius-sm);
+  border: 1px solid var(--ae-border-subtle);
+  background-color: var(--ae-bg-overlay);
 }
 
 /* ── Checkbox ── */
