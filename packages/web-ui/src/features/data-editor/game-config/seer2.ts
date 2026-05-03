@@ -71,7 +71,6 @@ const skills: EntityConfig = {
     { id: 'priority', label: '优先级', path: 'priority', width: 100 },
   ],
   fieldHints: {
-    power:   { display: 'statsGrid', statsKeys: ['power', 'accuracy', 'rage', 'priority'] },
     effect:  { display: 'entityTags', entityKind: 'effects' },
     element: { display: 'elementPicker' },
     tags:    { display: 'entityTags', entityKind: 'skills', idKey: 'tag' },
