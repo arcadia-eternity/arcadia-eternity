@@ -1,33 +1,41 @@
 <template>
   <!-- String with suggestions -->
-  <el-select-v2
-    v-if="hasSuggestions"
-    :model-value="stringValue"
-    :options="suggestionOptions"
-    :placeholder="placeholder"
-    filterable
-    clearable
-    allow-create
-    class="w-full"
-    @update:model-value="handleStringChange"
-  >
-    <template #default="{ item }">
-      <div class="flex items-center gap-1">
-        <PetIcon v-if="typeof item.petIconId === 'number'" :id="item.petIconId" class="w-[18px] h-[18px]" />
-        <MarkIcon
-          v-else-if="typeof item.markId === 'string' && item.markId.length > 0"
-          :mark-id="item.markId"
-          :size="18"
-          class="w-[18px] h-[18px]"
-        />
-        <span v-else-if="item.element" class="w-[18px] h-[18px]">
-          <ElementIcon :element="item.element" :size="18" />
-        </span>
-        <span class="text-sm">{{ item.value }}</span>
-        <span v-if="item.relation" class="text-xs text-gray-400 ml-auto">{{ item.relation }}</span>
-      </div>
-    </template>
-  </el-select-v2>
+  <div v-if="hasSuggestions" class="field-nullable-wrapper">
+    <el-select-v2
+      :model-value="stringValue"
+      :options="suggestionOptions"
+      :placeholder="placeholder"
+      filterable
+      clearable
+      allow-create
+      class="w-full"
+      @update:model-value="handleStringChange"
+    >
+      <template #default="{ item }">
+        <div class="flex items-center gap-1">
+          <PetIcon v-if="typeof item.petIconId === 'number'" :id="item.petIconId" class="w-[18px] h-[18px]" />
+          <MarkIcon
+            v-else-if="typeof item.markId === 'string' && item.markId.length > 0"
+            :mark-id="item.markId"
+            :size="18"
+            class="w-[18px] h-[18px]"
+          />
+          <span v-else-if="item.element" class="w-[18px] h-[18px]">
+            <ElementIcon :element="item.element" :size="18" />
+          </span>
+          <span class="text-sm">{{ item.value }}</span>
+          <span v-if="item.relation" class="text-xs text-gray-400 ml-auto">{{ item.relation }}</span>
+        </div>
+      </template>
+    </el-select-v2>
+    <button
+      v-if="nullable"
+      type="button"
+      class="field-clear-btn"
+      title="清空为默认值"
+      @click="clearToNull"
+    >×</button>
+  </div>
 
   <!-- String (plain) -->
   <div v-else-if="fieldType === 'string'" class="field-nullable-wrapper">
@@ -39,26 +47,41 @@
       @update:model-value="handleStringChange"
       @focus="onNullableFocus"
     />
+    <button
+      v-if="nullable"
+      type="button"
+      class="field-clear-btn"
+      title="清空为默认值"
+      @click="clearToNull"
+    >×</button>
   </div>
 
   <!-- Enum -->
-  <el-select
-    v-else-if="fieldType === 'enum'"
-    :model-value="value as string"
-    :placeholder="isShowingDefault ? String(defaultValue) : placeholder"
-    :class="{ 'field-using-default': isShowingDefault }"
-    clearable
-    class="w-full"
-    @update:model-value="v => $emit('update', v ?? null)"
-    @focus="onNullableFocus"
-  >
-    <el-option v-for="opt in enumOptions" :key="opt.value" :label="opt.label" :value="opt.value">
-      <div class="flex items-center gap-2">
-        <ElementIcon v-if="opt.element" :element="opt.element" :size="16" />
-        <span>{{ opt.label }}</span>
-      </div>
-    </el-option>
-  </el-select>
+  <div v-else-if="fieldType === 'enum'" class="field-nullable-wrapper">
+    <el-select
+      :model-value="value as string"
+      :placeholder="isShowingDefault ? String(defaultValue) : placeholder"
+      :class="{ 'field-using-default': isShowingDefault }"
+      clearable
+      class="w-full"
+      @update:model-value="v => $emit('update', v ?? null)"
+      @focus="onNullableFocus"
+    >
+      <el-option v-for="opt in enumOptions" :key="opt.value" :label="opt.label" :value="opt.value">
+        <div class="flex items-center gap-2">
+          <ElementIcon v-if="opt.element" :element="opt.element" :size="16" />
+          <span>{{ opt.label }}</span>
+        </div>
+      </el-option>
+    </el-select>
+    <button
+      v-if="nullable"
+      type="button"
+      class="field-clear-btn"
+      title="清空为默认值"
+      @click="clearToNull"
+    >×</button>
+  </div>
 
   <!-- Number -->
   <div v-else-if="fieldType === 'number'" class="field-nullable-wrapper">
