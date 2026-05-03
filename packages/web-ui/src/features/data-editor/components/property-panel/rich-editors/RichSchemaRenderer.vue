@@ -6,7 +6,7 @@
  */
 import { computed, onMounted, shallowRef, type Component } from 'vue'
 import i18next from 'i18next'
-import { type TSchema, type TObject } from '@sinclair/typebox'
+import { type TSchema, type TObject, type TUnion } from '@sinclair/typebox'
 import { KindGuard } from '@sinclair/typebox/type'
 import type { RichFieldHints, RichFieldContext, RichEditorMetadata } from './types'
 import { ensureDefaultRichEditors, resolveRichEditor } from './registry'
@@ -49,6 +49,8 @@ interface ResolvedField {
   hints: RichFieldHints
   editor: { component: Component } | null
   context: RichFieldContext
+  nullable: boolean
+  defaultValue: unknown
 }
 
 const fields = computed<ResolvedField[]>(() => {
@@ -63,6 +65,21 @@ const fields = computed<ResolvedField[]>(() => {
     const path = key
     const value = props.draft?.[key]
     const hints = props.hints[path] ?? { display: 'default' }
+
+    // Detect nullability
+    const isNullable = (() => {
+      // Check if field is in a Union with Null
+      if (KindGuard.IsUnion(fieldSchema)) {
+        const members = (fieldSchema as TUnion).anyOf
+        if (members.some((m: TSchema) => KindGuard.IsNull(m))) return true
+      }
+      // Check if field is Optional (not in parent's required array)
+      const required = (obj as any).required as string[] | undefined
+      if (required && !required.includes(key)) return true
+      return false
+    })()
+
+    const defaultValue = (fieldSchema as any).default ?? undefined
 
     const context: RichFieldContext = {
       path,
@@ -85,6 +102,8 @@ const fields = computed<ResolvedField[]>(() => {
       hints,
       editor,
       context,
+      nullable: isNullable,
+      defaultValue,
     }
   })
 })
@@ -112,6 +131,8 @@ function updateField(path: string, value: unknown) {
           :value="field.value"
           :schema="field.schemaNode"
           :field-path="field.path"
+          :nullable="field.nullable"
+          :default-value="field.defaultValue"
           @update="(v: unknown) => updateField(field.path, v)"
         />
       </div>

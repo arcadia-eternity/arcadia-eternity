@@ -30,22 +30,27 @@
   </el-select-v2>
 
   <!-- String (plain) -->
-  <el-input
-    v-else-if="fieldType === 'string'"
-    :model-value="stringValue"
-    :placeholder="placeholder"
-    clearable
-    @update:model-value="handleStringChange"
-  />
+  <div v-else-if="fieldType === 'string'" class="field-nullable-wrapper">
+    <el-input
+      :model-value="isShowingDefault ? String(defaultValue) : stringValue"
+      :placeholder="placeholder"
+      :class="{ 'field-using-default': isShowingDefault }"
+      clearable
+      @update:model-value="handleStringChange"
+      @focus="onNullableFocus"
+    />
+  </div>
 
   <!-- Enum -->
   <el-select
     v-else-if="fieldType === 'enum'"
     :model-value="value as string"
-    :placeholder="placeholder"
+    :placeholder="isShowingDefault ? String(defaultValue) : placeholder"
+    :class="{ 'field-using-default': isShowingDefault }"
     clearable
     class="w-full"
-    @update:model-value="v => $emit('update', v ?? undefined)"
+    @update:model-value="v => $emit('update', v ?? null)"
+    @focus="onNullableFocus"
   >
     <el-option v-for="opt in enumOptions" :key="opt.value" :label="opt.label" :value="opt.value">
       <div class="flex items-center gap-2">
@@ -56,18 +61,28 @@
   </el-select>
 
   <!-- Number -->
-  <el-input-number
-    v-else-if="fieldType === 'number'"
-    :model-value="normalizedNumber"
-    :min="numberOptions.min"
-    :max="numberOptions.max"
-    :step="numberOptions.step"
-    :precision="numberOptions.precision"
-    :step-strictly="numberOptions.stepStrictly"
-    controls-position="right"
-    class="w-full"
-    @update:model-value="handleNumberChange"
-  />
+  <div v-else-if="fieldType === 'number'" class="field-nullable-wrapper">
+    <el-input-number
+      :model-value="isShowingDefault ? defaultValue : normalizedNumber"
+      :min="numberOptions.min"
+      :max="numberOptions.max"
+      :step="numberOptions.step"
+      :precision="numberOptions.precision"
+      :step-strictly="numberOptions.stepStrictly"
+      controls-position="right"
+      :class="{ 'field-using-default': isShowingDefault }"
+      class="flex-1"
+      @focus="onNullableFocus"
+      @update:model-value="handleNumberChange"
+    />
+    <button
+      v-if="nullable"
+      type="button"
+      class="field-clear-btn"
+      title="清空为默认值"
+      @click="clearToNull"
+    >×</button>
+  </div>
 
   <!-- Boolean -->
   <el-switch
@@ -120,6 +135,8 @@ const props = defineProps<{
   schema: TSchema
   fieldPath: string
   contextKind?: EditableDataKind
+  nullable?: boolean
+  defaultValue?: unknown
 }>()
 
 const emit = defineEmits<{
@@ -142,6 +159,9 @@ function unwrapSchema(schema: TSchema): TSchema {
 
 const unwrapped = computed(() => unwrapSchema(props.schema))
 const normalizedPath = computed(() => props.fieldPath.replace(/\[\d+\]/g, '[]').replace(/^\./, ''))
+
+const isNull = computed(() => props.value === null || props.value === undefined)
+const isShowingDefault = computed(() => isNull.value && props.defaultValue !== undefined)
 
 const fieldType = computed(() => {
   const s = unwrapped.value
@@ -377,4 +397,59 @@ function updateTupleNumber(index: number, val: number | null | undefined) {
 function updateTupleString(index: number, val: string | number | null | undefined) {
   updateTupleItem(index, val)
 }
+
+// --- Nullable ---
+
+function clearToNull() {
+  emit('update', null)
+}
+
+function onNullableFocus() {
+  if (isShowingDefault.value && props.defaultValue !== undefined) {
+    emit('update', props.defaultValue)
+  }
+}
 </script>
+
+<style scoped>
+.field-nullable-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.field-nullable-wrapper :deep(.el-input-number) {
+  flex: 1;
+}
+
+.field-nullable-wrapper :deep(.el-input-number.field-using-default .el-input__inner),
+.field-nullable-wrapper :deep(.el-select.field-using-default .el-input__inner),
+.field-nullable-wrapper :deep(.el-input.field-using-default .el-input__inner) {
+  color: var(--ae-text-muted) !important;
+  font-style: italic;
+}
+
+.field-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--ae-text-muted);
+  cursor: pointer;
+  border-radius: var(--ae-radius-sm);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.field-clear-btn:hover {
+  color: var(--ae-error);
+  background: var(--ae-hover);
+}
+</style>
