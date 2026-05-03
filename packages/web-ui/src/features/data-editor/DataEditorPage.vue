@@ -209,7 +209,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="data-editor-root h-screen flex flex-col bg-[#1a1d23] text-[#d6dde8]">
+  <div class="data-editor-root h-full flex flex-col overflow-hidden bg-[#1a1d23] text-[#d6dde8]">
     <!-- Loading overlay -->
     <Transition name="fade">
       <div v-if="isLoading" class="editor-loading-overlay">
