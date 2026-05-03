@@ -116,6 +116,62 @@
     @update:model-value="$emit('update', $event)"
   />
 
+  <!-- Number or Tuple (e.g., multihit) -->
+  <div v-else-if="fieldType === 'numberOrTuple'" class="field-nullable-wrapper">
+    <div class="number-or-tuple-editor">
+      <div class="nt-toggle">
+        <button
+          type="button"
+          class="nt-toggle-btn"
+          :class="{ active: isSingleMode }"
+          @click="switchToSingle"
+        >固定</button>
+        <button
+          type="button"
+          class="nt-toggle-btn"
+          :class="{ active: !isSingleMode }"
+          @click="switchToRange"
+        >范围</button>
+      </div>
+      <div class="nt-inputs">
+        <!-- Single: one number -->
+        <el-input-number
+          v-if="isSingleMode && numberOrTupleMembers.numberSchema"
+          :model-value="singleValue"
+          :min="getNumberOptions(numberOrTupleMembers.numberSchema).min"
+          :max="getNumberOptions(numberOrTupleMembers.numberSchema).max"
+          :step="getNumberOptions(numberOrTupleMembers.numberSchema).step"
+          controls-position="right"
+          class="flex-1"
+          @update:model-value="onSingleChange"
+        />
+        <!-- Range: two numbers -->
+        <template v-else-if="!isSingleMode && numberOrTupleMembers.tupleSchema">
+          <el-input-number
+            :model-value="rangeLow"
+            controls-position="right"
+            class="flex-1"
+            @update:model-value="onRangeLowChange"
+          />
+          <span class="nt-separator">～</span>
+          <el-input-number
+            :model-value="rangeHigh"
+            controls-position="right"
+            class="flex-1"
+            @update:model-value="onRangeHighChange"
+          />
+        </template>
+      </div>
+    </div>
+    <button
+      v-if="nullable"
+      type="button"
+      class="field-clear-btn"
+      title="清空为默认值"
+      @click="clearToNull"
+    >×</button>
+  </div>
+
   <!-- Tuple -->
   <div v-else-if="fieldType === 'tuple'" class="flex gap-2">
     <template v-for="(itemSchema, i) in tupleSchemas" :key="i">
@@ -192,6 +248,7 @@ const fieldType = computed(() => {
   if (KindGuard.IsString(s)) return 'string'
   if (KindGuard.IsNumber(s) || KindGuard.IsInteger(s)) return 'number'
   if (KindGuard.IsBoolean(s)) return 'boolean'
+  if (isNumberOrTuple(s)) return 'numberOrTuple'
   if (KindGuard.IsTuple(s)) return 'tuple'
   return 'unknown'
 })
@@ -201,6 +258,16 @@ function isEnumSchema(schema: TSchema): boolean {
     return (schema as TUnion).anyOf.every((s: TSchema) => KindGuard.IsLiteral(s))
   }
   return false
+}
+
+function isNumberOrTuple(schema: TSchema): boolean {
+  if (!KindGuard.IsUnion(schema)) return false
+  const members = (schema as TUnion).anyOf
+  if (members.length < 2) return false
+  const nonNull = members.filter(m => !KindGuard.IsNull(m))
+  const hasNumber = nonNull.some(m => KindGuard.IsNumber(m) || KindGuard.IsInteger(m))
+  const hasTuple = nonNull.some(m => KindGuard.IsTuple(m))
+  return hasNumber && hasTuple
 }
 
 const isNumberSchema = (s: TSchema) => KindGuard.IsNumber(s) || KindGuard.IsInteger(s)
@@ -388,6 +455,69 @@ function handleNumberChange(v: number | null | undefined) {
   emit('update', normalizeNumber(unwrapped.value, v))
 }
 
+// --- Number or Tuple (Union) ---
+
+const numberOrTupleMembers = computed(() => {
+  if (fieldType.value !== 'numberOrTuple') return { numberSchema: null, tupleSchema: null }
+  const members = (unwrapped.value as TUnion).anyOf.filter((m: TSchema) => !KindGuard.IsNull(m))
+  return {
+    numberSchema: members.find(m => KindGuard.IsNumber(m) || KindGuard.IsInteger(m)) ?? null,
+    tupleSchema: members.find(m => KindGuard.IsTuple(m)) ?? null,
+  }
+})
+
+const isSingleMode = computed(() => {
+  const v = props.value
+  if (isShowingDefault.value) return true // default mode = single
+  return typeof v === 'number' || !Array.isArray(v)
+})
+
+const singleValue = computed(() => {
+  const v = props.value
+  if (typeof v === 'number') return v
+  if (isShowingDefault.value && typeof props.defaultValue === 'number') return props.defaultValue
+  // If current value is a tuple, derive a reasonable single value (midpoint)
+  if (Array.isArray(v) && v.length >= 2) return Math.round(((v[0] as number) + (v[1] as number)) / 2)
+  return 0
+})
+
+const rangeLow = computed(() => {
+  if (Array.isArray(props.value) && props.value.length >= 2) return props.value[0] as number
+  return 2
+})
+
+const rangeHigh = computed(() => {
+  if (Array.isArray(props.value) && props.value.length >= 2) return props.value[1] as number
+  return 5
+})
+
+function switchToSingle() {
+  const mid = Math.round((rangeLow.value + rangeHigh.value) / 2)
+  emit('update', mid)
+}
+
+function switchToRange() {
+  const v = singleValue.value
+  emit('update', [Math.max(1, v - 1), v + 1])
+}
+
+function onSingleChange(v: number | null | undefined) {
+  const num = normalizeNumber(numberOrTupleMembers.value.numberSchema!, v)
+  emit('update', num)
+}
+
+function onRangeLowChange(v: number | null | undefined) {
+  const low = normalizeNumber(numberOrTupleMembers.value.tupleSchema!, v)
+  const high = rangeHigh.value
+  emit('update', [low ?? 2, high])
+}
+
+function onRangeHighChange(v: number | null | undefined) {
+  const low = rangeLow.value
+  const high = normalizeNumber(numberOrTupleMembers.value.tupleSchema!, v)
+  emit('update', [low, high ?? 5])
+}
+
 // --- Tuple ---
 
 const tupleSchemas = computed<TSchema[]>(() => {
@@ -474,5 +604,56 @@ function onNullableFocus() {
 .field-clear-btn:hover {
   color: var(--ae-error);
   background: var(--ae-hover);
+}
+
+.number-or-tuple-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ae-space-1);
+  flex: 1;
+}
+
+.nt-toggle {
+  display: flex;
+  gap: 1px;
+  background: var(--ae-bg-overlay);
+  border-radius: var(--ae-radius-sm);
+  padding: 2px;
+}
+
+.nt-toggle-btn {
+  flex: 1;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--ae-text-muted);
+  font-size: var(--ae-font-xs);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--ae-radius-xs);
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.nt-toggle-btn:hover {
+  color: var(--ae-text-secondary);
+}
+
+.nt-toggle-btn.active {
+  background: var(--ae-bg-base);
+  color: var(--ae-text-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.nt-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--ae-space-1);
+}
+
+.nt-separator {
+  color: var(--ae-text-muted);
+  font-size: var(--ae-font-sm);
+  flex-shrink: 0;
 }
 </style>
