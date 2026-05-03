@@ -3,38 +3,27 @@ import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import type { RichFieldContext } from '../types'
 import type { EntityType } from '@/features/data-editor/composables/useEditorState'
 import type { Element } from '@arcadia-eternity/const'
-import { translateEntityName, getTypeBoxSchemaSpec } from '@/features/data-editor/schemas/editorSchemas'
+import { translateEntityName } from '@/features/data-editor/schemas/editorSchemas'
+import { useGameConfig } from '../../../../game-config'
 import { useEntityNavigation } from '@/features/data-editor/composables/useEntityNavigation'
 import MarkIcon from '@/components/MarkIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 
 const props = defineProps<{ context: RichFieldContext }>()
 
+const config = useGameConfig()
 const { navigateTo } = useEntityNavigation()
 
 // ── Entity kind ──
 
-const ENTITY_LABELS: Record<string, string> = {
-  skills: '技能',
-  marks: '标记',
-  effects: '效果',
-  species: '精灵',
-}
-
 const entityKind = computed<EntityType | null>(() => {
-  if (props.context.hints.entityKind) return props.context.hints.entityKind
-  const path = props.context.path
-  const entityType = props.context.metadata.entityType
-  if (path.includes('learnable_skills')) return 'skills'
-  if (path.includes('ability') || path.includes('emblem')) return 'marks'
-  if (path.includes('effect') && (entityType === 'skills' || entityType === 'marks')) return 'effects'
-  return null
+  return props.context.hints.entityKind ?? null
 })
 
 const entityLabel = computed(() => {
   const kind = entityKind.value
   if (!kind) return '项目'
-  return ENTITY_LABELS[kind] ?? kind
+  return config.entities[kind]?.label ?? '项目'
 })
 
 // ── Items ──
@@ -55,8 +44,9 @@ const isComplexItems = computed(() => {
 // ── Name resolution ──
 
 function translateName(id: string, kind: EntityType): string {
-  if (kind === 'effects' || kind === 'species') return id
-  return translateEntityName(id, getTypeBoxSchemaSpec(kind as 'skills' | 'marks'))
+  const entityConfig = config.entities[kind]
+  if (!entityConfig) return id
+  return translateEntityName(id, entityConfig)
 }
 
 function resolveEntityId(item: unknown): string {

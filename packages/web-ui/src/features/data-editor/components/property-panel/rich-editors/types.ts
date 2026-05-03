@@ -1,6 +1,5 @@
 import type { Component } from 'vue'
 import type { TSchema } from '@sinclair/typebox'
-import type { EntityType } from '../../../composables/useEditorState'
 
 /** Display hint — maps a field to a rich editor component */
 export type RichDisplayHint =
@@ -34,7 +33,7 @@ export interface RichFieldHints {
   display?: RichDisplayHint
   editable?: boolean
   compact?: boolean
-  entityKind?: EntityType
+  entityKind?: string
   itemLabel?: string
   columns?: number
   /** For entityTags: which parent field to read the entity kind from */
@@ -59,12 +58,12 @@ export interface RichFieldHints {
 export interface RichEditorMetadata {
   /** Current record ID */
   recordId: string
-  /** Current entity type */
-  entityType: EntityType
+  /** Current entity type key */
+  entityType: string
   /** All game data records for cross-referencing */
   gameData: Record<string, Record<string, unknown>>
   /** Entity record counts */
-  recordCounts: Record<EntityType, number>
+  recordCounts: Record<string, number>
 }
 
 /** A rich editor component's props contract */

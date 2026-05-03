@@ -14,8 +14,6 @@ export type WorkspacePackManifest = {
 
 export const BASE_PACK_ID = 'arcadia-eternity.base'
 
-export const STRUCTURED_DATA_KIND_SET = new Set(['species', 'skills', 'marks'])
-
 export const TEXT_EXTENSION_SET = new Set([
   'txt',
   'md',

@@ -14,6 +14,9 @@ import { provideEditorState } from './composables/useEditorState'
 import { useEditorKeyboard } from './composables/useEditorKeyboard'
 import { useEditorUndo } from './composables/useEditorUndo'
 import { useGameDataStore } from '@/stores/gameData'
+import { provideGameConfig } from './game-config'
+import { baseEntities } from './game-config/base'
+import { seer2Config } from './game-config/seer2'
 import { listWorkspacePacks, type WorkspacePackSummary } from '@/services/packWorkspace'
 
 import EditorAppBar from './components/layout/EditorAppBar.vue'
@@ -23,6 +26,13 @@ import BattleBottomDrawer from './components/layout/BattleBottomDrawer.vue'
 
 // ── Centralized editor state (provided to all children) ──
 provideEditorState()
+
+// ── Game config (entity types, categories, triggers) ──
+provideGameConfig({
+  entities: { ...baseEntities, ...seer2Config.entities },
+  categories: seer2Config.categories,
+  triggers: seer2Config.triggers,
+})
 
 // ── Undo/redo for the currently selected record draft ──
 const draftRef = ref<Record<string, unknown>>({})

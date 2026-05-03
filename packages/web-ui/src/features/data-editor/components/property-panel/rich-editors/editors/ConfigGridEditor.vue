@@ -15,28 +15,6 @@ const STACK_STRATEGY_OPTIONS = [
   { value: 'remove', label: '移除 (remove)' },
 ]
 
-const BOOLEAN_KEYS = [
-  'stackable', 'persistent', 'destroyable', 'isShield',
-  'keepOnSwitchOut', 'transferOnSwitch', 'inheritOnFaint',
-] as const
-
-const NUMBER_KEYS = ['duration', 'maxStacks'] as const
-
-const DEFAULT_BOOLEAN_LABELS: Record<string, string> = {
-  stackable: '可叠加',
-  persistent: '持续',
-  destroyable: '可清除',
-  isShield: '护盾',
-  keepOnSwitchOut: '下场保留',
-  transferOnSwitch: '换人传递',
-  inheritOnFaint: '濒死继承',
-}
-
-const DEFAULT_NUMBER_LABELS: Record<string, string> = {
-  duration: '持续回合',
-  maxStacks: '最大层数',
-}
-
 const EXTRA_LABELS: Record<string, string> = {
   stackStrategy: '叠加策略',
   mutexGroup: '互斥组',
@@ -45,12 +23,7 @@ const EXTRA_LABELS: Record<string, string> = {
 const allKeys = computed(() => {
   const hintKeys = props.context.hints.configKeys
   if (hintKeys && hintKeys.length > 0) return [...hintKeys]
-  return [
-    ...BOOLEAN_KEYS,
-    ...NUMBER_KEYS,
-    'stackStrategy',
-    'mutexGroup',
-  ]
+  return [...Object.keys(currentConfig.value), 'stackStrategy', 'mutexGroup']
 })
 
 const currentConfig = computed(() => {
@@ -62,8 +35,6 @@ const currentConfig = computed(() => {
 const labelMap = computed(() => {
   const labels = props.context.hints.configLabels ?? {}
   return {
-    ...DEFAULT_BOOLEAN_LABELS,
-    ...DEFAULT_NUMBER_LABELS,
     ...EXTRA_LABELS,
     ...labels,
   }
@@ -74,11 +45,11 @@ function getLabel(key: string): string {
 }
 
 function isBooleanField(key: string): boolean {
-  return BOOLEAN_KEYS.includes(key as typeof BOOLEAN_KEYS[number])
+  return typeof currentConfig.value[key] === 'boolean'
 }
 
 function isNumberField(key: string): boolean {
-  return NUMBER_KEYS.includes(key as typeof NUMBER_KEYS[number])
+  return typeof currentConfig.value[key] === 'number'
 }
 
 function onBooleanToggle(key: string) {

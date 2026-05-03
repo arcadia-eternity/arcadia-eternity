@@ -3,23 +3,21 @@ import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import type { RichFieldContext } from '../types'
 import type { EntityType } from '@/features/data-editor/composables/useEditorState'
 import type { Element } from '@arcadia-eternity/const'
-import { translateEntityName, getTypeBoxSchemaSpec } from '@/features/data-editor/schemas/editorSchemas'
+import { translateEntityName } from '@/features/data-editor/schemas/editorSchemas'
+import { useGameConfig } from '../../../../game-config'
 import { useEntityNavigation } from '@/features/data-editor/composables/useEntityNavigation'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import MarkIcon from '@/components/MarkIcon.vue'
 
 const props = defineProps<{ context: RichFieldContext }>()
 
+const config = useGameConfig()
 const { navigateTo } = useEntityNavigation()
 
 // ── Derive entity kind ──
 
 const entityKind = computed<EntityType | null>(() => {
-  if (props.context.hints.entityKind) return props.context.hints.entityKind
-  const path = props.context.path
-  if (path.includes('ability') || path.includes('emblem')) return 'marks'
-  if (path.includes('effect')) return 'effects'
-  return null
+  return props.context.hints.entityKind ?? null
 })
 
 // ── Items (simple strings) ──
@@ -45,8 +43,9 @@ function removeItem(index: number) {
 // ── Name translation ──
 
 function translateName(id: string, kind: EntityType): string {
-  if (kind === 'effects') return id
-  return translateEntityName(id, getTypeBoxSchemaSpec(kind as 'species' | 'skills' | 'marks'))
+  const entityConfig = config.entities[kind]
+  if (!entityConfig) return id
+  return translateEntityName(id, entityConfig)
 }
 
 function resolveLabel(id: string): string {

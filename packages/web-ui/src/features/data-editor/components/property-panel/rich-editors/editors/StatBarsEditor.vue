@@ -5,16 +5,11 @@ import type { RichFieldContext } from '../types'
 const props = defineProps<{ context: RichFieldContext }>()
 const emit = defineEmits<{ update: [value: unknown] }>()
 
-const DEFAULT_KEYS = ['hp', 'atk', 'spa', 'def', 'spd', 'spe'] as const
-const DEFAULT_LABELS: Record<string, string> = {
-  hp: 'HP', atk: 'ATK', spa: 'SPA', def: 'DEF', spd: 'SPD', spe: 'SPE',
-}
-
 const statKeys = computed<readonly string[]>(
-  () => props.context.hints.statKeys ?? DEFAULT_KEYS,
+  () => props.context.hints.statKeys ?? [],
 )
 const statLabels = computed<Record<string, string>>(
-  () => props.context.hints.statLabels ?? DEFAULT_LABELS,
+  () => props.context.hints.statLabels ?? {},
 )
 
 const currentStats = computed(() => {

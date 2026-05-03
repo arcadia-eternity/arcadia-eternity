@@ -1,37 +1,36 @@
 <script setup lang="ts">
 /**
  * IdentityHeader - Compact one-row identity display for rich editor panels.
- * Species: PetIcon + ElementIcon + name + dex number
- * Skills: ElementIcon + category badge + name
- * Marks: MarkIcon + name
+ * Uses game-config for entity metadata, categories, and i18n.
  */
 import { computed } from 'vue'
 import i18next from 'i18next'
-import { ELEMENT_MAP, Category } from '@arcadia-eternity/const'
+import { ELEMENT_MAP } from '@arcadia-eternity/const'
 import type { RichFieldContext } from '../types'
+import { useGameConfig } from '../../../../game-config'
 
 const props = defineProps<{ context: RichFieldContext }>()
 
+const config = useGameConfig()
+
 const entityType = computed(() => props.context.metadata.entityType)
+const entityConfig = computed(() => config.entities[entityType.value])
 const recordId = computed(() => props.context.metadata.recordId)
 const record = computed(() => {
   const gd = props.context.metadata.gameData
   return gd[entityType.value]?.[recordId.value] as Record<string, unknown> | undefined
 })
 
-function translateName(id: string, ns: string | string[]): string {
-  const t = i18next.t(`${id}.name`, { ns, defaultValue: id })
-  return t !== id ? t : id
+function resolveI18nNs(): string | string[] | undefined {
+  return entityConfig.value?.i18n?.namespaces
 }
 
 const displayName = computed(() => {
   if (!recordId.value) return ''
-  switch (entityType.value) {
-    case 'species': return translateName(recordId.value, 'species')
-    case 'skills': return translateName(recordId.value, 'skill')
-    case 'marks': return translateName(recordId.value, ['mark', 'mark_ability', 'mark_emblem', 'mark_global'])
-    default: return recordId.value
-  }
+  const ns = resolveI18nNs()
+  if (!ns) return recordId.value
+  const t = i18next.t(`${recordId.value}.name`, { ns, defaultValue: recordId.value })
+  return t !== recordId.value ? t : recordId.value
 })
 
 const speciesNum = computed(() => {
@@ -46,17 +45,15 @@ const speciesElement = computed(() => {
   return typeof el === 'string' ? el : null
 })
 
-const CATEGORY_META: Record<string, { label: string; color: string; bg: string }> = {
-  [Category.Physical]: { label: '物攻', color: '#f87171', bg: 'rgba(248, 113, 113, 0.15)' },
-  [Category.Special]: { label: '特攻', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
-  [Category.Status]: { label: '属性', color: '#4ade80', bg: 'rgba(74, 222, 128, 0.15)' },
-  [Category.Climax]: { label: '终极', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
+function findCategoryMeta(value: unknown): { label: string; color: string; bg: string } | null {
+  if (!config.categories) return null
+  return config.categories.find(c => String(c.value) === String(value)) ?? null
 }
 
 const skillCategory = computed(() => {
   if (entityType.value !== 'skills') return null
   const cat = record.value?.category
-  return typeof cat === 'string' ? (CATEGORY_META[cat] ?? null) : null
+  return findCategoryMeta(cat)
 })
 
 const skillElement = computed(() => {
@@ -64,6 +61,8 @@ const skillElement = computed(() => {
   const el = record.value?.element
   return typeof el === 'string' ? el : null
 })
+
+const entityIcon = computed(() => entityConfig.value?.icon)
 </script>
 
 <template>
@@ -95,11 +94,12 @@ const skillElement = computed(() => {
     </template>
 
     <template v-else-if="entityType === 'marks'">
-      <span class="identity-mark-icon">🏷️</span>
+      <span v-if="entityIcon" class="identity-mark-icon">{{ entityIcon }}</span>
       <span class="identity-name identity-name--mono">{{ displayName }}</span>
     </template>
 
     <template v-else>
+      <span v-if="entityIcon" class="identity-mark-icon">{{ entityIcon }}</span>
       <span class="identity-name">{{ displayName }}</span>
     </template>
   </div>

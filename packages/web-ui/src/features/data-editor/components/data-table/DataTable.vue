@@ -14,7 +14,8 @@
  *   - Entity-type-specific column layouts
  */
 import { computed, ref, watch, h } from 'vue'
-import { translateEntityName, getTypeBoxSchemaSpec } from '../../schemas/editorSchemas'
+import { translateEntityName, getValueByPath } from '../../schemas/editorSchemas'
+import { useGameConfig } from '../../game-config'
 import {
   useVueTable,
   getCoreRowModel,
@@ -43,6 +44,7 @@ const emit = defineEmits<{
 // ── Editor state ──
 
 const editorState = useEditorState()
+const config = useGameConfig()
 
 // ── Local table state ──
 
@@ -55,7 +57,7 @@ watch(() => props.entityType, () => {
   sorting.value = []
 })
 
-// ── Column definitions per entity type ──
+// ── Column helpers ──
 
 function formatValue(value: unknown): string {
   if (value === undefined || value === null) return '∅'
@@ -66,236 +68,93 @@ function formatValue(value: unknown): string {
   return String(value)
 }
 
-function getColumns(type: EntityType): ColumnDef<Record<string, unknown>, unknown>[] {
-  switch (type) {
-    case 'species':
-      return [
-        {
-          id: 'id',
-          accessorKey: 'id',
-          header: 'ID',
-          size: 160,
-          cell: (info) => info.getValue(),
-          meta: { className: 'cell-id' },
-        },
-        {
-          id: 'name',
-          accessorFn: (row) => translateEntityName(row.id as string, getTypeBoxSchemaSpec('species')),
-          header: '名称',
-          size: 140,
-          cell: (info) => info.getValue(),
-        },
-        {
-          id: 'element',
-          accessorFn: (row) => row.element as string,
-          header: '属性',
-          size: 100,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'hp',
-          accessorFn: (row) => (row.baseStats as Record<string, unknown>)?.hp,
-          header: 'HP',
-          size: 70,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'atk',
-          accessorFn: (row) => (row.baseStats as Record<string, unknown>)?.atk,
-          header: 'ATK',
-          size: 70,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'def',
-          accessorFn: (row) => (row.baseStats as Record<string, unknown>)?.def,
-          header: 'DEF',
-          size: 70,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'spa',
-          accessorFn: (row) => (row.baseStats as Record<string, unknown>)?.spa,
-          header: 'SPA',
-          size: 70,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'spd',
-          accessorFn: (row) => (row.baseStats as Record<string, unknown>)?.spd,
-          header: 'SPD',
-          size: 70,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'spe',
-          accessorFn: (row) => (row.baseStats as Record<string, unknown>)?.spe,
-          header: 'SPE',
-          size: 70,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'learnable_skills',
-          accessorFn: (row) => {
-            const skills = row.learnable_skills as Array<{ skill_id: string; level: number; hidden?: boolean }> | undefined
-            if (!skills?.length) return ''
-            const preview = skills.slice(0, 3).map(s => {
-              const name = translateEntityName(s.skill_id, getTypeBoxSchemaSpec('skills'))
-              return `${name} Lv.${s.level ?? 1}${s.hidden ? ' 隐' : ''}`
-            }).join(', ')
-            return skills.length > 3 ? `${preview}  +${skills.length - 3}` : preview
-          },
-          header: '可学技能',
-          size: 240,
-          enableSorting: false,
-          cell: (info) => {
-            const text = info.getValue() as string
-            if (!text) return '—'
-            const skills = info.row.original.learnable_skills as Array<{ skill_id: string; level: number; hidden?: boolean }> | undefined
-            const title = skills?.map(s => {
-              const name = translateEntityName(s.skill_id, getTypeBoxSchemaSpec('skills'))
-              return `${name} Lv.${s.level ?? 1}${s.hidden ? ' (隐藏)' : ''}`
-            }).join('\n') ?? ''
-            return h('span', { title, class: 'cell-learnable' }, text)
-          },
-        },
-      ]
+// ── Columns: data-driven from game config ──
 
-    case 'skills':
-      return [
-        {
-          id: 'id',
-          accessorKey: 'id',
-          header: 'ID',
-          size: 180,
-          cell: (info) => info.getValue(),
-          meta: { className: 'cell-id' },
-        },
-        {
-          id: 'name',
-          accessorFn: (row) => translateEntityName(row.id as string, getTypeBoxSchemaSpec('skills')),
-          header: '名称',
-          size: 140,
-          cell: (info) => info.getValue(),
-        },
-        {
-          id: 'element',
-          accessorFn: (row) => row.element as string,
-          header: '属性',
-          size: 100,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'category',
-          accessorFn: (row) => row.category as string,
-          header: '分类',
-          size: 100,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'power',
-          size: 80,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'accuracy',
-          accessorFn: (row) => row.accuracy as number,
-          header: '命中',
-          size: 80,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'rage',
-          accessorFn: (row) => row.rage as number,
-          header: '怒气',
-          size: 80,
-          cell: (info) => formatValue(info.getValue()),
-        },
-      ]
+const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
+  const entityCfg = config.entities[props.entityType]
+  if (!entityCfg) return []
 
-    case 'marks':
-      return [
-        {
-          id: 'id',
-          accessorKey: 'id',
-          header: 'ID',
-          size: 180,
-          cell: (info) => info.getValue(),
-          meta: { className: 'cell-id' },
-        },
-        {
-          id: 'name',
-          accessorFn: (row) => translateEntityName(row.id as string, getTypeBoxSchemaSpec('marks')),
-          header: '名称',
-          size: 140,
-          cell: (info) => info.getValue(),
-        },
-        {
-          id: 'duration',
-          accessorFn: (row) => (row.config as Record<string, unknown>)?.duration,
-          header: '持续',
-          size: 90,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'maxStacks',
-          accessorFn: (row) => (row.config as Record<string, unknown>)?.maxStacks,
-          header: '层数',
-          size: 90,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'stackable',
-          accessorFn: (row) => (row.config as Record<string, unknown>)?.stackable,
-          header: '可叠',
-          size: 80,
-          cell: (info) => formatValue(info.getValue()),
-        },
-        {
-          id: 'isShield',
-          accessorFn: (row) => (row.config as Record<string, unknown>)?.isShield,
-          header: '护盾',
-          size: 80,
-          cell: (info) => formatValue(info.getValue()),
-        },
-      ]
+  const summaryCols = entityCfg.summaryColumns ?? []
+  const defs: ColumnDef<Record<string, unknown>, unknown>[] = []
 
-    case 'effects':
-      return [
-        {
-          id: 'id',
-          accessorKey: 'id',
-          header: 'ID',
-          size: 200,
-          cell: (info) => info.getValue(),
-          meta: { className: 'cell-id' },
-        },
-        {
+  for (const col of summaryCols) {
+    if (col.id === 'id') {
+      defs.push({
+        id: 'id',
+        accessorKey: 'id',
+        header: col.label,
+        size: col.width ?? 150,
+        cell: (info) => info.getValue(),
+        meta: { className: 'cell-id' },
+      })
+      // Name column for entities with translatable names
+      if (entityCfg.i18n?.hasNames !== false) {
+        defs.push({
           id: 'name',
-          accessorFn: (row) => row.id as string,
+          accessorFn: (row) => translateEntityName(row.id as string, entityCfg),
           header: '名称',
           size: 140,
           cell: (info) => info.getValue(),
+        })
+      }
+      continue
+    }
+
+    if (col.id === 'trigger') {
+      defs.push({
+        id: 'triggerCount',
+        accessorFn: (row) => {
+          const triggers = getValueByPath(row as Record<string, unknown>, col.path) as unknown[]
+          return triggers?.length ?? 0
         },
-        {
-          id: 'triggerCount',
-          accessorFn: (row) => {
-            const triggers = row.trigger as unknown[]
-            return triggers?.length ?? 0
-          },
-          header: '触发数',
-          size: 90,
-          cell: (info) => `${info.getValue()}项`,
-        },
-      ]
+        header: '触发数',
+        size: col.width ?? 120,
+        cell: (info) => `${info.getValue()}项`,
+      })
+      continue
+    }
+
+    defs.push({
+      id: col.id,
+      accessorFn: (row) => getValueByPath(row as Record<string, unknown>, col.path),
+      header: col.label,
+      size: col.width ?? 150,
+      cell: (info) => formatValue(info.getValue()),
+    })
   }
-}
 
-// ── Columns reactive ──
+  // Species-specific: learnable_skills
+  if (props.entityType === 'species' && config.entities['skills']) {
+    const skillsCfg = config.entities['skills']
+    defs.push({
+      id: 'learnable_skills',
+      accessorFn: (row) => {
+        const skills = row.learnable_skills as Array<{ skill_id: string; level: number; hidden?: boolean }> | undefined
+        if (!skills?.length) return ''
+        const preview = skills.slice(0, 3).map(s => {
+          const name = translateEntityName(s.skill_id, skillsCfg)
+          return `${name} Lv.${s.level ?? 1}${s.hidden ? ' 隐' : ''}`
+        }).join(', ')
+        return skills.length > 3 ? `${preview}  +${skills.length - 3}` : preview
+      },
+      header: '可学技能',
+      size: 240,
+      enableSorting: false,
+      cell: (info) => {
+        const text = info.getValue() as string
+        if (!text) return '—'
+        const skills = info.row.original.learnable_skills as Array<{ skill_id: string; level: number; hidden?: boolean }> | undefined
+        const title = skills?.map(s => {
+          const name = translateEntityName(s.skill_id, skillsCfg)
+          return `${name} Lv.${s.level ?? 1}${s.hidden ? ' (隐藏)' : ''}`
+        }).join('\n') ?? ''
+        return h('span', { title, class: 'cell-learnable' }, text)
+      },
+    })
+  }
 
-const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() =>
-  getColumns(props.entityType),
-)
+  return defs
+})
 
 // ── Search filter ──
 
@@ -330,9 +189,8 @@ const table = useVueTable({
     const search = String(filterValue).toLowerCase().trim()
     if (!search) return true
     const recordId = String(row.original.id ?? '').toLowerCase()
-    const spec = (props.entityType === 'species' || props.entityType === 'skills' || props.entityType === 'marks')
-      ? getTypeBoxSchemaSpec(props.entityType)
-      : undefined
+    const entityCfg = config.entities[props.entityType]
+    const spec = entityCfg?.i18n != null ? entityCfg : undefined
     const i18nName = spec ? translateEntityName(row.original.id as string, spec).toLowerCase() : recordId
     return recordId.includes(search) || i18nName.includes(search)
   },

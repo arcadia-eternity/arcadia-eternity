@@ -10,7 +10,8 @@ import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadi
 import { useGameDataStore } from '@/stores/gameData'
 import { useEditorState, type EntityType } from '../../composables/useEditorState'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
-import { translateEntityName, getTypeBoxSchemaSpec } from '../../schemas/editorSchemas'
+import { translateEntityName } from '../../schemas/editorSchemas'
+import { useGameConfig } from '../../game-config'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import MarkIcon from '@/components/MarkIcon.vue'
@@ -23,6 +24,7 @@ const props = defineProps<{
 
 const gameData = useGameDataStore()
 const editorState = useEditorState()
+const config = useGameConfig()
 
 // --- Section Collapse State ---
 const sectionState = reactive<Record<string, boolean>>({
@@ -221,30 +223,14 @@ const effectMarks = computed(() => {
 })
 
 // --- Trigger label helper ---
-const TRIGGER_LABELS: Record<string, string> = {
-  onUse: '使用时',
-  onHit: '命中时',
-  onBeHit: '被击中时',
-  onKill: '击败时',
-  onBeKill: '被击败时',
-  onSwitchIn: '上场时',
-  onSwitchOut: '下场时',
-  onTurnStart: '回合开始',
-  onTurnEnd: '回合结束',
-  onFaint: '濒死时',
-  onBeforeAttack: '攻击前',
-  onAfterAttack: '攻击后',
-  onBeforeUse: '使用前',
-  onBeDamaged: '受伤时',
-  onDealDamage: '造成伤害时',
-}
+const triggers = config.triggers ?? {}
 
 function formatTrigger(trigger: unknown): string {
   if (!trigger) return ''
   if (Array.isArray(trigger)) {
-    return trigger.map(t => TRIGGER_LABELS[t as string] ?? t).join(', ')
+    return trigger.map(t => triggers[t as string] ?? t).join(', ')
   }
-  return TRIGGER_LABELS[trigger as string] ?? String(trigger)
+  return triggers[trigger as string] ?? String(trigger)
 }
 
 // --- Relation type labels ---
@@ -288,7 +274,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
               @click="navigateToEntity('marks', mark.id)"
             >
               <MarkIcon :mark-id="mark.id" :size="16" class="re-icon" />
-              <span class="re-entity-name">{{ translateEntityName(mark.id, getTypeBoxSchemaSpec('marks')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(mark.id, config.entities.marks) }}</span>
             </button>
           </div>
         </div>
@@ -311,7 +297,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
               @click="navigateToEntity('marks', mark.id)"
             >
               <MarkIcon :mark-id="mark.id" :size="16" class="re-icon" />
-              <span class="re-entity-name">{{ translateEntityName(mark.id, getTypeBoxSchemaSpec('marks')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(mark.id, config.entities.marks) }}</span>
             </button>
           </div>
         </div>
@@ -337,7 +323,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
               @click="navigateToEntity('species', sp.id)"
             >
               <PetIcon :id="sp.num ?? 0" class="re-pet-icon" />
-              <span class="re-entity-name">{{ translateEntityName(sp.id, getTypeBoxSchemaSpec('species')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(sp.id, config.entities.species) }}</span>
               <ElementIcon
                 v-if="sp.element"
                 :element="sp.element"
@@ -391,7 +377,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
               @click="navigateToEntity('marks', rel.markId)"
             >
               <MarkIcon :mark-id="rel.markId" :size="16" class="re-icon" />
-              <span class="re-entity-name">{{ translateEntityName(rel.markId, getTypeBoxSchemaSpec('marks')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(rel.markId, config.entities.marks) }}</span>
               <span class="re-relation-badge">{{ RELATION_TYPE_LABELS[rel.relationType] ?? rel.relationType }}</span>
             </button>
           </div>
@@ -418,7 +404,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
               @click="navigateToEntity('species', sp.id)"
             >
               <PetIcon :id="sp.num ?? 0" class="re-pet-icon" />
-              <span class="re-entity-name">{{ translateEntityName(sp.id, getTypeBoxSchemaSpec('species')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(sp.id, config.entities.species) }}</span>
               <span
                 class="re-relation-badge"
                 :class="sp.role === 'ability' ? 're-relation-badge--accent' : 're-relation-badge--muted'"
@@ -475,7 +461,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
                 :size="16"
                 class="re-icon"
               />
-              <span class="re-entity-name">{{ translateEntityName(skill.id, getTypeBoxSchemaSpec('skills')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(skill.id, config.entities.skills) }}</span>
             </button>
           </div>
         </div>
@@ -506,7 +492,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
                 :size="16"
                 class="re-icon"
               />
-              <span class="re-entity-name">{{ translateEntityName(skill.id, getTypeBoxSchemaSpec('skills')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(skill.id, config.entities.skills) }}</span>
             </button>
           </div>
         </div>
@@ -529,7 +515,7 @@ const RELATION_TYPE_LABELS: Record<string, string> = {
               @click="navigateToEntity('marks', mark.id)"
             >
               <MarkIcon :mark-id="mark.id" :size="16" class="re-icon" />
-              <span class="re-entity-name">{{ translateEntityName(mark.id, getTypeBoxSchemaSpec('marks')) }}</span>
+              <span class="re-entity-name">{{ translateEntityName(mark.id, config.entities.marks) }}</span>
             </button>
           </div>
         </div>

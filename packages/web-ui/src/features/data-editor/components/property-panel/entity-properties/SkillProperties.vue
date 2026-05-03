@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { translateEntityName, getTypeBoxSchemaSpec } from '../../../schemas/editorSchemas'
+import { translateEntityName } from '../../../schemas/editorSchemas'
 import type { SkillSchemaType } from '@arcadia-eternity/schema'
-import { Category, ELEMENT_MAP } from '@arcadia-eternity/const'
+import { useGameConfig } from '../../../game-config'
 import { useEditorState } from '../../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import RichSchemaRenderer from '../rich-editors/RichSchemaRenderer.vue'
-import type { RichEditorMetadata, RichFieldHints } from '../rich-editors/types'
+import type { RichEditorMetadata } from '../rich-editors/types'
 
 const props = defineProps<{
   record: SkillSchemaType | null
@@ -18,13 +18,13 @@ const emit = defineEmits<{ 'update:draft': [draft: Record<string, unknown>] }>()
 
 const state = useEditorState()
 const gameData = useGameDataStore()
+const config = useGameConfig()
 
-const CATEGORY_META: Record<string, { label: string; color: string; bg: string }> = {
-  [Category.Physical]: { label: '物攻', color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
-  [Category.Special]: { label: '特攻', color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
-  [Category.Status]: { label: '属性', color: '#4ade80', bg: 'rgba(74,222,128,0.15)' },
-  [Category.Climax]: { label: '终极', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
-}
+const categoryMeta = computed(() => {
+  const cat = props.record?.category
+  if (cat == null) return null
+  return config.categories?.find(c => c.value === cat) ?? null
+})
 
 const metadata = computed<RichEditorMetadata>(() => ({
   recordId: state.selectedRecordId ?? '',
@@ -43,13 +43,7 @@ const metadata = computed<RichEditorMetadata>(() => ({
   },
 }))
 
-const fieldHints: Record<string, RichFieldHints> = {
-  power: { display: 'default' },
-  accuracy: { display: 'default' },
-  rage: { display: 'default' },
-  effect: { display: 'entityTags', entityKind: 'effects', idKey: 'effect_id' },
-  tags: { display: 'entityTags', entityKind: 'skills', idKey: 'tag' },
-}
+const fieldHints = config.entities.skills.fieldHints
 </script>
 
 <template>
@@ -57,13 +51,13 @@ const fieldHints: Record<string, RichFieldHints> = {
     <div class="identity-header">
       <ElementIcon v-if="record.element" :element="record.element" :size="32" class="identity-element-icon" />
       <span
-        v-if="CATEGORY_META[record.category]"
+        v-if="categoryMeta"
         class="identity-category-badge"
-        :style="{ color: CATEGORY_META[record.category].color, backgroundColor: CATEGORY_META[record.category].bg }"
+        :style="{ color: categoryMeta.color, backgroundColor: categoryMeta.bg }"
       >
-        {{ CATEGORY_META[record.category].label }}
+        {{ categoryMeta.label }}
       </span>
-      <span class="identity-name">{{ translateEntityName(record.id, getTypeBoxSchemaSpec('skills')) }}</span>
+      <span class="identity-name">{{ translateEntityName(record.id, config.entities.skills) }}</span>
     </div>
     <div class="entity-body">
       <RichSchemaRenderer

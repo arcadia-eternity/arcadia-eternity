@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { translateEntityName, getTypeBoxSchemaSpec } from '../../../schemas/editorSchemas'
+import { translateEntityName } from '../../../schemas/editorSchemas'
 import type { MarkSchemaType } from '@arcadia-eternity/schema'
+import { useGameConfig } from '../../../game-config'
 import { useEditorState } from '../../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
 import MarkIcon from '@/components/MarkIcon.vue'
 import RichSchemaRenderer from '../rich-editors/RichSchemaRenderer.vue'
-import type { RichEditorMetadata, RichFieldHints } from '../rich-editors/types'
+import type { RichEditorMetadata } from '../rich-editors/types'
 
 const props = defineProps<{
   record: MarkSchemaType | null
@@ -17,6 +18,7 @@ const emit = defineEmits<{ 'update:draft': [draft: Record<string, unknown>] }>()
 
 const state = useEditorState()
 const gameData = useGameDataStore()
+const config = useGameConfig()
 
 const metadata = computed<RichEditorMetadata>(() => ({
   recordId: state.selectedRecordId ?? '',
@@ -35,19 +37,14 @@ const metadata = computed<RichEditorMetadata>(() => ({
   },
 }))
 
-const fieldHints: Record<string, RichFieldHints> = {
-  config: { display: 'configGrid' },
-  stackStrategy: { display: 'default' },
-  effect: { display: 'entityTags', entityKind: 'effects', idKey: 'effect_id' },
-  tags: { display: 'entityTags', entityKind: 'marks', idKey: 'tag' },
-}
+const fieldHints = config.entities.marks.fieldHints
 </script>
 
 <template>
   <div v-if="record" class="entity-properties">
     <div class="identity-header">
       <MarkIcon :mark-id="record.id" :size="32" class="identity-icon" />
-      <span class="identity-name">{{ translateEntityName(record.id, getTypeBoxSchemaSpec('marks')) }}</span>
+      <span class="identity-name">{{ translateEntityName(record.id, config.entities.marks) }}</span>
     </div>
     <div class="entity-body">
       <RichSchemaRenderer

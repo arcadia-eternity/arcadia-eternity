@@ -102,23 +102,18 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import i18next from 'i18next'
 import type { Element } from '@arcadia-eternity/const'
 import { ELEMENT_MAP } from '@arcadia-eternity/const'
 import { type TSchema, type TUnion, type TLiteral, type TNumber, type TInteger, type TTuple } from '@sinclair/typebox'
 import { KindGuard } from '@sinclair/typebox/type'
 import { useGameDataStore } from '@/stores/gameData'
 import type { EditableDataKind } from '@/components/pack-editor/typeboxDataSchema'
+import { translateEntityName } from '../../../schemas/editorSchemas'
+import { useGameConfig } from '../../../game-config'
+import type { EntityKind } from '../../../game-config/types'
 import PetIcon from '@/components/PetIcon.vue'
 import MarkIcon from '@/components/MarkIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
-
-const CATEGORY_MAP: Record<string, string> = {
-  Physical: '物理',
-  Special: '特殊',
-  Status: '变化',
-  Climax: '必杀',
-}
 
 const props = defineProps<{
   value: unknown
@@ -132,6 +127,7 @@ const emit = defineEmits<{
 }>()
 
 const gameDataStore = useGameDataStore()
+const config = useGameConfig()
 
 // --- Schema Helpers ---
 
@@ -188,89 +184,69 @@ type SuggestionOption = {
   relation?: string
 }
 
-function translateName(id: string, ns: string | string[]): string | null {
-  const translated = i18next.t(`${id}.name`, { ns, defaultValue: id })
-  return translated !== id ? translated : null
+function buildEntitySuggestions(entityKind: EntityKind): SuggestionOption[] {
+  const entities = gameDataStore[entityKind as keyof typeof gameDataStore]
+  if (!entities || typeof entities !== 'object') return []
+  const allIds = (entities as { allIds?: string[] }).allIds
+  const byId = (entities as { byId?: Record<string, Record<string, unknown>> }).byId
+  if (!allIds || !byId) return []
+
+  const entityConfig = config.entities[entityKind]
+  return allIds.map(id => {
+    const record = byId[id]
+    const name = entityConfig ? translateEntityName(id, entityConfig) : null
+    const option: SuggestionOption = {
+      value: id,
+      label: name && name !== id ? name : id,
+      relation: name && name !== id ? id : undefined,
+    }
+    // Attach icon metadata based on entity type
+    if (entityKind === 'species') {
+      option.petIconId = typeof record?.num === 'number' && record.num > 0 ? record.num : 999
+    } else if (entityKind === 'marks') {
+      option.markId = id
+    } else if (entityKind === 'skills') {
+      option.element = record?.element as Element | undefined
+    }
+    return option
+  })
+}
+
+/**
+ * Derives the referenced entity kind from a field name by checking config.entities.
+ * E.g. 'skill_id' → 'skills', 'species' → 'species', 'emblem' → 'marks' (if registered).
+ */
+function inferEntityKindFromField(path: string): EntityKind | null {
+  const cleanPath = path.replace(/\[\]/g, '').replace(/^\./, '')
+  for (const kind of Object.keys(config.entities)) {
+    // Direct match on field name (e.g. 'id', 'species')
+    if (cleanPath === kind) return kind
+    // Match patterns like 'skill_id', 'species_id', 'mark_id'
+    if (cleanPath.endsWith(`_${kind}`) || cleanPath.startsWith(`${kind}_`)) return kind
+    // Match plural forms (e.g. 'skills' → 'skills')
+    if (cleanPath.includes(kind)) return kind
+  }
+  // Heuristic: strip common suffixes and re-check
+  const stripped = cleanPath.replace(/_id$/, '')
+  for (const kind of Object.keys(config.entities)) {
+    if (stripped === kind) return kind
+  }
+  return null
 }
 
 const suggestionCatalog = computed<SuggestionOption[]>(() => {
   const path = normalizedPath.value
   const kind = props.contextKind
 
-  if (path === 'learnable_skills[].skill_id' || path === 'skill_id') {
-    return gameDataStore.skills.allIds.map(id => {
-      const skill = gameDataStore.skills.byId[id]
-      const name = translateName(id, 'skill')
-      return {
-        value: id,
-        label: name ?? id,
-        element: skill?.element as Element | undefined,
-        relation: name ? id : undefined,
-      }
-    })
+  // For the primary 'id' field of the entity being edited
+  if (path === 'id' && kind) {
+    return buildEntitySuggestions(kind)
   }
 
-  if (path === 'ability[]' || path === 'emblem[]') {
-    return gameDataStore.marks.allIds.map(id => {
-      const name = translateName(id, ['mark', 'mark_ability', 'mark_emblem', 'mark_global'])
-      return {
-        value: id,
-        label: name ?? id,
-        markId: id,
-        relation: name ? id : undefined,
-      }
-    })
-  }
-
-  if (path === 'species' || path === 'species_id') {
-    return gameDataStore.species.allIds.map(id => {
-      const species = gameDataStore.species.byId[id]
-      const name = translateName(id, 'species')
-      return {
-        value: id,
-        label: name ?? id,
-        petIconId: typeof species?.num === 'number' && species.num > 0 ? species.num : 999,
-        relation: name ? id : undefined,
-      }
-    })
-  }
-
-  if (path === 'id') {
-    if (kind === 'species') {
-      return gameDataStore.species.allIds.map(id => {
-        const species = gameDataStore.species.byId[id]
-        const name = translateName(id, 'species')
-        return {
-          value: id,
-          label: name ?? id,
-          petIconId: typeof species?.num === 'number' && species.num > 0 ? species.num : 999,
-          relation: name ? id : undefined,
-        }
-      })
-    }
-    if (kind === 'skills') {
-      return gameDataStore.skills.allIds.map(id => {
-        const skill = gameDataStore.skills.byId[id]
-        const name = translateName(id, 'skill')
-        return {
-          value: id,
-          label: name ?? id,
-          element: skill?.element as Element | undefined,
-          relation: name ? id : undefined,
-        }
-      })
-    }
-    if (kind === 'marks') {
-      return gameDataStore.marks.allIds.map(id => {
-        const name = translateName(id, ['mark', 'mark_ability', 'mark_emblem', 'mark_global'])
-        return {
-          value: id,
-          label: name ?? id,
-          markId: id,
-          relation: name ? id : undefined,
-        }
-      })
-    }
+  // For reference fields, infer the referenced entity kind from config
+  const inferredKind = inferEntityKindFromField(path)
+  if (inferredKind) {
+    return buildEntitySuggestions(inferredKind)
   }
 
   return []
@@ -299,7 +275,7 @@ const enumOptions = computed(() => {
     .filter((v: unknown): v is string => typeof v === 'string')
 
   const isElement = values.some(v => v in ELEMENT_MAP)
-  const isCategory = values.some(v => v in CATEGORY_MAP)
+  const categoryEntries = config.categories ?? []
 
   return values.map((v: string) => {
     let label = v.replace(/_/g, ' ').toUpperCase()
@@ -308,8 +284,9 @@ const enumOptions = computed(() => {
       const info = ELEMENT_MAP[v]
       label = info.name
       element = v as Element
-    } else if (isCategory && v in CATEGORY_MAP) {
-      label = CATEGORY_MAP[v]
+    } else {
+      const cat = categoryEntries.find(c => String(c.value) === v)
+      if (cat) label = cat.label
     }
     return { value: v, label, element }
   })

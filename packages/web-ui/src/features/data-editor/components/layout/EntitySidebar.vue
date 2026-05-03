@@ -8,26 +8,24 @@
 import { computed, ref } from 'vue'
 import { useEditorState, type EntityType } from '../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
+import { useGameConfig } from '../../game-config'
 import PackManagerTab from './PackManagerTab.vue'
 
 const showPackManager = ref(false)
 
 const editorState = useEditorState()
 const gameDataStore = useGameDataStore()
+const config = useGameConfig()
 
-const entityTypes: { key: EntityType; label: string; icon: string }[] = [
-  { key: 'species', label: '物种', icon: '🧬' },
-  { key: 'skills', label: '技能', icon: '⚔️' },
-  { key: 'marks', label: '标记', icon: '🏷️' },
-  { key: 'effects', label: '效果', icon: '✨' },
-]
+const entityTypes = Object.values(config.entities)
 
-const countMap = computed(() => ({
-  species: gameDataStore.species.allIds.length,
-  skills: gameDataStore.skills.allIds.length,
-  marks: gameDataStore.marks.allIds.length,
-  effects: gameDataStore.effects.allIds.length,
-}))
+const countMap = computed(() => {
+  const map: Record<string, number> = {}
+  for (const key of Object.keys(config.entities)) {
+    map[key] = (gameDataStore as unknown as Record<string, { allIds?: unknown[] }>)[key]?.allIds?.length ?? 0
+  }
+  return map
+})
 
 function selectEntity(type: EntityType) {
   editorState.selectedEntityType = type

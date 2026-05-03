@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { translateEntityName, getTypeBoxSchemaSpec } from '../../../schemas/editorSchemas'
+import { useGameConfig } from '../../../game-config'
+import { translateEntityName } from '../../../schemas/editorSchemas'
 import type { SpeciesSchemaType } from '@arcadia-eternity/schema'
 import { useEditorState } from '../../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import RichSchemaRenderer from '../rich-editors/RichSchemaRenderer.vue'
-import type { RichEditorMetadata, RichFieldHints } from '../rich-editors/types'
+import type { RichEditorMetadata } from '../rich-editors/types'
 
 const props = defineProps<{
   record: SpeciesSchemaType | null
@@ -18,6 +19,7 @@ const emit = defineEmits<{ 'update:draft': [draft: Record<string, unknown>] }>()
 
 const state = useEditorState()
 const gameData = useGameDataStore()
+const config = useGameConfig()
 
 const metadata = computed<RichEditorMetadata>(() => ({
   recordId: state.selectedRecordId ?? '',
@@ -36,12 +38,7 @@ const metadata = computed<RichEditorMetadata>(() => ({
   },
 }))
 
-const fieldHints: Record<string, RichFieldHints> = {
-  baseStats: { display: 'statBars', statKeys: ['hp', 'atk', 'spa', 'def', 'spd', 'spe'] },
-  learnable_skills: { display: 'entityTable', entityKind: 'skills', idKey: 'skill_id' },
-  ability: { display: 'entityTags', entityKind: 'marks' },
-  emblem: { display: 'entityTags', entityKind: 'marks' },
-}
+const fieldHints = config.entities.species.fieldHints
 </script>
 
 <template>
@@ -49,7 +46,7 @@ const fieldHints: Record<string, RichFieldHints> = {
     <div class="identity-header">
       <PetIcon :id="record.num ?? 0" class="identity-icon" />
       <div class="identity-info">
-        <span class="identity-name">{{ translateEntityName(record.id, getTypeBoxSchemaSpec('species')) }}</span>
+        <span class="identity-name">{{ translateEntityName(record.id, config.entities.species) }}</span>
         <ElementIcon v-if="record.element" :element="record.element" :size="14" />
         <span class="identity-dex">#{{ record.num ?? '?' }}</span>
       </div>

@@ -1,24 +1,12 @@
-import { Category, Element, IgnoreStageStrategy } from '@arcadia-eternity/const'
-import type { RichFieldHints } from '../components/property-panel/rich-editors/types'
-import i18next from 'i18next'
-import {
-  MarkSchema,
-  SkillSchema,
-  SpeciesSchema,
-  type MarkSchemaType,
-  type SkillSchemaType,
-  type SpeciesSchemaType,
-} from '@arcadia-eternity/schema'
 import type { TSchema } from '@sinclair/typebox'
 import { KindGuard } from '@sinclair/typebox/type'
+import i18next from 'i18next'
+import type { RichFieldHints } from '../components/property-panel/rich-editors/types'
+import type { EntityKind, EntityConfig, I18nConfig } from '../game-config/types'
 
-export type EditableDataKind = 'species' | 'skills' | 'marks'
+export type EditableDataKind = string
 
-export type I18nConfig = {
-  namespaces: string | string[]
-  nameKey?: string
-  hasNames?: boolean
-}
+export type { I18nConfig, RichFieldHints }
 
 export type TypeBoxSummaryColumn = {
   id: string
@@ -27,128 +15,8 @@ export type TypeBoxSummaryColumn = {
   width?: number
 }
 
-type TypeBoxSchemaSpec<Row extends Record<string, unknown>> = {
-  title: string
-  defaultDataFile: string
-  rowSchema: TSchema
-  createDraft: () => Row
-  summaryColumns: TypeBoxSummaryColumn[]
-  fieldHints: Record<string, RichFieldHints>
-  i18n?: I18nConfig
-}
-
-const SPECIES_SPEC: TypeBoxSchemaSpec<SpeciesSchemaType> = {
-  title: 'Species 编辑器',
-  defaultDataFile: 'species.yaml',
-  rowSchema: SpeciesSchema,
-  createDraft: () => ({
-    id: '',
-    num: 0,
-    element: Element.Normal,
-    baseStats: {
-      hp: 100,
-      atk: 100,
-      spa: 100,
-      def: 100,
-      spd: 100,
-      spe: 100,
-    },
-    genderRatio: [50, 50],
-    heightRange: [10, 20],
-    weightRange: [10, 20],
-    learnable_skills: [],
-    ability: [],
-    emblem: [],
-  }),
-  summaryColumns: [
-    { id: 'id', label: 'ID', path: 'id', width: 180 },
-    { id: 'num', label: '图鉴', path: 'num', width: 90 },
-    { id: 'element', label: '属性', path: 'element', width: 110 },
-    { id: 'hp', label: 'HP', path: 'baseStats.hp', width: 80 },
-    { id: 'atk', label: 'ATK', path: 'baseStats.atk', width: 80 },
-    { id: 'def', label: 'DEF', path: 'baseStats.def', width: 80 },
-    { id: 'spa', label: 'SPA', path: 'baseStats.spa', width: 80 },
-    { id: 'spd', label: 'SPD', path: 'baseStats.spd', width: 80 },
-    { id: 'spe', label: 'SPE', path: 'baseStats.spe', width: 80 },
-  ],
-  fieldHints: {
-    baseStats:        { display: 'statBars', statKeys: ['hp', 'atk', 'spa', 'def', 'spd', 'spe'] },
-    learnable_skills: { display: 'entityTable', entityKind: 'skills', idKey: 'skill_id', itemLabel: 'skill_id', compact: true },
-    ability:          { display: 'entityTags', entityKind: 'marks', compact: true },
-    emblem:           { display: 'entityTags', entityKind: 'marks', compact: true },
-    element:          { display: 'elementPicker' },
-  },
-  i18n: { namespaces: 'species' },
-}
-
-const SKILL_SPEC: TypeBoxSchemaSpec<SkillSchemaType> = {
-  title: 'Skill 编辑器',
-  defaultDataFile: 'skill.yaml',
-  rowSchema: SkillSchema,
-  createDraft: () => ({
-    id: '',
-    element: Element.Normal,
-    category: Category.Physical,
-    power: 0,
-    rage: 0,
-    accuracy: 100,
-    sureHit: false,
-    sureCrit: false,
-    ignoreShield: false,
-    ignoreOpponentStageStrategy: IgnoreStageStrategy.none,
-    tags: [],
-  }),
-  summaryColumns: [
-    { id: 'id', label: 'ID', path: 'id', width: 220 },
-    { id: 'element', label: '属性', path: 'element', width: 110 },
-    { id: 'category', label: '分类', path: 'category', width: 120 },
-    { id: 'power', label: '威力', path: 'power', width: 90 },
-    { id: 'rage', label: '怒气', path: 'rage', width: 90 },
-    { id: 'accuracy', label: '命中', path: 'accuracy', width: 90 },
-    { id: 'priority', label: '优先级', path: 'priority', width: 100 },
-  ],
-  fieldHints: {
-    power:   { display: 'statsGrid', statsKeys: ['power', 'accuracy', 'rage', 'priority'] },
-    effect:  { display: 'entityTags', entityKind: 'effects', compact: true },
-    element: { display: 'elementPicker' },
-  },
-  i18n: { namespaces: 'skill' },
-}
-
-const MARK_SPEC: TypeBoxSchemaSpec<MarkSchemaType> = {
-  title: 'Mark 编辑器',
-  defaultDataFile: 'mark.yaml',
-  rowSchema: MarkSchema,
-  createDraft: () => ({
-    id: '',
-    tags: [],
-  }),
-  summaryColumns: [
-    { id: 'id', label: 'ID', path: 'id', width: 220 },
-    { id: 'duration', label: '持续', path: 'config.duration', width: 90 },
-    { id: 'maxStacks', label: '层数', path: 'config.maxStacks', width: 90 },
-    { id: 'stackable', label: '可叠', path: 'config.stackable', width: 90 },
-    { id: 'isShield', label: '护盾', path: 'config.isShield', width: 90 },
-  ],
-  fieldHints: {
-    config: { display: 'configGrid' },
-    effect: { display: 'entityTags', entityKind: 'effects', compact: true },
-  },
-  i18n: { namespaces: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] },
-}
-
-const SPEC_BY_KIND: Record<EditableDataKind, TypeBoxSchemaSpec<Record<string, unknown>>> = {
-  species: SPECIES_SPEC as TypeBoxSchemaSpec<Record<string, unknown>>,
-  skills: SKILL_SPEC as TypeBoxSchemaSpec<Record<string, unknown>>,
-  marks: MARK_SPEC as TypeBoxSchemaSpec<Record<string, unknown>>,
-}
-
-export function getTypeBoxSchemaSpec(kind: EditableDataKind): TypeBoxSchemaSpec<Record<string, unknown>> {
-  return SPEC_BY_KIND[kind]
-}
-
-export function translateEntityName(id: string, spec: TypeBoxSchemaSpec<Record<string, unknown>>): string {
-  const cfg = spec.i18n
+export function translateEntityName(id: string, entityCfg: EntityConfig): string {
+  const cfg = entityCfg.i18n
   if (!cfg || cfg.hasNames === false) return id
   try {
     const key = (cfg.nameKey ?? '{id}.name').replace('{id}', id)

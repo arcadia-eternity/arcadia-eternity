@@ -1,6 +1,6 @@
 import { provide, inject, reactive, type InjectionKey } from 'vue'
 
-export type EntityType = 'species' | 'skills' | 'marks' | 'effects'
+export type EntityType = string
 
 export interface EditorTab {
   id: string

@@ -9,21 +9,20 @@
 import { ref, computed } from 'vue'
 import { useEditorState } from '../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
+import { useGameConfig } from '../../game-config'
 import ResizeHandle from './ResizeHandle.vue'
 import DataTable from '@/features/data-editor/components/data-table/DataTable.vue'
 import PropertyPanel from '@/features/data-editor/components/property-panel/PropertyPanel.vue'
 
 const editorState = useEditorState()
 const gameData = useGameDataStore()
+const config = useGameConfig()
 
 const records = computed(() => {
-  switch (editorState.selectedEntityType) {
-    case 'species': return gameData.speciesList
-    case 'skills': return gameData.skillList
-    case 'marks': return gameData.marksList
-    case 'effects': return gameData.effectsList
-    default: return []
-  }
+  const type = editorState.selectedEntityType
+  if (!type) return []
+  const slice = (gameData as unknown as Record<string, { allIds?: string[]; byId?: Record<string, unknown> }>)[type]
+  return slice?.allIds?.map((id: string) => slice.byId?.[id]) ?? []
 })
 
 // Panel width percentages (left + right must = 100)

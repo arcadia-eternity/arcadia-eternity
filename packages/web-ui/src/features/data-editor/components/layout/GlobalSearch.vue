@@ -7,7 +7,8 @@
  * and navigates to the selected entity on click.
  */
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { translateEntityName, getTypeBoxSchemaSpec } from '@/features/data-editor/schemas/editorSchemas'
+import { translateEntityName } from '@/features/data-editor/schemas/editorSchemas'
+import { useGameConfig } from '@/features/data-editor/game-config'
 import { Search } from '@element-plus/icons-vue'
 import { ElInput } from 'element-plus'
 import { useGameDataStore } from '@/stores/gameData'
@@ -19,6 +20,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const gameDataStore = useGameDataStore()
 const { navigateTo } = useEntityNavigation()
+const config = useGameConfig()
 
 const isOpen = ref(false)
 const inputRef = ref<InstanceType<typeof ElInput> | null>(null)
@@ -40,56 +42,34 @@ const groupedResults = computed<ResultGroup[]>(() => {
   const query = props.modelValue.trim().toLowerCase()
   if (!query) return []
 
+  const entityDataMap: Record<string, { byId: Record<string, unknown>; allIds: string[] }> = {
+    species: { byId: gameDataStore.species.byId as Record<string, unknown>, allIds: gameDataStore.species.allIds },
+    skills: { byId: gameDataStore.skills.byId as Record<string, unknown>, allIds: gameDataStore.skills.allIds },
+    marks: { byId: gameDataStore.marks.byId as Record<string, unknown>, allIds: gameDataStore.marks.allIds },
+    effects: { byId: gameDataStore.effects.byId as Record<string, unknown>, allIds: gameDataStore.effects.allIds },
+  }
+
   const groups: ResultGroup[] = []
 
-  const searchIn = (
-    type: EntityType,
-    label: string,
-    icon: string,
-    byId: Record<string, unknown>,
-    allIds: string[],
-  ): ResultGroup | null => {
+  for (const entity of Object.values(config.entities)) {
+    const data = entityDataMap[entity.key]
+    if (!data) continue
+
     const matched: SearchResult[] = []
-    for (const id of allIds) {
-      const spec = (type === 'species' || type === 'skills' || type === 'marks')
-        ? getTypeBoxSchemaSpec(type)
-        : undefined
+    for (const id of data.allIds) {
+      const entityCfg = config.entities[entity.key]
+      const spec = entityCfg?.i18n != null ? entityCfg : undefined
       const i18nName = spec ? translateEntityName(id, spec).toLowerCase() : id.toLowerCase()
       if (id.toLowerCase().includes(query) || i18nName.includes(query)) {
         matched.push({ id })
         if (matched.length >= MAX_PER_TYPE) break
       }
     }
-    return matched.length > 0 ? { type, label, icon, items: matched } : null
+
+    if (matched.length > 0) {
+      groups.push({ type: entity.key as EntityType, label: entity.label, icon: entity.icon, items: matched })
+    }
   }
-
-  const speciesGroup = searchIn(
-    'species', '物种', '🧬',
-    gameDataStore.species.byId,
-    gameDataStore.species.allIds,
-  )
-  if (speciesGroup) groups.push(speciesGroup)
-
-  const skillsGroup = searchIn(
-    'skills', '技能', '⚔️',
-    gameDataStore.skills.byId,
-    gameDataStore.skills.allIds,
-  )
-  if (skillsGroup) groups.push(skillsGroup)
-
-  const marksGroup = searchIn(
-    'marks', '标记', '🏷️',
-    gameDataStore.marks.byId,
-    gameDataStore.marks.allIds,
-  )
-  if (marksGroup) groups.push(marksGroup)
-
-  const effectsGroup = searchIn(
-    'effects', '效果', '✨',
-    gameDataStore.effects.byId,
-    gameDataStore.effects.allIds,
-  )
-  if (effectsGroup) groups.push(effectsGroup)
 
   return groups
 })

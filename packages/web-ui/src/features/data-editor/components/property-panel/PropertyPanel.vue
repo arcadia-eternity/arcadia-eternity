@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch, inject, type Ref } from 'vue'
+import { computed, ref, watch, inject, type Ref, type Component } from 'vue'
 import { useEditorState } from '../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
 import { useEditorValidation } from '../../composables/useEditorValidation'
-import { SpeciesSchema, SkillSchema, MarkSchema, type SpeciesSchemaType, type SkillSchemaType, type MarkSchemaType } from '@arcadia-eternity/schema'
+import { useGameConfig, getEntityConfig } from '../../game-config'
+import { translateEntityName } from '../../schemas/editorSchemas'
 import SpeciesProperties from './entity-properties/SpeciesProperties.vue'
 import SkillProperties from './entity-properties/SkillProperties.vue'
 import MarkProperties from './entity-properties/MarkProperties.vue'
@@ -11,16 +12,19 @@ import RelatedEntities from './RelatedEntities.vue'
 
 const state = useEditorState()
 const gameData = useGameDataStore()
+const config = useGameConfig()
 const { fieldErrors, validateRecord, clearErrors } = useEditorValidation()
+
+const entityComponents: Record<string, Component> = {
+  species: SpeciesProperties,
+  skills: SkillProperties,
+  marks: MarkProperties,
+}
 
 const currentRecord = computed(() => {
   if (!state.selectedEntityType || !state.selectedRecordId) return null
-  switch (state.selectedEntityType) {
-    case 'species': return gameData.getSpecies(state.selectedRecordId) ?? null
-    case 'skills': return gameData.getSkill(state.selectedRecordId) ?? null
-    case 'marks': return gameData.getMark(state.selectedRecordId) ?? null
-    default: return null
-  }
+  const slice = (gameData as unknown as Record<string, { byId?: Record<string, unknown> }>)[state.selectedEntityType]
+  return slice?.byId?.[state.selectedRecordId] ?? null
 })
 
 // Use injected draft from DataEditorPage so undo/redo tracks changes
@@ -51,12 +55,18 @@ watch(injectedDraft, (val) => {
 }, { deep: true })
 
 const currentSchema = computed(() => {
-  switch (state.selectedEntityType) {
-    case 'species': return SpeciesSchema
-    case 'skills': return SkillSchema
-    case 'marks': return MarkSchema
-    default: return null
-  }
+  if (!state.selectedEntityType) return null
+  return config.entities[state.selectedEntityType]?.schema ?? null
+})
+
+const currentEntityConfig = computed(() => {
+  if (!state.selectedEntityType) return null
+  return getEntityConfig(config, state.selectedEntityType)
+})
+
+const recordDisplayName = computed(() => {
+  if (!currentRecord.value || !currentEntityConfig.value) return null
+  return translateEntityName(state.selectedRecordId!, currentEntityConfig.value)
 })
 
 watch(draft, () => { state.isDirty = draft.value !== null }, { deep: true })
@@ -74,7 +84,11 @@ function handleSave() {
 <template>
   <div class="property-panel h-full flex flex-col">
     <div class="panel-header flex items-center justify-between px-3 py-2 border-b">
-      <span class="text-xs font-semibold uppercase">{{ state.selectedEntityType ?? '属性' }} 编辑器</span>
+      <span class="text-xs font-semibold uppercase">
+        {{ config.entities[state.selectedEntityType ?? '']?.label ?? state.selectedEntityType ?? '属性' }}
+        <template v-if="recordDisplayName"> · {{ recordDisplayName }}</template>
+        编辑器
+      </span>
       <div class="flex gap-1">
         <el-button size="small" @click="handleSave" type="primary" :disabled="!state.isDirty">保存</el-button>
       </div>
@@ -91,36 +105,19 @@ function handleSave() {
         选择一条记录查看属性
       </div>
 
-      <template v-else-if="state.selectedEntityType === 'species'">
-        <SpeciesProperties
-          :record="(currentRecord as SpeciesSchemaType | null)"
+      <template v-else-if="entityComponents[state.selectedEntityType ?? '']">
+        <component
+          :is="entityComponents[state.selectedEntityType ?? '']"
+          :record="currentRecord"
           :draft="draft"
           :schema="currentSchema"
           @update:draft="draft = $event"
         />
       </template>
 
-      <template v-else-if="state.selectedEntityType === 'skills'">
-        <SkillProperties
-          :record="(currentRecord as SkillSchemaType | null)"
-          :draft="draft"
-          :schema="currentSchema"
-          @update:draft="draft = $event"
-        />
-      </template>
-
-      <template v-else-if="state.selectedEntityType === 'marks'">
-        <MarkProperties
-          :record="(currentRecord as MarkSchemaType | null)"
-          :draft="draft"
-          :schema="currentSchema"
-          @update:draft="draft = $event"
-        />
-      </template>
-
-      <template v-else-if="state.selectedEntityType === 'effects'">
+      <template v-else-if="state.selectedEntityType">
         <div class="p-4">
-          <div class="text-sm text-muted mb-3">效果记录视图（effect DSL 编辑器将在未来版本实现）</div>
+          <div class="text-sm text-muted mb-3">{{ config.entities[state.selectedEntityType]?.label ?? state.selectedEntityType }} 记录视图（编辑器将在未来版本实现）</div>
           <div class="text-xs font-mono text-muted bg-[var(--ae-bg-overlay)] p-2 rounded">
             {{ JSON.stringify(currentRecord, null, 2) }}
           </div>
