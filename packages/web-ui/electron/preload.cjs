@@ -14,6 +14,9 @@ const desktopApi = {
   listWorkspacePackFiles: input => ipcRenderer.invoke('desktop:list-workspace-pack-files', input),
   readWorkspacePackFile: input => ipcRenderer.invoke('desktop:read-workspace-pack-file', input),
   writeWorkspacePackFile: input => ipcRenderer.invoke('desktop:write-workspace-pack-file', input),
+  writeBasePackFile: input => ipcRenderer.invoke('desktop:write-base-pack-file', input),
+  readBasePackFile: input => ipcRenderer.invoke('desktop:read-base-pack-file', input),
+  readAllBasePackData: () => ipcRenderer.invoke('desktop:read-all-base-pack-data'),
   createWorkspacePackFolder: input => ipcRenderer.invoke('desktop:create-workspace-pack-folder', input),
   renameWorkspacePackPath: input => ipcRenderer.invoke('desktop:rename-workspace-pack-path', input),
   deleteWorkspacePackPath: input => ipcRenderer.invoke('desktop:delete-workspace-pack-path', input),
@@ -21,6 +24,8 @@ const desktopApi = {
   checkForUpdates: () => ipcRenderer.invoke('desktop:check-for-updates'),
   downloadAndInstallUpdate: () => ipcRenderer.invoke('desktop:download-and-install-update'),
   relaunch: () => ipcRenderer.invoke('desktop:relaunch'),
+  getBasePackDir: () => ipcRenderer.invoke('desktop:get-base-pack-dir'),
+  showItemInFolder: path => ipcRenderer.invoke('desktop:show-item-in-folder', { path }),
 }
 
 contextBridge.exposeInMainWorld('arcadiaDesktop', desktopApi)

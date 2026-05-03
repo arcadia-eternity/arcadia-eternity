@@ -19,6 +19,7 @@ const packs = ref<WorkspacePackSummary[]>([])
 const loading = ref(false)
 const search = ref('')
 const error = ref<string | null>(null)
+const basePackDir = ref<string | null>(null)
 
 const filteredPacks = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -74,7 +75,18 @@ async function togglePack(pack: WorkspacePackSummary) {
   }
 }
 
-onMounted(refresh)
+async function openBasePackDir() {
+  if (basePackDir.value && window.arcadiaDesktop?.showItemInFolder) {
+    await window.arcadiaDesktop.showItemInFolder(basePackDir.value)
+  }
+}
+
+onMounted(() => {
+  refresh()
+  if (window.arcadiaDesktop?.getBasePackDir) {
+    window.arcadiaDesktop.getBasePackDir().then(dir => { basePackDir.value = dir }).catch(() => {})
+  }
+})
 </script>
 
 <template>
@@ -147,6 +159,12 @@ onMounted(refresh)
 
     <!-- Layering visualization -->
     <PackLayeringView :packs="filteredPacks" />
+
+    <!-- Base pack info -->
+    <div v-if="basePackDir" class="base-pack-info">
+      <div class="base-pack-path" :title="basePackDir">{{ basePackDir }}</div>
+      <button type="button" class="base-pack-open" @click="openBasePackDir">在访达中打开</button>
+    </div>
   </div>
 </template>
 
@@ -277,5 +295,40 @@ onMounted(refresh)
 .pack-item-version {
   font-size: 10px;
   color: var(--ae-text-disabled);
+}
+
+/* Base pack info */
+.base-pack-info {
+  border-top: 1px solid var(--ae-border-subtle);
+  padding: var(--ae-space-2) var(--ae-space-3);
+  margin-top: var(--ae-space-2);
+}
+
+.base-pack-path {
+  font-size: 10px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--ae-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: var(--ae-space-1);
+}
+
+.base-pack-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--ae-space-2);
+  font-size: var(--ae-font-xs);
+  color: var(--ae-accent-primary);
+  background: transparent;
+  border: 1px dashed var(--ae-border-default);
+  border-radius: var(--ae-radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.base-pack-open:hover {
+  background: var(--ae-accent-primary-subtle);
+  border-color: var(--ae-accent-primary);
 }
 </style>

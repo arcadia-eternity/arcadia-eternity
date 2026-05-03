@@ -211,7 +211,7 @@ import FieldEditor from '@/components/FieldEditor.vue'
 import InlineArrayEditor from '@/components/InlineArrayEditor.vue'
 import InlineObjectEditor from '@/components/InlineObjectEditor.vue'
 import RangeEditor from '@/components/RangeEditor.vue'
-import type { EditableDataKind } from '@/components/pack-editor/typeboxDataSchema'
+import type { EditableDataKind } from '@/features/data-editor/schemas/editorSchemas'
 
 // --- Types ---
 

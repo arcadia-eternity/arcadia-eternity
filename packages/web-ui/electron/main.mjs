@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron'
 import { createRequire } from 'node:module'
 import http from 'node:http'
 import net from 'node:net'
@@ -8,6 +8,7 @@ import { promises as fs } from 'node:fs'
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')
+const { parse: parseYaml } = require('yaml')
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -513,6 +514,7 @@ async function hasWorkspaceBasePack() {
 }
 
 async function ensureWorkspaceBasePack() {
+  if (devServerUrl) return
   if (!packsDir) return
   if (await hasWorkspaceBasePack()) return
 
@@ -560,7 +562,7 @@ async function sendFile(res, filePath) {
   const content = await fs.readFile(filePath)
   sendResponse(res, 200, content, {
     'Content-Type': detectContentType(filePath),
-    'Cache-Control': 'public, max-age=31536000, immutable',
+    'Cache-Control': 'no-store',
   })
 }
 
@@ -814,6 +816,34 @@ async function setWorkspacePackEnabled(input) {
 
 async function buildWorkspaceManifest(port) {
   const [discovered, state] = await Promise.all([discoverWorkspacePacks(), readWorkspacePackState()])
+
+  // Dev mode: inject base pack from source directory
+  if (devServerUrl && !discovered.some(p => (p.manifest?.id) === BASE_PACK_ID)) {
+    const baseDir = await findBundledBasePackDir()
+    if (baseDir) {
+      const raw = await readPackManifest(path.join(baseDir, 'pack.json'))
+      if (raw?.id === BASE_PACK_ID) {
+        discovered.unshift({
+          folderName: BASE_PACK_FOLDER,
+          manifestPath: path.join(baseDir, 'pack.json'),
+          manifest: {
+            id: raw.id,
+            version: typeof raw.version === 'string' && raw.version ? raw.version : '1.0.0',
+            paths: raw.paths && typeof raw.paths === 'object' ? raw.paths : {},
+            data: {
+              effects: toStringArray(raw.data?.effects),
+              marks: toStringArray(raw.data?.marks),
+              skills: toStringArray(raw.data?.skills),
+              species: toStringArray(raw.data?.species),
+            },
+            assetsRef: raw.assetsRef,
+            dependencies: toPackDependencyArray(raw.dependencies),
+          },
+        })
+      }
+    }
+  }
+
   if (discovered.length === 0) return null
 
   const dependencyInfo = buildWorkspaceDependencyInfo(discovered)
@@ -1404,7 +1434,25 @@ async function handleLocalServerRequest(req, res) {
 
   if (pathname.startsWith('/packs/')) {
     const tail = pathname.slice('/packs/'.length)
-    const filePath = resolvePackFilePath(tail)
+    let filePath = resolvePackFilePath(tail)
+
+    // Dev mode: base pack served from source directory
+    if (filePath && !(await pathExists(filePath))) {
+      const slashIndex = tail.indexOf('/')
+      const folderName = slashIndex === -1 ? tail : tail.slice(0, slashIndex)
+      if (folderName === BASE_PACK_FOLDER) {
+        const baseDir = await findBundledBasePackDir()
+        if (baseDir) {
+          const baseRelative = slashIndex === -1 ? '' : tail.slice(slashIndex + 1)
+          const raw = String(baseRelative ?? '')
+            if (!hasTraversalSegment(raw)) {
+            const sourcePath = path.join(baseDir, path.normalize(raw))
+            if (await pathExists(sourcePath)) filePath = sourcePath
+          }
+        }
+      }
+    }
+
     if (!filePath || !(await pathExists(filePath))) {
       sendJson(res, 404, { error: 'not found' })
       return
@@ -1534,6 +1582,66 @@ function setupIpcHandlers() {
   ipcMain.handle('desktop:list-workspace-pack-files', async (_event, input) => listWorkspacePackFiles(input))
   ipcMain.handle('desktop:read-workspace-pack-file', async (_event, input) => readWorkspacePackFile(input))
   ipcMain.handle('desktop:write-workspace-pack-file', async (_event, input) => writeWorkspacePackFile(input))
+
+  ipcMain.handle('desktop:read-all-base-pack-data', async () => {
+    const baseDir = await findBundledBasePackDir()
+    if (!baseDir) throw new Error('Base pack source directory not found')
+
+    const manifest = JSON.parse(await fs.readFile(path.join(baseDir, 'pack.json'), 'utf8'))
+    const dataDir = path.join(baseDir, (manifest.paths?.dataDir) || '.')
+
+    const result = {}
+    const kinds = ['species', 'skills', 'marks', 'effects']
+    for (const kind of kinds) {
+      const files = Array.isArray(manifest.data?.[kind]) ? manifest.data[kind] : []
+      const allRecords = []
+      for (const file of files) {
+        const filePath = path.join(dataDir, file)
+        if (!(await pathExists(filePath))) continue
+        try {
+          const content = await fs.readFile(filePath, 'utf8')
+          const parsed = parseYaml(content, { merge: true })
+          if (Array.isArray(parsed)) {
+            allRecords.push(...parsed)
+          }
+        } catch (e) {
+          console.warn(`Failed to parse ${file}:`, e.message)
+        }
+      }
+      result[kind] = allRecords
+    }
+    return result
+  })
+
+  ipcMain.handle('desktop:write-base-pack-file', async (_event, input) => {
+    const baseDir = await findBundledBasePackDir()
+    if (!baseDir) throw new Error('Base pack source directory not found')
+
+    const relativePath = sanitizeWorkspaceRelativePath(input?.relativePath)
+    if (!relativePath) throw new Error('relativePath 非法')
+
+    const filePath = path.join(baseDir, relativePath)
+    if (!filePath.startsWith(baseDir)) throw new Error('relativePath 非法')
+
+    const content = typeof input?.content === 'string' ? input.content : ''
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, content, 'utf8')
+    return { relativePath }
+  })
+
+  ipcMain.handle('desktop:read-base-pack-file', async (_event, input) => {
+    const baseDir = await findBundledBasePackDir()
+    if (!baseDir) throw new Error('Base pack source directory not found')
+
+    const relativePath = sanitizeWorkspaceRelativePath(input?.relativePath)
+    if (!relativePath) throw new Error('relativePath 非法')
+
+    const filePath = path.join(baseDir, relativePath)
+    if (!filePath.startsWith(baseDir)) throw new Error('relativePath 非法')
+
+    const content = await fs.readFile(filePath, 'utf8')
+    return { relativePath, content }
+  })
   ipcMain.handle('desktop:create-workspace-pack-folder', async (_event, input) => createWorkspacePackFolder(input))
   ipcMain.handle('desktop:rename-workspace-pack-path', async (_event, input) => renameWorkspacePackPath(input))
   ipcMain.handle('desktop:delete-workspace-pack-path', async (_event, input) => deleteWorkspacePackPath(input))
@@ -1541,6 +1649,18 @@ function setupIpcHandlers() {
   ipcMain.handle('desktop:get-app-version', () => app.getVersion())
   ipcMain.handle('desktop:check-for-updates', async () => checkForUpdates())
   ipcMain.handle('desktop:download-and-install-update', async () => downloadAndInstallUpdate())
+
+  ipcMain.handle('desktop:get-base-pack-dir', async () => {
+    const dir = await findBundledBasePackDir()
+    if (!dir) throw new Error('Base pack directory not found')
+    return dir
+  })
+
+  ipcMain.handle('desktop:show-item-in-folder', async (_event, input) => {
+    const dirPath = typeof input?.path === 'string' ? input.path : ''
+    if (!dirPath) throw new Error('path required')
+    shell.showItemInFolder(dirPath)
+  })
 
   ipcMain.handle('desktop:relaunch', () => {
     app.relaunch()

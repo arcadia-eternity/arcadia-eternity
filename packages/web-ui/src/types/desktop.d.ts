@@ -142,6 +142,9 @@ export interface ArcadiaDesktopApi {
   listWorkspacePackFiles: (input: ListWorkspacePackFilesInput) => Promise<ListWorkspacePackFilesResult>
   readWorkspacePackFile: (input: ReadWorkspacePackFileInput) => Promise<ReadWorkspacePackFileResult>
   writeWorkspacePackFile: (input: WriteWorkspacePackFileInput) => Promise<WriteWorkspacePackFileResult>
+  writeBasePackFile: (input: WriteWorkspacePackFileInput) => Promise<WriteWorkspacePackFileResult>
+  readBasePackFile: (input: ReadWorkspacePackFileInput) => Promise<ReadWorkspacePackFileResult>
+  readAllBasePackData: () => Promise<Record<string, Record<string, unknown>[]>>
   createWorkspacePackFolder: (input: CreateWorkspacePackFolderInput) => Promise<CreateWorkspacePackFolderResult>
   renameWorkspacePackPath: (input: RenameWorkspacePackPathInput) => Promise<RenameWorkspacePackPathResult>
   deleteWorkspacePackPath: (input: DeleteWorkspacePackPathInput) => Promise<DeleteWorkspacePackPathResult>
@@ -149,6 +152,8 @@ export interface ArcadiaDesktopApi {
   checkForUpdates: () => Promise<DesktopUpdateCheckResult>
   downloadAndInstallUpdate: () => Promise<void>
   relaunch: () => Promise<void>
+  getBasePackDir: () => Promise<string>
+  showItemInFolder: (path: string) => Promise<void>
 }
 
 declare global {

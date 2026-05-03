@@ -27,6 +27,9 @@ export default defineConfig({
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '1.0.0'),
   },
   server: {
+    watch: {
+      ignored: ['**/packs/**'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8102',
@@ -132,8 +135,7 @@ export default defineConfig({
       // 忽略找不到文件的错误，继续处理其他目标
       silent: true,
       watch: {
-        // 开发模式监听文件变化
-        reloadPageOnChange: true,
+        reloadPageOnChange: false,
       },
     }),
   ],

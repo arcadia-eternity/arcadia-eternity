@@ -216,7 +216,16 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useBattleWorkbenchStore } from '@/stores/battleWorkbench'
 import { usePetStorageStore } from '@/stores/petStorage'
-import type { PackWorkbenchFileEntry } from '@/components/pack-editor/workbenchEditorRegistry'
+
+type PackWorkbenchFileEntry = {
+  key: string
+  label: string
+  relativePath: string
+  kind: string
+  size?: number
+  sourceFile?: string
+  dataKind?: string
+}
 
 type OpenEditorTab = {
   id: string

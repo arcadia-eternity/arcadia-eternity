@@ -108,7 +108,6 @@ import { ELEMENT_MAP } from '@arcadia-eternity/const'
 import { type TSchema, type TUnion, type TLiteral, type TNumber, type TInteger, type TTuple } from '@sinclair/typebox'
 import { KindGuard } from '@sinclair/typebox/type'
 import { useGameDataStore } from '@/stores/gameData'
-import type { EditableDataKind } from '@/components/pack-editor/typeboxDataSchema'
 import PetIcon from '@/components/PetIcon.vue'
 import MarkIcon from '@/components/MarkIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
@@ -124,7 +123,7 @@ const props = defineProps<{
   value: unknown
   schema: TSchema
   fieldPath: string
-  contextKind?: EditableDataKind
+  contextKind?: string
 }>()
 
 const emit = defineEmits<{

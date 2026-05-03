@@ -6,7 +6,7 @@
  * Expanded: slides up to 40vh showing the full battle controller.
  */
 import { ref, computed } from 'vue'
-import BattleWorkbenchController from '@/components/pack-editor/BattleWorkbenchController.vue'
+import BattleWorkbenchController from './BattleWorkbenchController.vue'
 import { useEditorState } from '@/features/data-editor/composables/useEditorState'
 
 const editorState = useEditorState()

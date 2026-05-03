@@ -17,6 +17,8 @@ import { computed, ref, watch, h } from 'vue'
 import { translateEntityName, getValueByPath } from '../../schemas/editorSchemas'
 import { useGameConfig } from '../../game-config'
 import PetIcon from '@/components/PetIcon.vue'
+import ElementIcon from '@/components/battle/ElementIcon.vue'
+import type { Element } from '@arcadia-eternity/const'
 import {
   useVueTable,
   getCoreRowModel,
@@ -123,6 +125,24 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
         header: '触发数',
         size: col.width ?? 120,
         cell: (info) => `${info.getValue()}项`,
+      })
+      continue
+    }
+
+    if (col.id === 'element') {
+      defs.push({
+        id: 'element',
+        accessorFn: (row) => row.element ?? '',
+        header: col.label,
+        size: col.width ?? 110,
+        cell: (info) => {
+          const el = info.getValue() as string
+          if (!el) return h('span', { class: 'cell-empty' }, '—')
+          return h('span', { class: 'cell-element' }, [
+            h(ElementIcon, { element: el as Element, size: 14 }),
+            h('span', { class: 'cell-element-label' }, el),
+          ])
+        },
       })
       continue
     }
@@ -482,6 +502,16 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
   border-radius: var(--ae-radius-sm);
   border: 1px solid var(--ae-border-subtle);
   background-color: var(--ae-bg-overlay);
+}
+
+/* ── Element cell ── */
+.data-table__td :deep(.cell-element) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.data-table__td :deep(.cell-element .cell-element-label) {
+  font-size: var(--ae-font-xs);
 }
 
 /* ── Checkbox ── */

@@ -11,10 +11,9 @@
  * Undo/redo and save handlers are injected via provide/inject from the parent.
  */
 import { inject } from 'vue'
-import { FolderOpened, Document, RefreshRight, VideoPlay } from '@element-plus/icons-vue'
+import { Document, RefreshRight, VideoPlay } from '@element-plus/icons-vue'
 import { ElInput, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon, ElTooltip } from 'element-plus'
 import { useEditorState } from '../../composables/useEditorState'
-import PackSelector from './PackSelector.vue'
 import GlobalSearch from './GlobalSearch.vue'
 
 // --- Injected state ---
@@ -28,23 +27,11 @@ const onStartBattle = inject<() => void>('editor:startBattle', () => {})
 
 const canUndo = inject<() => boolean>('editor:canUndo', () => false)
 const canRedo = inject<() => boolean>('editor:canRedo', () => false)
-
-function handlePackUpdate(enabledPacks: string[]) {
-  state.packFilters.enabledPacks = enabledPacks
-}
 </script>
 
 <template>
   <header class="editor-app-bar">
-    <!-- Left: Pack selector -->
-    <div class="app-bar-section app-bar-section--packs">
-      <PackSelector :enabled-packs="state.packFilters.enabledPacks" @update:enabled-packs="handlePackUpdate" />
-    </div>
-
-    <!-- Divider -->
-    <div class="app-bar-divider" />
-
-    <!-- Center-left: Global search -->
+    <!-- Global search -->
     <div class="app-bar-section app-bar-section--search">
       <GlobalSearch
         :model-value="state.searchQuery"

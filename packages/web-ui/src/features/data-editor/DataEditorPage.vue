@@ -10,6 +10,8 @@
  * state via Vue's Provide/Inject — no Pinia for editor state.
  */
 import { onMounted, provide, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { isDesktop } from '@/utils/env'
 import { provideEditorState } from './composables/useEditorState'
 import { useEditorKeyboard } from './composables/useEditorKeyboard'
 import { useEditorUndo } from './composables/useEditorUndo'
@@ -17,7 +19,21 @@ import { useGameDataStore } from '@/stores/gameData'
 import { provideGameConfig } from './game-config'
 import { baseEntities } from './game-config/base'
 import { seer2Config } from './game-config/seer2'
-import { listWorkspacePacks, type WorkspacePackSummary } from '@/services/packWorkspace'
+import {
+  listWorkspacePacks,
+  readWorkspacePackFile,
+  writeWorkspacePackFile,
+  readWorkspacePackManifest,
+  writeWorkspacePackManifest,
+  type WorkspacePackSummary,
+} from '@/services/packWorkspace'
+import { resolveManifestDataPath } from './utils/packHelpers'
+import {
+  parseYamlAnchoredDataset,
+  upsertYamlAnchoredRecord,
+  stringifyYamlAnchoredDataset,
+  type YamlAnchoredDataset,
+} from './schemas/yamlAnchoredRecords'
 
 import EditorAppBar from './components/layout/EditorAppBar.vue'
 import EntitySidebar from './components/layout/EntitySidebar.vue'
@@ -25,7 +41,7 @@ import EditorWorkspace from './components/layout/EditorWorkspace.vue'
 import BattleBottomDrawer from './components/layout/BattleBottomDrawer.vue'
 
 // ── Centralized editor state (provided to all children) ──
-provideEditorState()
+const editorState = provideEditorState()
 
 // ── Game config (entity types, categories, triggers) ──
 provideGameConfig({
@@ -33,6 +49,9 @@ provideGameConfig({
   categories: seer2Config.categories,
   triggers: seer2Config.triggers,
 })
+
+// ── External data ──
+const gameDataStore = useGameDataStore()
 
 // ── Undo/redo for the currently selected record draft ──
 const draftRef = ref<Record<string, unknown>>({})
@@ -46,26 +65,89 @@ provide('editor:undo', () => undo())
 provide('editor:redo', () => redo())
 provide('editor:canUndo', () => canUndo.value)
 provide('editor:canRedo', () => canRedo.value)
-provide('editor:save', async () => {
-  console.log('[DataEditor] Save triggered - saving current draft')
-})
+
+async function doSave() {
+  const kind = editorState.selectedEntityType
+  const id = editorState.selectedRecordId
+  if (!kind || !id) return
+
+  const draft = draftRef.value
+  if (!draft || (Object.keys(draft).length === 0 && !(id in draft))) return
+
+  const clone = JSON.parse(JSON.stringify(draft))
+
+  // Persist to in-memory store
+  const store = gameDataStore as unknown as Record<string, { byId: Record<string, unknown>; allIds: string[] }>
+  if (store[kind]?.byId) {
+    store[kind].byId[id] = clone
+    if (!store[kind].allIds.includes(id)) store[kind].allIds.push(id)
+  }
+
+  // Persist to YAML file on disk
+  const packFolder = editorState.packFilters.enabledPacks[0] || 'base'
+
+  try {
+    const isBase = packFolder === 'base' && window.arcadiaDesktop?.readBasePackFile
+
+    const cfg = seer2Config.entities[kind] ?? baseEntities.effects
+    if (!cfg || kind === 'effects') {
+      editorState.isDirty = false
+      return
+    }
+
+    let manifest: Record<string, unknown>
+    if (isBase) {
+      const { content: raw } = await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath: 'pack.json' })
+      manifest = JSON.parse(raw)
+    } else {
+      const result = await readWorkspacePackManifest({ folderName: packFolder })
+      manifest = result.manifest
+    }
+
+    const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
+    const { content } = isBase
+      ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
+      : await readWorkspacePackFile({ folderName: packFolder, relativePath })
+
+    const dataset = parseYamlAnchoredDataset(content)
+
+    const existingIndex = dataset.rows.findIndex(row => row.id === id)
+    upsertYamlAnchoredRecord({
+      dataset,
+      schema: cfg.schema,
+      draft: clone,
+      targetIndex: existingIndex >= 0 ? existingIndex : undefined,
+    })
+
+    const yamlText = stringifyYamlAnchoredDataset(dataset)
+    if (isBase) {
+      await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
+    } else {
+      await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+    }
+
+    editorState.isDirty = false
+    ElMessage.success('已保存')
+    await reloadDataFromDisk()
+  } catch (err) {
+    console.error('[DataEditor] File save failed:', err)
+    ElMessage.error('保存失败: ' + (err instanceof Error ? err.message : String(err)))
+  }
+}
+
+provide('editor:save', doSave)
 provide('editor:startBattle', () => {
   console.log('[DataEditor] Battle triggered - opening battle controller')
   // BattleBottomDrawer handles visibility internally
 })
 
-// ── External data ──
-const gameDataStore = useGameDataStore()
 const packs = ref<WorkspacePackSummary[]>([])
 const isLoading = ref(true)
 const loadError = ref<string | null>(null)
 
 // ── Keyboard shortcuts ──
 useEditorKeyboard({
-  onSave() {
-    console.log('[DataEditor] Save triggered (Ctrl+S)')
-    // TODO: delegate to PropertyPanel's save when integrated
-  },
+  onSave() { doSave() },
   onUndo() {
     if (canUndo.value) undo()
   },
@@ -73,6 +155,34 @@ useEditorKeyboard({
     if (canRedo.value) redo()
   },
 })
+
+// ── Reload data from disk via IPC (bypasses HTTP cache) ──
+async function reloadDataFromDisk() {
+  if (!isDesktop || !window.arcadiaDesktop?.readAllBasePackData) return
+
+  try {
+    const data = await window.arcadiaDesktop.readAllBasePackData()
+    const store = gameDataStore as unknown as Record<string, { byId: Record<string, unknown>; allIds: string[] }>
+
+    for (const kind of ['species', 'skills', 'marks', 'effects']) {
+      const records = data[kind]
+      if (!Array.isArray(records) || !store[kind]) continue
+
+      const byId: Record<string, unknown> = {}
+      const allIds: string[] = []
+      for (const record of records) {
+        const id = String((record as Record<string, unknown>).id ?? '')
+        if (!id) continue
+        byId[id] = record
+        allIds.push(id)
+      }
+      store[kind].byId = byId
+      store[kind].allIds = allIds
+    }
+  } catch (e) {
+    console.error('[DataEditor] Failed to reload data from disk:', e)
+  }
+}
 
 // ── Initialization ──
 onMounted(async () => {
@@ -84,6 +194,9 @@ onMounted(async () => {
 
     // 2. Initialize the game data store (species, skills, marks, effects)
     await gameDataStore.initialize()
+
+    // 2b. Reload from disk via IPC to bypass HTTP/Vite caches
+    await reloadDataFromDisk()
 
     loadError.value = null
   } catch (error) {

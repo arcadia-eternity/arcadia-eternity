@@ -1,11 +1,20 @@
 import { defineStore } from 'pinia'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
-import type { PackWorkbenchFileEntry } from '@/components/pack-editor/workbenchEditorRegistry'
 import {
   createBattleWorkbenchLaunch,
   type BattleWorkbenchBattleConfig,
   type BattleWorkbenchResourceRef,
 } from '@/utils/battleWorkbenchLaunch'
+
+type PackWorkbenchFileEntry = {
+  key: string
+  label: string
+  relativePath: string
+  kind: string
+  size?: number
+  sourceFile?: string
+  dataKind?: string
+}
 
 function createDefaultBattleConfig(): BattleWorkbenchBattleConfig {
   return {
