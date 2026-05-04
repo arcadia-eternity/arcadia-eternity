@@ -5,6 +5,7 @@ import type { Transporter } from 'nodemailer'
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
 import pino from 'pino'
 import type { IEmailService, EmailMessage, VerificationEmailData } from '../../interfaces/IEmailService'
+import type { HttpErrorLike } from '../../../cluster/types'
 import { renderVerificationHtml, renderVerificationText, validateTemplates } from '../../utils/templateLoader'
 
 const logger = pino({
@@ -129,9 +130,9 @@ export class EmailService implements IEmailService {
                   name: error.name,
                   message: error.message,
                   stack: error.stack,
-                  code: (error as Record<string, unknown>).code,
-                  statusCode: (error as Record<string, unknown>).statusCode,
-                  response: (error as Record<string, unknown>).response,
+                  code: (error as HttpErrorLike).code,
+                  statusCode: (error as HttpErrorLike).statusCode,
+                  response: (error as HttpErrorLike).response,
                 }
               : error,
           provider: this.config.provider,
@@ -188,9 +189,9 @@ export class EmailService implements IEmailService {
                   name: error.name,
                   message: error.message,
                   stack: error.stack,
-                  code: (error as Record<string, unknown>).code,
-                  statusCode: (error as Record<string, unknown>).statusCode,
-                  response: (error as Record<string, unknown>).response,
+                  code: (error as HttpErrorLike).code,
+                  statusCode: (error as HttpErrorLike).statusCode,
+                  response: (error as HttpErrorLike).response,
                 }
               : error,
           recipient: message.to,
@@ -351,9 +352,9 @@ ${playerText}
                   name: error.name,
                   message: error.message,
                   stack: error.stack,
-                  code: (error as Record<string, unknown>).code,
-                  statusCode: (error as Record<string, unknown>).statusCode,
-                  response: (error as Record<string, unknown>).response,
+                  code: (error as HttpErrorLike).code,
+                  statusCode: (error as HttpErrorLike).statusCode,
+                  response: (error as HttpErrorLike).response,
                 }
               : error,
           provider: this.config.provider,

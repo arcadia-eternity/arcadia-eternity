@@ -241,15 +241,17 @@ export class LoadBalancingReporter {
   }
 
   /**
+interface LoadDistribution {
+  cpuDistribution: { avg: number; std: number }
+  memoryDistribution: { avg: number; std: number }
+  battlesPerInstance: Record<string, number>
+}
+
    * 生成优化建议
    */
-  private generateRecommendations(instances: ServiceInstance[], loadDistribution: Record<string, unknown>): string[] {
+  private generateRecommendations(instances: ServiceInstance[], loadDistribution: LoadDistribution): string[] {
     const recommendations: string[] = []
-    const ld = loadDistribution as {
-      cpuDistribution: { avg: number; std: number }
-      memoryDistribution: { avg: number; std: number }
-      battlesPerInstance: Record<string, number>
-    }
+    const ld = loadDistribution
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {

@@ -243,6 +243,12 @@ export type RedisDisconnectedPlayerInfo = {
   expiresAt: number
 }
 
+export interface HttpErrorLike {
+  code?: number | string
+  statusCode?: number
+  response?: { body?: unknown; data?: unknown }
+}
+
 // 错误类型
 export class ClusterError extends Error {
   constructor(

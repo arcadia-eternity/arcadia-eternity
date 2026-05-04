@@ -1,6 +1,7 @@
 import type { Request, Response, Router, NextFunction } from 'express'
 import { databaseService } from '@arcadia-eternity/database'
 import type { Logger } from 'pino'
+import type { HttpErrorLike } from '../../cluster/types'
 
 export interface BattleReportRoutesConfig {
   enableApi: boolean
@@ -26,7 +27,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
       res.status(500).json({
         error: 'Database error',
         message: err.message,
-        code: (err as unknown as Record<string, unknown>).code,
+        code: (err as unknown as HttpErrorLike).code,
       })
     } else {
       res.status(500).json({

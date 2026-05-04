@@ -17,7 +17,7 @@ export interface TraceSpan {
   startTime: number
   endTime?: number
   duration?: number
-  tags: Record<string, unknown>
+  tags: Record<string, string>
   logs: TraceLog[]
   status: 'pending' | 'success' | 'error'
   error?: string
@@ -27,7 +27,7 @@ export interface TraceLog {
   timestamp: number
   level: 'info' | 'warn' | 'error'
   message: string
-  fields?: Record<string, unknown>
+  fields?: Record<string, string>
 }
 
 export interface PerformanceMetric {
@@ -306,7 +306,7 @@ export class PerformanceTracker {
   /**
    * 为span添加日志
    */
-  logToSpan(spanId: string, level: TraceLog['level'], message: string, fields?: Record<string, unknown>): void {
+  logToSpan(spanId: string, level: TraceLog['level'], message: string, fields?: Record<string, string>): void {
     const span = this.activeSpans.get(spanId)
     if (span) {
       span.logs.push({
@@ -405,7 +405,7 @@ export class PerformanceTracker {
       const originalMethod = descriptor.value
 
       descriptor.value = async function (...args: unknown[]) {
-        const tracker = (this as Record<string, unknown>).performanceTracker as PerformanceTracker
+        const tracker = (this as { performanceTracker?: PerformanceTracker }).performanceTracker
         if (!tracker) {
           return originalMethod.apply(this, args)
         }
@@ -496,7 +496,7 @@ export class PerformanceTracker {
       const originalMethod = descriptor.value
 
       descriptor.value = async function (...args: unknown[]) {
-        const tracker = (this as Record<string, unknown>).performanceTracker as PerformanceTracker
+        const tracker = (this as { performanceTracker?: PerformanceTracker }).performanceTracker
         const startTime = Date.now()
 
         try {

@@ -155,7 +155,7 @@ export class BattleReportService {
 
     try {
       // 确定胜者和战斗结果
-      const endData = endMessage.data as Record<string, unknown>
+      const endData = endMessage.data as { winner: string | null; reason: string }
       const winnerId = endData.winner
       let battleResult: BattleResult
       let endReason: EndReason
@@ -174,8 +174,7 @@ export class BattleReportService {
         endReason = 'disconnect'
       }
 
-      // 获取最终状态
-      const finalState = (endMessage.stateDelta ?? {}) as Record<string, unknown>
+      const finalState = endMessage.stateDelta as Record<string, unknown>
 
       // 更新战报记录
       await databaseService.battles.completeBattleRecord(

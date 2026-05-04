@@ -9,7 +9,7 @@ import type { RealtimeTransport } from '../../../realtime/realtimeTransport'
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
-import type { MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
+import type { MatchmakingEntry, ServiceInstance, HttpErrorLike } from '../../../cluster/types'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import type {
@@ -424,7 +424,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
                       name: error.name,
                       message: error.message,
                       stack: error.stack,
-                      code: (error as Record<string, unknown>).code,
+                      code: (error as HttpErrorLike).code,
                     }
                   : error,
             },
