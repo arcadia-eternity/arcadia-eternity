@@ -19,7 +19,8 @@
     ]
   },
   "typescript.tsdk": "node_modules/typescript/lib",
-  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [{ "directory": ".", "changeProcessCWD": true }],
   "exportall.config.relExclusion": [
     "/packages/battle",
     "/packages/client",
