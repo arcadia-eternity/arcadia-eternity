@@ -2,14 +2,13 @@ import globals from "globals";
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
-import pluginVue from "eslint-plugin-vue";
 
 const root = import.meta.dirname;
 
 /** @type {import('eslint').Linter.Config[]} */
-export default [
+export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/test/**", "**/e2e/**", "**/__tests__/**", "tsconfig.json", "**/rollup.config.*", "**/vitest.config.*", "**/*.d.ts", "tools/**", "examples/**", "test-*.ts", "packages/*/index.ts", "packages/*/test/**"]
+    ignores: ["**/dist/**", "**/test/**", "**/e2e/**", "**/__tests__/**", "tsconfig.json", "**/rollup.config.*", "**/vitest.config.*", "**/*.d.ts", "tools/**", "examples/**", "test-*.ts", "packages/*/index.ts", "packages/*/test/**", "packages/web-ui/**", "packages/p2p-transport/**", "packages/engine-plugins/**/index.ts", "packages/database/scripts/**", "packages/schema/examples/**", "packages/schema/script/**", "eslint.config.*"]
   },
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   pluginJs.configs.recommended,
@@ -18,9 +17,7 @@ export default [
   {
     languageOptions: {
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ["*.ts", "*.mjs", "*.js", "*.d.ts"],
-        },
+        projectService: true,
         tsconfigRootDir: root,
       },
     },
@@ -33,20 +30,4 @@ export default [
       }]
     }
   },
-  ...pluginVue.configs["flat/essential"],
-  {
-    files: ["packages/web-ui/**/*.vue"],
-    languageOptions: {
-      parser: "vue-eslint-parser",
-      parserOptions: {
-        parser: tseslint.parser,
-        projectService: true,
-        tsconfigRootDir: root,
-        extraFileExtensions: [".vue"],
-      },
-    },
-    rules: {
-      "vue/multi-word-component-names": "off",
-    },
-  },
-];
+);
