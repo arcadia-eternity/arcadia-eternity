@@ -7,6 +7,7 @@ import { translateEntityName } from '../../schemas/editorSchemas'
 import SpeciesProperties from './entity-properties/SpeciesProperties.vue'
 import SkillProperties from './entity-properties/SkillProperties.vue'
 import MarkProperties from './entity-properties/MarkProperties.vue'
+import EffectProperties from './entity-properties/EffectProperties.vue'
 import RelatedEntities from './RelatedEntities.vue'
 
 const state = useEditorState()
@@ -17,6 +18,7 @@ const entityComponents: Record<string, Component> = {
   species: SpeciesProperties,
   skills: SkillProperties,
   marks: MarkProperties,
+  effects: EffectProperties,
 }
 
 const currentRecord = computed(() => {

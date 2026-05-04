@@ -1,6 +1,7 @@
 import type { GameConfig, EntityConfig, CategoryMeta } from './types'
 import { Category, Element, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import { SpeciesSchema, SkillSchema, MarkSchema } from '@arcadia-eternity/schema'
+import { effects as effectsConfig } from './base'
 
 const species: EntityConfig = {
   key: 'species',
@@ -129,7 +130,7 @@ const triggers: Record<string, string> = {
 }
 
 export const seer2Config: GameConfig = {
-  entities: { species, skills, marks },
+  entities: { species, skills, marks, effects: effectsConfig },
   categories,
   triggers,
 }
