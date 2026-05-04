@@ -198,7 +198,7 @@ export abstract class AbstractRuleSet implements RuleSet {
   /**
    * 获取规则集的详细信息
    */
-  getInfo(): Record<string, any> {
+  getInfo(): Record<string, unknown> {
     return {
       id: this.id,
       name: this.name,

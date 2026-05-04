@@ -138,19 +138,19 @@ export class TeamBuilderIntegration {
         case 'TEAM_TOO_SMALL':
           suggestions.push({
             type: 'add',
-            message: `队伍精灵数量不足，还需要添加 ${error.context?.minSize - currentTeam.length} 只精灵`,
+            message: `队伍精灵数量不足，还需要添加 ${(error.context as { minSize: number })?.minSize - currentTeam.length} 只精灵`,
             details: error.context,
           })
-          minTeamSize = error.context?.minSize || minTeamSize
+          minTeamSize = (error.context as { minSize?: number })?.minSize || minTeamSize
           break
 
         case 'TEAM_TOO_LARGE':
           suggestions.push({
             type: 'remove',
-            message: `队伍精灵数量过多，需要移除 ${currentTeam.length - error.context?.maxSize} 只精灵`,
+            message: `队伍精灵数量过多，需要移除 ${currentTeam.length - (error.context as { maxSize: number })?.maxSize} 只精灵`,
             details: error.context,
           })
-          maxTeamSize = error.context?.maxSize || maxTeamSize
+          maxTeamSize = (error.context as { maxSize?: number })?.maxSize || maxTeamSize
           break
 
         case 'LEVEL_TOO_LOW':
@@ -287,7 +287,7 @@ export class TeamBuilderIntegration {
 
     for (const error of teamSizeErrors) {
       if (error.code === 'TEAM_TOO_LARGE') {
-        const maxSize = error.context?.maxSize || 6
+        const maxSize = (error.context as { maxSize?: number })?.maxSize || 6
         const removedPets = fixedTeam.splice(maxSize)
         for (const removedPet of removedPets) {
           changes.push({
