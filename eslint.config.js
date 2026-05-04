@@ -10,7 +10,7 @@ export default [
     ignores: ["**/dist/**", "**/test/**", "tsconfig.json", "packages/web-ui/**", "tools/load-test-cluster.js"]
   },
   { files: ["**/*.{js,mjs,cjs,ts}"] },
-  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  { languageOptions: { globals: { ...globals.browser, ...globals.node }, parserOptions: { tsconfigRootDir: import.meta.dirname } } },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   eslintConfigPrettier,

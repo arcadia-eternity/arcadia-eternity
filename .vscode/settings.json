@@ -19,6 +19,7 @@
     ]
   },
   "typescript.tsdk": "node_modules/typescript/lib",
+  "eslint.workingDirectories": [{ "mode": "auto" }],
   "exportall.config.relExclusion": [
     "/packages/battle",
     "/packages/client",
