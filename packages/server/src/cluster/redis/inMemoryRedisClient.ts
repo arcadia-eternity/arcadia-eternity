@@ -129,7 +129,7 @@ export class InMemoryRedisClientManager {
       return publishedCount
     }) as typeof publisher.publish
 
-    subscriber.subscribe = ((...args: string[]) => {
+    subscriber.subscribe = ((...args: Parameters<typeof subscriber.subscribe>) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const channels = args as string[]
       for (const channel of channels) {
@@ -139,7 +139,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__channelSubscriptions?.size ?? 0)
     }) as typeof subscriber.subscribe
 
-    subscriber.psubscribe = ((...args: string[]) => {
+    subscriber.psubscribe = ((...args: Parameters<typeof subscriber.psubscribe>) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const patterns = args as string[]
       for (const pattern of patterns) {
@@ -149,7 +149,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__patternSubscriptions?.size ?? 0)
     }) as typeof subscriber.psubscribe
 
-    subscriber.unsubscribe = ((...args: unknown[]) => {
+    subscriber.unsubscribe = ((...args: Parameters<typeof subscriber.unsubscribe>) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const channels = args as string[]
       if (channels.length === 0) {
@@ -163,7 +163,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__channelSubscriptions?.size ?? 0)
     }) as typeof subscriber.unsubscribe
 
-    subscriber.punsubscribe = ((...args: unknown[]) => {
+    subscriber.punsubscribe = ((...args: Parameters<typeof subscriber.punsubscribe>) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const patterns = args as string[]
       if (patterns.length === 0) {

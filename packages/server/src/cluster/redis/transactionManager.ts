@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid'
 import pino from 'pino'
-import type { Pipeline } from 'ioredis'
+import type { ChainableCommander } from 'ioredis'
 import type { RedisClientManager } from './redisClient'
 import type { DistributedLockManager } from './distributedLock'
-import { ClusterError } from '../types'
+import { ClusterError, type DistributedLock } from '../types'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -162,13 +162,13 @@ export class TransactionManager {
     return this.executeTransaction(operations, { lockKeys })
   }
 
-  private addOperationToMulti(multi: Pipeline, operation: TransactionOperation): void {
+  private addOperationToMulti(multi: ChainableCommander, operation: TransactionOperation): void {
     switch (operation.type) {
       case 'set':
         if (operation.ttl) {
-          multi.setex(operation.key, Math.floor(operation.ttl / 1000), operation.value)
+          multi.setex(operation.key, Math.floor(operation.ttl / 1000), operation.value as string | number | Buffer)
         } else {
-          multi.set(operation.key, operation.value)
+          multi.set(operation.key, operation.value as string | number | Buffer)
         }
         break
 

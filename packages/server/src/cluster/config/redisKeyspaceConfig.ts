@@ -107,7 +107,7 @@ export class RedisKeyspaceConfig {
         }
       }, 3000) // 3秒超时
 
-      subscriberClient.psubscribe(expiredKeyPattern, (err: Error | null) => {
+      ;(subscriberClient.psubscribe as (pattern: string, callback: (err: Error | null) => void) => void)(expiredKeyPattern, (err: Error | null) => {
         if (err) {
           clearTimeout(timeout)
           testCompleted = true

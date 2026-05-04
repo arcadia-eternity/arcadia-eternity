@@ -1,6 +1,6 @@
 import type { TransactionManager, TransactionOperation } from './transactionManager'
 import type { ClusterStateManager } from '../core/clusterStateManager'
-import type { MatchmakingEntry, RoomState, PlayerConnection } from '../types'
+import type { MatchmakingEntry, RoomState, PlayerConnection, PlayerSessionConnection } from '../types'
 import { REDIS_KEYS } from '../types'
 import { LOCK_KEYS } from './distributedLock'
 import pino from 'pino'
@@ -398,7 +398,7 @@ export class TransactionTemplates {
     }
   }
 
-  private serializeSessionConnection(connection: unknown): Record<string, string> {
+  private serializeSessionConnection(connection: PlayerSessionConnection): Record<string, string> {
     return {
       playerId: connection.playerId,
       sessionId: connection.sessionId,

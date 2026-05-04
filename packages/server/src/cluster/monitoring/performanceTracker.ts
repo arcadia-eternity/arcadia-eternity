@@ -644,7 +644,7 @@ export class PerformanceTracker {
 
       for (const cpu of cpus) {
         for (const type in cpu.times) {
-          totalTick += cpu.times[type]
+          totalTick += cpu.times[type as keyof typeof cpu.times]
         }
         totalIdle += cpu.times.idle
       }
