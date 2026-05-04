@@ -5,17 +5,21 @@ import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
  * 从客户端的游戏数据存储中获取种族信息
  */
 export class ClientSpeciesDataProvider implements SpeciesDataProvider {
-  private gameDataStore: any
+  private gameDataStore: {
+    speciesList?: unknown
+    species?: Record<string, unknown> & { byId?: Record<string, unknown> }
+    [key: string]: unknown
+  } | undefined
 
-  constructor(gameDataStore?: any) {
-    this.gameDataStore = gameDataStore
+  constructor(gameDataStore?: Record<string, unknown>) {
+    this.gameDataStore = gameDataStore ?? {}
   }
 
   /**
    * 设置游戏数据存储
    * @param gameDataStore 游戏数据存储实例
    */
-  setGameDataStore(gameDataStore: any): void {
+  setGameDataStore(gameDataStore: Record<string, unknown>): void {
     this.gameDataStore = gameDataStore
   }
 
@@ -32,17 +36,17 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
     try {
       // 尝试从speciesList中查找
       if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
-        return this.gameDataStore.speciesList.find((species: SpeciesSchemaType) => species.id === speciesId)
+        return this.gameDataStore.speciesList.find((species: SpeciesSchemaType) => species.id === speciesId) as SpeciesSchemaType | undefined
       }
 
       // 尝试从其他可能的数据结构中查找
       if (this.gameDataStore.species && this.gameDataStore.species[speciesId]) {
-        return this.gameDataStore.species[speciesId]
+        return this.gameDataStore.species[speciesId] as SpeciesSchemaType | undefined
       }
 
       // 如果有byId映射
       if (this.gameDataStore.species && this.gameDataStore.species.byId && this.gameDataStore.species.byId[speciesId]) {
-        return this.gameDataStore.species.byId[speciesId]
+        return this.gameDataStore.species.byId[speciesId] as SpeciesSchemaType | undefined
       }
 
       return undefined
@@ -125,9 +129,9 @@ export function getGlobalClientSpeciesDataProvider(): ClientSpeciesDataProvider 
  * 初始化全局客户端种族数据提供者
  * @param gameDataStore 游戏数据存储实例
  */
-export function initializeGlobalClientSpeciesDataProvider(gameDataStore: any): void {
+export function initializeGlobalClientSpeciesDataProvider(gameDataStore: unknown): void {
   const provider = getGlobalClientSpeciesDataProvider()
-  provider.setGameDataStore(gameDataStore)
+  provider.setGameDataStore(gameDataStore as Record<string, unknown>)
 }
 
 /**

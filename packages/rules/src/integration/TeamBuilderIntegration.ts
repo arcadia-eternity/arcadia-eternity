@@ -92,7 +92,7 @@ export class TeamBuilderIntegration {
       type: 'add' | 'remove' | 'modify' | 'warning'
       message: string
       petId?: string
-      details?: any
+      details?: unknown
     }>
     canAddMore: boolean
     maxTeamSize: number
@@ -102,7 +102,7 @@ export class TeamBuilderIntegration {
       type: 'add' | 'remove' | 'modify' | 'warning'
       message: string
       petId?: string
-      details?: any
+      details?: unknown
     }> = []
 
     // 激活规则集
@@ -229,7 +229,7 @@ export class TeamBuilderIntegration {
       petId: string
       petName: string
       description: string
-      details?: any
+      details?: unknown
     }>
     remainingIssues: ValidationResult
   } {
@@ -238,7 +238,7 @@ export class TeamBuilderIntegration {
       petId: string
       petName: string
       description: string
-      details?: any
+      details?: unknown
     }> = []
 
     // 激活规则集
@@ -333,7 +333,7 @@ export class TeamBuilderIntegration {
     specialRestrictions: Array<{
       type: string
       description: string
-      details: any
+      details: unknown
     }>
   } {
     // 默认限制
@@ -346,11 +346,11 @@ export class TeamBuilderIntegration {
         skills: [] as string[],
         marks: [] as string[],
       },
-      allowedContent: undefined as any,
+      allowedContent: undefined,
       specialRestrictions: [] as Array<{
         type: string
         description: string
-        details: any
+        details: unknown
       }>,
     }
 
@@ -367,7 +367,7 @@ export class TeamBuilderIntegration {
             // 由于规则类型很多，这里只是示例实现
             if (rule.hasTag('team') && rule.hasTag('size')) {
               // 队伍大小规则
-              const info = rule.getInfo() as any
+              const info = rule.getInfo() as unknown as { minSize?: number; maxSize?: number }
               if (info.minSize !== undefined)
                 limitations.teamSize.min = Math.max(limitations.teamSize.min, info.minSize)
               if (info.maxSize !== undefined)
@@ -376,7 +376,7 @@ export class TeamBuilderIntegration {
 
             if (rule.hasTag('level')) {
               // 等级限制规则
-              const info = rule.getInfo() as any
+              const info = rule.getInfo() as unknown as { minLevel?: number; maxLevel?: number }
               if (info.minLevel !== undefined)
                 limitations.levelRange.min = Math.max(limitations.levelRange.min, info.minLevel)
               if (info.maxLevel !== undefined)

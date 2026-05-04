@@ -55,7 +55,7 @@ export class ElementRestrictionRule extends AbstractRule {
     for (const pet of team) {
       // 这里需要从数据仓库获取精灵的属性信息
       // 暂时假设pet对象有element属性，实际实现时需要查询species数据
-      const element = (pet as any).element as Element
+      const element = (pet as unknown as { element?: Element }).element
       if (element) {
         elementCounts.set(element, (elementCounts.get(element) || 0) + 1)
         if (!petsByElement.has(element)) {

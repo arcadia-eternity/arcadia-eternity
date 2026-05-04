@@ -176,7 +176,7 @@ export class BattleIntegration {
    * @param data 操作数据
    * @returns 验证结果
    */
-  validateBattleOperation(battle: BattleInstance, operation: string, data: any): ValidationResult {
+  validateBattleOperation(battle: BattleInstance, operation: string, data: Record<string, unknown>): ValidationResult {
     const context: RuleContext = {
       battle,
       phase: RulePhase.BATTLE_EXECUTION,
@@ -188,12 +188,12 @@ export class BattleIntegration {
     switch (operation) {
       case 'useSkill':
         if (data.pet && data.skill) {
-          return this.ruleSystem.validateSkill(data.pet, data.skill, context)
+          return this.ruleSystem.validateSkill(data.pet as import('@arcadia-eternity/schema').PetSchemaType, data.skill as import('@arcadia-eternity/schema').SkillSchemaType, context)
         }
         break
       case 'switchPet':
         if (data.pet) {
-          return this.ruleSystem.validatePet(data.pet, context)
+          return this.ruleSystem.validatePet(data.pet as import('@arcadia-eternity/schema').PetSchemaType, context)
         }
         break
       default:
@@ -224,14 +224,14 @@ export class BattleIntegration {
    * @returns 兼容性检查结果
    */
   checkRuleSetCompatibility(ruleSetIds: string[]): ValidationResult {
-    const errors: any[] = []
-    const warnings: any[] = []
+    const errors: import('../interfaces/ValidationResult').ValidationError[] = []
+    const warnings: import('../interfaces/ValidationResult').ValidationWarning[] = []
 
     // 检查规则集是否存在
     for (const ruleSetId of ruleSetIds) {
       if (!this.registry.hasRuleSet(ruleSetId)) {
         errors.push({
-          type: 'SYSTEM_ERROR',
+          type: 'system_error' as import('../interfaces/ValidationResult').ValidationErrorType,
           code: 'RULESET_NOT_FOUND',
           message: `规则集 "${ruleSetId}" 不存在`,
           objectId: ruleSetId,
@@ -245,7 +245,7 @@ export class BattleIntegration {
       const ruleSet = this.registry.getRuleSet(ruleSetId)
       if (ruleSet && !ruleSet.enabled) {
         warnings.push({
-          type: 'COMPATIBILITY_WARNING',
+          type: 'compatibility_warning' as import('../interfaces/ValidationResult').ValidationWarningType,
           code: 'RULESET_DISABLED',
           message: `规则集 "${ruleSetId}" 已被禁用`,
           objectId: ruleSetId,
