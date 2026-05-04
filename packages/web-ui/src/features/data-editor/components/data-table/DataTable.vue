@@ -55,10 +55,13 @@ const sorting = ref<SortingState>([])
 const rowSelection = ref<RowSelectionState>({})
 
 // Reset selection when entity type changes
-watch(() => props.entityType, () => {
-  rowSelection.value = {}
-  sorting.value = []
-})
+watch(
+  () => props.entityType,
+  () => {
+    rowSelection.value = {}
+    sorting.value = []
+  },
+)
 
 // ── Column helpers ──
 
@@ -84,11 +87,11 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
     if (col.id === 'icon') {
       defs.push({
         id: 'icon',
-        accessorFn: (row) => (row.num as number) ?? 0,
+        accessorFn: row => (row.num as number) ?? 0,
         header: '',
         size: 36,
         enableSorting: false,
-        cell: (info) => h(PetIcon, { id: (info.getValue() as number) ?? 999, class: 'cell-pet-icon' }),
+        cell: info => h(PetIcon, { id: (info.getValue() as number) ?? 999, class: 'cell-pet-icon' }),
       })
       continue
     }
@@ -99,17 +102,17 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
         accessorKey: 'id',
         header: col.label,
         size: col.width ?? 150,
-        cell: (info) => info.getValue(),
+        cell: info => info.getValue(),
         meta: { className: 'cell-id' },
       })
       // Name column for entities with translatable names
       if (entityCfg.i18n?.hasNames !== false) {
         defs.push({
           id: 'name',
-          accessorFn: (row) => translateEntityName(row.id as string, entityCfg),
+          accessorFn: row => translateEntityName(row.id as string, entityCfg),
           header: '名称',
           size: 140,
-          cell: (info) => info.getValue(),
+          cell: info => info.getValue(),
         })
       }
       continue
@@ -118,13 +121,13 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
     if (col.id === 'trigger') {
       defs.push({
         id: 'triggerCount',
-        accessorFn: (row) => {
+        accessorFn: row => {
           const triggers = getValueByPath(row as Record<string, unknown>, col.path) as unknown[]
           return triggers?.length ?? 0
         },
         header: '触发数',
         size: col.width ?? 120,
-        cell: (info) => `${info.getValue()}项`,
+        cell: info => `${info.getValue()}项`,
       })
       continue
     }
@@ -132,10 +135,10 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
     if (col.id === 'element') {
       defs.push({
         id: 'element',
-        accessorFn: (row) => row.element ?? '',
+        accessorFn: row => row.element ?? '',
         header: col.label,
         size: col.width ?? 110,
-        cell: (info) => {
+        cell: info => {
           const el = info.getValue() as string
           if (!el) return h('span', { class: 'cell-empty' }, '—')
           return h('span', { class: 'cell-element' }, [
@@ -149,10 +152,10 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
 
     defs.push({
       id: col.id,
-      accessorFn: (row) => getValueByPath(row as Record<string, unknown>, col.path),
+      accessorFn: row => getValueByPath(row as Record<string, unknown>, col.path),
       header: col.label,
       size: col.width ?? 150,
-      cell: (info) => formatValue(info.getValue()),
+      cell: info => formatValue(info.getValue()),
     })
   }
 
@@ -161,26 +164,34 @@ const columns = computed<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
     const skillsCfg = config.entities['skills']
     defs.push({
       id: 'learnable_skills',
-      accessorFn: (row) => {
+      accessorFn: row => {
         const skills = row.learnable_skills as Array<{ skill_id: string; level: number; hidden?: boolean }> | undefined
         if (!skills?.length) return ''
-        const preview = skills.slice(0, 3).map(s => {
-          const name = translateEntityName(s.skill_id, skillsCfg)
-          return `${name} Lv.${s.level ?? 1}${s.hidden ? ' 隐' : ''}`
-        }).join(', ')
+        const preview = skills
+          .slice(0, 3)
+          .map(s => {
+            const name = translateEntityName(s.skill_id, skillsCfg)
+            return `${name} Lv.${s.level ?? 1}${s.hidden ? ' 隐' : ''}`
+          })
+          .join(', ')
         return skills.length > 3 ? `${preview}  +${skills.length - 3}` : preview
       },
       header: '可学技能',
       size: 240,
       enableSorting: false,
-      cell: (info) => {
+      cell: info => {
         const text = info.getValue() as string
         if (!text) return '—'
-        const skills = info.row.original.learnable_skills as Array<{ skill_id: string; level: number; hidden?: boolean }> | undefined
-        const title = skills?.map(s => {
-          const name = translateEntityName(s.skill_id, skillsCfg)
-          return `${name} Lv.${s.level ?? 1}${s.hidden ? ' (隐藏)' : ''}`
-        }).join('\n') ?? ''
+        const skills = info.row.original.learnable_skills as
+          | Array<{ skill_id: string; level: number; hidden?: boolean }>
+          | undefined
+        const title =
+          skills
+            ?.map(s => {
+              const name = translateEntityName(s.skill_id, skillsCfg)
+              return `${name} Lv.${s.level ?? 1}${s.hidden ? ' (隐藏)' : ''}`
+            })
+            .join('\n') ?? ''
         return h('span', { title, class: 'cell-learnable' }, text)
       },
     })
@@ -199,17 +210,25 @@ const table = useVueTable({
   get data() {
     return props.records
   },
-  get columns() { return columns.value },
+  get columns() {
+    return columns.value
+  },
   state: {
-    get sorting() { return sorting.value },
-    get rowSelection() { return rowSelection.value },
-    get globalFilter() { return globalFilter.value },
+    get sorting() {
+      return sorting.value
+    },
+    get rowSelection() {
+      return rowSelection.value
+    },
+    get globalFilter() {
+      return globalFilter.value
+    },
   },
   enableRowSelection: true,
-  onSortingChange: (updater) => {
+  onSortingChange: updater => {
     sorting.value = typeof updater === 'function' ? updater(sorting.value) : updater
   },
-  onRowSelectionChange: (updater) => {
+  onRowSelectionChange: updater => {
     rowSelection.value = typeof updater === 'function' ? updater(rowSelection.value) : updater
     // Emit selected IDs
     const selectedIds = table.getFilteredSelectedRowModel().rows.map(r => r.original.id as string)
@@ -245,22 +264,14 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
 <template>
   <div class="data-table-container">
     <!-- Toolbar -->
-    <DataTableToolbar
-      :entity-type="entityType"
-      :record-count="totalCount"
-      :selected-count="selectedCount"
-    />
+    <DataTableToolbar :entity-type="entityType" :record-count="totalCount" :selected-count="selectedCount" />
 
     <!-- Table scroll area -->
     <div class="data-table-scroll">
       <table class="data-table">
         <!-- Header groups -->
         <thead class="data-table__head">
-          <tr
-            v-for="headerGroup in table.getHeaderGroups()"
-            :key="headerGroup.id"
-            class="data-table__head-row"
-          >
+          <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="data-table__head-row">
             <!-- Selection header cell -->
             <th class="data-table__th data-table__th--checkbox">
               <label class="data-table__checkbox-label">
@@ -270,7 +281,7 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
                   :checked="table.getIsAllPageRowsSelected()"
                   :indeterminate="table.getIsSomePageRowsSelected()"
                   @change="table.getToggleAllPageRowsSelectedHandler()($event)"
-                >
+                />
               </label>
             </th>
 
@@ -288,10 +299,7 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
               @click="header.column.getToggleSortingHandler()?.($event)"
             >
               <div class="data-table__th-content">
-                <FlexRender
-                  :render="header.column.columnDef.header"
-                  :props="header.getContext()"
-                />
+                <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
                 <span v-if="header.column.getIsSorted() === 'asc'" class="sort-indicator">▲</span>
                 <span v-else-if="header.column.getIsSorted() === 'desc'" class="sort-indicator">▼</span>
                 <span v-else-if="header.column.getCanSort()" class="sort-indicator sort-indicator--inactive">⇅</span>
@@ -320,7 +328,7 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
                   class="data-table__checkbox"
                   :checked="row.getIsSelected()"
                   @change="row.getToggleSelectedHandler()($event)"
-                >
+                />
               </label>
             </td>
 
@@ -329,12 +337,11 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
               v-for="cell in row.getVisibleCells()"
               :key="cell.id"
               class="data-table__td"
-              :class="((cell.column.columnDef.meta as Record<string, unknown> | undefined)?.className as unknown as string)"
+              :class="
+                (cell.column.columnDef.meta as Record<string, unknown> | undefined)?.className as unknown as string
+              "
             >
-              <FlexRender
-                :render="cell.column.columnDef.cell"
-                :props="cell.getContext()"
-              />
+              <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
             </td>
           </tr>
 
@@ -375,7 +382,11 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-family: var(--ae-font-base), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--ae-font-base),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   font-size: var(--ae-font-sm);
 }
 
@@ -410,7 +421,9 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
 
 .data-table__th--sortable {
   cursor: pointer;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
 .data-table__th--sortable:hover {

@@ -239,7 +239,9 @@ export class LoadBalancingConfigManager {
       const config = JSON.parse(jsonString)
       this.updateConfig(config)
     } catch (error) {
-      throw new Error(`Invalid JSON configuration: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error })
+      throw new Error(`Invalid JSON configuration: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        cause: error,
+      })
     }
   }
 }

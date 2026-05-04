@@ -87,7 +87,11 @@ const entityIcon = computed(() => entityConfig.value?.icon)
       <span v-if="skillElement" class="identity-element">
         <span class="identity-element-dot" :style="{ backgroundColor: ELEMENT_MAP[skillElement]?.emoji ?? '#888' }" />
       </span>
-      <span v-if="skillCategory" class="identity-badge" :style="{ color: skillCategory.color, backgroundColor: skillCategory.bg }">
+      <span
+        v-if="skillCategory"
+        class="identity-badge"
+        :style="{ color: skillCategory.color, backgroundColor: skillCategory.bg }"
+      >
         {{ skillCategory.label }}
       </span>
       <span class="identity-name">{{ displayName }}</span>
@@ -107,18 +111,69 @@ const entityIcon = computed(() => entityConfig.value?.icon)
 
 <style scoped>
 .identity-header {
-  display: flex; align-items: center; gap: 8px;
-  height: 40px; padding: 0 12px; flex-shrink: 0; min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  min-width: 0;
   border-bottom: 1px solid var(--ae-border-subtle);
   background: var(--ae-bg-elevated);
 }
-.identity-icon { width: 28px; height: 28px; border-radius: var(--ae-radius-sm); object-fit: contain; flex-shrink: 0; }
-.identity-icon--placeholder { background: var(--ae-bg-overlay); border: 1px solid var(--ae-border-subtle); }
-.identity-element { display: inline-flex; align-items: center; flex-shrink: 0; }
-.identity-element-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.15); }
-.identity-badge { display: inline-flex; align-items: center; padding: 1px 8px; font-size: 11px; font-weight: 600; border-radius: 999px; line-height: 1.6; flex-shrink: 0; }
-.identity-name { font-size: 13px; font-weight: 600; color: var(--ae-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.identity-name--mono { font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', ui-monospace, monospace; }
-.identity-dex { font-size: 11px; color: var(--ae-text-muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.identity-mark-icon { font-size: 16px; flex-shrink: 0; line-height: 1; }
+.identity-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ae-radius-sm);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.identity-icon--placeholder {
+  background: var(--ae-bg-overlay);
+  border: 1px solid var(--ae-border-subtle);
+}
+.identity-element {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.identity-element-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.identity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+.identity-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ae-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.identity-name--mono {
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', ui-monospace, monospace;
+}
+.identity-dex {
+  font-size: 11px;
+  color: var(--ae-text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.identity-mark-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1;
+}
 </style>

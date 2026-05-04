@@ -2,11 +2,12 @@
 
 /* 基础发光脉冲动画 */
 @keyframes glow-pulse {
-  0%, 100% { 
+  0%,
+  100% {
     filter: drop-shadow(0 0 4px currentColor);
     transform: scale(1);
   }
-  50% { 
+  50% {
     filter: drop-shadow(0 0 8px currentColor);
     transform: scale(1.02);
   }
@@ -14,19 +15,20 @@
 
 /* 警告脉冲动画 - 用于限制效果 */
 @keyframes warning-pulse {
-  0%, 100% { 
+  0%,
+  100% {
     filter: drop-shadow(0 0 4px currentColor);
     transform: scale(1);
   }
-  25% { 
+  25% {
     filter: drop-shadow(0 0 6px currentColor);
     transform: scale(1.01);
   }
-  50% { 
+  50% {
     filter: drop-shadow(0 0 8px currentColor);
     transform: scale(1.02);
   }
-  75% { 
+  75% {
     filter: drop-shadow(0 0 6px currentColor);
     transform: scale(1.01);
   }
@@ -34,27 +36,27 @@
 
 /* 复杂脉冲动画 - 用于混合效果 */
 @keyframes complex-pulse {
-  0% { 
+  0% {
     filter: drop-shadow(0 0 4px currentColor);
     transform: scale(1);
   }
-  20% { 
+  20% {
     filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6));
     transform: scale(1.01);
   }
-  40% { 
+  40% {
     filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
     transform: scale(1.02);
   }
-  60% { 
+  60% {
     filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.6));
     transform: scale(1.01);
   }
-  80% { 
+  80% {
     filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.6));
     transform: scale(1.02);
   }
-  100% { 
+  100% {
     filter: drop-shadow(0 0 4px currentColor);
     transform: scale(1);
   }
@@ -62,11 +64,12 @@
 
 /* 微妙发光动画 - 用于中性效果 */
 @keyframes subtle-glow {
-  0%, 100% { 
+  0%,
+  100% {
     filter: drop-shadow(0 0 2px currentColor);
     opacity: 0.9;
   }
-  50% { 
+  50% {
     filter: drop-shadow(0 0 4px currentColor);
     opacity: 1;
   }
@@ -97,7 +100,8 @@
 
 /* 减益效果特殊动画 */
 @keyframes debuff-flicker {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -107,7 +111,8 @@
 
 /* 限制效果边框动画 */
 @keyframes clamp-border {
-  0%, 100% {
+  0%,
+  100% {
     border-color: currentColor;
     border-width: 1px;
   }
@@ -139,12 +144,7 @@
 }
 
 .animate-buff-shine {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(34, 197, 94, 0.3) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, rgba(34, 197, 94, 0.3) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: buff-shine 2s ease-in-out infinite;
 }
@@ -170,16 +170,16 @@
   .animate-clamp-border {
     animation: none;
   }
-  
+
   /* 为减少动画用户提供静态视觉提示 */
   .animate-glow-pulse {
     filter: drop-shadow(0 0 4px currentColor);
   }
-  
+
   .animate-warning-pulse {
     border: 2px solid currentColor;
   }
-  
+
   .animate-complex-pulse {
     background: linear-gradient(45deg, currentColor 25%, transparent 25%);
   }

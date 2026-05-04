@@ -169,7 +169,10 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                     ></ValueEditor>
                   </template>
                   <template #condition="{ modelValue: ccv, update: ccu }">
-                    <ConditionTreeEditor :model-value="ccv as ConditionDSL" @update:model-value="(v) => ccu(v as ConditionDSL)">
+                    <ConditionTreeEditor
+                      :model-value="ccv as ConditionDSL"
+                      @update:model-value="v => ccu(v as ConditionDSL)"
+                    >
                       <template #selector="{ modelValue: csv, update: csu }">
                         <SelectorBuilder :model-value="csv" @update:model-value="csu" />
                       </template>

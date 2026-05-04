@@ -95,9 +95,7 @@ function removeItem(index: number) {
 
 function replaceItemEntity(index: number, newId: string) {
   const arr = [...items.value]
-  const item = isComplexItems.value
-    ? { ...(arr[index] as Record<string, unknown>), [idKey.value]: newId }
-    : newId
+  const item = isComplexItems.value ? { ...(arr[index] as Record<string, unknown>), [idKey.value]: newId } : newId
   arr[index] = item
   props.context.onUpdate(arr)
 }
@@ -127,9 +125,7 @@ const filteredForAdd = computed(() => {
 })
 
 function addEntity(entity: { id: string }) {
-  const newItem = isComplexItems.value
-    ? { [idKey.value]: entity.id, level: 1, hidden: false }
-    : entity.id
+  const newItem = isComplexItems.value ? { [idKey.value]: entity.id, level: 1, hidden: false } : entity.id
   const arr = [...items.value, newItem]
   props.context.onUpdate(arr)
   searchQuery.value = ''
@@ -203,27 +199,19 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
   <div class="entity-table-editor">
     <!-- Header bar -->
     <div class="entity-table-header">
-      <span class="entity-table-title">
-        {{ entityLabel }} ({{ items.length }})
-      </span>
-      <button class="entity-table-add-btn" type="button" @click="toggleDropdown">
-        + 添加{{ entityLabel }}
-      </button>
+      <span class="entity-table-title"> {{ entityLabel }} ({{ items.length }}) </span>
+      <button class="entity-table-add-btn" type="button" @click="toggleDropdown">+ 添加{{ entityLabel }}</button>
     </div>
 
     <!-- Divider -->
     <div class="entity-table-divider" />
 
     <!-- Rows -->
-    <div
-      v-for="(item, index) in items"
-      :key="index"
-      class="entity-table-row"
-    >
+    <div v-for="(item, index) in items" :key="index" class="entity-table-row">
       <!-- Icon -->
       <ElementIcon
         v-if="entityKind === 'skills' && resolveElement(item)"
-        :element="(resolveElement(item) as Element)"
+        :element="resolveElement(item) as Element"
         :size="14"
         class="entity-table-icon"
       />
@@ -246,7 +234,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
         type="button"
         title="跳转到{{ entityLabel }}编辑器"
         @click.stop="navigateToEntity(item)"
-      >↗</button>
+      >
+        ↗
+      </button>
 
       <!-- Controls (always visible) -->
       <span class="entity-table-controls">
@@ -255,7 +245,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
           <input
             type="number"
             class="entity-table-level-input"
-            :value="(item as Record<string,unknown>).level ?? 1"
+            :value="(item as Record<string, unknown>).level ?? 1"
             min="1"
             max="100"
             @input="updateItemField(index, 'level', Number(($event.target as HTMLInputElement).value))"
@@ -264,30 +254,18 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
           <label class="entity-table-hidden-toggle">
             <input
               type="checkbox"
-              :checked="(item as Record<string,unknown>).hidden === true"
+              :checked="(item as Record<string, unknown>).hidden === true"
               @change="updateItemField(index, 'hidden', ($event.target as HTMLInputElement).checked)"
             />
             <span class="entity-table-hidden-label">隐</span>
           </label>
         </template>
-        <button
-          class="entity-table-remove"
-          type="button"
-          @click.stop="removeItem(index)"
-          title="移除"
-        >
-          ×
-        </button>
+        <button class="entity-table-remove" type="button" @click.stop="removeItem(index)" title="移除">×</button>
       </span>
 
       <!-- Per-row swap dropdown -->
       <div v-if="swappingIndex === index" class="swap-dropdown" @click.stop>
-        <input
-          v-model="swapSearch"
-          class="swap-search-input"
-          placeholder="替换为..."
-          @keyup.escape="closeSwap()"
-        />
+        <input v-model="swapSearch" class="swap-search-input" placeholder="替换为..." @keyup.escape="closeSwap()" />
         <div class="swap-results">
           <div v-if="swapFiltered.length === 0" class="swap-results-empty">无匹配结果</div>
           <button
@@ -303,12 +281,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
               :size="14"
               class="swap-result-icon"
             />
-            <MarkIcon
-              v-else-if="entityKind === 'marks'"
-              :mark-id="entity.id"
-              :size="14"
-              class="swap-result-icon"
-            />
+            <MarkIcon v-else-if="entityKind === 'marks'" :mark-id="entity.id" :size="14" class="swap-result-icon" />
             <span class="swap-result-label">{{ entity.label }}</span>
             <span class="swap-result-id">{{ entity.id }}</span>
           </button>
@@ -395,7 +368,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
   border-radius: var(--ae-radius-sm);
   cursor: pointer;
   line-height: 1.5;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
   user-select: none;
   white-space: nowrap;
 }
@@ -486,7 +461,10 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
   cursor: pointer;
   flex-shrink: 0;
   opacity: 0;
-  transition: opacity 0.1s ease, color 0.1s ease, background 0.1s ease;
+  transition:
+    opacity 0.1s ease,
+    color 0.1s ease,
+    background 0.1s ease;
 }
 
 .entity-table-row:hover .entity-table-nav {
@@ -582,7 +560,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.1s ease, background 0.1s ease;
+  transition:
+    color 0.1s ease,
+    background 0.1s ease;
 }
 
 .entity-table-remove:hover {

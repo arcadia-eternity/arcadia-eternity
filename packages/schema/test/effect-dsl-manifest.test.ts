@@ -14,9 +14,7 @@ describe('effect dsl manifest', () => {
     const executeActions = getEffectDslNodeTyping('operator', 'executeActions')
     const registerTaggedConfig = getEffectDslNodeTyping('operator', 'registerTaggedConfig')
 
-    expect(executeActions?.selectorFields?.target?.allow).toEqual([
-      { kind: 'object', classes: ['dsl:operator'] },
-    ])
+    expect(executeActions?.selectorFields?.target?.allow).toEqual([{ kind: 'object', classes: ['dsl:operator'] }])
     expect(registerTaggedConfig?.valueFields?.tags?.allow).toEqual([
       { kind: 'scalar', valueTypes: ['string'] },
       { kind: 'object', classes: ['json:stringArray'] },

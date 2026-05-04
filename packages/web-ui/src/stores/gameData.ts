@@ -1,7 +1,13 @@
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
 import { PackLoader, type V2DataPackManifest } from '@arcadia-eternity/pack-loader'
-import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect, LearnableSkill } from '@arcadia-eternity/schema'
+import type {
+  SpeciesSchemaType,
+  SkillSchemaType,
+  MarkSchemaType,
+  Effect,
+  LearnableSkill,
+} from '@arcadia-eternity/schema'
 import type { BaseMarkData, BaseSkillData, SpeciesData } from '@arcadia-eternity/battle'
 import { AttackTargetOpinion, Category, Element, IgnoreStageStrategy, StackStrategy } from '@arcadia-eternity/const'
 import YAML from 'yaml'

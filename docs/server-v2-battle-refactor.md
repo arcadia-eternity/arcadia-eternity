@@ -225,13 +225,16 @@ Validation snapshot date: `2026-03-13`
 9. P2P private-room lane regression suite: pass (2026-03-12)
    - `packages/server/test/privateRoomService.test.ts` (p2p start/signal relay/reconnect restore)
 10. Mock multi-instance cluster E2E baseline: pass (2026-03-12)
-   - `packages/server/test/cluster.multi-instance.e2e.test.ts`
-   - covers:
-     - ranked/server lane: multi-instance mocked state queue join -> matchSuccess(session-level)
-     - p2p lane: private-room p2p peer signal relay event channel forwarding
+
+- `packages/server/test/cluster.multi-instance.e2e.test.ts`
+- covers:
+  - ranked/server lane: multi-instance mocked state queue join -> matchSuccess(session-level)
+  - p2p lane: private-room p2p peer signal relay event channel forwarding
+
 11. Pending: dedicated real multi-process E2E (instance A/B/C + real Redis + queue/match + p2p cross-instance reconnect + failure injection)
 12. Deterministic handoff baseline regressions: pass (2026-03-13)
-   - `packages/server/test/clusterBattleService.v2.test.ts` (`ignore incompatible runtime snapshot version -> replay from start`)
+
+- `packages/server/test/clusterBattleService.v2.test.ts` (`ignore incompatible runtime snapshot version -> replay from start`)
 
 ### Online E2E Commands
 

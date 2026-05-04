@@ -29,11 +29,7 @@ const selectedPackFolder = computed(() => {
 
     <!-- Collapsible content -->
     <div v-show="isExpanded" class="drawer-content">
-      <BattleWorkbenchController
-        :selected-pack-folder="selectedPackFolder"
-        :selected-entry="null"
-        :open-tabs="[]"
-      />
+      <BattleWorkbenchController :selected-pack-folder="selectedPackFolder" :selected-entry="null" :open-tabs="[]" />
     </div>
   </div>
 </template>

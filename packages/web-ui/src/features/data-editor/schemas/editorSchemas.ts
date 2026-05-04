@@ -23,7 +23,9 @@ export function translateEntityName(id: string, entityCfg: EntityConfig): string
     const ns = cfg.namespaces
     if (!ns) return id
     return i18next.t(key, { ns, defaultValue: id })
-  } catch { return id }
+  } catch {
+    return id
+  }
 }
 
 export function getValueByPath(source: Record<string, unknown>, path: string): unknown {

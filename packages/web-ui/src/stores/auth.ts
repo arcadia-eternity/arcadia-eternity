@@ -168,11 +168,12 @@ export const useAuthStore = defineStore('auth', {
         throw new Error(response.data.message || '创建游客失败')
       } catch (error: unknown) {
         console.error('Create guest error:', String(error))
-        const message = error instanceof AxiosError
-          ? error.response?.data?.message
-          : error instanceof Error
-            ? error.message
-            : undefined
+        const message =
+          error instanceof AxiosError
+            ? error.response?.data?.message
+            : error instanceof Error
+              ? error.message
+              : undefined
         throw new Error(message || '创建游客失败，请检查网络连接')
       }
     },
@@ -215,11 +216,12 @@ export const useAuthStore = defineStore('auth', {
         throw new Error(response.data.message || '检查玩家状态失败')
       } catch (error: unknown) {
         console.error('Check player status error:', String(error))
-        const message = error instanceof AxiosError
-          ? error.response?.data?.message
-          : error instanceof Error
-            ? error.message
-            : undefined
+        const message =
+          error instanceof AxiosError
+            ? error.response?.data?.message
+            : error instanceof Error
+              ? error.message
+              : undefined
         throw new Error(message || '检查玩家状态失败，请检查网络连接')
       }
     },

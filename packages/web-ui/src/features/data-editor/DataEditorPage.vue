@@ -95,7 +95,10 @@ async function doSave() {
 
     let manifest: Record<string, unknown>
     if (isBase) {
-      const { content: raw } = await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath: 'pack.json' })
+      const { content: raw } = await window.arcadiaDesktop!.readBasePackFile({
+        folderName: 'base',
+        relativePath: 'pack.json',
+      })
       manifest = JSON.parse(raw)
     } else {
       const result = await readWorkspacePackManifest({ folderName: packFolder })
@@ -145,7 +148,9 @@ const loadError = ref<string | null>(null)
 
 // ── Keyboard shortcuts ──
 useEditorKeyboard({
-  onSave() { doSave() },
+  onSave() {
+    doSave()
+  },
   onUndo() {
     if (canUndo.value) undo()
   },
@@ -219,13 +224,7 @@ onMounted(async () => {
     <!-- Error banner -->
     <div v-if="loadError" class="editor-error-banner">
       <span class="editor-error-message">{{ loadError }}</span>
-      <button
-        type="button"
-        class="editor-error-dismiss"
-        @click="loadError = null"
-      >
-        ✕
-      </button>
+      <button type="button" class="editor-error-dismiss" @click="loadError = null">✕</button>
     </div>
 
     <!-- Top toolbar -->

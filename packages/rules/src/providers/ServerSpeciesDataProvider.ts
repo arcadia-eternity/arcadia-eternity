@@ -6,12 +6,14 @@ import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
  * 从服务端的数据仓库中获取种族信息
  */
 export class ServerSpeciesDataProvider implements SpeciesDataProvider {
-  private dataRepository: {
-    getSpeciesById?: (speciesId: string) => SpeciesSchemaType | undefined
-    getAllSpecies?: () => SpeciesSchemaType[]
-    species?: Record<string, SpeciesSchemaType>
-    [key: string]: unknown
-  } | undefined
+  private dataRepository:
+    | {
+        getSpeciesById?: (speciesId: string) => SpeciesSchemaType | undefined
+        getAllSpecies?: () => SpeciesSchemaType[]
+        species?: Record<string, SpeciesSchemaType>
+        [key: string]: unknown
+      }
+    | undefined
 
   constructor(dataRepository?: Record<string, unknown>) {
     this.dataRepository = dataRepository

@@ -101,12 +101,12 @@ export function applyTransformation(
 
   // Determine original base
   const existingRecords = state.records[targetId]
-  const originalBaseFromExtra = typeof options?.extra?.originalBaseId === 'string'
-    ? options.extra.originalBaseId
-    : undefined
-  const originalBaseId = existingRecords && existingRecords.length > 0
-    ? existingRecords[0].originalBaseId
-    : (options?.originalBaseId ?? originalBaseFromExtra ?? newBaseId)
+  const originalBaseFromExtra =
+    typeof options?.extra?.originalBaseId === 'string' ? options.extra.originalBaseId : undefined
+  const originalBaseId =
+    existingRecords && existingRecords.length > 0
+      ? existingRecords[0].originalBaseId
+      : (options?.originalBaseId ?? originalBaseFromExtra ?? newBaseId)
 
   const record: TransformRecord = {
     id: generateId('transform'),
@@ -190,11 +190,7 @@ export function removeTransformation(
 /**
  * Remove all transformations caused by a specific source.
  */
-export function removeTransformationsBySource(
-  world: World,
-  causedById: string,
-  strategy: TransformStrategy,
-): number {
+export function removeTransformationsBySource(world: World, causedById: string, strategy: TransformStrategy): number {
   const state = getTransformState(world)
   let removed = 0
 
@@ -226,7 +222,7 @@ export function getEntityTransformState(
   const records = state.records[targetId] ?? []
   const stack = state.temporaryStacks[targetId]
   const permanent = state.permanentTransforms[targetId]
-  const activeRecord = (stack && stack.length > 0) ? stack[0] : permanent
+  const activeRecord = stack && stack.length > 0 ? stack[0] : permanent
 
   return {
     isTransformed: records.length > 0,

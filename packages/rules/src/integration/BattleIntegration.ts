@@ -188,7 +188,11 @@ export class BattleIntegration {
     switch (operation) {
       case 'useSkill':
         if (data.pet && data.skill) {
-          return this.ruleSystem.validateSkill(data.pet as import('@arcadia-eternity/schema').PetSchemaType, data.skill as import('@arcadia-eternity/schema').SkillSchemaType, context)
+          return this.ruleSystem.validateSkill(
+            data.pet as import('@arcadia-eternity/schema').PetSchemaType,
+            data.skill as import('@arcadia-eternity/schema').SkillSchemaType,
+            context,
+          )
         }
         break
       case 'switchPet':

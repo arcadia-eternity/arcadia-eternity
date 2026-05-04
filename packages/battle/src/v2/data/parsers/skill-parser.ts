@@ -1,10 +1,7 @@
 // battle/src/v2/data/parsers/skill-parser.ts
 // Parse raw YAML skill data → v2 BaseSkillData.
 
-import {
-  AttackTargetOpinion,
-  IgnoreStageStrategy,
-} from '@arcadia-eternity/const'
+import { AttackTargetOpinion, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import type { BaseSkillData } from '../../schemas/skill.schema.js'
 
 /**
@@ -34,7 +31,8 @@ export function parseSkill(raw: Record<string, unknown>): BaseSkillData {
     sureHit: (raw.sureHit as boolean) ?? false,
     sureCrit: (raw.sureCrit as boolean) ?? false,
     ignoreShield: (raw.ignoreShield as boolean) ?? false,
-    ignoreOpponentStageStrategy: (raw.ignoreOpponentStageStrategy as BaseSkillData['ignoreOpponentStageStrategy']) ?? IgnoreStageStrategy.none,
+    ignoreOpponentStageStrategy:
+      (raw.ignoreOpponentStageStrategy as BaseSkillData['ignoreOpponentStageStrategy']) ?? IgnoreStageStrategy.none,
     tags,
     effectIds,
   }

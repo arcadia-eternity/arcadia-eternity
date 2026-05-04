@@ -1,4 +1,3 @@
-
 // 邮件消息接口
 export interface EmailMessage {
   to: string

@@ -16,11 +16,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function waitFor(
-  predicate: () => boolean | Promise<boolean>,
-  timeoutMs = 5000,
-  intervalMs = 25,
-): Promise<void> {
+async function waitFor(predicate: () => boolean | Promise<boolean>, timeoutMs = 5000, intervalMs = 25): Promise<void> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     if (await predicate()) return
@@ -78,14 +74,8 @@ describe('V2 Timer', () => {
     try {
       await system.ready()
 
-      await waitFor(
-        () => timeoutEvents.some(event => event.type === 'turn'),
-        6000,
-      )
-      await waitFor(
-        () => messages.some(message => message.type === BattleMessageType.TurnEnd),
-        6000,
-      )
+      await waitFor(() => timeoutEvents.some(event => event.type === 'turn'), 6000)
+      await waitFor(() => messages.some(message => message.type === BattleMessageType.TurnEnd), 6000)
 
       expect(timeoutEvents.some(event => event.type === 'turn')).toBe(true)
       expect(timeoutEvents.some(event => event.type === 'turn' && event.autoAction?.includes('使用技能'))).toBe(true)

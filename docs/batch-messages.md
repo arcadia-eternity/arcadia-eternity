@@ -67,7 +67,7 @@ this.socket.on('battleEventBatch', messages => {
     if (handlers) {
       handlers.forEach(handler => handler(message))
     }
-    
+
     // 检查是否有战斗结束消息
     if (message.type === 'BATTLE_END') {
       this.updateState({ battle: 'ended' })

@@ -80,7 +80,7 @@ async function main() {
 
     // 3. 创建函数
     console.log('⚙️ 创建数据库函数...')
-    
+
     // 获取或创建玩家ELO评级记录函数
     const getOrCreateEloSQL = `
       CREATE OR REPLACE FUNCTION get_or_create_player_elo(
@@ -166,7 +166,6 @@ async function main() {
     console.log('   ✓ get_or_create_player_elo 函数')
     console.log('')
     console.log('🎯 下一步: 启动服务器测试ELO功能')
-
   } catch (error) {
     console.error('❌ 迁移失败:', error)
     console.log('')

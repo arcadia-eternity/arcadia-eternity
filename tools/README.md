@@ -18,6 +18,7 @@ tools/
 **用途**: 自动化设置 Fly.io CI/CD 环境
 
 **功能**:
+
 - 检查 Fly CLI 安装和登录状态
 - 验证 Fly.io 应用是否存在
 - 创建 App-scoped Deploy Token
@@ -25,11 +26,13 @@ tools/
 - 显示可选的环境变量配置命令
 
 **使用方法**:
+
 ```bash
 ./tools/setup-flyio-cicd.sh
 ```
 
 **前置要求**:
+
 - 已安装 Fly CLI
 - 已登录 Fly.io 账户
 - 已创建 Fly.io 应用 (或脚本会提示创建)
@@ -39,21 +42,25 @@ tools/
 **用途**: 交互式管理 Fly.io 访问令牌
 
 **功能**:
+
 - 查看应用和组织级别的令牌
 - 创建新的部署令牌 (支持自定义名称和过期时间)
 - 撤销现有令牌
 - 令牌轮换 (创建新令牌并指导撤销旧令牌)
 
 **使用方法**:
+
 ```bash
 ./tools/manage-flyio-tokens.sh
 ```
 
 **支持的令牌类型**:
+
 - App-scoped Deploy Token (推荐)
 - Org-scoped Deploy Token
 
 **支持的过期时间**:
+
 - 30 天 (推荐用于生产环境)
 - 90 天
 - 1 年
@@ -77,16 +84,19 @@ tools/
 ### 常见问题
 
 1. **权限被拒绝**
+
    ```bash
    chmod +x tools/*.sh
    ```
 
 2. **Fly CLI 未找到**
+
    ```bash
    curl -L https://fly.io/install.sh | sh
    ```
 
 3. **未登录 Fly.io**
+
    ```bash
    flyctl auth login
    ```

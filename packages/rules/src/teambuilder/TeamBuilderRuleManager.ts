@@ -183,7 +183,9 @@ export class TeamBuilderRuleManager {
     }
 
     try {
-      return (genderRule as unknown as { getAllowedGendersForSpecies(id: string): string[] }).getAllowedGendersForSpecies(speciesId)
+      return (
+        genderRule as unknown as { getAllowedGendersForSpecies(id: string): string[] }
+      ).getAllowedGendersForSpecies(speciesId)
     } catch (error) {
       console.warn('获取性别限制失败:', error)
       return ['Male', 'Female', 'NoGender']

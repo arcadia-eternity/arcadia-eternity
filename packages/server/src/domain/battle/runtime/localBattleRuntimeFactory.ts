@@ -157,12 +157,7 @@ export class LocalBattleRuntimeFactory {
         },
       }
 
-      return createLocalBattleFromYAML(
-        packRef,
-        toTeamConfig(player1Data),
-        toTeamConfig(player2Data),
-        fallbackConfig,
-      )
+      return createLocalBattleFromYAML(packRef, toTeamConfig(player1Data), toTeamConfig(player2Data), fallbackConfig)
     }
   }
 

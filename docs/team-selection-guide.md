@@ -65,6 +65,7 @@ player.setSelection({
 ### Selection Modes
 
 #### VIEW_ONLY
+
 - Players can see team information but cannot make changes
 - Useful for team preview phases
 - Automatically proceeds after time limit
@@ -79,6 +80,7 @@ player.setSelection({
 ```
 
 #### TEAM_SELECTION
+
 - Players choose which pets to bring to battle
 - Most flexible mode for competitive play
 - Supports custom team sizes
@@ -94,6 +96,7 @@ player.setSelection({
 ```
 
 #### FULL_TEAM
+
 - All pets participate in battle
 - Players only choose starter pet (if enabled)
 - Good for casual or story mode battles
@@ -140,12 +143,12 @@ player.setSelection({
 <script setup>
 import TeamSelectionPanel from '@/components/battle/TeamSelectionPanel.vue'
 
-const onSelectionChange = (selection) => {
+const onSelectionChange = selection => {
   // Handle selection updates
   currentSelection.value = selection
 }
 
-const onConfirm = async (selection) => {
+const onConfirm = async selection => {
   // Submit final selection
   await battleStore.sendPlayerSelection({
     type: 'team-selection',
@@ -176,11 +179,11 @@ class AIPlayer extends Player {
   private makeTeamSelectionDecision(): PlayerSelection {
     const rule = this.battle.ruleSet.rules.find(r => r instanceof TeamSelectionRule)
     const config = rule.getConfig()
-    
+
     if (config.mode === 'TEAM_SELECTION') {
       return this.makeStrategicTeamSelection(config)
     }
-    
+
     return this.makeDefaultSelection()
   }
 }
@@ -246,7 +249,7 @@ if (!validationResult.isValid) {
   validationResult.errors.forEach(error => {
     console.error(`Validation Error: ${error.message} (Code: ${error.code})`)
   })
-  
+
   // Handle specific errors
   if (validationResult.errors.some(e => e.code === 'TEAM_SIZE_TOO_SMALL')) {
     // Prompt user to select more pets
@@ -269,12 +272,12 @@ describe('TeamSelectionRule', () => {
       minTeamSize: 1,
       allowStarterSelection: true,
     })
-    
+
     const selection = {
       selectedPets: ['pet-1', 'pet-2'],
       starterPetId: 'pet-1',
     }
-    
+
     const result = rule.validateTeamSelection(selection, mockTeam)
     expect(result.isValid).toBe(true)
   })
@@ -288,14 +291,14 @@ describe('Team Selection E2E', () => {
   it('should complete full team selection flow', async () => {
     const battle = new Battle(player1, player2, ruleSet)
     const battlePromise = battle.startBattle()
-    
+
     // Wait for team selection phase
     await waitForMessage(BattleMessageType.TeamSelectionStart)
-    
+
     // Make selections
     player1.setSelection(teamSelection1)
     player2.setSelection(teamSelection2)
-    
+
     // Verify completion
     await waitForMessage(BattleMessageType.TeamSelectionComplete)
     expect(player1.battleTeam.length).toBeGreaterThan(0)
@@ -318,20 +321,24 @@ describe('Team Selection E2E', () => {
 ### Common Issues
 
 **Team selection not starting**
+
 - Check if TeamSelectionRule is included in rule set
 - Verify battle phase transitions are working
 
 **Validation always failing**
+
 - Check pet HP values (fainted pets can't be selected)
 - Verify pet IDs match between selection and full team
 - Ensure team size is within configured limits
 
 **AI not making selections**
+
 - Check AI decision timing configuration
 - Verify AI has access to team selection rules
 - Look for errors in AI decision logic
 
 **Performance issues**
+
 - Enable caching for repeated validations
 - Use batch processing for multiple selections
 - Monitor memory usage and clear caches regularly

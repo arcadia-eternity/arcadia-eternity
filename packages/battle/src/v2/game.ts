@@ -190,7 +190,14 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
   registerSchemas(schemaChecker)
 
   // Register all phase handlers with their system dependencies
-  registerSeer2Phases(phaseManager, { petSystem, playerSystem, markSystem, skillSystem, statStageSystem, effectPipeline })
+  registerSeer2Phases(phaseManager, {
+    petSystem,
+    playerSystem,
+    markSystem,
+    skillSystem,
+    statStageSystem,
+    effectPipeline,
+  })
 
   // Initialize RNG
   const rngSeed = config.seed ?? config.rngSeed

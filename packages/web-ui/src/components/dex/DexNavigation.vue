@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-6 overflow-x-auto" style="touch-action: pan-x;">
+  <div class="mb-6 overflow-x-auto" style="touch-action: pan-x">
     <div class="flex space-x-1 bg-gray-100 rounded-lg p-1 border border-gray-300 min-w-max">
       <button
         v-for="tab in tabs"
@@ -87,4 +87,3 @@ const tabs = computed(() => [
   background: #a1a1a1;
 }
 </style>
-

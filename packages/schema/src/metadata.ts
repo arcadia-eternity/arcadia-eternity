@@ -7,12 +7,7 @@ export type FileMetadata = {
 }
 
 export const MetadataSchema = Type.Object({
-  metaType: Type.Union([
-    Type.Literal('effect'),
-    Type.Literal('mark'),
-    Type.Literal('skill'),
-    Type.Literal('species'),
-  ]),
+  metaType: Type.Union([Type.Literal('effect'), Type.Literal('mark'), Type.Literal('skill'), Type.Literal('species')]),
   version: Type.String({ pattern: '^\\d+\\.\\d+\\.\\d+$' }),
 })
 

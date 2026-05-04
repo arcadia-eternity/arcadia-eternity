@@ -61,7 +61,7 @@ const currentType = computed(() => inferType(props.modelValue))
 const filteredTypes = computed(() => {
   if (!props.allowedTypes || props.allowedTypes.length === 0) return TYPE_BUTTONS
   const allowed = new Set(props.allowedTypes)
-  return TYPE_BUTTONS.filter((b) => allowed.has(b.key))
+  return TYPE_BUTTONS.filter(b => allowed.has(b.key))
 })
 
 const isObjectValue = computed(() => {
@@ -110,24 +110,16 @@ const typedTags = computed(() => {
 })
 
 const marksOptions = computed(() =>
-  gameData.marks.allIds
-    .filter((id) => id.startsWith('mark_'))
-    .map((id) => ({ value: id, label: id })),
+  gameData.marks.allIds.filter(id => id.startsWith('mark_')).map(id => ({ value: id, label: id })),
 )
 
 const skillsOptions = computed(() =>
-  gameData.skills.allIds
-    .filter((id) => id.startsWith('skill_'))
-    .map((id) => ({ value: id, label: id })),
+  gameData.skills.allIds.filter(id => id.startsWith('skill_')).map(id => ({ value: id, label: id })),
 )
 
-const speciesOptions = computed(() =>
-  gameData.species.allIds.map((id) => ({ value: id, label: id })),
-)
+const speciesOptions = computed(() => gameData.species.allIds.map(id => ({ value: id, label: id })))
 
-const effectsOptions = computed(() =>
-  gameData.effects.allIds.map((id) => ({ value: id, label: id })),
-)
+const effectsOptions = computed(() => gameData.effects.allIds.map(id => ({ value: id, label: id })))
 
 function emitStructured(type: string, partial: Record<string, unknown>) {
   emit('update:modelValue', { type, ...partial } as Value)
@@ -217,21 +209,47 @@ function updateArrayItem(index: number, value: Value) {
       <template v-if="currentType === 'raw:number'">
         <div class="editor-row">
           <el-input-number
-            :model-value="(isBarePrimitive ? modelValue as unknown as number : safeNumber)"
-            @update:model-value="(v: number | undefined) => emitRawNumber(v ?? 0, typedConfigId, typedTags ? typedTags.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined)"
+            :model-value="isBarePrimitive ? (modelValue as unknown as number) : safeNumber"
+            @update:model-value="
+              (v: number | undefined) =>
+                emitRawNumber(
+                  v ?? 0,
+                  typedConfigId,
+                  typedTags
+                    ? typedTags
+                        .split(',')
+                        .map((s: string) => s.trim())
+                        .filter(Boolean)
+                    : undefined,
+                )
+            "
           />
           <template v-if="isObjectValue">
             <el-input
               :model-value="typedConfigId"
               placeholder="configId"
               class="config-input"
-              @update:model-value="(v: string) => emitRawNumber(safeNumber, v || undefined, (typedValue?.tags as string[] | undefined))"
+              @update:model-value="
+                (v: string) => emitRawNumber(safeNumber, v || undefined, typedValue?.tags as string[] | undefined)
+              "
             />
             <el-input
               :model-value="typedTags"
               placeholder="tags (逗号分隔)"
               class="config-input"
-              @update:model-value="(v: string) => emitRawNumber(safeNumber, typedConfigId || undefined, v ? v.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined)"
+              @update:model-value="
+                (v: string) =>
+                  emitRawNumber(
+                    safeNumber,
+                    typedConfigId || undefined,
+                    v
+                      ? v
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter(Boolean)
+                      : undefined,
+                  )
+              "
             />
           </template>
         </div>
@@ -239,21 +257,47 @@ function updateArrayItem(index: number, value: Value) {
       <template v-else-if="currentType === 'raw:string'">
         <div class="editor-row">
           <el-input
-            :model-value="(isBarePrimitive ? modelValue as unknown as string : safeString)"
-            @update:model-value="(v: string) => emitRawString(v, typedConfigId, typedTags ? typedTags.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined)"
+            :model-value="isBarePrimitive ? (modelValue as unknown as string) : safeString"
+            @update:model-value="
+              (v: string) =>
+                emitRawString(
+                  v,
+                  typedConfigId,
+                  typedTags
+                    ? typedTags
+                        .split(',')
+                        .map((s: string) => s.trim())
+                        .filter(Boolean)
+                    : undefined,
+                )
+            "
           />
           <template v-if="isObjectValue">
             <el-input
               :model-value="typedConfigId"
               placeholder="configId"
               class="config-input"
-              @update:model-value="(v: string) => emitRawString(safeString, v || undefined, (typedValue?.tags as string[] | undefined))"
+              @update:model-value="
+                (v: string) => emitRawString(safeString, v || undefined, typedValue?.tags as string[] | undefined)
+              "
             />
             <el-input
               :model-value="typedTags"
               placeholder="tags (逗号分隔)"
               class="config-input"
-              @update:model-value="(v: string) => emitRawString(safeString, typedConfigId || undefined, v ? v.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined)"
+              @update:model-value="
+                (v: string) =>
+                  emitRawString(
+                    safeString,
+                    typedConfigId || undefined,
+                    v
+                      ? v
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter(Boolean)
+                      : undefined,
+                  )
+              "
             />
           </template>
         </div>
@@ -263,8 +307,20 @@ function updateArrayItem(index: number, value: Value) {
           <div class="switch-row">
             <span class="switch-label">{{ (isBarePrimitive ? modelValue : safeBoolean) ? '是' : '否' }}</span>
             <el-switch
-              :model-value="(isBarePrimitive ? modelValue as unknown as boolean : safeBoolean)"
-              @update:model-value="(v: string | number | boolean) => emitRawBoolean(!!v, typedConfigId, typedTags ? typedTags.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined)"
+              :model-value="isBarePrimitive ? (modelValue as unknown as boolean) : safeBoolean"
+              @update:model-value="
+                (v: string | number | boolean) =>
+                  emitRawBoolean(
+                    !!v,
+                    typedConfigId,
+                    typedTags
+                      ? typedTags
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter(Boolean)
+                      : undefined,
+                  )
+              "
             />
           </div>
           <template v-if="isObjectValue">
@@ -272,13 +328,27 @@ function updateArrayItem(index: number, value: Value) {
               :model-value="typedConfigId"
               placeholder="configId"
               class="config-input"
-              @update:model-value="(v: string) => emitRawBoolean(safeBoolean, v || undefined, (typedValue?.tags as string[] | undefined))"
+              @update:model-value="
+                (v: string) => emitRawBoolean(safeBoolean, v || undefined, typedValue?.tags as string[] | undefined)
+              "
             />
             <el-input
               :model-value="typedTags"
               placeholder="tags (逗号分隔)"
               class="config-input"
-              @update:model-value="(v: string) => emitRawBoolean(safeBoolean, typedConfigId || undefined, v ? v.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined)"
+              @update:model-value="
+                (v: string) =>
+                  emitRawBoolean(
+                    safeBoolean,
+                    typedConfigId || undefined,
+                    v
+                      ? v
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter(Boolean)
+                      : undefined,
+                  )
+              "
             />
           </template>
         </div>
@@ -325,9 +395,15 @@ function updateArrayItem(index: number, value: Value) {
       </template>
       <template v-else-if="currentType === 'dynamic'">
         <div class="editor-row">
-          <slot name="selector" :model-value="typedValue?.selector!"         :update="(v: SelectorDSL) => emitStructured('dynamic', { selector: v })">
+          <slot
+            name="selector"
+            :model-value="typedValue?.selector!"
+            :update="(v: SelectorDSL) => emitStructured('dynamic', { selector: v })"
+          >
             <div class="slot-fallback">
-              <span class="fallback-text">{{ typeof typedValue?.selector === 'object' ? '(SelectorPipeline)' : (typedValue?.selector ?? '(空)') }}</span>
+              <span class="fallback-text">{{
+                typeof typedValue?.selector === 'object' ? '(SelectorPipeline)' : (typedValue?.selector ?? '(空)')
+              }}</span>
             </div>
           </slot>
         </div>
@@ -340,23 +416,48 @@ function updateArrayItem(index: number, value: Value) {
             :allowed-types="props.allowedTypes"
             :max-depth="props.maxDepth"
             :depth="props.depth + 1"
-            @update:model-value="(v) => emitStructured('selectorValue', { value: v as number, chain: typedValue?.chain })"
+            @update:model-value="v => emitStructured('selectorValue', { value: v as number, chain: typedValue?.chain })"
           />
-          <slot name="chain"
+          <slot
+            name="chain"
             :model-value="typedValue?.chain!"
-            :on-update="(v: SelectorChain[]) => emitStructured('selectorValue', { value: typedValue?.value as number ?? 0, chain: v as SelectorChain[] })"
-        />
+            :on-update="
+              (v: SelectorChain[]) =>
+                emitStructured('selectorValue', {
+                  value: (typedValue?.value as number) ?? 0,
+                  chain: v as SelectorChain[],
+                })
+            "
+          />
         </div>
       </template>
       <template v-else-if="currentType === 'conditional'">
         <div class="conditional-editor">
           <div class="conditional-section">
             <label class="conditional-label">条件</label>
-            <slot name="condition" :model-value="typedValue?.condition!"           :on-update="(v) => emitStructured('conditional', { condition: v as ConditionDSL, trueValue: typedValue?.trueValue ?? 0, falseValue: typedValue?.falseValue ?? 0 })">
+            <slot
+              name="condition"
+              :model-value="typedValue?.condition!"
+              :on-update="
+                v =>
+                  emitStructured('conditional', {
+                    condition: v as ConditionDSL,
+                    trueValue: typedValue?.trueValue ?? 0,
+                    falseValue: typedValue?.falseValue ?? 0,
+                  })
+              "
+            >
               <el-input
                 :model-value="(typedValue?.condition as string | undefined) ?? ''"
                 placeholder="条件..."
-                @update:model-value="(v: string) => emitStructured('conditional', { condition: v, trueValue: typedValue?.trueValue, falseValue: typedValue?.falseValue })"
+                @update:model-value="
+                  (v: string) =>
+                    emitStructured('conditional', {
+                      condition: v,
+                      trueValue: typedValue?.trueValue,
+                      falseValue: typedValue?.falseValue,
+                    })
+                "
               />
             </slot>
           </div>
@@ -368,7 +469,14 @@ function updateArrayItem(index: number, value: Value) {
               :allowed-types="props.allowedTypes"
               :max-depth="props.maxDepth"
               :depth="props.depth + 1"
-              @update:model-value="(v) => emitStructured('conditional', { condition: typedValue?.condition, trueValue: v as Value, falseValue: typedValue?.falseValue })"
+              @update:model-value="
+                v =>
+                  emitStructured('conditional', {
+                    condition: typedValue?.condition,
+                    trueValue: v as Value,
+                    falseValue: typedValue?.falseValue,
+                  })
+              "
             />
           </div>
           <div class="conditional-section">
@@ -379,14 +487,21 @@ function updateArrayItem(index: number, value: Value) {
               :allowed-types="props.allowedTypes"
               :max-depth="props.maxDepth"
               :depth="props.depth + 1"
-              @update:model-value="(v) => emitStructured('conditional', { condition: typedValue?.condition, trueValue: typedValue?.trueValue, falseValue: v as Value })"
+              @update:model-value="
+                v =>
+                  emitStructured('conditional', {
+                    condition: typedValue?.condition,
+                    trueValue: typedValue?.trueValue,
+                    falseValue: v as Value,
+                  })
+              "
             />
           </div>
         </div>
       </template>
       <template v-else-if="currentType === 'array'">
         <div class="array-editor">
-          <div v-for="(item, index) in (Array.isArray(modelValue) ? modelValue : [])" :key="index" class="array-item">
+          <div v-for="(item, index) in Array.isArray(modelValue) ? modelValue : []" :key="index" class="array-item">
             <span class="array-index">{{ index }}</span>
             <ValueEditor
               v-if="props.depth < props.maxDepth"
@@ -395,7 +510,7 @@ function updateArrayItem(index: number, value: Value) {
               :max-depth="props.maxDepth"
               :depth="props.depth + 1"
               class="array-value-editor"
-              @update:model-value="(v) => updateArrayItem(index, v as Value)"
+              @update:model-value="v => updateArrayItem(index, v as Value)"
             />
             <button class="array-remove-btn" @click="removeArrayItem(index)">×</button>
           </div>

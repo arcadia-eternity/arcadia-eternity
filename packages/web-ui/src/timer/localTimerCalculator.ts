@@ -1,9 +1,4 @@
-import {
-  type TimerSnapshot,
-  type playerId,
-  TimerState,
-  TIMER_CONSTANTS,
-} from '@arcadia-eternity/const'
+import { type TimerSnapshot, type playerId, TimerState, TIMER_CONSTANTS } from '@arcadia-eternity/const'
 
 /**
  * 本地Timer计算器
@@ -206,7 +201,7 @@ export class LocalTimerCalculator {
    */
   public hasActiveTimers(): boolean {
     return Array.from(this.snapshots.values()).some(
-      snapshot => snapshot.config && snapshot.config.enabled && snapshot.state === TimerState.Running
+      snapshot => snapshot.config && snapshot.config.enabled && snapshot.state === TimerState.Running,
     )
   }
 

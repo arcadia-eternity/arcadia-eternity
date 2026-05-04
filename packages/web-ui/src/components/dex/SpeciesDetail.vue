@@ -52,7 +52,11 @@
             {{ i18next.t('dex.speciesDetail.stats', { ns: 'webui' }) }}
           </h2>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div v-for="(value, stat) in species.baseStats" :key="stat" class="bg-white border border-gray-200 rounded-lg p-3">
+            <div
+              v-for="(value, stat) in species.baseStats"
+              :key="stat"
+              class="bg-white border border-gray-200 rounded-lg p-3"
+            >
               <div class="text-gray-600 text-sm">{{ getStatName(stat) }}</div>
               <div class="text-gray-800 font-bold text-lg">{{ value }}</div>
             </div>

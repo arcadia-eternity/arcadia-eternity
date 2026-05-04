@@ -1,11 +1,7 @@
 // battle/src/v2/data/battle-factory.ts
 // Factory functions to create BattleInstance from TeamConfig + V2DataRepository.
 
-import {
-  createEntity,
-  setComponent,
-  type World,
-} from '@arcadia-eternity/engine'
+import { createEntity, setComponent, type World } from '@arcadia-eternity/engine'
 import { createBattle, type BattleConfig, type BattleInstance } from '../game.js'
 import { createBattleState } from '../types/battle-state.js'
 import { V2DataRepository } from './v2-data-repository.js'

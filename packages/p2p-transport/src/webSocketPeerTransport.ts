@@ -98,12 +98,12 @@ export class WebSocketPeerTransport implements SignalingPeerTransport {
   }
 
   onLocalSignal(_handler: (signal: PeerTransportSignal) => void): () => void {
-    void _handler;
+    void _handler
     return () => {}
   }
 
   async handleSignal(_signal: PeerTransportSignal): Promise<void> {
-    void _signal;
+    void _signal
     // websocket transport is directly connected and does not require signaling
   }
 

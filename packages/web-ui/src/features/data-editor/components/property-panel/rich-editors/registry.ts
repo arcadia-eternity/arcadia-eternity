@@ -42,10 +42,10 @@ export async function ensureDefaultRichEditors(): Promise<void> {
   const { default: ConfigGridEditor } = await import('./editors/ConfigGridEditor.vue')
   const { default: StatsGridEditor } = await import('./editors/StatsGridEditor.vue')
 
-  registerRichEditor({ hint: 'identity',     component: IdentityHeader,    priority: 1000 })
-  registerRichEditor({ hint: 'statBars',     component: StatBarsEditor,    priority: 100 })
-  registerRichEditor({ hint: 'entityTable',  component: EntityTableEditor, priority: 100 })
-  registerRichEditor({ hint: 'entityTags',   component: EntityTagsChip,    priority: 100 })
-  registerRichEditor({ hint: 'configGrid',   component: ConfigGridEditor,  priority: 100 })
-  registerRichEditor({ hint: 'statsGrid',    component: StatsGridEditor,   priority: 100 })
+  registerRichEditor({ hint: 'identity', component: IdentityHeader, priority: 1000 })
+  registerRichEditor({ hint: 'statBars', component: StatBarsEditor, priority: 100 })
+  registerRichEditor({ hint: 'entityTable', component: EntityTableEditor, priority: 100 })
+  registerRichEditor({ hint: 'entityTags', component: EntityTagsChip, priority: 100 })
+  registerRichEditor({ hint: 'configGrid', component: ConfigGridEditor, priority: 100 })
+  registerRichEditor({ hint: 'statsGrid', component: StatsGridEditor, priority: 100 })
 }

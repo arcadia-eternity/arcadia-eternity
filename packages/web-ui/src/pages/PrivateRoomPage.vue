@@ -308,9 +308,7 @@
             <el-radio value="webrtc">WebRTC</el-radio>
             <el-radio value="relay">Relay</el-radio>
           </el-radio-group>
-          <div class="form-help-text">
-            自动模式下，浏览器手测默认优先 WebRTC；自动化测试和受限环境会回退到 Relay。
-          </div>
+          <div class="form-help-text">自动模式下，浏览器手测默认优先 WebRTC；自动化测试和受限环境会回退到 Relay。</div>
         </el-form-item>
 
         <el-form-item v-if="privateRoomStore.roomConfigForm.isPrivate" label="房间密码">

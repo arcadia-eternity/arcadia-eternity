@@ -142,7 +142,12 @@ export class ClusterAuthService implements IAuthService {
     }
   }
 
-  async refreshAccessToken(refreshToken: string, playerRepo?: { getPlayerById: (id: string) => Promise<{ id: string; is_registered?: boolean; email?: string } | null> }): Promise<AuthResult | null> {
+  async refreshAccessToken(
+    refreshToken: string,
+    playerRepo?: {
+      getPlayerById: (id: string) => Promise<{ id: string; is_registered?: boolean; email?: string } | null>
+    },
+  ): Promise<AuthResult | null> {
     const refreshPayload = this.verifyRefreshToken(refreshToken)
     if (!refreshPayload) {
       return null

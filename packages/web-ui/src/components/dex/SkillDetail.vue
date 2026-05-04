@@ -28,7 +28,9 @@
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
           <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
             <!-- 技能图标区域 -->
-            <div class="flex-shrink-0 flex items-center justify-center w-32 h-32 bg-gray-100 border border-gray-200 rounded-lg">
+            <div
+              class="flex-shrink-0 flex items-center justify-center w-32 h-32 bg-gray-100 border border-gray-200 rounded-lg"
+            >
               <ElementIcon :element="skill.element" class="w-16 h-16" />
             </div>
 
@@ -149,7 +151,11 @@
             {{ i18next.t('dex.skillDetail.effects', { ns: 'webui' }) }}
           </h2>
           <div class="space-y-2">
-            <div v-for="effectId in skill.effect" :key="effectId" class="bg-white border border-gray-200 rounded-lg p-3">
+            <div
+              v-for="effectId in skill.effect"
+              :key="effectId"
+              class="bg-white border border-gray-200 rounded-lg p-3"
+            >
               <div class="text-gray-800">{{ effectId }}</div>
             </div>
           </div>

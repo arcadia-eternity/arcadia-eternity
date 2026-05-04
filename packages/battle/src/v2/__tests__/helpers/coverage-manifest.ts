@@ -30,4 +30,3 @@ export const v2CoverageManifest: CoverageManifest = {
     mark_xingzhihui: ['v2-effects-marks-regression: boosts skill effect probability'],
   },
 }
-

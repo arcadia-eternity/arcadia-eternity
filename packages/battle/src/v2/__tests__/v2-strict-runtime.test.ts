@@ -7,7 +7,9 @@ describe('v2 strict runtime', () => {
     const battle = createBattle()
     expect(battle.world.meta.strictExtractorTyping).toBe(true)
 
-    const battleWithOverride = createBattle({ strictExtractorTyping: false } as unknown as Parameters<typeof createBattle>[0])
+    const battleWithOverride = createBattle({ strictExtractorTyping: false } as unknown as Parameters<
+      typeof createBattle
+    >[0])
     expect(battleWithOverride.world.meta.strictExtractorTyping).toBe(true)
   })
 
@@ -16,12 +18,7 @@ describe('v2 strict runtime', () => {
     const systems = battle.world.systems as unknown as Parameters<typeof resolveExtractorByKind>[1]
 
     expect(() =>
-      resolveExtractorByKind(
-        battle.world,
-        systems,
-        { type: 'use-skill' },
-        'attribute',
-        'unknownAttr',
-      )).toThrow("attribute 'unknownAttr' is not declared for owner 'useSkillContext'")
+      resolveExtractorByKind(battle.world, systems, { type: 'use-skill' }, 'attribute', 'unknownAttr'),
+    ).toThrow("attribute 'unknownAttr' is not declared for owner 'useSkillContext'")
   })
 })

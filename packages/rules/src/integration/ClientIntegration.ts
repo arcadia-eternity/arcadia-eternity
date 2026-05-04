@@ -366,12 +366,20 @@ export class ClientRuleIntegration {
       let updatedCount = 0
       for (const rule of allRules) {
         // 更新技能验证规则
-        if (rule.id.includes('skill_availability') && typeof (rule as unknown as { setSpeciesDataProvider?: (provider: unknown) => void }).setSpeciesDataProvider === 'function') {
+        if (
+          rule.id.includes('skill_availability') &&
+          typeof (rule as unknown as { setSpeciesDataProvider?: (provider: unknown) => void })
+            .setSpeciesDataProvider === 'function'
+        ) {
           ;(rule as unknown as { setSpeciesDataProvider(provider: unknown): void }).setSpeciesDataProvider(provider)
           updatedCount++
         }
         // 更新性别限制规则
-        else if (rule.id.includes('gender_restriction') && typeof (rule as unknown as { setSpeciesDataProvider?: (provider: unknown) => void }).setSpeciesDataProvider === 'function') {
+        else if (
+          rule.id.includes('gender_restriction') &&
+          typeof (rule as unknown as { setSpeciesDataProvider?: (provider: unknown) => void })
+            .setSpeciesDataProvider === 'function'
+        ) {
           ;(rule as unknown as { setSpeciesDataProvider(provider: unknown): void }).setSpeciesDataProvider(provider)
           updatedCount++
         }

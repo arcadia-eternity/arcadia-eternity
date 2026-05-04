@@ -154,11 +154,11 @@ pnpm cli local --player1 player1.yaml --player2 player2.yaml --strict
 
 ```typescript
 interface DataValidationOptions {
-  validateCrossReferences?: boolean  // 是否验证交叉引用
-  validateIdFormat?: boolean         // 是否验证ID格式
-  checkDuplicateIds?: boolean        // 是否检查重复ID
-  continueOnError?: boolean          // 是否在发现错误时继续验证
-  verbose?: boolean                  // 是否显示详细的验证信息
+  validateCrossReferences?: boolean // 是否验证交叉引用
+  validateIdFormat?: boolean // 是否验证ID格式
+  checkDuplicateIds?: boolean // 是否检查重复ID
+  continueOnError?: boolean // 是否在发现错误时继续验证
+  verbose?: boolean // 是否显示详细的验证信息
 }
 ```
 

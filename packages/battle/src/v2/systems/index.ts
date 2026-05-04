@@ -8,10 +8,7 @@ export { PlayerSystem } from './player.system.js'
 export { StatStageMarkSystem } from './stat-stage-mark.system.js'
 export { createSeer2DamageFormula } from './damage-formula.js'
 export { createSeer2ExpressionResolver } from './expression-resolver.js'
-export {
-  createSeer2ElementChart,
-  getSeer2ElementChart,
-} from './element-chart.js'
+export { createSeer2ElementChart, getSeer2ElementChart } from './element-chart.js'
 export { SelectionSystem } from './selection.system.js'
 export { TimerSystem } from './timer.system.js'
 export { MessageBridge } from './message-bridge.js'

@@ -98,7 +98,7 @@ export class RedisCallDeduplicator {
   } {
     const totalCalls = Array.from(this.callStats.values()).reduce((sum, stats) => sum + stats.count, 0)
     const totalKeys = this.callStats.size
-    
+
     // 估算：如果没有去重，每个key平均会被调用更多次
     // 这是一个保守估算，实际节省可能更多
     const estimatedSavedCalls = Math.max(0, totalKeys * 2 - totalCalls)

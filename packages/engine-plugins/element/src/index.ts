@@ -42,11 +42,7 @@ export function setEffectiveness(
  * Get effectiveness multiplier for an attack → defense pair.
  * Returns 1.0 if not defined.
  */
-export function getEffectiveness(
-  chart: ElementChart,
-  attackElement: string,
-  defenseElement: string,
-): number {
+export function getEffectiveness(chart: ElementChart, attackElement: string, defenseElement: string): number {
   return chart[attackElement]?.[defenseElement] ?? 1.0
 }
 
@@ -69,22 +65,14 @@ export function getMultiTypeEffectiveness(
 /**
  * Check if an attack is super effective (> 1.0).
  */
-export function isSuperEffective(
-  chart: ElementChart,
-  attackElement: string,
-  defenseElement: string,
-): boolean {
+export function isSuperEffective(chart: ElementChart, attackElement: string, defenseElement: string): boolean {
   return getEffectiveness(chart, attackElement, defenseElement) > 1.0
 }
 
 /**
  * Check if an attack is not very effective (< 1.0 and > 0).
  */
-export function isNotVeryEffective(
-  chart: ElementChart,
-  attackElement: string,
-  defenseElement: string,
-): boolean {
+export function isNotVeryEffective(chart: ElementChart, attackElement: string, defenseElement: string): boolean {
   const eff = getEffectiveness(chart, attackElement, defenseElement)
   return eff < 1.0 && eff > 0
 }
@@ -92,11 +80,7 @@ export function isNotVeryEffective(
 /**
  * Check if an attack has no effect (= 0).
  */
-export function isImmune(
-  chart: ElementChart,
-  attackElement: string,
-  defenseElement: string,
-): boolean {
+export function isImmune(chart: ElementChart, attackElement: string, defenseElement: string): boolean {
   return getEffectiveness(chart, attackElement, defenseElement) === 0
 }
 
@@ -117,10 +101,7 @@ export function buildElementChart(
 /**
  * Get all elements that an attack element is super effective against.
  */
-export function getSuperEffectiveAgainst(
-  chart: ElementChart,
-  attackElement: string,
-): string[] {
+export function getSuperEffectiveAgainst(chart: ElementChart, attackElement: string): string[] {
   const row = chart[attackElement]
   if (!row) return []
   return Object.entries(row)
@@ -131,10 +112,7 @@ export function getSuperEffectiveAgainst(
 /**
  * Get all elements that resist an attack element.
  */
-export function getResistances(
-  chart: ElementChart,
-  attackElement: string,
-): string[] {
+export function getResistances(chart: ElementChart, attackElement: string): string[] {
   const row = chart[attackElement]
   if (!row) return []
   return Object.entries(row)
@@ -145,10 +123,7 @@ export function getResistances(
 /**
  * Get all elements that are immune to an attack element.
  */
-export function getImmunities(
-  chart: ElementChart,
-  attackElement: string,
-): string[] {
+export function getImmunities(chart: ElementChart, attackElement: string): string[] {
   const row = chart[attackElement]
   if (!row) return []
   return Object.entries(row)

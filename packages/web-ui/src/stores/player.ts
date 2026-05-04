@@ -39,7 +39,9 @@ function isNetworkError(error: unknown): boolean {
   const err = error as Record<string, unknown>
   const message = typeof err.message === 'string' ? err.message : ''
   return (
-    (message.includes('网络') || message.includes('连接') || message.includes('timeout')) ||
+    message.includes('网络') ||
+    message.includes('连接') ||
+    message.includes('timeout') ||
     err.code === 'NETWORK_ERROR' ||
     err.code === 'ECONNABORTED' ||
     err.name === 'AxiosError' ||

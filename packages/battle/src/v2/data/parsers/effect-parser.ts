@@ -5,10 +5,7 @@ import type { EffectDef } from '@arcadia-eternity/engine'
 import { conditionDSLSchema, operatorDSLSchema } from '@arcadia-eternity/schema'
 import { Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
-import {
-  createEffectCompileTypingValidator,
-  type EffectCompileTypingEnvironment,
-} from './effect-compile-validator.js'
+import { createEffectCompileTypingValidator, type EffectCompileTypingEnvironment } from './effect-compile-validator.js'
 import { seer2EffectCompileTypingEnvironment } from './effect-compile-environment.js'
 import { assertRegisteredEffectTrigger } from './trigger-registry.js'
 
@@ -22,9 +19,7 @@ const effectCompileSchema = Type.Object({
   tags: Type.Optional(Type.Array(Type.String(), { default: [] })),
 })
 
-const defaultCompileTypingValidator = createEffectCompileTypingValidator(
-  seer2EffectCompileTypingEnvironment,
-)
+const defaultCompileTypingValidator = createEffectCompileTypingValidator(seer2EffectCompileTypingEnvironment)
 
 type EffectCompileTypingValidator = (raw: Record<string, unknown>) => void
 type TriggerAssertion = (trigger: string, path: string) => void
@@ -43,12 +38,11 @@ export type EffectParserEnvironment = {
 export function createEffectParser(
   environment: EffectParserEnvironment = {},
 ): (raw: Record<string, unknown>) => EffectDef {
-  const validateCompileTyping = environment.validateCompileTyping
-    ?? (
-      environment.compileTypingEnvironment
-        ? createEffectCompileTypingValidator(environment.compileTypingEnvironment)
-        : defaultCompileTypingValidator
-    )
+  const validateCompileTyping =
+    environment.validateCompileTyping ??
+    (environment.compileTypingEnvironment
+      ? createEffectCompileTypingValidator(environment.compileTypingEnvironment)
+      : defaultCompileTypingValidator)
   const assertTrigger = environment.assertTriggerRegistered ?? assertRegisteredEffectTrigger
 
   return (raw: Record<string, unknown>): EffectDef => {

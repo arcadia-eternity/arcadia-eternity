@@ -5,12 +5,8 @@ import type { RichFieldContext } from '../types'
 const props = defineProps<{ context: RichFieldContext }>()
 const emit = defineEmits<{ update: [value: unknown] }>()
 
-const statKeys = computed<readonly string[]>(
-  () => props.context.hints.statsKeys ?? [],
-)
-const statLabels = computed<Record<string, string>>(
-  () => props.context.hints.statsLabels ?? {},
-)
+const statKeys = computed<readonly string[]>(() => props.context.hints.statsKeys ?? [])
+const statLabels = computed<Record<string, string>>(() => props.context.hints.statsLabels ?? {})
 
 const currentStats = computed(() => {
   const v = props.context.value
@@ -38,13 +34,7 @@ function onInput(key: string, event: Event) {
   <div class="stats-grid-editor">
     <div v-for="cell in cells" :key="cell.key" class="stats-cell">
       <span class="stats-cell-label">{{ cell.label }}</span>
-      <input
-        type="number"
-        class="stats-cell-input"
-        :value="cell.value"
-        step="1"
-        @input="onInput(cell.key, $event)"
-      />
+      <input type="number" class="stats-cell-input" :value="cell.value" step="1" @input="onInput(cell.key, $event)" />
     </div>
   </div>
 </template>
@@ -66,7 +56,9 @@ function onInput(key: string, event: Event) {
   border: 1px solid var(--ae-border-subtle);
   border-radius: var(--ae-radius-md);
   gap: 2px;
-  transition: background-color 0.12s ease, border-color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .stats-cell:hover {
@@ -96,7 +88,9 @@ function onInput(key: string, event: Event) {
   padding: 2px 0;
   font-variant-numeric: tabular-nums;
   border-radius: var(--ae-radius-sm);
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
 }
 
 .stats-cell-input:hover {

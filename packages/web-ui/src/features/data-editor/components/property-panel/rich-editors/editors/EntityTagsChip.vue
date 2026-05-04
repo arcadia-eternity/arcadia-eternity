@@ -27,12 +27,14 @@ const idKey = computed(() => props.context.hints.idKey ?? 'skill_id')
 const items = computed<string[]>(() => {
   const v = props.context.value
   if (!Array.isArray(v)) return []
-  return v.map(item => {
-    if (typeof item === 'object' && item !== null && idKey.value in (item as Record<string, unknown>)) {
-      return String((item as Record<string, unknown>)[idKey.value] ?? '')
-    }
-    return String(item ?? '')
-  }).filter(Boolean)
+  return v
+    .map(item => {
+      if (typeof item === 'object' && item !== null && idKey.value in (item as Record<string, unknown>)) {
+        return String((item as Record<string, unknown>)[idKey.value] ?? '')
+      }
+      return String(item ?? '')
+    })
+    .filter(Boolean)
 })
 
 function removeItem(index: number) {
@@ -90,9 +92,7 @@ const existingIds = computed(() => new Set(items.value))
 const filteredForAdd = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   const filtered = q
-    ? availableEntities.value.filter(
-        e => e.id.toLowerCase().includes(q) || e.label.toLowerCase().includes(q),
-      )
+    ? availableEntities.value.filter(e => e.id.toLowerCase().includes(q) || e.label.toLowerCase().includes(q))
     : availableEntities.value
   return filtered.filter(e => !existingIds.value.has(e.id))
 })
@@ -120,37 +120,21 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 <template>
   <div class="entity-tags-chip">
     <div class="chips-wrap">
-      <span
-        v-for="(id, index) in items"
-        :key="index"
-        class="chip"
-      >
+      <span v-for="(id, index) in items" :key="index" class="chip">
         <ElementIcon
           v-if="entityKind === 'skills' && resolveElement(id)"
           :element="resolveElement(id)!"
           :size="14"
           class="chip-icon"
         />
-        <MarkIcon
-          v-else-if="entityKind === 'marks'"
-          :mark-id="id"
-          :size="14"
-          class="chip-icon"
-        />
+        <MarkIcon v-else-if="entityKind === 'marks'" :mark-id="id" :size="14" class="chip-icon" />
         <span class="chip-label" @click="navigateToEntity(id)">
           {{ resolveLabel(id) }}
         </span>
-        <button
-          class="chip-remove"
-          type="button"
-          @click.stop="removeItem(index)"
-          title="移除"
-        >×</button>
+        <button class="chip-remove" type="button" @click.stop="removeItem(index)" title="移除">×</button>
       </span>
 
-      <button class="add-btn" type="button" @click.stop="showDropdown = !showDropdown">
-        + 添加
-      </button>
+      <button class="add-btn" type="button" @click.stop="showDropdown = !showDropdown">+ 添加</button>
     </div>
 
     <div v-if="showDropdown" class="entity-tags-chip__dropdown" @click.stop>
@@ -176,12 +160,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
             :size="14"
             class="dropdown-item-icon"
           />
-          <MarkIcon
-            v-else-if="entityKind === 'marks'"
-            :mark-id="entity.id"
-            :size="14"
-            class="dropdown-item-icon"
-          />
+          <MarkIcon v-else-if="entityKind === 'marks'" :mark-id="entity.id" :size="14" class="dropdown-item-icon" />
           <span class="dropdown-item-label">{{ entity.label }}</span>
           <span class="dropdown-item-id">{{ entity.id }}</span>
         </button>

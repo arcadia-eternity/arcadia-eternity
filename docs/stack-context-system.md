@@ -20,16 +20,16 @@ export class StackContext extends Context {
   readonly type = 'stack'
   public readonly battle: Battle
   public available: boolean = true
-  
+
   constructor(
     public readonly parent: AddMarkContext,
-    public readonly existingMark: MarkInstance,      // 现有印记
-    public readonly incomingMark: MarkInstance,      // 新加入的印记
-    public readonly stacksBefore: number,           // 叠层前的层数
-    public readonly durationBefore: number,         // 叠层前的持续时间
-    public stacksAfter: number,                     // 叠层后的层数（可修改）
-    public durationAfter: number,                   // 叠层后的持续时间（可修改）
-    public readonly stackStrategy: StackStrategy,   // 叠层策略
+    public readonly existingMark: MarkInstance, // 现有印记
+    public readonly incomingMark: MarkInstance, // 新加入的印记
+    public readonly stacksBefore: number, // 叠层前的层数
+    public readonly durationBefore: number, // 叠层前的持续时间
+    public stacksAfter: number, // 叠层后的层数（可修改）
+    public durationAfter: number, // 叠层后的持续时间（可修改）
+    public readonly stackStrategy: StackStrategy, // 叠层策略
   ) {
     super(parent)
     this.battle = parent.battle
@@ -189,7 +189,7 @@ export class StackContext extends Context {
 通过 `stackContext` 可以访问以下属性：
 
 - `existingMark`: 现有的印记实例
-- `incomingMark`: 新加入的印记实例  
+- `incomingMark`: 新加入的印记实例
 - `stacksBefore`: 叠层前的层数
 - `durationBefore`: 叠层前的持续时间
 - `stacksAfter`: 叠层后的层数（可修改）

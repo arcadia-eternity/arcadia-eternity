@@ -46,9 +46,7 @@ export function normalizePath(value: string): string {
 
 export function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
-  return value
-    .map(item => String(item ?? '').trim())
-    .filter(item => item.length > 0)
+  return value.map(item => String(item ?? '').trim()).filter(item => item.length > 0)
 }
 
 export function isRemotePath(value: string): boolean {
@@ -91,9 +89,7 @@ export function collectManifestFilePaths(manifest: WorkspacePackManifest): strin
   }
 
   const locales =
-    manifest.locales && typeof manifest.locales === 'object'
-      ? (manifest.locales as Record<string, unknown>)
-      : {}
+    manifest.locales && typeof manifest.locales === 'object' ? (manifest.locales as Record<string, unknown>) : {}
   for (const [locale, refs] of Object.entries(locales)) {
     for (const sourceFile of toStringArray(refs)) {
       output.add(normalizePath(resolveManifestLocalePath(manifest, locale, sourceFile)))

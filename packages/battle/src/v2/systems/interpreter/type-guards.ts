@@ -6,10 +6,7 @@ import type {
   SelectorDSL,
   SelectorValue,
 } from '@arcadia-eternity/schema'
-import type {
-  DamageContextData,
-  UseSkillContextData,
-} from '../../schemas/context.schema.js'
+import type { DamageContextData, UseSkillContextData } from '../../schemas/context.schema.js'
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -75,9 +72,11 @@ export function isSelectorChain(value: unknown): value is SelectorChain {
 }
 
 export function isChainSelector(value: unknown): value is { base: string; chain?: SelectorChain[] } {
-  return isRecord(value)
-    && typeof value.base === 'string'
-    && (value.chain === undefined || (Array.isArray(value.chain) && value.chain.every(isSelectorChain)))
+  return (
+    isRecord(value) &&
+    typeof value.base === 'string' &&
+    (value.chain === undefined || (Array.isArray(value.chain) && value.chain.every(isSelectorChain)))
+  )
 }
 
 export function isConditionalSelector(

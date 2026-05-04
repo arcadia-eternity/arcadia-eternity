@@ -65,12 +65,7 @@ function getDisplayLabel(trigger: string): string {
           class="trigger-select"
           @update:model-value="(v: string[]) => emit('update:modelValue', v)"
         >
-          <el-option
-            v-for="trigger in allTriggers"
-            :key="trigger"
-            :label="getDisplayLabel(trigger)"
-            :value="trigger"
-          />
+          <el-option v-for="trigger in allTriggers" :key="trigger" :label="getDisplayLabel(trigger)" :value="trigger" />
         </el-select>
       </div>
       <div class="field-group">

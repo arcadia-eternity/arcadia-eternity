@@ -228,10 +228,7 @@ function deepEqual(left: unknown, right: unknown): boolean {
     const rightKeys = Object.keys(right as Record<string, unknown>)
     if (leftKeys.length !== rightKeys.length) return false
     for (const key of leftKeys) {
-      if (!deepEqual(
-        (left as Record<string, unknown>)[key],
-        (right as Record<string, unknown>)[key],
-      )) {
+      if (!deepEqual((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key])) {
         return false
       }
     }
@@ -328,7 +325,11 @@ export function deleteYamlAnchoredRecord(dataset: YamlAnchoredDataset, index: nu
   dataset.sequence.items.splice(index, 1)
 }
 
-export function detachYamlAliasRecord(dataset: YamlAnchoredDataset, index: number, value: Record<string, unknown>): boolean {
+export function detachYamlAliasRecord(
+  dataset: YamlAnchoredDataset,
+  index: number,
+  value: Record<string, unknown>,
+): boolean {
   if (!Number.isInteger(index) || index < 0 || index >= dataset.sequence.items.length) return false
   const node = dataset.sequence.items[index]
   if (!isAlias(node)) return false

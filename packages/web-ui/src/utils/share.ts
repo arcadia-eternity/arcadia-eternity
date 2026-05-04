@@ -23,7 +23,7 @@ export class ShareUtils {
         document.body.appendChild(textArea)
         textArea.focus()
         textArea.select()
-        
+
         const successful = document.execCommand('copy')
         document.body.removeChild(textArea)
         return successful
@@ -55,12 +55,10 @@ export class ShareUtils {
    */
   static async shareBattleReport(battleId: string, playerAName?: string, playerBName?: string): Promise<void> {
     const url = this.generateBattleReportShareUrl(battleId)
-    const title = playerAName && playerBName 
-      ? `${playerAName} vs ${playerBName} 的战报` 
-      : '战报详情'
-    
+    const title = playerAName && playerBName ? `${playerAName} vs ${playerBName} 的战报` : '战报详情'
+
     const shareText = `${title}\n${url}`
-    
+
     const success = await this.copyToClipboard(shareText)
     if (success) {
       ElMessage.success('战报链接已复制到剪贴板')
@@ -74,12 +72,10 @@ export class ShareUtils {
    */
   static async shareBattleReportPreview(battleId: string, playerAName?: string, playerBName?: string): Promise<void> {
     const url = this.generateBattleReportPreviewUrl(battleId)
-    const title = playerAName && playerBName 
-      ? `观看 ${playerAName} vs ${playerBName} 的战报回放` 
-      : '战报回放'
-    
+    const title = playerAName && playerBName ? `观看 ${playerAName} vs ${playerBName} 的战报回放` : '战报回放'
+
     const shareText = `${title}\n${url}`
-    
+
     const success = await this.copyToClipboard(shareText)
     if (success) {
       ElMessage.success('战报回放链接已复制到剪贴板')
@@ -107,7 +103,7 @@ export class ShareUtils {
       await navigator.share({
         title,
         text,
-        url
+        url,
       })
       return true
     } catch (error) {
@@ -123,12 +119,12 @@ export class ShareUtils {
   static async smartShare(title: string, text: string, url: string): Promise<void> {
     // 先尝试使用 Web Share API
     const webShareSuccess = await this.shareWithWebAPI(title, text, url)
-    
+
     if (!webShareSuccess) {
       // 降级到复制链接
       const shareText = `${title}\n${text}\n${url}`
       const success = await this.copyToClipboard(shareText)
-      
+
       if (success) {
         ElMessage.success('链接已复制到剪贴板')
       } else {

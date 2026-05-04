@@ -508,7 +508,11 @@ const setupBattleReconnectHandler = () => {
           } else {
             // 没有现有接口，创建新的
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
-            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState as unknown as BattleState)
+            await battleStore.initBattleWithState(
+              battleInterface,
+              playerStore.id,
+              data.fullBattleState as unknown as BattleState,
+            )
           }
         } else {
           // 不在战斗页面，检查是否有现有的battle接口
@@ -518,7 +522,11 @@ const setupBattleReconnectHandler = () => {
           } else {
             // 没有现有接口，创建新的
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
-            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState as unknown as BattleState)
+            await battleStore.initBattleWithState(
+              battleInterface,
+              playerStore.id,
+              data.fullBattleState as unknown as BattleState,
+            )
           }
           await router.push('/battle')
         }

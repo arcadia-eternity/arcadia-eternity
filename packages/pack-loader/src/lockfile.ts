@@ -108,7 +108,10 @@ async function findNearestPackageMeta(startPath: string): Promise<PackageMeta> {
   }
 }
 
-async function detectSourceRef(absPath: string, kind: 'data' | 'asset'): Promise<{ source: string; provenance: LockProvenance }> {
+async function detectSourceRef(
+  absPath: string,
+  kind: 'data' | 'asset',
+): Promise<{ source: string; provenance: LockProvenance }> {
   const meta = await findNearestPackageMeta(absPath)
   if (meta.packageName && meta.packageRoot) {
     const expectedEntry = kind === 'data' ? meta.packEntry : meta.assetsEntry
@@ -192,7 +195,14 @@ export async function generatePackLockfileFromEntry(entryPath: string, importer 
         dependencies: {},
       }
 
-      await registerImporterDependency(importers, current.importer, manifest.id, manifest.version, key, resolvedRef.source)
+      await registerImporterDependency(
+        importers,
+        current.importer,
+        manifest.id,
+        manifest.version,
+        key,
+        resolvedRef.source,
+      )
 
       for (const dep of manifest.dependencies ?? []) {
         const depAbs = resolve(dirname(current.absPath), dep.path)
@@ -209,7 +219,11 @@ export async function generatePackLockfileFromEntry(entryPath: string, importer 
         })
       }
 
-      const assetRefs = manifest.assetsRef ? (Array.isArray(manifest.assetsRef) ? manifest.assetsRef : [manifest.assetsRef]) : []
+      const assetRefs = manifest.assetsRef
+        ? Array.isArray(manifest.assetsRef)
+          ? manifest.assetsRef
+          : [manifest.assetsRef]
+        : []
       for (const assetRef of assetRefs) {
         const resolvedAssetPaths = await resolveAssetManifestPaths(dirname(current.absPath), assetRef)
         for (const assetPath of resolvedAssetPaths) {

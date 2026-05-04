@@ -35,7 +35,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
         message: 'An unexpected error occurred',
       })
     }
-}
+  }
 
   const validatePagination = (req: Request, res: Response, next: NextFunction): void => {
     const limit = parseInt(req.query.limit as string) || 20
@@ -61,7 +61,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
     next()
   }
 
-/**
+  /**
    * @swagger
    * /api/v1/battles:
    *   get:

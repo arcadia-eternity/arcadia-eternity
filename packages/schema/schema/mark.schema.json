@@ -32,15 +32,7 @@
           "stackStrategy": {
             "default": "extend",
             "type": "string",
-            "enum": [
-              "stack",
-              "refresh",
-              "extend",
-              "max",
-              "replace",
-              "none",
-              "remove"
-            ]
+            "enum": ["stack", "refresh", "extend", "max", "replace", "none", "remove"]
           },
           "destroyable": {
             "default": true,
@@ -81,8 +73,6 @@
         }
       }
     },
-    "required": [
-      "id"
-    ]
+    "required": ["id"]
   }
 }

@@ -174,10 +174,7 @@
         </div>
 
         <!-- 标签 -->
-        <div
-          v-if="mark.tags && mark.tags.length > 0"
-          class="bg-gray-50 border border-gray-200 rounded-lg p-6"
-        >
+        <div v-if="mark.tags && mark.tags.length > 0" class="bg-gray-50 border border-gray-200 rounded-lg p-6">
           <h2 class="text-xl font-bold text-gray-800 mb-4">
             {{ i18next.t('dex.markDetail.tags', { ns: 'webui' }) }}
           </h2>
@@ -193,10 +190,7 @@
         </div>
 
         <!-- 效果 -->
-        <div
-          v-if="mark.effect && mark.effect.length > 0"
-          class="bg-gray-50 border border-gray-200 rounded-lg p-6"
-        >
+        <div v-if="mark.effect && mark.effect.length > 0" class="bg-gray-50 border border-gray-200 rounded-lg p-6">
           <h2 class="text-xl font-bold text-gray-800 mb-4">
             {{ i18next.t('dex.markDetail.effects', { ns: 'webui' }) }}
           </h2>

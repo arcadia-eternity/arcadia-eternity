@@ -12,7 +12,10 @@ function updateConsumesStacks(v: number | undefined) {
 }
 
 function updateTags(v: string) {
-  const tags = v.split(',').map(s => s.trim()).filter(Boolean)
+  const tags = v
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
   emit('update:modelValue', { ...props.modelValue, tags: tags.length > 0 ? tags : undefined })
 }
 </script>

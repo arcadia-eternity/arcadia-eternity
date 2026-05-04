@@ -117,9 +117,7 @@ export type SelectorValue = {
   "value": {
     "type": "selector",
     "value": [20, 30, 40, 50],
-    "chain": [
-      { "type": "randomPick", "arg": 1 }
-    ]
+    "chain": [{ "type": "randomPick", "arg": 1 }]
   }
 }
 ```
@@ -136,15 +134,10 @@ export type SelectorValue = {
       "type": "dynamic",
       "selector": {
         "base": "allPets",
-        "chain": [
-          { "type": "selectPath", "arg": "currentHp" }
-        ]
+        "chain": [{ "type": "selectPath", "arg": "currentHp" }]
       }
     },
-    "chain": [
-      { "type": "avg" },
-      { "type": "divide", "arg": 2 }
-    ]
+    "chain": [{ "type": "avg" }, { "type": "divide", "arg": 2 }]
   }
 }
 ```

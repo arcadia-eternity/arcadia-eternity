@@ -6162,89 +6162,67 @@
       "id": "bg:desert",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/desert.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:fly",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/fly.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:ground",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/ground.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:ingvar",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/ingvar.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:universe",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/universe.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:wind",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/wind.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:fire",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/fire.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:grass",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/grass.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:ice",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/ice.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:laboratory",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/laboratory.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bg:water",
       "type": "uiImage",
       "uri": "https://seer2-resource.yuuinih.com/png/battleBackground/water.png",
-      "tags": [
-        "battleBackground"
-      ]
+      "tags": ["battleBackground"]
     },
     {
       "id": "bgm:BGM_1002",

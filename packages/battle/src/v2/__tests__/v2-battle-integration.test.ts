@@ -151,7 +151,7 @@ describe('V2 Battle Integration', () => {
     const system = new LocalBattleSystemV2(battle)
 
     const messages: BattleMessage[] = []
-    system.BattleEvent((msg) => messages.push(msg))
+    system.BattleEvent(msg => messages.push(msg))
 
     // Start battle
     await system.ready()
@@ -238,7 +238,7 @@ describe('V2 Battle Integration', () => {
     const system = new LocalBattleSystemV2(battle)
 
     const messages: BattleMessage[] = []
-    system.BattleEvent((msg) => messages.push(msg))
+    system.BattleEvent(msg => messages.push(msg))
 
     await system.ready()
     await new Promise(r => setTimeout(r, 50))

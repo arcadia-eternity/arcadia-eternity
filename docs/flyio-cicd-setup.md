@@ -50,7 +50,7 @@
 #### 可选的 Secrets (如果需要数据库功能)
 
 - `SUPABASE_URL`: Supabase 项目 URL
-- `SUPABASE_ANON_KEY`: Supabase 匿名密钥  
+- `SUPABASE_ANON_KEY`: Supabase 匿名密钥
 - `SUPABASE_SERVICE_KEY`: Supabase 服务密钥
 
 ## 配置步骤

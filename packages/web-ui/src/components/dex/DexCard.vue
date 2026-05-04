@@ -21,7 +21,9 @@
         <div class="flex justify-center">
           <ElementIcon :element="(item as SpeciesSchemaType).element" class="w-6 h-6" />
         </div>
-        <div class="text-xs text-gray-500 text-[10px] sm:text-xs">#{{ String((item as SpeciesSchemaType).num).padStart(3, '0') }}</div>
+        <div class="text-xs text-gray-500 text-[10px] sm:text-xs">
+          #{{ String((item as SpeciesSchemaType).num).padStart(3, '0') }}
+        </div>
       </div>
     </div>
 

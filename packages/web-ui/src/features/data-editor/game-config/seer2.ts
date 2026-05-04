@@ -34,11 +34,11 @@ const species: EntityConfig = {
     { id: 'spe', label: 'SPE', path: 'baseStats.spe', width: 80 },
   ],
   fieldHints: {
-    baseStats:        { display: 'statBars', statKeys: ['hp', 'atk', 'spa', 'def', 'spd', 'spe'] },
+    baseStats: { display: 'statBars', statKeys: ['hp', 'atk', 'spa', 'def', 'spd', 'spe'] },
     learnable_skills: { display: 'entityTable', entityKind: 'skills', idKey: 'skill_id' },
-    ability:          { display: 'entityTags', entityKind: 'marks' },
-    emblem:           { display: 'entityTags', entityKind: 'marks' },
-    element:          { display: 'elementPicker' },
+    ability: { display: 'entityTags', entityKind: 'marks' },
+    emblem: { display: 'entityTags', entityKind: 'marks' },
+    element: { display: 'elementPicker' },
   },
   i18n: { namespaces: 'species' },
 }
@@ -72,9 +72,9 @@ const skills: EntityConfig = {
     { id: 'priority', label: '优先级', path: 'priority', width: 100 },
   ],
   fieldHints: {
-    effect:  { display: 'entityTags', entityKind: 'effects' },
+    effect: { display: 'entityTags', entityKind: 'effects' },
     element: { display: 'elementPicker' },
-    tags:    { display: 'entityTags', entityKind: 'skills', idKey: 'tag' },
+    tags: { display: 'entityTags', entityKind: 'skills', idKey: 'tag' },
   },
   i18n: { namespaces: 'skill' },
 }
@@ -99,16 +99,16 @@ const marks: EntityConfig = {
   fieldHints: {
     config: { display: 'configGrid' },
     effect: { display: 'entityTags', entityKind: 'effects' },
-    tags:   { display: 'entityTags', entityKind: 'marks', idKey: 'tag' },
+    tags: { display: 'entityTags', entityKind: 'marks', idKey: 'tag' },
   },
   i18n: { namespaces: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] },
 }
 
 const categories: CategoryMeta[] = [
   { value: Category.Physical, label: '物攻', color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
-  { value: Category.Special,  label: '特攻', color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
-  { value: Category.Status,   label: '属性', color: '#4ade80', bg: 'rgba(74,222,128,0.15)' },
-  { value: Category.Climax,   label: '终极', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+  { value: Category.Special, label: '特攻', color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
+  { value: Category.Status, label: '属性', color: '#4ade80', bg: 'rgba(74,222,128,0.15)' },
+  { value: Category.Climax, label: '终极', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
 ]
 
 const triggers: Record<string, string> = {

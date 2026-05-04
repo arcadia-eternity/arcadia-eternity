@@ -69,7 +69,7 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData> {
 
     if (existing) {
       const existingConfig = this.markSystem.getConfig(world, existing.id)
-      const strategy = existingConfig.stackStrategy as StackStrategy ?? StackStrategy.extend
+      const strategy = (existingConfig.stackStrategy as StackStrategy) ?? StackStrategy.extend
       const stacksBefore = this.markSystem.getStack(world, existing.id)
       const durationBefore = this.markSystem.getDuration(world, existing.id)
 
@@ -141,13 +141,18 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData> {
         this.effectPipeline.attachEffect(world, mark.id, effectDef)
       }
 
-      await this.effectPipeline.fire(world, EffectTrigger.OnMarkCreated, {
-        trigger: EffectTrigger.OnMarkCreated,
-        sourceEntityId: mark.id,
-        markId: mark.id,
-        baseMarkId: ctx.baseMarkId,
-        targetId: ctx.targetId,
-      }, [mark.id])
+      await this.effectPipeline.fire(
+        world,
+        EffectTrigger.OnMarkCreated,
+        {
+          trigger: EffectTrigger.OnMarkCreated,
+          sourceEntityId: mark.id,
+          markId: mark.id,
+          baseMarkId: ctx.baseMarkId,
+          targetId: ctx.targetId,
+        },
+        [mark.id],
+      )
 
       bus.emit(world, 'markAdd', {
         targetId: ctx.targetId,

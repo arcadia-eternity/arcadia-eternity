@@ -31,34 +31,44 @@ const currentRecord = computed(() => {
 const injectedDraft = inject<Ref<Record<string, unknown>>>('editor:draft', ref({}))
 const draft = computed({
   get: () => injectedDraft.value,
-  set: (v) => { injectedDraft.value = v },
+  set: v => {
+    injectedDraft.value = v
+  },
 })
 
 // Populate draft when record is selected — mutate in-place to avoid undo entry
 let applyingUndo = false
 
-watch(() => state.selectedRecordId, () => {
-  if (currentRecord.value) {
-    applyingUndo = true
-    const clone = JSON.parse(JSON.stringify(currentRecord.value)) as Record<string, unknown>
-    for (const key of Object.keys(injectedDraft.value)) {
-      delete injectedDraft.value[key]
+watch(
+  () => state.selectedRecordId,
+  () => {
+    if (currentRecord.value) {
+      applyingUndo = true
+      const clone = JSON.parse(JSON.stringify(currentRecord.value)) as Record<string, unknown>
+      for (const key of Object.keys(injectedDraft.value)) {
+        delete injectedDraft.value[key]
+      }
+      Object.assign(injectedDraft.value, clone)
+      applyingUndo = false
+      state.isDirty = false
     }
-    Object.assign(injectedDraft.value, clone)
-    applyingUndo = false
-    state.isDirty = false
-  }
-}, { immediate: true })
+  },
+  { immediate: true },
+)
 
 // Compare draft with original record to detect real edits
-watch(injectedDraft, (val) => {
-  if (applyingUndo) return
-  if (val && currentRecord.value) {
-    state.isDirty = JSON.stringify(val) !== JSON.stringify(currentRecord.value)
-  } else {
-    state.isDirty = false
-  }
-}, { deep: true })
+watch(
+  injectedDraft,
+  val => {
+    if (applyingUndo) return
+    if (val && currentRecord.value) {
+      state.isDirty = JSON.stringify(val) !== JSON.stringify(currentRecord.value)
+    } else {
+      state.isDirty = false
+    }
+  },
+  { deep: true },
+)
 
 const currentSchema = computed(() => {
   if (!state.selectedEntityType) return null
@@ -87,9 +97,7 @@ const recordDisplayName = computed(() => {
     </div>
 
     <div class="flex-1 min-h-0 overflow-auto">
-      <div v-if="!state.selectedRecordId" class="p-4 text-center text-muted">
-        选择一条记录查看属性
-      </div>
+      <div v-if="!state.selectedRecordId" class="p-4 text-center text-muted">选择一条记录查看属性</div>
 
       <template v-else-if="entityComponents[state.selectedEntityType ?? '']">
         <component
@@ -103,7 +111,10 @@ const recordDisplayName = computed(() => {
 
       <template v-else-if="state.selectedEntityType">
         <div class="p-4">
-          <div class="text-sm text-muted mb-3">{{ config.entities[state.selectedEntityType]?.label ?? state.selectedEntityType }} 记录视图（编辑器将在未来版本实现）</div>
+          <div class="text-sm text-muted mb-3">
+            {{ config.entities[state.selectedEntityType]?.label ?? state.selectedEntityType }}
+            记录视图（编辑器将在未来版本实现）
+          </div>
           <div class="text-xs font-mono text-muted bg-[var(--ae-bg-overlay)] p-2 rounded">
             {{ JSON.stringify(currentRecord, null, 2) }}
           </div>
@@ -112,10 +123,7 @@ const recordDisplayName = computed(() => {
     </div>
 
     <div v-if="state.selectedEntityType && state.selectedRecordId" class="border-t">
-      <RelatedEntities
-        :entity-type="state.selectedEntityType"
-        :record-id="state.selectedRecordId"
-      />
+      <RelatedEntities :entity-type="state.selectedEntityType" :record-id="state.selectedRecordId" />
     </div>
   </div>
 </template>

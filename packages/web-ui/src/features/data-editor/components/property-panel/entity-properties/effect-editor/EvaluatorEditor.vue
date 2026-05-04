@@ -22,17 +22,26 @@ type EvaluatorCategory = 'compare' | 'same' | 'notSame' | 'value' | 'children' |
 
 function categorizeEvaluator(type: string): EvaluatorCategory {
   switch (type) {
-    case 'compare': return 'compare'
-    case 'same': return 'same'
-    case 'notSame': return 'notSame'
+    case 'compare':
+      return 'compare'
+    case 'same':
+      return 'same'
+    case 'notSame':
+      return 'notSame'
     case 'probability':
-    case 'anyOf': return 'value'
+    case 'anyOf':
+      return 'value'
     case 'any':
-    case 'all': return 'children'
-    case 'not': return 'singleChild'
-    case 'contain': return 'input'
-    case 'exist': return 'leaf'
-    default: return 'leaf'
+    case 'all':
+      return 'children'
+    case 'not':
+      return 'singleChild'
+    case 'contain':
+      return 'input'
+    case 'exist':
+      return 'leaf'
+    default:
+      return 'leaf'
   }
 }
 
@@ -126,7 +135,10 @@ function changeType() {
       } else if (pickerType.value === 'anyOf') {
         evaluator = { type: 'anyOf', value: { type: 'raw:string', value: '' } }
       } else {
-        evaluator = { type: pickerType.value as EvaluatorDSL['type'], value: { type: 'raw:number', value: 0 } } as EvaluatorDSL
+        evaluator = {
+          type: pickerType.value as EvaluatorDSL['type'],
+          value: { type: 'raw:number', value: 0 },
+        } as EvaluatorDSL
       }
       break
     case 'children':
@@ -157,26 +169,13 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
   <div class="evaluator-node">
     <div class="evaluator-simple" v-if="category !== 'children' && category !== 'singleChild'">
       <div class="evaluator-header">
-        <span
-          class="evaluator-type-tag"
-          :style="{ backgroundColor: categoryTagColor[category] }"
-        >
+        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
           {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
-        <el-popover
-          :visible="showingPicker"
-          placement="bottom-start"
-          :width="200"
-          trigger="click"
-        >
+        <el-popover :visible="showingPicker" placement="bottom-start" :width="200" trigger="click">
           <template #reference>
-            <el-button
-              size="small"
-              text
-              class="evaluator-type-switch-btn"
-              @click="showingPicker = !showingPicker"
-            >
+            <el-button size="small" text class="evaluator-type-switch-btn" @click="showingPicker = !showingPicker">
               ⇄
             </el-button>
           </template>
@@ -195,13 +194,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
                 :value="opt"
               />
             </el-select>
-            <el-button
-              size="small"
-              text
-              @click="showingPicker = false"
-            >
-              取消
-            </el-button>
+            <el-button size="small" text @click="showingPicker = false"> 取消 </el-button>
           </div>
         </el-popover>
       </div>
@@ -214,33 +207,20 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
             class="operator-select"
             @update:model-value="(v: string) => updateField('operator', v)"
           >
-            <el-option
-              v-for="opt in compareOperatorOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
+            <el-option v-for="opt in compareOperatorOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
-          <slot
-            name="value"
-            :model-value="e.value as Value"
-            :update="(v) => updateField('value', v as Value)"
-          />
+          <slot name="value" :model-value="e.value as Value" :update="v => updateField('value', v as Value)" />
         </template>
 
         <template v-else-if="category === 'same' || category === 'notSame'">
-          <slot
-            name="value"
-            :model-value="e.value as Value"
-            :update="(v) => updateField('value', v as Value)"
-          />
+          <slot name="value" :model-value="e.value as Value" :update="v => updateField('value', v as Value)" />
         </template>
 
         <template v-else-if="category === 'value'">
           <slot
             name="value"
             :model-value="(e.percent ?? e.value) as unknown as Value"
-            :update="(v) => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
+            :update="v => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
           />
         </template>
 
@@ -262,26 +242,13 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
 
     <div v-if="category === 'children'" class="evaluator-compound">
       <div class="evaluator-header">
-        <span
-          class="evaluator-type-tag"
-          :style="{ backgroundColor: categoryTagColor[category] }"
-        >
+        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
           {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
-        <el-popover
-          :visible="showingPicker"
-          placement="bottom-start"
-          :width="200"
-          trigger="click"
-        >
+        <el-popover :visible="showingPicker" placement="bottom-start" :width="200" trigger="click">
           <template #reference>
-            <el-button
-              size="small"
-              text
-              class="evaluator-type-switch-btn"
-              @click="showingPicker = !showingPicker"
-            >
+            <el-button size="small" text class="evaluator-type-switch-btn" @click="showingPicker = !showingPicker">
               ⇄
             </el-button>
           </template>
@@ -300,23 +267,13 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
                 :value="opt"
               />
             </el-select>
-            <el-button
-              size="small"
-              text
-              @click="showingPicker = false"
-            >
-              取消
-            </el-button>
+            <el-button size="small" text @click="showingPicker = false"> 取消 </el-button>
           </div>
         </el-popover>
       </div>
 
       <div class="evaluator-children">
-        <div
-          v-for="(child, index) in e.conditions"
-          :key="index"
-          class="evaluator-child-item"
-        >
+        <div v-for="(child, index) in e.conditions" :key="index" class="evaluator-child-item">
           <span class="child-connector">├</span>
           <EvaluatorEditor
             :model-value="child"
@@ -326,48 +283,23 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
               <slot name="value" v-bind="slotProps" />
             </template>
           </EvaluatorEditor>
-          <el-button
-            size="small"
-            text
-            class="child-delete-btn"
-            @click="updateChildCondition(Number(index), undefined)"
-          >
+          <el-button size="small" text class="child-delete-btn" @click="updateChildCondition(Number(index), undefined)">
             ✕
           </el-button>
         </div>
-        <el-button
-          size="small"
-          text
-          class="child-add-btn"
-          @click="addChildCondition"
-        >
-          + 子条件
-        </el-button>
+        <el-button size="small" text class="child-add-btn" @click="addChildCondition"> + 子条件 </el-button>
       </div>
     </div>
 
     <div v-if="category === 'singleChild'" class="evaluator-compound">
       <div class="evaluator-header">
-        <span
-          class="evaluator-type-tag"
-          :style="{ backgroundColor: categoryTagColor[category] }"
-        >
+        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
           {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
-        <el-popover
-          :visible="showingPicker"
-          placement="bottom-start"
-          :width="200"
-          trigger="click"
-        >
+        <el-popover :visible="showingPicker" placement="bottom-start" :width="200" trigger="click">
           <template #reference>
-            <el-button
-              size="small"
-              text
-              class="evaluator-type-switch-btn"
-              @click="showingPicker = !showingPicker"
-            >
+            <el-button size="small" text class="evaluator-type-switch-btn" @click="showingPicker = !showingPicker">
               ⇄
             </el-button>
           </template>
@@ -386,13 +318,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
                 :value="opt"
               />
             </el-select>
-            <el-button
-              size="small"
-              text
-              @click="showingPicker = false"
-            >
-              取消
-            </el-button>
+            <el-button size="small" text @click="showingPicker = false"> 取消 </el-button>
           </div>
         </el-popover>
       </div>
@@ -400,10 +326,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
       <div class="evaluator-children">
         <div class="evaluator-child-item">
           <span class="child-connector">├</span>
-          <EvaluatorEditor
-            :model-value="e.condition"
-            @update:model-value="(v: EvaluatorDSL) => updateInnerChild(v)"
-          >
+          <EvaluatorEditor :model-value="e.condition" @update:model-value="(v: EvaluatorDSL) => updateInnerChild(v)">
             <template #value="slotProps">
               <slot name="value" v-bind="slotProps" />
             </template>

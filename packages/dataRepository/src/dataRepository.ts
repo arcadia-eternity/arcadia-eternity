@@ -52,7 +52,7 @@ class ObjectProxyManager<T extends object> {
         return prop in (this.target as object)
       },
       ownKeys: _unused => {
-        void _unused;
+        void _unused
         return Reflect.ownKeys(this.target as object)
       },
       getOwnPropertyDescriptor: (_, prop) => {

@@ -49,11 +49,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    class="resize-handle"
-    :class="{ 'is-dragging': isDragging }"
-    @mousedown="onMouseDown"
-  />
+  <div class="resize-handle" :class="{ 'is-dragging': isDragging }" @mousedown="onMouseDown" />
 </template>
 
 <style scoped>

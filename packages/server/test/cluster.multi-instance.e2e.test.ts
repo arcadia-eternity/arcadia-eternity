@@ -287,7 +287,6 @@ describe('Cluster multi-instance e2e (mock)', () => {
         opponent: { id: playerAId, name: 'Alpha' },
       },
     })
-
     ;(service as any).stopPeriodicMatching?.()
   })
 

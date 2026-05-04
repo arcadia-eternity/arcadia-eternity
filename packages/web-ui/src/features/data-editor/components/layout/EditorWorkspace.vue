@@ -49,10 +49,7 @@ function handleResize(deltaX: number) {
     <div
       v-if="editorState.openTabs.length > 0"
       class="workspace-tabs flex items-center gap-[2px] px-[var(--ae-space-2)] h-9 shrink-0"
-      style="
-        background: var(--ae-bg-surface);
-        border-bottom: 1px solid var(--ae-border-subtle);
-      "
+      style="background: var(--ae-bg-surface); border-bottom: 1px solid var(--ae-border-subtle)"
     >
       <div
         v-for="tab in editorState.openTabs"
@@ -67,13 +64,10 @@ function handleResize(deltaX: number) {
     <!-- Two-panel resizable content area -->
     <div class="editor-workspace-content flex-1 flex min-h-0">
       <!-- Left: DataTable -->
-      <div
-        class="panel-left overflow-auto"
-        :style="{ width: `${leftWidth}%` }"
-      >
+      <div class="panel-left overflow-auto" :style="{ width: `${leftWidth}%` }">
         <DataTable
           :entity-type="editorState.selectedEntityType ?? 'species'"
-          :records="(records as Record<string, unknown>[])"
+          :records="records as Record<string, unknown>[]"
         />
       </div>
 
@@ -81,10 +75,7 @@ function handleResize(deltaX: number) {
       <ResizeHandle @resize="handleResize" />
 
       <!-- Right: PropertyPanel -->
-      <div
-        class="panel-right overflow-auto min-w-0"
-        :style="{ width: `${rightWidth}%` }"
-      >
+      <div class="panel-right overflow-auto min-w-0" :style="{ width: `${rightWidth}%` }">
         <PropertyPanel />
       </div>
     </div>

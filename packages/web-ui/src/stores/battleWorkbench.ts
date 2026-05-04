@@ -98,9 +98,7 @@ export const useBattleWorkbenchStore = defineStore('battleWorkbench', {
         selectedPlayer2TeamIndex: player2,
         battleConfig: {
           ...this.battleConfig,
-          rngSeed: Number.isFinite(this.battleConfig.rngSeed)
-            ? (this.battleConfig.rngSeed as number)
-            : undefined,
+          rngSeed: Number.isFinite(this.battleConfig.rngSeed) ? (this.battleConfig.rngSeed as number) : undefined,
           teamSelection: {
             ...this.battleConfig.teamSelection,
           },

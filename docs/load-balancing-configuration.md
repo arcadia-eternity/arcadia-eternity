@@ -5,6 +5,7 @@
 ## 概述
 
 智能负载均衡系统基于多维度性能指标来选择最佳实例创建战斗，包括：
+
 - CPU使用率
 - 内存使用率
 - 活跃战斗数量
@@ -19,6 +20,7 @@
 可以通过环境变量来配置负载均衡参数：
 
 #### 权重配置
+
 ```bash
 # CPU使用率权重 (默认: 0.25)
 LB_WEIGHT_CPU=0.25
@@ -40,6 +42,7 @@ LB_WEIGHT_ERROR_RATE=0.05
 ```
 
 #### 阈值配置
+
 ```bash
 # CPU高负载阈值，百分比 (默认: 80)
 LB_THRESHOLD_CPU_HIGH=80
@@ -61,6 +64,7 @@ LB_THRESHOLD_ERROR_RATE_MAX=0.1
 ```
 
 #### 其他配置
+
 ```bash
 # 是否优先选择同区域实例 (默认: true)
 LB_PREFER_SAME_REGION=true
@@ -85,7 +89,7 @@ loadBalancingConfigManager.updateConfig({
     connections: 0.15,
     responseTime: 0.08,
     errorRate: 0.02,
-  }
+  },
 })
 
 // 更新阈值配置
@@ -97,7 +101,7 @@ loadBalancingConfigManager.updateConfig({
     connectionsMax: 1500,
     responseTimeMax: 3000,
     errorRateMax: 0.05,
-  }
+  },
 })
 ```
 
@@ -135,6 +139,7 @@ loadBalancingConfigManager.updateConfig({
 ## 配置示例
 
 ### 高性能配置
+
 适用于对响应时间要求极高的场景：
 
 ```bash
@@ -151,6 +156,7 @@ LB_THRESHOLD_RESPONSE_TIME_MAX=2000
 ```
 
 ### 高可用配置
+
 适用于对稳定性要求极高的场景：
 
 ```bash
@@ -166,6 +172,7 @@ LB_ENABLE_THRESHOLD_FILTERING=true
 ```
 
 ### 均衡配置
+
 适用于一般场景的平衡配置：
 
 ```bash
@@ -235,18 +242,21 @@ LB_THRESHOLD_BATTLES_MAX=100
 ### 调试方法
 
 1. **查看当前配置**
+
 ```typescript
 console.log(loadBalancingConfigManager.toJSON())
 ```
 
 2. **监听配置更新**
+
 ```typescript
-loadBalancingConfigManager.onConfigUpdate((config) => {
+loadBalancingConfigManager.onConfigUpdate(config => {
   console.log('Config updated:', config)
 })
 ```
 
 3. **重置配置**
+
 ```typescript
 loadBalancingConfigManager.resetToDefault()
 ```

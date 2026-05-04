@@ -13,18 +13,18 @@ const { performance } = require('perf_hooks')
 const CONFIG = {
   // 测试目标
   baseUrl: process.env.TEST_URL || 'http://localhost',
-  
+
   // 负载参数
   concurrentUsers: parseInt(process.env.CONCURRENT_USERS || '100'),
   testDuration: parseInt(process.env.TEST_DURATION || '60'), // 秒
   rampUpTime: parseInt(process.env.RAMP_UP_TIME || '10'), // 秒
-  
+
   // 操作权重
   operations: {
-    connect: 0.3,      // 30% 连接操作
-    matchmaking: 0.4,  // 40% 匹配操作
-    battle: 0.2,       // 20% 战斗操作
-    api: 0.1,          // 10% API调用
+    connect: 0.3, // 30% 连接操作
+    matchmaking: 0.4, // 40% 匹配操作
+    battle: 0.2, // 20% 战斗操作
+    api: 0.1, // 10% API调用
   },
 }
 
@@ -52,9 +52,9 @@ const stats = {
 
 // 日志函数
 const log = {
-  info: (msg) => console.log(`[INFO] ${new Date().toISOString()} ${msg}`),
-  warn: (msg) => console.log(`[WARN] ${new Date().toISOString()} ${msg}`),
-  error: (msg) => console.log(`[ERROR] ${new Date().toISOString()} ${msg}`),
+  info: msg => console.log(`[INFO] ${new Date().toISOString()} ${msg}`),
+  warn: msg => console.log(`[WARN] ${new Date().toISOString()} ${msg}`),
+  error: msg => console.log(`[ERROR] ${new Date().toISOString()} ${msg}`),
 }
 
 // 生成测试玩家数据
@@ -66,10 +66,7 @@ function generatePlayerData(id) {
       {
         species: { id: 'species1', name: 'Test Species 1' },
         level: 50,
-        skills: [
-          { base: { id: 'skill1', name: 'Test Skill 1' } },
-          { base: { id: 'skill2', name: 'Test Skill 2' } },
-        ],
+        skills: [{ base: { id: 'skill1', name: 'Test Skill 1' } }, { base: { id: 'skill2', name: 'Test Skill 2' } }],
       },
     ],
   }
@@ -101,7 +98,7 @@ class VirtualUser {
   async connect() {
     return new Promise((resolve, reject) => {
       const startTime = performance.now()
-      
+
       this.socket = io(CONFIG.baseUrl, {
         query: { playerId: this.playerId },
         transports: ['websocket'],
@@ -111,16 +108,16 @@ class VirtualUser {
       this.socket.on('connect', () => {
         const latency = performance.now() - startTime
         this.recordLatency(latency)
-        
+
         stats.connections.total++
         stats.connections.successful++
         stats.connections.active++
-        
+
         log.info(`User ${this.id} connected (latency: ${latency.toFixed(2)}ms)`)
         resolve()
       })
 
-      this.socket.on('connect_error', (error) => {
+      this.socket.on('connect_error', error => {
         stats.connections.total++
         stats.connections.failed++
         this.recordError(error)
@@ -132,7 +129,7 @@ class VirtualUser {
         log.info(`User ${this.id} disconnected`)
       })
 
-      this.socket.on('error', (error) => {
+      this.socket.on('error', error => {
         this.recordError(error)
       })
 
@@ -187,8 +184,8 @@ class VirtualUser {
   async joinMatchmaking() {
     return new Promise((resolve, reject) => {
       const playerData = generatePlayerData(this.id)
-      
-      this.socket.emit('joinMatchmaking', playerData, (response) => {
+
+      this.socket.emit('joinMatchmaking', playerData, response => {
         if (response.status === 'SUCCESS') {
           resolve(response)
         } else {
@@ -204,7 +201,7 @@ class VirtualUser {
   async performBattleAction() {
     return new Promise((resolve, reject) => {
       // 模拟战斗操作
-      this.socket.emit('getState', (response) => {
+      this.socket.emit('getState', response => {
         if (response.status === 'SUCCESS') {
           resolve(response)
         } else {
@@ -219,20 +216,20 @@ class VirtualUser {
   async callApi() {
     const endpoints = ['/health', '/cluster/status', '/api-docs.json']
     const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)]
-    
+
     const response = await axios.get(`${CONFIG.baseUrl}${endpoint}`, {
       timeout: 5000,
     })
-    
+
     if (response.status !== 200) {
       throw new Error(`API call failed: ${response.status}`)
     }
-    
+
     return response.data
   }
 
   async ping() {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.socket.emit('ping')
       resolve()
     })
@@ -297,13 +294,13 @@ class LoadTestManager {
 
   async rampUpUsers() {
     const userInterval = (CONFIG.rampUpTime * 1000) / CONFIG.concurrentUsers
-    
+
     for (let i = 0; i < CONFIG.concurrentUsers; i++) {
       if (!this.isRunning) break
 
       const user = new VirtualUser(i + 1)
       this.users.push(user)
-      
+
       // 启动用户（不等待）
       user.start().catch(error => {
         log.error(`Failed to start user ${i + 1}: ${error.message}`)
@@ -332,18 +329,22 @@ class LoadTestManager {
   printStats() {
     const runtime = (Date.now() - this.startTime) / 1000
     const avgLatency = stats.latency.count > 0 ? stats.latency.sum / stats.latency.count : 0
-    const successRate = stats.operations.total > 0 ? (stats.operations.successful / stats.operations.total * 100) : 0
+    const successRate = stats.operations.total > 0 ? (stats.operations.successful / stats.operations.total) * 100 : 0
     const opsPerSecond = stats.operations.total / runtime
 
     console.log('\n=== Load Test Statistics ===')
     console.log(`Runtime: ${runtime.toFixed(1)}s`)
     console.log(`Active Users: ${stats.connections.active}`)
-    console.log(`Connections: ${stats.connections.successful}/${stats.connections.total} (${((stats.connections.successful / stats.connections.total) * 100).toFixed(1)}%)`)
+    console.log(
+      `Connections: ${stats.connections.successful}/${stats.connections.total} (${((stats.connections.successful / stats.connections.total) * 100).toFixed(1)}%)`,
+    )
     console.log(`Operations: ${stats.operations.successful}/${stats.operations.total} (${successRate.toFixed(1)}%)`)
     console.log(`Ops/sec: ${opsPerSecond.toFixed(1)}`)
-    console.log(`Latency: min=${stats.latency.min.toFixed(1)}ms, max=${stats.latency.max.toFixed(1)}ms, avg=${avgLatency.toFixed(1)}ms`)
+    console.log(
+      `Latency: min=${stats.latency.min.toFixed(1)}ms, max=${stats.latency.max.toFixed(1)}ms, avg=${avgLatency.toFixed(1)}ms`,
+    )
     console.log(`Errors: ${stats.errors.length}`)
-    
+
     if (stats.errors.length > 0) {
       const recentErrors = stats.errors.slice(-5)
       console.log('Recent errors:')
@@ -369,7 +370,7 @@ class LoadTestManager {
   printFinalStats() {
     const runtime = (Date.now() - this.startTime) / 1000
     const avgLatency = stats.latency.count > 0 ? stats.latency.sum / stats.latency.count : 0
-    const successRate = stats.operations.total > 0 ? (stats.operations.successful / stats.operations.total * 100) : 0
+    const successRate = stats.operations.total > 0 ? (stats.operations.successful / stats.operations.total) * 100 : 0
     const opsPerSecond = stats.operations.total / runtime
 
     console.log('\n=== Final Load Test Results ===')
@@ -385,20 +386,20 @@ class LoadTestManager {
     console.log(`  - Max: ${stats.latency.max.toFixed(1)}ms`)
     console.log(`  - Average: ${avgLatency.toFixed(1)}ms`)
     console.log(`Total Errors: ${stats.errors.length}`)
-    
+
     // 错误分析
     if (stats.errors.length > 0) {
       const errorTypes = {}
       stats.errors.forEach(error => {
         errorTypes[error.error] = (errorTypes[error.error] || 0) + 1
       })
-      
+
       console.log('Error Breakdown:')
       Object.entries(errorTypes).forEach(([error, count]) => {
         console.log(`  - ${error}: ${count}`)
       })
     }
-    
+
     console.log('===============================\n')
 
     // 判断测试结果

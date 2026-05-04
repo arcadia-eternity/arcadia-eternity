@@ -61,14 +61,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "hp",
-          "atk",
-          "spa",
-          "def",
-          "spd",
-          "spe"
-        ]
+        "required": ["hp", "atk", "spa", "def", "spd", "spe"]
       },
       "genderRatio": {
         "anyOf": [
@@ -125,11 +118,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "skill_id",
-            "level",
-            "hidden"
-          ]
+          "required": ["skill_id", "level", "hidden"]
         }
       },
       "ability": {

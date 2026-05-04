@@ -10,35 +10,17 @@
     <section class="controller-section">
       <div class="section-title">组合资源</div>
       <div class="resource-toolbar">
-        <el-button size="small" :disabled="!canAddCurrentEntry" @click="addCurrentEntry">
-          添加当前文件
-        </el-button>
+        <el-button size="small" :disabled="!canAddCurrentEntry" @click="addCurrentEntry"> 添加当前文件 </el-button>
 
-        <el-select
-          v-model="selectedOpenTabId"
-          size="small"
-          class="open-tab-select"
-          placeholder="从已打开视窗选择"
-        >
-          <el-option
-            v-for="tab in openTabOptions"
-            :key="tab.id"
-            :label="tab.label"
-            :value="tab.id"
-          />
+        <el-select v-model="selectedOpenTabId" size="small" class="open-tab-select" placeholder="从已打开视窗选择">
+          <el-option v-for="tab in openTabOptions" :key="tab.id" :label="tab.label" :value="tab.id" />
         </el-select>
 
-        <el-button size="small" :disabled="!selectedOpenTabId" @click="addSelectedOpenTab">
-          添加视窗
-        </el-button>
+        <el-button size="small" :disabled="!selectedOpenTabId" @click="addSelectedOpenTab"> 添加视窗 </el-button>
       </div>
 
       <div class="resource-list">
-        <div
-          v-for="resource in workbenchStore.resources"
-          :key="resource.id"
-          class="resource-item"
-        >
+        <div v-for="resource in workbenchStore.resources" :key="resource.id" class="resource-item">
           <div class="resource-main">
             <div class="resource-title">{{ resource.label }}</div>
             <div class="resource-detail">{{ resource.packFolder }}/{{ resource.relativePath }}</div>
@@ -49,11 +31,7 @@
           </div>
         </div>
 
-        <el-empty
-          v-if="workbenchStore.resources.length === 0"
-          description="还没有组合资源"
-          :image-size="56"
-        />
+        <el-empty v-if="workbenchStore.resources.length === 0" description="还没有组合资源" :image-size="56" />
       </div>
     </section>
 
@@ -62,22 +40,12 @@
       <div class="form-grid">
         <label class="form-label">玩家1</label>
         <el-select v-model="workbenchStore.selectedPlayer1TeamIndex" class="w-full" size="small">
-          <el-option
-            v-for="team in availableTeams"
-            :key="`p1-${team.index}`"
-            :label="team.label"
-            :value="team.index"
-          />
+          <el-option v-for="team in availableTeams" :key="`p1-${team.index}`" :label="team.label" :value="team.index" />
         </el-select>
 
         <label class="form-label">玩家2</label>
         <el-select v-model="workbenchStore.selectedPlayer2TeamIndex" class="w-full" size="small">
-          <el-option
-            v-for="team in availableTeams"
-            :key="`p2-${team.index}`"
-            :label="team.label"
-            :value="team.index"
-          />
+          <el-option v-for="team in availableTeams" :key="`p2-${team.index}`" :label="team.label" :value="team.index" />
         </el-select>
       </div>
     </section>
@@ -114,21 +82,9 @@
     <section class="controller-section">
       <div class="section-title">计时器</div>
       <div class="option-grid">
-        <el-switch
-          v-model="workbenchStore.timerConfig.enabled"
-          active-text="启用计时"
-          inactive-text="关闭计时"
-        />
-        <el-switch
-          v-model="turnLimitEnabled"
-          active-text="回合限时"
-          inactive-text="无回合限时"
-        />
-        <el-switch
-          v-model="totalLimitEnabled"
-          active-text="总时间限制"
-          inactive-text="无总时间限制"
-        />
+        <el-switch v-model="workbenchStore.timerConfig.enabled" active-text="启用计时" inactive-text="关闭计时" />
+        <el-switch v-model="turnLimitEnabled" active-text="回合限时" inactive-text="无回合限时" />
+        <el-switch v-model="totalLimitEnabled" active-text="总时间限制" inactive-text="无总时间限制" />
       </div>
 
       <div class="form-grid mt-2">

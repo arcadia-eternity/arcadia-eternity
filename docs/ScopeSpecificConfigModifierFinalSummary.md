@@ -40,9 +40,9 @@ Modifier现在有真正的作用范围：
 // Pet1的modifier只影响Pet1
 configSystem.addScopedConfigModifier('damage.multiplier', modifier, pet1)
 
-console.log(configSystem.get('damage.multiplier', pet1))    // ✅ 1.5 (应用modifier)
-console.log(configSystem.get('damage.multiplier', pet2))    // ✅ 1.0 (不受影响)
-console.log(configSystem.get('damage.multiplier', player))  // ✅ 1.0 (不受影响)
+console.log(configSystem.get('damage.multiplier', pet1)) // ✅ 1.5 (应用modifier)
+console.log(configSystem.get('damage.multiplier', pet2)) // ✅ 1.0 (不受影响)
+console.log(configSystem.get('damage.multiplier', player)) // ✅ 1.0 (不受影响)
 ```
 
 ## 🧪 完整测试验证
@@ -92,7 +92,7 @@ trigger: OnTurnStart
 priority: 100
 apply:
   type: addConfigModifier
-  target: { base: self }  # 只影响这个Pet
+  target: { base: self } # 只影响这个Pet
   configKey: { type: 'raw:string', value: 'damage.multiplier' }
   modifierType: { type: 'raw:string', value: 'delta' }
   value: { type: 'raw:number', value: 0.3 }
@@ -108,7 +108,7 @@ trigger: OnTurnStart
 priority: 100
 apply:
   type: addConfigModifier
-  target: { base: owner }  # 影响Player及其所有Pet
+  target: { base: owner } # 影响Player及其所有Pet
   configKey: { type: 'raw:string', value: 'damage.multiplier' }
   modifierType: { type: 'raw:string', value: 'delta' }
   value: { type: 'raw:number', value: 0.2 }
@@ -213,7 +213,7 @@ trigger: OnTurnStart
 priority: 100
 apply:
   type: addPhaseTypeConfigModifier
-  target: { base: self }  # 🆕 只影响这个Pet
+  target: { base: self } # 🆕 只影响这个Pet
   configKey: { type: 'raw:string', value: 'skill.power.modifier' }
   modifierType: { type: 'raw:string', value: 'delta' }
   value: { type: 'raw:number', value: 25 }

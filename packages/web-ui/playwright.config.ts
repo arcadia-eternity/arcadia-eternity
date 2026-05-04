@@ -6,8 +6,7 @@ const onlineServerPort = 8112
 const onlineWebPort = 4175
 const loopbackHost = '127.0.0.1'
 const baseURL =
-  process.env.PLAYWRIGHT_BASE_URL ??
-  (onlineMode ? `http://${loopbackHost}:${onlineWebPort}` : 'http://127.0.0.1:4173')
+  process.env.PLAYWRIGHT_BASE_URL ?? (onlineMode ? `http://${loopbackHost}:${onlineWebPort}` : 'http://127.0.0.1:4173')
 
 export default defineConfig({
   testDir: './e2e',
@@ -32,8 +31,7 @@ export default defineConfig({
   webServer: onlineMode
     ? [
         {
-          command:
-            `pnpm --filter @arcadia-eternity/server build && CLUSTER_ENABLED=false SINGLE_INSTANCE_INMEMORY_REDIS=true pnpm --workspace-root cli server --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
+          command: `pnpm --filter @arcadia-eternity/server build && CLUSTER_ENABLED=false SINGLE_INSTANCE_INMEMORY_REDIS=true pnpm --workspace-root cli server --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
           url: `http://${loopbackHost}:${onlineServerPort}/health`,
           reuseExistingServer: true,
           stdout: 'ignore',
@@ -41,10 +39,9 @@ export default defineConfig({
           timeout: 180_000,
         },
         {
-          command:
-            `pnpm --filter @arcadia-eternity/pack-loader build && VITE_WS_URL=http://${loopbackHost}:${onlineServerPort} VITE_API_BASE_URL=http://${loopbackHost}:${onlineServerPort}/api/v1${
-              onlineP2PTransport ? ` VITE_P2P_TRANSPORT=${onlineP2PTransport}` : ''
-            } pnpm --filter @arcadia-eternity/web-ui exec vite --host ${loopbackHost} --port ${onlineWebPort} --strictPort`,
+          command: `pnpm --filter @arcadia-eternity/pack-loader build && VITE_WS_URL=http://${loopbackHost}:${onlineServerPort} VITE_API_BASE_URL=http://${loopbackHost}:${onlineServerPort}/api/v1${
+            onlineP2PTransport ? ` VITE_P2P_TRANSPORT=${onlineP2PTransport}` : ''
+          } pnpm --filter @arcadia-eternity/web-ui exec vite --host ${loopbackHost} --port ${onlineWebPort} --strictPort`,
           url: `http://${loopbackHost}:${onlineWebPort}`,
           reuseExistingServer: true,
           stdout: 'ignore',

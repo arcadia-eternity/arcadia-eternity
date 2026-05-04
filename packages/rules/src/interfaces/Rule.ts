@@ -1,6 +1,12 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
 import type { BattleInstance } from '@arcadia-eternity/battle'
-import type { PetSchemaType, LearnableSkill, SkillSchemaType, MarkSchemaType, SpeciesSchemaType } from '@arcadia-eternity/schema'
+import type {
+  PetSchemaType,
+  LearnableSkill,
+  SkillSchemaType,
+  MarkSchemaType,
+  SpeciesSchemaType,
+} from '@arcadia-eternity/schema'
 import type { ValidationResult } from './ValidationResult'
 
 /**

@@ -191,8 +191,7 @@ export class BattleRpcClient {
     const response = await this.callWithTimeout<SelectionRequest, SelectionResponse>(client, 'GetAvailableSelection', {
       roomId,
       playerId,
-    },
-    )
+    })
 
     return JSON.parse(response.selections)
   }

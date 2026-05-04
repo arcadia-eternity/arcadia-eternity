@@ -14,10 +14,19 @@ export interface SkillPhaseData {
 }
 
 const STAGE_MULTIPLIER_TABLE: Record<number, number> = {
-  [-6]: 2 / 8, [-5]: 2 / 7, [-4]: 2 / 6, [-3]: 2 / 5,
-  [-2]: 2 / 4, [-1]: 2 / 3, [0]: 1,
-  [1]: 3 / 2, [2]: 4 / 2, [3]: 5 / 2,
-  [4]: 6 / 2, [5]: 7 / 2, [6]: 8 / 2,
+  [-6]: 2 / 8,
+  [-5]: 2 / 7,
+  [-4]: 2 / 6,
+  [-3]: 2 / 5,
+  [-2]: 2 / 4,
+  [-1]: 2 / 3,
+  [0]: 1,
+  [1]: 3 / 2,
+  [2]: 4 / 2,
+  [3]: 5 / 2,
+  [4]: 6 / 2,
+  [5]: 7 / 2,
+  [6]: 8 / 2,
 }
 
 export class SkillHandler implements PhaseHandler<SkillPhaseData> {
@@ -54,11 +63,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
     return value / mult
   }
 
-  private async applyDefeatIfNeeded(
-    world: World,
-    bus: EventBus,
-    ctx: UseSkillContextData,
-  ): Promise<void> {
+  private async applyDefeatIfNeeded(world: World, bus: EventBus, ctx: UseSkillContextData): Promise<void> {
     if (ctx.defeated) return
     if (!ctx.actualTargetId) return
     if (this.petSystem.isAlive(world, ctx.actualTargetId)) return
@@ -262,9 +267,11 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
         }
 
         // Base damage formula
-        ctx.baseDamage = Math.floor(
-          ((2 * level / 5 + 2) * power * atkStat / defStat) / 50 + 2,
-        ) * ctx.typeMultiplier * ctx.stabMultiplier * (ctx.crit ? ctx.critMultiplier : 1)
+        ctx.baseDamage =
+          Math.floor((((2 * level) / 5 + 2) * power * atkStat) / defStat / 50 + 2) *
+          ctx.typeMultiplier *
+          ctx.stabMultiplier *
+          (ctx.crit ? ctx.critMultiplier : 1)
 
         ctx.baseDamage = Math.floor(ctx.baseDamage * ctx.randomFactor)
 
@@ -328,7 +335,6 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
             })
           }
         }
-
       }
 
       await this.effectPipeline.fire(world, EffectTrigger.OnHit, {

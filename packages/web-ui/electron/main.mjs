@@ -326,7 +326,9 @@ function buildWorkspaceDependencyInfo(discovered) {
         const targetPack = byFolder.get(resolvedFolder)
         if (dep.id && targetPack?.manifest.id !== dep.id) {
           if (!dep.optional) {
-            unresolved.push(`依赖 '${dep.path}' 的 id 不匹配，期望 '${dep.id}'，实际 '${targetPack?.manifest.id ?? 'unknown'}'`)
+            unresolved.push(
+              `依赖 '${dep.path}' 的 id 不匹配，期望 '${dep.id}'，实际 '${targetPack?.manifest.id ?? 'unknown'}'`,
+            )
           }
           continue
         }
@@ -394,9 +396,7 @@ function sortEnabledPacksByDependencies(discovered, enabledFolders, dependencyIn
     outgoing.set(folderName, dependents)
   }
 
-  const queue = enabledPacks
-    .filter(pack => (indegree.get(pack.folderName) ?? 0) === 0)
-    .sort(compareWorkspacePack)
+  const queue = enabledPacks.filter(pack => (indegree.get(pack.folderName) ?? 0) === 0).sort(compareWorkspacePack)
   const ordered = []
 
   while (queue.length > 0) {
@@ -749,8 +749,8 @@ async function setWorkspacePackEnabled(input) {
   const enabled = Boolean(input?.enabled)
   const discovered = await discoverWorkspacePacks()
   const target =
-    discovered.find(item => item.folderName === folderName)
-    ?? discovered.find(item => item.folderName.toLowerCase() === folderName.toLowerCase())
+    discovered.find(item => item.folderName === folderName) ??
+    discovered.find(item => item.folderName.toLowerCase() === folderName.toLowerCase())
   if (!target) {
     throw new Error(`未找到工作区数据包目录: ${folderName}`)
   }
@@ -787,8 +787,11 @@ async function setWorkspacePackEnabled(input) {
     }
   } else {
     const currentSelection = resolveWorkspaceSelection(discovered, state, dependencyInfo)
-    const blockingDependents = listEnabledDependents(targetFolderName, currentSelection.enabledFolders, dependencyInfo)
-      .filter(pack => pack.folderName !== targetFolderName)
+    const blockingDependents = listEnabledDependents(
+      targetFolderName,
+      currentSelection.enabledFolders,
+      dependencyInfo,
+    ).filter(pack => pack.folderName !== targetFolderName)
 
     if (blockingDependents.length > 0) {
       const names = blockingDependents.map(pack => pack.manifest.id).join(', ')
@@ -798,11 +801,7 @@ async function setWorkspacePackEnabled(input) {
     nextDisabled.add(targetFolderName)
   }
 
-  const nextSelection = resolveWorkspaceSelection(
-    discovered,
-    { disabledFolders: [...nextDisabled] },
-    dependencyInfo,
-  )
+  const nextSelection = resolveWorkspaceSelection(discovered, { disabledFolders: [...nextDisabled] }, dependencyInfo)
   if (nextSelection.dependencyIssues.length > 0) {
     throw new Error(`启用状态存在依赖问题: ${nextSelection.dependencyIssues.join('；')}`)
   }
@@ -818,7 +817,7 @@ async function buildWorkspaceManifest(port) {
   const [discovered, state] = await Promise.all([discoverWorkspacePacks(), readWorkspacePackState()])
 
   // Dev mode: inject base pack from source directory
-  if (devServerUrl && !discovered.some(p => (p.manifest?.id) === BASE_PACK_ID)) {
+  if (devServerUrl && !discovered.some(p => p.manifest?.id === BASE_PACK_ID)) {
     const baseDir = await findBundledBasePackDir()
     if (baseDir) {
       const raw = await readPackManifest(path.join(baseDir, 'pack.json'))
@@ -1040,8 +1039,7 @@ async function createPackFromTemplate(input) {
     throw new Error('packId 格式非法，建议使用 a.b.c 形式，且每段仅允许字母/数字/-/_')
   }
 
-  const version =
-    typeof input?.version === 'string' && input.version.trim() ? input.version.trim() : '0.1.0'
+  const version = typeof input?.version === 'string' && input.version.trim() ? input.version.trim() : '0.1.0'
   if (!isValidSemverLike(version)) {
     throw new Error('version 必须是 x.y.z 数字格式')
   }
@@ -1445,7 +1443,7 @@ async function handleLocalServerRequest(req, res) {
         if (baseDir) {
           const baseRelative = slashIndex === -1 ? '' : tail.slice(slashIndex + 1)
           const raw = String(baseRelative ?? '')
-            if (!hasTraversalSegment(raw)) {
+          if (!hasTraversalSegment(raw)) {
             const sourcePath = path.join(baseDir, path.normalize(raw))
             if (await pathExists(sourcePath)) filePath = sourcePath
           }
@@ -1588,7 +1586,7 @@ function setupIpcHandlers() {
     if (!baseDir) throw new Error('Base pack source directory not found')
 
     const manifest = JSON.parse(await fs.readFile(path.join(baseDir, 'pack.json'), 'utf8'))
-    const dataDir = path.join(baseDir, (manifest.paths?.dataDir) || '.')
+    const dataDir = path.join(baseDir, manifest.paths?.dataDir || '.')
 
     const result = {}
     const kinds = ['species', 'skills', 'marks', 'effects']
@@ -1721,7 +1719,8 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady()
+app
+  .whenReady()
   .then(async () => {
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = true

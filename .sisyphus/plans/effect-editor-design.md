@@ -4,13 +4,13 @@
 
 ### 1.1 当前状态
 
-| 组件 | 状态 | 问题 |
-|------|------|------|
-| `@comfyorg/litegraph` v0.17.2 | 已安装但无任何引用 | 依赖完全无用 |
-| VSCode 扩展 `effectEditorProvider.ts` | 裸 `<textarea>` 编辑 YAML | 无结构化编辑，无校验 |
-| Web UI `PropertyPanel.vue` | effects 实体落到 raw JSON dump | 无专用编辑器，schema 只有 `id` + `trigger` |
-| `game-config/base.ts` | effects 使用简陋 schema | 未接入 `effectDSLSchema` |
-| 数据文件 `effect_skill.yaml` | 12,000+ 行 YAML，手写 | 错误率高，维护困难 |
+| 组件                                  | 状态                           | 问题                                       |
+| ------------------------------------- | ------------------------------ | ------------------------------------------ |
+| `@comfyorg/litegraph` v0.17.2         | 已安装但无任何引用             | 依赖完全无用                               |
+| VSCode 扩展 `effectEditorProvider.ts` | 裸 `<textarea>` 编辑 YAML      | 无结构化编辑，无校验                       |
+| Web UI `PropertyPanel.vue`            | effects 实体落到 raw JSON dump | 无专用编辑器，schema 只有 `id` + `trigger` |
+| `game-config/base.ts`                 | effects 使用简陋 schema        | 未接入 `effectDSLSchema`                   |
+| 数据文件 `effect_skill.yaml`          | 12,000+ 行 YAML，手写          | 错误率高，维护困难                         |
 
 ### 1.2 DSL 特性分析
 
@@ -41,6 +41,7 @@ Effect (单条规则)
 ```
 
 **关键特性**：
+
 - 深层嵌套：`apply.value.selector.chain[2].whereAttr.extractor` 可达 10+ 层
 - 强类型约束：`dealDamage.target` 必须是 `PET_ID`，`value` 必须是 `NUMERIC`（typing metadata 已定义）
 - YAML anchor/alias 模板系统：`&template` 定义 + `*template` 引用 + `<<: *template` 覆写
@@ -60,12 +61,14 @@ Effect (单条规则)
 ### 2.1 编辑模式选择：树形表单为主 + 流程图预览为辅
 
 **不用纯节点图的原因**：
+
 - Effect DSL 是声明式规则，不是控制流程序——没有"执行顺序"语义
 - 深层嵌套（10+ 层）在节点图中会纠缠不清
 - 60+ 种操作符类型用节点表示，可发现性差
 - YAML anchor 模板系统无法自然地映射到节点图
 
 **树形表单的优势**：
+
 - 递归组件天然处理任意深度嵌套
 - 折叠/展开机制让复杂 effect 可管理
 - typing metadata 直接驱动下拉选项，类型安全
@@ -127,12 +130,12 @@ Effect (单条规则)
 
 修改以下文件：
 
-| 文件 | 改动 |
-|------|------|
-| `game-config/base.ts` | 将 effects schema 从简陋的 `{ id, trigger }` 替换为 `effectDSLSchema`；添加 `summaryColumns`（trigger count, operator count, has condition） |
-| `game-config/seer2.ts` | 将 `effects` 加入 `seer2Config.entities`（目前只在 baseEntities） |
-| `PropertyPanel.vue` | 在 `entityComponents` 中注册 `'effects': EffectProperties` |
-| `game-config/types.ts` | 无需改动（EntityConfig 接口已足够通用） |
+| 文件                   | 改动                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `game-config/base.ts`  | 将 effects schema 从简陋的 `{ id, trigger }` 替换为 `effectDSLSchema`；添加 `summaryColumns`（trigger count, operator count, has condition） |
+| `game-config/seer2.ts` | 将 `effects` 加入 `seer2Config.entities`（目前只在 baseEntities）                                                                            |
+| `PropertyPanel.vue`    | 在 `entityComponents` 中注册 `'effects': EffectProperties`                                                                                   |
+| `game-config/types.ts` | 无需改动（EntityConfig 接口已足够通用）                                                                                                      |
 
 ---
 
@@ -345,6 +348,7 @@ Props: modelValue (OperatorDSL), operatorType (string)
 ```
 
 关键设计决策：
+
 - **每步一张卡片**，而非一行文本。卡片内部根据 step 类型展开不同的子编辑器。
 - **视觉箭头连接**各 step，强调顺序语义。
 - **每步显示结果预览**（类型 + 简短描述），帮助用户理解数据变换。
@@ -354,28 +358,29 @@ Props: modelValue (OperatorDSL), operatorType (string)
 
 Chain 类型与编辑器映射：
 
-| Step 类型 | 子编辑器 | 说明 |
-|-----------|---------|------|
-| `select` | Extractor 选择（base/attribute/relation/field/dynamic） | 从每个实体提取属性 |
-| `selectPath` | 文本输入（如 `baseStats.hp` 或 `config.duration`） | 点路径提取 |
-| `selectProp` | 文本输入 | 属性名提取 |
-| `where` | EvaluatorEditor | 过滤：保留满足条件的实体 |
-| `whereAttr` | Extractor + EvaluatorEditor | 过滤：比较提取值与条件 |
-| `flat` | 无参数 | 展平嵌套数组 |
-| `and` / `or` | SelectorBuilder（内嵌） | 集合运算：交集/并集 |
-| `randomPick` | ValueEditor（数量） | 随机选取 N 个 |
-| `randomSample` | ValueEditor（数量） | 随机采样 |
-| `sum` / `avg` | 无参数 | 数值聚合 |
-| `add` / `multiply` / `divide` | ValueEditor | 算术运算 |
-| `shuffled` | 无参数 | 乱序 |
-| `limit` / `clampMax` / `clampMin` | ValueEditor | 限幅 |
-| `configGet` | ValueEditor（key） | 读取配置 |
-| `selectObservable` / `selectAttribute$` | 文本输入 | 响应式值提取 |
-| `asStatLevelMark` | 无参数 | 强制转型 |
-| `sampleBetween` | 无参数 | 区间采样 |
-| `when` | ConditionTreeEditor + trueValue + falseValue | 条件分支 |
+| Step 类型                               | 子编辑器                                                | 说明                     |
+| --------------------------------------- | ------------------------------------------------------- | ------------------------ |
+| `select`                                | Extractor 选择（base/attribute/relation/field/dynamic） | 从每个实体提取属性       |
+| `selectPath`                            | 文本输入（如 `baseStats.hp` 或 `config.duration`）      | 点路径提取               |
+| `selectProp`                            | 文本输入                                                | 属性名提取               |
+| `where`                                 | EvaluatorEditor                                         | 过滤：保留满足条件的实体 |
+| `whereAttr`                             | Extractor + EvaluatorEditor                             | 过滤：比较提取值与条件   |
+| `flat`                                  | 无参数                                                  | 展平嵌套数组             |
+| `and` / `or`                            | SelectorBuilder（内嵌）                                 | 集合运算：交集/并集      |
+| `randomPick`                            | ValueEditor（数量）                                     | 随机选取 N 个            |
+| `randomSample`                          | ValueEditor（数量）                                     | 随机采样                 |
+| `sum` / `avg`                           | 无参数                                                  | 数值聚合                 |
+| `add` / `multiply` / `divide`           | ValueEditor                                             | 算术运算                 |
+| `shuffled`                              | 无参数                                                  | 乱序                     |
+| `limit` / `clampMax` / `clampMin`       | ValueEditor                                             | 限幅                     |
+| `configGet`                             | ValueEditor（key）                                      | 读取配置                 |
+| `selectObservable` / `selectAttribute$` | 文本输入                                                | 响应式值提取             |
+| `asStatLevelMark`                       | 无参数                                                  | 强制转型                 |
+| `sampleBetween`                         | 无参数                                                  | 区间采样                 |
+| `when`                                  | ConditionTreeEditor + trueValue + falseValue            | 条件分支                 |
 
 base selector 的下拉选项由 typing metadata 过滤（如 `dealDamage` 的 `target` 只允许 `PET_ID` 对应的 self/opponent/target）。
+
 ```
 
 ### 3.7 ValueEditor（递归 + 快速类型切换）
@@ -385,38 +390,40 @@ Value 的类型决定编辑界面，且 Value 可以递归嵌套（`conditional`
 设计为**类型切换按钮组**（一键直达常用类型）+ **递归展开**（复杂类型）：
 
 ```
+
 ┌──────────────────────────────────────────────────────────────┐
-│  value:   [🔢 num] [📝 str] [✓ bool] [🏷️ mark] [⚔️ skill]  │
-│           [✨ effect] [🔄 dynamic] [⛓️ selVal] [🔀 cond]     │
-│                                                               │
-│  ── 当前: 🔢 raw:number ──────────────────────────────────── │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │  value: [  100                  ]                    │    │
-│  │  configId: [  (可选)            ]                    │    │
-│  │  tags: [  (可选标签)           ]                     │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                               │
-│  ── 切换为 🔄 dynamic 后 ────────────────────────────────── │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │  selector:                                           │    │
-│  │  ┌──────────────────────────────────────────────┐    │    │
-│  │  │  [SelectorBuilder 管道视图]                  │    │    │
-│  │  │  base: [self          ▼]                     │    │    │
-│  │  │  └─ chain: [select(maxHp)] → [divide(8)]     │    │    │
-│  │  └──────────────────────────────────────────────┘    │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                               │
-│  ── 切换为 🔀 conditional 后 ────────────────────────────── │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │  condition: [ConditionTreeEditor]                    │    │
-│  │  trueValue: ┌───────────────────────────────────┐    │    │
-│  │             │ [🔢 num] ... [ValueEditor 递归]   │    │    │
-│  │             └───────────────────────────────────┘    │    │
-│  │  falseValue: ┌──────────────────────────────────┐   │    │
-│  │              │ (可选) [ValueEditor 递归]         │    │    │
-│  │              └──────────────────────────────────┘   │    │
-│  └──────────────────────────────────────────────────────┘    │
+│ value: [🔢 num] [📝 str] [✓ bool] [🏷️ mark] [⚔️ skill] │
+│ [✨ effect] [🔄 dynamic] [⛓️ selVal] [🔀 cond] │
+│ │
+│ ── 当前: 🔢 raw:number ──────────────────────────────────── │
+│ ┌──────────────────────────────────────────────────────┐ │
+│ │ value: [ 100 ] │ │
+│ │ configId: [ (可选) ] │ │
+│ │ tags: [ (可选标签) ] │ │
+│ └──────────────────────────────────────────────────────┘ │
+│ │
+│ ── 切换为 🔄 dynamic 后 ────────────────────────────────── │
+│ ┌──────────────────────────────────────────────────────┐ │
+│ │ selector: │ │
+│ │ ┌──────────────────────────────────────────────┐ │ │
+│ │ │ [SelectorBuilder 管道视图] │ │ │
+│ │ │ base: [self ▼] │ │ │
+│ │ │ └─ chain: [select(maxHp)] → [divide(8)] │ │ │
+│ │ └──────────────────────────────────────────────┘ │ │
+│ └──────────────────────────────────────────────────────┘ │
+│ │
+│ ── 切换为 🔀 conditional 后 ────────────────────────────── │
+│ ┌──────────────────────────────────────────────────────┐ │
+│ │ condition: [ConditionTreeEditor] │ │
+│ │ trueValue: ┌───────────────────────────────────┐ │ │
+│ │ │ [🔢 num] ... [ValueEditor 递归] │ │ │
+│ │ └───────────────────────────────────┘ │ │
+│ │ falseValue: ┌──────────────────────────────────┐ │ │
+│ │ │ (可选) [ValueEditor 递归] │ │ │
+│ │ └──────────────────────────────────┘ │ │
+│ └──────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
+
 ```
 
 类型切换按钮组：
@@ -577,19 +584,21 @@ function resolveValueType(rule: EffectDslFieldTypingRule): ValueType[] {
 
 验证分为三个级别，触发时机和阻断策略各不相同：
 
-| 级别 | 触发时机 | 反馈方式 | 阻断保存？ | 示例 |
-|------|---------|---------|-----------|------|
-| **L1: 结构** | 每次编辑（debounce 300ms） | inline 红色边框 + 具体错误文案 | 否（允许草稿） | "操作符 `dealDamage` 缺少必填字段 `target`" |
-| **L2: 类型** | 每次编辑（debounce 300ms） | inline 黄色边框 + 警告图标 + tooltip | 否（允许草稿） | "`value` 字段应为数值类型，当前为字符串" |
-| **L3: 引用完整性** | 保存前（显式触发） | 弹窗列出所有问题 + 逐项确认 | **是**（阻断保存） | "引用的 effect `effect_xxx` 不存在" / "引用的 mark `mark_yyy` 未定义" |
+| 级别               | 触发时机                   | 反馈方式                             | 阻断保存？         | 示例                                                                  |
+| ------------------ | -------------------------- | ------------------------------------ | ------------------ | --------------------------------------------------------------------- |
+| **L1: 结构**       | 每次编辑（debounce 300ms） | inline 红色边框 + 具体错误文案       | 否（允许草稿）     | "操作符 `dealDamage` 缺少必填字段 `target`"                           |
+| **L2: 类型**       | 每次编辑（debounce 300ms） | inline 黄色边框 + 警告图标 + tooltip | 否（允许草稿）     | "`value` 字段应为数值类型，当前为字符串"                              |
+| **L3: 引用完整性** | 保存前（显式触发）         | 弹窗列出所有问题 + 逐项确认          | **是**（阻断保存） | "引用的 effect `effect_xxx` 不存在" / "引用的 mark `mark_yyy` 未定义" |
 
 L1/L2 实现：
+
 - 从 `effectDSLSchema`（TypeBox）读取结构约束 → 校验必填字段、枚举值范围
 - 从 `effectTypingMetadata` 读取类型约束 → 校验字段类型匹配
 - 验证结果缓存在组件本地状态，避免每次渲染重算
 - 错误信息使用中文（直接显示给用户）
 
 L3 实现：
+
 - 遍历 effect 中的所有 `entity:baseMark`、`entity:baseSkill`、`entity:species`、`entity:effect` 引用
 - 在 `gameData` store 中查证目标是否存在
 - 对于 YAML anchor 引用，检查目标 anchor 是否在当前文件中定义
@@ -617,15 +626,16 @@ L3 实现：
 // composables/useEffectValidation.ts
 interface ValidationResult {
   level: 'L1' | 'L2' | 'L3'
-  path: string           // 字段路径，如 "apply.value.selector.chain[0].extractor"
-  message: string        // 中文错误信息
-  field: string          // 字段名
+  path: string // 字段路径，如 "apply.value.selector.chain[0].extractor"
+  message: string // 中文错误信息
+  field: string // 字段名
 }
 
 function validateEffect(draft: EffectDraft): ValidationResult[]
 function validateReferences(draft: EffectDraft, gameData: GameDataState): ValidationResult[]
 ```
-```
+
+````
 
 ```typescript
 // 将 typing rule 展开为 UI 可用的选项列表
@@ -652,7 +662,7 @@ function resolveValueType(rule: EffectDslFieldTypingRule): ValueType[] {
   // object:dsl:operator → [OperatorDSL inline]
   // ...
 }
-```
+````
 
 ---
 
@@ -702,10 +712,10 @@ YAML anchor 的作用域是**单个 YAML 文档**（一个文件）。`effect_sk
 ```typescript
 // 解析 effect_skill.yaml 时提取所有 anchor
 interface DiscoveredTemplate {
-  id: string              // anchor 名称，如 "apply_opponent_statstage_-1_template"
-  category: 'apply' | 'condition' | 'evaluator'  // 模板类别
-  definition: unknown     // anchor 定义的完整内容
-  usageCount: number      // 被引用的次数
+  id: string // anchor 名称，如 "apply_opponent_statstage_-1_template"
+  category: 'apply' | 'condition' | 'evaluator' // 模板类别
+  definition: unknown // anchor 定义的完整内容
+  usageCount: number // 被引用的次数
 }
 
 // 枚举所有 effect 中的 anchor 使用
@@ -766,11 +776,13 @@ function serializeToYaml(effect: EffectDraft): string {
 模板存储在 `effect_skill.yaml` 中（通常是数据文件开头或结尾的模板定义区）。
 
 **局部模板操作**：
+
 - 模板创建：选择现有 effect 的 apply/condition → 「保存为模板」→ 在当前文件创建 YAML anchor
 - 模板编辑：修改模板定义（级联影响当前文件所有引用者，需确认）
 - 模板删除：展开当前文件所有引用为内联定义，然后删除模板
 
 **全局模板操作**：
+
 - 全局模板库存储在编辑器单独的配置文件（如 `templates/effects.yaml`）
 - 创建：同局部模板，但勾选「保存为全局模板」
 - 使用：在任意文件的 effect 编辑器中，模板面板的「全局」标签页选择
@@ -827,22 +839,22 @@ function serializeToYaml(effect: EffectDraft): string {
 
 ### 7.1 技术风险
 
-| 风险 | 影响 | 缓解措施 |
-|------|------|---------|
-| 递归组件深度过大导致性能问题 | 编辑卡顿 | 虚拟滚动 + 懒加载嵌套节点；默认折叠深层 chain |
-| YAML anchor 语义复杂，序列化出错 | 数据损坏 | 序列化器有完善的单元测试覆盖；模板引用编辑前对原始 YAML 做快照备份 |
-| typing metadata 覆盖不全 | 部分字段缺少约束 | 对未定义的字段回退到通用编辑器（自由输入） |
-| 与现有 DataEditor 的 draft/undo 系统冲突 | 编辑状态丢失 | 复用现有 `useEditorUndo` 和 `injectedDraft` 模式 |
+| 风险                                     | 影响             | 缓解措施                                                           |
+| ---------------------------------------- | ---------------- | ------------------------------------------------------------------ |
+| 递归组件深度过大导致性能问题             | 编辑卡顿         | 虚拟滚动 + 懒加载嵌套节点；默认折叠深层 chain                      |
+| YAML anchor 语义复杂，序列化出错         | 数据损坏         | 序列化器有完善的单元测试覆盖；模板引用编辑前对原始 YAML 做快照备份 |
+| typing metadata 覆盖不全                 | 部分字段缺少约束 | 对未定义的字段回退到通用编辑器（自由输入）                         |
+| 与现有 DataEditor 的 draft/undo 系统冲突 | 编辑状态丢失     | 复用现有 `useEditorUndo` 和 `injectedDraft` 模式                   |
 
 ### 7.2 设计权衡
 
-| 权衡 | 选择 | 理由 |
-|------|------|------|
-| 树形表单 vs 节点图 | 树形表单 | DSL 是嵌套声明式规则，不是控制流；表单处理嵌套更优雅 |
-| 通用组件 vs 专用组件 | 专用组件 | 60+ 种操作符形态差异大，通用组件会导致大量配置 |
-| Monaco vs CodeMirror | 已有 Monaco | 项目已安装 monaco-editor，无需新依赖 |
-| litegraph vs SVG | SVG（轻量） | litegraph 不维护、不受 Vue 支持；SVG 足够满足只读预览 |
-| 只读预览 vs 双向编辑 | 只读预览 | 双向同步极难维护；表单为主、预览为辅保证单一事实源 |
+| 权衡                 | 选择        | 理由                                                  |
+| -------------------- | ----------- | ----------------------------------------------------- |
+| 树形表单 vs 节点图   | 树形表单    | DSL 是嵌套声明式规则，不是控制流；表单处理嵌套更优雅  |
+| 通用组件 vs 专用组件 | 专用组件    | 60+ 种操作符形态差异大，通用组件会导致大量配置        |
+| Monaco vs CodeMirror | 已有 Monaco | 项目已安装 monaco-editor，无需新依赖                  |
+| litegraph vs SVG     | SVG（轻量） | litegraph 不维护、不受 Vue 支持；SVG 足够满足只读预览 |
+| 只读预览 vs 双向编辑 | 只读预览    | 双向同步极难维护；表单为主、预览为辅保证单一事实源    |
 
 ### 7.3 不做什么
 
@@ -860,6 +872,7 @@ function serializeToYaml(effect: EffectDraft): string {
 ### 9.1 现状评价
 
 **优势**：
+
 - Selector 管道设计（`base → chain[where → select → sum]`）极度灵活，本质是一套可组合的 type-safe query language
 - `conditional` 操作符让条件分支成为 DSL 一等公民，复杂 effect 可在单条内表达
 - YAML anchor 模板系统务实高效，`<<: *template` 覆写语义简洁
@@ -867,10 +880,11 @@ function serializeToYaml(effect: EffectDraft): string {
   - Layer 1: TypeBox schema（结构校验，default-fill + convert + check）
   - Layer 2: compile-time validator（`effect-compile-validator.ts` 1185 行，验证 selector/value 引用路径正确性）
   - Layer 3: typing metadata（`effectTypingMetadata.ts` 683 行，手写字段级类型约束）
-  
+
   这套管线在游戏 modding/脚本领域是罕见的投入——绝大多数同类项目到运行时才发现 `target` 用错了类型。
 
 **劣势**：
+
 1. **操作符数量膨胀**：17 个 modifier 系列操作符（`addAttributeModifier` / `addDynamicAttributeModifier` / `addClampModifier` / `addSkillAttributeModifier` / `addConfigModifier` 及其变体 × N）本质是同一概念因 TypeScript tagged union 缺乏高阶抽象而被迫穷举的结果
 2. **`value` 字段的类型歧义**：裸值 / tagged 值 / 动态选择器 / 条件值用同一个 `value` 键承载，parser 需回溯猜测类型
 3. **深层嵌套 + YAML 缩进 = 阅读灾难**：一个「自身身高 < 对手身高」的条件在 YAML 中占用 18 行、16 层缩进，同一层级出现 5 个不同语义的 `type` 字段
@@ -878,16 +892,17 @@ function serializeToYaml(effect: EffectDraft): string {
 
 ### 9.2 改进方向（按优先级）
 
-| 优先级 | 方向 | 效果 | 破坏性 |
-|--------|------|------|--------|
-| 1 | **语法糖**：高频模式加简写（如 `selector('self.height')` 替代深层 chain、`probability 5%` 替代 evaluator 嵌套） | 表达效率提升 50%+，缩进减半 | 低——糖展开后还是现有 DSL |
-| 2 | **合并操作符**：modifier 系列 17 个操作符 → 1 个参数化 `modify`，`clampMax/clampMin/clamp` → 1 个带可选参数的 `clamp` | 操作符数量从 60+ 降到 ~35，认知负担大幅下降 | 中——需改 parser + interpreter + 现有数据 |
-| 3 | **区分 value 键名**：`staticValue` / `dynamicValue` / `taggedValue` / `conditionalValue` 替代 `value` + `type` 标签 | 消除类型歧义，parser 无需回溯，YAML LSP 可直接提示 | 中——所有现有 effect 需迁移 |
-| 4 | **typing metadata 自动生成**：从 TypeScript 类型定义 + 装饰器自动提取字段约束，替代手写的 683 行 | 消除同步风险，减少维护成本 | 低——仅影响构建管线，不影响数据 |
+| 优先级 | 方向                                                                                                                  | 效果                                               | 破坏性                                   |
+| ------ | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------- |
+| 1      | **语法糖**：高频模式加简写（如 `selector('self.height')` 替代深层 chain、`probability 5%` 替代 evaluator 嵌套）       | 表达效率提升 50%+，缩进减半                        | 低——糖展开后还是现有 DSL                 |
+| 2      | **合并操作符**：modifier 系列 17 个操作符 → 1 个参数化 `modify`，`clampMax/clampMin/clamp` → 1 个带可选参数的 `clamp` | 操作符数量从 60+ 降到 ~35，认知负担大幅下降        | 中——需改 parser + interpreter + 现有数据 |
+| 3      | **区分 value 键名**：`staticValue` / `dynamicValue` / `taggedValue` / `conditionalValue` 替代 `value` + `type` 标签   | 消除类型歧义，parser 无需回溯，YAML LSP 可直接提示 | 中——所有现有 effect 需迁移               |
+| 4      | **typing metadata 自动生成**：从 TypeScript 类型定义 + 装饰器自动提取字段约束，替代手写的 683 行                      | 消除同步风险，减少维护成本                         | 低——仅影响构建管线，不影响数据           |
 
 ### 9.3 前提条件
 
 上述改进需要在以下条件满足后才值得投入：
+
 - effect 编辑器已投入使用，用户反馈收集完毕
 - 有一套完整的 DSL 迁移工具（CLI 批量转换 + 校验），确保 12,000 行数据不损坏
 - typing metadata 自动生成方案经过原型验证
@@ -900,17 +915,17 @@ function serializeToYaml(effect: EffectDraft): string {
 
 ### 10.1 关键文件索引
 
-| 文件 | 作用 | 改动类型 |
-|------|------|---------|
-| `packages/schema/src/effectDsl.ts` | DSL 类型定义（987 行） | 读取，不改动 |
-| `packages/schema/src/effectSchema.ts` | TypeBox 校验 schema | 读取，不改动 |
-| `packages/schema/src/effectTypingMetadata.ts` | 字段约束定义（683 行） | 读取，不改动 |
-| `packages/schema/src/effectDslManifest.ts` | 运行时 manifest | 读取，不改动 |
-| `packages/schema/src/effectPrimitives.ts` | 枚举常量 | 读取，不改动 |
-| `packages/web-ui/src/features/data-editor/game-config/base.ts` | effects 实体配置 | **修改**：接入完整 schema |
-| `packages/web-ui/src/features/data-editor/game-config/seer2.ts` | Seer2 配置 | **修改**：注册 effects |
-| `packages/web-ui/src/features/data-editor/components/property-panel/PropertyPanel.vue` | 属性面板 | **修改**：注册 EffectProperties |
-| `packs/base/data/effect_skill.yaml` | 效果数据 | 读写 |
+| 文件                                                                                   | 作用                   | 改动类型                        |
+| -------------------------------------------------------------------------------------- | ---------------------- | ------------------------------- |
+| `packages/schema/src/effectDsl.ts`                                                     | DSL 类型定义（987 行） | 读取，不改动                    |
+| `packages/schema/src/effectSchema.ts`                                                  | TypeBox 校验 schema    | 读取，不改动                    |
+| `packages/schema/src/effectTypingMetadata.ts`                                          | 字段约束定义（683 行） | 读取，不改动                    |
+| `packages/schema/src/effectDslManifest.ts`                                             | 运行时 manifest        | 读取，不改动                    |
+| `packages/schema/src/effectPrimitives.ts`                                              | 枚举常量               | 读取，不改动                    |
+| `packages/web-ui/src/features/data-editor/game-config/base.ts`                         | effects 实体配置       | **修改**：接入完整 schema       |
+| `packages/web-ui/src/features/data-editor/game-config/seer2.ts`                        | Seer2 配置             | **修改**：注册 effects          |
+| `packages/web-ui/src/features/data-editor/components/property-panel/PropertyPanel.vue` | 属性面板               | **修改**：注册 EffectProperties |
+| `packs/base/data/effect_skill.yaml`                                                    | 效果数据               | 读写                            |
 
 ### 10.2 新增文件清单
 

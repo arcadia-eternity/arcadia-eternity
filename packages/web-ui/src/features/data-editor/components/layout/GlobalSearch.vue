@@ -74,9 +74,7 @@ const groupedResults = computed<ResultGroup[]>(() => {
   return groups
 })
 
-const totalResults = computed(() =>
-  groupedResults.value.reduce((sum, g) => sum + g.items.length, 0),
-)
+const totalResults = computed(() => groupedResults.value.reduce((sum, g) => sum + g.items.length, 0))
 
 function selectResult(type: EntityType, id: string) {
   navigateTo(type, id)
@@ -93,7 +91,7 @@ function handleClickOutside(e: MouseEvent) {
 
 watch(
   () => props.modelValue,
-  (val) => {
+  val => {
     isOpen.value = val.trim().length > 0
   },
 )
@@ -122,19 +120,12 @@ onBeforeUnmount(() => {
     />
 
     <Transition name="gs-dropdown">
-      <div
-        v-if="isOpen && groupedResults.length > 0"
-        class="global-search__dropdown"
-      >
+      <div v-if="isOpen && groupedResults.length > 0" class="global-search__dropdown">
         <div class="dropdown-header">
           <span class="dropdown-header__count">{{ totalResults }} 条结果</span>
         </div>
 
-        <div
-          v-for="group in groupedResults"
-          :key="group.type"
-          class="result-group"
-        >
+        <div v-for="group in groupedResults" :key="group.type" class="result-group">
           <div class="group-header">
             <span class="group-header__icon">{{ group.icon }}</span>
             <span class="group-header__label">{{ group.label }}</span>
@@ -210,13 +201,19 @@ onBeforeUnmount(() => {
   box-shadow: var(--ae-shadow-lg);
   z-index: 100;
   padding: var(--ae-space-1) 0;
-  font-family: var(--ae-font-base), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--ae-font-base),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 /* ── Transition ── */
 .gs-dropdown-enter-active,
 .gs-dropdown-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
 }
 
 .gs-dropdown-enter-from,
@@ -295,7 +292,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: background-color 0.1s ease;
   text-align: left;
-  font-family: var(--ae-font-base), -apple-system, BlinkMacSystemFont, monospace;
+  font-family:
+    var(--ae-font-base),
+    -apple-system,
+    BlinkMacSystemFont,
+    monospace;
 }
 
 .result-item:hover {

@@ -75,12 +75,7 @@ export function createConfigStore(): ConfigStore {
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerConfig(
-  store: ConfigStore,
-  key: string,
-  initialValue: ConfigValue,
-  tags?: string[],
-): void {
+export function registerConfig(store: ConfigStore, key: string, initialValue: ConfigValue, tags?: string[]): void {
   store.bases[key] = initialValue
   if (!store.modifiers[key]) {
     store.modifiers[key] = []
@@ -115,12 +110,7 @@ export function getConfigKeysByTag(store: ConfigStore, tag: string): string[] {
 // Get / Set
 // ---------------------------------------------------------------------------
 
-export function setConfigValue(
-  store: ConfigStore,
-  key: string,
-  value: ConfigValue,
-  scopeEntityId?: string,
-): void {
+export function setConfigValue(store: ConfigStore, key: string, value: ConfigValue, scopeEntityId?: string): void {
   if (scopeEntityId) {
     if (!store.scopedBases[scopeEntityId]) {
       store.scopedBases[scopeEntityId] = {}
@@ -222,15 +212,8 @@ export function addConfigModifier(
   }
 }
 
-export function removeConfigModifier(
-  store: ConfigStore,
-  key: string,
-  modId: string,
-  scopeEntityId?: string,
-): boolean {
-  const mods = scopeEntityId
-    ? store.scopedModifiers[scopeEntityId]?.[key]
-    : store.modifiers[key]
+export function removeConfigModifier(store: ConfigStore, key: string, modId: string, scopeEntityId?: string): boolean {
+  const mods = scopeEntityId ? store.scopedModifiers[scopeEntityId]?.[key] : store.modifiers[key]
   if (!mods) return false
   const idx = mods.findIndex(m => m.id === modId)
   if (idx === -1) return false
@@ -238,10 +221,7 @@ export function removeConfigModifier(
   return true
 }
 
-export function removeConfigModifiersBySource(
-  store: ConfigStore,
-  sourceId: string,
-): number {
+export function removeConfigModifiersBySource(store: ConfigStore, sourceId: string): number {
   let removed = 0
 
   // Global modifiers
@@ -255,9 +235,7 @@ export function removeConfigModifiersBySource(
   for (const entityId of Object.keys(store.scopedModifiers)) {
     for (const key of Object.keys(store.scopedModifiers[entityId])) {
       const before = store.scopedModifiers[entityId][key].length
-      store.scopedModifiers[entityId][key] = store.scopedModifiers[entityId][key].filter(
-        m => m.sourceId !== sourceId,
-      )
+      store.scopedModifiers[entityId][key] = store.scopedModifiers[entityId][key].filter(m => m.sourceId !== sourceId)
       removed += before - store.scopedModifiers[entityId][key].length
     }
   }
@@ -268,11 +246,7 @@ export function removeConfigModifiersBySource(
 /**
  * Remove all modifiers bound to a specific phase type when that phase completes.
  */
-export function cleanupPhaseTypeConfigModifiers(
-  store: ConfigStore,
-  phaseType: string,
-  phaseId?: string,
-): number {
+export function cleanupPhaseTypeConfigModifiers(store: ConfigStore, phaseType: string, phaseId?: string): number {
   let removed = 0
 
   function shouldRemove(mod: ConfigModifierDef): boolean {
@@ -293,9 +267,7 @@ export function cleanupPhaseTypeConfigModifiers(
   for (const entityId of Object.keys(store.scopedModifiers)) {
     for (const key of Object.keys(store.scopedModifiers[entityId])) {
       const before = store.scopedModifiers[entityId][key].length
-      store.scopedModifiers[entityId][key] = store.scopedModifiers[entityId][key].filter(
-        m => !shouldRemove(m),
-      )
+      store.scopedModifiers[entityId][key] = store.scopedModifiers[entityId][key].filter(m => !shouldRemove(m))
       removed += before - store.scopedModifiers[entityId][key].length
     }
   }

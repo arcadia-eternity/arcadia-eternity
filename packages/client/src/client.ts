@@ -942,10 +942,7 @@ export class BattleClient {
     return this
   }
 
-  on<T extends keyof ServerToClientEvents>(
-    event: T,
-    handler: ServerToClientEvents[T],
-  ): () => void {
+  on<T extends keyof ServerToClientEvents>(event: T, handler: ServerToClientEvents[T]): () => void {
     const wrapper: (...args: unknown[]) => void = (...args) => (handler as (...args: unknown[]) => void)(...args)
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
@@ -958,10 +955,7 @@ export class BattleClient {
     return () => this.off(event, handler)
   }
 
-  off<T extends keyof ServerToClientEvents>(
-    event: T,
-    _handler: ServerToClientEvents[T],
-  ): void {
+  off<T extends keyof ServerToClientEvents>(event: T, _handler: ServerToClientEvents[T]): void {
     const handlers = this.eventHandlers.get(event)
     if (handlers) {
       handlers.forEach(h => {
@@ -1246,11 +1240,7 @@ export class BattleClient {
     const details = response.details ?? ''
     const detailUpper = details.toUpperCase()
 
-    const directTerminalCodes = new Set([
-      'NOT_IN_BATTLE',
-      'BATTLE_NOT_FOUND',
-      'BATTLE_ALREADY_ENDED',
-    ])
+    const directTerminalCodes = new Set(['NOT_IN_BATTLE', 'BATTLE_NOT_FOUND', 'BATTLE_ALREADY_ENDED'])
 
     if (directTerminalCodes.has(code)) {
       this.markBattleEnded(code)
@@ -1266,10 +1256,10 @@ export class BattleClient {
 
     if (wrappedTerminalCodes.has(code)) {
       const wrappedTerminal =
-        detailUpper.includes('NOT_IN_BATTLE')
-        || detailUpper.includes('BATTLE_NOT_FOUND')
-        || detailUpper.includes('BATTLE_ALREADY_ENDED')
-        || detailUpper.includes('BATTLE IS NOT ACTIVE')
+        detailUpper.includes('NOT_IN_BATTLE') ||
+        detailUpper.includes('BATTLE_NOT_FOUND') ||
+        detailUpper.includes('BATTLE_ALREADY_ENDED') ||
+        detailUpper.includes('BATTLE IS NOT ACTIVE')
       if (wrappedTerminal) {
         this.markBattleEnded(`${code}:${details}`)
       }

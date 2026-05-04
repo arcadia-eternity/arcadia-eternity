@@ -123,7 +123,7 @@ class CustomRule extends AbstractRule {
   validateTeam(team: Team): ValidationResult {
     // 实现验证逻辑
   }
-  
+
   modifyPet(pet: PetSchemaType): void {
     // 实现修改逻辑
   }

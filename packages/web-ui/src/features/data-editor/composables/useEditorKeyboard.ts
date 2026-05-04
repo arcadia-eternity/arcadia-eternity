@@ -12,11 +12,7 @@ function isTextInputFocused(): boolean {
   const el = document.activeElement as HTMLElement | null
   if (!el) return false
   const tag = el.tagName.toLowerCase()
-  return (
-    tag === 'input' ||
-    tag === 'textarea' ||
-    el.isContentEditable
-  )
+  return tag === 'input' || tag === 'textarea' || el.isContentEditable
 }
 
 export function useEditorKeyboard(handlers: EditorKeyboardHandlers): void {

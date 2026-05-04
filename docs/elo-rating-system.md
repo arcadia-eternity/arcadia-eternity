@@ -7,22 +7,26 @@
 ## 核心特性
 
 ### 🎯 规则集分离
+
 - 每个规则集（如休闲模式、竞技模式）独立维护ELO评级
 - 玩家在不同规则集下有不同的ELO分数
 - 支持无限扩展新的规则集
 
 ### 📊 标准ELO算法
+
 - 基于经典ELO评级系统
 - 期望得分计算：`1 / (1 + 10^((对手ELO - 自己ELO) / 400))`
-- 新ELO = 旧ELO + K * (实际得分 - 期望得分)
+- 新ELO = 旧ELO + K \* (实际得分 - 期望得分)
 - 支持胜利(1分)、失败(0分)、平局(0.5分)
 
 ### ⚙️ 动态K因子
+
 - **新手** (< 30场): K = 32 (快速调整)
 - **普通** (30-100场): K = 24 (中等调整)
 - **老手** (> 100场): K = 16 (稳定调整)
 
 ### 🛡️ 安全边界
+
 - ELO范围：100 - 3000
 - 初始ELO：1200
 - 自动记录历史最高ELO
@@ -43,7 +47,7 @@ CREATE TABLE player_elo_ratings (
     highest_elo INTEGER DEFAULT 1200,  -- 历史最高ELO
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     PRIMARY KEY (player_id, rule_set_id)
 );
 ```
@@ -58,27 +62,32 @@ CREATE TABLE player_elo_ratings (
 ## API端点
 
 ### 排行榜
+
 ```
 GET /api/v1/elo/leaderboard/:ruleSetId?limit=50&offset=0
 ```
 
 ### 玩家ELO信息
+
 ```
 GET /api/v1/elo/player/:playerId/:ruleSetId
 GET /api/v1/elo/player/:playerId  # 所有规则集
 ```
 
 ### 统计信息
+
 ```
 GET /api/v1/elo/statistics/:ruleSetId
 ```
 
 ### 战斗预测
+
 ```
 GET /api/v1/elo/predict/:playerAId/:playerBId/:ruleSetId
 ```
 
 ### 配置信息
+
 ```
 GET /api/v1/elo/config
 GET /api/v1/elo/win-rate/:eloDifference
@@ -98,12 +107,7 @@ GET /api/v1/elo/win-rate/:eloDifference
 ```typescript
 // 在 battleReportService.ts 中
 if (battleData.ruleSetId && battleResult !== 'abandoned') {
-  await eloService.processBattleEloUpdate(
-    battleData.playerAId,
-    battleData.playerBId,
-    winnerId,
-    battleData.ruleSetId
-  )
+  await eloService.processBattleEloUpdate(battleData.playerAId, battleData.playerBId, winnerId, battleData.ruleSetId)
 }
 ```
 
@@ -173,10 +177,10 @@ eloService.updateEloConfig({
   kFactor: {
     newbie: 40,
     normal: 20,
-    veteran: 10
+    veteran: 10,
   },
   minElo: 200,
-  maxElo: 2800
+  maxElo: 2800,
 })
 ```
 

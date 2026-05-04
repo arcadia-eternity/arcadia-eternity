@@ -14,38 +14,47 @@
 ## 访问方式
 
 ### 1. Swagger UI 界面
+
 ```
 http://localhost:8102/api-docs
 ```
+
 提供交互式的 API 文档界面，可以直接测试 API 端点。
 
 ### 2. OpenAPI JSON 规范
+
 ```
 http://localhost:8102/api-docs.json
 ```
+
 返回完整的 OpenAPI 3.0 JSON 规范，可用于代码生成或其他工具。
 
 ## API 端点分类
 
 ### 🏥 Health (健康检查)
+
 - `GET /health` - 服务器健康检查
 - `GET /api/stats` - 服务器统计信息
 
 ### 📊 Battle Reports (战报)
+
 - `GET /api/v1/battles` - 获取战报列表（分页）
 - `GET /api/v1/battles/{id}` - 获取单个战报详情
 - `GET /api/v1/statistics` - 获取战报统计信息
 
 ### 👥 Players (玩家)
+
 - `GET /api/v1/players/{playerId}` - 获取玩家信息
 - `GET /api/v1/players/{playerId}/stats` - 获取玩家统计
 - `GET /api/v1/players` - 搜索玩家
 
 ### 🔐 Authentication (认证)
+
 - `POST /api/v1/auth/refresh` - 刷新访问令牌
 - `GET /api/v1/auth/verify` - 验证令牌有效性
 
 ### 📧 Email (邮箱继承)
+
 - `POST /api/v1/email/send-verification-code` - 发送验证码
 - `POST /api/v1/email/bind` - 绑定邮箱
 - `POST /api/v1/email/recover` - 恢复玩家ID
@@ -53,10 +62,13 @@ http://localhost:8102/api-docs.json
 ## 认证说明
 
 ### 游客模式
+
 大部分 API 端点支持游客模式访问，无需认证。
 
 ### 注册用户认证
+
 注册用户需要在请求头中提供 JWT 令牌：
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```
@@ -66,6 +78,7 @@ Authorization: Bearer <your-jwt-token>
 ## 数据模式
 
 ### 通用响应格式
+
 ```json
 {
   "success": true,
@@ -75,6 +88,7 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 ### 错误响应格式
+
 ```json
 {
   "success": false,
@@ -84,6 +98,7 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 ### 分页响应格式
+
 ```json
 {
   "data": [...],
@@ -101,6 +116,7 @@ Authorization: Bearer <your-jwt-token>
 ### 添加新的 API 端点
 
 1. **在路由文件中添加 JSDoc 注释**:
+
 ```javascript
 /**
  * @swagger
@@ -126,6 +142,7 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 2. **在 swagger.ts 中添加新的模式定义**:
+
 ```javascript
 YourSchema: {
   type: 'object',
@@ -138,6 +155,7 @@ YourSchema: {
 ```
 
 3. **重新构建项目**:
+
 ```bash
 pnpm run build
 ```
@@ -145,11 +163,13 @@ pnpm run build
 ### 测试 Swagger 配置
 
 运行测试脚本验证配置：
+
 ```bash
 node test-swagger-simple.js
 ```
 
 启动测试服务器：
+
 ```bash
 node test-swagger.js
 ```
@@ -157,13 +177,16 @@ node test-swagger.js
 ## 配置选项
 
 ### Swagger UI 配置
+
 在 `swagger.ts` 中的 `swaggerUiOptions` 对象中配置：
+
 - `explorer`: 启用 API 探索器
 - `persistAuthorization`: 持久化认证信息
 - `displayRequestDuration`: 显示请求耗时
 - `filter`: 启用过滤功能
 
 ### 服务器配置
+
 在 `swaggerOptions.definition.servers` 中配置不同环境的服务器地址。
 
 ## 注意事项

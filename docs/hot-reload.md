@@ -48,9 +48,9 @@ const customStrategy = {
   enableHotReload: true,
   hotReloadDebounce: 500, // 防抖延迟 500ms
   watchScripts: true,
-  hotReloadCallback: (event) => {
+  hotReloadCallback: event => {
     console.log('热重载事件:', event)
-  }
+  },
 }
 
 const hotReloadManager = await loadGameData('./data', customStrategy)
@@ -63,7 +63,7 @@ const hotReloadManager = await loadGameData('./data', customStrategy)
 ```typescript
 const strategy = {
   ...LOADING_STRATEGIES.DEVELOPMENT_HOT,
-  hotReloadCallback: (event) => {
+  hotReloadCallback: event => {
     switch (event.type) {
       case 'file-changed':
         console.log(`文件变化: ${event.filePath} (${event.category})`)
@@ -81,18 +81,18 @@ const strategy = {
         console.error(`重载失败: ${event.error?.message}`)
         break
     }
-  }
+  },
 }
 ```
 
 ## 配置选项
 
-| 选项 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `enableHotReload` | boolean | false | 是否启用热重载 |
-| `hotReloadDebounce` | number | 300 | 防抖延迟（毫秒） |
-| `watchScripts` | boolean | true | 是否监控脚本文件变化 |
-| `hotReloadCallback` | function | undefined | 热重载事件回调函数 |
+| 选项                | 类型     | 默认值    | 说明                 |
+| ------------------- | -------- | --------- | -------------------- |
+| `enableHotReload`   | boolean  | false     | 是否启用热重载       |
+| `hotReloadDebounce` | number   | 300       | 防抖延迟（毫秒）     |
+| `watchScripts`      | boolean  | true      | 是否监控脚本文件变化 |
+| `hotReloadCallback` | function | undefined | 热重载事件回调函数   |
 
 ## 预设策略
 
@@ -153,17 +153,17 @@ console.log(effect.someProperty) // 输出更新后的值！
 
 ### 精细化重载 vs 类别重载
 
-| 重载方式 | 重载范围 | 性能 | 内存使用 |
-|----------|----------|------|----------|
-| **精细化重载** | 单个文件 | 🚀 快速 (250ms) | 🟢 低 |
-| 类别重载 | 整个类别 | 🐌 较慢 (4605ms) | 🟡 中等 |
+| 重载方式       | 重载范围 | 性能             | 内存使用 |
+| -------------- | -------- | ---------------- | -------- |
+| **精细化重载** | 单个文件 | 🚀 快速 (250ms)  | 🟢 低    |
+| 类别重载       | 整个类别 | 🐌 较慢 (4605ms) | 🟡 中等  |
 
 ### 代理机制 vs 直接替换
 
-| 方式 | 对象引用 | 内存泄漏 | 开发体验 |
-|------|----------|----------|----------|
-| **代理机制** | ✅ 自动更新 | ✅ 无泄漏 | 🚀 无感知 |
-| 直接替换 | ❌ 需重新获取 | ❌ 有泄漏 | 😓 需手动处理 |
+| 方式         | 对象引用      | 内存泄漏  | 开发体验      |
+| ------------ | ------------- | --------- | ------------- |
+| **代理机制** | ✅ 自动更新   | ✅ 无泄漏 | 🚀 无感知     |
+| 直接替换     | ❌ 需重新获取 | ❌ 有泄漏 | 😓 需手动处理 |
 
 ## 注意事项
 

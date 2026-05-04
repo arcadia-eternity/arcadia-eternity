@@ -53,7 +53,7 @@ const templateData = {
   code: '123456',
   purposeText: '绑定邮箱',
   playerName: '玩家名称',
-  subject: '绑定邮箱验证码 - 阿卡迪亚永恒'
+  subject: '绑定邮箱验证码 - 阿卡迪亚永恒',
 }
 
 const html = renderVerificationHtml(templateData)

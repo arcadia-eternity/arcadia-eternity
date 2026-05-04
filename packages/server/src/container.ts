@@ -12,7 +12,13 @@ import { ClusterBattleServer } from './domain/battle/services/clusterBattleServe
 import { BattleRpcServer } from './cluster/communication/rpc/battleRpcServer'
 import { BattleRpcClient } from './cluster/communication/rpc/battleRpcClient'
 import { SessionStateManager } from './domain/session/sessionStateManager'
-import type { IMatchmakingService, IBattleService, IResourceLoadingManager, MatchmakingCallbacks, BattleCallbacks } from './domain/battle/services/interfaces'
+import type {
+  IMatchmakingService,
+  IBattleService,
+  IResourceLoadingManager,
+  MatchmakingCallbacks,
+  BattleCallbacks,
+} from './domain/battle/services/interfaces'
 import type { ClusterStateManager } from './cluster/core/clusterStateManager'
 import type { RealtimeTransport } from './realtime/realtimeTransport'
 import type { DistributedLockManager } from './cluster/redis/distributedLock'
@@ -107,15 +113,16 @@ export function configureBattleServices(
     performanceTracker?: PerformanceTracker | null
     serviceDiscovery?: ServiceDiscoveryManager | null
     battleReportConfig?: BattleReportConfig
-  }) {
-    container.bind(TYPES.MatchmakingCallbacks).toConstantValue(dependencies.matchmakingCallbacks)
-    container.bind(TYPES.BattleCallbacks).toConstantValue(dependencies.battleCallbacks)
-    if (dependencies.performanceTracker) {
-      container.bind(TYPES.PerformanceTracker).toConstantValue(dependencies.performanceTracker)
-    }
-    if (dependencies.serviceDiscovery) {
-      container.bind(TYPES.ServiceDiscoveryManager).toConstantValue(dependencies.serviceDiscovery)
-    }
+  },
+) {
+  container.bind(TYPES.MatchmakingCallbacks).toConstantValue(dependencies.matchmakingCallbacks)
+  container.bind(TYPES.BattleCallbacks).toConstantValue(dependencies.battleCallbacks)
+  if (dependencies.performanceTracker) {
+    container.bind(TYPES.PerformanceTracker).toConstantValue(dependencies.performanceTracker)
+  }
+  if (dependencies.serviceDiscovery) {
+    container.bind(TYPES.ServiceDiscoveryManager).toConstantValue(dependencies.serviceDiscovery)
+  }
 
   // 绑定核心依赖
   container.bind(TYPES.ClusterStateManager).toConstantValue(dependencies.stateManager)

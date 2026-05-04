@@ -117,13 +117,7 @@ export class StatStageHandler implements PhaseHandler<StatStagePhaseData> {
 
     const strategy = data.cleanStageStrategy ?? 'negative'
     const stats = data.stats ?? this.statStageSystem.getTrackedStats(world, data.sourceEntityId)
-    const moved = this.statStageSystem.transferStages(
-      world,
-      data.sourceEntityId,
-      data.targetEntityId,
-      strategy,
-      stats,
-    )
+    const moved = this.statStageSystem.transferStages(world, data.sourceEntityId, data.targetEntityId, strategy, stats)
 
     for (const { stat, stage } of moved) {
       bus.emit(world, 'statStageTransferred', {

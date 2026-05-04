@@ -22,11 +22,7 @@ const basePackDir = ref<string | null>(null)
 const filteredPacks = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (!q) return packs.value
-  return packs.value.filter(
-    p =>
-      p.folderName.toLowerCase().includes(q) ||
-      p.id.toLowerCase().includes(q),
-  )
+  return packs.value.filter(p => p.folderName.toLowerCase().includes(q) || p.id.toLowerCase().includes(q))
 })
 
 const enabledCount = computed(() => packs.value.filter(p => p.enabled).length)
@@ -40,9 +36,7 @@ async function refresh() {
     packs.value = result
 
     // Sync enabled packs into editor state
-    editorState.packFilters.enabledPacks = result
-      .filter(p => p.enabled)
-      .map(p => p.id || p.folderName)
+    editorState.packFilters.enabledPacks = result.filter(p => p.enabled).map(p => p.id || p.folderName)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载数据包失败'
     packs.value = []
@@ -63,9 +57,7 @@ async function togglePack(pack: WorkspacePackSummary) {
     pack.enabled = newEnabled
 
     // Update editor state
-    editorState.packFilters.enabledPacks = packs.value
-      .filter(p => p.enabled)
-      .map(p => p.id || p.folderName)
+    editorState.packFilters.enabledPacks = packs.value.filter(p => p.enabled).map(p => p.id || p.folderName)
   } catch (e) {
     // Revert on failure
     pack.enabled = !newEnabled
@@ -82,7 +74,12 @@ async function openBasePackDir() {
 onMounted(() => {
   refresh()
   if (window.arcadiaDesktop?.getBasePackDir) {
-    window.arcadiaDesktop.getBasePackDir().then(dir => { basePackDir.value = dir }).catch(() => {})
+    window.arcadiaDesktop
+      .getBasePackDir()
+      .then(dir => {
+        basePackDir.value = dir
+      })
+      .catch(() => {})
   }
 })
 </script>
@@ -91,28 +88,15 @@ onMounted(() => {
   <div class="pack-manager">
     <!-- Toolbar -->
     <div class="pack-toolbar">
-      <el-input
-        v-model="search"
-        placeholder="搜索包..."
-        size="small"
-        clearable
-        class="pack-search"
-      />
-      <el-button
-        size="small"
-        :loading="loading"
-        @click="refresh"
-        title="刷新"
-      >
-        <span v-if="!loading" style="font-size: 13px;">&#x21bb;</span>
+      <el-input v-model="search" placeholder="搜索包..." size="small" clearable class="pack-search" />
+      <el-button size="small" :loading="loading" @click="refresh" title="刷新">
+        <span v-if="!loading" style="font-size: 13px">&#x21bb;</span>
       </el-button>
     </div>
 
     <!-- Stats bar -->
     <div class="pack-stats">
-      <span class="pack-stats-text">
-        {{ enabledCount }}/{{ totalCount }} 已启用
-      </span>
+      <span class="pack-stats-text"> {{ enabledCount }}/{{ totalCount }} 已启用 </span>
     </div>
 
     <!-- Error -->
@@ -122,9 +106,7 @@ onMounted(() => {
 
     <!-- Pack list -->
     <div class="pack-list">
-      <div v-if="loading && packs.length === 0" class="pack-loading">
-        加载中...
-      </div>
+      <div v-if="loading && packs.length === 0" class="pack-loading">加载中...</div>
 
       <div v-else-if="filteredPacks.length === 0 && !loading" class="pack-empty">
         {{ search ? '没有匹配的数据包' : '没有找到数据包' }}
@@ -145,12 +127,7 @@ onMounted(() => {
               <span v-if="!pack.canDisable" class="ae-badge ae-badge--info">核心</span>
             </div>
           </div>
-          <el-switch
-            :model-value="pack.enabled"
-            :disabled="!pack.canDisable"
-            size="small"
-            @change="togglePack(pack)"
-          />
+          <el-switch :model-value="pack.enabled" :disabled="!pack.canDisable" size="small" @change="togglePack(pack)" />
         </div>
       </div>
     </div>
@@ -174,7 +151,11 @@ onMounted(() => {
   padding: var(--ae-space-2);
   min-height: 0;
   overflow-y: auto;
-  font-family: var(--ae-font-base), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--ae-font-base),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 /* ── Toolbar ── */
@@ -236,7 +217,10 @@ onMounted(() => {
   border: 1px solid var(--ae-border-subtle);
   border-radius: var(--ae-radius-sm);
   background: var(--ae-bg-elevated);
-  transition: background 0.12s ease, border-color 0.12s ease, opacity 0.15s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.15s ease;
 }
 
 .pack-item:hover {

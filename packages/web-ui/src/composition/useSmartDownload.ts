@@ -1,20 +1,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { DownloadManager } from '@/utils/downloadManager'
-import { 
-  downloadSourceTemplates, 
-  generateAssetConfig, 
+import {
+  downloadSourceTemplates,
+  generateAssetConfig,
   DownloadSourceConfig,
-  getRecommendedSourcesForRegion 
+  getRecommendedSourcesForRegion,
 } from '@/config/downloadSources'
-import { 
-  getPlatformInfo, 
-  detectRegion, 
-  getEnvironmentInfo 
-} from '@/utils/platformDetection'
-import type { 
-  DownloadSource, 
-  DownloadResult, 
-  DownloadOptions, 
+import { getPlatformInfo, detectRegion, getEnvironmentInfo } from '@/utils/platformDetection'
+import type {
+  DownloadSource,
+  DownloadResult,
+  DownloadOptions,
   PlatformInfo,
   Platform,
   Architecture,
@@ -80,7 +76,7 @@ export function useSmartDownload() {
           const source: DownloadSource = {
             ...template,
             baseUrl: template.baseUrl(version.value),
-            enabled: true
+            enabled: true,
           }
           downloadManager.value.addSource(source)
         }
@@ -133,7 +129,7 @@ export function useSmartDownload() {
     if (!downloadManager.value || !platformInfo.value) {
       const result: DownloadResult = {
         success: false,
-        error: 'Download manager not initialized'
+        error: 'Download manager not initialized',
       }
       lastDownloadResult.value = result
       return result
@@ -148,7 +144,7 @@ export function useSmartDownload() {
         architecture: recommendedArchitecture.value,
         format: recommendedFormat.value,
         enableFallback: true,
-        ...options
+        ...options,
       }
 
       const result = await downloadManager.value.smartDownload(downloadOptions)
@@ -164,7 +160,7 @@ export function useSmartDownload() {
       error.value = errorMessage
       const result: DownloadResult = {
         success: false,
-        error: errorMessage
+        error: errorMessage,
       }
       lastDownloadResult.value = result
       return result
@@ -176,11 +172,7 @@ export function useSmartDownload() {
   /**
    * 下载特定平台和格式
    */
-  const downloadSpecific = async (
-    platform: string, 
-    architecture: string, 
-    format?: string
-  ) => {
+  const downloadSpecific = async (platform: string, architecture: string, format?: string) => {
     return await smartDownload({
       platform: platform as Platform,
       architecture: architecture as Architecture,
@@ -191,11 +183,7 @@ export function useSmartDownload() {
   /**
    * 获取下载链接（不执行下载）
    */
-  const getDownloadUrls = (
-    platform?: string, 
-    architecture?: string, 
-    format?: string
-  ) => {
+  const getDownloadUrls = (platform?: string, architecture?: string, format?: string) => {
     if (!downloadManager.value || !platformInfo.value) return []
 
     const targetPlatform = platform || recommendedPlatform.value
@@ -312,6 +300,6 @@ export function useSmartDownload() {
     refreshSourceAvailability,
     getEnvironment,
     reset,
-    updateVersion
+    updateVersion,
   }
 }

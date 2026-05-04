@@ -69,12 +69,10 @@ describe('ClusterBattleServer missing-owner takeover', () => {
     server.cleanupBattleStateSnapshotsForRoom = vi.fn(async () => {})
     server.sendToPlayerSession = vi.fn(async () => true)
 
-    const result = await server.tryRequestDrivenTakeover(
-      'instance-dead',
-      'submitPlayerSelection',
-      'player-1',
-      { roomId: room.id, selection: { type: 'do-nothing', player: 'player-1' } },
-    )
+    const result = await server.tryRequestDrivenTakeover('instance-dead', 'submitPlayerSelection', 'player-1', {
+      roomId: room.id,
+      selection: { type: 'do-nothing', player: 'player-1' },
+    })
 
     expect(result).toEqual({ kind: 'retry' })
     expect(server.stateManager.setRoomState).toHaveBeenCalledWith(

@@ -12,7 +12,7 @@ export function useGameConfig(): GameConfig {
   if (!config) {
     throw new Error(
       'useGameConfig() called without a parent provideGameConfig(). ' +
-      'Ensure provideGameConfig() is called at app root before any data-editor component mounts.',
+        'Ensure provideGameConfig() is called at app root before any data-editor component mounts.',
     )
   }
   return config

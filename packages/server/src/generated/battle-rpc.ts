@@ -5,2755 +5,2755 @@
 // source: battle-rpc.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire'
 
-export const protobufPackage = "battle";
+export const protobufPackage = 'battle'
 
 /** 玩家选择相关消息 */
 export interface PlayerSelectionRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
   /** JSON string of selection data */
-  selectionData: string;
+  selectionData: string
 }
 
 export interface PlayerSelectionResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** "ACTION_ACCEPTED" etc. */
-  status: string;
+  status: string
 }
 
 export interface SelectionRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
 }
 
 export interface SelectionResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** JSON string of available selections array */
-  selections: string;
+  selections: string
 }
 
 /** 战斗状态相关消息 */
 export interface BattleStateRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
 }
 
 export interface BattleStateResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** JSON string of battle state */
-  battleState: string;
+  battleState: string
 }
 
 export interface ReadyRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
 }
 
 export interface ReadyResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** "READY" */
-  status: string;
+  status: string
 }
 
 export interface AbandonRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
 }
 
 export interface AbandonResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** "ABANDONED" */
-  status: string;
+  status: string
 }
 
 /** 动画相关消息 */
 export interface AnimationEndRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
   /** JSON string containing animationId, actualDuration etc. */
-  animationData: string;
+  animationData: string
 }
 
 export interface AnimationEndResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** "SUCCESS" */
-  status: string;
+  status: string
 }
 
 export interface StartAnimationRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
   /** JSON string */
-  animationData: string;
+  animationData: string
 }
 
 export interface StartAnimationResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** JSON string of result */
-  result: string;
+  result: string
 }
 
 export interface EndAnimationRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
   /** JSON string */
-  animationData: string;
+  animationData: string
 }
 
 export interface EndAnimationResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** "SUCCESS" */
-  status: string;
+  status: string
 }
 
 /** 计时器相关消息 */
 export interface TimerEnabledRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
 }
 
 export interface TimerEnabledResponse {
-  success: boolean;
-  error: string;
-  enabled: boolean;
+  success: boolean
+  error: string
+  enabled: boolean
 }
 
 export interface PlayerTimerStateRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
   /** JSON string */
-  timerData: string;
+  timerData: string
 }
 
 export interface PlayerTimerStateResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** JSON string */
-  timerState: string;
+  timerState: string
 }
 
 export interface AllPlayerTimerStatesRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
 }
 
 export interface AllPlayerTimerStatesResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** JSON string */
-  timerStates: string;
+  timerStates: string
 }
 
 export interface TimerConfigRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
 }
 
 export interface TimerConfigResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
   /** JSON string */
-  config: string;
+  config: string
 }
 
 /** 战斗管理相关消息 */
 export interface TerminateBattleRequest {
-  roomId: string;
-  playerId: string;
+  roomId: string
+  playerId: string
   /** "abandon", "disconnect" etc. */
-  reason: string;
+  reason: string
 }
 
 export interface TerminateBattleResponse {
-  success: boolean;
-  error: string;
-  status: string;
+  success: boolean
+  error: string
+  status: string
 }
 
 /** 创建战斗相关消息 */
 export interface MatchmakingEntryProto {
-  playerId: string;
-  sessionId: string;
+  playerId: string
+  sessionId: string
   /** JSON string */
-  playerData: string;
-  ruleSetId: string;
-  joinTime: string;
+  playerData: string
+  ruleSetId: string
+  joinTime: string
 }
 
 export interface SpectatorEntryProto {
-  playerId: string;
-  sessionId: string;
+  playerId: string
+  sessionId: string
 }
 
 export interface CreateBattleRequest {
-  player1Entry?: MatchmakingEntryProto | undefined;
-  player2Entry?: MatchmakingEntryProto | undefined;
-  spectators: SpectatorEntryProto[];
+  player1Entry?: MatchmakingEntryProto | undefined
+  player2Entry?: MatchmakingEntryProto | undefined
+  spectators: SpectatorEntryProto[]
 }
 
 export interface CreateBattleResponse {
-  success: boolean;
-  error: string;
-  roomId: string;
+  success: boolean
+  error: string
+  roomId: string
 }
 
 export interface JoinSpectateBattleRequest {
-  roomId: string;
-  playerId: string;
-  sessionId: string;
+  roomId: string
+  playerId: string
+  sessionId: string
 }
 
 export interface JoinSpectateBattleResponse {
-  success: boolean;
-  error: string;
+  success: boolean
+  error: string
 }
 
 function createBasePlayerSelectionRequest(): PlayerSelectionRequest {
-  return { roomId: "", playerId: "", selectionData: "" };
+  return { roomId: '', playerId: '', selectionData: '' }
 }
 
 export const PlayerSelectionRequest: MessageFns<PlayerSelectionRequest> = {
   encode(message: PlayerSelectionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    if (message.selectionData !== "") {
-      writer.uint32(26).string(message.selectionData);
+    if (message.selectionData !== '') {
+      writer.uint32(26).string(message.selectionData)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): PlayerSelectionRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePlayerSelectionRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBasePlayerSelectionRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.selectionData = reader.string();
-          continue;
+          message.selectionData = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): PlayerSelectionRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      selectionData: isSet(object.selectionData) ? globalThis.String(object.selectionData) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      selectionData: isSet(object.selectionData) ? globalThis.String(object.selectionData) : '',
+    }
   },
 
   toJSON(message: PlayerSelectionRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.selectionData !== "") {
-      obj.selectionData = message.selectionData;
+    if (message.selectionData !== '') {
+      obj.selectionData = message.selectionData
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<PlayerSelectionRequest>, I>>(base?: I): PlayerSelectionRequest {
-    return PlayerSelectionRequest.fromPartial(base ?? ({} as any));
+    return PlayerSelectionRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<PlayerSelectionRequest>, I>>(object: I): PlayerSelectionRequest {
-    const message = createBasePlayerSelectionRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    message.selectionData = object.selectionData ?? "";
-    return message;
+    const message = createBasePlayerSelectionRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    message.selectionData = object.selectionData ?? ''
+    return message
   },
-};
+}
 
 function createBasePlayerSelectionResponse(): PlayerSelectionResponse {
-  return { success: false, error: "", status: "" };
+  return { success: false, error: '', status: '' }
 }
 
 export const PlayerSelectionResponse: MessageFns<PlayerSelectionResponse> = {
   encode(message: PlayerSelectionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.status !== "") {
-      writer.uint32(26).string(message.status);
+    if (message.status !== '') {
+      writer.uint32(26).string(message.status)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): PlayerSelectionResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePlayerSelectionResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBasePlayerSelectionResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.status = reader.string();
-          continue;
+          message.status = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): PlayerSelectionResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+    }
   },
 
   toJSON(message: PlayerSelectionResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.status !== "") {
-      obj.status = message.status;
+    if (message.status !== '') {
+      obj.status = message.status
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<PlayerSelectionResponse>, I>>(base?: I): PlayerSelectionResponse {
-    return PlayerSelectionResponse.fromPartial(base ?? ({} as any));
+    return PlayerSelectionResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<PlayerSelectionResponse>, I>>(object: I): PlayerSelectionResponse {
-    const message = createBasePlayerSelectionResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.status = object.status ?? "";
-    return message;
+    const message = createBasePlayerSelectionResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.status = object.status ?? ''
+    return message
   },
-};
+}
 
 function createBaseSelectionRequest(): SelectionRequest {
-  return { roomId: "", playerId: "" };
+  return { roomId: '', playerId: '' }
 }
 
 export const SelectionRequest: MessageFns<SelectionRequest> = {
   encode(message: SelectionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SelectionRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSelectionRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSelectionRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): SelectionRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+    }
   },
 
   toJSON(message: SelectionRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<SelectionRequest>, I>>(base?: I): SelectionRequest {
-    return SelectionRequest.fromPartial(base ?? ({} as any));
+    return SelectionRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<SelectionRequest>, I>>(object: I): SelectionRequest {
-    const message = createBaseSelectionRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    return message;
+    const message = createBaseSelectionRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseSelectionResponse(): SelectionResponse {
-  return { success: false, error: "", selections: "" };
+  return { success: false, error: '', selections: '' }
 }
 
 export const SelectionResponse: MessageFns<SelectionResponse> = {
   encode(message: SelectionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.selections !== "") {
-      writer.uint32(26).string(message.selections);
+    if (message.selections !== '') {
+      writer.uint32(26).string(message.selections)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SelectionResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSelectionResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSelectionResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.selections = reader.string();
-          continue;
+          message.selections = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): SelectionResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      selections: isSet(object.selections) ? globalThis.String(object.selections) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      selections: isSet(object.selections) ? globalThis.String(object.selections) : '',
+    }
   },
 
   toJSON(message: SelectionResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.selections !== "") {
-      obj.selections = message.selections;
+    if (message.selections !== '') {
+      obj.selections = message.selections
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<SelectionResponse>, I>>(base?: I): SelectionResponse {
-    return SelectionResponse.fromPartial(base ?? ({} as any));
+    return SelectionResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<SelectionResponse>, I>>(object: I): SelectionResponse {
-    const message = createBaseSelectionResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.selections = object.selections ?? "";
-    return message;
+    const message = createBaseSelectionResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.selections = object.selections ?? ''
+    return message
   },
-};
+}
 
 function createBaseBattleStateRequest(): BattleStateRequest {
-  return { roomId: "", playerId: "" };
+  return { roomId: '', playerId: '' }
 }
 
 export const BattleStateRequest: MessageFns<BattleStateRequest> = {
   encode(message: BattleStateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): BattleStateRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBattleStateRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBattleStateRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): BattleStateRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+    }
   },
 
   toJSON(message: BattleStateRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<BattleStateRequest>, I>>(base?: I): BattleStateRequest {
-    return BattleStateRequest.fromPartial(base ?? ({} as any));
+    return BattleStateRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<BattleStateRequest>, I>>(object: I): BattleStateRequest {
-    const message = createBaseBattleStateRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    return message;
+    const message = createBaseBattleStateRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseBattleStateResponse(): BattleStateResponse {
-  return { success: false, error: "", battleState: "" };
+  return { success: false, error: '', battleState: '' }
 }
 
 export const BattleStateResponse: MessageFns<BattleStateResponse> = {
   encode(message: BattleStateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.battleState !== "") {
-      writer.uint32(26).string(message.battleState);
+    if (message.battleState !== '') {
+      writer.uint32(26).string(message.battleState)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): BattleStateResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBattleStateResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBattleStateResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.battleState = reader.string();
-          continue;
+          message.battleState = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): BattleStateResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      battleState: isSet(object.battleState) ? globalThis.String(object.battleState) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      battleState: isSet(object.battleState) ? globalThis.String(object.battleState) : '',
+    }
   },
 
   toJSON(message: BattleStateResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.battleState !== "") {
-      obj.battleState = message.battleState;
+    if (message.battleState !== '') {
+      obj.battleState = message.battleState
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<BattleStateResponse>, I>>(base?: I): BattleStateResponse {
-    return BattleStateResponse.fromPartial(base ?? ({} as any));
+    return BattleStateResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<BattleStateResponse>, I>>(object: I): BattleStateResponse {
-    const message = createBaseBattleStateResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.battleState = object.battleState ?? "";
-    return message;
+    const message = createBaseBattleStateResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.battleState = object.battleState ?? ''
+    return message
   },
-};
+}
 
 function createBaseReadyRequest(): ReadyRequest {
-  return { roomId: "", playerId: "" };
+  return { roomId: '', playerId: '' }
 }
 
 export const ReadyRequest: MessageFns<ReadyRequest> = {
   encode(message: ReadyRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): ReadyRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReadyRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseReadyRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): ReadyRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+    }
   },
 
   toJSON(message: ReadyRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<ReadyRequest>, I>>(base?: I): ReadyRequest {
-    return ReadyRequest.fromPartial(base ?? ({} as any));
+    return ReadyRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<ReadyRequest>, I>>(object: I): ReadyRequest {
-    const message = createBaseReadyRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    return message;
+    const message = createBaseReadyRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseReadyResponse(): ReadyResponse {
-  return { success: false, error: "", status: "" };
+  return { success: false, error: '', status: '' }
 }
 
 export const ReadyResponse: MessageFns<ReadyResponse> = {
   encode(message: ReadyResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.status !== "") {
-      writer.uint32(26).string(message.status);
+    if (message.status !== '') {
+      writer.uint32(26).string(message.status)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): ReadyResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReadyResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseReadyResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.status = reader.string();
-          continue;
+          message.status = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): ReadyResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+    }
   },
 
   toJSON(message: ReadyResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.status !== "") {
-      obj.status = message.status;
+    if (message.status !== '') {
+      obj.status = message.status
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<ReadyResponse>, I>>(base?: I): ReadyResponse {
-    return ReadyResponse.fromPartial(base ?? ({} as any));
+    return ReadyResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<ReadyResponse>, I>>(object: I): ReadyResponse {
-    const message = createBaseReadyResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.status = object.status ?? "";
-    return message;
+    const message = createBaseReadyResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.status = object.status ?? ''
+    return message
   },
-};
+}
 
 function createBaseAbandonRequest(): AbandonRequest {
-  return { roomId: "", playerId: "" };
+  return { roomId: '', playerId: '' }
 }
 
 export const AbandonRequest: MessageFns<AbandonRequest> = {
   encode(message: AbandonRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AbandonRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAbandonRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseAbandonRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): AbandonRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+    }
   },
 
   toJSON(message: AbandonRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<AbandonRequest>, I>>(base?: I): AbandonRequest {
-    return AbandonRequest.fromPartial(base ?? ({} as any));
+    return AbandonRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<AbandonRequest>, I>>(object: I): AbandonRequest {
-    const message = createBaseAbandonRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    return message;
+    const message = createBaseAbandonRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseAbandonResponse(): AbandonResponse {
-  return { success: false, error: "", status: "" };
+  return { success: false, error: '', status: '' }
 }
 
 export const AbandonResponse: MessageFns<AbandonResponse> = {
   encode(message: AbandonResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.status !== "") {
-      writer.uint32(26).string(message.status);
+    if (message.status !== '') {
+      writer.uint32(26).string(message.status)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AbandonResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAbandonResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseAbandonResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.status = reader.string();
-          continue;
+          message.status = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): AbandonResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+    }
   },
 
   toJSON(message: AbandonResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.status !== "") {
-      obj.status = message.status;
+    if (message.status !== '') {
+      obj.status = message.status
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<AbandonResponse>, I>>(base?: I): AbandonResponse {
-    return AbandonResponse.fromPartial(base ?? ({} as any));
+    return AbandonResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<AbandonResponse>, I>>(object: I): AbandonResponse {
-    const message = createBaseAbandonResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.status = object.status ?? "";
-    return message;
+    const message = createBaseAbandonResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.status = object.status ?? ''
+    return message
   },
-};
+}
 
 function createBaseAnimationEndRequest(): AnimationEndRequest {
-  return { roomId: "", playerId: "", animationData: "" };
+  return { roomId: '', playerId: '', animationData: '' }
 }
 
 export const AnimationEndRequest: MessageFns<AnimationEndRequest> = {
   encode(message: AnimationEndRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    if (message.animationData !== "") {
-      writer.uint32(26).string(message.animationData);
+    if (message.animationData !== '') {
+      writer.uint32(26).string(message.animationData)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AnimationEndRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAnimationEndRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseAnimationEndRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.animationData = reader.string();
-          continue;
+          message.animationData = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): AnimationEndRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      animationData: isSet(object.animationData) ? globalThis.String(object.animationData) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      animationData: isSet(object.animationData) ? globalThis.String(object.animationData) : '',
+    }
   },
 
   toJSON(message: AnimationEndRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.animationData !== "") {
-      obj.animationData = message.animationData;
+    if (message.animationData !== '') {
+      obj.animationData = message.animationData
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<AnimationEndRequest>, I>>(base?: I): AnimationEndRequest {
-    return AnimationEndRequest.fromPartial(base ?? ({} as any));
+    return AnimationEndRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<AnimationEndRequest>, I>>(object: I): AnimationEndRequest {
-    const message = createBaseAnimationEndRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    message.animationData = object.animationData ?? "";
-    return message;
+    const message = createBaseAnimationEndRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    message.animationData = object.animationData ?? ''
+    return message
   },
-};
+}
 
 function createBaseAnimationEndResponse(): AnimationEndResponse {
-  return { success: false, error: "", status: "" };
+  return { success: false, error: '', status: '' }
 }
 
 export const AnimationEndResponse: MessageFns<AnimationEndResponse> = {
   encode(message: AnimationEndResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.status !== "") {
-      writer.uint32(26).string(message.status);
+    if (message.status !== '') {
+      writer.uint32(26).string(message.status)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AnimationEndResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAnimationEndResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseAnimationEndResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.status = reader.string();
-          continue;
+          message.status = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): AnimationEndResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+    }
   },
 
   toJSON(message: AnimationEndResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.status !== "") {
-      obj.status = message.status;
+    if (message.status !== '') {
+      obj.status = message.status
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<AnimationEndResponse>, I>>(base?: I): AnimationEndResponse {
-    return AnimationEndResponse.fromPartial(base ?? ({} as any));
+    return AnimationEndResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<AnimationEndResponse>, I>>(object: I): AnimationEndResponse {
-    const message = createBaseAnimationEndResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.status = object.status ?? "";
-    return message;
+    const message = createBaseAnimationEndResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.status = object.status ?? ''
+    return message
   },
-};
+}
 
 function createBaseStartAnimationRequest(): StartAnimationRequest {
-  return { roomId: "", playerId: "", animationData: "" };
+  return { roomId: '', playerId: '', animationData: '' }
 }
 
 export const StartAnimationRequest: MessageFns<StartAnimationRequest> = {
   encode(message: StartAnimationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    if (message.animationData !== "") {
-      writer.uint32(26).string(message.animationData);
+    if (message.animationData !== '') {
+      writer.uint32(26).string(message.animationData)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): StartAnimationRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStartAnimationRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseStartAnimationRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.animationData = reader.string();
-          continue;
+          message.animationData = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): StartAnimationRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      animationData: isSet(object.animationData) ? globalThis.String(object.animationData) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      animationData: isSet(object.animationData) ? globalThis.String(object.animationData) : '',
+    }
   },
 
   toJSON(message: StartAnimationRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.animationData !== "") {
-      obj.animationData = message.animationData;
+    if (message.animationData !== '') {
+      obj.animationData = message.animationData
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<StartAnimationRequest>, I>>(base?: I): StartAnimationRequest {
-    return StartAnimationRequest.fromPartial(base ?? ({} as any));
+    return StartAnimationRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<StartAnimationRequest>, I>>(object: I): StartAnimationRequest {
-    const message = createBaseStartAnimationRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    message.animationData = object.animationData ?? "";
-    return message;
+    const message = createBaseStartAnimationRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    message.animationData = object.animationData ?? ''
+    return message
   },
-};
+}
 
 function createBaseStartAnimationResponse(): StartAnimationResponse {
-  return { success: false, error: "", result: "" };
+  return { success: false, error: '', result: '' }
 }
 
 export const StartAnimationResponse: MessageFns<StartAnimationResponse> = {
   encode(message: StartAnimationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.result !== "") {
-      writer.uint32(26).string(message.result);
+    if (message.result !== '') {
+      writer.uint32(26).string(message.result)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): StartAnimationResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStartAnimationResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseStartAnimationResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.result = reader.string();
-          continue;
+          message.result = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): StartAnimationResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      result: isSet(object.result) ? globalThis.String(object.result) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      result: isSet(object.result) ? globalThis.String(object.result) : '',
+    }
   },
 
   toJSON(message: StartAnimationResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.result !== "") {
-      obj.result = message.result;
+    if (message.result !== '') {
+      obj.result = message.result
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<StartAnimationResponse>, I>>(base?: I): StartAnimationResponse {
-    return StartAnimationResponse.fromPartial(base ?? ({} as any));
+    return StartAnimationResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<StartAnimationResponse>, I>>(object: I): StartAnimationResponse {
-    const message = createBaseStartAnimationResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.result = object.result ?? "";
-    return message;
+    const message = createBaseStartAnimationResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.result = object.result ?? ''
+    return message
   },
-};
+}
 
 function createBaseEndAnimationRequest(): EndAnimationRequest {
-  return { roomId: "", playerId: "", animationData: "" };
+  return { roomId: '', playerId: '', animationData: '' }
 }
 
 export const EndAnimationRequest: MessageFns<EndAnimationRequest> = {
   encode(message: EndAnimationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    if (message.animationData !== "") {
-      writer.uint32(26).string(message.animationData);
+    if (message.animationData !== '') {
+      writer.uint32(26).string(message.animationData)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): EndAnimationRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEndAnimationRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEndAnimationRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.animationData = reader.string();
-          continue;
+          message.animationData = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): EndAnimationRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      animationData: isSet(object.animationData) ? globalThis.String(object.animationData) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      animationData: isSet(object.animationData) ? globalThis.String(object.animationData) : '',
+    }
   },
 
   toJSON(message: EndAnimationRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.animationData !== "") {
-      obj.animationData = message.animationData;
+    if (message.animationData !== '') {
+      obj.animationData = message.animationData
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<EndAnimationRequest>, I>>(base?: I): EndAnimationRequest {
-    return EndAnimationRequest.fromPartial(base ?? ({} as any));
+    return EndAnimationRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<EndAnimationRequest>, I>>(object: I): EndAnimationRequest {
-    const message = createBaseEndAnimationRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    message.animationData = object.animationData ?? "";
-    return message;
+    const message = createBaseEndAnimationRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    message.animationData = object.animationData ?? ''
+    return message
   },
-};
+}
 
 function createBaseEndAnimationResponse(): EndAnimationResponse {
-  return { success: false, error: "", status: "" };
+  return { success: false, error: '', status: '' }
 }
 
 export const EndAnimationResponse: MessageFns<EndAnimationResponse> = {
   encode(message: EndAnimationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.status !== "") {
-      writer.uint32(26).string(message.status);
+    if (message.status !== '') {
+      writer.uint32(26).string(message.status)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): EndAnimationResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEndAnimationResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseEndAnimationResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.status = reader.string();
-          continue;
+          message.status = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): EndAnimationResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+    }
   },
 
   toJSON(message: EndAnimationResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.status !== "") {
-      obj.status = message.status;
+    if (message.status !== '') {
+      obj.status = message.status
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<EndAnimationResponse>, I>>(base?: I): EndAnimationResponse {
-    return EndAnimationResponse.fromPartial(base ?? ({} as any));
+    return EndAnimationResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<EndAnimationResponse>, I>>(object: I): EndAnimationResponse {
-    const message = createBaseEndAnimationResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.status = object.status ?? "";
-    return message;
+    const message = createBaseEndAnimationResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.status = object.status ?? ''
+    return message
   },
-};
+}
 
 function createBaseTimerEnabledRequest(): TimerEnabledRequest {
-  return { roomId: "", playerId: "" };
+  return { roomId: '', playerId: '' }
 }
 
 export const TimerEnabledRequest: MessageFns<TimerEnabledRequest> = {
   encode(message: TimerEnabledRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): TimerEnabledRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTimerEnabledRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTimerEnabledRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): TimerEnabledRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+    }
   },
 
   toJSON(message: TimerEnabledRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<TimerEnabledRequest>, I>>(base?: I): TimerEnabledRequest {
-    return TimerEnabledRequest.fromPartial(base ?? ({} as any));
+    return TimerEnabledRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<TimerEnabledRequest>, I>>(object: I): TimerEnabledRequest {
-    const message = createBaseTimerEnabledRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    return message;
+    const message = createBaseTimerEnabledRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseTimerEnabledResponse(): TimerEnabledResponse {
-  return { success: false, error: "", enabled: false };
+  return { success: false, error: '', enabled: false }
 }
 
 export const TimerEnabledResponse: MessageFns<TimerEnabledResponse> = {
   encode(message: TimerEnabledResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
     if (message.enabled !== false) {
-      writer.uint32(24).bool(message.enabled);
+      writer.uint32(24).bool(message.enabled)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): TimerEnabledResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTimerEnabledResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTimerEnabledResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 24) {
-            break;
+            break
           }
 
-          message.enabled = reader.bool();
-          continue;
+          message.enabled = reader.bool()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): TimerEnabledResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
       enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
-    };
+    }
   },
 
   toJSON(message: TimerEnabledResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
     if (message.enabled !== false) {
-      obj.enabled = message.enabled;
+      obj.enabled = message.enabled
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<TimerEnabledResponse>, I>>(base?: I): TimerEnabledResponse {
-    return TimerEnabledResponse.fromPartial(base ?? ({} as any));
+    return TimerEnabledResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<TimerEnabledResponse>, I>>(object: I): TimerEnabledResponse {
-    const message = createBaseTimerEnabledResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.enabled = object.enabled ?? false;
-    return message;
+    const message = createBaseTimerEnabledResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.enabled = object.enabled ?? false
+    return message
   },
-};
+}
 
 function createBasePlayerTimerStateRequest(): PlayerTimerStateRequest {
-  return { roomId: "", playerId: "", timerData: "" };
+  return { roomId: '', playerId: '', timerData: '' }
 }
 
 export const PlayerTimerStateRequest: MessageFns<PlayerTimerStateRequest> = {
   encode(message: PlayerTimerStateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    if (message.timerData !== "") {
-      writer.uint32(26).string(message.timerData);
+    if (message.timerData !== '') {
+      writer.uint32(26).string(message.timerData)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): PlayerTimerStateRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePlayerTimerStateRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBasePlayerTimerStateRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.timerData = reader.string();
-          continue;
+          message.timerData = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): PlayerTimerStateRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      timerData: isSet(object.timerData) ? globalThis.String(object.timerData) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      timerData: isSet(object.timerData) ? globalThis.String(object.timerData) : '',
+    }
   },
 
   toJSON(message: PlayerTimerStateRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.timerData !== "") {
-      obj.timerData = message.timerData;
+    if (message.timerData !== '') {
+      obj.timerData = message.timerData
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<PlayerTimerStateRequest>, I>>(base?: I): PlayerTimerStateRequest {
-    return PlayerTimerStateRequest.fromPartial(base ?? ({} as any));
+    return PlayerTimerStateRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<PlayerTimerStateRequest>, I>>(object: I): PlayerTimerStateRequest {
-    const message = createBasePlayerTimerStateRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    message.timerData = object.timerData ?? "";
-    return message;
+    const message = createBasePlayerTimerStateRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    message.timerData = object.timerData ?? ''
+    return message
   },
-};
+}
 
 function createBasePlayerTimerStateResponse(): PlayerTimerStateResponse {
-  return { success: false, error: "", timerState: "" };
+  return { success: false, error: '', timerState: '' }
 }
 
 export const PlayerTimerStateResponse: MessageFns<PlayerTimerStateResponse> = {
   encode(message: PlayerTimerStateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.timerState !== "") {
-      writer.uint32(26).string(message.timerState);
+    if (message.timerState !== '') {
+      writer.uint32(26).string(message.timerState)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): PlayerTimerStateResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePlayerTimerStateResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBasePlayerTimerStateResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.timerState = reader.string();
-          continue;
+          message.timerState = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): PlayerTimerStateResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      timerState: isSet(object.timerState) ? globalThis.String(object.timerState) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      timerState: isSet(object.timerState) ? globalThis.String(object.timerState) : '',
+    }
   },
 
   toJSON(message: PlayerTimerStateResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.timerState !== "") {
-      obj.timerState = message.timerState;
+    if (message.timerState !== '') {
+      obj.timerState = message.timerState
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<PlayerTimerStateResponse>, I>>(base?: I): PlayerTimerStateResponse {
-    return PlayerTimerStateResponse.fromPartial(base ?? ({} as any));
+    return PlayerTimerStateResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<PlayerTimerStateResponse>, I>>(object: I): PlayerTimerStateResponse {
-    const message = createBasePlayerTimerStateResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.timerState = object.timerState ?? "";
-    return message;
+    const message = createBasePlayerTimerStateResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.timerState = object.timerState ?? ''
+    return message
   },
-};
+}
 
 function createBaseAllPlayerTimerStatesRequest(): AllPlayerTimerStatesRequest {
-  return { roomId: "", playerId: "" };
+  return { roomId: '', playerId: '' }
 }
 
 export const AllPlayerTimerStatesRequest: MessageFns<AllPlayerTimerStatesRequest> = {
   encode(message: AllPlayerTimerStatesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AllPlayerTimerStatesRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAllPlayerTimerStatesRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseAllPlayerTimerStatesRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): AllPlayerTimerStatesRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+    }
   },
 
   toJSON(message: AllPlayerTimerStatesRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<AllPlayerTimerStatesRequest>, I>>(base?: I): AllPlayerTimerStatesRequest {
-    return AllPlayerTimerStatesRequest.fromPartial(base ?? ({} as any));
+    return AllPlayerTimerStatesRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<AllPlayerTimerStatesRequest>, I>>(object: I): AllPlayerTimerStatesRequest {
-    const message = createBaseAllPlayerTimerStatesRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    return message;
+    const message = createBaseAllPlayerTimerStatesRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseAllPlayerTimerStatesResponse(): AllPlayerTimerStatesResponse {
-  return { success: false, error: "", timerStates: "" };
+  return { success: false, error: '', timerStates: '' }
 }
 
 export const AllPlayerTimerStatesResponse: MessageFns<AllPlayerTimerStatesResponse> = {
   encode(message: AllPlayerTimerStatesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.timerStates !== "") {
-      writer.uint32(26).string(message.timerStates);
+    if (message.timerStates !== '') {
+      writer.uint32(26).string(message.timerStates)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): AllPlayerTimerStatesResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAllPlayerTimerStatesResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseAllPlayerTimerStatesResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.timerStates = reader.string();
-          continue;
+          message.timerStates = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): AllPlayerTimerStatesResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      timerStates: isSet(object.timerStates) ? globalThis.String(object.timerStates) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      timerStates: isSet(object.timerStates) ? globalThis.String(object.timerStates) : '',
+    }
   },
 
   toJSON(message: AllPlayerTimerStatesResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.timerStates !== "") {
-      obj.timerStates = message.timerStates;
+    if (message.timerStates !== '') {
+      obj.timerStates = message.timerStates
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<AllPlayerTimerStatesResponse>, I>>(base?: I): AllPlayerTimerStatesResponse {
-    return AllPlayerTimerStatesResponse.fromPartial(base ?? ({} as any));
+    return AllPlayerTimerStatesResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<AllPlayerTimerStatesResponse>, I>>(object: I): AllPlayerTimerStatesResponse {
-    const message = createBaseAllPlayerTimerStatesResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.timerStates = object.timerStates ?? "";
-    return message;
+    const message = createBaseAllPlayerTimerStatesResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.timerStates = object.timerStates ?? ''
+    return message
   },
-};
+}
 
 function createBaseTimerConfigRequest(): TimerConfigRequest {
-  return { roomId: "", playerId: "" };
+  return { roomId: '', playerId: '' }
 }
 
 export const TimerConfigRequest: MessageFns<TimerConfigRequest> = {
   encode(message: TimerConfigRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): TimerConfigRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTimerConfigRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTimerConfigRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): TimerConfigRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+    }
   },
 
   toJSON(message: TimerConfigRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<TimerConfigRequest>, I>>(base?: I): TimerConfigRequest {
-    return TimerConfigRequest.fromPartial(base ?? ({} as any));
+    return TimerConfigRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<TimerConfigRequest>, I>>(object: I): TimerConfigRequest {
-    const message = createBaseTimerConfigRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    return message;
+    const message = createBaseTimerConfigRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    return message
   },
-};
+}
 
 function createBaseTimerConfigResponse(): TimerConfigResponse {
-  return { success: false, error: "", config: "" };
+  return { success: false, error: '', config: '' }
 }
 
 export const TimerConfigResponse: MessageFns<TimerConfigResponse> = {
   encode(message: TimerConfigResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.config !== "") {
-      writer.uint32(26).string(message.config);
+    if (message.config !== '') {
+      writer.uint32(26).string(message.config)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): TimerConfigResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTimerConfigResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTimerConfigResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.config = reader.string();
-          continue;
+          message.config = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): TimerConfigResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      config: isSet(object.config) ? globalThis.String(object.config) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      config: isSet(object.config) ? globalThis.String(object.config) : '',
+    }
   },
 
   toJSON(message: TimerConfigResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.config !== "") {
-      obj.config = message.config;
+    if (message.config !== '') {
+      obj.config = message.config
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<TimerConfigResponse>, I>>(base?: I): TimerConfigResponse {
-    return TimerConfigResponse.fromPartial(base ?? ({} as any));
+    return TimerConfigResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<TimerConfigResponse>, I>>(object: I): TimerConfigResponse {
-    const message = createBaseTimerConfigResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.config = object.config ?? "";
-    return message;
+    const message = createBaseTimerConfigResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.config = object.config ?? ''
+    return message
   },
-};
+}
 
 function createBaseTerminateBattleRequest(): TerminateBattleRequest {
-  return { roomId: "", playerId: "", reason: "" };
+  return { roomId: '', playerId: '', reason: '' }
 }
 
 export const TerminateBattleRequest: MessageFns<TerminateBattleRequest> = {
   encode(message: TerminateBattleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    if (message.reason !== "") {
-      writer.uint32(26).string(message.reason);
+    if (message.reason !== '') {
+      writer.uint32(26).string(message.reason)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): TerminateBattleRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTerminateBattleRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTerminateBattleRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.reason = reader.string();
-          continue;
+          message.reason = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): TerminateBattleRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : '',
+    }
   },
 
   toJSON(message: TerminateBattleRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.reason !== "") {
-      obj.reason = message.reason;
+    if (message.reason !== '') {
+      obj.reason = message.reason
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<TerminateBattleRequest>, I>>(base?: I): TerminateBattleRequest {
-    return TerminateBattleRequest.fromPartial(base ?? ({} as any));
+    return TerminateBattleRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<TerminateBattleRequest>, I>>(object: I): TerminateBattleRequest {
-    const message = createBaseTerminateBattleRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    message.reason = object.reason ?? "";
-    return message;
+    const message = createBaseTerminateBattleRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    message.reason = object.reason ?? ''
+    return message
   },
-};
+}
 
 function createBaseTerminateBattleResponse(): TerminateBattleResponse {
-  return { success: false, error: "", status: "" };
+  return { success: false, error: '', status: '' }
 }
 
 export const TerminateBattleResponse: MessageFns<TerminateBattleResponse> = {
   encode(message: TerminateBattleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.status !== "") {
-      writer.uint32(26).string(message.status);
+    if (message.status !== '') {
+      writer.uint32(26).string(message.status)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): TerminateBattleResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTerminateBattleResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseTerminateBattleResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.status = reader.string();
-          continue;
+          message.status = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): TerminateBattleResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      status: isSet(object.status) ? globalThis.String(object.status) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+    }
   },
 
   toJSON(message: TerminateBattleResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.status !== "") {
-      obj.status = message.status;
+    if (message.status !== '') {
+      obj.status = message.status
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<TerminateBattleResponse>, I>>(base?: I): TerminateBattleResponse {
-    return TerminateBattleResponse.fromPartial(base ?? ({} as any));
+    return TerminateBattleResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<TerminateBattleResponse>, I>>(object: I): TerminateBattleResponse {
-    const message = createBaseTerminateBattleResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.status = object.status ?? "";
-    return message;
+    const message = createBaseTerminateBattleResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.status = object.status ?? ''
+    return message
   },
-};
+}
 
 function createBaseMatchmakingEntryProto(): MatchmakingEntryProto {
-  return { playerId: "", sessionId: "", playerData: "", ruleSetId: "", joinTime: "0" };
+  return { playerId: '', sessionId: '', playerData: '', ruleSetId: '', joinTime: '0' }
 }
 
 export const MatchmakingEntryProto: MessageFns<MatchmakingEntryProto> = {
   encode(message: MatchmakingEntryProto, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.playerId !== "") {
-      writer.uint32(10).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(10).string(message.playerId)
     }
-    if (message.sessionId !== "") {
-      writer.uint32(18).string(message.sessionId);
+    if (message.sessionId !== '') {
+      writer.uint32(18).string(message.sessionId)
     }
-    if (message.playerData !== "") {
-      writer.uint32(26).string(message.playerData);
+    if (message.playerData !== '') {
+      writer.uint32(26).string(message.playerData)
     }
-    if (message.ruleSetId !== "") {
-      writer.uint32(34).string(message.ruleSetId);
+    if (message.ruleSetId !== '') {
+      writer.uint32(34).string(message.ruleSetId)
     }
-    if (message.joinTime !== "0") {
-      writer.uint32(40).int64(message.joinTime);
+    if (message.joinTime !== '0') {
+      writer.uint32(40).int64(message.joinTime)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): MatchmakingEntryProto {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMatchmakingEntryProto();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseMatchmakingEntryProto()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.sessionId = reader.string();
-          continue;
+          message.sessionId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.playerData = reader.string();
-          continue;
+          message.playerData = reader.string()
+          continue
         }
         case 4: {
           if (tag !== 34) {
-            break;
+            break
           }
 
-          message.ruleSetId = reader.string();
-          continue;
+          message.ruleSetId = reader.string()
+          continue
         }
         case 5: {
           if (tag !== 40) {
-            break;
+            break
           }
 
-          message.joinTime = reader.int64().toString();
-          continue;
+          message.joinTime = reader.int64().toString()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): MatchmakingEntryProto {
     return {
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-      playerData: isSet(object.playerData) ? globalThis.String(object.playerData) : "",
-      ruleSetId: isSet(object.ruleSetId) ? globalThis.String(object.ruleSetId) : "",
-      joinTime: isSet(object.joinTime) ? globalThis.String(object.joinTime) : "0",
-    };
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+      playerData: isSet(object.playerData) ? globalThis.String(object.playerData) : '',
+      ruleSetId: isSet(object.ruleSetId) ? globalThis.String(object.ruleSetId) : '',
+      joinTime: isSet(object.joinTime) ? globalThis.String(object.joinTime) : '0',
+    }
   },
 
   toJSON(message: MatchmakingEntryProto): unknown {
-    const obj: any = {};
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    const obj: any = {}
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.sessionId !== "") {
-      obj.sessionId = message.sessionId;
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId
     }
-    if (message.playerData !== "") {
-      obj.playerData = message.playerData;
+    if (message.playerData !== '') {
+      obj.playerData = message.playerData
     }
-    if (message.ruleSetId !== "") {
-      obj.ruleSetId = message.ruleSetId;
+    if (message.ruleSetId !== '') {
+      obj.ruleSetId = message.ruleSetId
     }
-    if (message.joinTime !== "0") {
-      obj.joinTime = message.joinTime;
+    if (message.joinTime !== '0') {
+      obj.joinTime = message.joinTime
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<MatchmakingEntryProto>, I>>(base?: I): MatchmakingEntryProto {
-    return MatchmakingEntryProto.fromPartial(base ?? ({} as any));
+    return MatchmakingEntryProto.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<MatchmakingEntryProto>, I>>(object: I): MatchmakingEntryProto {
-    const message = createBaseMatchmakingEntryProto();
-    message.playerId = object.playerId ?? "";
-    message.sessionId = object.sessionId ?? "";
-    message.playerData = object.playerData ?? "";
-    message.ruleSetId = object.ruleSetId ?? "";
-    message.joinTime = object.joinTime ?? "0";
-    return message;
+    const message = createBaseMatchmakingEntryProto()
+    message.playerId = object.playerId ?? ''
+    message.sessionId = object.sessionId ?? ''
+    message.playerData = object.playerData ?? ''
+    message.ruleSetId = object.ruleSetId ?? ''
+    message.joinTime = object.joinTime ?? '0'
+    return message
   },
-};
+}
 
 function createBaseSpectatorEntryProto(): SpectatorEntryProto {
-  return { playerId: "", sessionId: "" };
+  return { playerId: '', sessionId: '' }
 }
 
 export const SpectatorEntryProto: MessageFns<SpectatorEntryProto> = {
   encode(message: SpectatorEntryProto, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.playerId !== "") {
-      writer.uint32(10).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(10).string(message.playerId)
     }
-    if (message.sessionId !== "") {
-      writer.uint32(18).string(message.sessionId);
+    if (message.sessionId !== '') {
+      writer.uint32(18).string(message.sessionId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): SpectatorEntryProto {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSpectatorEntryProto();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseSpectatorEntryProto()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.sessionId = reader.string();
-          continue;
+          message.sessionId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): SpectatorEntryProto {
     return {
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-    };
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+    }
   },
 
   toJSON(message: SpectatorEntryProto): unknown {
-    const obj: any = {};
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    const obj: any = {}
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.sessionId !== "") {
-      obj.sessionId = message.sessionId;
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<SpectatorEntryProto>, I>>(base?: I): SpectatorEntryProto {
-    return SpectatorEntryProto.fromPartial(base ?? ({} as any));
+    return SpectatorEntryProto.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<SpectatorEntryProto>, I>>(object: I): SpectatorEntryProto {
-    const message = createBaseSpectatorEntryProto();
-    message.playerId = object.playerId ?? "";
-    message.sessionId = object.sessionId ?? "";
-    return message;
+    const message = createBaseSpectatorEntryProto()
+    message.playerId = object.playerId ?? ''
+    message.sessionId = object.sessionId ?? ''
+    return message
   },
-};
+}
 
 function createBaseCreateBattleRequest(): CreateBattleRequest {
-  return { player1Entry: undefined, player2Entry: undefined, spectators: [] };
+  return { player1Entry: undefined, player2Entry: undefined, spectators: [] }
 }
 
 export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
   encode(message: CreateBattleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.player1Entry !== undefined) {
-      MatchmakingEntryProto.encode(message.player1Entry, writer.uint32(10).fork()).join();
+      MatchmakingEntryProto.encode(message.player1Entry, writer.uint32(10).fork()).join()
     }
     if (message.player2Entry !== undefined) {
-      MatchmakingEntryProto.encode(message.player2Entry, writer.uint32(18).fork()).join();
+      MatchmakingEntryProto.encode(message.player2Entry, writer.uint32(18).fork()).join()
     }
     for (const v of message.spectators) {
-      SpectatorEntryProto.encode(v!, writer.uint32(26).fork()).join();
+      SpectatorEntryProto.encode(v!, writer.uint32(26).fork()).join()
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): CreateBattleRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateBattleRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCreateBattleRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.player1Entry = MatchmakingEntryProto.decode(reader, reader.uint32());
-          continue;
+          message.player1Entry = MatchmakingEntryProto.decode(reader, reader.uint32())
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.player2Entry = MatchmakingEntryProto.decode(reader, reader.uint32());
-          continue;
+          message.player2Entry = MatchmakingEntryProto.decode(reader, reader.uint32())
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.spectators.push(SpectatorEntryProto.decode(reader, reader.uint32()));
-          continue;
+          message.spectators.push(SpectatorEntryProto.decode(reader, reader.uint32()))
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): CreateBattleRequest {
@@ -2763,460 +2763,467 @@ export const CreateBattleRequest: MessageFns<CreateBattleRequest> = {
       spectators: globalThis.Array.isArray(object?.spectators)
         ? object.spectators.map((e: any) => SpectatorEntryProto.fromJSON(e))
         : [],
-    };
+    }
   },
 
   toJSON(message: CreateBattleRequest): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.player1Entry !== undefined) {
-      obj.player1Entry = MatchmakingEntryProto.toJSON(message.player1Entry);
+      obj.player1Entry = MatchmakingEntryProto.toJSON(message.player1Entry)
     }
     if (message.player2Entry !== undefined) {
-      obj.player2Entry = MatchmakingEntryProto.toJSON(message.player2Entry);
+      obj.player2Entry = MatchmakingEntryProto.toJSON(message.player2Entry)
     }
     if (message.spectators?.length) {
-      obj.spectators = message.spectators.map((e) => SpectatorEntryProto.toJSON(e));
+      obj.spectators = message.spectators.map(e => SpectatorEntryProto.toJSON(e))
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<CreateBattleRequest>, I>>(base?: I): CreateBattleRequest {
-    return CreateBattleRequest.fromPartial(base ?? ({} as any));
+    return CreateBattleRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<CreateBattleRequest>, I>>(object: I): CreateBattleRequest {
-    const message = createBaseCreateBattleRequest();
-    message.player1Entry = (object.player1Entry !== undefined && object.player1Entry !== null)
-      ? MatchmakingEntryProto.fromPartial(object.player1Entry)
-      : undefined;
-    message.player2Entry = (object.player2Entry !== undefined && object.player2Entry !== null)
-      ? MatchmakingEntryProto.fromPartial(object.player2Entry)
-      : undefined;
-    message.spectators = object.spectators?.map((e) => SpectatorEntryProto.fromPartial(e)) || [];
-    return message;
+    const message = createBaseCreateBattleRequest()
+    message.player1Entry =
+      object.player1Entry !== undefined && object.player1Entry !== null
+        ? MatchmakingEntryProto.fromPartial(object.player1Entry)
+        : undefined
+    message.player2Entry =
+      object.player2Entry !== undefined && object.player2Entry !== null
+        ? MatchmakingEntryProto.fromPartial(object.player2Entry)
+        : undefined
+    message.spectators = object.spectators?.map(e => SpectatorEntryProto.fromPartial(e)) || []
+    return message
   },
-};
+}
 
 function createBaseCreateBattleResponse(): CreateBattleResponse {
-  return { success: false, error: "", roomId: "" };
+  return { success: false, error: '', roomId: '' }
 }
 
 export const CreateBattleResponse: MessageFns<CreateBattleResponse> = {
   encode(message: CreateBattleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    if (message.roomId !== "") {
-      writer.uint32(26).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(26).string(message.roomId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): CreateBattleResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateBattleResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCreateBattleResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): CreateBattleResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+    }
   },
 
   toJSON(message: CreateBattleResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<CreateBattleResponse>, I>>(base?: I): CreateBattleResponse {
-    return CreateBattleResponse.fromPartial(base ?? ({} as any));
+    return CreateBattleResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<CreateBattleResponse>, I>>(object: I): CreateBattleResponse {
-    const message = createBaseCreateBattleResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    message.roomId = object.roomId ?? "";
-    return message;
+    const message = createBaseCreateBattleResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    message.roomId = object.roomId ?? ''
+    return message
   },
-};
+}
 
 function createBaseJoinSpectateBattleRequest(): JoinSpectateBattleRequest {
-  return { roomId: "", playerId: "", sessionId: "" };
+  return { roomId: '', playerId: '', sessionId: '' }
 }
 
 export const JoinSpectateBattleRequest: MessageFns<JoinSpectateBattleRequest> = {
   encode(message: JoinSpectateBattleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.roomId !== "") {
-      writer.uint32(10).string(message.roomId);
+    if (message.roomId !== '') {
+      writer.uint32(10).string(message.roomId)
     }
-    if (message.playerId !== "") {
-      writer.uint32(18).string(message.playerId);
+    if (message.playerId !== '') {
+      writer.uint32(18).string(message.playerId)
     }
-    if (message.sessionId !== "") {
-      writer.uint32(26).string(message.sessionId);
+    if (message.sessionId !== '') {
+      writer.uint32(26).string(message.sessionId)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): JoinSpectateBattleRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseJoinSpectateBattleRequest();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseJoinSpectateBattleRequest()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
-            break;
+            break
           }
 
-          message.roomId = reader.string();
-          continue;
+          message.roomId = reader.string()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.playerId = reader.string();
-          continue;
+          message.playerId = reader.string()
+          continue
         }
         case 3: {
           if (tag !== 26) {
-            break;
+            break
           }
 
-          message.sessionId = reader.string();
-          continue;
+          message.sessionId = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): JoinSpectateBattleRequest {
     return {
-      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : "",
-      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : "",
-      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : "",
-    };
+      roomId: isSet(object.roomId) ? globalThis.String(object.roomId) : '',
+      playerId: isSet(object.playerId) ? globalThis.String(object.playerId) : '',
+      sessionId: isSet(object.sessionId) ? globalThis.String(object.sessionId) : '',
+    }
   },
 
   toJSON(message: JoinSpectateBattleRequest): unknown {
-    const obj: any = {};
-    if (message.roomId !== "") {
-      obj.roomId = message.roomId;
+    const obj: any = {}
+    if (message.roomId !== '') {
+      obj.roomId = message.roomId
     }
-    if (message.playerId !== "") {
-      obj.playerId = message.playerId;
+    if (message.playerId !== '') {
+      obj.playerId = message.playerId
     }
-    if (message.sessionId !== "") {
-      obj.sessionId = message.sessionId;
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<JoinSpectateBattleRequest>, I>>(base?: I): JoinSpectateBattleRequest {
-    return JoinSpectateBattleRequest.fromPartial(base ?? ({} as any));
+    return JoinSpectateBattleRequest.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<JoinSpectateBattleRequest>, I>>(object: I): JoinSpectateBattleRequest {
-    const message = createBaseJoinSpectateBattleRequest();
-    message.roomId = object.roomId ?? "";
-    message.playerId = object.playerId ?? "";
-    message.sessionId = object.sessionId ?? "";
-    return message;
+    const message = createBaseJoinSpectateBattleRequest()
+    message.roomId = object.roomId ?? ''
+    message.playerId = object.playerId ?? ''
+    message.sessionId = object.sessionId ?? ''
+    return message
   },
-};
+}
 
 function createBaseJoinSpectateBattleResponse(): JoinSpectateBattleResponse {
-  return { success: false, error: "" };
+  return { success: false, error: '' }
 }
 
 export const JoinSpectateBattleResponse: MessageFns<JoinSpectateBattleResponse> = {
   encode(message: JoinSpectateBattleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
+      writer.uint32(8).bool(message.success)
     }
-    if (message.error !== "") {
-      writer.uint32(18).string(message.error);
+    if (message.error !== '') {
+      writer.uint32(18).string(message.error)
     }
-    return writer;
+    return writer
   },
 
   decode(input: BinaryReader | Uint8Array, length?: number): JoinSpectateBattleResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseJoinSpectateBattleResponse();
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseJoinSpectateBattleResponse()
     while (reader.pos < end) {
-      const tag = reader.uint32();
+      const tag = reader.uint32()
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 8) {
-            break;
+            break
           }
 
-          message.success = reader.bool();
-          continue;
+          message.success = reader.bool()
+          continue
         }
         case 2: {
           if (tag !== 18) {
-            break;
+            break
           }
 
-          message.error = reader.string();
-          continue;
+          message.error = reader.string()
+          continue
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
-        break;
+        break
       }
-      reader.skip(tag & 7);
+      reader.skip(tag & 7)
     }
-    return message;
+    return message
   },
 
   fromJSON(object: any): JoinSpectateBattleResponse {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      error: isSet(object.error) ? globalThis.String(object.error) : "",
-    };
+      error: isSet(object.error) ? globalThis.String(object.error) : '',
+    }
   },
 
   toJSON(message: JoinSpectateBattleResponse): unknown {
-    const obj: any = {};
+    const obj: any = {}
     if (message.success !== false) {
-      obj.success = message.success;
+      obj.success = message.success
     }
-    if (message.error !== "") {
-      obj.error = message.error;
+    if (message.error !== '') {
+      obj.error = message.error
     }
-    return obj;
+    return obj
   },
 
   create<I extends Exact<DeepPartial<JoinSpectateBattleResponse>, I>>(base?: I): JoinSpectateBattleResponse {
-    return JoinSpectateBattleResponse.fromPartial(base ?? ({} as any));
+    return JoinSpectateBattleResponse.fromPartial(base ?? ({} as any))
   },
   fromPartial<I extends Exact<DeepPartial<JoinSpectateBattleResponse>, I>>(object: I): JoinSpectateBattleResponse {
-    const message = createBaseJoinSpectateBattleResponse();
-    message.success = object.success ?? false;
-    message.error = object.error ?? "";
-    return message;
+    const message = createBaseJoinSpectateBattleResponse()
+    message.success = object.success ?? false
+    message.error = object.error ?? ''
+    return message
   },
-};
+}
 
 export interface BattleService {
   /** 玩家选择相关 */
-  SubmitPlayerSelection(request: PlayerSelectionRequest): Promise<PlayerSelectionResponse>;
-  GetAvailableSelection(request: SelectionRequest): Promise<SelectionResponse>;
+  SubmitPlayerSelection(request: PlayerSelectionRequest): Promise<PlayerSelectionResponse>
+  GetAvailableSelection(request: SelectionRequest): Promise<SelectionResponse>
   /** 战斗状态相关 */
-  GetBattleState(request: BattleStateRequest): Promise<BattleStateResponse>;
-  PlayerReady(request: ReadyRequest): Promise<ReadyResponse>;
-  PlayerAbandon(request: AbandonRequest): Promise<AbandonResponse>;
+  GetBattleState(request: BattleStateRequest): Promise<BattleStateResponse>
+  PlayerReady(request: ReadyRequest): Promise<ReadyResponse>
+  PlayerAbandon(request: AbandonRequest): Promise<AbandonResponse>
   /** 动画和计时器相关 */
-  ReportAnimationEnd(request: AnimationEndRequest): Promise<AnimationEndResponse>;
-  IsTimerEnabled(request: TimerEnabledRequest): Promise<TimerEnabledResponse>;
-  GetPlayerTimerState(request: PlayerTimerStateRequest): Promise<PlayerTimerStateResponse>;
-  GetAllPlayerTimerStates(request: AllPlayerTimerStatesRequest): Promise<AllPlayerTimerStatesResponse>;
-  GetTimerConfig(request: TimerConfigRequest): Promise<TimerConfigResponse>;
-  StartAnimation(request: StartAnimationRequest): Promise<StartAnimationResponse>;
-  EndAnimation(request: EndAnimationRequest): Promise<EndAnimationResponse>;
+  ReportAnimationEnd(request: AnimationEndRequest): Promise<AnimationEndResponse>
+  IsTimerEnabled(request: TimerEnabledRequest): Promise<TimerEnabledResponse>
+  GetPlayerTimerState(request: PlayerTimerStateRequest): Promise<PlayerTimerStateResponse>
+  GetAllPlayerTimerStates(request: AllPlayerTimerStatesRequest): Promise<AllPlayerTimerStatesResponse>
+  GetTimerConfig(request: TimerConfigRequest): Promise<TimerConfigResponse>
+  StartAnimation(request: StartAnimationRequest): Promise<StartAnimationResponse>
+  EndAnimation(request: EndAnimationRequest): Promise<EndAnimationResponse>
   /** 战斗管理相关 */
-  TerminateBattle(request: TerminateBattleRequest): Promise<TerminateBattleResponse>;
-  CreateBattle(request: CreateBattleRequest): Promise<CreateBattleResponse>;
-  JoinSpectateBattle(request: JoinSpectateBattleRequest): Promise<JoinSpectateBattleResponse>;
+  TerminateBattle(request: TerminateBattleRequest): Promise<TerminateBattleResponse>
+  CreateBattle(request: CreateBattleRequest): Promise<CreateBattleResponse>
+  JoinSpectateBattle(request: JoinSpectateBattleRequest): Promise<JoinSpectateBattleResponse>
 }
 
-export const BattleServiceServiceName = "battle.BattleService";
+export const BattleServiceServiceName = 'battle.BattleService'
 export class BattleServiceClientImpl implements BattleService {
-  private readonly rpc: Rpc;
-  private readonly service: string;
+  private readonly rpc: Rpc
+  private readonly service: string
   constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || BattleServiceServiceName;
-    this.rpc = rpc;
-    this.SubmitPlayerSelection = this.SubmitPlayerSelection.bind(this);
-    this.GetAvailableSelection = this.GetAvailableSelection.bind(this);
-    this.GetBattleState = this.GetBattleState.bind(this);
-    this.PlayerReady = this.PlayerReady.bind(this);
-    this.PlayerAbandon = this.PlayerAbandon.bind(this);
-    this.ReportAnimationEnd = this.ReportAnimationEnd.bind(this);
-    this.IsTimerEnabled = this.IsTimerEnabled.bind(this);
-    this.GetPlayerTimerState = this.GetPlayerTimerState.bind(this);
-    this.GetAllPlayerTimerStates = this.GetAllPlayerTimerStates.bind(this);
-    this.GetTimerConfig = this.GetTimerConfig.bind(this);
-    this.StartAnimation = this.StartAnimation.bind(this);
-    this.EndAnimation = this.EndAnimation.bind(this);
-    this.TerminateBattle = this.TerminateBattle.bind(this);
-    this.CreateBattle = this.CreateBattle.bind(this);
-    this.JoinSpectateBattle = this.JoinSpectateBattle.bind(this);
+    this.service = opts?.service || BattleServiceServiceName
+    this.rpc = rpc
+    this.SubmitPlayerSelection = this.SubmitPlayerSelection.bind(this)
+    this.GetAvailableSelection = this.GetAvailableSelection.bind(this)
+    this.GetBattleState = this.GetBattleState.bind(this)
+    this.PlayerReady = this.PlayerReady.bind(this)
+    this.PlayerAbandon = this.PlayerAbandon.bind(this)
+    this.ReportAnimationEnd = this.ReportAnimationEnd.bind(this)
+    this.IsTimerEnabled = this.IsTimerEnabled.bind(this)
+    this.GetPlayerTimerState = this.GetPlayerTimerState.bind(this)
+    this.GetAllPlayerTimerStates = this.GetAllPlayerTimerStates.bind(this)
+    this.GetTimerConfig = this.GetTimerConfig.bind(this)
+    this.StartAnimation = this.StartAnimation.bind(this)
+    this.EndAnimation = this.EndAnimation.bind(this)
+    this.TerminateBattle = this.TerminateBattle.bind(this)
+    this.CreateBattle = this.CreateBattle.bind(this)
+    this.JoinSpectateBattle = this.JoinSpectateBattle.bind(this)
   }
   SubmitPlayerSelection(request: PlayerSelectionRequest): Promise<PlayerSelectionResponse> {
-    const data = PlayerSelectionRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "SubmitPlayerSelection", data);
-    return promise.then((data) => PlayerSelectionResponse.decode(new BinaryReader(data)));
+    const data = PlayerSelectionRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'SubmitPlayerSelection', data)
+    return promise.then(data => PlayerSelectionResponse.decode(new BinaryReader(data)))
   }
 
   GetAvailableSelection(request: SelectionRequest): Promise<SelectionResponse> {
-    const data = SelectionRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetAvailableSelection", data);
-    return promise.then((data) => SelectionResponse.decode(new BinaryReader(data)));
+    const data = SelectionRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'GetAvailableSelection', data)
+    return promise.then(data => SelectionResponse.decode(new BinaryReader(data)))
   }
 
   GetBattleState(request: BattleStateRequest): Promise<BattleStateResponse> {
-    const data = BattleStateRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetBattleState", data);
-    return promise.then((data) => BattleStateResponse.decode(new BinaryReader(data)));
+    const data = BattleStateRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'GetBattleState', data)
+    return promise.then(data => BattleStateResponse.decode(new BinaryReader(data)))
   }
 
   PlayerReady(request: ReadyRequest): Promise<ReadyResponse> {
-    const data = ReadyRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PlayerReady", data);
-    return promise.then((data) => ReadyResponse.decode(new BinaryReader(data)));
+    const data = ReadyRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'PlayerReady', data)
+    return promise.then(data => ReadyResponse.decode(new BinaryReader(data)))
   }
 
   PlayerAbandon(request: AbandonRequest): Promise<AbandonResponse> {
-    const data = AbandonRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PlayerAbandon", data);
-    return promise.then((data) => AbandonResponse.decode(new BinaryReader(data)));
+    const data = AbandonRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'PlayerAbandon', data)
+    return promise.then(data => AbandonResponse.decode(new BinaryReader(data)))
   }
 
   ReportAnimationEnd(request: AnimationEndRequest): Promise<AnimationEndResponse> {
-    const data = AnimationEndRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "ReportAnimationEnd", data);
-    return promise.then((data) => AnimationEndResponse.decode(new BinaryReader(data)));
+    const data = AnimationEndRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'ReportAnimationEnd', data)
+    return promise.then(data => AnimationEndResponse.decode(new BinaryReader(data)))
   }
 
   IsTimerEnabled(request: TimerEnabledRequest): Promise<TimerEnabledResponse> {
-    const data = TimerEnabledRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "IsTimerEnabled", data);
-    return promise.then((data) => TimerEnabledResponse.decode(new BinaryReader(data)));
+    const data = TimerEnabledRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'IsTimerEnabled', data)
+    return promise.then(data => TimerEnabledResponse.decode(new BinaryReader(data)))
   }
 
   GetPlayerTimerState(request: PlayerTimerStateRequest): Promise<PlayerTimerStateResponse> {
-    const data = PlayerTimerStateRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetPlayerTimerState", data);
-    return promise.then((data) => PlayerTimerStateResponse.decode(new BinaryReader(data)));
+    const data = PlayerTimerStateRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'GetPlayerTimerState', data)
+    return promise.then(data => PlayerTimerStateResponse.decode(new BinaryReader(data)))
   }
 
   GetAllPlayerTimerStates(request: AllPlayerTimerStatesRequest): Promise<AllPlayerTimerStatesResponse> {
-    const data = AllPlayerTimerStatesRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetAllPlayerTimerStates", data);
-    return promise.then((data) => AllPlayerTimerStatesResponse.decode(new BinaryReader(data)));
+    const data = AllPlayerTimerStatesRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'GetAllPlayerTimerStates', data)
+    return promise.then(data => AllPlayerTimerStatesResponse.decode(new BinaryReader(data)))
   }
 
   GetTimerConfig(request: TimerConfigRequest): Promise<TimerConfigResponse> {
-    const data = TimerConfigRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetTimerConfig", data);
-    return promise.then((data) => TimerConfigResponse.decode(new BinaryReader(data)));
+    const data = TimerConfigRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'GetTimerConfig', data)
+    return promise.then(data => TimerConfigResponse.decode(new BinaryReader(data)))
   }
 
   StartAnimation(request: StartAnimationRequest): Promise<StartAnimationResponse> {
-    const data = StartAnimationRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "StartAnimation", data);
-    return promise.then((data) => StartAnimationResponse.decode(new BinaryReader(data)));
+    const data = StartAnimationRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'StartAnimation', data)
+    return promise.then(data => StartAnimationResponse.decode(new BinaryReader(data)))
   }
 
   EndAnimation(request: EndAnimationRequest): Promise<EndAnimationResponse> {
-    const data = EndAnimationRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "EndAnimation", data);
-    return promise.then((data) => EndAnimationResponse.decode(new BinaryReader(data)));
+    const data = EndAnimationRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'EndAnimation', data)
+    return promise.then(data => EndAnimationResponse.decode(new BinaryReader(data)))
   }
 
   TerminateBattle(request: TerminateBattleRequest): Promise<TerminateBattleResponse> {
-    const data = TerminateBattleRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "TerminateBattle", data);
-    return promise.then((data) => TerminateBattleResponse.decode(new BinaryReader(data)));
+    const data = TerminateBattleRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'TerminateBattle', data)
+    return promise.then(data => TerminateBattleResponse.decode(new BinaryReader(data)))
   }
 
   CreateBattle(request: CreateBattleRequest): Promise<CreateBattleResponse> {
-    const data = CreateBattleRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "CreateBattle", data);
-    return promise.then((data) => CreateBattleResponse.decode(new BinaryReader(data)));
+    const data = CreateBattleRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'CreateBattle', data)
+    return promise.then(data => CreateBattleResponse.decode(new BinaryReader(data)))
   }
 
   JoinSpectateBattle(request: JoinSpectateBattleRequest): Promise<JoinSpectateBattleResponse> {
-    const data = JoinSpectateBattleRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "JoinSpectateBattle", data);
-    return promise.then((data) => JoinSpectateBattleResponse.decode(new BinaryReader(data)));
+    const data = JoinSpectateBattleRequest.encode(request).finish()
+    const promise = this.rpc.request(this.service, 'JoinSpectateBattle', data)
+    return promise.then(data => JoinSpectateBattleResponse.decode(new BinaryReader(data)))
   }
 }
 
 interface Rpc {
-  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
+  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>
 }
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+    ? globalThis.Array<DeepPartial<U>>
+    : T extends ReadonlyArray<infer U>
+      ? ReadonlyArray<DeepPartial<U>>
+      : T extends {}
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : Partial<T>
 
-type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+type KeysOfUnion<T> = T extends T ? keyof T : never
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never }
 
 function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined
 }
 
 export interface MessageFns<T> {
-  encode(message: T, writer?: BinaryWriter): BinaryWriter;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
-  fromJSON(object: any): T;
-  toJSON(message: T): unknown;
-  create<I extends Exact<DeepPartial<T>, I>>(base?: I): T;
-  fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T;
+  encode(message: T, writer?: BinaryWriter): BinaryWriter
+  decode(input: BinaryReader | Uint8Array, length?: number): T
+  fromJSON(object: any): T
+  toJSON(message: T): unknown
+  create<I extends Exact<DeepPartial<T>, I>>(base?: I): T
+  fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T
 }

@@ -10,9 +10,12 @@ export const MarkConfigSchema = Type.Object(
     persistent: Type.Boolean({ default: true }),
     maxStacks: Type.Integer({ default: 1 }),
     stackable: Type.Boolean({ default: false }),
-    stackStrategy: Type.Union(Object.values(StackStrategy).map(v => Type.Literal(v)), {
-      default: StackStrategy.extend,
-    }),
+    stackStrategy: Type.Union(
+      Object.values(StackStrategy).map(v => Type.Literal(v)),
+      {
+        default: StackStrategy.extend,
+      },
+    ),
     destroyable: Type.Boolean({ default: true }),
     isShield: Type.Boolean({ default: false }),
     keepOnSwitchOut: Type.Boolean({ default: false }),

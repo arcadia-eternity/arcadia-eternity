@@ -80,11 +80,7 @@ function onTextInput(key: string, event: Event) {
     <div v-for="key in allKeys" :key="key" class="config-row">
       <span class="config-label">{{ getLabel(key) }}</span>
 
-      <label
-        v-if="isBooleanField(key)"
-        class="config-toggle"
-        :class="{ 'config-toggle--on': !!currentConfig[key] }"
-      >
+      <label v-if="isBooleanField(key)" class="config-toggle" :class="{ 'config-toggle--on': !!currentConfig[key] }">
         <input
           type="checkbox"
           class="config-toggle-input"
@@ -111,11 +107,7 @@ function onTextInput(key: string, event: Event) {
         :value="currentConfig[key] ?? 'extend'"
         @change="onSelectInput(key, $event)"
       >
-        <option
-          v-for="opt in STACK_STRATEGY_OPTIONS"
-          :key="opt.value"
-          :value="opt.value"
-        >
+        <option v-for="opt in STACK_STRATEGY_OPTIONS" :key="opt.value" :value="opt.value">
           {{ opt.label }}
         </option>
       </select>
@@ -205,7 +197,9 @@ function onTextInput(key: string, event: Event) {
   height: 12px;
   border-radius: 50%;
   background-color: var(--ae-text-muted);
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
@@ -235,7 +229,9 @@ function onTextInput(key: string, event: Event) {
   color: var(--ae-text-primary);
   text-align: right;
   outline: none;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
   font-variant-numeric: tabular-nums;
 }
 
@@ -272,7 +268,9 @@ function onTextInput(key: string, event: Event) {
   cursor: pointer;
   min-width: 110px;
   appearance: auto;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .config-select:hover {
@@ -302,7 +300,9 @@ function onTextInput(key: string, event: Event) {
   font-weight: 400;
   color: var(--ae-text-primary);
   outline: none;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .config-text-input::placeholder {

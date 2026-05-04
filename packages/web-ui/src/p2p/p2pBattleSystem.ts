@@ -16,11 +16,7 @@ import type { TeamConfig, BattleConfig as V2BattleConfig } from '@arcadia-eterni
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { PeerTransport } from '@arcadia-eternity/p2p-transport'
 import type { PrivateRoomSignalBridge } from '@/p2p/privateRoomSignalBridge'
-import {
-  type P2PBattleMessage,
-  type P2PTimerSyncPayload,
-  isP2PBattleMessage,
-} from './battleProtocol'
+import { type P2PBattleMessage, type P2PTimerSyncPayload, isP2PBattleMessage } from './battleProtocol'
 import { toRaw } from 'vue'
 
 type BattleMessageHandler = (message: BattleMessage) => void
@@ -518,10 +514,7 @@ export class P2PPeerBattleSystem implements IBattleSystem {
           requesterId: this.localPlayerId,
           lastSeenSequenceId: this.lastSeenSequenceId >= 0 ? this.lastSeenSequenceId : undefined,
         })
-        await Promise.race([
-          initPromise,
-          new Promise(resolve => setTimeout(resolve, 500)),
-        ])
+        await Promise.race([initPromise, new Promise(resolve => setTimeout(resolve, 500))])
       }
       if (!this.battleState) {
         throw new Error('Timed out waiting for P2P battle init snapshot')
@@ -710,8 +703,7 @@ export class P2PPeerBattleSystem implements IBattleSystem {
         for (const pid of payload.player) {
           const state = this.ensureTimerState(pid)
           state.state = TimerState.Running
-          state.remainingTurnTime =
-            payload.turnTimeLimit === null ? Number.MAX_SAFE_INTEGER : payload.turnTimeLimit
+          state.remainingTurnTime = payload.turnTimeLimit === null ? Number.MAX_SAFE_INTEGER : payload.turnTimeLimit
           const totalTime = payload.remainingTotalTime[pid]
           if (typeof totalTime === 'number') {
             state.remainingTotalTime = totalTime

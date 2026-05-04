@@ -2,7 +2,13 @@
 // BattleOrchestrator — drives the top-level battle loop.
 
 import type { World, EventBus, PhaseManager } from '@arcadia-eternity/engine'
-import type { PlayerSelection, TeamInfo, TeamSelectionConfig, BattleTeamSelection, petId } from '@arcadia-eternity/const'
+import type {
+  PlayerSelection,
+  TeamInfo,
+  TeamSelectionConfig,
+  BattleTeamSelection,
+  petId,
+} from '@arcadia-eternity/const'
 import type { BattleInstance } from './game.js'
 import type { SelectionSystem } from './systems/selection.system.js'
 import type { TimerSystem } from './systems/timer.system.js'
@@ -25,9 +31,15 @@ export class BattleOrchestrator {
     this.decisionManager = new DecisionManager(battle, selectionSystem, timerSystem)
   }
 
-  get world(): World { return this.battle.world }
-  get pm(): PhaseManager { return this.battle.phaseManager }
-  get bus(): EventBus { return this.battle.eventBus }
+  get world(): World {
+    return this.battle.world
+  }
+  get pm(): PhaseManager {
+    return this.battle.phaseManager
+  }
+  get bus(): EventBus {
+    return this.battle.eventBus
+  }
 
   // -----------------------------------------------------------------------
   // Main loop
@@ -91,7 +103,7 @@ export class BattleOrchestrator {
     // Emit battle end
     if (this.running) {
       const victor = this.world.state.victor as string | null
-      const reason = this.world.state.endReason as string ?? 'all_pet_fainted'
+      const reason = (this.world.state.endReason as string) ?? 'all_pet_fainted'
       this.bus.emit(this.world, 'battleEnd', { winner: victor, reason })
       this.world.state.status = 'ended'
     }
@@ -179,11 +191,9 @@ export class BattleOrchestrator {
     }
 
     this.selectionSystem.clearSelections(this.world)
-    const selections = await this.decisionManager.collectDecisions(
-      [playerAId, playerBId],
-      'teamSelection',
-      { turnTimeLimitOverrideSec: cfg.timeLimit },
-    )
+    const selections = await this.decisionManager.collectDecisions([playerAId, playerBId], 'teamSelection', {
+      turnTimeLimitOverrideSec: cfg.timeLimit,
+    })
 
     for (const [pid, sel] of Object.entries(selections)) {
       if (sel.type === 'surrender') {
@@ -232,13 +242,18 @@ export class BattleOrchestrator {
   private buildTeamInfo(playerId: string, cfg: TeamSelectionConfig): TeamInfo | null {
     if (cfg.teamInfoVisibility === 'HIDDEN') return null
 
-    const snapshot = worldToBattleState(this.world, {
-      playerSystem: this.battle.playerSystem,
-      petSystem: this.battle.petSystem,
-      markSystem: this.battle.markSystem,
-      skillSystem: this.battle.skillSystem,
-      attrSystem: this.battle.attrSystem,
-    }, undefined, cfg.teamInfoVisibility === 'FULL')
+    const snapshot = worldToBattleState(
+      this.world,
+      {
+        playerSystem: this.battle.playerSystem,
+        petSystem: this.battle.petSystem,
+        markSystem: this.battle.markSystem,
+        skillSystem: this.battle.skillSystem,
+        attrSystem: this.battle.attrSystem,
+      },
+      undefined,
+      cfg.teamInfoVisibility === 'FULL',
+    )
 
     const player = snapshot.players.find(p => p.id === playerId)
     if (!player || !player.team) return null
@@ -268,9 +283,7 @@ export class BattleOrchestrator {
 
     if (cfg.mode === 'FULL_TEAM') {
       const starterPetId =
-        selection?.type === 'team-selection' && selection.starterPetId
-          ? selection.starterPetId
-          : (fullTeam[0] ?? '')
+        selection?.type === 'team-selection' && selection.starterPetId ? selection.starterPetId : (fullTeam[0] ?? '')
       return {
         selectedPets: fullTeam as unknown as petId[],
         starterPetId: starterPetId as unknown as petId,
@@ -294,9 +307,7 @@ export class BattleOrchestrator {
       }
     }
 
-    const starterPetId = cfg.allowStarterSelection
-      ? selection.starterPetId
-      : unique[0]
+    const starterPetId = cfg.allowStarterSelection ? selection.starterPetId : unique[0]
     if (!starterPetId || !unique.includes(starterPetId)) {
       throw new Error(`Invalid starter selection for player ${playerId}`)
     }

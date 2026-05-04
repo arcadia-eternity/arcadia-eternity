@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import {
-  BASE_EXTRACTOR_KEYS,
-} from '@arcadia-eternity/schema'
-import type {
-  BaseSelectorKey,
-  ExtractorDSL,
-  SelectorChain,
-  SelectorDSL,
-  Value,
-} from '@arcadia-eternity/schema'
+import { BASE_EXTRACTOR_KEYS } from '@arcadia-eternity/schema'
+import type { BaseSelectorKey, ExtractorDSL, SelectorChain, SelectorDSL, Value } from '@arcadia-eternity/schema'
 import { useEffectTyping } from './composables/useEffectTyping'
 
 const { resolveSelectorOptions } = useEffectTyping()
@@ -76,17 +68,20 @@ const EXTRACTOR_TYPES = [
   { value: 'dynamic', label: '动态' },
 ] as const
 
-const NO_PARAM_TYPES = new Set([
-  'flat', 'sum', 'avg', 'shuffled', 'asStatLevelMark', 'sampleBetween',
-])
+const NO_PARAM_TYPES = new Set(['flat', 'sum', 'avg', 'shuffled', 'asStatLevelMark', 'sampleBetween'])
 
-const TEXT_INPUT_TYPES = new Set([
-  'selectPath', 'selectProp', 'selectObservable', 'selectAttribute$',
-])
+const TEXT_INPUT_TYPES = new Set(['selectPath', 'selectProp', 'selectObservable', 'selectAttribute$'])
 
 const VALUE_SLOT_TYPES = new Set([
-  'randomPick', 'randomSample', 'limit', 'clampMax', 'clampMin',
-  'add', 'multiply', 'divide', 'configGet',
+  'randomPick',
+  'randomSample',
+  'limit',
+  'clampMax',
+  'clampMin',
+  'add',
+  'multiply',
+  'divide',
+  'configGet',
 ])
 
 const RECURSIVE_TYPES = new Set(['and', 'or'])
@@ -104,10 +99,7 @@ const allSelectorOptions = computed(() => {
 const isBareString = computed(() => typeof props.modelValue === 'string')
 
 const isChain = computed(
-  () =>
-    typeof props.modelValue === 'object' &&
-    props.modelValue !== null &&
-    'base' in props.modelValue,
+  () => typeof props.modelValue === 'object' && props.modelValue !== null && 'base' in props.modelValue,
 )
 
 const isConditional = computed(
@@ -131,9 +123,7 @@ function ensureChainSelector(): { base: BaseSelectorKey; chain: SelectorChain[] 
     const cs = props.modelValue as { base: BaseSelectorKey; chain?: SelectorChain[] }
     return { base: cs.base, chain: cs.chain ?? [] }
   }
-  const base: BaseSelectorKey = isBareString.value
-    ? (props.modelValue as BaseSelectorKey)
-    : 'self'
+  const base: BaseSelectorKey = isBareString.value ? (props.modelValue as BaseSelectorKey) : 'self'
   return { base, chain: [] }
 }
 
@@ -192,9 +182,7 @@ function onBaseChange(val: string) {
 }
 
 function expandToChain() {
-  const base = isBareString.value
-    ? (props.modelValue as BaseSelectorKey)
-    : 'self' as BaseSelectorKey
+  const base = isBareString.value ? (props.modelValue as BaseSelectorKey) : ('self' as BaseSelectorKey)
   emitValue({ base, chain: [] })
 }
 
@@ -453,17 +441,8 @@ function previewStep(step: SelectorChain): string {
     <label v-if="label" class="selector-label">{{ label }}</label>
 
     <div v-if="isBareString" class="selector-compact">
-      <el-select
-        :model-value="modelValue as string"
-        class="selector-base-input"
-        @update:model-value="onBaseChange"
-      >
-        <el-option
-          v-for="opt in allSelectorOptions"
-          :key="opt.value"
-          :label="opt.label"
-          :value="opt.value"
-        />
+      <el-select :model-value="modelValue as string" class="selector-base-input" @update:model-value="onBaseChange">
+        <el-option v-for="opt in allSelectorOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
       <button type="button" class="selector-expand-btn" title="展开管道" @click="expandToChain">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -480,12 +459,7 @@ function previewStep(step: SelectorChain): string {
             class="selector-base-input"
             @update:model-value="onBaseChange"
           >
-            <el-option
-              v-for="opt in allSelectorOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
+            <el-option v-for="opt in allSelectorOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
           <button
             type="button"
@@ -501,11 +475,7 @@ function previewStep(step: SelectorChain): string {
         </div>
       </div>
 
-      <div
-        v-for="(step, i) in (modelValue as { chain?: SelectorChain[] }).chain ?? []"
-        :key="i"
-        class="pipeline-step"
-      >
+      <div v-for="(step, i) in (modelValue as { chain?: SelectorChain[] }).chain ?? []" :key="i" class="pipeline-step">
         <div class="pipeline-arrow">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -524,8 +494,18 @@ function previewStep(step: SelectorChain): string {
                 <circle cx="15" cy="19" r="2" />
               </svg>
             </span>
-            <button type="button" class="card-move-btn" title="上移" :disabled="i === 0" @click="moveStepUp(i)">▲</button>
-            <button type="button" class="card-move-btn" title="下移" :disabled="i >= ((modelValue as { chain?: SelectorChain[] }).chain?.length ?? 0) - 1" @click="moveStepDown(i)">▼</button>
+            <button type="button" class="card-move-btn" title="上移" :disabled="i === 0" @click="moveStepUp(i)">
+              ▲
+            </button>
+            <button
+              type="button"
+              class="card-move-btn"
+              title="下移"
+              :disabled="i >= ((modelValue as { chain?: SelectorChain[] }).chain?.length ?? 0) - 1"
+              @click="moveStepDown(i)"
+            >
+              ▼
+            </button>
             <el-select
               :model-value="step.type"
               class="card-type-select"
@@ -533,7 +513,10 @@ function previewStep(step: SelectorChain): string {
             >
               <el-option-group
                 v-for="group in [
-                  { label: '提取', types: ['select', 'selectPath', 'selectProp', 'selectObservable', 'selectAttribute$', 'configGet'] },
+                  {
+                    label: '提取',
+                    types: ['select', 'selectPath', 'selectProp', 'selectObservable', 'selectAttribute$', 'configGet'],
+                  },
                   { label: '过滤', types: ['where', 'whereAttr'] },
                   { label: '变换', types: ['flat', 'shuffled', 'asStatLevelMark', 'sampleBetween'] },
                   { label: '运算', types: ['sum', 'avg', 'add', 'multiply', 'divide'] },
@@ -562,7 +545,6 @@ function previewStep(step: SelectorChain): string {
           </div>
 
           <div class="card-body">
-
             <template v-if="step.type === 'select'">
               <div class="card-field-row">
                 <el-select
@@ -570,12 +552,7 @@ function previewStep(step: SelectorChain): string {
                   class="card-field-select"
                   @update:model-value="(v: string) => updateExtractorType(i, v)"
                 >
-                  <el-option
-                    v-for="et in EXTRACTOR_TYPES"
-                    :key="et.value"
-                    :label="et.label"
-                    :value="et.value"
-                  />
+                  <el-option v-for="et in EXTRACTOR_TYPES" :key="et.value" :label="et.label" :value="et.value" />
                 </el-select>
                 <template v-if="getExtractorType(step) === 'base'">
                   <el-select
@@ -640,12 +617,7 @@ function previewStep(step: SelectorChain): string {
                   class="card-field-select"
                   @update:model-value="(v: string) => updateExtractorType(i, v)"
                 >
-                  <el-option
-                    v-for="et in EXTRACTOR_TYPES"
-                    :key="et.value"
-                    :label="et.label"
-                    :value="et.value"
-                  />
+                  <el-option v-for="et in EXTRACTOR_TYPES" :key="et.value" :label="et.label" :value="et.value" />
                 </el-select>
                 <template v-if="getExtractorType(step) === 'base'">
                   <el-select
@@ -739,7 +711,6 @@ function previewStep(step: SelectorChain): string {
                 />
               </div>
             </template>
-
           </div>
 
           <div class="card-preview">{{ previewStep(step) }}</div>
@@ -761,21 +732,29 @@ function previewStep(step: SelectorChain): string {
         <slot
           name="condition"
           :model-value="(modelValue as { condition: unknown }).condition"
-          :update="(v: unknown) => emitValue({ ...(modelValue as Record<string, unknown>), condition: v } as SelectorDSL)"
+          :update="
+            (v: unknown) => emitValue({ ...(modelValue as Record<string, unknown>), condition: v } as SelectorDSL)
+          "
         />
       </div>
       <div class="conditional-row">
         <span class="conditional-label">为真</span>
         <SelectorBuilder
           :model-value="(modelValue as { trueSelector: SelectorDSL }).trueSelector"
-          @update:model-value="(v: SelectorDSL) => emitValue({ ...(modelValue as Record<string, unknown>), trueSelector: v } as SelectorDSL)"
+          @update:model-value="
+            (v: SelectorDSL) =>
+              emitValue({ ...(modelValue as Record<string, unknown>), trueSelector: v } as SelectorDSL)
+          "
         />
       </div>
       <div class="conditional-row">
         <span class="conditional-label">为假</span>
         <SelectorBuilder
           :model-value="(modelValue as { falseSelector?: SelectorDSL }).falseSelector ?? 'self'"
-          @update:model-value="(v: SelectorDSL) => emitValue({ ...(modelValue as Record<string, unknown>), falseSelector: v } as SelectorDSL)"
+          @update:model-value="
+            (v: SelectorDSL) =>
+              emitValue({ ...(modelValue as Record<string, unknown>), falseSelector: v } as SelectorDSL)
+          "
         />
       </div>
     </div>
@@ -792,11 +771,7 @@ function previewStep(step: SelectorChain): string {
         </div>
       </div>
 
-      <div
-        v-for="(step, i) in (modelValue as { chain?: SelectorChain[] }).chain ?? []"
-        :key="i"
-        class="pipeline-step"
-      >
+      <div v-for="(step, i) in (modelValue as { chain?: SelectorChain[] }).chain ?? []" :key="i" class="pipeline-step">
         <div class="pipeline-arrow">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -815,8 +790,18 @@ function previewStep(step: SelectorChain): string {
                 <circle cx="15" cy="19" r="2" />
               </svg>
             </span>
-            <button type="button" class="card-move-btn" title="上移" :disabled="i === 0" @click="moveStepUp(i)">▲</button>
-            <button type="button" class="card-move-btn" title="下移" :disabled="i >= ((modelValue as { chain?: SelectorChain[] }).chain?.length ?? 0) - 1" @click="moveStepDown(i)">▼</button>
+            <button type="button" class="card-move-btn" title="上移" :disabled="i === 0" @click="moveStepUp(i)">
+              ▲
+            </button>
+            <button
+              type="button"
+              class="card-move-btn"
+              title="下移"
+              :disabled="i >= ((modelValue as { chain?: SelectorChain[] }).chain?.length ?? 0) - 1"
+              @click="moveStepDown(i)"
+            >
+              ▼
+            </button>
             <el-select
               :model-value="step.type"
               class="card-type-select"
@@ -824,7 +809,10 @@ function previewStep(step: SelectorChain): string {
             >
               <el-option-group
                 v-for="group in [
-                  { label: '提取', types: ['select', 'selectPath', 'selectProp', 'selectObservable', 'selectAttribute$', 'configGet'] },
+                  {
+                    label: '提取',
+                    types: ['select', 'selectPath', 'selectProp', 'selectObservable', 'selectAttribute$', 'configGet'],
+                  },
                   { label: '过滤', types: ['where', 'whereAttr'] },
                   { label: '变换', types: ['flat', 'shuffled', 'asStatLevelMark', 'sampleBetween'] },
                   { label: '运算', types: ['sum', 'avg', 'add', 'multiply', 'divide'] },
@@ -853,7 +841,6 @@ function previewStep(step: SelectorChain): string {
           </div>
 
           <div class="card-body">
-
             <template v-if="step.type === 'select'">
               <div class="card-field-row">
                 <el-select
@@ -861,12 +848,7 @@ function previewStep(step: SelectorChain): string {
                   class="card-field-select"
                   @update:model-value="(v: string) => updateExtractorType(i, v)"
                 >
-                  <el-option
-                    v-for="et in EXTRACTOR_TYPES"
-                    :key="et.value"
-                    :label="et.label"
-                    :value="et.value"
-                  />
+                  <el-option v-for="et in EXTRACTOR_TYPES" :key="et.value" :label="et.label" :value="et.value" />
                 </el-select>
                 <template v-if="getExtractorType(step) === 'base'">
                   <el-select
@@ -931,12 +913,7 @@ function previewStep(step: SelectorChain): string {
                   class="card-field-select"
                   @update:model-value="(v: string) => updateExtractorType(i, v)"
                 >
-                  <el-option
-                    v-for="et in EXTRACTOR_TYPES"
-                    :key="et.value"
-                    :label="et.label"
-                    :value="et.value"
-                  />
+                  <el-option v-for="et in EXTRACTOR_TYPES" :key="et.value" :label="et.label" :value="et.value" />
                 </el-select>
                 <template v-if="getExtractorType(step) === 'base'">
                   <el-select
@@ -1030,7 +1007,6 @@ function previewStep(step: SelectorChain): string {
                 />
               </div>
             </template>
-
           </div>
 
           <div class="card-preview">{{ previewStep(step) }}</div>
@@ -1087,7 +1063,9 @@ function previewStep(step: SelectorChain): string {
   border-radius: var(--ae-radius-sm, 4px);
   padding: 0;
   flex-shrink: 0;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
 .selector-expand-btn:hover,
@@ -1194,7 +1172,9 @@ function previewStep(step: SelectorChain): string {
   border-radius: var(--ae-radius-sm, 4px);
   padding: 0;
   flex-shrink: 0;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
 .card-delete-btn:hover {
@@ -1216,7 +1196,9 @@ function previewStep(step: SelectorChain): string {
   border-radius: 3px;
   padding: 0;
   flex-shrink: 0;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
 .card-move-btn:hover:not(:disabled) {
@@ -1279,7 +1261,10 @@ function previewStep(step: SelectorChain): string {
   color: var(--ae-text-muted);
   cursor: pointer;
   font-size: var(--ae-font-xs, 11px);
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
   margin-top: 2px;
 }
 

@@ -68,6 +68,7 @@ pnpm web:dev
 ### 表结构
 
 #### players 表
+
 ```sql
 CREATE TABLE players (
     id TEXT PRIMARY KEY,
@@ -79,6 +80,7 @@ CREATE TABLE players (
 ```
 
 #### player_stats 表
+
 ```sql
 CREATE TABLE player_stats (
     player_id TEXT PRIMARY KEY REFERENCES players(id),
@@ -91,6 +93,7 @@ CREATE TABLE player_stats (
 ```
 
 #### battle_records 表
+
 ```sql
 CREATE TABLE battle_records (
     id TEXT PRIMARY KEY DEFAULT nanoid(),
@@ -176,16 +179,20 @@ export const useBattleReportStore = defineStore('battleReport', () => {
   // 状态
   const battleRecords = ref<BattleRecord[]>([])
   const leaderboard = ref<LeaderboardEntry[]>([])
-  
+
   // 方法
-  const fetchBattleRecords = async () => { /* ... */ }
-  const fetchLeaderboard = async () => { /* ... */ }
-  
+  const fetchBattleRecords = async () => {
+    /* ... */
+  }
+  const fetchLeaderboard = async () => {
+    /* ... */
+  }
+
   return {
     battleRecords,
     leaderboard,
     fetchBattleRecords,
-    fetchLeaderboard
+    fetchLeaderboard,
   }
 })
 ```
@@ -197,7 +204,7 @@ const routes = [
   { path: '/battle-reports', component: BattleRecordList },
   { path: '/battle-reports/:id', component: BattleRecordDetail },
   { path: '/leaderboard', component: Leaderboard },
-  { path: '/players/:playerId/battles', component: PlayerBattleRecords }
+  { path: '/players/:playerId/battles', component: PlayerBattleRecords },
 ]
 ```
 
@@ -210,11 +217,11 @@ export class BattleReportService {
   async startBattleRecord(battleId: string, playerA: string, playerB: string) {
     // 创建战报记录
   }
-  
+
   recordBattleMessage(battleId: string, message: BattleMessage) {
     // 记录战斗消息
   }
-  
+
   async completeBattleRecord(battleId: string, result: BattleResult) {
     // 完成战报
   }
@@ -231,8 +238,8 @@ const battleServer = new BattleServer(io, {
   database: {
     supabaseUrl: process.env.SUPABASE_URL!,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY!,
-    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY
-  }
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
+  },
 })
 ```
 
@@ -365,10 +372,7 @@ CORS_ORIGIN=https://your-frontend-domain.com
 const logger = pino({ level: 'debug' })
 
 // 数据库查询调试
-const { data, error } = await supabase
-  .from('battle_records')
-  .select('*')
-  .explain({ analyze: true })
+const { data, error } = await supabase.from('battle_records').select('*').explain({ analyze: true })
 
 // 前端状态调试
 console.log('Store state:', toRaw(battleReportStore.$state))

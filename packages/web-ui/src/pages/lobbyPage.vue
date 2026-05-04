@@ -373,7 +373,11 @@ const validationStore = useValidationStore()
 const privateRoomStore = usePrivateRoomStore()
 
 // 匹配配置状态
-interface SelectedTeam { name: string; pets: PetSchemaType[]; ruleSetId: string }
+interface SelectedTeam {
+  name: string
+  pets: PetSchemaType[]
+  ruleSetId: string
+}
 
 const selectedTeam = ref<SelectedTeam | null>(null)
 const isSelectedTeamValid = ref(false)
@@ -556,9 +560,7 @@ const saveLastMatchingConfig = () => {
   if (!selectedTeam.value) return
 
   const team = selectedTeam.value
-  const actualTeamIndex = petStorageStore.teams.findIndex(
-    t => t.name === team.name && t.ruleSetId === team.ruleSetId,
-  )
+  const actualTeamIndex = petStorageStore.teams.findIndex(t => t.name === team.name && t.ruleSetId === team.ruleSetId)
 
   if (actualTeamIndex >= 0) {
     petStorageStore.saveLastMatchingConfig(actualTeamIndex, selectedRuleSetId.value)

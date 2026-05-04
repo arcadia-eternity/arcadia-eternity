@@ -16,30 +16,11 @@
       "effect_mark.yaml",
       "effect_skill.yaml"
     ],
-    "marks": [
-      "mark.yaml",
-      "mark_ability.yaml",
-      "mark_emblem.yaml",
-      "mark_global.yaml"
-    ],
-    "skills": [
-      "skill.yaml"
-    ],
-    "species": [
-      "species.yaml"
-    ]
+    "marks": ["mark.yaml", "mark_ability.yaml", "mark_emblem.yaml", "mark_global.yaml"],
+    "skills": ["skill.yaml"],
+    "species": ["species.yaml"]
   },
   "locales": {
-    "zh-CN": [
-      "battle",
-      "mark",
-      "mark_ability",
-      "mark_emblem",
-      "mark_global",
-      "nature",
-      "skill",
-      "species",
-      "webui"
-    ]
+    "zh-CN": ["battle", "mark", "mark_ability", "mark_emblem", "mark_global", "nature", "skill", "species", "webui"]
   }
 }

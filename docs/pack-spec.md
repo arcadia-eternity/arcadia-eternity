@@ -18,9 +18,7 @@
   "engineRange": ">=2.0.0 <3.0.0",
   "assetsRef": "npm:@arcadia-eternity/assets-pack-base",
   "layoutVersion": 1,
-  "dependencies": [
-    { "path": "../dep/pack.json", "id": "dep.pack", "optional": false }
-  ],
+  "dependencies": [{ "path": "../dep/pack.json", "id": "dep.pack", "optional": false }],
   "paths": {
     "dataDir": "data",
     "localesDir": "locales"
@@ -66,6 +64,7 @@
 ```
 
 支持两种模式：
+
 - 随数据包发布：`pack.json` 中声明 `assetsRef`。
 - 独立发布：客户端/房间通过 `assetLock` 指定资源包集合（如皮肤包、音效包）。
 

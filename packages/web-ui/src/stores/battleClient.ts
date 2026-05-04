@@ -5,7 +5,13 @@ import {
   type JoinSpectatorData,
   type SendPrivateRoomPeerSignalData,
 } from '@arcadia-eternity/client'
-import type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType, PrivateRoomBattleStartInfo, PrivateRoomInfo } from '@arcadia-eternity/protocol'
+import type {
+  PetSchemaType,
+  PlayerSchemaType,
+  PlayerSelectionSchemaType,
+  PrivateRoomBattleStartInfo,
+  PrivateRoomInfo,
+} from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
@@ -47,7 +53,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   // 计算属性
   const currentState = computed(() => {
     // 依赖触发器确保响应式更新
-     
+
     _stateUpdateTrigger.value // 触发依赖追踪
     const state = _instance.value?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
     return state
@@ -203,7 +209,13 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     isInitialized.value = true
 
     // 设置状态变化监听器 - 当底层client状态变化时触发Vue响应式更新
-    const stateUpdateHandler = (state: { status: string; matchmaking: string; battle: string; roomId?: string; opponent?: { id: string; name: string } }) => {
+    const stateUpdateHandler = (state: {
+      status: string
+      matchmaking: string
+      battle: string
+      roomId?: string
+      opponent?: { id: string; name: string }
+    }) => {
       _stateUpdateTrigger.value++
     }
 
@@ -228,8 +240,10 @@ export const useBattleClientStore = defineStore('battleClient', () => {
           }
         }
       }
-
-      ;(_instance.value.on as (event: string, handler: (data: BattleReconnectData) => void) => void)('battleReconnect', _battleReconnectHandler)
+      ;(_instance.value.on as (event: string, handler: (data: BattleReconnectData) => void) => void)(
+        'battleReconnect',
+        _battleReconnectHandler,
+      )
     }
 
     // 注册之前缓存的事件监听器
@@ -267,7 +281,10 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     if (_instance.value) {
       // 清理战斗重连监听器
       if (_battleReconnectHandler) {
-        ;(_instance.value.off as (event: string, handler: (data: BattleReconnectData) => void) => void)('battleReconnect', _battleReconnectHandler)
+        ;(_instance.value.off as (event: string, handler: (data: BattleReconnectData) => void) => void)(
+          'battleReconnect',
+          _battleReconnectHandler,
+        )
         _battleReconnectHandler = null
       }
       _instance.value.disconnect()

@@ -9,10 +9,6 @@ export type {
   SelectorChainRuntimeHooks,
 } from './types.js'
 
-export {
-  evaluateRuntimeEvaluator,
-} from './evaluators.js'
+export { evaluateRuntimeEvaluator } from './evaluators.js'
 
-export {
-  applyCommonSelectorChain,
-} from './resolvers.js'
+export { applyCommonSelectorChain } from './resolvers.js'

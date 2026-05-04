@@ -58,7 +58,7 @@ function validateStructure(draft: Record<string, unknown>): ValidationResult[] {
         results.push({
           level: 'L1',
           path: String(err.path).replace(/^\//, '').replace(/\//g, '.'),
-          field: typeof err.path === 'string' ? err.path.split('/').pop() ?? '' : '',
+          field: typeof err.path === 'string' ? (err.path.split('/').pop() ?? '') : '',
           message: err.message,
         })
       }
@@ -178,7 +178,8 @@ function validateFieldsAgainstTyping(
       if (value === null || value === undefined) continue
 
       const allowedScalars = new Set<string>()
-      for (const constraint of (fieldRule as { allow: readonly { kind: string; valueTypes?: readonly string[] }[] }).allow) {
+      for (const constraint of (fieldRule as { allow: readonly { kind: string; valueTypes?: readonly string[] }[] })
+        .allow) {
         if (constraint.kind === 'scalar' && constraint.valueTypes) {
           for (const vt of constraint.valueTypes) {
             allowedScalars.add(vt)
@@ -212,7 +213,9 @@ function validateFieldsAgainstTyping(
 }
 
 function resolveValidSelectors(fieldRule: unknown): string[] {
-  const rule = fieldRule as { allow?: readonly { kind: string; targets?: readonly string[]; owners?: readonly string[] }[] }
+  const rule = fieldRule as {
+    allow?: readonly { kind: string; targets?: readonly string[]; owners?: readonly string[] }[]
+  }
   if (!rule.allow) return []
 
   const selectors = new Set<string>()
@@ -237,10 +240,7 @@ function resolveValidSelectors(fieldRule: unknown): string[] {
   return [...selectors]
 }
 
-function validateReferences(
-  draft: Record<string, unknown>,
-  gameData: GameDataRefs,
-): ValidationResult[] {
+function validateReferences(draft: Record<string, unknown>, gameData: GameDataRefs): ValidationResult[] {
   const results: ValidationResult[] = []
 
   function checkEntityRefs(obj: unknown, path: string) {

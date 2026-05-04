@@ -1,8 +1,4 @@
-import {
-  type PrivateRoomBattleStartInfo,
-  type PrivateRoomInfo,
-  type PrivateRoomPeerSignalPayload,
-} from './types'
+import { type PrivateRoomBattleStartInfo, type PrivateRoomInfo, type PrivateRoomPeerSignalPayload } from './types'
 import { InMemoryPeerTransport } from './inMemoryPeerTransport'
 import { createPrivateRoomSignalBridge } from './privateRoomSignalBridge'
 import {

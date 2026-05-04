@@ -115,10 +115,12 @@ WARN: TTL-based disconnect management may not work properly without keyspace not
 ## Redis Requirements
 
 ### Minimum Redis Version
+
 - Redis 2.8.0+ (for keyspace notifications)
 - Redis 4.0.0+ recommended (for improved TTL precision)
 
 ### Required Configuration
+
 ```redis
 # Enable keyspace notifications for expired events
 CONFIG SET notify-keyspace-events Ex
@@ -130,6 +132,7 @@ CONFIG SET maxmemory-policy allkeys-lru
 ```
 
 ### Memory Considerations
+
 - Disconnect entries are small (~200 bytes each)
 - Automatic cleanup via TTL prevents memory leaks
 - Configure `maxmemory-policy` for memory pressure scenarios
@@ -177,6 +180,7 @@ const testResult = await RedisKeyspaceConfig.testTTLExpiration(client, subscribe
 ### Backward Compatibility
 
 The system maintains backward compatibility:
+
 - Local timer as backup mechanism
 - Graceful degradation if keyspace notifications fail
 - Existing disconnect handling APIs preserved
@@ -184,12 +188,14 @@ The system maintains backward compatibility:
 ## Performance Impact
 
 ### Benefits
+
 - Reduced memory usage (no local timer objects)
 - Better cluster consistency
 - Automatic garbage collection
 - Simplified state management
 
 ### Considerations
+
 - Additional Redis operations for TTL management
 - Network latency for keyspace notifications
 - Redis memory usage for disconnect entries
@@ -197,11 +203,13 @@ The system maintains backward compatibility:
 ## Security Considerations
 
 ### Access Control
+
 - Ensure Redis access is properly secured
 - Keyspace notifications don't expose sensitive data
 - TTL values are not externally manipulable
 
 ### Data Protection
+
 - Disconnect info contains minimal player data
 - Automatic cleanup prevents data persistence
 - Cross-instance events use secure channels

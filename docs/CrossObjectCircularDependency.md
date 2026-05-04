@@ -7,12 +7,14 @@
 ### 典型的跨对象依赖场景
 
 1. **宠物间相互影响**
+
    ```
    Pet1.attack 依赖 Pet2.defense
    Pet2.defense 依赖 Pet1.attack
    ```
 
 2. **宠物-玩家依赖**
+
    ```
    Pet.attack 依赖 Player.rage
    Player.rage 依赖 Pet.currentHp
@@ -20,6 +22,7 @@
    ```
 
 3. **复杂依赖链**
+
    ```
    Pet1 → Pet2 → Player → Battle → Pet1
    ```
@@ -51,14 +54,14 @@ private static globalDependencyGraph = new Map<string, Set<string>>()
 ```typescript
 private wouldCreateCrossObjectCircularDependency(key: keyof T): boolean {
   const globalKey = `${this.objectId}.${String(key)}`
-  
+
   // 检查是否在任何对象的计算栈中
   for (const [objectId, stack] of AttributeSystem.globalCalculationStack) {
     if (stack.has(globalKey)) {
       return true
     }
   }
-  
+
   return false
 }
 ```
@@ -103,6 +106,7 @@ static hasGlobalCircularDependencies(): boolean {
 ## 📊 实际测试结果
 
 ### 基础跨对象设置
+
 ```console
 === Cross-Object Circular Dependency Test ===
 
@@ -116,6 +120,7 @@ Player rage: 50
 ```
 
 ### 跨对象循环依赖检测
+
 ```console
 Test 3: Cross-object circular dependency simulation
 Cross-object dependencies tracked
@@ -136,6 +141,7 @@ Pet2 defense (should use fallback): 85
 ```
 
 ### 复杂依赖链检测
+
 ```console
 Test 5: Complex multi-object dependency chain
 Complex dependency chain created
@@ -163,7 +169,7 @@ const teammateBonus = new Modifier(
     return Math.floor(teammate2Defense * 0.2)
   }, [pet2.attributeSystem.getAttribute$('defense')]),
   'delta',
-  100
+  100,
 )
 
 pet1.attributeSystem.addModifier('attack', teammateBonus)
@@ -183,7 +189,7 @@ const rageBonus = new Modifier(
     return Math.floor(currentRage * 0.5)
   }, [player.attributeSystem.getAttribute$('currentRage')]),
   'delta',
-  150
+  150,
 )
 
 pet.attributeSystem.addModifier('attack', rageBonus)
@@ -193,12 +199,11 @@ const petHpRageGain = new Modifier(
   DurationType.binding,
   'pet_hp_rage_gain',
   computed(() => {
-    const petHpRatio = pet.attributeSystem.getCurrentValue('currentHp') / 
-                      pet.attributeSystem.getCurrentValue('maxHp')
+    const petHpRatio = pet.attributeSystem.getCurrentValue('currentHp') / pet.attributeSystem.getCurrentValue('maxHp')
     return petHpRatio < 0.3 ? 20 : 0 // 低血量时获得怒气加成
   }, [pet.attributeSystem.getAttribute$('currentHp')]),
   'delta',
-  100
+  100,
 )
 
 player.attributeSystem.addModifier('currentRage', petHpRageGain)
@@ -216,7 +221,7 @@ const crossPetMark = new Modifier(
     return pet2Speed > 100 ? 30 : 0 // 队友速度高时获得攻击加成
   }, [pet2.attributeSystem.getAttribute$('speed')]),
   'delta',
-  200
+  200,
 )
 
 pet1.attributeSystem.addModifier('attack', crossPetMark)
@@ -229,8 +234,10 @@ pet1.attributeSystem.addModifier('attack', crossPetMark)
 ```typescript
 // 手动跟踪跨对象依赖（用于调试）
 pet1.attributeSystem.trackCrossObjectDependency(
-  pet1.attributeSystem.getObjectId(), 'attack',
-  pet2.attributeSystem.getObjectId(), 'defense'
+  pet1.attributeSystem.getObjectId(),
+  'attack',
+  pet2.attributeSystem.getObjectId(),
+  'defense',
 )
 
 // 检查全局循环依赖
@@ -277,7 +284,7 @@ pet.attributeSystem.clearCircularDependencyTracking()
 
 ```typescript
 // ✅ 推荐：通过事件系统解耦
-pet1.on('attackChanged', (newAttack) => {
+pet1.on('attackChanged', newAttack => {
   // 更新pet2的相关属性，而不是直接依赖
   pet2.updateDefenseBonus(newAttack)
 })

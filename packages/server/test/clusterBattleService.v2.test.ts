@@ -464,7 +464,6 @@ describe('ClusterBattleService v2 runtime', () => {
     expect(JSON.parse(actionLogEntries[1]!).seq).toBe(2)
     expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'))).toBe('2')
     expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'))).toBe('2')
-
     ;(service as any).runtimeHost.remove('room_v2_1')
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
@@ -503,7 +502,6 @@ describe('ClusterBattleService v2 runtime', () => {
       }),
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '5')
-
     ;(service as any).runtimeHost.remove('room_v2_1')
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
@@ -540,7 +538,6 @@ describe('ClusterBattleService v2 runtime', () => {
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '5')
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'), 60, '3')
-
     ;(service as any).runtimeHost.remove('room_v2_1')
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
@@ -596,7 +593,6 @@ describe('ClusterBattleService v2 runtime', () => {
         updatedAt: Date.now(),
       }),
     )
-
     ;(service as any).runtimeHost.remove('room_v2_1')
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
@@ -675,7 +671,6 @@ describe('ClusterBattleService v2 runtime', () => {
         updatedAt: Date.now(),
       }),
     )
-
     ;(service as any).runtimeHost.remove('room_v2_1')
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
@@ -735,7 +730,6 @@ describe('ClusterBattleService v2 runtime', () => {
       }),
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '3')
-
     ;(service as any).runtimeHost.remove('room_v2_1')
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
@@ -781,7 +775,6 @@ describe('ClusterBattleService v2 runtime', () => {
       }),
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '4')
-
     ;(service as any).runtimeHost.remove('room_v2_1')
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 

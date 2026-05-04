@@ -4,12 +4,8 @@ import type { RichFieldContext } from '../types'
 
 const props = defineProps<{ context: RichFieldContext }>()
 
-const statKeys = computed<readonly string[]>(
-  () => props.context.hints.statKeys ?? [],
-)
-const statLabels = computed<Record<string, string>>(
-  () => props.context.hints.statLabels ?? {},
-)
+const statKeys = computed<readonly string[]>(() => props.context.hints.statKeys ?? [])
+const statLabels = computed<Record<string, string>>(() => props.context.hints.statLabels ?? {})
 
 const currentStats = computed(() => {
   const v = props.context.value
@@ -22,9 +18,7 @@ const maxStatValue = computed(() => {
   return Math.max(...vals, 1)
 })
 
-const statTotal = computed(() =>
-  statKeys.value.reduce((sum, k) => sum + (currentStats.value[k] ?? 0), 0),
-)
+const statTotal = computed(() => statKeys.value.reduce((sum, k) => sum + (currentStats.value[k] ?? 0), 0))
 
 const bars = computed(() =>
   statKeys.value.map(k => {

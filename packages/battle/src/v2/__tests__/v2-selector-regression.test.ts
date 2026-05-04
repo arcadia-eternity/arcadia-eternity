@@ -5,11 +5,7 @@ import { createBattleFromConfig } from '../data/battle-factory.js'
 import type { V2DataRepository } from '../data/v2-data-repository.js'
 import { resolveSelector } from '../systems/interpreter/selector.js'
 import type { InterpreterContext } from '../systems/interpreter/context.js'
-import {
-  getBattlePlayerIds,
-  getTestRepository,
-  makeTeamConfig,
-} from './helpers/regression-helpers.js'
+import { getBattlePlayerIds, getTestRepository, makeTeamConfig } from './helpers/regression-helpers.js'
 
 let repo: V2DataRepository
 

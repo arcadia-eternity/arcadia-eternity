@@ -16,9 +16,9 @@ function getRufflePublicPath(): string {
 
 function getRuffleScriptUrl(): string {
   const scriptVersionRaw =
-    (import.meta.env.VITE_COMMIT_HASH as string | undefined)
-    || (import.meta.env.VITE_BUILD_TIME as string | undefined)
-    || ''
+    (import.meta.env.VITE_COMMIT_HASH as string | undefined) ||
+    (import.meta.env.VITE_BUILD_TIME as string | undefined) ||
+    ''
   const scriptVersion = scriptVersionRaw.trim()
   const suffix = scriptVersion ? `?v=${encodeURIComponent(scriptVersion)}` : ''
   return `${getRufflePublicPath()}ruffle.js${suffix}`
@@ -47,11 +47,13 @@ function ensureRuffleConfig(): void {
 }
 
 function hasRufflePlayer(): boolean {
-  const rufflePlayer = (window as Window & {
-    RufflePlayer?: {
-      newest?: () => unknown
+  const rufflePlayer = (
+    window as Window & {
+      RufflePlayer?: {
+        newest?: () => unknown
+      }
     }
-  }).RufflePlayer
+  ).RufflePlayer
   return typeof rufflePlayer?.newest === 'function'
 }
 

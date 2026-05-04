@@ -249,7 +249,7 @@ export class TimerSystem {
     if (existing) {
       existing.add(handler as (data: unknown) => void)
     } else {
-      this.handlers.set(eventType, new Set([(handler as (data: unknown) => void)]))
+      this.handlers.set(eventType, new Set([handler as (data: unknown) => void]))
     }
     return () => this.off(eventType, handler)
   }
@@ -436,12 +436,7 @@ export class TimerSystem {
       actualDuration: actualDuration ?? Math.max(0, Date.now() - animation.startTime),
     })
 
-    if (
-      hadActiveAnimations &&
-      !remainingActiveAnimations &&
-      this.config.animationPauseEnabled &&
-      this.activeWindow
-    ) {
+    if (hadActiveAnimations && !remainingActiveAnimations && this.config.animationPauseEnabled && this.activeWindow) {
       this.emit('timerResume', {
         player: this.activeWindow.playerIds as playerId[],
       })

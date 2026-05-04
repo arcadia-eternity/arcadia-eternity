@@ -101,8 +101,7 @@ export function usePetManagement() {
             ElMessage.success(`成功导入 ${newTeam.length} 只精灵到新队伍 "${teamName}"并已切换到该队伍（${file.name}）`)
           } catch (err) {
             console.error('导入失败:', err)
-            const errorMsg =
-              err instanceof Error ? `YAML/JSON格式校验失败: ${err.message}` : (err as Error).message
+            const errorMsg = err instanceof Error ? `YAML/JSON格式校验失败: ${err.message}` : (err as Error).message
 
             ElMessage.error(`导入失败: ${errorMsg}`)
           }

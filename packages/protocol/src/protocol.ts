@@ -1,6 +1,12 @@
 // src/protocol.ts
 import type { BattleMessage, BattleState, TimerConfig, PlayerTimerState } from '@arcadia-eternity/const'
-import type { PlayerSchemaType, PlayerSelectionSchemaType, PetSchemaType, PackLock, AssetLock } from '@arcadia-eternity/schema'
+import type {
+  PlayerSchemaType,
+  PlayerSelectionSchemaType,
+  PetSchemaType,
+  PackLock,
+  AssetLock,
+} from '@arcadia-eternity/schema'
 
 // 重新导出常用类型
 export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
@@ -121,14 +127,8 @@ export interface ClientToServerEvents {
   joinPrivateRoomAsSpectator: (data: JoinPrivateRoomSpectatorRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
-  startPrivateRoomBattle: (
-    data: StartPrivateRoomBattleRequest,
-    ack: AckResponse<PrivateRoomBattleStartInfo>,
-  ) => void
-  sendPrivateRoomPeerSignal: (
-    data: SendPrivateRoomPeerSignalRequest,
-    ack: AckResponse<{ status: 'FORWARDED' }>,
-  ) => void
+  startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<PrivateRoomBattleStartInfo>) => void
+  sendPrivateRoomPeerSignal: (data: SendPrivateRoomPeerSignalRequest, ack: AckResponse<{ status: 'FORWARDED' }>) => void
   switchToSpectator: (data: Record<string, never>, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void

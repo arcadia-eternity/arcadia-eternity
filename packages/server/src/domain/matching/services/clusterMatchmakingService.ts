@@ -830,7 +830,14 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
       // 通过RPC调用远程实例创建战斗
       const response = await new Promise<{ success: boolean; error?: string; roomId?: string }>((resolve, reject) => {
-        ;(rpcClient as unknown as { createBattle: (req: unknown, cb: (err: grpc.ServiceError | null, resp: CreateBattleResponse) => void) => void }).createBattle(
+        ;(
+          rpcClient as unknown as {
+            createBattle: (
+              req: unknown,
+              cb: (err: grpc.ServiceError | null, resp: CreateBattleResponse) => void,
+            ) => void
+          }
+        ).createBattle(
           {
             player1_entry: {
               player_id: player1Entry.playerId,

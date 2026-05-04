@@ -5,11 +5,13 @@ import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
  * 从客户端的游戏数据存储中获取种族信息
  */
 export class ClientSpeciesDataProvider implements SpeciesDataProvider {
-  private gameDataStore: {
-    speciesList?: unknown
-    species?: Record<string, unknown> & { byId?: Record<string, unknown> }
-    [key: string]: unknown
-  } | undefined
+  private gameDataStore:
+    | {
+        speciesList?: unknown
+        species?: Record<string, unknown> & { byId?: Record<string, unknown> }
+        [key: string]: unknown
+      }
+    | undefined
 
   constructor(gameDataStore?: Record<string, unknown>) {
     this.gameDataStore = gameDataStore ?? {}
@@ -36,7 +38,9 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
     try {
       // 尝试从speciesList中查找
       if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
-        return this.gameDataStore.speciesList.find((species: SpeciesSchemaType) => species.id === speciesId) as SpeciesSchemaType | undefined
+        return this.gameDataStore.speciesList.find((species: SpeciesSchemaType) => species.id === speciesId) as
+          | SpeciesSchemaType
+          | undefined
       }
 
       // 尝试从其他可能的数据结构中查找

@@ -166,13 +166,13 @@ const loader = new HttpLoader({ baseUrl: '/api/data' })
 // 带验证的加载
 await loader.loadGameData({
   validateCrossReferences: true,
-  continueOnError: false
+  continueOnError: false,
 })
 
 // 快速加载（跳过验证）
 await loader.loadGameData({
   validateCrossReferences: false,
-  continueOnError: true
+  continueOnError: true,
 })
 ```
 
@@ -230,15 +230,15 @@ await loader.loadGameData({
 
 ## 配置选项
 
-| 选项 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `validateDependencies` | boolean | true | 是否验证依赖关系 |
-| `validateCrossReferences` | boolean | true | 是否验证交叉引用 |
-| `allowPartialLoad` | boolean | false | 是否允许部分加载 |
-| `continueOnError` | boolean | false | 遇到错误是否继续 |
-| `loadScripts` | boolean | false | 是否加载脚本定义 |
-| `scriptPaths` | string[] | undefined | 脚本文件路径列表 |
-| `scriptBaseUrl` | string | undefined | 脚本基础URL (浏览器环境) |
+| 选项                      | 类型     | 默认值    | 说明                     |
+| ------------------------- | -------- | --------- | ------------------------ |
+| `validateDependencies`    | boolean  | true      | 是否验证依赖关系         |
+| `validateCrossReferences` | boolean  | true      | 是否验证交叉引用         |
+| `allowPartialLoad`        | boolean  | false     | 是否允许部分加载         |
+| `continueOnError`         | boolean  | false     | 遇到错误是否继续         |
+| `loadScripts`             | boolean  | false     | 是否加载脚本定义         |
+| `scriptPaths`             | string[] | undefined | 脚本文件路径列表         |
+| `scriptBaseUrl`           | string   | undefined | 脚本基础URL (浏览器环境) |
 
 ## 最佳实践
 

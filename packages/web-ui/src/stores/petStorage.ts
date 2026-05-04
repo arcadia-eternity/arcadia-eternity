@@ -56,7 +56,9 @@ const PetStorageStateSchema = Type.Object({
 // 定义持久化数据的类型（不包含initialized）
 type PersistentPetStorageData = Omit<PetStorageState, 'initialized'>
 
-function createPersistentSnapshot(state: Pick<PetStorageState, 'storage' | 'teams' | 'currentTeamIndex' | 'lastMatchingConfig'>): PersistentPetStorageData {
+function createPersistentSnapshot(
+  state: Pick<PetStorageState, 'storage' | 'teams' | 'currentTeamIndex' | 'lastMatchingConfig'>,
+): PersistentPetStorageData {
   return JSON.parse(
     JSON.stringify({
       storage: state.storage,
@@ -274,10 +276,7 @@ export const usePetStorageStore = defineStore('petStorage', {
         currentTeamIndex: this.currentTeamIndex,
         lastMatchingConfig: this.lastMatchingConfig,
       })
-      localStorage.setItem(
-        'petStorage',
-        JSON.stringify(snapshot),
-      )
+      localStorage.setItem('petStorage', JSON.stringify(snapshot))
     },
 
     clearStorage() {

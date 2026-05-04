@@ -2,10 +2,7 @@ import type { World } from '@arcadia-eternity/engine'
 import type { ConditionDSL } from '@arcadia-eternity/schema'
 import type { InterpreterContext } from './context.js'
 
-export type ConditionHandler = (
-  ctx: InterpreterContext,
-  condition: ConditionDSL,
-) => boolean
+export type ConditionHandler = (ctx: InterpreterContext, condition: ConditionDSL) => boolean
 
 const CONDITION_REGISTRY_KEY = '__effectConditionRegistry'
 
@@ -18,28 +15,18 @@ function ensureConditionRegistry(world: World): Map<string, ConditionHandler> {
   return created
 }
 
-export function registerConditionHandler(
-  world: World,
-  type: string,
-  handler: ConditionHandler,
-): void {
+export function registerConditionHandler(world: World, type: string, handler: ConditionHandler): void {
   if (!type) return
   ensureConditionRegistry(world).set(type, handler)
 }
 
-export function registerConditionHandlers(
-  world: World,
-  handlers: Record<string, ConditionHandler>,
-): void {
+export function registerConditionHandlers(world: World, handlers: Record<string, ConditionHandler>): void {
   for (const [type, handler] of Object.entries(handlers)) {
     registerConditionHandler(world, type, handler)
   }
 }
 
-export function getConditionHandler(
-  world: World,
-  type: string,
-): ConditionHandler | undefined {
+export function getConditionHandler(world: World, type: string): ConditionHandler | undefined {
   if (!type) return undefined
   return ensureConditionRegistry(world).get(type)
 }

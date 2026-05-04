@@ -146,12 +146,7 @@
         }
       }
     },
-    "required": [
-      "id",
-      "trigger",
-      "priority",
-      "apply"
-    ]
+    "required": ["id", "trigger", "priority", "apply"]
   },
   "$defs": {
     "__schema0": {
@@ -164,9 +159,7 @@
               "const": "TODO"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -185,11 +178,7 @@
               "$ref": "#/$defs/__schema0"
             }
           },
-          "required": [
-            "type",
-            "condition",
-            "trueOperator"
-          ]
+          "required": ["type", "condition", "trueOperator"]
         },
         {
           "type": "object",
@@ -205,11 +194,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -225,11 +210,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -242,10 +223,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -267,11 +245,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "mark"
-          ]
+          "required": ["type", "target", "mark"]
         },
         {
           "type": "object",
@@ -287,11 +261,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -307,11 +277,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -335,11 +301,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "statType"
-          ]
+          "required": ["type", "target", "statType"]
         },
         {
           "type": "object",
@@ -373,13 +335,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "stat",
-            "modifierType",
-            "value"
-          ]
+          "required": ["type", "target", "stat", "modifierType", "value"]
         },
         {
           "type": "object",
@@ -413,13 +369,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "stat",
-            "modifierType",
-            "observableValue"
-          ]
+          "required": ["type", "target", "stat", "modifierType", "observableValue"]
         },
         {
           "type": "object",
@@ -441,12 +391,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "stat",
-            "maxValue"
-          ]
+          "required": ["type", "target", "stat", "maxValue"]
         },
         {
           "type": "object",
@@ -468,12 +413,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "stat",
-            "minValue"
-          ]
+          "required": ["type", "target", "stat", "minValue"]
         },
         {
           "type": "object",
@@ -507,11 +447,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "stat"
-          ]
+          "required": ["type", "target", "stat"]
         },
         {
           "type": "object",
@@ -545,13 +481,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "attribute",
-            "modifierType",
-            "value"
-          ]
+          "required": ["type", "target", "attribute", "modifierType", "value"]
         },
         {
           "type": "object",
@@ -576,13 +506,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "attribute",
-            "modifierType",
-            "observableValue"
-          ]
+          "required": ["type", "target", "attribute", "modifierType", "observableValue"]
         },
         {
           "type": "object",
@@ -604,12 +528,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "attribute",
-            "maxValue"
-          ]
+          "required": ["type", "target", "attribute", "maxValue"]
         },
         {
           "type": "object",
@@ -631,12 +550,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "attribute",
-            "minValue"
-          ]
+          "required": ["type", "target", "attribute", "minValue"]
         },
         {
           "type": "object",
@@ -661,13 +575,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "attribute",
-            "minValue",
-            "maxValue"
-          ]
+          "required": ["type", "target", "attribute", "minValue", "maxValue"]
         },
         {
           "type": "object",
@@ -689,12 +597,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "statType",
-            "value"
-          ]
+          "required": ["type", "target", "statType", "value"]
         },
         {
           "type": "object",
@@ -712,18 +615,10 @@
             "cleanStageStrategy": {
               "default": "positive",
               "type": "string",
-              "enum": [
-                "all",
-                "positive",
-                "negative",
-                "reverse"
-              ]
+              "enum": ["all", "positive", "negative", "reverse"]
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -741,18 +636,10 @@
             "cleanStageStrategy": {
               "default": "positive",
               "type": "string",
-              "enum": [
-                "all",
-                "positive",
-                "negative",
-                "reverse"
-              ]
+              "enum": ["all", "positive", "negative", "reverse"]
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -773,19 +660,10 @@
             "cleanStageStrategy": {
               "default": "negative",
               "type": "string",
-              "enum": [
-                "all",
-                "positive",
-                "negative",
-                "reverse"
-              ]
+              "enum": ["all", "positive", "negative", "reverse"]
             }
           },
-          "required": [
-            "type",
-            "source",
-            "target"
-          ]
+          "required": ["type", "source", "target"]
         },
         {
           "type": "object",
@@ -801,11 +679,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -821,11 +695,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -841,11 +711,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -861,11 +727,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -881,11 +743,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -901,11 +759,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -921,11 +775,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -948,17 +798,10 @@
                   "$ref": "#/$defs/__schema2"
                 }
               },
-              "required": [
-                "type",
-                "selector"
-              ]
+              "required": ["type", "selector"]
             }
           },
-          "required": [
-            "type",
-            "target",
-            "mark"
-          ]
+          "required": ["type", "target", "mark"]
         },
         {
           "type": "object",
@@ -971,10 +814,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -990,11 +830,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "priority"
-          ]
+          "required": ["type", "target", "priority"]
         },
         {
           "type": "object",
@@ -1010,11 +846,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "priority"
-          ]
+          "required": ["type", "target", "priority"]
         },
         {
           "type": "object",
@@ -1030,11 +862,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "priority"
-          ]
+          "required": ["type", "target", "priority"]
         },
         {
           "type": "object",
@@ -1050,11 +878,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "priority"
-          ]
+          "required": ["type", "target", "priority"]
         },
         {
           "type": "object",
@@ -1067,10 +891,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -1083,10 +904,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -1105,10 +923,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -1131,20 +946,13 @@
                   "$ref": "#/$defs/__schema2"
                 }
               },
-              "required": [
-                "type",
-                "selector"
-              ]
+              "required": ["type", "selector"]
             },
             "updateConfig": {
               "type": "boolean"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1157,10 +965,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -1183,17 +988,10 @@
                   "$ref": "#/$defs/__schema2"
                 }
               },
-              "required": [
-                "type",
-                "selector"
-              ]
+              "required": ["type", "selector"]
             }
           },
-          "required": [
-            "type",
-            "target",
-            "newTarget"
-          ]
+          "required": ["type", "target", "newTarget"]
         },
         {
           "type": "object",
@@ -1212,12 +1010,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "delta",
-            "percent"
-          ]
+          "required": ["type", "target", "delta", "percent"]
         },
         {
           "type": "object",
@@ -1236,10 +1029,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -1275,15 +1065,7 @@
                 "stackStrategy": {
                   "default": "extend",
                   "type": "string",
-                  "enum": [
-                    "stack",
-                    "refresh",
-                    "extend",
-                    "max",
-                    "replace",
-                    "none",
-                    "remove"
-                  ]
+                  "enum": ["stack", "refresh", "extend", "max", "replace", "none", "remove"]
                 },
                 "destroyable": {
                   "default": true,
@@ -1312,11 +1094,7 @@
               "additionalProperties": {}
             }
           },
-          "required": [
-            "type",
-            "target",
-            "config"
-          ]
+          "required": ["type", "target", "config"]
         },
         {
           "type": "object",
@@ -1332,11 +1110,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1352,11 +1126,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1372,11 +1142,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1392,11 +1158,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1412,11 +1174,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1432,11 +1190,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1452,11 +1206,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1472,11 +1222,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1492,11 +1238,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1512,11 +1254,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1532,11 +1270,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1552,11 +1286,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1572,11 +1302,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1592,11 +1318,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1609,10 +1331,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -1631,12 +1350,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "key",
-            "value"
-          ]
+          "required": ["type", "target", "key", "value"]
         },
         {
           "type": "object",
@@ -1652,11 +1366,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1672,11 +1382,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1692,11 +1398,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "value"
-          ]
+          "required": ["type", "target", "value"]
         },
         {
           "type": "object",
@@ -1709,10 +1411,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -1737,13 +1436,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "modifierType",
-            "value"
-          ]
+          "required": ["type", "target", "configKey", "modifierType", "value"]
         },
         {
           "type": "object",
@@ -1768,13 +1461,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "modifierType",
-            "observableValue"
-          ]
+          "required": ["type", "target", "configKey", "modifierType", "observableValue"]
         },
         {
           "type": "object",
@@ -1793,12 +1480,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "initialValue"
-          ]
+          "required": ["type", "target", "configKey", "initialValue"]
         },
         {
           "type": "object",
@@ -1820,13 +1502,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "initialValue",
-            "tags"
-          ]
+          "required": ["type", "target", "configKey", "initialValue", "tags"]
         },
         {
           "type": "object",
@@ -1851,13 +1527,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "tag",
-            "modifierType",
-            "value"
-          ]
+          "required": ["type", "target", "tag", "modifierType", "value"]
         },
         {
           "type": "object",
@@ -1882,13 +1552,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "modifierType",
-            "value"
-          ]
+          "required": ["type", "target", "configKey", "modifierType", "value"]
         },
         {
           "type": "object",
@@ -1913,13 +1577,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "modifierType",
-            "observableValue"
-          ]
+          "required": ["type", "target", "configKey", "modifierType", "observableValue"]
         },
         {
           "type": "object",
@@ -1953,14 +1611,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "modifierType",
-            "value",
-            "phaseType"
-          ]
+          "required": ["type", "target", "configKey", "modifierType", "value", "phaseType"]
         },
         {
           "type": "object",
@@ -1994,14 +1645,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "configKey",
-            "modifierType",
-            "observableValue",
-            "phaseType"
-          ]
+          "required": ["type", "target", "configKey", "modifierType", "observableValue", "phaseType"]
         },
         {
           "type": "object",
@@ -2018,27 +1662,17 @@
             },
             "transformType": {
               "type": "string",
-              "enum": [
-                "temporary",
-                "permanent"
-              ]
+              "enum": ["temporary", "permanent"]
             },
             "priority": {
               "$ref": "#/$defs/__schema5"
             },
             "permanentStrategy": {
               "type": "string",
-              "enum": [
-                "preserve_temporary",
-                "clear_temporary"
-              ]
+              "enum": ["preserve_temporary", "clear_temporary"]
             }
           },
-          "required": [
-            "type",
-            "target",
-            "newBase"
-          ]
+          "required": ["type", "target", "newBase"]
         },
         {
           "type": "object",
@@ -2055,27 +1689,17 @@
             },
             "transformType": {
               "type": "string",
-              "enum": [
-                "temporary",
-                "permanent"
-              ]
+              "enum": ["temporary", "permanent"]
             },
             "priority": {
               "$ref": "#/$defs/__schema5"
             },
             "permanentStrategy": {
               "type": "string",
-              "enum": [
-                "preserve_temporary",
-                "clear_temporary"
-              ]
+              "enum": ["preserve_temporary", "clear_temporary"]
             }
           },
-          "required": [
-            "type",
-            "target",
-            "newBase"
-          ]
+          "required": ["type", "target", "newBase"]
         },
         {
           "type": "object",
@@ -2088,10 +1712,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -2104,10 +1725,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "target"
-          ]
+          "required": ["type", "target"]
         },
         {
           "type": "object",
@@ -2123,11 +1741,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "effect"
-          ]
+          "required": ["type", "target", "effect"]
         }
       ]
     },
@@ -2147,11 +1761,7 @@
               "$ref": "#/$defs/__schema4"
             }
           },
-          "required": [
-            "type",
-            "target",
-            "evaluator"
-          ]
+          "required": ["type", "target", "evaluator"]
         },
         {
           "type": "object",
@@ -2167,10 +1777,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "conditions"
-          ]
+          "required": ["type", "conditions"]
         },
         {
           "type": "object",
@@ -2186,10 +1793,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "conditions"
-          ]
+          "required": ["type", "conditions"]
         },
         {
           "type": "object",
@@ -2202,10 +1806,7 @@
               "$ref": "#/$defs/__schema1"
             }
           },
-          "required": [
-            "type",
-            "condition"
-          ]
+          "required": ["type", "condition"]
         },
         {
           "type": "object",
@@ -2215,9 +1816,7 @@
               "const": "petIsActive"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2227,9 +1826,7 @@
               "const": "selfUseSkill"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2239,9 +1836,7 @@
               "const": "checkSelf"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2251,9 +1846,7 @@
               "const": "opponentUseSkill"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2263,9 +1856,7 @@
               "const": "selfBeDamaged"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2275,9 +1866,7 @@
               "const": "opponentBeDamaged"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2287,9 +1876,7 @@
               "const": "selfAddMark"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2299,9 +1886,7 @@
               "const": "opponentAddMark"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2311,9 +1896,7 @@
               "const": "selfBeAddMark"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2323,9 +1906,7 @@
               "const": "opponentBeAddMark"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2335,9 +1916,7 @@
               "const": "selfBeHeal"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2353,16 +1932,10 @@
             "strategy": {
               "default": "Continuous",
               "type": "string",
-              "enum": [
-                "Periodic",
-                "Once",
-                "Continuous"
-              ]
+              "enum": ["Periodic", "Once", "Continuous"]
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2372,28 +1945,16 @@
               "const": "statStageChange"
             },
             "stat": {
-              "default": [
-                "atk",
-                "def",
-                "spa",
-                "spd",
-                "spe"
-              ],
+              "default": ["atk", "def", "spa", "spd", "spe"],
               "$ref": "#/$defs/__schema5"
             },
             "check": {
               "default": "all",
               "type": "string",
-              "enum": [
-                "up",
-                "down",
-                "all"
-              ]
+              "enum": ["up", "down", "all"]
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2403,9 +1964,7 @@
               "const": "isFirstSkillUsedThisTurn"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2415,9 +1974,7 @@
               "const": "isLastSkillUsedThisTurn"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2427,9 +1984,7 @@
               "const": "selfSwitchIn"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2439,9 +1994,7 @@
               "const": "selfSwitchOut"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2451,9 +2004,7 @@
               "const": "selfBeSkillTarget"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2466,10 +2017,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "baseId"
-          ]
+          "required": ["type", "baseId"]
         },
         {
           "type": "object",
@@ -2482,10 +2030,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "baseId"
-          ]
+          "required": ["type", "baseId"]
         }
       ]
     },
@@ -2569,9 +2114,7 @@
               }
             }
           },
-          "required": [
-            "base"
-          ]
+          "required": ["base"]
         },
         {
           "type": "object",
@@ -2586,10 +2129,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "condition",
-            "trueSelector"
-          ]
+          "required": ["condition", "trueSelector"]
         },
         {
           "type": "object",
@@ -2608,10 +2148,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         }
       ]
     },
@@ -2657,10 +2194,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "type",
-                    "arg"
-                  ]
+                  "required": ["type", "arg"]
                 },
                 {
                   "type": "object",
@@ -2673,10 +2207,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "type",
-                    "arg"
-                  ]
+                  "required": ["type", "arg"]
                 },
                 {
                   "type": "string",
@@ -2704,10 +2235,7 @@
               ]
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2720,10 +2248,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2736,10 +2261,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2749,9 +2271,7 @@
               "const": "flat"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2764,10 +2284,7 @@
               "$ref": "#/$defs/__schema4"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2809,10 +2326,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "type",
-                    "arg"
-                  ]
+                  "required": ["type", "arg"]
                 },
                 {
                   "type": "object",
@@ -2825,10 +2339,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "type",
-                    "arg"
-                  ]
+                  "required": ["type", "arg"]
                 },
                 {
                   "type": "string",
@@ -2859,11 +2370,7 @@
               "$ref": "#/$defs/__schema4"
             }
           },
-          "required": [
-            "type",
-            "extractor",
-            "evaluator"
-          ]
+          "required": ["type", "extractor", "evaluator"]
         },
         {
           "type": "object",
@@ -2876,10 +2383,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2895,10 +2399,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2911,10 +2412,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2927,10 +2425,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2940,9 +2435,7 @@
               "const": "sum"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2952,9 +2445,7 @@
               "const": "avg"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -2967,10 +2458,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2983,10 +2471,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -2999,10 +2484,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -3012,9 +2494,7 @@
               "const": "shuffled"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -3027,10 +2507,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -3043,10 +2520,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -3059,10 +2533,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -3075,10 +2546,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "key"
-          ]
+          "required": ["type", "key"]
         },
         {
           "type": "object",
@@ -3091,10 +2559,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -3107,10 +2572,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "arg"
-          ]
+          "required": ["type", "arg"]
         },
         {
           "type": "object",
@@ -3120,9 +2582,7 @@
               "const": "asStatLevelMark"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -3132,9 +2592,7 @@
               "const": "sampleBetween"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -3153,11 +2611,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "condition",
-            "trueValue"
-          ]
+          "required": ["type", "condition", "trueValue"]
         }
       ]
     },
@@ -3172,23 +2626,13 @@
             },
             "operator": {
               "type": "string",
-              "enum": [
-                ">",
-                "<",
-                ">=",
-                "<=",
-                "=="
-              ]
+              "enum": [">", "<", ">=", "<=", "=="]
             },
             "value": {
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "operator",
-            "value"
-          ]
+          "required": ["type", "operator", "value"]
         },
         {
           "type": "object",
@@ -3201,10 +2645,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "object",
@@ -3217,10 +2658,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "object",
@@ -3236,10 +2674,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "conditions"
-          ]
+          "required": ["type", "conditions"]
         },
         {
           "type": "object",
@@ -3255,10 +2690,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "conditions"
-          ]
+          "required": ["type", "conditions"]
         },
         {
           "type": "object",
@@ -3271,10 +2703,7 @@
               "$ref": "#/$defs/__schema4"
             }
           },
-          "required": [
-            "type",
-            "condition"
-          ]
+          "required": ["type", "condition"]
         },
         {
           "type": "object",
@@ -3287,10 +2716,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "percent"
-          ]
+          "required": ["type", "percent"]
         },
         {
           "type": "object",
@@ -3303,10 +2729,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "tag"
-          ]
+          "required": ["type", "tag"]
         },
         {
           "type": "object",
@@ -3316,9 +2739,7 @@
               "const": "exist"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         {
           "type": "object",
@@ -3331,10 +2752,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         }
       ]
     },
@@ -3360,10 +2778,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "number"
@@ -3388,10 +2803,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "string"
@@ -3416,10 +2828,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "boolean"
@@ -3435,10 +2844,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "object",
@@ -3451,10 +2857,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "object",
@@ -3467,10 +2870,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "object",
@@ -3483,10 +2883,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "object",
@@ -3499,10 +2896,7 @@
               "$ref": "#/$defs/__schema2"
             }
           },
-          "required": [
-            "type",
-            "selector"
-          ]
+          "required": ["type", "selector"]
         },
         {
           "type": "object",
@@ -3521,10 +2915,7 @@
               }
             }
           },
-          "required": [
-            "type",
-            "value"
-          ]
+          "required": ["type", "value"]
         },
         {
           "type": "object",
@@ -3543,11 +2934,7 @@
               "$ref": "#/$defs/__schema5"
             }
           },
-          "required": [
-            "type",
-            "condition",
-            "trueValue"
-          ]
+          "required": ["type", "condition", "trueValue"]
         },
         {
           "type": "array",

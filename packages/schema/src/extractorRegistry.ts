@@ -93,4 +93,3 @@ export type ExtractorRegistry = Static<typeof ExtractorRegistrySchema>
 export function parseExtractorRegistry(data: unknown): ExtractorRegistry {
   return parseWithErrors(ExtractorRegistrySchema, data)
 }
-

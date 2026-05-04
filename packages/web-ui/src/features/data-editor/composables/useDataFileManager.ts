@@ -31,11 +31,7 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
     ;(manifest.data as Record<string, unknown>)[kind] = paths
   }
 
-  async function createDataFile(
-    kind: EntityType,
-    fileName: string,
-    template?: string,
-  ): Promise<void> {
+  async function createDataFile(kind: EntityType, fileName: string, template?: string): Promise<void> {
     const folder = getFolder()
     isLoading.value = true
     error.value = null
@@ -108,9 +104,7 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
       const normalizedNew = normalizePath(newName)
 
       const newRef =
-        normalizedNew.endsWith('.yaml') || normalizedNew.endsWith('.yml')
-          ? normalizedNew
-          : `${normalizedNew}.yaml`
+        normalizedNew.endsWith('.yaml') || normalizedNew.endsWith('.yml') ? normalizedNew : `${normalizedNew}.yaml`
 
       if (normalizedOld === newRef) return
 
@@ -168,11 +162,7 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
     }
   }
 
-  async function moveRecords(
-    sourceFile: string,
-    targetFile: string,
-    recordIds: string[],
-  ): Promise<void> {
+  async function moveRecords(sourceFile: string, targetFile: string, recordIds: string[]): Promise<void> {
     const folder = getFolder()
     isLoading.value = true
     error.value = null
@@ -250,10 +240,7 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
     }
   }
 
-  function findFileKind(
-    manifest: Record<string, unknown>,
-    normalizedPath: string,
-  ): EntityType | null {
+  function findFileKind(manifest: Record<string, unknown>, normalizedPath: string): EntityType | null {
     for (const kind of ['species', 'skills', 'marks'] as EntityType[]) {
       const paths = getDataKindArray(manifest, kind)
       if (paths.some(p => normalizePath(p) === normalizedPath)) {

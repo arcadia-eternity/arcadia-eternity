@@ -1,5 +1,12 @@
 import { V2DataRepository, parseEffect, parseMark, parseSkill, parseSpecies } from '@arcadia-eternity/battle'
-import type { AssetConflict, PackLoadResult, PackLoadSummary, PackLoaderOptions, PackLockfile, PackSource } from './types'
+import type {
+  AssetConflict,
+  PackLoadResult,
+  PackLoadSummary,
+  PackLoaderOptions,
+  PackLockfile,
+  PackSource,
+} from './types'
 import YAML from 'yaml'
 import type { V2DataPackManifest } from './types'
 import type { AssetManifest } from '@arcadia-eternity/schema'
@@ -406,10 +413,7 @@ export class PackLoader {
     options: PackLoaderOptions,
   ): Promise<PackLockfile | undefined> {
     const continueOnError = options.continueOnError ?? false
-    const [{ dirname, resolve }, { readFile }] = await Promise.all([
-      import('node:path'),
-      import('node:fs/promises'),
-    ])
+    const [{ dirname, resolve }, { readFile }] = await Promise.all([import('node:path'), import('node:fs/promises')])
     const lockfilePath = resolve(dirname(packPath), 'pack-lock.yaml')
     try {
       const raw = await readFile(lockfilePath, 'utf8')
@@ -451,14 +455,14 @@ export class PackLoader {
           ? generatedAtValue.toISOString()
           : undefined
     if (
-      typeof parsed !== 'object'
-      || parsed === null
-      || parsed.lockfileVersion !== 1
-      || generatedAt === undefined
-      || typeof parsed.importers !== 'object'
-      || parsed.importers === null
-      || typeof parsed.packages !== 'object'
-      || parsed.packages === null
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      parsed.lockfileVersion !== 1 ||
+      generatedAt === undefined ||
+      typeof parsed.importers !== 'object' ||
+      parsed.importers === null ||
+      typeof parsed.packages !== 'object' ||
+      parsed.packages === null
     ) {
       throw new Error(`Invalid pack lockfile: ${source}`)
     }
@@ -531,16 +535,22 @@ export class PackLoader {
         issues.push(`lockfile package '${asset.id}' should be kind=asset`)
       }
       if (assetSnapshot.version !== asset.version) {
-        issues.push(`lockfile version mismatch for asset '${asset.id}': expected ${asset.version}, got ${assetSnapshot.version}`)
+        issues.push(
+          `lockfile version mismatch for asset '${asset.id}': expected ${asset.version}, got ${assetSnapshot.version}`,
+        )
       }
       if (assetSnapshot.engine !== asset.engine) {
-        issues.push(`lockfile engine mismatch for asset '${asset.id}': expected ${asset.engine}, got ${assetSnapshot.engine}`)
+        issues.push(
+          `lockfile engine mismatch for asset '${asset.id}': expected ${asset.engine}, got ${assetSnapshot.engine}`,
+        )
       }
       if (assetSnapshot.entry !== 'assets.json') {
         issues.push(`lockfile entry mismatch for asset '${asset.id}': expected assets.json, got ${assetSnapshot.entry}`)
       }
       if (!this.matchesExpectedSource(assetSnapshot.source, assetRecord.url)) {
-        issues.push(`lockfile source mismatch for asset '${asset.id}': expected ${assetRecord.url}, got ${assetSnapshot.source}`)
+        issues.push(
+          `lockfile source mismatch for asset '${asset.id}': expected ${assetRecord.url}, got ${assetSnapshot.source}`,
+        )
       }
       const assetIntegrity = await this.computeIntegrity(assetRecord.raw)
       if (assetSnapshot.resolution?.integrity && assetSnapshot.resolution.integrity !== assetIntegrity) {

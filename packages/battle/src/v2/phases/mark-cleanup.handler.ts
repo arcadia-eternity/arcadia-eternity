@@ -14,7 +14,8 @@ export class MarkCleanupHandler implements PhaseHandler<MarkCleanupPhaseData> {
   constructor(private markSystem: MarkSystem) {}
 
   initialize(world: World, phase: PhaseDef): MarkCleanupPhaseData {
-    void world; void phase;
+    void world
+    void phase
     return { removedMarkIds: [] }
   }
 

@@ -4,12 +4,15 @@ import type { ConditionDSL, ConditionDSLView, EvaluatorDSL, SelectorDSL, Value }
 import type { ContinuousUseSkillStrategy } from '@arcadia-eternity/const'
 import { useEffectTyping } from './composables/useEffectTyping'
 
-const props = withDefaults(defineProps<{
-  modelValue: ConditionDSL | undefined
-  label?: string
-}>(), {
-  label: undefined,
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: ConditionDSL | undefined
+    label?: string
+  }>(),
+  {
+    label: undefined,
+  },
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: ConditionDSL | undefined]
@@ -18,7 +21,10 @@ const emit = defineEmits<{
 defineSlots<{
   selector(props: { modelValue: SelectorDSL; update: (v: SelectorDSL) => void }): unknown
   value(props: { modelValue: Value; update: (v: Value) => void }): unknown
-  condition(props: { modelValue: ConditionDSL | EvaluatorDSL; update: (v: ConditionDSL | EvaluatorDSL) => void }): unknown
+  condition(props: {
+    modelValue: ConditionDSL | EvaluatorDSL
+    update: (v: ConditionDSL | EvaluatorDSL) => void
+  }): unknown
 }>()
 
 const { resolveConditionOptions } = useEffectTyping()
@@ -27,14 +33,34 @@ const conditionOptions = computed(() => resolveConditionOptions())
 const showingTypePicker = ref(false)
 const newType = ref('')
 
-type ConditionCategory = 'leaf' | 'evaluate' | 'value' | 'continuousUseSkill' | 'skillSequence' | 'statStageChange' | 'probability' | 'children' | 'singleChild'
+type ConditionCategory =
+  | 'leaf'
+  | 'evaluate'
+  | 'value'
+  | 'continuousUseSkill'
+  | 'skillSequence'
+  | 'statStageChange'
+  | 'probability'
+  | 'children'
+  | 'singleChild'
 
 function categorizeCondition(type: string): ConditionCategory {
   const leaves = new Set([
-    'petIsActive', 'checkSelf', 'selfUseSkill', 'opponentUseSkill',
-    'selfBeDamaged', 'opponentBeDamaged', 'selfAddMark', 'opponentAddMark',
-    'selfBeAddMark', 'opponentBeAddMark', 'selfBeHeal', 'selfSwitchIn',
-    'selfSwitchOut', 'selfBeSkillTarget', 'isFirstSkillUsedThisTurn',
+    'petIsActive',
+    'checkSelf',
+    'selfUseSkill',
+    'opponentUseSkill',
+    'selfBeDamaged',
+    'opponentBeDamaged',
+    'selfAddMark',
+    'opponentAddMark',
+    'selfBeAddMark',
+    'opponentBeAddMark',
+    'selfBeHeal',
+    'selfSwitchIn',
+    'selfSwitchOut',
+    'selfBeSkillTarget',
+    'isFirstSkillUsedThisTurn',
     'isLastSkillUsedThisTurn',
   ])
   if (leaves.has(type)) return 'leaf'
@@ -133,10 +159,17 @@ function addCondition() {
       condition = { type: 'evaluate', target: 'self', evaluator: { type: 'exist' } }
       break
     case 'value':
-      condition = { type: newType.value as 'selfHasMark' | 'opponentHasMark', baseId: { type: 'raw:string', value: '' } }
+      condition = {
+        type: newType.value as 'selfHasMark' | 'opponentHasMark',
+        baseId: { type: 'raw:string', value: '' },
+      }
       break
     case 'continuousUseSkill':
-      condition = { type: 'continuousUseSkill', times: { type: 'raw:number', value: 1 }, strategy: 'Periodic' as ContinuousUseSkillStrategy }
+      condition = {
+        type: 'continuousUseSkill',
+        times: { type: 'raw:number', value: 1 },
+        strategy: 'Periodic' as ContinuousUseSkillStrategy,
+      }
       break
     case 'skillSequence':
       condition = { type: 'skillSequence', sequence: { type: 'raw:string', value: '' }, mode: 'exact', source: 'self' }
@@ -145,7 +178,11 @@ function addCondition() {
       condition = { type: 'statStageChange', stat: { type: 'raw:string', value: 'atk' }, check: 'up' }
       break
     case 'probability':
-      condition = { type: 'evaluate', target: 'self', evaluator: { type: 'probability', percent: { type: 'raw:number', value: 50 } } }
+      condition = {
+        type: 'evaluate',
+        target: 'self',
+        evaluator: { type: 'probability', percent: { type: 'raw:number', value: 50 } },
+      }
       break
     default:
       condition = { type: newType.value } as ConditionDSL
@@ -231,20 +268,14 @@ function emitSelectorUpdate(selector: SelectorDSL) {
 
 const condition = computed(() => props.modelValue)
 const c = computed(() => (condition.value ?? {}) as unknown as ConditionDSLView)
-const category = computed(() => condition.value ? categorizeCondition(condition.value.type) : null)
+const category = computed(() => (condition.value ? categorizeCondition(condition.value.type) : null))
 </script>
 
 <template>
   <div class="condition-tree-node">
     <div v-if="!condition" class="condition-empty">
       <span class="condition-empty-label">无条件</span>
-      <el-button
-        v-if="!showingTypePicker"
-        size="small"
-        type="primary"
-        plain
-        @click="showingTypePicker = true"
-      >
+      <el-button v-if="!showingTypePicker" size="small" type="primary" plain @click="showingTypePicker = true">
         + 添加条件
       </el-button>
       <div v-if="showingTypePicker" class="condition-type-picker">
@@ -255,55 +286,27 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
           class="type-select"
           @change="addCondition"
         >
-          <el-option
-            v-for="opt in conditionOptions"
-            :key="opt"
-            :label="conditionTypeLabel[opt] || opt"
-            :value="opt"
-          />
-          <el-option
-            label="概率判定"
-            value="probability"
-          />
+          <el-option v-for="opt in conditionOptions" :key="opt" :label="conditionTypeLabel[opt] || opt" :value="opt" />
+          <el-option label="概率判定" value="probability" />
         </el-select>
-        <el-button
-          size="small"
-          text
-          @click="showingTypePicker = false"
-        >
-          取消
-        </el-button>
+        <el-button size="small" text @click="showingTypePicker = false"> 取消 </el-button>
       </div>
     </div>
 
     <template v-else>
       <div class="condition-row">
         <div class="condition-header">
-          <span
-            class="condition-type-tag"
-            :style="{ backgroundColor: categoryTagColor[category!] }"
-          >
+          <span class="condition-type-tag" :style="{ backgroundColor: categoryTagColor[category!] }">
             {{ conditionTypeLabel[c.type as string] || (c.type as string) }}
           </span>
 
-          <el-button
-            size="small"
-            text
-            class="condition-delete-btn"
-            @click="deleteCondition"
-          >
-            ✕
-          </el-button>
+          <el-button size="small" text class="condition-delete-btn" @click="deleteCondition"> ✕ </el-button>
         </div>
 
         <div v-if="category === 'evaluate'" class="condition-fields">
           <div class="field-row">
             <span class="field-label">选择器</span>
-            <slot
-              name="selector"
-              :model-value="c.target"
-              :update="(v: SelectorDSL) => emitSelectorUpdate(v)"
-            />
+            <slot name="selector" :model-value="c.target" :update="(v: SelectorDSL) => emitSelectorUpdate(v)" />
           </div>
           <div class="field-row">
             <span class="field-label">评估</span>
@@ -321,7 +324,7 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
             <slot
               name="value"
               :model-value="(c.evaluator as Record<string, unknown>).percent as Value"
-              :update="(v) => emitEvaluatorUpdate({ ...c.evaluator, percent: v } as EvaluatorDSL)"
+              :update="v => emitEvaluatorUpdate({ ...c.evaluator, percent: v } as EvaluatorDSL)"
             />
           </div>
         </div>
@@ -329,22 +332,14 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
         <div v-else-if="category === 'value'" class="condition-fields">
           <div class="field-row">
             <span class="field-label">标记ID</span>
-            <slot
-              name="value"
-              :model-value="c.baseId"
-              :update="(v) => updateField('baseId', v)"
-            />
+            <slot name="value" :model-value="c.baseId" :update="v => updateField('baseId', v)" />
           </div>
         </div>
 
         <div v-else-if="category === 'continuousUseSkill'" class="condition-fields">
           <div class="field-row">
             <span class="field-label">次数</span>
-            <slot
-              name="value"
-              :model-value="c.times"
-              :update="(v) => updateField('times', v)"
-            />
+            <slot name="value" :model-value="c.times" :update="v => updateField('times', v)" />
           </div>
           <div class="field-row">
             <span class="field-label">策略</span>
@@ -367,11 +362,7 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
         <div v-else-if="category === 'skillSequence'" class="condition-fields">
           <div class="field-row">
             <span class="field-label">序列</span>
-            <slot
-              name="value"
-              :model-value="c.sequence"
-              :update="(v) => updateField('sequence', v)"
-            />
+            <slot name="value" :model-value="c.sequence" :update="v => updateField('sequence', v)" />
           </div>
           <div class="field-row">
             <span class="field-label">匹配模式</span>
@@ -410,11 +401,7 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
         <div v-else-if="category === 'statStageChange'" class="condition-fields">
           <div class="field-row">
             <span class="field-label">属性</span>
-            <slot
-              name="value"
-              :model-value="c.stat"
-              :update="(v) => updateField('stat', v)"
-            />
+            <slot name="value" :model-value="c.stat" :update="v => updateField('stat', v)" />
           </div>
           <div class="field-row">
             <span class="field-label">方向</span>
@@ -424,12 +411,7 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
               class="field-select"
               @update:model-value="(v: string) => updateField('check', v)"
             >
-              <el-option
-                v-for="opt in statCheckOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
+              <el-option v-for="opt in statCheckOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </div>
         </div>
@@ -439,14 +421,26 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
         </div>
 
         <div v-if="category === 'children'" class="condition-children">
-          <div
-            v-for="(child, index) in c.conditions"
-            :key="index"
-            class="condition-child-item"
-          >
+          <div v-for="(child, index) in c.conditions" :key="index" class="condition-child-item">
             <span class="child-connector">├</span>
-            <button type="button" class="child-move-btn" title="上移" :disabled="index === 0" @click="moveChildUp(Number(index))">▲</button>
-            <button type="button" class="child-move-btn" title="下移" :disabled="Number(index) >= (c.conditions?.length ?? 0) - 1" @click="moveChildDown(Number(index))">▼</button>
+            <button
+              type="button"
+              class="child-move-btn"
+              title="上移"
+              :disabled="index === 0"
+              @click="moveChildUp(Number(index))"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              class="child-move-btn"
+              title="下移"
+              :disabled="Number(index) >= (c.conditions?.length ?? 0) - 1"
+              @click="moveChildDown(Number(index))"
+            >
+              ▼
+            </button>
             <ConditionTreeEditor
               :model-value="child"
               @update:model-value="(v: ConditionDSL | undefined) => updateChildCondition(Number(index), v)"
@@ -462,14 +456,7 @@ const category = computed(() => condition.value ? categorizeCondition(condition.
               </template>
             </ConditionTreeEditor>
           </div>
-          <el-button
-            size="small"
-            text
-            class="child-add-btn"
-            @click="addChildCondition"
-          >
-            + 子条件
-          </el-button>
+          <el-button size="small" text class="child-add-btn" @click="addChildCondition"> + 子条件 </el-button>
         </div>
 
         <div v-if="category === 'singleChild'" class="condition-children">

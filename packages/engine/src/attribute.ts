@@ -37,9 +37,7 @@ export interface PhaseTypeSpec {
   scope: 'current' | 'any' | 'next'
 }
 
-export type ModifierValue =
-  | { kind: 'static'; value: AttributeValue }
-  | { kind: 'expr'; expr: unknown }
+export type ModifierValue = { kind: 'static'; value: AttributeValue } | { kind: 'expr'; expr: unknown }
 
 export interface ModifierDef {
   id: string
@@ -105,9 +103,7 @@ export class AttributeSystem {
   private writeGuard?: AttributeWriteGuard
   private baseValueSetHook?: AttributeBaseValueSetHook
 
-  constructor(
-    private resolver?: ExpressionResolver,
-  ) {}
+  constructor(private resolver?: ExpressionResolver) {}
 
   setResolver(resolver: ExpressionResolver): void {
     this.resolver = resolver
@@ -247,11 +243,7 @@ export class AttributeSystem {
   }
 
   /** Get all effective values for an entity. */
-  getAllValues(
-    world: World,
-    entityId: string,
-    phaseCtx?: PhaseContext,
-  ): Record<string, AttributeValue> {
+  getAllValues(world: World, entityId: string, phaseCtx?: PhaseContext): Record<string, AttributeValue> {
     const store = this.get(world, entityId)
     if (!store) return {}
     const result: Record<string, AttributeValue> = {}
@@ -286,9 +278,7 @@ export class AttributeSystem {
       const mods = store.modifiers[key]
       if (!mods || mods.length === 0) return base
 
-      const active = mods
-        .filter(m => this.isModifierActive(m, phaseCtx))
-        .sort((a, b) => b.priority - a.priority)
+      const active = mods.filter(m => this.isModifierActive(m, phaseCtx)).sort((a, b) => b.priority - a.priority)
 
       let result: AttributeValue = base
       for (const mod of active) {
@@ -339,23 +329,15 @@ export class AttributeSystem {
 
     switch (mod.type) {
       case 'percent':
-        return typeof current === 'number' && typeof modValue === 'number'
-          ? current * (1 + modValue / 100)
-          : current
+        return typeof current === 'number' && typeof modValue === 'number' ? current * (1 + modValue / 100) : current
       case 'delta':
-        return typeof current === 'number' && typeof modValue === 'number'
-          ? current + modValue
-          : current
+        return typeof current === 'number' && typeof modValue === 'number' ? current + modValue : current
       case 'override':
         return modValue
       case 'clampMax':
-        return typeof current === 'number' && typeof modValue === 'number'
-          ? Math.min(current, modValue)
-          : current
+        return typeof current === 'number' && typeof modValue === 'number' ? Math.min(current, modValue) : current
       case 'clampMin':
-        return typeof current === 'number' && typeof modValue === 'number'
-          ? Math.max(current, modValue)
-          : current
+        return typeof current === 'number' && typeof modValue === 'number' ? Math.max(current, modValue) : current
       case 'clamp': {
         if (typeof current !== 'number') return current
         let result = current

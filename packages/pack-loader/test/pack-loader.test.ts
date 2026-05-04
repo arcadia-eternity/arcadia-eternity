@@ -245,8 +245,8 @@ packages:
     )
 
     const loader = new PackLoader()
-    await expect(
-      loader.load(base, { source: 'http', enforceLockfile: true }),
-    ).rejects.toThrow(/Pack lockfile validation failed/)
+    await expect(loader.load(base, { source: 'http', enforceLockfile: true })).rejects.toThrow(
+      /Pack lockfile validation failed/,
+    )
   })
 })

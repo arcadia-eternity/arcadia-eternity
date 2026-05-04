@@ -28,13 +28,7 @@
         </div>
       </template>
     </el-select-v2>
-    <button
-      v-if="nullable"
-      type="button"
-      class="field-clear-btn"
-      title="清空为默认值"
-      @click="clearToNull"
-    >×</button>
+    <button v-if="nullable" type="button" class="field-clear-btn" title="清空为默认值" @click="clearToNull">×</button>
   </div>
 
   <!-- String (plain) -->
@@ -47,13 +41,7 @@
       @update:model-value="handleStringChange"
       @focus="onNullableFocus"
     />
-    <button
-      v-if="nullable"
-      type="button"
-      class="field-clear-btn"
-      title="清空为默认值"
-      @click="clearToNull"
-    >×</button>
+    <button v-if="nullable" type="button" class="field-clear-btn" title="清空为默认值" @click="clearToNull">×</button>
   </div>
 
   <!-- Enum -->
@@ -74,13 +62,7 @@
         </div>
       </el-option>
     </el-select>
-    <button
-      v-if="nullable"
-      type="button"
-      class="field-clear-btn"
-      title="清空为默认值"
-      @click="clearToNull"
-    >×</button>
+    <button v-if="nullable" type="button" class="field-clear-btn" title="清空为默认值" @click="clearToNull">×</button>
   </div>
 
   <!-- Number -->
@@ -98,13 +80,7 @@
       @focus="onNullableFocus"
       @update:model-value="handleNumberChange"
     />
-    <button
-      v-if="nullable"
-      type="button"
-      class="field-clear-btn"
-      title="清空为默认值"
-      @click="clearToNull"
-    >×</button>
+    <button v-if="nullable" type="button" class="field-clear-btn" title="清空为默认值" @click="clearToNull">×</button>
   </div>
 
   <!-- Boolean -->
@@ -120,18 +96,12 @@
   <div v-else-if="fieldType === 'numberOrTuple'" class="field-nullable-wrapper">
     <div class="number-or-tuple-editor">
       <div class="nt-toggle">
-        <button
-          type="button"
-          class="nt-toggle-btn"
-          :class="{ active: isSingleMode }"
-          @click="switchToSingle"
-        >固定</button>
-        <button
-          type="button"
-          class="nt-toggle-btn"
-          :class="{ active: !isSingleMode }"
-          @click="switchToRange"
-        >范围</button>
+        <button type="button" class="nt-toggle-btn" :class="{ active: isSingleMode }" @click="switchToSingle">
+          固定
+        </button>
+        <button type="button" class="nt-toggle-btn" :class="{ active: !isSingleMode }" @click="switchToRange">
+          范围
+        </button>
       </div>
       <div class="nt-inputs">
         <!-- Single: one number -->
@@ -163,13 +133,7 @@
         </template>
       </div>
     </div>
-    <button
-      v-if="nullable"
-      type="button"
-      class="field-clear-btn"
-      title="清空为默认值"
-      @click="clearToNull"
-    >×</button>
+    <button v-if="nullable" type="button" class="field-clear-btn" title="清空为默认值" @click="clearToNull">×</button>
   </div>
 
   <!-- Tuple -->
@@ -598,7 +562,9 @@ function onNullableFocus() {
   line-height: 1;
   padding: 0;
   flex-shrink: 0;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
 .field-clear-btn:hover {
@@ -642,7 +608,7 @@ function onNullableFocus() {
 .nt-toggle-btn.active {
   background: var(--ae-bg-base);
   color: var(--ae-text-primary);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .nt-inputs {

@@ -25,7 +25,10 @@ export class RedisKeyspaceConfig {
   static async enableKeyspaceNotifications(redisClient: Redis): Promise<void> {
     try {
       // 获取当前的 notify-keyspace-events 配置
-      const currentConfig = await redisClient.config('GET', 'notify-keyspace-events') as [string | null, string | null]
+      const currentConfig = (await redisClient.config('GET', 'notify-keyspace-events')) as [
+        string | null,
+        string | null,
+      ]
       const currentValue = currentConfig?.[1] || ''
 
       logger.info({ currentValue }, 'Current Redis notify-keyspace-events configuration')
@@ -48,7 +51,7 @@ export class RedisKeyspaceConfig {
         await redisClient.config('SET', 'notify-keyspace-events', newValue)
         logger.info(
           { oldValue: currentValue, newValue },
-          'Updated Redis notify-keyspace-events configuration for TTL expiration monitoring'
+          'Updated Redis notify-keyspace-events configuration for TTL expiration monitoring',
         )
       } else {
         logger.info('Redis keyspace notifications already properly configured for TTL expiration')
@@ -58,7 +61,10 @@ export class RedisKeyspaceConfig {
       await this.verifyKeyspaceNotifications(redisClient)
     } catch (error) {
       logger.error({ error }, 'Failed to configure Redis keyspace notifications')
-      throw new Error(`Redis keyspace configuration failed: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error })
+      throw new Error(
+        `Redis keyspace configuration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error },
+      )
     }
   }
 
@@ -68,7 +74,7 @@ export class RedisKeyspaceConfig {
    */
   private static async verifyKeyspaceNotifications(redisClient: Redis): Promise<void> {
     try {
-      const config = await redisClient.config('GET', 'notify-keyspace-events') as [string | null, string | null]
+      const config = (await redisClient.config('GET', 'notify-keyspace-events')) as [string | null, string | null]
       const value = config?.[1] || ''
 
       const hasKeyeventSupport = value.includes('E')
@@ -79,7 +85,7 @@ export class RedisKeyspaceConfig {
       } else {
         logger.warn(
           { config: value, hasKeyeventSupport, hasExpiredSupport },
-          'Redis keyspace notifications may not be properly configured'
+          'Redis keyspace notifications may not be properly configured',
         )
       }
     } catch (error) {
@@ -93,7 +99,7 @@ export class RedisKeyspaceConfig {
    * @param subscriberClient Redis 订阅客户端实例
    */
   static async testTTLExpiration(redisClient: Redis, subscriberClient: Redis): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const testKey = `test:ttl:${Date.now()}`
       const expiredKeyPattern = '__keyevent@*__:expired'
       let testCompleted = false
@@ -107,18 +113,21 @@ export class RedisKeyspaceConfig {
         }
       }, 3000) // 3秒超时
 
-      ;(subscriberClient.psubscribe as (pattern: string, callback: (err: Error | null) => void) => void)(expiredKeyPattern, (err: Error | null) => {
-        if (err) {
-          clearTimeout(timeout)
-          testCompleted = true
-          logger.error({ error: err }, 'Failed to subscribe for TTL test')
-          resolve(false)
-          return
-        }
+      ;(subscriberClient.psubscribe as (pattern: string, callback: (err: Error | null) => void) => void)(
+        expiredKeyPattern,
+        (err: Error | null) => {
+          if (err) {
+            clearTimeout(timeout)
+            testCompleted = true
+            logger.error({ error: err }, 'Failed to subscribe for TTL test')
+            resolve(false)
+            return
+          }
 
-        // 设置一个短期的测试键
-        redisClient.set(testKey, 'test-value', 'PX', 100) // 100ms 过期
-      })
+          // 设置一个短期的测试键
+          redisClient.set(testKey, 'test-value', 'PX', 100) // 100ms 过期
+        },
+      )
 
       subscriberClient.on('pmessage', (_pattern: string, _channel: string, expiredKey: string) => {
         if (expiredKey.includes(testKey) && !testCompleted) {
@@ -139,7 +148,7 @@ export class RedisKeyspaceConfig {
     return {
       'notify-keyspace-events': 'Ex', // E = keyevent, x = expired
       'tcp-keepalive': '60', // TCP keepalive
-      'timeout': '0', // 客户端超时时间（0 = 无限制）
+      timeout: '0', // 客户端超时时间（0 = 无限制）
       'maxmemory-policy': 'allkeys-lru', // 内存满时的淘汰策略
     }
   }

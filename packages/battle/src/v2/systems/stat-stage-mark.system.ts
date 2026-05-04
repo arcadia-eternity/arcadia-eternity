@@ -9,10 +9,19 @@ const MIN_STAGE = -6
 const MAX_STAGE = 6
 
 const STAGE_MULTIPLIER_TABLE: Record<number, number> = {
-  [-6]: 2 / 8, [-5]: 2 / 7, [-4]: 2 / 6, [-3]: 2 / 5,
-  [-2]: 2 / 4, [-1]: 2 / 3, [0]: 1,
-  [1]: 3 / 2, [2]: 4 / 2, [3]: 5 / 2,
-  [4]: 6 / 2, [5]: 7 / 2, [6]: 8 / 2,
+  [-6]: 2 / 8,
+  [-5]: 2 / 7,
+  [-4]: 2 / 6,
+  [-3]: 2 / 5,
+  [-2]: 2 / 4,
+  [-1]: 2 / 3,
+  [0]: 1,
+  [1]: 3 / 2,
+  [2]: 4 / 2,
+  [3]: 5 / 2,
+  [4]: 6 / 2,
+  [5]: 7 / 2,
+  [6]: 8 / 2,
 }
 
 function clampStage(value: number): number {
@@ -78,38 +87,24 @@ export class StatStageMarkSystem {
     this.syncStageModifier(world, entityId, stat, stage)
   }
 
-  clearStages(
-    world: World,
-    entityId: string,
-    strategy: CleanStageStrategy = 'all',
-    stats?: string[],
-  ): void {
+  clearStages(world: World, entityId: string, strategy: CleanStageStrategy = 'all', stats?: string[]): void {
     const targetStats = stats ?? this.getTrackedStats(world, entityId)
     for (const stat of targetStats) {
       const stage = this.getStage(world, entityId, stat)
       const shouldClear =
-        strategy === 'all'
-        || (strategy === 'positive' && stage > 0)
-        || (strategy === 'negative' && stage < 0)
+        strategy === 'all' || (strategy === 'positive' && stage > 0) || (strategy === 'negative' && stage < 0)
       if (shouldClear && stage !== 0) {
         this.setStage(world, entityId, stat, 0)
       }
     }
   }
 
-  reverseStages(
-    world: World,
-    entityId: string,
-    strategy: CleanStageStrategy = 'all',
-    stats?: string[],
-  ): void {
+  reverseStages(world: World, entityId: string, strategy: CleanStageStrategy = 'all', stats?: string[]): void {
     const targetStats = stats ?? this.getTrackedStats(world, entityId)
     for (const stat of targetStats) {
       const stage = this.getStage(world, entityId, stat)
       const shouldReverse =
-        strategy === 'all'
-        || (strategy === 'positive' && stage > 0)
-        || (strategy === 'negative' && stage < 0)
+        strategy === 'all' || (strategy === 'positive' && stage > 0) || (strategy === 'negative' && stage < 0)
       if (shouldReverse && stage !== 0) {
         this.setStage(world, entityId, stat, -stage)
       }
@@ -128,9 +123,7 @@ export class StatStageMarkSystem {
     for (const stat of targetStats) {
       const stage = this.getStage(world, sourceEntityId, stat)
       const shouldTransfer =
-        strategy === 'all'
-        || (strategy === 'positive' && stage > 0)
-        || (strategy === 'negative' && stage < 0)
+        strategy === 'all' || (strategy === 'positive' && stage > 0) || (strategy === 'negative' && stage < 0)
       if (!shouldTransfer || stage === 0) continue
 
       const targetStage = this.getStage(world, targetEntityId, stat)

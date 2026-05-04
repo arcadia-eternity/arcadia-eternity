@@ -200,7 +200,11 @@ const handleReconnect = async () => {
     showReconnectDialog.value = false
   } catch (error: unknown) {
     console.error('重连失败:', String(error))
-    ElMessage.error((error instanceof Error ? error.message : undefined) || battleClientStore.serverWarmupHint || '重连失败，请稍后再试')
+    ElMessage.error(
+      (error instanceof Error ? error.message : undefined) ||
+        battleClientStore.serverWarmupHint ||
+        '重连失败，请稍后再试',
+    )
   } finally {
     isReconnecting.value = false
   }

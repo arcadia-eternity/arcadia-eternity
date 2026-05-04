@@ -42,7 +42,11 @@ function collectUnexpectedConsole(page: Page) {
 
 async function logStage(page: Page, stage: string) {
   const url = page.url()
-  const connectionText = await page.getByText(/已连接|连接中|连接断开/).first().textContent().catch(() => null)
+  const connectionText = await page
+    .getByText(/已连接|连接中|连接断开/)
+    .first()
+    .textContent()
+    .catch(() => null)
   console.log(`[E2E][${stage}] url=${url} connection=${connectionText ?? 'unknown'}`)
 }
 
@@ -74,7 +78,10 @@ async function openFreshLobby(context: BrowserContext) {
   try {
     await expect(createRoomButton).toBeEnabled({ timeout: 20_000 })
   } catch (error) {
-    const connectionStatus = await page.locator('body').textContent().catch(() => '')
+    const connectionStatus = await page
+      .locator('body')
+      .textContent()
+      .catch(() => '')
     console.log('LOBBY DEBUG URL', page.url())
     console.log('LOBBY DEBUG BODY\n' + (connectionStatus ?? ''))
     console.log('LOBBY DEBUG CONSOLE\n' + debugConsole.join('\n'))
@@ -89,16 +96,18 @@ async function createPrivateRoom(page: Page) {
   let roomCode: string
   try {
     roomCode = await page.evaluate(async transport => {
-      const debug = (window as typeof window & {
-        __APP_DEBUG__?: {
-          createPrivateRoom?: (config: {
-            ruleSetId?: string
-            isPrivate?: boolean
-            password?: string
-            p2pTransport?: 'auto' | 'webrtc' | 'relay'
-          }) => Promise<string>
+      const debug = (
+        window as typeof window & {
+          __APP_DEBUG__?: {
+            createPrivateRoom?: (config: {
+              ruleSetId?: string
+              isPrivate?: boolean
+              password?: string
+              p2pTransport?: 'auto' | 'webrtc' | 'relay'
+            }) => Promise<string>
+          }
         }
-      }).__APP_DEBUG__
+      ).__APP_DEBUG__
 
       if (!debug?.createPrivateRoom) {
         throw new Error('createPrivateRoom debug hook unavailable')
@@ -173,8 +182,20 @@ async function waitForRoomPopulation(hostPage: Page, guestPage: Page, hostDebug:
   } catch (error) {
     console.log('HOST DEBUG CONSOLE\n' + hostDebug.join('\n'))
     console.log('GUEST DEBUG CONSOLE\n' + guestDebug.join('\n'))
-    console.log('HOST BODY\n' + ((await hostPage.locator('body').textContent().catch(() => '')) ?? ''))
-    console.log('GUEST BODY\n' + ((await guestPage.locator('body').textContent().catch(() => '')) ?? ''))
+    console.log(
+      'HOST BODY\n' +
+        ((await hostPage
+          .locator('body')
+          .textContent()
+          .catch(() => '')) ?? ''),
+    )
+    console.log(
+      'GUEST BODY\n' +
+        ((await guestPage
+          .locator('body')
+          .textContent()
+          .catch(() => '')) ?? ''),
+    )
     throw error
   }
 }
@@ -247,12 +268,17 @@ async function waitForBattleInteractionReady(page: Page, timeout = 60_000) {
   await expect(page.getByRole('button', { name: '战斗', exact: true })).toBeVisible({ timeout })
   await expect(page.getByTestId('battle-loading-overlay')).toHaveCount(0, { timeout })
   await expect
-    .poll(async () => {
-      return await enabledSkillButtons(page).count().catch(() => 0)
-    }, {
-      timeout,
-      message: `No visible enabled battle action button found within ${timeout}ms`,
-    })
+    .poll(
+      async () => {
+        return await enabledSkillButtons(page)
+          .count()
+          .catch(() => 0)
+      },
+      {
+        timeout,
+        message: `No visible enabled battle action button found within ${timeout}ms`,
+      },
+    )
     .toBeGreaterThan(0)
 }
 
@@ -260,8 +286,16 @@ test('online private room can be created and joined by two guests', async ({ bro
   const hostContext = await browser.newContext()
   const guestContext = await browser.newContext()
 
-  const { page: hostPage, unexpectedConsoleErrors: hostConsole, debugConsole: hostDebug } = await openFreshLobby(hostContext)
-  const { page: guestPage, unexpectedConsoleErrors: guestConsole, debugConsole: guestDebug } = await openFreshLobby(guestContext)
+  const {
+    page: hostPage,
+    unexpectedConsoleErrors: hostConsole,
+    debugConsole: hostDebug,
+  } = await openFreshLobby(hostContext)
+  const {
+    page: guestPage,
+    unexpectedConsoleErrors: guestConsole,
+    debugConsole: guestDebug,
+  } = await openFreshLobby(guestContext)
 
   const roomCode = await createPrivateRoom(hostPage)
   await joinPrivateRoom(guestPage, roomCode)
@@ -282,8 +316,16 @@ test('online private room can start a p2p battle', async ({ browser }) => {
   const hostContext = await browser.newContext()
   const guestContext = await browser.newContext()
 
-  const { page: hostPage, unexpectedConsoleErrors: hostConsole, debugConsole: hostDebug } = await openFreshLobby(hostContext)
-  const { page: guestPage, unexpectedConsoleErrors: guestConsole, debugConsole: guestDebug } = await openFreshLobby(guestContext)
+  const {
+    page: hostPage,
+    unexpectedConsoleErrors: hostConsole,
+    debugConsole: hostDebug,
+  } = await openFreshLobby(hostContext)
+  const {
+    page: guestPage,
+    unexpectedConsoleErrors: guestConsole,
+    debugConsole: guestDebug,
+  } = await openFreshLobby(guestContext)
 
   const roomCode = await createPrivateRoom(hostPage)
   await joinPrivateRoom(guestPage, roomCode)
@@ -305,9 +347,16 @@ test('online p2p battle can submit actions and sync battle log', async ({ browse
   const hostContext = await browser.newContext()
   const guestContext = await browser.newContext()
 
-  const { page: hostPage, unexpectedConsoleErrors: hostConsole, debugConsole: hostDebug } = await openFreshLobby(hostContext)
-  const { page: guestPage, unexpectedConsoleErrors: guestConsole, debugConsole: guestDebug } =
-    await openFreshLobby(guestContext)
+  const {
+    page: hostPage,
+    unexpectedConsoleErrors: hostConsole,
+    debugConsole: hostDebug,
+  } = await openFreshLobby(hostContext)
+  const {
+    page: guestPage,
+    unexpectedConsoleErrors: guestConsole,
+    debugConsole: guestDebug,
+  } = await openFreshLobby(guestContext)
 
   const roomCode = await createPrivateRoom(hostPage)
   await joinPrivateRoom(guestPage, roomCode)
@@ -347,9 +396,16 @@ test('online p2p peer can reload battle page and rejoin active battle', async ({
   const hostContext = await browser.newContext()
   const guestContext = await browser.newContext()
 
-  const { page: hostPage, unexpectedConsoleErrors: hostConsole, debugConsole: hostDebug } = await openFreshLobby(hostContext)
-  const { page: guestPage, unexpectedConsoleErrors: guestConsole, debugConsole: guestDebug } =
-    await openFreshLobby(guestContext)
+  const {
+    page: hostPage,
+    unexpectedConsoleErrors: hostConsole,
+    debugConsole: hostDebug,
+  } = await openFreshLobby(hostContext)
+  const {
+    page: guestPage,
+    unexpectedConsoleErrors: guestConsole,
+    debugConsole: guestDebug,
+  } = await openFreshLobby(guestContext)
 
   const roomCode = await createPrivateRoom(hostPage)
   await joinPrivateRoom(guestPage, roomCode)

@@ -120,12 +120,7 @@ export class EloCalculationService {
    * @param gamesPlayed 已游戏场次
    * @returns 新的ELO评级
    */
-  calculateNewElo(
-    currentElo: number,
-    opponentElo: number,
-    result: BattleResult,
-    gamesPlayed: number
-  ): number {
+  calculateNewElo(currentElo: number, opponentElo: number, result: BattleResult, gamesPlayed: number): number {
     const expectedScore = this.calculateExpectedScore(currentElo, opponentElo)
     const actualScore = this.resultToScore(result)
     const kFactor = this.getKFactor(gamesPlayed)
@@ -146,7 +141,7 @@ export class EloCalculationService {
     playerA: PlayerEloRating,
     playerB: PlayerEloRating,
     winner: string | null,
-    ruleSetId: string
+    ruleSetId: string,
   ): EloCalculationResult {
     // 确定战斗结果
     let playerAResult: BattleResult
@@ -169,19 +164,9 @@ export class EloCalculationService {
     }
 
     // 计算新的ELO评级
-    const newEloA = this.calculateNewElo(
-      playerA.elo_rating,
-      playerB.elo_rating,
-      playerAResult,
-      playerA.games_played
-    )
+    const newEloA = this.calculateNewElo(playerA.elo_rating, playerB.elo_rating, playerAResult, playerA.games_played)
 
-    const newEloB = this.calculateNewElo(
-      playerB.elo_rating,
-      playerA.elo_rating,
-      playerBResult,
-      playerB.games_played
-    )
+    const newEloB = this.calculateNewElo(playerB.elo_rating, playerA.elo_rating, playerBResult, playerB.games_played)
 
     return {
       playerA: {

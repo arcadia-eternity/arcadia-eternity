@@ -59,11 +59,25 @@ function getItemLabel(op: OperatorDSL, index: number): string {
   const t = (op as Record<string, unknown>)?.type
   if (typeof t === 'string' && t.length > 0) {
     const labels: Record<string, string> = {
-      dealDamage: '造成伤害', heal: '治疗', executeKill: '处决', addMark: '添加标记',
-      destroyMark: '销毁标记', transferMark: '转移标记', addStacks: '增加堆叠', consumeStacks: '消耗堆叠',
-      addPower: '威力增加', addCritRate: '暴击率增加', setMultihit: '多段攻击', stun: '眩晕',
-      conditional: '条件分支', statStageBuff: '能力升降', setRage: '设置怒气', addAttributeModifier: '属性修正',
-      setSkill: '设置技能', transform: '变身', overrideMarkConfig: '覆盖标记配置',
+      dealDamage: '造成伤害',
+      heal: '治疗',
+      executeKill: '处决',
+      addMark: '添加标记',
+      destroyMark: '销毁标记',
+      transferMark: '转移标记',
+      addStacks: '增加堆叠',
+      consumeStacks: '消耗堆叠',
+      addPower: '威力增加',
+      addCritRate: '暴击率增加',
+      setMultihit: '多段攻击',
+      stun: '眩晕',
+      conditional: '条件分支',
+      statStageBuff: '能力升降',
+      setRage: '设置怒气',
+      addAttributeModifier: '属性修正',
+      setSkill: '设置技能',
+      transform: '变身',
+      overrideMarkConfig: '覆盖标记配置',
     }
     return labels[t] ?? t
   }
@@ -75,31 +89,22 @@ function getItemLabel(op: OperatorDSL, index: number): string {
   <div class="op-list-editor">
     <template v-if="isArray">
       <div class="op-list">
-        <div
-          v-for="(item, index) in items"
-          :key="index"
-          class="op-list-item"
-        >
+        <div v-for="(item, index) in items" :key="index" class="op-list-item">
           <div class="op-list-item-header">
             <span class="op-list-item-title">{{ getItemLabel(item, index) }}</span>
             <div class="op-list-item-actions">
-              <button
-                class="op-list-action-btn"
-                :disabled="index === 0"
-                title="上移"
-                @click="moveUp(index)"
-              >↑</button>
+              <button class="op-list-action-btn" :disabled="index === 0" title="上移" @click="moveUp(index)">↑</button>
               <button
                 class="op-list-action-btn"
                 :disabled="index >= items.length - 1"
                 title="下移"
                 @click="moveDown(index)"
-              >↓</button>
-              <button
-                class="op-list-action-btn op-list-action-btn--danger"
-                title="删除"
-                @click="removeItem(index)"
-              >×</button>
+              >
+                ↓
+              </button>
+              <button class="op-list-action-btn op-list-action-btn--danger" title="删除" @click="removeItem(index)">
+                ×
+              </button>
             </div>
           </div>
           <div class="op-list-item-body">
@@ -171,7 +176,9 @@ function getItemLabel(op: OperatorDSL, index: number): string {
   border-radius: var(--ae-radius-sm);
   color: var(--ae-text-muted);
   cursor: pointer;
-  transition: color 0.12s, background 0.12s;
+  transition:
+    color 0.12s,
+    background 0.12s;
 }
 
 .op-list-action-btn:hover:not(:disabled) {

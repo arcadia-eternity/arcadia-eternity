@@ -41,21 +41,23 @@ async function bootstrap() {
   authStore.initialize()
 
   if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
-    ;(window as typeof window & {
-      __APP_DEBUG__?: {
-        pinia: typeof pinia
-        stores: {
-          auth: () => ReturnType<typeof useAuthStore>
-          privateRoom: () => ReturnType<typeof usePrivateRoomStore>
+    ;(
+      window as typeof window & {
+        __APP_DEBUG__?: {
+          pinia: typeof pinia
+          stores: {
+            auth: () => ReturnType<typeof useAuthStore>
+            privateRoom: () => ReturnType<typeof usePrivateRoomStore>
+          }
+          createPrivateRoom: (config: {
+            ruleSetId?: string
+            isPrivate?: boolean
+            password?: string
+            p2pTransport?: 'auto' | 'webrtc' | 'relay'
+          }) => Promise<string>
         }
-        createPrivateRoom: (config: {
-          ruleSetId?: string
-          isPrivate?: boolean
-          password?: string
-          p2pTransport?: 'auto' | 'webrtc' | 'relay'
-        }) => Promise<string>
       }
-    }).__APP_DEBUG__ = {
+    ).__APP_DEBUG__ = {
       pinia,
       stores: {
         auth: () => useAuthStore(),

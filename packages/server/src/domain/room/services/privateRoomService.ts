@@ -1443,7 +1443,9 @@ export class PrivateRoomService {
       try {
         const validation = await ServerRuleIntegration.validateTeamWithRuleSet(player.team, room.config.ruleSetId)
         if (!validation.isValid) {
-          const playerErrors = validation.errors.map((error: { message: string }) => `玩家 ${player.playerName}: ${error.message}`)
+          const playerErrors = validation.errors.map(
+            (error: { message: string }) => `玩家 ${player.playerName}: ${error.message}`,
+          )
           errors.push(...playerErrors)
         }
       } catch (error) {

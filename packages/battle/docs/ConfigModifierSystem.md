@@ -7,27 +7,32 @@ Config Modifier System 是一个强大的配置值动态修改系统，允许印
 ## 核心特性
 
 ### 1. 多种修改器类型
+
 - **override**: 完全覆盖原值
 - **delta**: 数值增减（仅适用于数字类型）
 - **append**: 字符串追加（仅适用于字符串类型）
 - **prepend**: 字符串前置（仅适用于字符串类型）
 
 ### 2. 生命周期管理
+
 - **instant**: 立即生效，手动清理
 - **binding**: 绑定到源对象生命周期（mark/skill）
 - **phase**: 绑定到phase生命周期
 
 ### 3. 优先级系统
+
 - 支持优先级排序，高优先级的modifier先应用
 - 相同优先级按添加顺序应用
 
 ### 4. 响应式更新
+
 - 支持Observable值源，实现动态响应式更新
 - 基于RxJS的响应式编程模式
 
 ## 核心类
 
 ### ConfigModifier
+
 ```typescript
 class ConfigModifier {
   constructor(
@@ -42,20 +47,21 @@ class ConfigModifier {
 ```
 
 ### ConfigSystem
+
 ```typescript
 class ConfigSystem {
   // 注册支持modifier的配置键
   registerConfig(key: string, initialValue: ConfigValue): void
-  
+
   // 获取配置值（应用所有modifier后的结果）
   get(key: string, scope?: ScopeObject): ConfigValue | undefined
-  
+
   // 设置基础配置值
   set(key: string, value: ConfigValue, scope?: ScopeObject): void
-  
+
   // 添加配置modifier
   addConfigModifier(key: string, modifier: ConfigModifier): () => void
-  
+
   // 移除来自特定源的所有modifier
   removeModifiersFromSource(sourceId: string): void
 }
@@ -64,6 +70,7 @@ class ConfigSystem {
 ## 使用示例
 
 ### 基础用法
+
 ```typescript
 const configSystem = ConfigSystem.getInstance()
 
@@ -89,6 +96,7 @@ cleanup()
 ```
 
 ### 动态modifier
+
 ```typescript
 const dynamicValue$ = new BehaviorSubject(0.5)
 const dynamicModifier = new ConfigModifier(
@@ -106,18 +114,14 @@ dynamicValue$.next(1.0) // 伤害倍率会自动更新
 ```
 
 ### Phase级别的modifier
+
 ```typescript
 // 在Phase中添加临时配置修改
 class CustomPhase extends BattlePhaseBase {
   protected async executeOperation(): Promise<void> {
     // 在此phase期间增加伤害倍率
-    this.addConfigModifier(
-      'effects.damageMultiplier',
-      ConfigModifierType.delta,
-      0.5,
-      100
-    )
-    
+    this.addConfigModifier('effects.damageMultiplier', ConfigModifierType.delta, 0.5, 100)
+
     // Phase结束时会自动清理modifier
   }
 }
@@ -128,6 +132,7 @@ class CustomPhase extends BattlePhaseBase {
 ### 新增的Operator
 
 #### addConfigModifier
+
 ```typescript
 {
   type: 'addConfigModifier',
@@ -139,6 +144,7 @@ class CustomPhase extends BattlePhaseBase {
 ```
 
 #### addDynamicConfigModifier
+
 ```typescript
 {
   type: 'addDynamicConfigModifier',
@@ -156,6 +162,7 @@ class CustomPhase extends BattlePhaseBase {
 ```
 
 #### addPhaseConfigModifier
+
 ```typescript
 {
   type: 'addPhaseConfigModifier',
@@ -168,6 +175,7 @@ class CustomPhase extends BattlePhaseBase {
 ```
 
 #### registerConfig
+
 ```typescript
 {
   type: 'registerConfig',
@@ -179,69 +187,81 @@ class CustomPhase extends BattlePhaseBase {
 ## 实际应用场景
 
 ### 1. 时间操控效果
+
 ```typescript
 const timeAccelerationMark = {
-  effects: [{
-    trigger: 'OnMarkAdded',
-    apply: {
-      type: 'addConfigModifier',
-      configKey: 'battle.turnTimeLimit',
-      modifierType: 'delta',
-      value: -15, // 减少15秒回合时间
-    }
-  }]
+  effects: [
+    {
+      trigger: 'OnMarkAdded',
+      apply: {
+        type: 'addConfigModifier',
+        configKey: 'battle.turnTimeLimit',
+        modifierType: 'delta',
+        value: -15, // 减少15秒回合时间
+      },
+    },
+  ],
 }
 ```
 
 ### 2. 战斗规则修改
+
 ```typescript
 const endlessRageMark = {
-  effects: [{
-    trigger: 'OnMarkAdded',
-    apply: {
-      type: 'addConfigModifier',
-      configKey: 'battle.maxRounds',
-      modifierType: 'delta',
-      value: 50, // 增加50回合上限
-    }
-  }]
+  effects: [
+    {
+      trigger: 'OnMarkAdded',
+      apply: {
+        type: 'addConfigModifier',
+        configKey: 'battle.maxRounds',
+        modifierType: 'delta',
+        value: 50, // 增加50回合上限
+      },
+    },
+  ],
 }
 ```
 
 ### 3. 动态伤害调整
+
 ```typescript
 const adaptiveDamageMark = {
-  effects: [{
-    trigger: 'OnMarkAdded',
-    apply: {
-      type: 'addDynamicConfigModifier',
-      configKey: 'effects.damageMultiplier',
-      modifierType: 'delta',
-      observableValue: {
-        base: 'self',
-        chain: [
-          { type: 'selectAttribute$', arg: 'hp' },
-          { type: 'combineWith', arg: { base: 'self', chain: [{ type: 'selectAttribute$', arg: 'maxHp' }] } },
-          { type: 'map', arg: '([hp, maxHp]) => (1 - hp / maxHp) * 0.5' }
-        ]
-      }
-    }
-  }]
+  effects: [
+    {
+      trigger: 'OnMarkAdded',
+      apply: {
+        type: 'addDynamicConfigModifier',
+        configKey: 'effects.damageMultiplier',
+        modifierType: 'delta',
+        observableValue: {
+          base: 'self',
+          chain: [
+            { type: 'selectAttribute$', arg: 'hp' },
+            { type: 'combineWith', arg: { base: 'self', chain: [{ type: 'selectAttribute$', arg: 'maxHp' }] } },
+            { type: 'map', arg: '([hp, maxHp]) => (1 - hp / maxHp) * 0.5' },
+          ],
+        },
+      },
+    },
+  ],
 }
 ```
 
 ### 4. UI主题修改
+
 ```typescript
 const darknessMark = {
-  effects: [{
-    trigger: 'OnMarkAdded',
-    apply: {
-      type: 'addConfigModifier',
-      configKey: 'ui.theme',
-      modifierType: 'override',
-      value: 'darkness',
-    }
-  }]
+  effects: [
+    {
+      trigger: 'OnMarkAdded',
+      apply: {
+        type: 'addConfigModifier',
+        configKey: 'ui.theme',
+        modifierType: 'override',
+        value: 'darkness',
+      },
+    },
+  ],
 }
 ```
 

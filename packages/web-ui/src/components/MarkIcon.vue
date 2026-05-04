@@ -24,9 +24,7 @@ const resourceStore = useResourceStore()
 const normalizedMarkId = computed(() => String(props.markId ?? '').trim())
 
 const resolvedMark = computed<Partial<MarkSchemaType> | undefined>(() => {
-  const markFromStore = normalizedMarkId.value
-    ? gameDataStore.marks.byId[normalizedMarkId.value]
-    : undefined
+  const markFromStore = normalizedMarkId.value ? gameDataStore.marks.byId[normalizedMarkId.value] : undefined
 
   if (props.mark && typeof props.mark === 'object') {
     return {

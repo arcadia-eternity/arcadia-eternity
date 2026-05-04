@@ -38,7 +38,10 @@ const layeredPacks = computed(() => {
     const layer = runtimeLayers[folderName]
     const pack = props.packs.find(p => p.folderName === folderName)
     const recordCount = layer
-      ? (Object.keys(layer.species ?? {}).length + Object.keys(layer.skills ?? {}).length + Object.keys(layer.marks ?? {}).length + Object.keys(layer.effects ?? {}).length)
+      ? Object.keys(layer.species ?? {}).length +
+        Object.keys(layer.skills ?? {}).length +
+        Object.keys(layer.marks ?? {}).length +
+        Object.keys(layer.effects ?? {}).length
       : 0
 
     withLayers.push({
@@ -81,9 +84,7 @@ const activeLayerCount = computed(() => layerOrder.value.length)
       <span class="layering-count">{{ activeLayerCount }} 层</span>
     </div>
 
-    <div v-if="layeredPacks.length === 0" class="layering-empty">
-      暂无数据包
-    </div>
+    <div v-if="layeredPacks.length === 0" class="layering-empty">暂无数据包</div>
 
     <div v-else class="layering-stack">
       <div class="layering-label-row">
@@ -107,26 +108,14 @@ const activeLayerCount = computed(() => layerOrder.value.length)
             <span class="layer-name">{{ pack.id }}</span>
             <span v-if="pack.version" class="layer-version">v{{ pack.version }}</span>
           </div>
-          <span
-            v-if="pack.isBase"
-            class="ae-badge ae-badge--info"
-          >核心</span>
-          <span
-            v-else-if="!pack.enabled"
-            class="ae-badge ae-badge--muted"
-          >已禁用</span>
-          <span
-            v-else
-            class="ae-badge ae-badge--success"
-          >启用</span>
+          <span v-if="pack.isBase" class="ae-badge ae-badge--info">核心</span>
+          <span v-else-if="!pack.enabled" class="ae-badge ae-badge--muted">已禁用</span>
+          <span v-else class="ae-badge ae-badge--success">启用</span>
           <span v-if="pack.recordCount > 0" class="layer-records">{{ pack.recordCount }} 条</span>
         </div>
 
         <!-- Connector line between layers -->
-        <div
-          v-if="idx < layeredPacks.length - 1"
-          class="layer-connector"
-        />
+        <div v-if="idx < layeredPacks.length - 1" class="layer-connector" />
       </div>
 
       <div class="layering-label-row">
@@ -202,7 +191,10 @@ const activeLayerCount = computed(() => layerOrder.value.length)
   background: var(--ae-bg-elevated);
   border: 1px solid var(--ae-border-default);
   border-radius: var(--ae-radius-sm);
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .layer-card--top .layer-card-inner {

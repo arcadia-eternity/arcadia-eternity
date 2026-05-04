@@ -1,13 +1,6 @@
 import { computed, type Ref } from 'vue'
-import {
-  getEffectDslManifest,
-  getEffectDslNodeTyping,
-  type EffectDslNodeKind,
-} from '@arcadia-eternity/schema'
-import type {
-  EffectDslFieldTypingRule,
-  EffectDslStateConstraint,
-} from '@arcadia-eternity/schema'
+import { getEffectDslManifest, getEffectDslNodeTyping, type EffectDslNodeKind } from '@arcadia-eternity/schema'
+import type { EffectDslFieldTypingRule, EffectDslStateConstraint } from '@arcadia-eternity/schema'
 import { BASE_SELECTOR_KEYS, BASE_EXTRACTOR_KEYS, COMPARE_OPERATORS } from '@arcadia-eternity/schema'
 
 export type SelectorOption = {
@@ -86,21 +79,19 @@ const BATTLE_SELECTORS: SelectorOption[] = [
   { value: 'allPhases', label: '所有阶段', group: 'battle' },
 ]
 
-const ALL_SELECTOR_OPTIONS: SelectorOption[] = BASE_SELECTOR_KEYS.map((key) => {
-    const known = Object.values(OWNER_TO_SELECTORS).find(s => s.value === key)
-    if (known) return known
-    const inPet = TARGET_TO_SELECTORS.pet.find(s => s.value === key)
-    if (inPet) return inPet
-    const inBattle = BATTLE_SELECTORS.find(s => s.value === key)
-    if (inBattle) return inBattle
-    const allKnown = [...Object.values(TARGET_TO_SELECTORS).flat(), ...BATTLE_SELECTORS]
-    const found = allKnown.find(s => s.value === key)
-    return found ?? { value: key, label: key, group: 'other' as const }
-  })
+const ALL_SELECTOR_OPTIONS: SelectorOption[] = BASE_SELECTOR_KEYS.map(key => {
+  const known = Object.values(OWNER_TO_SELECTORS).find(s => s.value === key)
+  if (known) return known
+  const inPet = TARGET_TO_SELECTORS.pet.find(s => s.value === key)
+  if (inPet) return inPet
+  const inBattle = BATTLE_SELECTORS.find(s => s.value === key)
+  if (inBattle) return inBattle
+  const allKnown = [...Object.values(TARGET_TO_SELECTORS).flat(), ...BATTLE_SELECTORS]
+  const found = allKnown.find(s => s.value === key)
+  return found ?? { value: key, label: key, group: 'other' as const }
+})
 
-export function resolveSelectorOptions(
-  fieldTyping: EffectDslFieldTypingRule | undefined,
-): SelectorOption[] {
+export function resolveSelectorOptions(fieldTyping: EffectDslFieldTypingRule | undefined): SelectorOption[] {
   if (!fieldTyping) return ALL_SELECTOR_OPTIONS
 
   const options = new Map<string, SelectorOption>()
@@ -149,9 +140,7 @@ export const VALUE_TYPE_OPTIONS: ValueTypeOption[] = [
   { value: 'operator', label: '内嵌操作符', icon: '⚙️', description: '内联操作符返回值' },
 ]
 
-export function resolveValueTypeOptions(
-  fieldTyping: EffectDslFieldTypingRule | undefined,
-): ValueTypeOption[] {
+export function resolveValueTypeOptions(fieldTyping: EffectDslFieldTypingRule | undefined): ValueTypeOption[] {
   if (!fieldTyping) return VALUE_TYPE_OPTIONS
 
   const allowed = new Set<string>()
@@ -205,16 +194,12 @@ export function resolveValueTypeOptions(
   return VALUE_TYPE_OPTIONS.filter(opt => allowed.has(opt.value))
 }
 
-export function resolveEvaluatorOptions(
-  fieldTyping?: EffectDslFieldTypingRule | undefined,
-): string[] {
+export function resolveEvaluatorOptions(fieldTyping?: EffectDslFieldTypingRule | undefined): string[] {
   const manifest = getEffectDslManifest()
   return Object.keys(manifest.evaluator).filter(k => manifest.evaluator[k] !== undefined)
 }
 
-export function resolveConditionOptions(
-  fieldTyping?: EffectDslFieldTypingRule | undefined,
-): string[] {
+export function resolveConditionOptions(fieldTyping?: EffectDslFieldTypingRule | undefined): string[] {
   const manifest = getEffectDslManifest()
   return Object.keys(manifest.condition).filter(k => manifest.condition[k] !== undefined)
 }
@@ -239,9 +224,7 @@ export function useEffectTyping() {
     return (fields as Record<string, EffectDslFieldTypingRule>)[field]
   }
 
-  const operatorTypes = computed(() =>
-    Object.keys(manifest.operator).filter(k => manifest.operator[k] !== undefined),
-  )
+  const operatorTypes = computed(() => Object.keys(manifest.operator).filter(k => manifest.operator[k] !== undefined))
 
   const conditionTypes = computed(() =>
     Object.keys(manifest.condition).filter(k => manifest.condition[k] !== undefined),

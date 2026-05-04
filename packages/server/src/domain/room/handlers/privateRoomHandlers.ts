@@ -397,11 +397,7 @@ export class PrivateRoomHandlers {
   /**
    * 处理获取房间信息请求
    */
-  async handleGetRoomInfo(
-    socket: PrivateRoomSocket,
-    data: { roomCode: string },
-    ack?: AckResponse<PrivateRoomInfo>,
-  ) {
+  async handleGetRoomInfo(socket: PrivateRoomSocket, data: { roomCode: string }, ack?: AckResponse<PrivateRoomInfo>) {
     try {
       const room = await this.roomService.getRoom(data.roomCode)
 

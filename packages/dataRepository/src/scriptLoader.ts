@@ -129,7 +129,9 @@ export class ScriptLoader {
       console.log(`✅ 脚本加载成功: ${filePath}`)
     } catch (error) {
       console.error(`❌ 脚本加载失败: ${filePath}`, error)
-      throw new Error(`Failed to load script ${filePath}: ${error instanceof Error ? error.message : error}`, { cause: error })
+      throw new Error(`Failed to load script ${filePath}: ${error instanceof Error ? error.message : error}`, {
+        cause: error,
+      })
     }
   }
 
@@ -143,7 +145,9 @@ export class ScriptLoader {
       console.log(`✅ 脚本加载成功: ${url}`)
     } catch (error) {
       console.error(`❌ 脚本加载失败: ${url}`, error)
-      throw new Error(`Failed to load script from ${url}: ${error instanceof Error ? error.message : error}`, { cause: error })
+      throw new Error(`Failed to load script from ${url}: ${error instanceof Error ? error.message : error}`, {
+        cause: error,
+      })
     }
   }
 

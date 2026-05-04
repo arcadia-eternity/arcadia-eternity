@@ -218,9 +218,11 @@ export function newUpdateMapCaches(
     if (cached === current) return false
     if (typeof current.currentHp === 'number' && cached.currentHp !== current.currentHp) return true
     if (typeof current.currentRage === 'number' && cached.currentRage !== current.currentRage) return true
-    if (Array.isArray(current.marks) && (!Array.isArray(cached.marks) || cached.marks.length !== current.marks.length)) return true
+    if (Array.isArray(current.marks) && (!Array.isArray(cached.marks) || cached.marks.length !== current.marks.length))
+      return true
     if (typeof current.rage === 'number' && cached.rage !== current.rage) return true
-    if (Array.isArray(current.team) && (!Array.isArray(cached.team) || cached.team.length !== current.team.length)) return true
+    if (Array.isArray(current.team) && (!Array.isArray(cached.team) || cached.team.length !== current.team.length))
+      return true
     if (current.modifierState && cached.modifierState) {
       const cMod = current.modifierState as CacheEntry
       const cCached = cached.modifierState as CacheEntry

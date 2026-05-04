@@ -7,12 +7,14 @@
 ## 📋 分支策略
 
 ### main 分支 (开发环境)
+
 - **用途**: 日常开发和测试
-- **自动部署**: 
+- **自动部署**:
   - Docker镜像构建 (标签: `dev`, `main-{sha}`)
   - 开发环境可用于测试
 
 ### production 分支 (生产环境)
+
 - **用途**: 生产环境部署
 - **触发方式**: 当创建release时自动从main合并
 - **部署目标**:
@@ -45,6 +47,7 @@
 ## 📦 Cloudflare Pages 配置
 
 ### 开发站点
+
 ```
 项目名称: arcadia-eternity-dev
 分支: main
@@ -54,6 +57,7 @@
 ```
 
 ### 生产站点
+
 ```
 项目名称: arcadia-eternity-prod
 分支: production
@@ -65,6 +69,7 @@
 ## 🚀 发布流程
 
 ### 1. 日常开发
+
 ```bash
 # 使用 Conventional Commits
 git commit -m "feat: add new battle system"
@@ -76,6 +81,7 @@ git push origin main
 ```
 
 ### 2. 自动版本管理
+
 - release-please 监控 main 分支的提交
 - 根据 Conventional Commits 自动判断版本类型:
   - `feat:` → minor 版本 (0.1.0 → 0.2.0)
@@ -83,6 +89,7 @@ git push origin main
   - `feat!:` 或 `BREAKING CHANGE:` → major 版本 (0.1.0 → 1.0.0)
 
 ### 3. 创建发布
+
 - release-please 自动创建 Release PR
 - PR 包含:
   - 更新的版本号
@@ -90,6 +97,7 @@ git push origin main
   - 更新的 package.json 和 tauri.conf.json
 
 ### 4. 发布到生产环境
+
 ```bash
 # 审核并合并 Release PR
 # 这将触发:
@@ -103,17 +111,20 @@ git push origin main
 ## 🔍 版本信息显示
 
 ### 前端应用
+
 - **桌面端**: 左下角显示版本信息
 - **移动端**: 侧边菜单底部显示版本信息
 - **点击版本号**: 查看详细信息和检查更新 (Tauri)
 
 ### 版本格式
+
 - **生产环境**: `v1.2.3`
 - **开发环境**: `v1.2.3-dev.a1b2c3d`
 
 ## 🛠️ 故障排除
 
 ### release-please 权限错误
+
 如果遇到 "GitHub Actions is not permitted to create or approve pull requests" 错误:
 
 1. 检查仓库设置:
@@ -127,11 +138,13 @@ git push origin main
    ```
 
 ### 版本号不更新
+
 1. 确保使用 Conventional Commits 格式
 2. 检查 `.release-please-manifest.json` 中的版本号
 3. 确保提交包含实际的代码更改
 
 ### Docker 构建失败
+
 1. 检查 Dockerfile 中的环境变量
 2. 确保所有依赖都正确安装
 3. 检查构建日志中的具体错误信息

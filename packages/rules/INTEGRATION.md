@@ -22,7 +22,7 @@ import { ServerRuleIntegration } from '@arcadia-eternity/rules'
 async function startServer() {
   // 初始化规则系统
   await ServerRuleIntegration.initializeServer()
-  
+
   // 其他服务器初始化代码...
 }
 ```
@@ -74,7 +74,7 @@ interface RoomCreationOptions {
   sessions: string[]
   sessionPlayers: Record<string, string>
   metadata?: {
-    ruleSetId?: string  // 指定规则集ID
+    ruleSetId?: string // 指定规则集ID
     battleRecordId?: string
   }
 }
@@ -91,7 +91,7 @@ import { ClientRuleIntegration } from '@arcadia-eternity/rules'
 async function initializeApp() {
   // 初始化客户端规则系统
   await ClientRuleIntegration.initializeClient()
-  
+
   // 其他应用初始化代码...
 }
 ```
@@ -146,12 +146,7 @@ const canAddPet = computed(() => {
 <template>
   <div class="game-mode-selector">
     <el-select v-model="selectedGameMode" @change="onGameModeChange">
-      <el-option
-        v-for="mode in availableGameModes"
-        :key="mode.id"
-        :label="mode.name"
-        :value="mode.id"
-      >
+      <el-option v-for="mode in availableGameModes" :key="mode.id" :label="mode.name" :value="mode.id">
         <span>{{ mode.name }}</span>
         <span class="mode-description">{{ mode.description }}</span>
       </el-option>

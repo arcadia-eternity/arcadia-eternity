@@ -40,9 +40,7 @@ export class MarkSystem {
   ): MarkData {
     const id = generateId('mark')
     const config = { ...baseMark.config, ...overrides?.config }
-    const duration =
-      overrides?.duration
-      ?? config.duration
+    const duration = overrides?.duration ?? config.duration
     const normalizedDuration = config.persistent ? -1 : duration
 
     const mark: MarkData = {
@@ -169,11 +167,11 @@ export class MarkSystem {
   // -----------------------------------------------------------------------
 
   getStack(world: World, markId: string): number {
-    return this.attrSystem.getValue(world, markId, 'stack') as number ?? 0
+    return (this.attrSystem.getValue(world, markId, 'stack') as number) ?? 0
   }
 
   getDuration(world: World, markId: string): number {
-    return this.attrSystem.getValue(world, markId, 'duration') as number ?? 0
+    return (this.attrSystem.getValue(world, markId, 'duration') as number) ?? 0
   }
 
   isActive(world: World, markId: string): boolean {
@@ -194,11 +192,9 @@ export class MarkSystem {
     if (entityId === BATTLE_OWNER_ID) {
       return Object.keys(world.components.mark ?? {})
         .map(id => getComponent<MarkData>(world, id, MARK))
-        .filter((m): m is MarkData =>
-          m !== undefined
-          && m.ownerType === 'battle'
-          && m.ownerId === BATTLE_OWNER_ID
-          && this.isActive(world, m.id),
+        .filter(
+          (m): m is MarkData =>
+            m !== undefined && m.ownerType === 'battle' && m.ownerId === BATTLE_OWNER_ID && this.isActive(world, m.id),
         )
     }
 

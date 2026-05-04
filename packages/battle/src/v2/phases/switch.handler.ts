@@ -54,11 +54,16 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData> {
     if (oldPetId) {
       // Fire OnOwnerSwitchOut on old pet's marks
       const oldPetMarks = this.markSystem.getMarksOnEntity(world, oldPetId)
-      await this.effectPipeline.fire(world, EffectTrigger.OnOwnerSwitchOut, {
-        trigger: EffectTrigger.OnOwnerSwitchOut,
-        sourceEntityId: oldPetId,
-        context: ctx,
-      }, oldPetMarks.map(m => m.id))
+      await this.effectPipeline.fire(
+        world,
+        EffectTrigger.OnOwnerSwitchOut,
+        {
+          trigger: EffectTrigger.OnOwnerSwitchOut,
+          sourceEntityId: oldPetId,
+          context: ctx,
+        },
+        oldPetMarks.map(m => m.id),
+      )
 
       // Process marks: transfer / keep / remove
       for (const mark of oldPetMarks) {
@@ -105,11 +110,16 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData> {
     // Fire OnOwnerSwitchIn on new pet's marks
     const newPetMarks = this.markSystem.getMarksOnEntity(world, ctx.switchInPetId)
     if (newPetMarks.length > 0) {
-      await this.effectPipeline.fire(world, EffectTrigger.OnOwnerSwitchIn, {
-        trigger: EffectTrigger.OnOwnerSwitchIn,
-        sourceEntityId: ctx.switchInPetId,
-        context: ctx,
-      }, newPetMarks.map(m => m.id))
+      await this.effectPipeline.fire(
+        world,
+        EffectTrigger.OnOwnerSwitchIn,
+        {
+          trigger: EffectTrigger.OnOwnerSwitchIn,
+          sourceEntityId: ctx.switchInPetId,
+          context: ctx,
+        },
+        newPetMarks.map(m => m.id),
+      )
     }
 
     // Reduce rage by 20% on switch

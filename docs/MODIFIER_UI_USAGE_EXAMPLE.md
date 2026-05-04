@@ -13,26 +13,13 @@
 ```vue
 <template>
   <!-- 基础用法 -->
-  <ModifiedValue 
-    :value="100" 
-    :attribute-info="atkModifierInfo"
-    size="md"
-  />
-  
+  <ModifiedValue :value="100" :attribute-info="atkModifierInfo" size="md" />
+
   <!-- 内联显示 -->
-  <span>攻击力: <ModifiedValue 
-    :value="120" 
-    :attribute-info="atkModifierInfo"
-    size="sm"
-    inline
-  /></span>
-  
+  <span>攻击力: <ModifiedValue :value="120" :attribute-info="atkModifierInfo" size="sm" inline /></span>
+
   <!-- 禁用 tooltip -->
-  <ModifiedValue 
-    :value="80" 
-    :attribute-info="defModifierInfo"
-    :show-tooltip="false"
-  />
+  <ModifiedValue :value="80" :attribute-info="defModifierInfo" :show-tooltip="false" />
 </template>
 ```
 
@@ -42,10 +29,7 @@
 
 ```vue
 <template>
-  <BattleStatus 
-    :player="playerData"
-    side="left"
-  />
+  <BattleStatus :player="playerData" side="left" />
 </template>
 ```
 
@@ -76,7 +60,7 @@
 
 ```vue
 <template>
-  <SkillButton 
+  <SkillButton
     :skill="skillData"
     :power-modifier-info="powerModifierInfo"
     :accuracy-modifier-info="accuracyModifierInfo"
@@ -92,12 +76,7 @@
 
 ```vue
 <template>
-  <PetButton 
-    :pet="petData"
-    position="bottom"
-    :is-active="isActivePet"
-    @click="handlePetClick"
-  />
+  <PetButton :pet="petData" position="bottom" :is-active="isActivePet" @click="handlePetClick" />
 </template>
 ```
 
@@ -106,30 +85,35 @@
 系统支持以下 modifier 效果类型，每种都有不同的视觉表现：
 
 ### 1. 增益效果 (buffed)
+
 - **颜色**: 绿色 (`text-green-400`)
 - **发光**: 绿色光晕
 - **动画**: 脉冲效果
 - **触发条件**: 正面的数值修改或百分比增加
 
 ### 2. 减益效果 (debuffed)
+
 - **颜色**: 红色 (`text-red-400`)
 - **发光**: 红色光晕
 - **动画**: 脉冲效果
 - **触发条件**: 负面的数值修改或百分比减少
 
 ### 3. 限制效果 (clamped)
+
 - **颜色**: 橙色 (`text-orange-400`)
 - **发光**: 橙色光晕
 - **动画**: 警告脉冲
 - **触发条件**: clampMax、clampMin 或 clamp 类型的修改器
 
 ### 4. 混合效果 (mixed)
+
 - **颜色**: 紫色 (`text-purple-400`)
 - **发光**: 紫色光晕
 - **动画**: 复杂脉冲（多色变化）
 - **触发条件**: 同时存在正面和负面修改器
 
 ### 5. 中性效果 (neutral)
+
 - **颜色**: 蓝色 (`text-blue-400`)
 - **发光**: 蓝色光晕
 - **动画**: 微妙发光

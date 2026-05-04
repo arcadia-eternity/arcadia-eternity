@@ -136,7 +136,7 @@ export class ClusterStateManager extends EventEmitter {
       logger.info('Redis keyspace notifications initialized for TTL-based disconnect management')
     } catch (error) {
       logger.error({ error }, 'Failed to initialize Redis keyspace notifications')
-      
+
       // 不抛出错误，允许系统继续运行，但记录警告
       logger.warn('TTL-based disconnect management may not work properly without keyspace notifications')
     }
@@ -445,9 +445,13 @@ export class ClusterStateManager extends EventEmitter {
     // 检查事务执行结果
     if (!results || results.some((result: [Error | null, unknown]) => result[0] !== null)) {
       const errors = results
-        ? results.filter((result: [Error | null, unknown]) => result[0] !== null).map((result: [Error | null, unknown]) => result[0])
+        ? results
+            .filter((result: [Error | null, unknown]) => result[0] !== null)
+            .map((result: [Error | null, unknown]) => result[0])
         : ['Transaction failed']
-      throw new Error(`Player connection transaction failed: ${errors.map(e => (e as Error)?.message || String(e)).join(', ')}`)
+      throw new Error(
+        `Player connection transaction failed: ${errors.map(e => (e as Error)?.message || String(e)).join(', ')}`,
+      )
     }
 
     // 异步发布玩家连接事件，不阻塞主流程
@@ -683,7 +687,9 @@ export class ClusterStateManager extends EventEmitter {
 
     // 检查pipeline执行结果
     if (results && results.some((result: [Error | null, unknown]) => result[0] !== null)) {
-      const errors = results.filter((result: [Error | null, unknown]) => result[0] !== null).map((result: [Error | null, unknown]) => result[0])
+      const errors = results
+        .filter((result: [Error | null, unknown]) => result[0] !== null)
+        .map((result: [Error | null, unknown]) => result[0])
       throw new Error(`Pipeline execution failed: ${errors.map(e => (e as Error)?.message || String(e)).join(', ')}`)
     }
 

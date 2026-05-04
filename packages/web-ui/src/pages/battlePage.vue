@@ -1315,7 +1315,6 @@ const checkReplayLoadingStatus = async () => {
   }
 
   try {
-
     // 等待数据加载完成
     if (!isReplayDataLoaded.value) {
       isReplayFullyLoaded.value = false
@@ -2245,7 +2244,7 @@ onMounted(async () => {
             currentTurn: 0,
             marks: [],
             players: [],
-        } as BattleState,
+          } as BattleState,
           '',
         )
       } catch (error) {

@@ -38,11 +38,11 @@ addConfigModifier: (...): Operator<ScopeObject> =>
 // 修复后的scope绑定逻辑
 let modifierSource: MarkInstanceImpl | SkillInstance | BattlePhaseBase | undefined
 if (context.source instanceof MarkInstanceImpl) {
-  modifierSource = context.source  // Mark的scope是其owner Pet
+  modifierSource = context.source // Mark的scope是其owner Pet
 } else if (context.source instanceof SkillInstance) {
-  modifierSource = context.source  // Skill的scope是其owner Pet
+  modifierSource = context.source // Skill的scope是其owner Pet
 } else {
-  modifierSource = undefined       // 其他情况为全局scope
+  modifierSource = undefined // 其他情况为全局scope
 }
 ```
 
@@ -68,7 +68,7 @@ parseSelector<ScopeObject>(effectId, dsl.target)
 configSystem.addScopedConfigModifier(
   'damage.multiplier',
   modifier,
-  targetPet  // 🆕 modifier只在这个Pet的scope内生效
+  targetPet, // 🆕 modifier只在这个Pet的scope内生效
 )
 ```
 
@@ -79,10 +79,10 @@ configSystem.addScopedConfigModifier(
 configSystem.addScopedConfigModifier('damage.multiplier', modifier, pet1)
 
 // 只有Pet1及其子scope会受影响：
-console.log(configSystem.get('damage.multiplier', pet1))    // ✅ 应用modifier
-console.log(configSystem.get('damage.multiplier', pet2))    // ❌ 不受影响
-console.log(configSystem.get('damage.multiplier', player))  // ❌ 不受影响
-console.log(configSystem.get('damage.multiplier', battle))  // ❌ 不受影响
+console.log(configSystem.get('damage.multiplier', pet1)) // ✅ 应用modifier
+console.log(configSystem.get('damage.multiplier', pet2)) // ❌ 不受影响
+console.log(configSystem.get('damage.multiplier', player)) // ❌ 不受影响
+console.log(configSystem.get('damage.multiplier', battle)) // ❌ 不受影响
 ```
 
 ### 3. **Scope层级继承**
@@ -91,10 +91,10 @@ console.log(configSystem.get('damage.multiplier', battle))  // ❌ 不受影响
 // Player级modifier影响Player及其所有Pet
 configSystem.addScopedConfigModifier('damage.multiplier', modifier, player)
 
-console.log(configSystem.get('damage.multiplier', player))  // ✅ 应用modifier
-console.log(configSystem.get('damage.multiplier', pet1))    // ✅ 继承Player的modifier
-console.log(configSystem.get('damage.multiplier', pet2))    // ✅ 继承Player的modifier
-console.log(configSystem.get('damage.multiplier', battle))  // ❌ 不受影响
+console.log(configSystem.get('damage.multiplier', player)) // ✅ 应用modifier
+console.log(configSystem.get('damage.multiplier', pet1)) // ✅ 继承Player的modifier
+console.log(configSystem.get('damage.multiplier', pet2)) // ✅ 继承Player的modifier
+console.log(configSystem.get('damage.multiplier', battle)) // ❌ 不受影响
 ```
 
 ### 4. **Scope层级关系**
@@ -183,7 +183,7 @@ trigger: OnTurnStart
 priority: 100
 apply:
   type: addConfigModifier
-  target: { base: self }  # self是Pet，modifier的scope绑定到该Pet
+  target: { base: self } # self是Pet，modifier的scope绑定到该Pet
   configKey: { type: 'raw:string', value: 'damage.multiplier' }
   modifierType: { type: 'raw:string', value: 'delta' }
   value: { type: 'raw:number', value: 0.3 }

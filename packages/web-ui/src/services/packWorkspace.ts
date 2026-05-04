@@ -71,9 +71,7 @@ function normalizeRelativePath(value: string): string {
 
 function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
-  return value
-    .map(item => String(item ?? '').trim())
-    .filter(item => item.length > 0)
+  return value.map(item => String(item ?? '').trim()).filter(item => item.length > 0)
 }
 
 function isRemotePath(value: string): boolean {
@@ -90,7 +88,8 @@ function resolveManifestDataPath(manifest: WorkspacePackManifest, fileRef: strin
 
 function resolveManifestLocalePath(manifest: WorkspacePackManifest, locale: string, fileRef: string): string {
   const localesDirRaw = manifest.paths?.localesDir
-  const localesDir = typeof localesDirRaw === 'string' && localesDirRaw.trim().length > 0 ? localesDirRaw.trim() : 'locales'
+  const localesDir =
+    typeof localesDirRaw === 'string' && localesDirRaw.trim().length > 0 ? localesDirRaw.trim() : 'locales'
   const normalizedRef = fileRef.endsWith('.yaml') || fileRef.endsWith('.yml') ? fileRef : `${fileRef}.yaml`
   return `${normalizeRelativePath(localesDir).replace(/\/+$/, '')}/${normalizeRelativePath(locale)}/${normalizeRelativePath(normalizedRef)}`
 }
@@ -106,9 +105,8 @@ function collectManifestFilePaths(manifest: WorkspacePackManifest): string[] {
     }
   }
 
-  const locales = manifest.locales && typeof manifest.locales === 'object'
-    ? (manifest.locales as Record<string, unknown>)
-    : {}
+  const locales =
+    manifest.locales && typeof manifest.locales === 'object' ? (manifest.locales as Record<string, unknown>) : {}
   for (const [locale, refs] of Object.entries(locales)) {
     for (const sourceFile of toStringArray(refs)) {
       output.add(normalizeRelativePath(resolveManifestLocalePath(manifest, locale, sourceFile)))
@@ -246,9 +244,7 @@ export async function readWorkspacePackManifest(
   return api.readWorkspacePackManifest(input)
 }
 
-export async function writeWorkspacePackManifest(
-  input: WriteWorkspacePackManifestInput,
-): Promise<void> {
+export async function writeWorkspacePackManifest(input: WriteWorkspacePackManifestInput): Promise<void> {
   const api = desktopApi()
   if (!api) {
     throw new Error('当前环境不支持写入本地数据包清单（仅桌面端可用）')
@@ -259,9 +255,7 @@ export async function writeWorkspacePackManifest(
   await api.writeWorkspacePackManifest(input)
 }
 
-export async function readWorkspacePackFile(
-  input: ReadWorkspacePackFileInput,
-): Promise<ReadWorkspacePackFileResult> {
+export async function readWorkspacePackFile(input: ReadWorkspacePackFileInput): Promise<ReadWorkspacePackFileResult> {
   const api = desktopApi()
   if (!api) {
     const folderName = String(input.folderName ?? '').trim()
@@ -320,7 +314,9 @@ export async function listWorkspacePackFiles(
   const normalizedFolder = String(result?.folderName ?? input.folderName)
   const files: WorkspacePackFileEntry[] = Array.isArray(result?.files)
     ? result.files.map(file => ({
-        relativePath: String(file?.relativePath ?? '').replace(/\\/g, '/').replace(/^\/+/, ''),
+        relativePath: String(file?.relativePath ?? '')
+          .replace(/\\/g, '/')
+          .replace(/^\/+/, ''),
         size: Number.isFinite(Number(file?.size)) ? Number(file?.size) : 0,
         ext: String(file?.ext ?? '').toLowerCase(),
         isDirectory: file?.isDirectory === true,

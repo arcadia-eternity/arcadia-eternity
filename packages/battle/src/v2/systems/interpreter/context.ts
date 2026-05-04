@@ -1,7 +1,14 @@
 // battle/src/v2/systems/interpreter/context.ts
 // Interpreter context types for effect DSL execution.
 
-import type { World, PhaseManager, EventBus, EffectFireContext, AttributeSystem, GameRng } from '@arcadia-eternity/engine'
+import type {
+  World,
+  PhaseManager,
+  EventBus,
+  EffectFireContext,
+  AttributeSystem,
+  GameRng,
+} from '@arcadia-eternity/engine'
 import type { EffectPipeline } from '@arcadia-eternity/engine'
 import type { TransformStrategy } from '@arcadia-eternity/plugin-transformation'
 import type { PetSystem } from '../pet.system.js'

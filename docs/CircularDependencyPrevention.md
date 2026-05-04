@@ -84,20 +84,18 @@ private calculateAttributeValueSafely(key, base, modifiers) {
 const attackModifier = new Modifier(
   DurationType.binding,
   'attack_from_defense',
-  computed(() => attributeSystem.getCurrentValue('defense') * 0.5,
-           [attributeSystem.getAttribute$('defense')]),
+  computed(() => attributeSystem.getCurrentValue('defense') * 0.5, [attributeSystem.getAttribute$('defense')]),
   'delta',
-  100
+  100,
 )
 
 // 防御力依赖攻击力 - 会触发循环依赖检测
 const defenseModifier = new Modifier(
   DurationType.binding,
   'defense_from_attack',
-  computed(() => attributeSystem.getCurrentValue('attack') * 0.3,
-           [attributeSystem.getAttribute$('attack')]),
+  computed(() => attributeSystem.getCurrentValue('attack') * 0.3, [attributeSystem.getAttribute$('attack')]),
   'delta',
-  100
+  100,
 )
 
 // 结果：使用基础值作为fallback，避免无限循环
@@ -110,10 +108,9 @@ const defenseModifier = new Modifier(
 const selfReferencingModifier = new Modifier(
   DurationType.binding,
   'speed_self_boost',
-  computed(() => attributeSystem.getCurrentValue('speed') + 10,
-           [attributeSystem.getAttribute$('speed')]),
+  computed(() => attributeSystem.getCurrentValue('speed') + 10, [attributeSystem.getAttribute$('speed')]),
   'delta',
-  100
+  100,
 )
 
 // 结果：检测到自引用，使用基础速度值
@@ -366,14 +363,11 @@ const player = new PlayerAttributeSystem('player1')
 const teamSynergy = new Modifier(
   DurationType.binding,
   'team_synergy',
-  combineLatest([
-    pet1.getAttribute$('currentHp'),
-    pet2.getAttribute$('currentHp')
-  ]).pipe(
-    map(([hp1, hp2]) => Math.floor((hp1 + hp2) * 0.1))
+  combineLatest([pet1.getAttribute$('currentHp'), pet2.getAttribute$('currentHp')]).pipe(
+    map(([hp1, hp2]) => Math.floor((hp1 + hp2) * 0.1)),
   ),
   'delta',
-  100
+  100,
 )
 
 pet1.addModifier('attack', teamSynergy)

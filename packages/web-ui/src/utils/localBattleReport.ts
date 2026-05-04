@@ -27,7 +27,7 @@ export class LocalBattleReportManager {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY)
       if (!stored) return []
-      
+
       const reports = JSON.parse(stored) as LocalBattleReport[]
       // 按保存时间倒序排列
       return reports.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())
@@ -43,16 +43,16 @@ export class LocalBattleReportManager {
   static saveReport(battleRecord: BattleRecord, name?: string, description?: string): boolean {
     try {
       const reports = this.getLocalReports()
-      
+
       // 检查是否已存在相同ID的战报
       const existingIndex = reports.findIndex(r => r.battleRecord.id === battleRecord.id)
-      
+
       const localReport: LocalBattleReport = {
         id: nanoid(),
         name: name || `${battleRecord.player_a_name} vs ${battleRecord.player_b_name}`,
         battleRecord,
         savedAt: new Date().toISOString(),
-        description
+        description,
       }
 
       if (existingIndex >= 0) {
@@ -62,12 +62,12 @@ export class LocalBattleReportManager {
       } else {
         // 添加新战报
         reports.unshift(localReport)
-        
+
         // 限制最大数量
         if (reports.length > this.MAX_REPORTS) {
           reports.splice(this.MAX_REPORTS)
         }
-        
+
         ElMessage.success('战报已保存到本地')
       }
 
@@ -87,7 +87,7 @@ export class LocalBattleReportManager {
     try {
       const reports = this.getLocalReports()
       const filteredReports = reports.filter(r => r.id !== reportId)
-      
+
       if (filteredReports.length === reports.length) {
         ElMessage.warning('未找到要删除的战报')
         return false
@@ -124,15 +124,15 @@ export class LocalBattleReportManager {
     try {
       const dataStr = JSON.stringify(report, null, 2)
       const dataBlob = new Blob([dataStr], { type: 'application/json' })
-      
+
       const link = document.createElement('a')
       link.href = URL.createObjectURL(dataBlob)
       link.download = `battle_report_${report.name}_${new Date().toISOString().split('T')[0]}.json`
-      
+
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
+
       URL.revokeObjectURL(link.href)
       ElMessage.success('战报已导出')
     } catch (error) {
@@ -145,14 +145,14 @@ export class LocalBattleReportManager {
    * 导入战报文件
    */
   static importReport(file: File): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const reader = new FileReader()
-      
-      reader.onload = (e) => {
+
+      reader.onload = e => {
         try {
           const content = e.target?.result as string
           const report = JSON.parse(content) as LocalBattleReport
-          
+
           // 验证数据结构
           if (!this.validateReportStructure(report)) {
             ElMessage.error('战报文件格式不正确')
@@ -166,7 +166,7 @@ export class LocalBattleReportManager {
 
           const reports = this.getLocalReports()
           reports.unshift(report)
-          
+
           // 限制最大数量
           if (reports.length > this.MAX_REPORTS) {
             reports.splice(this.MAX_REPORTS)
@@ -232,7 +232,7 @@ export class LocalBattleReportManager {
       total: reports.length,
       maxAllowed: this.MAX_REPORTS,
       oldestDate: reports.length > 0 ? reports[reports.length - 1].savedAt : null,
-      newestDate: reports.length > 0 ? reports[0].savedAt : null
+      newestDate: reports.length > 0 ? reports[0].savedAt : null,
     }
   }
 }

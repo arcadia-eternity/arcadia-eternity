@@ -156,7 +156,9 @@ export class SkillAvailabilityRule extends AbstractRule {
 
     // 如果没有提供者，尝试从上下文获取
     if (!speciesData && context?.data?.speciesData) {
-      speciesData = (context.data as { speciesData: Record<string, unknown> }).speciesData[pet.species] as typeof speciesData
+      speciesData = (context.data as { speciesData: Record<string, unknown> }).speciesData[
+        pet.species
+      ] as typeof speciesData
     }
 
     if (!speciesData) {
@@ -172,7 +174,11 @@ export class SkillAvailabilityRule extends AbstractRule {
     const extraSkills: LearnableSkill[] = []
     if (context?.data?.ruleSystem) {
       try {
-        const ruleSystemExtraSkills = (context.data as { ruleSystem: { getSpeciesExtraLearnableSkills: (species: string, ctx: unknown) => string[] } }).ruleSystem.getSpeciesExtraLearnableSkills(pet.species, context)
+        const ruleSystemExtraSkills = (
+          context.data as {
+            ruleSystem: { getSpeciesExtraLearnableSkills: (species: string, ctx: unknown) => string[] }
+          }
+        ).ruleSystem.getSpeciesExtraLearnableSkills(pet.species, context)
         extraSkills.push(...(ruleSystemExtraSkills as unknown as LearnableSkill[]))
       } catch (_error) {
         // 忽略获取额外技能时的错误

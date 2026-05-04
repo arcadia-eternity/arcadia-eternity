@@ -4,23 +4,23 @@
 
 ### 文件标识
 
-``` yaml
-    # data/effect.yaml 文件的名和路径，注意文件名需要带上类型名的前缀。
+```yaml
+# data/effect.yaml 文件的名和路径，注意文件名需要带上类型名的前缀。
 
-    # yaml-language-server: $schema=../packages/schema/schema/effect.schema.json 用来引入yaml的自动提示
+# yaml-language-server: $schema=../packages/schema/schema/effect.schema.json 用来引入yaml的自动提示
 
-    # @metaType effect 标明这个是哪个类型的数据文件，在导入的时候会检测他的类型，允许effect/mark/skill/species
+# @metaType effect 标明这个是哪个类型的数据文件，在导入的时候会检测他的类型，允许effect/mark/skill/species
 
-    # @version 1.0.0 版本信息
+# @version 1.0.0 版本信息
 ```
 
 ### 效果以外的对象
 
-类型[_子类型]_名称[_附加信息/派生形态]
+类型[_子类型]*名称[*附加信息/派生形态]
 
 其中名称为原对象的中文名的拼音缩写,仅使用 小写字母、数字、下划线。
 
-``` example:plaintext
+```example:plaintext
 pet_dilante #精灵-迪兰特
 pet_ailudake_form_desert #精灵-埃鲁达克-形态-沙漠
 pet_xiaoxiaokui #精灵-小小葵
@@ -32,9 +32,9 @@ mark_status_burn #印记—不良状态-烧伤
 
 ### 效果
 
-effect_关联印记/技能名_timing_效果简述
+effect*关联印记/技能名\_timing*效果简述
 
-``` example:plaintext
+```example:plaintext
 effect_burn_damage #烧伤-造成伤害
 effect_fenlitupo_addyishang #奋力突破-添加易伤印记
 ```

@@ -183,7 +183,10 @@ async function openFreshLobby(context: BrowserContext) {
   try {
     await expect(createRoomButton).toBeEnabled({ timeout: 20_000 })
   } catch (error) {
-    const connectionStatus = await page.locator('body').textContent().catch(() => '')
+    const connectionStatus = await page
+      .locator('body')
+      .textContent()
+      .catch(() => '')
     console.log('RANKED LOBBY DEBUG URL', page.url())
     console.log('RANKED LOBBY DEBUG BODY\n' + (connectionStatus ?? ''))
     console.log('RANKED LOBBY DEBUG CONSOLE\n' + debugConsole.join('\n'))
@@ -194,7 +197,10 @@ async function openFreshLobby(context: BrowserContext) {
 }
 
 async function prepareCompetitiveQueue(page: Page) {
-  const competitiveCard = page.locator('div.cursor-pointer').filter({ hasText: /竞技规则/ }).first()
+  const competitiveCard = page
+    .locator('div.cursor-pointer')
+    .filter({ hasText: /竞技规则/ })
+    .first()
   await expect(competitiveCard).toBeVisible({ timeout: 20_000 })
   await competitiveCard.click()
 
@@ -252,9 +258,16 @@ test('online ranked queue can match two players into a server battle', async ({ 
   await seedCompetitiveTeam(hostContext)
   await seedCompetitiveTeam(guestContext)
 
-  const { page: hostPage, unexpectedConsoleErrors: hostConsole, debugConsole: hostDebug } = await openFreshLobby(hostContext)
-  const { page: guestPage, unexpectedConsoleErrors: guestConsole, debugConsole: guestDebug } =
-    await openFreshLobby(guestContext)
+  const {
+    page: hostPage,
+    unexpectedConsoleErrors: hostConsole,
+    debugConsole: hostDebug,
+  } = await openFreshLobby(hostContext)
+  const {
+    page: guestPage,
+    unexpectedConsoleErrors: guestConsole,
+    debugConsole: guestDebug,
+  } = await openFreshLobby(guestContext)
 
   await prepareCompetitiveQueue(hostPage)
   await prepareCompetitiveQueue(guestPage)

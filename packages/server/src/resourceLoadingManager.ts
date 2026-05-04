@@ -161,15 +161,18 @@ export class ResourceLoadingManager {
         throw new Error(`数据包校验失败，共 ${loadResult.errors.length} 个错误`)
       }
       this.progress.gameDataLoaded = true
-      logger.info({
-        errors: loadResult.errors.length,
-        packId: loadResult.pack?.id,
-        packVersion: loadResult.pack?.version,
-        hasLockfile: loadResult.lockfile !== undefined,
-        lockfileVersion: loadResult.lockfile?.lockfileVersion,
-        lockfileIssueCount: loadResult.lockfileIssues?.length ?? 0,
-        assetConflictCount: loadResult.assetConflicts?.length ?? 0,
-      }, '数据包加载完成')
+      logger.info(
+        {
+          errors: loadResult.errors.length,
+          packId: loadResult.pack?.id,
+          packVersion: loadResult.pack?.version,
+          hasLockfile: loadResult.lockfile !== undefined,
+          lockfileVersion: loadResult.lockfile?.lockfileVersion,
+          lockfileIssueCount: loadResult.lockfileIssues?.length ?? 0,
+          assetConflictCount: loadResult.assetConflicts?.length ?? 0,
+        },
+        '数据包加载完成',
+      )
 
       logger.info('开始加载脚本声明...')
       await this.loadScripts()
@@ -185,15 +188,14 @@ export class ResourceLoadingManager {
 
       this.progress.status = ResourceLoadingStatus.Completed
       this.progress.completedTime = new Date()
-      
+
       const duration = this.progress.completedTime.getTime() - this.progress.startTime!.getTime()
       logger.info(`资源加载完成，耗时: ${duration}ms`)
-
     } catch (error) {
       this.progress.status = ResourceLoadingStatus.Failed
       this.progress.error = error instanceof Error ? error.message : String(error)
       logger.error({ error: this.progress.error }, '资源加载失败')
-      
+
       if (!this.options.continueOnError) {
         throw error
       }
@@ -205,9 +207,9 @@ export class ResourceLoadingManager {
    */
   private async loadScripts(): Promise<void> {
     try {
-      const loader = new ScriptLoader({ 
-        scriptPaths: this.options.scriptPaths || ['./scripts'], 
-        recursive: true 
+      const loader = new ScriptLoader({
+        scriptPaths: this.options.scriptPaths || ['./scripts'],
+        recursive: true,
       })
 
       for (const scriptPath of this.options.scriptPaths || ['./scripts']) {

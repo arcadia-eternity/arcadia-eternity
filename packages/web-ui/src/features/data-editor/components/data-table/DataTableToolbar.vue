@@ -13,15 +13,7 @@
  */
 import { computed } from 'vue'
 import { Search, Plus } from '@element-plus/icons-vue'
-import {
-  ElInput,
-  ElButton,
-  ElDropdown,
-  ElDropdownMenu,
-  ElDropdownItem,
-  ElIcon,
-  ElTooltip,
-} from 'element-plus'
+import { ElInput, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon, ElTooltip } from 'element-plus'
 import { useEditorState, type EntityType } from '../../composables/useEditorState'
 
 // ── Props ──
@@ -62,12 +54,8 @@ const currentLabel = computed(() => entityLabels[props.entityType])
     <!-- Left: entity label + counts -->
     <div class="toolbar-section toolbar-section--info">
       <span class="toolbar-entity-label">{{ currentLabel }}</span>
-      <span class="toolbar-count">
-        {{ recordCount }}条记录
-      </span>
-      <span v-if="selectedCount > 0" class="toolbar-count toolbar-count--selected">
-        已选{{ selectedCount }}条
-      </span>
+      <span class="toolbar-count"> {{ recordCount }}条记录 </span>
+      <span v-if="selectedCount > 0" class="toolbar-count toolbar-count--selected"> 已选{{ selectedCount }}条 </span>
     </div>
 
     <!-- Center: Search input -->
@@ -89,12 +77,7 @@ const currentLabel = computed(() => entityLabels[props.entityType])
     <div class="toolbar-section toolbar-section--actions">
       <!-- 新增 button (placeholder) -->
       <ElTooltip content="新增记录 (Phase 4)" placement="bottom" :show-after="400">
-        <ElButton
-          size="small"
-          type="primary"
-          class="toolbar-action-btn"
-          disabled
-        >
+        <ElButton size="small" type="primary" class="toolbar-action-btn" disabled>
           <template #icon>
             <ElIcon :size="14"><Plus /></ElIcon>
           </template>
@@ -154,7 +137,11 @@ const currentLabel = computed(() => entityLabels[props.entityType])
   flex-shrink: 0;
   background: var(--ae-bg-surface);
   border-bottom: 1px solid var(--ae-border-subtle);
-  font-family: var(--ae-font-base), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--ae-font-base),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 /* ── Sections ── */

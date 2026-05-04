@@ -7,18 +7,15 @@ import type { TeamConfig, V2DataRepository } from '@arcadia-eternity/battle'
 import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import type { playerId, BattleMessage, PlayerSelection } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
-import {
-  runInMemoryP2PE2E,
-} from '@arcadia-eternity/p2p-transport'
+import { runInMemoryP2PE2E } from '@arcadia-eternity/p2p-transport'
 
 // 加载环境变量
 dotenv.config()
 
-
 function toTeamConfig(player: PlayerSchemaType): TeamConfig {
   return {
     name: player.name,
-      team: player.team.map((pet) => ({
+    team: player.team.map(pet => ({
       name: pet.name,
       species: pet.species,
       level: pet.level,
@@ -36,8 +33,7 @@ function toTeamConfig(player: PlayerSchemaType): TeamConfig {
 }
 
 // 解析玩家文件
-async function parsePlayerFile(filePath: string): Promise<PlayerSchemaType> {
-  void _options;
+async function parsePlayerFile(filePath: string, _options?: { validateData?: boolean }): Promise<PlayerSchemaType> {
   try {
     console.log(`[🔍] 正在解析玩家文件: ${filePath}`)
 
@@ -60,7 +56,9 @@ async function parsePlayerFile(filePath: string): Promise<PlayerSchemaType> {
     try {
       rawData = yaml.parse(content)
     } catch (yamlError) {
-      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`, { cause: yamlError })
+      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`, {
+        cause: yamlError,
+      })
     }
 
     // 基本数据验证
@@ -129,12 +127,13 @@ function createRuleSpeciesRepository(repo: V2DataRepository): {
         baseStats: species.baseStats,
       }
     },
-    getAllSpecies: () => Array.from(repo.allSpecies()).map(species => ({
-      id: species.id,
-      num: species.num,
-      element: species.element,
-      baseStats: species.baseStats,
-    })),
+    getAllSpecies: () =>
+      Array.from(repo.allSpecies()).map(species => ({
+        id: species.id,
+        num: species.num,
+        element: species.element,
+        baseStats: species.baseStats,
+      })),
   }
 }
 
@@ -283,14 +282,12 @@ program
           const available = await battleSystem.getAvailableSelection(pid)
           if (available.length === 0) return
 
-          const picked = (
-            available.find(a => a.type === 'team-selection') ??
+          const picked = (available.find(a => a.type === 'team-selection') ??
             available.find(a => a.type === 'use-skill') ??
             available.find(a => a.type === 'switch-pet') ??
             available.find(a => a.type === 'do-nothing') ??
             available.find(a => a.type === 'surrender') ??
-            available[0]
-          ) as PlayerSelection
+            available[0]) as PlayerSelection
           await battleSystem.submitAction(picked)
         } finally {
           aiPending.delete(pid)
@@ -370,7 +367,9 @@ program
       console.log(`roundsPlayed=${result.roundsPlayed}`)
       console.log(`battleStatus=${result.finalState.status}, currentTurn=${result.finalState.currentTurn}`)
       console.log(`hostEvents=${result.hostEvents.length}, peerEvents=${result.peerEvents.length}`)
-      console.log(`playerASelections=${result.playerASelections.length}, playerBSelections=${result.playerBSelections.length}`)
+      console.log(
+        `playerASelections=${result.playerASelections.length}, playerBSelections=${result.playerBSelections.length}`,
+      )
       process.exit(0)
     } catch (err) {
       console.error('[💥] 错误:', err instanceof Error ? err.message : err)
@@ -493,11 +492,10 @@ program
   )
   .action(async options => {
     try {
-      const [{ resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli }, { ServerRuleIntegration }] =
-        await Promise.all([
-          import('@arcadia-eternity/server'),
-          import('@arcadia-eternity/rules'),
-        ])
+      const [
+        { resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli },
+        { ServerRuleIntegration },
+      ] = await Promise.all([import('@arcadia-eternity/server'), import('@arcadia-eternity/rules')])
 
       console.log('[🌀] 启动异步游戏资源加载...')
       // 启动异步资源加载，不等待完成

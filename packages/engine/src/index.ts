@@ -59,33 +59,16 @@ export {
 } from './phase.js'
 
 // Effect pipeline
-export {
-  EFFECTS,
-  type EffectDef,
-  type EffectInterpreter,
-  type EffectFireContext,
-  EffectPipeline,
-} from './effect.js'
+export { EFFECTS, type EffectDef, type EffectInterpreter, type EffectFireContext, EffectPipeline } from './effect.js'
 
 // Event system
-export {
-  type GameEvent,
-  type EventHandler,
-  EventBus,
-} from './events.js'
+export { type GameEvent, type EventHandler, EventBus } from './events.js'
 
 // Snapshot / Restore
-export {
-  createSnapshot,
-  restoreWorld,
-  cloneWorld,
-} from './snapshot.js'
+export { createSnapshot, restoreWorld, cloneWorld } from './snapshot.js'
 
 // Schema type checker
-export {
-  type PropertyInfo,
-  SchemaTypeChecker,
-} from './schema-checker.js'
+export { type PropertyInfo, SchemaTypeChecker } from './schema-checker.js'
 
 // Config store
 export {
@@ -108,17 +91,10 @@ export {
 } from './config-store.js'
 
 // Random number generator
-export {
-  type RngState,
-  GameRng,
-} from './rng.js'
+export { type RngState, GameRng } from './rng.js'
 
 // Generic numeric expression helpers
-export {
-  type NumericEvalHooks,
-  toNumber,
-  evaluateNumericExpression,
-} from './dsl/numeric.js'
+export { type NumericEvalHooks, toNumber, evaluateNumericExpression } from './dsl/numeric.js'
 
 // Generic DSL runtime helpers
 export {
@@ -132,16 +108,6 @@ export {
 } from './dsl/runtime.js'
 
 // Generic DSL condition/value helpers
-export {
-  type CommonCondition,
-  type CommonConditionHooks,
-  evaluateCommonCondition,
-} from './dsl/condition.js'
-export {
-  type RuntimeValueHooks,
-  resolveRuntimeValue,
-} from './dsl/value.js'
-export {
-  type RuntimeSelectorHooks,
-  resolveRuntimeSelector,
-} from './dsl/selector.js'
+export { type CommonCondition, type CommonConditionHooks, evaluateCommonCondition } from './dsl/condition.js'
+export { type RuntimeValueHooks, resolveRuntimeValue } from './dsl/value.js'
+export { type RuntimeSelectorHooks, resolveRuntimeSelector } from './dsl/selector.js'

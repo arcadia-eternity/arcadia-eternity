@@ -32,19 +32,13 @@ export class MatchingStrategyFactory {
           strategy = new EloMatchingStrategy()
           break
         default:
-          logger.warn(
-            { strategyType },
-            'Unknown matching strategy type, falling back to FIFO'
-          )
+          logger.warn({ strategyType }, 'Unknown matching strategy type, falling back to FIFO')
           strategy = new FIFOMatchingStrategy()
           break
       }
 
       this.strategies.set(strategyType, strategy)
-      logger.info(
-        { strategyType, strategyName: strategy.name },
-        'Created new matching strategy instance'
-      )
+      logger.info({ strategyType, strategyName: strategy.name }, 'Created new matching strategy instance')
     }
 
     return this.strategies.get(strategyType)!

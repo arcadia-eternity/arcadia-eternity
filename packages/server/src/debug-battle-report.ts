@@ -72,7 +72,9 @@ async function debugBattleReportFlow() {
     console.log('✅ 集群应用创建成功')
 
     // 检查战报服务是否正确初始化
-    const battleReportService = (battleServer as unknown as { battleReportService: BattleReportService; battleService: IBattleService }).battleReportService
+    const battleReportService = (
+      battleServer as unknown as { battleReportService: BattleReportService; battleService: IBattleService }
+    ).battleReportService
     if (battleReportService) {
       console.log('✅ 战报服务已初始化')
       console.log('   - 配置:', (battleReportService as unknown as { config: unknown }).config)
@@ -84,10 +86,14 @@ async function debugBattleReportFlow() {
     }
 
     // 检查战斗服务
-    const battleService = (battleServer as unknown as { battleReportService: BattleReportService; battleService: IBattleService }).battleService
+    const battleService = (
+      battleServer as unknown as { battleReportService: BattleReportService; battleService: IBattleService }
+    ).battleService
     if (battleService) {
       console.log('✅ 战斗服务已初始化')
-      const battleReportServiceInBattleService = (battleService as unknown as { battleReportService: BattleReportService; battleService: IBattleService }).battleReportService
+      const battleReportServiceInBattleService = (
+        battleService as unknown as { battleReportService: BattleReportService; battleService: IBattleService }
+      ).battleReportService
       if (battleReportServiceInBattleService) {
         console.log('✅ 战斗服务中的战报服务已初始化')
       } else {
@@ -107,18 +113,17 @@ async function debugBattleReportFlow() {
 
     // 模拟创建战斗房间的过程
     console.log('\n🎮 模拟战斗房间创建...')
-    
+
     try {
       // 这里我们需要模拟匹配过程来创建战斗房间
       // 但由于复杂性，我们先检查服务是否正确配置
-      
+
       console.log('📋 战报服务状态检查完成')
       console.log('\n💡 建议检查项目:')
       console.log('1. 确认启动服务器时使用了 --enable-battle-reports 参数')
       console.log('2. 检查服务器日志中是否有战报服务初始化的消息')
       console.log('3. 进行一场实际战斗，观察日志中的战报记录消息')
       console.log('4. 检查数据库中的 battle_records 表是否有新记录')
-      
     } catch (error) {
       console.log('❌ 战斗房间创建测试失败:', error)
     }
@@ -127,7 +132,6 @@ async function debugBattleReportFlow() {
     console.log('\n🛑 停止测试服务器...')
     await stop()
     console.log('✅ 服务器已停止')
-
   } catch (error) {
     console.log('❌ 集群应用创建失败:', error)
   }
@@ -135,7 +139,7 @@ async function debugBattleReportFlow() {
 
 async function checkBattleReportLogs() {
   console.log('\n📝 检查战报相关日志模式...')
-  
+
   console.log('在服务器日志中查找以下关键信息：')
   console.log('')
   console.log('✅ 正常情况应该看到：')
@@ -176,7 +180,6 @@ async function main() {
     console.log('2. 进行一场实际战斗')
     console.log('3. 观察服务器日志中的战报相关消息')
     console.log('4. 检查数据库表中是否有新的战报记录')
-
   } catch (error) {
     console.error('❌ 调试过程中发生错误:', error)
     process.exit(1)

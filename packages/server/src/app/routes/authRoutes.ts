@@ -312,10 +312,13 @@ export function createAuthRoutes(): Router {
    */
   router.put('/update-player-name', smartAuth, async (req, res) => {
     try {
-      const { playerId, name } = parseRequest(Type.Object({
+      const { playerId, name } = parseRequest(
+        Type.Object({
           playerId: Type.String({ minLength: 1 }),
           name: Type.String({ minLength: 1, maxLength: 30 }),
-        }), req.body)
+        }),
+        req.body,
+      )
 
       // 检查玩家是否存在
       const existingPlayer = await playerRepo.getPlayerById(playerId)

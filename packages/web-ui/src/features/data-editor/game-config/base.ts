@@ -21,10 +21,10 @@ export const effects: EntityConfig = {
     { id: 'tags', label: '标签', path: 'tags', width: 120 },
   ],
   fieldHints: {
-    trigger:  { display: 'entityTags', entityKind: 'effects' },
-    apply:    { editable: false },
+    trigger: { display: 'entityTags', entityKind: 'effects' },
+    apply: { editable: false },
     condition: { editable: false },
-    tags:     { display: 'entityTags', entityKind: 'effects', idKey: 'tag' },
+    tags: { display: 'entityTags', entityKind: 'effects', idKey: 'tag' },
   },
   i18n: { hasNames: false },
 }

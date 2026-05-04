@@ -4,24 +4,26 @@
 
 ### 主要服务端口
 
-| 服务 | 主机端口 | 容器端口 | 说明 |
-|------|----------|----------|------|
-| **Nginx负载均衡器** | 8080 | 80 | 主要访问入口 |
-| **Nginx HTTPS** | 8443 | 443 | HTTPS访问入口 |
-| **App1** | 8102 | 8102 | 应用实例1直连 |
-| **App2** | 8103 | 8102 | 应用实例2直连 |
-| **App3** | 8104 | 8102 | 应用实例3直连 |
-| **Redis** | 6379 | 6379 | Redis数据库 |
-| **Prometheus** | 9090 | 9090 | 监控服务 |
-| **Grafana** | 3001 | 3000 | 监控仪表板 |
+| 服务                | 主机端口 | 容器端口 | 说明          |
+| ------------------- | -------- | -------- | ------------- |
+| **Nginx负载均衡器** | 8080     | 80       | 主要访问入口  |
+| **Nginx HTTPS**     | 8443     | 443      | HTTPS访问入口 |
+| **App1**            | 8102     | 8102     | 应用实例1直连 |
+| **App2**            | 8103     | 8102     | 应用实例2直连 |
+| **App3**            | 8104     | 8102     | 应用实例3直连 |
+| **Redis**           | 6379     | 6379     | Redis数据库   |
+| **Prometheus**      | 9090     | 9090     | 监控服务      |
+| **Grafana**         | 3001     | 3000     | 监控仪表板    |
 
 ### 端口变更说明
 
 **之前的配置问题：**
+
 - Nginx使用端口80，可能与系统服务冲突
 - 状态监控服务器使用8080，与新的Nginx端口冲突
 
 **修复后的配置：**
+
 - Nginx负载均衡器：`8080:80` (避免80端口冲突)
 - Nginx状态监控：内部端口8081 (避免8080冲突)
 - HTTPS端口：`8443:443` (避免443端口冲突)
@@ -53,7 +55,7 @@ ws://localhost:8080/socket.io/
 # 应用实例1
 http://localhost:8102
 
-# 应用实例2  
+# 应用实例2
 http://localhost:8103
 
 # 应用实例3
@@ -76,12 +78,14 @@ http://localhost:3001
 ### 环境变量配置
 
 **集群模式 (推荐):**
+
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api/v1
 VITE_WS_URL=http://localhost:8080
 ```
 
 **直连模式 (调试):**
+
 ```env
 VITE_API_BASE_URL=http://localhost:8102/api/v1
 VITE_WS_URL=http://localhost:8102
@@ -159,7 +163,7 @@ curl http://localhost:8080/health
 
 # 测试应用实例
 curl http://localhost:8102/health
-curl http://localhost:8103/health  
+curl http://localhost:8103/health
 curl http://localhost:8104/health
 
 # 测试WebSocket

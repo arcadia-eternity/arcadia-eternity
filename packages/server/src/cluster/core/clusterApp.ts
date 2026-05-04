@@ -382,7 +382,11 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
           logger.warn('Single-instance mode forced to use in-memory Redis (non-persistent)')
         }
         runtimeLockManager = new DistributedLockManager(runtimeRedisManager as RedisClientManager)
-        runtimeStateManager = new ClusterStateManager(runtimeRedisManager as RedisClientManager, runtimeLockManager, finalConfig.cluster!)
+        runtimeStateManager = new ClusterStateManager(
+          runtimeRedisManager as RedisClientManager,
+          runtimeLockManager,
+          finalConfig.cluster!,
+        )
         await runtimeStateManager.initialize()
       }
 
@@ -392,8 +396,15 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
       // 创建并初始化集群组件
       if (clusterEnabled) {
-        performanceTracker = new PerformanceTracker(runtimeRedisManager as RedisClientManager, finalConfig.cluster!.instance.id)
-        monitoring = new MonitoringManager(runtimeStateManager, runtimeRedisManager as RedisClientManager, finalConfig.cluster!.instance.id)
+        performanceTracker = new PerformanceTracker(
+          runtimeRedisManager as RedisClientManager,
+          finalConfig.cluster!.instance.id,
+        )
+        monitoring = new MonitoringManager(
+          runtimeStateManager,
+          runtimeRedisManager as RedisClientManager,
+          finalConfig.cluster!.instance.id,
+        )
       }
       // LogAggregationManager 已移除以减少 Redis 操作频率
       // 根据环境选择服务发现管理器
@@ -421,9 +432,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       )
       clientRealtimeGateway = new ClientRealtimeGateway(io)
       // 使用 DI 容器创建集群服务（解决循环依赖）
-      const grpcPort =
-        finalConfig.rpcPort ??
-        (clusterEnabled ? (finalConfig.cluster!.instance.grpcPort ?? 50051) : 0)
+      const grpcPort = finalConfig.rpcPort ?? (clusterEnabled ? (finalConfig.cluster!.instance.grpcPort ?? 50051) : 0)
       const container = getContainer()
 
       const { battleServer: diServer, rpcServer: diRpcServer } = configureClusterServices(container, {

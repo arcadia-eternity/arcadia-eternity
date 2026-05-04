@@ -175,7 +175,7 @@ export class MonitoringManager {
 
         // Redis指标
         redisConnections: parseInt(redisHealth.details.connectedClients as string) || 0,
-        redisMemoryUsage: redisHealth.details.usedMemory as string || '0',
+        redisMemoryUsage: (redisHealth.details.usedMemory as string) || '0',
         redisResponseTime,
 
         // 扩展的Redis内存指标
@@ -259,7 +259,7 @@ export class MonitoringManager {
       }
 
       const client = this.redisManager.getClient()
-      const info = await this.redisManager.getInfo() as Record<string, string>
+      const info = (await this.redisManager.getInfo()) as Record<string, string>
 
       // 解析Redis内存信息
       const usedMemoryBytes = parseInt(info.used_memory) || 0

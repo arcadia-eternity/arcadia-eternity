@@ -41,4 +41,3 @@ describe('v2 skill/mark test coverage contract', () => {
     expect(allMarkIds.length).toBeGreaterThan(0)
   })
 })
-

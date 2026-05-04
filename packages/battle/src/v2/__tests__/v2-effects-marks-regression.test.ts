@@ -184,7 +184,8 @@ describe('v2 mark/stat effect regressions', () => {
       sid => skillSystem.get(world, sid)?.baseSkillId,
     )
     expect(
-      effectPipeline.getEffectsForTrigger(world, skillId, EffectTrigger.OnHit)
+      effectPipeline
+        .getEffectsForTrigger(world, skillId, EffectTrigger.OnHit)
         .some(effect => effect.id === 'effect_skill_set_field_qingtian_or_yemu'),
     ).toBe(true)
 

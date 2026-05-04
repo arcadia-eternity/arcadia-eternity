@@ -1,9 +1,5 @@
 // battle/src/v2/data/parsers/index.ts
-export {
-  parseEffect,
-  createEffectParser,
-  type EffectParserEnvironment,
-} from './effect-parser.js'
+export { parseEffect, createEffectParser, type EffectParserEnvironment } from './effect-parser.js'
 export {
   createEffectCompileTypingValidator,
   validateEffectCompileTyping,

@@ -16,7 +16,7 @@ export type PhaseState =
   | 'pending'
   | 'initializing'
   | 'executing'
-  | 'waiting'      // waiting for user interaction, can be persisted
+  | 'waiting' // waiting for user interaction, can be persisted
   | 'completed'
   | 'failed'
   | 'cancelled'
@@ -52,10 +52,7 @@ export interface PhaseExecutionEvent {
   error?: string
 }
 
-export type PhaseExecutionObserver = (
-  world: World,
-  event: PhaseExecutionEvent,
-) => void | Promise<void>
+export type PhaseExecutionObserver = (world: World, event: PhaseExecutionEvent) => void | Promise<void>
 
 /**
  * Game layers implement PhaseHandler for each phase type.
@@ -139,12 +136,7 @@ export class PhaseManager {
    * Execute a phase. Pushes it onto the stack, runs the handler,
    * and pops it when done.
    */
-  async execute(
-    world: World,
-    phaseType: string,
-    bus: EventBus,
-    initData?: unknown,
-  ): Promise<PhaseResult> {
+  async execute(world: World, phaseType: string, bus: EventBus, initData?: unknown): Promise<PhaseResult> {
     const phase = this.createPhase(world, phaseType, initData)
     return this.executePhase(world, phase, bus)
   }
@@ -152,11 +144,7 @@ export class PhaseManager {
   /**
    * Execute an already-created phase definition.
    */
-  async executePhase(
-    world: World,
-    phase: PhaseDef,
-    bus: EventBus,
-  ): Promise<PhaseResult> {
+  async executePhase(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const handler = this.handlers.get(phase.type)
     if (!handler) {
       return { success: false, state: 'failed', error: `No handler for '${phase.type}'` }
@@ -205,11 +193,7 @@ export class PhaseManager {
   /**
    * Resume a phase that was in 'waiting' state (e.g. after deserialization).
    */
-  async resumePhase(
-    world: World,
-    phase: PhaseDef,
-    bus: EventBus,
-  ): Promise<PhaseResult> {
+  async resumePhase(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     if (phase.state !== 'waiting') {
       return { success: false, state: 'failed', error: `Cannot resume phase in state '${phase.state}'` }
     }

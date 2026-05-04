@@ -26,13 +26,7 @@ describe('v2 rng regressions', () => {
   })
 
   test('different seeds produce diversified auto battle summaries', async () => {
-    const seeds = [
-      'rng-battle-div-1',
-      'rng-battle-div-2',
-      'rng-battle-div-3',
-      'rng-battle-div-4',
-      'rng-battle-div-5',
-    ]
+    const seeds = ['rng-battle-div-1', 'rng-battle-div-2', 'rng-battle-div-3', 'rng-battle-div-4', 'rng-battle-div-5']
     const results = await Promise.all(seeds.map(seed => runAutoBattleWithSeed(repo, seed)))
     const signatures = new Set(results.map(result => JSON.stringify(result)))
     expect(signatures.size).toBeGreaterThan(1)

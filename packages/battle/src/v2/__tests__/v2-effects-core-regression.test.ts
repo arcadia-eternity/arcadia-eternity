@@ -372,7 +372,7 @@ describe('v2 core effect regressions', () => {
       sid => skillSystem.get(world, sid)?.baseSkillId,
     )
     const basePower = skillSystem.getPower(world, skillId)
-    const initialRngState = ((world.systems as { rng: GameRng }).rng).getState()
+    const initialRngState = (world.systems as { rng: GameRng }).rng.getState()
     const maxHp = petSystem.getStatValue(world, petB.id, 'maxHp')
 
     // Keep runs deterministic and avoid crit noise.
@@ -409,16 +409,8 @@ describe('v2 core effect regressions', () => {
       }
     }
 
-    const first = await runDamage(
-      'turn-phase-shanguangqie-first',
-      [petA.id, petB.id],
-      [petA.id, petB.id],
-    )
-    const notFirst = await runDamage(
-      'turn-phase-shanguangqie-not-first',
-      [petB.id, petA.id],
-      [petB.id, petA.id],
-    )
+    const first = await runDamage('turn-phase-shanguangqie-first', [petA.id, petB.id], [petA.id, petB.id])
+    const notFirst = await runDamage('turn-phase-shanguangqie-not-first', [petB.id, petA.id], [petB.id, petA.id])
 
     expect(first.power).toBe(basePower * 2)
     expect(notFirst.power).toBe(basePower)
@@ -458,7 +450,7 @@ describe('v2 core effect regressions', () => {
     expect(statStageSystem.getStage(world, petA.id, 'spa')).toBe(-6)
     expect(statStageSystem.getStage(world, petB.id, 'spd')).toBe(6)
 
-    const initialRngState = ((world.systems as { rng: GameRng }).rng).getState()
+    const initialRngState = (world.systems as { rng: GameRng }).rng.getState()
     const maxHp = petSystem.getStatValue(world, petB.id, 'maxHp')
 
     const runWithStrategy = async (strategy: IgnoreStageStrategy): Promise<number> => {

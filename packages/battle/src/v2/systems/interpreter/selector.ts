@@ -372,7 +372,9 @@ export function registerDefaultSelectorHandlers(world: World): void {
   const chainStepTypes = listSelectorChainStepTypes()
   for (const stepType of chainStepTypes) {
     if (!isDefaultRegisteredChainStep(stepType)) continue
-    registerSelectorChainHandler(world, stepType, (ctx, current, step) => applyDefaultRegisteredChainStep(ctx, current, step))
+    registerSelectorChainHandler(world, stepType, (ctx, current, step) =>
+      applyDefaultRegisteredChainStep(ctx, current, step),
+    )
   }
 }
 
@@ -430,11 +432,7 @@ function findContextFromStack(
  * Apply a chain of transformations to a result array.
  * Exported for use by value.ts.
  */
-function resolveVirtualContextValue(
-  ctx: InterpreterContext,
-  obj: Record<string, unknown>,
-  key: string,
-): unknown {
+function resolveVirtualContextValue(ctx: InterpreterContext, obj: Record<string, unknown>, key: string): unknown {
   if (key === 'effect') {
     const effectObject = obj.effect
     if (typeof effectObject === 'object' && effectObject !== null) return effectObject
@@ -506,11 +504,7 @@ function resolveVirtualContextValue(
   }
 }
 
-function resolvePathWithContextAliases(
-  ctx: InterpreterContext,
-  target: unknown,
-  path: string,
-): unknown {
+function resolvePathWithContextAliases(ctx: InterpreterContext, target: unknown, path: string): unknown {
   if (typeof target !== 'object' || target === null) return undefined
   const parts = path.split('.')
   let currentValue: unknown = target
@@ -534,11 +528,7 @@ function resolvePathWithContextAliases(
   return currentValue
 }
 
-function applyDefaultRegisteredChainStep(
-  ctx: InterpreterContext,
-  current: unknown[],
-  step: SelectorChain,
-): unknown[] {
+function applyDefaultRegisteredChainStep(ctx: InterpreterContext, current: unknown[], step: SelectorChain): unknown[] {
   switch (step.type) {
     case 'selectPath': {
       const path = step.arg
@@ -609,7 +599,9 @@ function applyDefaultRegisteredChainStep(
             if (skill) return { object: skill, key }
             const mark = ctx.systems.markSystem.get(ctx.world, item) as unknown as Record<string, unknown> | undefined
             if (mark) return { object: mark, key }
-            const player = ctx.systems.playerSystem.get(ctx.world, item) as unknown as Record<string, unknown> | undefined
+            const player = ctx.systems.playerSystem.get(ctx.world, item) as unknown as
+              | Record<string, unknown>
+              | undefined
             if (player) return { object: player, key }
             return undefined
           }
@@ -641,8 +633,7 @@ export function applyChain(ctx: InterpreterContext, results: unknown[], chain: S
       resolveValue: value => resolveValue(ctx, value as Value | null | undefined),
       resolveSelector: selector => resolveSelector(ctx, selector as SelectorDSL),
       evaluateCondition: condition => isConditionDsl(condition) && evaluateCondition(ctx, condition),
-      evaluateEvaluator: (value, evaluator) =>
-        isEvaluatorDsl(evaluator) && evaluateEvaluator(ctx, value, evaluator),
+      evaluateEvaluator: (value, evaluator) => isEvaluatorDsl(evaluator) && evaluateEvaluator(ctx, value, evaluator),
       applyExtractor: (item, extractor) => applyExtractor(ctx, item, extractor),
       shuffle: items => ctx.systems.rng.shuffle(items),
       getConfigValue: key => getConfigValue(ctx.world.configStore, key),
@@ -685,9 +676,8 @@ function applyExtractor(ctx: InterpreterContext, entityId: unknown, extractor: u
   const { petSystem, playerSystem, markSystem, skillSystem } = systems
 
   if (!isExtractorDsl(extractor)) return []
-  const extractorObject = typeof extractor === 'object' && extractor !== null
-    ? (extractor as Record<string, unknown>)
-    : undefined
+  const extractorObject =
+    typeof extractor === 'object' && extractor !== null ? (extractor as Record<string, unknown>) : undefined
   const extractorType = typeof extractorObject?.type === 'string' ? extractorObject.type : undefined
   const extractorKey = (() => {
     if (typeof extractor === 'string') return extractor

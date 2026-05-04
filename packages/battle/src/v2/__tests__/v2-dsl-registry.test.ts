@@ -3,16 +3,10 @@ import { createBattle } from '../game.js'
 import { seer2EffectInterpreter } from '../systems/effect-interpreter.js'
 import { registerConditionHandler } from '../systems/interpreter/condition-registry.js'
 import { resolveSelector } from '../systems/interpreter/selector.js'
-import {
-  registerSelectorBaseHandler,
-  registerSelectorChainHandler,
-} from '../systems/interpreter/selector-registry.js'
+import { registerSelectorBaseHandler, registerSelectorChainHandler } from '../systems/interpreter/selector-registry.js'
 import { BATTLE_OWNER_ID } from '../systems/mark.system.js'
 import { parseEffect } from '../data/parsers/effect-parser.js'
-import {
-  registerEffectTrigger,
-  resetEffectTriggerRegistry,
-} from '../data/parsers/trigger-registry.js'
+import { registerEffectTrigger, resetEffectTriggerRegistry } from '../data/parsers/trigger-registry.js'
 
 describe('v2 dsl registries', () => {
   test('condition registry overrides non-common condition implementation', () => {
@@ -43,10 +37,12 @@ describe('v2 dsl registries', () => {
     expect(resolveSelector(ctx, 'battle')).toEqual(['custom_battle'])
 
     registerSelectorChainHandler(battle.world, 'selectPath', () => ['chain_override'])
-    expect(resolveSelector(ctx, {
-      base: 'battle',
-      chain: [{ type: 'selectPath', arg: 'currentTurn' }],
-    })).toEqual(['chain_override'])
+    expect(
+      resolveSelector(ctx, {
+        base: 'battle',
+        chain: [{ type: 'selectPath', arg: 'currentTurn' }],
+      }),
+    ).toEqual(['chain_override'])
   })
 
   test('trigger registry controls parse-time trigger validation', () => {

@@ -1,0 +1,9 @@
+{
+  "packages/web-ui/**/*.{ts,tsx,vue}": [
+    "prettier --write",
+    "eslint --config packages/web-ui/eslint.config.ts --fix --max-warnings 0 --no-warn-ignored"
+  ],
+  "*.{ts,tsx,js,jsx,mjs,cjs}": ["prettier --write", "eslint --config eslint.config.js --fix --max-warnings 0 --no-warn-ignored"],
+  "*.{vue,svelte}": ["prettier --write", "eslint --config eslint.config.js --fix --max-warnings 0 --no-warn-ignored"],
+  "*.{json,jsonc,yaml,yml,md,css,scss,html}": ["prettier --write"]
+}

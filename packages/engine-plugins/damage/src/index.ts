@@ -45,10 +45,9 @@ export class DamageSystem {
     targetId: string,
     baseDamage: number,
     damageType: string,
-    options?: Partial<Pick<DamageContext,
-      'crit' | 'effectiveness' | 'randomFactor' |
-      'minThreshold' | 'maxThreshold' | 'extra'
-    >>,
+    options?: Partial<
+      Pick<DamageContext, 'crit' | 'effectiveness' | 'randomFactor' | 'minThreshold' | 'maxThreshold' | 'extra'>
+    >,
   ): DamageContext {
     return {
       type: 'damage',

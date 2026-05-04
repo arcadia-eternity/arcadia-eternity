@@ -1,10 +1,5 @@
 import { DataRepository } from '@arcadia-eternity/data-repository'
-import type {
-  ValidationError,
-  ValidationWarning,
-  ValidationResult,
-  DataValidationOptions,
-} from './types'
+import type { ValidationError, ValidationWarning, ValidationResult, DataValidationOptions } from './types'
 
 /**
  * CLI数据验证器

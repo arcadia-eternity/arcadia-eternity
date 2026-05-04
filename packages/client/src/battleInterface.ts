@@ -19,8 +19,8 @@ export class RemoteBattleSystem implements IBattleSystem {
   }
 
   async getAvailableSelection(): Promise<PlayerSelection[]> {
-    return (await this.client.getAvailableSelection()).map(s =>
-      parseWithErrors(PlayerSelectionSchema, s) as PlayerSelection,
+    return (await this.client.getAvailableSelection()).map(
+      s => parseWithErrors(PlayerSelectionSchema, s) as PlayerSelection,
     )
   }
 

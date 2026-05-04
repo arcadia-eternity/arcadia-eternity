@@ -17,11 +17,7 @@ function getEffectHandlingStrategy(record: TransformRecord): 'override' | 'prese
   return strategy === 'override' ? 'override' : 'preserve'
 }
 
-function mergeEffectIds(
-  previous: string[],
-  incoming: string[],
-  strategy: 'override' | 'preserve',
-): string[] {
+function mergeEffectIds(previous: string[], incoming: string[], strategy: 'override' | 'preserve'): string[] {
   if (strategy === 'override') return [...incoming]
   const merged = new Map<string, true>()
   for (const id of previous) merged.set(id, true)

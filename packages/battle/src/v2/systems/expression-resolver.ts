@@ -25,7 +25,7 @@ export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): Expr
         resolveRef: (entityId, attribute) => {
           return toNumber(attrSystem.getValue(world, entityId, attribute, undefined, computeStack))
         },
-        resolveSelector: (selectorExpr) => {
+        resolveSelector: selectorExpr => {
           if (!isSelectorDsl(selectorExpr)) return 0
 
           const currentKey = [...computeStack].at(-1)
@@ -33,9 +33,12 @@ export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): Expr
 
           const node = isRecord(expr) ? expr : {}
           const rawFireCtx = isRecord(node.fireCtx) ? node.fireCtx : {}
-          const sourceEntityId = typeof rawFireCtx.sourceEntityId === 'string'
-            ? rawFireCtx.sourceEntityId
-            : (typeof rawFireCtx.targetEntityId === 'string' ? rawFireCtx.targetEntityId : currentEntityId)
+          const sourceEntityId =
+            typeof rawFireCtx.sourceEntityId === 'string'
+              ? rawFireCtx.sourceEntityId
+              : typeof rawFireCtx.targetEntityId === 'string'
+                ? rawFireCtx.targetEntityId
+                : currentEntityId
           if (!sourceEntityId) return 0
 
           const fireCtx: InterpreterFireContext = {
@@ -53,7 +56,7 @@ export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): Expr
           const selectorCtx: InterpreterContext = { world, fireCtx, systems }
           return toNumber(resolveSelector(selectorCtx, selectorExpr))
         },
-        resolveValue: (valueExpr) => {
+        resolveValue: valueExpr => {
           const currentKey = [...computeStack].at(-1)
           const currentEntityId = typeof currentKey === 'string' ? currentKey.split('.')[0] : undefined
           if (!currentEntityId) return 0

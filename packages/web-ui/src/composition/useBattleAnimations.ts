@@ -294,7 +294,7 @@ export function useBattleAnimations(
       concatMap(({ value, timestamp }) =>
         of(value).pipe(
           delay(Math.max(0, timestamp - Date.now())),
-          tap((val) => {
+          tap(val => {
             if (!val || !battleViewRef.value) return
             const { side, value } = val
 
@@ -406,7 +406,7 @@ export function useBattleAnimations(
       concatMap(({ value, timestamp }) =>
         of(value).pipe(
           delay(Math.max(0, timestamp - Date.now())),
-          tap((val) => {
+          tap(val => {
             if (!val) return
             const { side, value, effectiveness, crit, skillId } = val
             const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet

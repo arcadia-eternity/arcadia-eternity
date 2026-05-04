@@ -41,7 +41,10 @@ type P2PTransportMode = 'auto' | 'webrtc' | 'relay'
 
 const buildRoomPeerTransportId = (roomCode: string, playerId: string): string => {
   const raw = `ae-${roomCode}-${playerId}`
-  const sanitized = raw.replace(/[^A-Za-z0-9_-]/g, '_').replace(/^[^A-Za-z0-9]+/, '').replace(/[^A-Za-z0-9]+$/, '')
+  const sanitized = raw
+    .replace(/[^A-Za-z0-9_-]/g, '_')
+    .replace(/^[^A-Za-z0-9]+/, '')
+    .replace(/[^A-Za-z0-9]+$/, '')
   return sanitized.length > 0 ? sanitized : `ae-${roomCode}`
 }
 

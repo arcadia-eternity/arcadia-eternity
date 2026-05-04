@@ -36,9 +36,7 @@ function selectEntity(type: EntityType) {
 <template>
   <aside class="entity-sidebar">
     <!-- Header -->
-    <header class="sidebar-header">
-      数据导航
-    </header>
+    <header class="sidebar-header">数据导航</header>
 
     <!-- Entity type list -->
     <nav class="entity-nav">
@@ -53,10 +51,7 @@ function selectEntity(type: EntityType) {
         <span class="entity-icon">{{ entity.icon }}</span>
         <span class="entity-label">{{ entity.label }}</span>
         <span class="entity-count">{{ countMap[entity.key] }}</span>
-        <span
-          v-if="editorState.selectedEntityType === entity.key"
-          class="entity-chevron"
-        >&#9654;</span>
+        <span v-if="editorState.selectedEntityType === entity.key" class="entity-chevron">&#9654;</span>
       </button>
     </nav>
 
@@ -95,7 +90,11 @@ function selectEntity(type: EntityType) {
   overflow-y: auto;
   background: var(--ae-bg-surface);
   border-right: 1px solid var(--ae-border-subtle);
-  font-family: var(--ae-font-base), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--ae-font-base),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 /* ── Header ── */
@@ -130,7 +129,9 @@ function selectEntity(type: EntityType) {
   border: none;
   border-radius: var(--ae-radius-sm);
   cursor: pointer;
-  transition: color 0.12s ease, background-color 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background-color 0.12s ease;
   text-align: left;
   width: 100%;
 }
@@ -196,7 +197,9 @@ function selectEntity(type: EntityType) {
   border: 1px solid var(--ae-border-default);
   border-radius: var(--ae-radius-sm);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .pack-manager-btn:hover {

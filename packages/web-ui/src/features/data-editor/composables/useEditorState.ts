@@ -49,7 +49,7 @@ export function useEditorState(): EditorState {
   if (!state) {
     throw new Error(
       'useEditorState() called without a parent provideEditorState(). ' +
-        'Make sure the component is mounted within a DataEditorPage that calls provideEditorState().'
+        'Make sure the component is mounted within a DataEditorPage that calls provideEditorState().',
     )
   }
   return state

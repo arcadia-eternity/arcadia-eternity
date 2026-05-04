@@ -27,17 +27,41 @@ const effectContextFieldSeeds: EffectCompileFieldSeed[] = [
   { owner: 'effectContext', path: 'available', valueType: createScalarValueState('boolean') },
   { owner: 'effectContext', path: 'effect', valueType: createPathObjectState('effectContext', 'effect') },
   { owner: 'effectContext', path: 'context', valueType: createPathObjectState('effectContext', 'context') },
-  { owner: 'effectContext', path: 'useSkillContext', valueType: createPathObjectState('effectContext', 'useSkillContext') },
+  {
+    owner: 'effectContext',
+    path: 'useSkillContext',
+    valueType: createPathObjectState('effectContext', 'useSkillContext'),
+  },
   { owner: 'effectContext', path: 'damageContext', valueType: createPathObjectState('effectContext', 'damageContext') },
   { owner: 'effectContext', path: 'healContext', valueType: createPathObjectState('effectContext', 'healContext') },
   { owner: 'effectContext', path: 'rageContext', valueType: createPathObjectState('effectContext', 'rageContext') },
-  { owner: 'effectContext', path: 'addMarkContext', valueType: createPathObjectState('effectContext', 'addMarkContext') },
-  { owner: 'effectContext', path: 'switchPetContext', valueType: createPathObjectState('effectContext', 'switchPetContext') },
+  {
+    owner: 'effectContext',
+    path: 'addMarkContext',
+    valueType: createPathObjectState('effectContext', 'addMarkContext'),
+  },
+  {
+    owner: 'effectContext',
+    path: 'switchPetContext',
+    valueType: createPathObjectState('effectContext', 'switchPetContext'),
+  },
   { owner: 'effectContext', path: 'turnContext', valueType: createPathObjectState('effectContext', 'turnContext') },
   { owner: 'effectContext', path: 'stackContext', valueType: createPathObjectState('effectContext', 'stackContext') },
-  { owner: 'effectContext', path: 'consumeStackContext', valueType: createPathObjectState('effectContext', 'consumeStackContext') },
-  { owner: 'effectContext', path: 'transformContext', valueType: createPathObjectState('effectContext', 'transformContext') },
-  { owner: 'effectContext', path: 'removeMarkContext', valueType: createPathObjectState('effectContext', 'removeMarkContext') },
+  {
+    owner: 'effectContext',
+    path: 'consumeStackContext',
+    valueType: createPathObjectState('effectContext', 'consumeStackContext'),
+  },
+  {
+    owner: 'effectContext',
+    path: 'transformContext',
+    valueType: createPathObjectState('effectContext', 'transformContext'),
+  },
+  {
+    owner: 'effectContext',
+    path: 'removeMarkContext',
+    valueType: createPathObjectState('effectContext', 'removeMarkContext'),
+  },
 ]
 
 const nestedEffectFieldSeeds: EffectCompileFieldSeed[] = effectDefFieldSeeds.map(seed => {

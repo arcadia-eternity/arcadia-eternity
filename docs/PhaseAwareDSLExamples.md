@@ -11,7 +11,7 @@
 ```typescript
 {
   // 原有参数保持不变...
-  
+
   // 🆕 Phase-aware参数 (全部可选)
   phaseType?: Value,    // 'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
   scope?: Value,        // 'current' | 'any' | 'next'
@@ -22,6 +22,7 @@
 ## 📋 支持的Operators
 
 ### 1. addAttributeModifier
+
 ```yaml
 type: addAttributeModifier
 target: { base: self }
@@ -35,6 +36,7 @@ scope: { type: 'raw:string', value: 'current' }
 ```
 
 ### 2. addDynamicAttributeModifier
+
 ```yaml
 type: addDynamicAttributeModifier
 target: { base: self }
@@ -54,12 +56,13 @@ scope: { type: 'raw:string', value: 'current' }
 ```
 
 ### 3. addClampModifier (合并后的统一operator)
+
 ```yaml
 type: addClampModifier
 target: { base: self }
 stat: { type: 'raw:string', value: 'speed' }
-minValue: { type: 'raw:number', value: 50 }    # 可选
-maxValue: { type: 'raw:number', value: 200 }   # 可选
+minValue: { type: 'raw:number', value: 50 } # 可选
+maxValue: { type: 'raw:number', value: 200 } # 可选
 priority: { type: 'raw:number', value: 100 }
 # 🆕 Phase-aware参数
 phaseType: { type: 'raw:string', value: 'turn' }
@@ -67,6 +70,7 @@ scope: { type: 'raw:string', value: 'current' }
 ```
 
 ### 4. addSkillAttributeModifier
+
 ```yaml
 type: addSkillAttributeModifier
 target:
@@ -86,6 +90,7 @@ scope: { type: 'raw:string', value: 'current' }
 ## 🎮 实际使用示例
 
 ### 示例1：技能增强印记
+
 ```yaml
 id: skill_attack_boost_mark
 trigger: OnTurnStart
@@ -103,6 +108,7 @@ apply:
 ```
 
 ### 示例2：防护印记
+
 ```yaml
 id: damage_defense_boost_mark
 trigger: OnTurnStart
@@ -120,6 +126,7 @@ apply:
 ```
 
 ### 示例3：特定技能增强
+
 ```yaml
 id: fire_blast_power_boost
 trigger: OnTurnStart
@@ -142,6 +149,7 @@ apply:
 ```
 
 ### 示例4：动态属性修改
+
 ```yaml
 id: reactive_speed_boost
 trigger: OnTurnStart
@@ -165,6 +173,7 @@ apply:
 ```
 
 ### 示例5：限制属性范围
+
 ```yaml
 id: skill_attack_clamp
 trigger: OnTurnStart
@@ -182,6 +191,7 @@ apply:
 ```
 
 ### 示例6：最小值限制
+
 ```yaml
 id: min_defense_protection
 trigger: OnTurnStart
@@ -198,6 +208,7 @@ apply:
 ```
 
 ### 示例7：最大值限制
+
 ```yaml
 id: max_attack_cap
 trigger: OnTurnStart

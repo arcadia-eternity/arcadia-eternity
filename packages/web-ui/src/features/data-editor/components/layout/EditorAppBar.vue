@@ -33,21 +33,14 @@ const canRedo = inject<() => boolean>('editor:canRedo', () => false)
   <header class="editor-app-bar">
     <!-- Global search -->
     <div class="app-bar-section app-bar-section--search">
-      <GlobalSearch
-        :model-value="state.searchQuery"
-        @update:model-value="state.searchQuery = $event"
-      />
+      <GlobalSearch :model-value="state.searchQuery" @update:model-value="state.searchQuery = $event" />
     </div>
 
     <!-- Spacer -->
     <div class="flex-1" />
 
     <!-- Dirty indicator -->
-    <span
-      v-if="state.isDirty"
-      class="app-bar-dirty-dot"
-      title="未保存的更改"
-    />
+    <span v-if="state.isDirty" class="app-bar-dirty-dot" title="未保存的更改" />
 
     <!-- Right: Action buttons -->
     <div class="app-bar-section app-bar-section--actions">
@@ -66,25 +59,14 @@ const canRedo = inject<() => boolean>('editor:canRedo', () => false)
 
       <!-- Undo -->
       <ElTooltip content="撤销 (Ctrl+Z)" placement="bottom" :show-after="400">
-        <ElButton
-          size="small"
-          :icon="RefreshRight"
-          :disabled="!canUndo()"
-          class="app-bar-action-btn"
-          @click="onUndo"
-        >
+        <ElButton size="small" :icon="RefreshRight" :disabled="!canUndo()" class="app-bar-action-btn" @click="onUndo">
           撤销
         </ElButton>
       </ElTooltip>
 
       <!-- Redo -->
       <ElTooltip content="重做 (Ctrl+Shift+Z)" placement="bottom" :show-after="400">
-        <ElButton
-          size="small"
-          :disabled="!canRedo()"
-          class="app-bar-action-btn"
-          @click="onRedo"
-        >
+        <ElButton size="small" :disabled="!canRedo()" class="app-bar-action-btn" @click="onRedo">
           <template #icon>
             <span class="redo-icon">&#x21bb;</span>
           </template>
@@ -137,7 +119,11 @@ const canRedo = inject<() => boolean>('editor:canRedo', () => false)
   user-select: none;
   background: var(--ae-bg-surface);
   border-bottom: 1px solid var(--ae-border-subtle);
-  font-family: var(--ae-font-base), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    var(--ae-font-base),
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   z-index: 10;
 }
 
@@ -246,7 +232,12 @@ const canRedo = inject<() => boolean>('editor:canRedo', () => false)
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 </style>

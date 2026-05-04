@@ -77,14 +77,19 @@ export class TurnHandler implements PhaseHandler<TurnData> {
       switch (sel.type) {
         case 'use-skill': {
           const pet = this.playerSystem.getActivePet(world, playerId)
-          const targetPet = sel.target === AttackTargetOpinion.opponent
-            ? this.playerSystem.getActivePet(world, playerId === playerAId ? playerBId : playerAId)
-            : pet
+          const targetPet =
+            sel.target === AttackTargetOpinion.opponent
+              ? this.playerSystem.getActivePet(world, playerId === playerAId ? playerBId : playerAId)
+              : pet
 
           const skillElement = this.skillSystem.getElement(world, sel.skill)
           const skillCategory = this.skillSystem.getCategory(world, sel.skill)
           const elementChart = getSeer2ElementChart()
-          const typeMultiplier = getEffectiveness(elementChart, skillElement, this.petSystem.getElement(world, targetPet.id))
+          const typeMultiplier = getEffectiveness(
+            elementChart,
+            skillElement,
+            this.petSystem.getElement(world, targetPet.id),
+          )
           const stabMultiplier = this.petSystem.getElement(world, pet.id) === skillElement ? 1.5 : 1
 
           const ctx: UseSkillContextData = {
@@ -112,7 +117,8 @@ export class TurnHandler implements PhaseHandler<TurnData> {
             crit: false,
             multihitResult: 1,
             currentHitCount: 1,
-            damageType: skillCategory === Category.Physical || skillCategory === Category.Climax ? 'physical' : 'special',
+            damageType:
+              skillCategory === Category.Physical || skillCategory === Category.Climax ? 'physical' : 'special',
             typeMultiplier,
             stabMultiplier,
             critMultiplier: 2,
@@ -180,7 +186,9 @@ export class TurnHandler implements PhaseHandler<TurnData> {
     })
 
     data.plannedSkillPetIds = actions
-      .filter((action): action is QueuedAction & { type: 'skill'; data: UseSkillContextData } => action.type === 'skill')
+      .filter(
+        (action): action is QueuedAction & { type: 'skill'; data: UseSkillContextData } => action.type === 'skill',
+      )
       .map(action => action.data.petId)
 
     // Execute actions sequentially

@@ -1897,26 +1897,26 @@ const handleDeletePet = (petId: string) => {
 const setAsStarter = (petId: string) => {
   const team = [...currentTeam.value]
   const petIndex = team.findIndex(pet => pet.id === petId)
-  
+
   if (petIndex === 0) {
     // 已经是首发，不需要操作
     ElMessage.info('该精灵已经是首发位置')
     return
   }
-  
+
   if (petIndex === -1) {
     ElMessage.error('未找到该精灵')
     return
   }
-  
+
   // 将精灵移动到队伍首位
   const [pet] = team.splice(petIndex, 1)
   team.unshift(pet)
-  
+
   // 更新队伍顺序
   petStorage.updateTeamOrder(petStorage.currentTeamIndex, team)
   petStorage.saveToLocal()
-  
+
   ElMessage.success('已设置为首发精灵')
 }
 

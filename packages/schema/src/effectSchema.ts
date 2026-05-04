@@ -29,18 +29,17 @@ const baseExtractorSchema = StringEnum([...BASE_EXTRACTOR_KEYS])
 // The trick: define mutable schema holders, fill them in order.
 
 const _value: { schema: TSchema } = { schema: Type.Any() }
-void _value;
+void _value
 const _selector: { schema: TSchema } = { schema: Type.Any() }
-void _selector;
+void _selector
 const _condition: { schema: TSchema } = { schema: Type.Any() }
-void _condition;
+void _condition
 const _evaluator: { schema: TSchema } = { schema: Type.Any() }
-void _evaluator;
+void _evaluator
 const _operator: { schema: TSchema } = { schema: Type.Any() }
-void _operator;
+void _operator
 const _selectorChain: { schema: TSchema } = { schema: Type.Any() }
-void _selectorChain;
-
+void _selectorChain
 
 // We'll use Type.Any() as the recursive placeholder and build real schemas.
 // Since TypeBox schemas are plain objects, we can construct them and they work
@@ -251,9 +250,12 @@ export const conditionDSLSchema = Type.Union([
     type: Type.Literal('continuousUseSkill'),
     times: Type.Optional(Type.Any({ default: 2 })),
     strategy: Type.Optional(
-      Type.Union(Object.values(ContinuousUseSkillStrategy).map(v => Type.Literal(v)), {
-        default: ContinuousUseSkillStrategy.Continuous,
-      }),
+      Type.Union(
+        Object.values(ContinuousUseSkillStrategy).map(v => Type.Literal(v)),
+        {
+          default: ContinuousUseSkillStrategy.Continuous,
+        },
+      ),
     ),
   }),
   Type.Object({
@@ -421,9 +423,12 @@ export const operatorDSLSchema = Type.Union([
     target: Type.Any(),
     statType: Type.Optional(Type.Any()),
     cleanStageStrategy: Type.Optional(
-      Type.Union(Object.values(CleanStageStrategy).map(v => Type.Literal(v)), {
-        default: CleanStageStrategy.positive,
-      }),
+      Type.Union(
+        Object.values(CleanStageStrategy).map(v => Type.Literal(v)),
+        {
+          default: CleanStageStrategy.positive,
+        },
+      ),
     ),
   }),
   Type.Object({
@@ -431,9 +436,12 @@ export const operatorDSLSchema = Type.Union([
     target: Type.Any(),
     statType: Type.Optional(Type.Any()),
     cleanStageStrategy: Type.Optional(
-      Type.Union(Object.values(CleanStageStrategy).map(v => Type.Literal(v)), {
-        default: CleanStageStrategy.positive,
-      }),
+      Type.Union(
+        Object.values(CleanStageStrategy).map(v => Type.Literal(v)),
+        {
+          default: CleanStageStrategy.positive,
+        },
+      ),
     ),
   }),
   Type.Object({
@@ -442,9 +450,12 @@ export const operatorDSLSchema = Type.Union([
     target: Type.Any(),
     statType: Type.Optional(Type.Any()),
     cleanStageStrategy: Type.Optional(
-      Type.Union(Object.values(CleanStageStrategy).map(v => Type.Literal(v)), {
-        default: CleanStageStrategy.negative,
-      }),
+      Type.Union(
+        Object.values(CleanStageStrategy).map(v => Type.Literal(v)),
+        {
+          default: CleanStageStrategy.negative,
+        },
+      ),
     ),
   }),
   Type.Object({ type: Type.Literal('addRage'), target: Type.Any(), value: Type.Any() }),
@@ -670,25 +681,17 @@ export const operatorDSLSchema = Type.Union([
     type: Type.Literal('transform'),
     target: Type.Any(),
     newBase: Type.Any(),
-    transformType: Type.Optional(
-      Type.Union([Type.Literal('temporary'), Type.Literal('permanent')]),
-    ),
+    transformType: Type.Optional(Type.Union([Type.Literal('temporary'), Type.Literal('permanent')])),
     priority: Type.Optional(Type.Any()),
-    permanentStrategy: Type.Optional(
-      Type.Union([Type.Literal('preserve_temporary'), Type.Literal('clear_temporary')]),
-    ),
+    permanentStrategy: Type.Optional(Type.Union([Type.Literal('preserve_temporary'), Type.Literal('clear_temporary')])),
   }),
   Type.Object({
     type: Type.Literal('transformWithPreservation'),
     target: Type.Any(),
     newBase: Type.Any(),
-    transformType: Type.Optional(
-      Type.Union([Type.Literal('temporary'), Type.Literal('permanent')]),
-    ),
+    transformType: Type.Optional(Type.Union([Type.Literal('temporary'), Type.Literal('permanent')])),
     priority: Type.Optional(Type.Any()),
-    permanentStrategy: Type.Optional(
-      Type.Union([Type.Literal('preserve_temporary'), Type.Literal('clear_temporary')]),
-    ),
+    permanentStrategy: Type.Optional(Type.Union([Type.Literal('preserve_temporary'), Type.Literal('clear_temporary')])),
   }),
   Type.Object({ type: Type.Literal('removeTransformation'), target: Type.Any() }),
   Type.Object({ type: Type.Literal('executeActions'), target: Type.Any() }),
@@ -765,9 +768,7 @@ export function applyDslTypingMetadata(
   }
 }
 
-export function extractDslTypingMetadata<TRule = unknown>(
-  schema: TSchema | unknown,
-): Partial<Record<string, TRule>> {
+export function extractDslTypingMetadata<TRule = unknown>(schema: TSchema | unknown): Partial<Record<string, TRule>> {
   const out: Partial<Record<string, TRule>> = {}
   for (const variant of collectUnionVariants(schema)) {
     const type = getNodeTypeConst(variant)
@@ -786,15 +787,6 @@ export function extractDslNodeTypes(schema: TSchema | unknown): string[] {
   return [...new Set(types)].sort()
 }
 
-applyDslTypingMetadata(
-  conditionDSLSchema,
-  effectDslTypingMetadata.condition as Partial<Record<string, unknown>>,
-)
-applyDslTypingMetadata(
-  evaluatorDSLSchema,
-  effectDslTypingMetadata.evaluator as Partial<Record<string, unknown>>,
-)
-applyDslTypingMetadata(
-  operatorDSLSchema,
-  effectDslTypingMetadata.operator as Partial<Record<string, unknown>>,
-)
+applyDslTypingMetadata(conditionDSLSchema, effectDslTypingMetadata.condition as Partial<Record<string, unknown>>)
+applyDslTypingMetadata(evaluatorDSLSchema, effectDslTypingMetadata.evaluator as Partial<Record<string, unknown>>)
+applyDslTypingMetadata(operatorDSLSchema, effectDslTypingMetadata.operator as Partial<Record<string, unknown>>)
