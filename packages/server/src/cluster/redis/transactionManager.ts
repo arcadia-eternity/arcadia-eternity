@@ -177,18 +177,18 @@ export class TransactionManager {
         break
 
       case 'sadd':
-        multi.sadd(operation.key, operation.value)
+        multi.sadd(operation.key, operation.value as string | Buffer | number)
         break
 
       case 'srem':
-        multi.srem(operation.key, operation.value)
+        multi.srem(operation.key, operation.value as string | Buffer | number)
         break
 
       case 'hset':
         if (operation.field) {
-          multi.hset(operation.key, operation.field, operation.value)
+          multi.hset(operation.key, operation.field!, operation.value as string | Buffer | number)
         } else {
-          multi.hset(operation.key, operation.value)
+          multi.hset(operation.key, operation.value as string | Buffer | number)
         }
         break
 
@@ -200,12 +200,12 @@ export class TransactionManager {
 
       case 'zadd':
         if (operation.score !== undefined) {
-          multi.zadd(operation.key, operation.score, operation.value)
+          multi.zadd(operation.key, operation.score!, operation.value as string | Buffer | number)
         }
         break
 
       case 'zrem':
-        multi.zrem(operation.key, operation.value)
+        multi.zrem(operation.key, operation.value as string | Buffer | number)
         break
 
       default:

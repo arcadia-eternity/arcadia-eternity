@@ -129,8 +129,8 @@ export class InMemoryRedisClientManager {
       return publishedCount
     }) as typeof publisher.publish
 
-    subscriber.subscribe = ((...args: Parameters<typeof subscriber.subscribe>) => {
-      const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
+    subscriber.subscribe = ((...args: string[]) => {
+      const callback = typeof args.at(-1) === 'function' ? args.pop() as unknown as (err: Error | null, count?: number) => void : undefined
       const channels = args as string[]
       for (const channel of channels) {
         subscriber.__channelSubscriptions?.add(channel)
@@ -139,8 +139,8 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__channelSubscriptions?.size ?? 0)
     }) as typeof subscriber.subscribe
 
-    subscriber.psubscribe = ((...args: Parameters<typeof subscriber.psubscribe>) => {
-      const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
+    subscriber.psubscribe = ((...args: string[]) => {
+      const callback = typeof args.at(-1) === 'function' ? args.pop() as unknown as (err: Error | null, count?: number) => void : undefined
       const patterns = args as string[]
       for (const pattern of patterns) {
         subscriber.__patternSubscriptions?.add(pattern)
@@ -149,8 +149,8 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__patternSubscriptions?.size ?? 0)
     }) as typeof subscriber.psubscribe
 
-    subscriber.unsubscribe = ((...args: Parameters<typeof subscriber.unsubscribe>) => {
-      const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
+    subscriber.unsubscribe = ((...args: string[]) => {
+      const callback = typeof args.at(-1) === 'function' ? args.pop() as unknown as (err: Error | null, count?: number) => void : undefined
       const channels = args as string[]
       if (channels.length === 0) {
         subscriber.__channelSubscriptions?.clear()
@@ -163,8 +163,8 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__channelSubscriptions?.size ?? 0)
     }) as typeof subscriber.unsubscribe
 
-    subscriber.punsubscribe = ((...args: Parameters<typeof subscriber.punsubscribe>) => {
-      const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
+    subscriber.punsubscribe = ((...args: string[]) => {
+      const callback = typeof args.at(-1) === 'function' ? args.pop() as unknown as (err: Error | null, count?: number) => void : undefined
       const patterns = args as string[]
       if (patterns.length === 0) {
         subscriber.__patternSubscriptions?.clear()

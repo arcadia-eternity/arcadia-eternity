@@ -31,7 +31,7 @@ export class ClientRealtimeGateway<
     ;(this.io.emit as (event: string, ...args: unknown[]) => boolean)(event, ...args)
   }
 
-  emitToRoom<EventName extends keyof EmitEvents>(roomId: string, event: EventName, ...args: EmitEvents[EventName] extends (...params: infer Params) => void ? Params : never): void {
+  emitToRoom<EventName extends keyof EmitEvents & string>(roomId: string, event: EventName, ...args: EmitEvents[EventName] extends (...params: infer Params) => void ? Params : never): void {
     ;(this.io.to(roomId).emit as (event: string, ...args: unknown[]) => boolean)(event, ...args)
   }
 

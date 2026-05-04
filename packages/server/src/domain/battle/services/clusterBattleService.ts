@@ -588,7 +588,7 @@ export class ClusterBattleService implements IBattleService {
         const ruleSetId = player1Entry.ruleSetId || player2Entry.ruleSetId || 'casual_standard_ruleset'
 
         // 检查是否是私人房间战斗
-        const isPrivateRoom = player1Entry.metadata?.privateRoom || player2Entry.metadata?.privateRoom || false
+        const isPrivateRoom = (player1Entry.metadata?.privateRoom as boolean) || (player2Entry.metadata?.privateRoom as boolean) || false
         const roomCode = player1Entry.metadata?.roomCode || player2Entry.metadata?.roomCode
         const requiredPackLock = player1Entry.metadata?.requiredPackLock || player2Entry.metadata?.requiredPackLock
         const requiredAssetLock =
@@ -1176,7 +1176,7 @@ export class ClusterBattleService implements IBattleService {
 
           // 如果是私人房间，发布战斗结束事件
           if (runtime.data.privateRoom && roomState && roomState.metadata?.roomCode) {
-            await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode, roomId, battleEndData)
+            await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode as string, roomId, battleEndData)
             if (currentRoomState)
               await this.sessionStateManager.batchUpdateSessionStates(
                 currentRoomState.sessions.map(sessionId => ({

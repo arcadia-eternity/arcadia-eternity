@@ -296,7 +296,7 @@ export class PerformanceTracker {
   /**
    * 为span添加标签
    */
-  setSpanTag(spanId: string, key: string, value: unknown): void {
+  setSpanTag(spanId: string, key: string, value: string): void {
     const span = this.activeSpans.get(spanId)
     if (span) {
       span.tags[key] = value

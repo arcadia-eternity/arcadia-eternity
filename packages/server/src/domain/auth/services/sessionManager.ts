@@ -4,7 +4,7 @@ import type { DistributedLockManager } from '../../../cluster/redis/distributedL
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { SessionData, AuthBlacklistEntry } from '../../../cluster/types'
 import { generateTimestampedSessionId } from '../../../cluster/types'
-import type { RedisClientManager } from '../../../cluster/redis/redisClient'
+import type { Redis } from 'ioredis'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -308,7 +308,7 @@ export class SessionManager {
    * 清理会话相关的所有引用
    */
   private async cleanupSessionReferences(
-    client: RedisClientManager,
+    client: Redis,
     keyPrefix: string,
     playerId: string,
     sessionId: string,
