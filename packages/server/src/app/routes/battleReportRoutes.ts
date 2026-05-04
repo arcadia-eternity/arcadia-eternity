@@ -18,7 +18,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
   const apiLogger = logger.child({ module: 'BattleReportAPI' })
 
   // 错误处理中间件
-  const handleError = (error: any, res: Response, operation: string) => {
+  const handleError = (error: unknown, res: Response, operation: string) => {
     apiLogger.error({ error, operation }, 'API operation failed')
 
     if (error.name === 'DatabaseError') {

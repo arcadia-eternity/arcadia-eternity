@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, type Request, type Response } from 'express'
 import { Type, type Static } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { EmailVerificationRepository, PlayerRepository } from '@arcadia-eternity/database'
@@ -66,7 +66,7 @@ const UnbindEmailSchema = Type.Object({
  * 执行智能认证检查的辅助函数
  */
 async function performSmartAuth(
-  req: any,
+  req: Request,
   playerId: string,
 ): Promise<{
   success: boolean
@@ -226,7 +226,7 @@ export function createEmailInheritanceRoutes(): Router {
    *             schema:
    *               $ref: '#/components/schemas/ErrorResponse'
    */
-  router.post('/send-verification-code', async (req: any, res: any) => {
+  router.post('/send-verification-code', async (req: Request, res: Response) => {
     try {
       const { email, playerId, purpose } = parseRequest(SendVerificationCodeSchema, req.body)
 
@@ -350,7 +350,7 @@ export function createEmailInheritanceRoutes(): Router {
   /**
    * 验证邮箱验证码（智能认证）
    */
-  router.post('/verify-code', smartAuth, async (req: any, res: any) => {
+  router.post('/verify-code', smartAuth, async (req: Request, res: Response) => {
     try {
       const { email, code, purpose } = parseRequest(VerifyCodeSchema, req.body)
 
@@ -440,7 +440,7 @@ export function createEmailInheritanceRoutes(): Router {
    *             schema:
    *               $ref: '#/components/schemas/ErrorResponse'
    */
-  router.post('/bind', smartAuth, async (req: any, res: any) => {
+  router.post('/bind', smartAuth, async (req: Request, res: Response) => {
     try {
       const { email, code, playerId } = parseRequest(BindEmailSchema, req.body)
 
@@ -554,7 +554,7 @@ export function createEmailInheritanceRoutes(): Router {
    *             schema:
    *               $ref: '#/components/schemas/ErrorResponse'
    */
-  router.post('/recover', async (req: any, res: any) => {
+  router.post('/recover', async (req: Request, res: Response) => {
     try {
       const { email, code } = parseRequest(RecoverPlayerSchema, req.body)
 
@@ -613,7 +613,7 @@ export function createEmailInheritanceRoutes(): Router {
   /**
    * 检查邮箱绑定状态
    */
-  router.get('/check-binding', async (req: any, res: any) => {
+  router.get('/check-binding', async (req: Request, res: Response) => {
     try {
       const email = parseRequest(EmailStringSchema, req.query.email)
 
@@ -649,7 +649,7 @@ export function createEmailInheritanceRoutes(): Router {
   /**
    * 解绑邮箱（仅注册用户）
    */
-  router.post('/unbind', smartAuth, requireRegisteredUser, async (req: any, res: any) => {
+  router.post('/unbind', smartAuth, requireRegisteredUser, async (req: Request, res: Response) => {
     try {
       const { playerId } = parseRequest(UnbindEmailSchema, req.body)
 

@@ -98,9 +98,10 @@ export interface SmartLoadBalancingConfig {
 
 export class SmartLoadBalancingStrategy implements LoadBalancingStrategy {
   private configManager: LoadBalancingConfigManager
-  private performanceTracker?: any // PerformanceTracker type
+private performanceTracker?: PerformanceTracker
+  private configManager?: LoadBalancingConfigManager
 
-  constructor(configManager?: LoadBalancingConfigManager, performanceTracker?: any) {
+  constructor(configManager?: LoadBalancingConfigManager, performanceTracker?: PerformanceTracker) {
     this.configManager = configManager || loadBalancingConfigManager
     this.performanceTracker = performanceTracker
 

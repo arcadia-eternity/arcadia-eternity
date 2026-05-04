@@ -48,7 +48,7 @@ export class BattleReportService {
     playerBId: string,
     playerBName: string,
     ruleSetId?: string,
-    metadata?: { isPrivateRoom?: boolean; [key: string]: any },
+    metadata?: { isPrivateRoom?: boolean; [key: string]: unknown },
   ): Promise<string | null> {
     if (!this.config.enableReporting) {
       return null
@@ -155,7 +155,7 @@ export class BattleReportService {
 
     try {
       // 确定胜者和战斗结果
-      const endData = endMessage.data as any
+      const endData = endMessage.data as Record<string, unknown>
       const winnerId = endData.winner
       let battleResult: BattleResult
       let endReason: EndReason

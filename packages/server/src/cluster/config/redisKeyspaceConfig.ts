@@ -4,6 +4,7 @@
  */
 
 import pino from 'pino'
+import type { RedisClientManager } from '../redis/redisClient'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -21,7 +22,7 @@ export class RedisKeyspaceConfig {
    * 启用 Redis 键空间通知
    * @param redisClient Redis 客户端实例
    */
-  static async enableKeyspaceNotifications(redisClient: any): Promise<void> {
+  static async enableKeyspaceNotifications(redisClient: RedisClientManager): Promise<void> {
     try {
       // 获取当前的 notify-keyspace-events 配置
       const currentConfig = await redisClient.config('GET', 'notify-keyspace-events')
@@ -65,7 +66,7 @@ export class RedisKeyspaceConfig {
    * 验证键空间通知配置
    * @param redisClient Redis 客户端实例
    */
-  private static async verifyKeyspaceNotifications(redisClient: any): Promise<void> {
+  private static async verifyKeyspaceNotifications(redisClient: RedisClientManager): Promise<void> {
     try {
       const config = await redisClient.config('GET', 'notify-keyspace-events')
       const value = config?.[1] || ''
@@ -91,7 +92,7 @@ export class RedisKeyspaceConfig {
    * @param redisClient Redis 客户端实例
    * @param subscriberClient Redis 订阅客户端实例
    */
-  static async testTTLExpiration(redisClient: any, subscriberClient: any): Promise<boolean> {
+  static async testTTLExpiration(redisClient: RedisClientManager, subscriberClient: RedisClientManager): Promise<boolean> {
     return new Promise((resolve) => {
       const testKey = `test:ttl:${Date.now()}`
       const expiredKeyPattern = '__keyevent@*__:expired'
@@ -147,7 +148,7 @@ export class RedisKeyspaceConfig {
    * 应用推荐的 Redis 配置
    * @param redisClient Redis 客户端实例
    */
-  static async applyRecommendedConfig(redisClient: any): Promise<void> {
+  static async applyRecommendedConfig(redisClient: RedisClientManager): Promise<void> {
     const config = this.getRecommendedRedisConfig()
 
     for (const [key, value] of Object.entries(config)) {

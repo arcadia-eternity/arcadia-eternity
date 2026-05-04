@@ -424,7 +424,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
                       name: error.name,
                       message: error.message,
                       stack: error.stack,
-                      code: (error as any).code,
+                      code: (error as Record<string, unknown>).code,
                     }
                   : error,
             },
@@ -827,7 +827,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
       // 通过RPC调用远程实例创建战斗
       const response = await new Promise<{ success: boolean; error?: string; roomId?: string }>((resolve, reject) => {
-        ;(rpcClient as any).createBattle(
+        ;(rpcClient as BattleRpcClient).createBattle(
           {
             player1_entry: {
               player_id: player1Entry.playerId,
@@ -844,7 +844,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
               join_time: player2Entry.joinTime,
             },
           },
-          (error: any, response: any) => {
+          (error: grpc.ServiceError | null, response: unknown) => {
             if (error) {
               reject(error)
             } else {
@@ -1200,7 +1200,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     }
   }
 
-  private handleValidationError(error: unknown, _socket: Socket, ack?: any) {
+  private handleValidationError(error: unknown, _socket: Socket, ack?: AckResponse<unknown>) {
     const response: ErrorResponse = {
       status: 'ERROR',
       code: 'VALIDATION_ERROR',
@@ -1315,7 +1315,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
   /**
    * 判断是否应该触发定时匹配
    */
-  private shouldTriggerPeriodicMatching(queue: any[], matchingConfig: any): boolean {
+  private shouldTriggerPeriodicMatching(queue: unknown[], matchingConfig: unknown): boolean {
     // FIFO策略：有2个以上玩家就可以匹配
     if (matchingConfig.strategy === 'fifo') {
       return queue.length >= 2
@@ -1336,7 +1336,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
   /**
    * 获取队列中最老玩家的等待时间 (秒)
    */
-  private getOldestWaitTime(queue: any[]): number {
+  private getOldestWaitTime(queue: unknown[]): number {
     if (queue.length === 0) return 0
 
     const now = Date.now()

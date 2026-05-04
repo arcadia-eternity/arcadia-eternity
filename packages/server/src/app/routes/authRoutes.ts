@@ -310,7 +310,7 @@ export function createAuthRoutes(): Router {
    * PUT /auth/update-player-name
    * 更新玩家名字 - 支持游客和注册用户
    */
-  router.put('/update-player-name', smartAuth, async (req: any, res: any) => {
+  router.put('/update-player-name', smartAuth, async (req: Request, res: Response) => {
     try {
       const { playerId, name } = parseRequest(Type.Object({
           playerId: Type.String({ minLength: 1 }),

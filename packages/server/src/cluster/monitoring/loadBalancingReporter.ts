@@ -243,7 +243,7 @@ export class LoadBalancingReporter {
   /**
    * 生成优化建议
    */
-  private generateRecommendations(instances: ServiceInstance[], loadDistribution: any): string[] {
+  private generateRecommendations(instances: ServiceInstance[], loadDistribution: unknown): string[] {
     const recommendations: string[] = []
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 

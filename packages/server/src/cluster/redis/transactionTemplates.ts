@@ -322,7 +322,7 @@ export class TransactionTemplates {
   /**
    * 实例注册事务
    */
-  async executeInstanceRegistration(instanceId: string, instanceData: any): Promise<boolean> {
+  async executeInstanceRegistration(instanceId: string, instanceData: unknown): Promise<boolean> {
     try {
       const operations: TransactionOperation[] = [
         {
@@ -398,7 +398,7 @@ export class TransactionTemplates {
     }
   }
 
-  private serializeSessionConnection(connection: any): Record<string, string> {
+  private serializeSessionConnection(connection: unknown): Record<string, string> {
     return {
       playerId: connection.playerId,
       sessionId: connection.sessionId,
@@ -414,8 +414,8 @@ export class TransactionTemplates {
 /**
  * 事务重试装饰器
  */
-export function withRetry<T extends any[], R>(retryCount: number = 3, retryDelay: number = 1000) {
-  return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function withRetry<T extends unknown[], R>(retryCount: number = 3, retryDelay: number = 1000) {
+  return function (_target: object, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value
 
     descriptor.value = async function (...args: T): Promise<R> {

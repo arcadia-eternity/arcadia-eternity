@@ -34,7 +34,7 @@ export class TimerEventBatcher {
   // 需要立即发送的事件类型
   private readonly immediateEventTypes = new Set(['start', 'timeout', 'stateChange'])
 
-  constructor(private readonly sendCallback: (sessionKey: string, eventType: string, data: any) => Promise<void>) {}
+  constructor(private readonly sendCallback: (sessionKey: string, eventType: string, data: unknown) => Promise<void>) {}
 
   /**
    * 添加Timer事件到批次

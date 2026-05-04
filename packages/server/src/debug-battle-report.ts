@@ -70,7 +70,7 @@ async function debugBattleReportFlow() {
     console.log('✅ 集群应用创建成功')
 
     // 检查战报服务是否正确初始化
-    const battleReportService = (battleServer as any).battleReportService
+    const battleReportService = (battleServer as unknown as { battleReportService: BattleReportService; battleService: IBattleService }).battleReportService
     if (battleReportService) {
       console.log('✅ 战报服务已初始化')
       console.log('   - 配置:', battleReportService.config)
@@ -82,10 +82,10 @@ async function debugBattleReportFlow() {
     }
 
     // 检查战斗服务
-    const battleService = (battleServer as any).battleService
+    const battleService = (battleServer as unknown as { battleReportService: BattleReportService; battleService: IBattleService }).battleService
     if (battleService) {
       console.log('✅ 战斗服务已初始化')
-      const battleReportServiceInBattleService = (battleService as any).battleReportService
+      const battleReportServiceInBattleService = (battleService as unknown as { battleReportService: BattleReportService; battleService: IBattleService }).battleReportService
       if (battleReportServiceInBattleService) {
         console.log('✅ 战斗服务中的战报服务已初始化')
       } else {

@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 import * as promClient from 'prom-client'
+import type { Request, Response, NextFunction } from 'express'
 import type { RedisClientManager } from '../redis/redisClient'
 
 const logger = pino({
@@ -15,7 +16,7 @@ export interface TraceSpan {
   startTime: number
   endTime?: number
   duration?: number
-  tags: Record<string, any>
+  tags: Record<string, unknown>
   logs: TraceLog[]
   status: 'pending' | 'success' | 'error'
   error?: string
@@ -25,7 +26,7 @@ export interface TraceLog {
   timestamp: number
   level: 'info' | 'warn' | 'error'
   message: string
-  fields?: Record<string, any>
+  fields?: Record<string, unknown>
 }
 
 export interface PerformanceMetric {
@@ -294,7 +295,7 @@ export class PerformanceTracker {
   /**
    * 为span添加标签
    */
-  setSpanTag(spanId: string, key: string, value: any): void {
+  setSpanTag(spanId: string, key: string, value: unknown): void {
     const span = this.activeSpans.get(spanId)
     if (span) {
       span.tags[key] = value
@@ -304,7 +305,7 @@ export class PerformanceTracker {
   /**
    * 为span添加日志
    */
-  logToSpan(spanId: string, level: TraceLog['level'], message: string, fields?: Record<string, any>): void {
+  logToSpan(spanId: string, level: TraceLog['level'], message: string, fields?: Record<string, unknown>): void {
     const span = this.activeSpans.get(spanId)
     if (span) {
       span.logs.push({
@@ -399,11 +400,11 @@ export class PerformanceTracker {
    * 创建一个计时器装饰器
    */
   timer(operationName: string, tags: Record<string, string> = {}) {
-    return function (_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    return function (_target: object, propertyKey: string, descriptor: PropertyDescriptor) {
       const originalMethod = descriptor.value
 
-      descriptor.value = async function (...args: any[]) {
-        const tracker = (this as any).performanceTracker as PerformanceTracker
+      descriptor.value = async function (...args: unknown[]) {
+        const tracker = (this as Record<string, unknown>).performanceTracker as PerformanceTracker
         if (!tracker) {
           return originalMethod.apply(this, args)
         }
@@ -472,7 +473,7 @@ export class PerformanceTracker {
    * 创建HTTP中间件用于自动记录请求指标
    */
   createHttpMiddleware() {
-    return (req: any, res: any, next: any) => {
+    return (req: Request, res: Response, next: NextFunction) => {
       const startTime = Date.now()
 
       res.on('finish', () => {
@@ -490,11 +491,11 @@ export class PerformanceTracker {
    * 创建Redis操作装饰器
    */
   redisTimer(operation: string) {
-    return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
+    return function (_target: object, _propertyKey: string, descriptor: PropertyDescriptor) {
       const originalMethod = descriptor.value
 
-      descriptor.value = async function (...args: any[]) {
-        const tracker = (this as any).performanceTracker as PerformanceTracker
+      descriptor.value = async function (...args: unknown[]) {
+        const tracker = (this as Record<string, unknown>).performanceTracker as PerformanceTracker
         const startTime = Date.now()
 
         try {

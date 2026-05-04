@@ -20,7 +20,7 @@ export interface SessionInfo {
   sessionId: string
   createdAt: number
   lastAccessed: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export class SessionManager {
@@ -307,7 +307,7 @@ export class SessionManager {
    * 清理会话相关的所有引用
    */
   private async cleanupSessionReferences(
-    client: any,
+    client: RedisClientManager,
     keyPrefix: string,
     playerId: string,
     sessionId: string,

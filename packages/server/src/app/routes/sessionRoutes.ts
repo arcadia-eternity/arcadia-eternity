@@ -282,7 +282,7 @@ export function createSessionRoutes(authService: ClusterAuthService, sessionMana
       const { includeDetails } = SessionStatsSchema.parse(req.query)
       const stats = await sessionManager.getSessionStats()
 
-      let responseData: any = stats
+      let responseData: unknown = stats
 
       if (includeDetails) {
         // 如果需要详细信息，可以添加更多统计数据

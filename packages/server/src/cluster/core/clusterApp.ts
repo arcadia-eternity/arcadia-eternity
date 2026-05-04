@@ -21,6 +21,7 @@ import { DistributedLockManager } from '../redis/distributedLock'
 import { getGlobalRedisDeduplicationStats, getGlobalRedisDeduplicationSavings } from '../redis/redisCallDeduplicator'
 import { RedisClientManager } from '../redis/redisClient'
 import { InMemoryRedisClientManager } from '../redis/inMemoryRedisClient'
+import type { SessionManager } from '../../domain/auth/services/sessionManager'
 import { createBattleReportRoutes } from '../../app/routes/battleReportRoutes'
 import { createEmailInheritanceRoutes } from '../../app/routes/emailInheritanceRoutes'
 import { createAuthRoutes } from '../../app/routes/authRoutes'
@@ -317,10 +318,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   let clientRealtimeGateway: ClientRealtimeGateway<ClientToServerEvents, ServerToClientEvents>
   let battleServer: ClusterBattleServer
   let rpcServer: BattleRpcServer
-  let sessionManager: any // SessionManager实例
-  let runtimeRedisManager: any
-  let runtimeLockManager: any
-  let runtimeStateManager: any
+  let sessionManager: SessionManager
+  let runtimeRedisManager: RedisClientManager | InMemoryRedisClientManager | null
+  let runtimeLockManager: DistributedLockManager | null
+  let runtimeStateManager: ClusterStateManager | null
 
   // 设置基础 API 路由
   const apiRouter = express.Router()
@@ -372,16 +373,16 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       } else {
         const forceInMemoryRedis = process.env.SINGLE_INSTANCE_INMEMORY_REDIS === 'true'
         if (!forceInMemoryRedis) {
-          runtimeRedisManager = RedisClientManager.getInstance(finalConfig.cluster!.redis) as any
+          runtimeRedisManager = RedisClientManager.getInstance(finalConfig.cluster!.redis)
           await runtimeRedisManager.initialize()
           logger.info('Single-instance mode uses external Redis backend')
         } else {
-          runtimeRedisManager = new InMemoryRedisClientManager(finalConfig.cluster!.redis) as any
+          runtimeRedisManager = new InMemoryRedisClientManager(finalConfig.cluster!.redis)
           await runtimeRedisManager.initialize()
           logger.warn('Single-instance mode forced to use in-memory Redis (non-persistent)')
         }
-        runtimeLockManager = new DistributedLockManager(runtimeRedisManager) as any
-        runtimeStateManager = new ClusterStateManager(runtimeRedisManager, runtimeLockManager, finalConfig.cluster!) as any
+        runtimeLockManager = new DistributedLockManager(runtimeRedisManager)
+        runtimeStateManager = new ClusterStateManager(runtimeRedisManager, runtimeLockManager, finalConfig.cluster!)
         await runtimeStateManager.initialize()
       }
 
