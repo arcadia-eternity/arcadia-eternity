@@ -291,7 +291,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
         },
         '加入匹配队列失败',
       )
-      this.handleValidationError(error, socket, ack)
+      this.handleValidationError(error, socket, ack as AckResponse<unknown>)
     }
   }
 

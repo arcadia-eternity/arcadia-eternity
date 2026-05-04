@@ -6,8 +6,6 @@ import {
   type playerId,
   type BattleMessage,
   type PlayerSelection,
-  type TimerEvent,
-  type TimerSnapshot,
   type PlayerTimerState,
   type TimerConfig,
   TimerEventType,
@@ -235,7 +233,7 @@ export class ClusterBattleService implements IBattleService {
       async (
         sessionKey: string,
         eventType: string,
-        data: TimerEvent | TimerEvent[] | { snapshots: TimerSnapshot[] },
+        data: unknown,
       ) => {
         const [playerId, sessionId] = sessionKey.split(':')
         await this.callbacks.sendToPlayerSession(playerId, sessionId, eventType, data)

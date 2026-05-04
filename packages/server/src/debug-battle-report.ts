@@ -75,7 +75,7 @@ async function debugBattleReportFlow() {
     const battleReportService = (battleServer as unknown as { battleReportService: BattleReportService; battleService: IBattleService }).battleReportService
     if (battleReportService) {
       console.log('✅ 战报服务已初始化')
-      console.log('   - 配置:', battleReportService.config)
+      console.log('   - 配置:', (battleReportService as unknown as { config: unknown }).config)
       console.log('   - 活跃战斗数:', battleReportService.getActiveBattleCount())
     } else {
       console.log('❌ 战报服务未初始化')

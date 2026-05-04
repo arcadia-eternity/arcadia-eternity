@@ -1,5 +1,5 @@
 import type { Server, Socket } from 'socket.io'
-import type { EventsMap } from 'socket.io/dist/typed-events'
+import type { EventsMap } from '@socket.io/component-emitter'
 
 export class ClientRealtimeGateway<
   ListenEvents extends EventsMap = EventsMap,

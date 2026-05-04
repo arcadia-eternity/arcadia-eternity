@@ -35,7 +35,7 @@ export class InMemoryRedisClientManager {
     this.client = new Redis({
       data: {},
       keyPrefix: this.getKeyPrefix(),
-    })
+    } as unknown as Record<string, unknown>)
     this.publisher = this.client.duplicate()
     this.subscriber = this.client.duplicate()
     this.patchPubSub(this.publisher, this.subscriber as PubSubSubscriber)

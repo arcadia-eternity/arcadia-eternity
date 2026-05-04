@@ -97,7 +97,7 @@ export interface IBattleService {
   recoverLocalBattleRuntime?(roomId: string): Promise<boolean>
   handleLocalGetBattleState(roomId: string, playerId: string): Promise<BattleState>
   handleLocalGetBattleHistory(roomId: string, playerId: string): Promise<BattleState>
-  handleLocalGetBattleReport(roomId: string, playerId: string): Promise<BattleState>
+  handleLocalGetBattleReport(roomId: string, playerId: string): Promise<{ battleRecordId: string }>
   handleLocalPlayerAbandon(roomId: string, playerId: string): Promise<{ status: string }>
   handleLocalBattleTermination(roomId: string, playerId: string, reason: string): Promise<{ status: string }>
   handleLocalGetPlayerTimerState(roomId: string, playerId: string, data: unknown): Promise<PlayerTimerState | null>

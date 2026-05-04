@@ -42,6 +42,7 @@
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.0",
     "@sinclair/typebox": "^0.34.48",
+    "@socket.io/component-emitter": "^3.1.2",
     "@types/handlebars": "^4.1.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
