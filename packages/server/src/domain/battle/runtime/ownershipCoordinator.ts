@@ -22,7 +22,7 @@ export interface OwnershipCoordinator {
 type RedisClientLike = {
   get(key: string): Promise<string | null>
   setex(key: string, seconds: number, value: string): Promise<unknown>
-  set?(...args: unknown[]): Promise<unknown>
+  set?(...args: any[]): Promise<unknown>
   del(key: string): Promise<number>
 }
 

@@ -5,9 +5,9 @@ import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
  * 从客户端的游戏数据存储中获取种族信息
  */
 export class ClientSpeciesDataProvider implements SpeciesDataProvider {
-  private gameDataStore: Record<string, unknown> | undefined
+  private gameDataStore: any
 
-  constructor(gameDataStore?: Record<string, unknown>) {
+  constructor(gameDataStore?: any) {
     this.gameDataStore = gameDataStore
   }
 
@@ -15,7 +15,7 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
    * 设置游戏数据存储
    * @param gameDataStore 游戏数据存储实例
    */
-  setGameDataStore(gameDataStore: Record<string, unknown>): void {
+  setGameDataStore(gameDataStore: any): void {
     this.gameDataStore = gameDataStore
   }
 
@@ -31,21 +31,18 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
 
     try {
       // 尝试从speciesList中查找
-      const speciesList = this.gameDataStore.speciesList as SpeciesSchemaType[] | undefined
-      if (speciesList && Array.isArray(speciesList)) {
-        return speciesList.find((species: SpeciesSchemaType) => species.id === speciesId)
+      if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
+        return this.gameDataStore.speciesList.find((species: SpeciesSchemaType) => species.id === speciesId)
       }
 
       // 尝试从其他可能的数据结构中查找
-      const species = this.gameDataStore.species as Record<string, SpeciesSchemaType> | undefined
-      if (species && species[speciesId]) {
-        return species[speciesId]
+      if (this.gameDataStore.species && this.gameDataStore.species[speciesId]) {
+        return this.gameDataStore.species[speciesId]
       }
 
       // 如果有byId映射
-      const speciesById = this.gameDataStore.species as { byId?: Record<string, SpeciesSchemaType> } | undefined
-      if (speciesById?.byId && speciesById.byId[speciesId]) {
-        return speciesById.byId[speciesId]
+      if (this.gameDataStore.species && this.gameDataStore.species.byId && this.gameDataStore.species.byId[speciesId]) {
+        return this.gameDataStore.species.byId[speciesId]
       }
 
       return undefined
@@ -73,14 +70,12 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
     }
 
     try {
-      const speciesList = this.gameDataStore.speciesList as SpeciesSchemaType[] | undefined
-      if (speciesList && Array.isArray(speciesList)) {
-        return speciesList.map((species: SpeciesSchemaType) => species.id)
+      if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
+        return this.gameDataStore.speciesList.map((species: SpeciesSchemaType) => species.id)
       }
 
-      const speciesById = this.gameDataStore.species as { byId?: Record<string, SpeciesSchemaType> } | undefined
-      if (speciesById?.byId) {
-        return Object.keys(speciesById.byId)
+      if (this.gameDataStore.species && this.gameDataStore.species.byId) {
+        return Object.keys(this.gameDataStore.species.byId)
       }
 
       return []
@@ -130,7 +125,7 @@ export function getGlobalClientSpeciesDataProvider(): ClientSpeciesDataProvider 
  * 初始化全局客户端种族数据提供者
  * @param gameDataStore 游戏数据存储实例
  */
-export function initializeGlobalClientSpeciesDataProvider(gameDataStore: Record<string, unknown>): void {
+export function initializeGlobalClientSpeciesDataProvider(gameDataStore: any): void {
   const provider = getGlobalClientSpeciesDataProvider()
   provider.setGameDataStore(gameDataStore)
 }

@@ -88,7 +88,7 @@ export class EmailService implements IEmailService {
           })
           break
 
-        case 'ses': {
+        case 'ses':
           if (!this.config.ses) {
             throw new Error('AWS SES configuration is required')
           }
@@ -104,7 +104,6 @@ export class EmailService implements IEmailService {
             SES: { sesClient, SendEmailCommand },
           })
           break
-        }
 
         case 'console':
           // 开发环境：输出到控制台
@@ -129,9 +128,9 @@ export class EmailService implements IEmailService {
                   name: error.name,
                   message: error.message,
                   stack: error.stack,
-                  code: (error as unknown as Record<string, unknown>).code,
-                  statusCode: (error as unknown as Record<string, unknown>).statusCode,
-                  response: (error as unknown as Record<string, unknown>).response,
+                  code: (error as any).code,
+                  statusCode: (error as any).statusCode,
+                  response: (error as any).response,
                 }
               : error,
           provider: this.config.provider,
@@ -188,9 +187,9 @@ export class EmailService implements IEmailService {
                   name: error.name,
                   message: error.message,
                   stack: error.stack,
-                  code: (error as unknown as Record<string, unknown>).code,
-                  statusCode: (error as unknown as Record<string, unknown>).statusCode,
-                  response: (error as unknown as Record<string, unknown>).response,
+                  code: (error as any).code,
+                  statusCode: (error as any).statusCode,
+                  response: (error as any).response,
                 }
               : error,
           recipient: message.to,
@@ -351,9 +350,9 @@ ${playerText}
                   name: error.name,
                   message: error.message,
                   stack: error.stack,
-                  code: (error as unknown as Record<string, unknown>).code,
-                  statusCode: (error as unknown as Record<string, unknown>).statusCode,
-                  response: (error as unknown as Record<string, unknown>).response,
+                  code: (error as any).code,
+                  statusCode: (error as any).statusCode,
+                  response: (error as any).response,
                 }
               : error,
           provider: this.config.provider,

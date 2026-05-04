@@ -20,7 +20,6 @@ import type {
 import type { SessionStateManager } from '../../session/sessionStateManager'
 import { TYPES } from '../../../types'
 import { MatchingStrategyFactory } from '../strategies/MatchingStrategyFactory'
-import type { MatchingConfig } from '../strategies/MatchingStrategy'
 import { MatchingConfigManager } from './MatchingConfigManager'
 
 const logger = pino({
@@ -226,7 +225,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
           throw error
         }
         logger.error({ error, playerId, ruleSetId }, '队伍验证过程中发生错误')
-        throw new Error('TEAM_VALIDATION_ERROR', { cause: error })
+        throw new Error('TEAM_VALIDATION_ERROR')
       }
 
       // 使用队列专用锁确保队列操作的原子性
@@ -425,7 +424,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
                       name: error.name,
                       message: error.message,
                       stack: error.stack,
-                      code: (error as Record<string, unknown>).code,
+                      code: (error as any).code,
                     }
                   : error,
             },
@@ -724,9 +723,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     } catch (error) {
       if (error instanceof Error) {
         logger.warn({ error: error.message, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.message}`, { cause: error })
+        throw new Error(`Invalid player data: ${error.message}`)
       }
-      throw new Error('Failed to validate raw player data', { cause: error })
+      throw new Error('Failed to validate raw player data')
     }
   }
 
@@ -736,9 +735,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     } catch (error) {
       if (error instanceof Error) {
         logger.warn({ error: error.message, rawData }, 'Player data validation failed')
-        throw new Error(`Invalid player data: ${error.message}`, { cause: error })
+        throw new Error(`Invalid player data: ${error.message}`)
       }
-      throw new Error('Failed to validate player data', { cause: error })
+      throw new Error('Failed to validate player data')
     }
   }
 
@@ -828,7 +827,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
       // 通过RPC调用远程实例创建战斗
       const response = await new Promise<{ success: boolean; error?: string; roomId?: string }>((resolve, reject) => {
-        ;(rpcClient as unknown as { createBattle: (data: Record<string, unknown>, callback: (error: unknown, response: Record<string, unknown>) => void) => void }).createBattle(
+        ;(rpcClient as any).createBattle(
           {
             player1_entry: {
               player_id: player1Entry.playerId,
@@ -845,14 +844,14 @@ export class ClusterMatchmakingService implements IMatchmakingService {
               join_time: player2Entry.joinTime,
             },
           },
-          (error: unknown, response: Record<string, unknown>) => {
+          (error: any, response: any) => {
             if (error) {
               reject(error)
             } else {
               resolve({
-                success: response.success as boolean,
-                error: response.error as string | undefined,
-                roomId: response.room_id as string | undefined,
+                success: response.success,
+                error: response.error,
+                roomId: response.room_id,
               })
             }
           },
@@ -1201,7 +1200,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     }
   }
 
-  private handleValidationError(error: unknown, _socket: Socket, ack?: (response: ErrorResponse) => void) {
+  private handleValidationError(error: unknown, _socket: Socket, ack?: any) {
     const response: ErrorResponse = {
       status: 'ERROR',
       code: 'VALIDATION_ERROR',
@@ -1316,7 +1315,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
   /**
    * 判断是否应该触发定时匹配
    */
-  private shouldTriggerPeriodicMatching(queue: MatchmakingEntry[], matchingConfig: MatchingConfig): boolean {
+  private shouldTriggerPeriodicMatching(queue: any[], matchingConfig: any): boolean {
     // FIFO策略：有2个以上玩家就可以匹配
     if (matchingConfig.strategy === 'fifo') {
       return queue.length >= 2
@@ -1337,7 +1336,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
   /**
    * 获取队列中最老玩家的等待时间 (秒)
    */
-  private getOldestWaitTime(queue: MatchmakingEntry[]): number {
+  private getOldestWaitTime(queue: any[]): number {
     if (queue.length === 0) return 0
 
     const now = Date.now()

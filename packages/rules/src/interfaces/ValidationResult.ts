@@ -25,7 +25,7 @@ export interface ValidationError {
   /** 相关的对象类型 */
   objectType?: string
   /** 额外的上下文信息 */
-  context?: Record<string, unknown>
+  context?: Record<string, any>
 }
 
 /**
@@ -43,7 +43,7 @@ export interface ValidationWarning {
   /** 相关的对象类型 */
   objectType?: string
   /** 额外的上下文信息 */
-  context?: Record<string, unknown>
+  context?: Record<string, any>
 }
 
 /**
@@ -96,7 +96,7 @@ export class ValidationResultBuilder {
     message: string,
     objectId?: string,
     objectType?: string,
-    context?: Record<string, unknown>
+    context?: Record<string, any>
   ): this {
     this.errors.push({
       type,
@@ -118,7 +118,7 @@ export class ValidationResultBuilder {
     message: string,
     objectId?: string,
     objectType?: string,
-    context?: Record<string, unknown>
+    context?: Record<string, any>
   ): this {
     this.warnings.push({
       type,

@@ -54,7 +54,7 @@ export interface ServiceInstance {
     errorRate: number // 错误率 (0-1)
     lastUpdated: number // 性能指标最后更新时间
   }
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, any>
 }
 
 export interface PlayerConnection {
@@ -63,7 +63,7 @@ export interface PlayerConnection {
   lastSeen: number
   status: 'connected' | 'disconnected'
   sessionId: string // 新增：关联的会话ID
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, any>
 }
 
 // 新增：玩家会话连接，支持多个连接
@@ -74,7 +74,7 @@ export interface PlayerSessionConnection {
   socketId: string
   lastSeen: number
   status: 'connected' | 'disconnected'
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, any>
 }
 
 export interface RoomState {
@@ -86,20 +86,20 @@ export interface RoomState {
   lastActive: number
   battleState?: BattleState
   spectators: { playerId: string; sessionId: string }[] // 观战者的 session 信息
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, any>
 }
 
 export interface MatchmakingEntry {
   playerId: string
   joinTime: number
-  playerData: Record<string, unknown>
-  preferences?: Record<string, unknown>
+  playerData: any
+  preferences?: Record<string, any>
   sessionId: string // 新增：会话ID
   ruleSetId?: string // 新增：规则集ID
   metadata?: {
     sessionId?: string
     ruleSetId?: string
-    [key: string]: unknown
+    [key: string]: any
   }
 }
 
@@ -112,7 +112,7 @@ export interface SessionData {
   instanceId?: string
   createdAt: number // 新增：会话创建时间
   lastAccessed: number // 新增：最后访问时间
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, any>
 }
 
 export interface AuthBlacklistEntry {
@@ -248,7 +248,7 @@ export class ClusterError extends Error {
   constructor(
     message: string,
     public code: string,
-    public details?: unknown,
+    public details?: any,
   ) {
     super(message)
     this.name = 'ClusterError'
@@ -256,13 +256,13 @@ export class ClusterError extends Error {
 }
 
 export class LockError extends ClusterError {
-  constructor(message: string, details?: unknown) {
+  constructor(message: string, details?: any) {
     super(message, 'LOCK_ERROR', details)
   }
 }
 
 export class ServiceDiscoveryError extends ClusterError {
-  constructor(message: string, details?: unknown) {
+  constructor(message: string, details?: any) {
     super(message, 'SERVICE_DISCOVERY_ERROR', details)
   }
 }

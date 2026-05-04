@@ -1,10 +1,11 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
 import type { BattleInstance } from '@arcadia-eternity/battle'
+import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
-import type { Team, RuleContext } from '../interfaces/Rule'
+import type { Team, RuleContext, BattleConfigModifications } from '../interfaces/Rule'
 import { RulePhase } from '../interfaces/Rule'
-import type { ValidationResult, ValidationError, ValidationWarning } from '../interfaces/ValidationResult'
+import type { ValidationResult } from '../interfaces/ValidationResult'
 
 /**
  * 战斗系统集成类
@@ -176,7 +177,7 @@ export class BattleIntegration {
    * @param data 操作数据
    * @returns 验证结果
    */
-  validateBattleOperation(battle: BattleInstance, operation: string, data: Record<string, unknown>): ValidationResult {
+  validateBattleOperation(battle: BattleInstance, operation: string, data: any): ValidationResult {
     const context: RuleContext = {
       battle,
       phase: RulePhase.BATTLE_EXECUTION,
@@ -224,8 +225,8 @@ export class BattleIntegration {
    * @returns 兼容性检查结果
    */
   checkRuleSetCompatibility(ruleSetIds: string[]): ValidationResult {
-    const errors: ValidationError[] = []
-    const warnings: ValidationWarning[] = []
+    const errors: any[] = []
+    const warnings: any[] = []
 
     // 检查规则集是否存在
     for (const ruleSetId of ruleSetIds) {

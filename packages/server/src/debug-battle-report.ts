@@ -7,7 +7,9 @@
 
 import { createClusterApp } from './cluster/core/clusterApp'
 import { initializeSupabase } from '@arcadia-eternity/database'
+import pino from 'pino'
 
+const logger = pino({ name: 'BattleReportDebug' })
 
 async function debugBattleReportFlow() {
   console.log('🔍 调试战报记录流程...\n')
@@ -68,7 +70,7 @@ async function debugBattleReportFlow() {
     console.log('✅ 集群应用创建成功')
 
     // 检查战报服务是否正确初始化
-    const battleReportService = (battleServer as unknown as Record<string, unknown>).battleReportService
+    const battleReportService = (battleServer as any).battleReportService
     if (battleReportService) {
       console.log('✅ 战报服务已初始化')
       console.log('   - 配置:', battleReportService.config)
@@ -80,10 +82,10 @@ async function debugBattleReportFlow() {
     }
 
     // 检查战斗服务
-    const battleService = (battleServer as unknown as Record<string, unknown>).battleService
+    const battleService = (battleServer as any).battleService
     if (battleService) {
       console.log('✅ 战斗服务已初始化')
-      const battleReportServiceInBattleService = (battleService as unknown as Record<string, unknown>).battleReportService
+      const battleReportServiceInBattleService = (battleService as any).battleReportService
       if (battleReportServiceInBattleService) {
         console.log('✅ 战斗服务中的战报服务已初始化')
       } else {

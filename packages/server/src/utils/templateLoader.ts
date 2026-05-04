@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename)
 const templateCache = new Map<string, HandlebarsTemplateDelegate>()
 const textTemplateCache = new Map<string, HandlebarsTemplateDelegate>()
 
-type HandlebarsTemplateDelegate = (context: Record<string, unknown>) => string
+type HandlebarsTemplateDelegate = (context: any) => string
 
 /**
  * Template data interface for verification emails
@@ -40,7 +40,7 @@ function loadTemplate(
     cache.set(templatePath, compiledTemplate)
     return compiledTemplate
   } catch (error) {
-    throw new Error(`Failed to load template from ${templatePath}: ${error}`, { cause: error })
+    throw new Error(`Failed to load template from ${templatePath}: ${error}`)
   }
 }
 

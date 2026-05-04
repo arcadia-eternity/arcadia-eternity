@@ -6,7 +6,6 @@ import type {
   ClusterConfig,
   ServiceInstance,
   PlayerConnection,
-  PlayerSessionConnection,
   RoomState,
   MatchmakingEntry,
   SessionData,
@@ -441,12 +440,12 @@ export class ClusterStateManager extends EventEmitter {
     const results = (await Promise.race([
       multi.exec(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Player connection transaction timeout')), 5000)),
-    ])) as [Error | null, unknown][] | null
+    ])) as any[]
 
     // 检查事务执行结果
-    if (!results || results.some((result: [Error | null, unknown]) => result[0] !== null)) {
+    if (!results || results.some((result: any) => result[0] !== null)) {
       const errors = results
-        ? results.filter((result: [Error | null, unknown]) => result[0] !== null).map((result: [Error | null, unknown]) => result[0])
+        ? results.filter((result: any) => result[0] !== null).map((result: any) => result[0])
         : ['Transaction failed']
       throw new Error(`Player connection transaction failed: ${errors.map(e => e.message || e).join(', ')}`)
     }
@@ -554,7 +553,7 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  async getPlayerSessionConnections(playerId: string): Promise<PlayerSessionConnection[]> {
+  async getPlayerSessionConnections(playerId: string): Promise<any[]> {
     const client = this.redisManager.getClient()
 
     try {
@@ -570,7 +569,7 @@ export class ClusterStateManager extends EventEmitter {
       }
 
       const results = await pipeline.exec()
-      const connections: PlayerSessionConnection[] = []
+      const connections: any[] = []
 
       if (results) {
         for (let i = 0; i < results.length; i++) {
@@ -622,7 +621,7 @@ export class ClusterStateManager extends EventEmitter {
 
   async setRoomState(roomState: RoomState): Promise<void> {
     const maxRetries = 3
-    let lastError: unknown
+    let lastError: any
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -680,11 +679,11 @@ export class ClusterStateManager extends EventEmitter {
     const results = (await Promise.race([
       pipeline.exec(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Pipeline execution timeout')), 8000)),
-    ])) as [Error | null, unknown][] | null
+    ])) as any[]
 
     // 检查pipeline执行结果
-    if (results && results.some((result: [Error | null, unknown]) => result[0] !== null)) {
-      const errors = results.filter((result: [Error | null, unknown]) => result[0] !== null).map((result: [Error | null, unknown]) => result[0])
+    if (results && results.some((result: any) => result[0] !== null)) {
+      const errors = results.filter((result: any) => result[0] !== null).map((result: any) => result[0])
       throw new Error(`Pipeline execution failed: ${errors.map(e => e.message).join(', ')}`)
     }
 
@@ -1275,7 +1274,7 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  private serializeSessionConnection(connection: PlayerSessionConnection): Record<string, string> {
+  private serializeSessionConnection(connection: any): Record<string, string> {
     return {
       playerId: connection.playerId,
       sessionId: connection.sessionId,
@@ -1287,14 +1286,14 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  private deserializeSessionConnection(data: Record<string, string>): PlayerSessionConnection {
+  private deserializeSessionConnection(data: Record<string, string>): any {
     return {
       playerId: data.playerId,
       sessionId: data.sessionId,
       instanceId: data.instanceId,
       socketId: data.socketId,
       lastSeen: parseInt(data.lastSeen),
-      status: data.status as PlayerSessionConnection['status'],
+      status: data.status,
       metadata: data.metadata ? JSON.parse(data.metadata) : undefined,
     }
   }

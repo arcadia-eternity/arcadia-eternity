@@ -938,45 +938,38 @@ export class BattleClient {
   }
 
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
-    this.socket.once(event, listener as unknown as (...args: unknown[]) => void)
+    this.socket.once(event, listener as never)
     return this
   }
 
   on<T extends keyof ServerToClientEvents>(
     event: T,
-    handler: (...args: Parameters<ServerToClientEvents[T]>) => void,
+    handler: ServerToClientEvents[T],
   ): () => void {
-    // 使用类型安全的包装函数
-    const wrapper = (...args: Parameters<ServerToClientEvents[T]>) => handler(...args)
-
+    const wrapper: (...args: unknown[]) => void = (...args) => (handler as (...args: unknown[]) => void)(...args)
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
-      // 对于这些事件，不需要重复注册socket监听器，因为它们已经在setupEventListeners中注册了
       const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
       if (!preRegisteredEvents.includes(event)) {
-        this.socket.on(event, wrapper as unknown as (...args: unknown[]) => void)
+        this.socket.on(event, handler as never)
       }
     }
-
-    this.eventHandlers.get(event)?.add(wrapper as unknown as (...args: unknown[]) => void)
-    return () => this.off(event, wrapper)
+    this.eventHandlers.get(event)!.add(wrapper)
+    return () => this.off(event, handler)
   }
 
   off<T extends keyof ServerToClientEvents>(
     event: T,
-    handler: (...args: Parameters<ServerToClientEvents[T]>) => void,
+    handler: ServerToClientEvents[T],
   ): void {
     const handlers = this.eventHandlers.get(event)
     if (handlers) {
       handlers.forEach(h => {
-        if (h === handler) {
-          // 对于这些事件，不需要移除socket监听器，因为它们是在setupEventListeners中注册的，应该保持活跃
-          const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
-          if (!preRegisteredEvents.includes(event)) {
-            this.socket.off(event, h as unknown as (...args: unknown[]) => void)
-          }
-          handlers.delete(h)
+        const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
+        if (!preRegisteredEvents.includes(event)) {
+          this.socket.off(event, h as never)
         }
+        handlers.delete(h)
       })
     }
   }
@@ -1101,8 +1094,9 @@ export class BattleClient {
 
     // 新架构：Timer快照事件处理
     this.socket.on('timerSnapshot', data => {
-      if (data.snapshots) {
-        this.updateTimerSnapshots(data.snapshots)
+      const snapshots = data.snapshots as TimerSnapshot[] | undefined
+      if (snapshots) {
+        this.updateTimerSnapshots(snapshots)
 
         // 触发timerSnapshot事件处理器
         const handlers = this.timerEventHandlers.get('timerSnapshot')
@@ -1114,8 +1108,8 @@ export class BattleClient {
 
     // 新架构：Timer事件批处理
     this.socket.on('timerEventBatch', events => {
-      // 逐个处理批量Timer事件
-      events.forEach(event => {
+      const batch = events as Array<{ type: string; data: unknown }>
+      batch.forEach(event => {
         const handlers = this.timerEventHandlers.get(event.type)
         if (handlers) {
           handlers.forEach(handler => handler(event.data))

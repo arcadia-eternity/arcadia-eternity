@@ -184,7 +184,7 @@ export type PrivateRoomEvent =
 export interface PrivateRoomResponse {
   status: 'SUCCESS' | 'ERROR'
   message?: string
-  data?: unknown
+  data?: any
 }
 
 /**
@@ -215,7 +215,7 @@ export class PrivateRoomError extends Error {
       | 'TARGET_NOT_PLAYER'
       | 'CANNOT_TRANSFER_TO_SELF'
       | 'CANNOT_KICK_SELF',
-    public details?: unknown,
+    public details?: any,
   ) {
     super(message)
     this.name = 'PrivateRoomError'

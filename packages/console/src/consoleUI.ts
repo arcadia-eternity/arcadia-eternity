@@ -19,7 +19,7 @@ import i18next from 'i18next'
 import { marked } from 'marked'
 import TerminalRenderer from 'marked-terminal'
 import * as jsondiffpatch from 'jsondiffpatch'
-import type { Delta } from 'jsondiffpatch/lib/types'
+import type { Delta } from 'jsondiffpatch'
 export class ConsoleUIV2 {
   private messages: BattleMessage[] = []
   public battleState: BattleState = {} as BattleState

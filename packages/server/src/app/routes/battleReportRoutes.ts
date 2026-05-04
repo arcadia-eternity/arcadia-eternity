@@ -18,15 +18,14 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
   const apiLogger = logger.child({ module: 'BattleReportAPI' })
 
   // 错误处理中间件
-  const handleError = (error: unknown, res: Response, operation: string) => {
+  const handleError = (error: any, res: Response, operation: string) => {
     apiLogger.error({ error, operation }, 'API operation failed')
 
-    if (error instanceof Error && error.name === 'DatabaseError') {
-      const dbError = error as Error & { code?: string }
+    if (error.name === 'DatabaseError') {
       res.status(500).json({
         error: 'Database error',
-        message: dbError.message,
-        code: dbError.code,
+        message: error.message,
+        code: error.code,
       })
     } else {
       res.status(500).json({
@@ -471,12 +470,13 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
 }
 
 // 扩展 Request 接口以包含分页参数
-import 'express-serve-static-core'
-declare module 'express-serve-static-core' {
-  interface Request {
-    pagination?: {
-      limit: number
-      offset: number
+declare global {
+  namespace Express {
+    interface Request {
+      pagination?: {
+        limit: number
+        offset: number
+      }
     }
   }
 }

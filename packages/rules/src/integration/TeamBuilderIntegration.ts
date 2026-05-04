@@ -92,7 +92,7 @@ export class TeamBuilderIntegration {
       type: 'add' | 'remove' | 'modify' | 'warning'
       message: string
       petId?: string
-      details?: Record<string, unknown>
+      details?: any
     }>
     canAddMore: boolean
     maxTeamSize: number
@@ -102,7 +102,7 @@ export class TeamBuilderIntegration {
       type: 'add' | 'remove' | 'modify' | 'warning'
       message: string
       petId?: string
-      details?: Record<string, unknown>
+      details?: any
     }> = []
 
     // 激活规则集
@@ -110,7 +110,7 @@ export class TeamBuilderIntegration {
     for (const ruleSetId of ruleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch {
+      } catch (error) {
         suggestions.push({
           type: 'warning',
           message: `无法激活规则集 "${ruleSetId}"`,
@@ -229,7 +229,7 @@ export class TeamBuilderIntegration {
       petId: string
       petName: string
       description: string
-      details?: Record<string, unknown>
+      details?: any
     }>
     remainingIssues: ValidationResult
   } {
@@ -238,7 +238,7 @@ export class TeamBuilderIntegration {
       petId: string
       petName: string
       description: string
-      details?: Record<string, unknown>
+      details?: any
     }> = []
 
     // 激活规则集
@@ -259,7 +259,7 @@ export class TeamBuilderIntegration {
     this.ruleSystem.setContext(context)
 
     // 复制队伍数据
-    const fixedTeam: Team = team.map(pet => ({ ...pet }))
+    let fixedTeam: Team = team.map(pet => ({ ...pet }))
 
     // 应用规则修改
     for (const pet of fixedTeam) {
@@ -333,7 +333,7 @@ export class TeamBuilderIntegration {
     specialRestrictions: Array<{
       type: string
       description: string
-      details: Record<string, unknown>
+      details: any
     }>
   } {
     // 默认限制
@@ -346,15 +346,11 @@ export class TeamBuilderIntegration {
         skills: [] as string[],
         marks: [] as string[],
       },
-      allowedContent: undefined as unknown as {
-        species: string[]
-        skills: string[]
-        marks: string[]
-      } | undefined,
+      allowedContent: undefined as any,
       specialRestrictions: [] as Array<{
         type: string
         description: string
-        details: Record<string, unknown>
+        details: any
       }>,
     }
 
@@ -371,7 +367,7 @@ export class TeamBuilderIntegration {
             // 由于规则类型很多，这里只是示例实现
             if (rule.hasTag('team') && rule.hasTag('size')) {
               // 队伍大小规则
-              const info = rule.getInfo()
+              const info = rule.getInfo() as any
               if (info.minSize !== undefined)
                 limitations.teamSize.min = Math.max(limitations.teamSize.min, info.minSize)
               if (info.maxSize !== undefined)
@@ -380,7 +376,7 @@ export class TeamBuilderIntegration {
 
             if (rule.hasTag('level')) {
               // 等级限制规则
-              const info = rule.getInfo()
+              const info = rule.getInfo() as any
               if (info.minLevel !== undefined)
                 limitations.levelRange.min = Math.max(limitations.levelRange.min, info.minLevel)
               if (info.maxLevel !== undefined)

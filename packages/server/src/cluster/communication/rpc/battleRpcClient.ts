@@ -35,8 +35,6 @@ import type {
   EndAnimationResponse,
   TerminateBattleRequest,
   TerminateBattleResponse,
-  JoinSpectateBattleRequest,
-  JoinSpectateBattleResponse,
 } from '../../../generated/battle-rpc'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -147,8 +145,8 @@ export class BattleRpcClient {
         if (error) {
           logger.error({ error, method, request }, 'RPC call failed')
           reject(error)
-        } else if (response && (response as Record<string, unknown>).success === false) {
-          reject(new Error((response as Record<string, unknown>).error || 'RPC_ERROR'))
+        } else if (response && (response as any).success === false) {
+          reject(new Error((response as any).error || 'RPC_ERROR'))
         } else if (response) {
           resolve(response)
         } else {
@@ -203,7 +201,7 @@ export class BattleRpcClient {
       player_id: playerId,
     } as unknown as BattleStateRequest)
 
-    return JSON.parse((response as Record<string, unknown>).battle_state as string ?? (response as Record<string, unknown>).battleState as string)
+    return JSON.parse((response as any).battle_state ?? (response as any).battleState)
   }
 
   async playerReady(
@@ -285,7 +283,7 @@ export class BattleRpcClient {
       } as unknown as PlayerTimerStateRequest,
     )
 
-    return JSON.parse((response as Record<string, unknown>).timer_state as string ?? (response as Record<string, unknown>).timerState as string)
+    return JSON.parse((response as any).timer_state ?? (response as any).timerState)
   }
 
   async getAllPlayerTimerStates(
@@ -304,7 +302,7 @@ export class BattleRpcClient {
       } as unknown as AllPlayerTimerStatesRequest,
     )
 
-    return JSON.parse((response as Record<string, unknown>).timer_states as string ?? (response as Record<string, unknown>).timerStates as string)
+    return JSON.parse((response as any).timer_states ?? (response as any).timerStates)
   }
 
   async getTimerConfig(instanceId: string, address: string, roomId: string, playerId: string): Promise<unknown> {
@@ -322,8 +320,8 @@ export class BattleRpcClient {
     address: string,
     roomId: string,
     playerId: string,
-    animationData: unknown,
-  ): Promise<unknown> {
+    animationData: any,
+  ): Promise<any> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<StartAnimationRequest, StartAnimationResponse>(
       client,
@@ -343,7 +341,7 @@ export class BattleRpcClient {
     address: string,
     roomId: string,
     playerId: string,
-    animationData: unknown,
+    animationData: any,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<EndAnimationRequest, EndAnimationResponse>(client, 'EndAnimation', {
@@ -384,7 +382,7 @@ export class BattleRpcClient {
     sessionId: string,
   ): Promise<boolean> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<JoinSpectateBattleRequest, JoinSpectateBattleResponse>(client, 'JoinSpectateBattle', {
+    const response = await this.callWithTimeout<any, any>(client, 'JoinSpectateBattle', {
       roomId,
       playerId,
       sessionId,

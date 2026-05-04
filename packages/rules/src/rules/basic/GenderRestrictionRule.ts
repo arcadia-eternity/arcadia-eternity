@@ -4,8 +4,6 @@ import type { Team, RuleContext } from '../../interfaces/Rule'
 import { ValidationResultBuilder, ValidationErrorType, type ValidationResult } from '../../interfaces/ValidationResult'
 import { AbstractRule } from '../../core/AbstractRule'
 import type { SpeciesDataProvider } from '../../interfaces/SpeciesDataProvider'
-import { getGlobalClientSpeciesDataProvider } from '../../providers/ClientSpeciesDataProvider'
-import { getGlobalServerSpeciesDataProvider } from '../../providers/ServerSpeciesDataProvider'
 
 /**
  * 性别限制规则
@@ -60,8 +58,7 @@ export class GenderRestrictionRule extends AbstractRule {
   /**
    * 验证单个精灵的性别
    */
-  validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
-    void context;
+  validatePet(pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
     // 如果没有种族数据提供者，跳过验证
@@ -211,12 +208,14 @@ export function createStandardGenderRestrictionRule(speciesDataProvider?: Specie
   if (!provider) {
     try {
       // 动态导入以避免循环依赖
+      const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
-    } catch {
+    } catch (error) {
       // 如果客户端提供者不可用，尝试服务端提供者
       try {
+        const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
-      } catch {
+      } catch (serverError) {
         console.warn('No species data provider available for gender restriction rule')
       }
     }

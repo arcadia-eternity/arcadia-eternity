@@ -1,9 +1,8 @@
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 import type { RedisClientManager } from './redisClient'
-import type { ChainableCommander, RedisValue } from 'ioredis'
 import type { DistributedLockManager } from './distributedLock'
-import { ClusterError, type DistributedLock } from '../types'
+import { ClusterError } from '../types'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -12,7 +11,7 @@ const logger = pino({
 export interface TransactionOperation {
   type: 'set' | 'del' | 'sadd' | 'srem' | 'hset' | 'hdel' | 'zadd' | 'zrem'
   key: string
-  value?: RedisValue
+  value?: any
   field?: string
   score?: number
   ttl?: number
@@ -63,7 +62,7 @@ export class TransactionManager {
     logger.debug({ transactionId, operationCount: operations.length }, 'Starting distributed transaction')
 
     let executedOperations = 0
-    const acquiredLocks: Array<{ key: string; lock: DistributedLock }> = []
+    const acquiredLocks: Array<{ key: string; lock: any }> = []
 
     try {
       // 获取所有需要的锁
@@ -97,8 +96,7 @@ export class TransactionManager {
 
       // 检查结果
       for (let i = 0; i < results.length; i++) {
-        const [error, result] = results[i]
-        void result;
+        const [error, _result] = results[i]
         if (error) {
           throw new ClusterError(`Operation ${i} failed: ${error.message}`, 'OPERATION_FAILED', error)
         }
@@ -163,7 +161,7 @@ export class TransactionManager {
     return this.executeTransaction(operations, { lockKeys })
   }
 
-  private addOperationToMulti(multi: ChainableCommander, operation: TransactionOperation): void {
+  private addOperationToMulti(multi: any, operation: TransactionOperation): void {
     switch (operation.type) {
       case 'set':
         if (operation.ttl) {
@@ -367,7 +365,7 @@ export class TransactionManager {
 export class TransactionBuilder {
   private operations: TransactionOperation[] = []
 
-  set(key: string, value: RedisValue, ttl?: number): this {
+  set(key: string, value: any, ttl?: number): this {
     this.operations.push({ type: 'set', key, value, ttl })
     return this
   }
@@ -377,17 +375,17 @@ export class TransactionBuilder {
     return this
   }
 
-  sadd(key: string, value: RedisValue): this {
+  sadd(key: string, value: any): this {
     this.operations.push({ type: 'sadd', key, value })
     return this
   }
 
-  srem(key: string, value: RedisValue): this {
+  srem(key: string, value: any): this {
     this.operations.push({ type: 'srem', key, value })
     return this
   }
 
-  hset(key: string, field: string, value: RedisValue): this {
+  hset(key: string, field: string, value: any): this {
     this.operations.push({ type: 'hset', key, field, value })
     return this
   }
@@ -397,12 +395,12 @@ export class TransactionBuilder {
     return this
   }
 
-  zadd(key: string, score: number, value: RedisValue): this {
+  zadd(key: string, score: number, value: any): this {
     this.operations.push({ type: 'zadd', key, score, value })
     return this
   }
 
-  zrem(key: string, value: RedisValue): this {
+  zrem(key: string, value: any): this {
     this.operations.push({ type: 'zrem', key, value })
     return this
   }

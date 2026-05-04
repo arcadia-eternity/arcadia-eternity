@@ -1,5 +1,5 @@
 import { BattleMessageType, type BattleMessage } from '@arcadia-eternity/const'
-import { databaseService, type DatabaseConfig } from '@arcadia-eternity/database'
+import { databaseService, type DatabaseConfig, type EndReason, type BattleResult } from '@arcadia-eternity/database'
 import type { Logger } from 'pino'
 
 export interface BattleReportConfig {
@@ -48,7 +48,7 @@ export class BattleReportService {
     playerBId: string,
     playerBName: string,
     ruleSetId?: string,
-    metadata?: { isPrivateRoom?: boolean; [key: string]: unknown },
+    metadata?: { isPrivateRoom?: boolean; [key: string]: any },
   ): Promise<string | null> {
     if (!this.config.enableReporting) {
       return null
@@ -155,27 +155,27 @@ export class BattleReportService {
 
     try {
       // 确定胜者和战斗结果
-      const endData = endMessage.data as unknown as { winner: string | null; reason?: string }
+      const endData = endMessage.data as any
       const winnerId = endData.winner
-      let battleResult: string
-      let endReason: string
+      let battleResult: BattleResult
+      let endReason: EndReason
 
       if (winnerId === null) {
         battleResult = 'draw'
-        endReason = endData.reason || 'all_pet_fainted'
+        endReason = (endData.reason as EndReason) || 'all_pet_fainted'
       } else if (winnerId === battleData.playerAId) {
         battleResult = 'player_a_wins'
-        endReason = endData.reason || 'all_pet_fainted'
+        endReason = (endData.reason as EndReason) || 'all_pet_fainted'
       } else if (winnerId === battleData.playerBId) {
         battleResult = 'player_b_wins'
-        endReason = endData.reason || 'all_pet_fainted'
+        endReason = (endData.reason as EndReason) || 'all_pet_fainted'
       } else {
         battleResult = 'abandoned'
         endReason = 'disconnect'
       }
 
       // 获取最终状态
-      const finalState = endMessage.stateDelta || {}
+      const finalState = (endMessage.stateDelta ?? {}) as Record<string, unknown>
 
       // 更新战报记录
       await databaseService.battles.completeBattleRecord(

@@ -52,8 +52,7 @@ export class LevelLimitRule extends AbstractRule {
   /**
    * 验证单个精灵的等级
    */
-  validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
-    void context;
+  validatePet(pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
     const level = pet.level
 
@@ -85,8 +84,7 @@ export class LevelLimitRule extends AbstractRule {
   /**
    * 修改精灵等级（如果超出范围则调整到边界值）
    */
-  modifyPet(pet: PetSchemaType, context?: RuleContext): void {
-    void context;
+  modifyPet(pet: PetSchemaType, _context?: RuleContext): void {
     if (pet.level < this.minLevel) {
       pet.level = this.minLevel
     } else if (pet.level > this.maxLevel) {

@@ -6,9 +6,9 @@ import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
  * 从服务端的数据仓库中获取种族信息
  */
 export class ServerSpeciesDataProvider implements SpeciesDataProvider {
-  private dataRepository: Record<string, unknown> | undefined
+  private dataRepository: any
 
-  constructor(dataRepository?: Record<string, unknown>) {
+  constructor(dataRepository?: any) {
     this.dataRepository = dataRepository
   }
 
@@ -16,7 +16,7 @@ export class ServerSpeciesDataProvider implements SpeciesDataProvider {
    * 设置数据仓库
    * @param dataRepository 数据仓库实例
    */
-  setDataRepository(dataRepository: Record<string, unknown>): void {
+  setDataRepository(dataRepository: any): void {
     this.dataRepository = dataRepository
   }
 
@@ -33,22 +33,19 @@ export class ServerSpeciesDataProvider implements SpeciesDataProvider {
 
     try {
       // 尝试从DataRepository获取种族数据
-      const repo = this.dataRepository as { getSpeciesById?: (id: string) => SpeciesSchemaType | undefined }
-      if (repo.getSpeciesById) {
-        return repo.getSpeciesById(speciesId)
+      if (this.dataRepository.getSpeciesById) {
+        return this.dataRepository.getSpeciesById(speciesId)
       }
 
       // 尝试从getAllSpecies中查找
-      const repoWithAll = this.dataRepository as { getAllSpecies?: () => SpeciesSchemaType[] }
-      if (repoWithAll.getAllSpecies) {
-        const allSpecies = repoWithAll.getAllSpecies()
+      if (this.dataRepository.getAllSpecies) {
+        const allSpecies = this.dataRepository.getAllSpecies()
         return allSpecies.find((species: SpeciesSchemaType) => species.id === speciesId)
       }
 
       // 尝试从species属性中获取
-      const speciesMap = this.dataRepository.species as Record<string, SpeciesSchemaType> | undefined
-      if (speciesMap && speciesMap[speciesId]) {
-        return speciesMap[speciesId]
+      if (this.dataRepository.species && this.dataRepository.species[speciesId]) {
+        return this.dataRepository.species[speciesId]
       }
 
       console.warn(`Species not found: ${speciesId}`)
@@ -77,15 +74,13 @@ export class ServerSpeciesDataProvider implements SpeciesDataProvider {
     }
 
     try {
-      const repoWithAll = this.dataRepository as { getAllSpecies?: () => SpeciesSchemaType[] }
-      if (repoWithAll.getAllSpecies) {
-        const allSpecies = repoWithAll.getAllSpecies()
+      if (this.dataRepository.getAllSpecies) {
+        const allSpecies = this.dataRepository.getAllSpecies()
         return allSpecies.map((species: SpeciesSchemaType) => species.id)
       }
 
-      const speciesMap = this.dataRepository.species as Record<string, SpeciesSchemaType> | undefined
-      if (speciesMap) {
-        return Object.keys(speciesMap)
+      if (this.dataRepository.species) {
+        return Object.keys(this.dataRepository.species)
       }
 
       return []
@@ -135,7 +130,7 @@ export function getGlobalServerSpeciesDataProvider(): ServerSpeciesDataProvider 
  * 初始化全局服务端种族数据提供者
  * @param dataRepository 数据仓库实例
  */
-export function initializeGlobalServerSpeciesDataProvider(dataRepository: Record<string, unknown>): void {
+export function initializeGlobalServerSpeciesDataProvider(dataRepository: any): void {
   const provider = getGlobalServerSpeciesDataProvider()
   provider.setDataRepository(dataRepository)
   console.log('Global server species data provider initialized')

@@ -3,7 +3,7 @@ import type { ClusterStateManager } from '../../../cluster/core/clusterStateMana
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { SessionData, AuthBlacklistEntry } from '../../../cluster/types'
-import { generateTimestampedSessionId } from '../../../cluster/types'
+import { ClusterError, generateTimestampedSessionId } from '../../../cluster/types'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -20,7 +20,7 @@ export interface SessionInfo {
   sessionId: string
   createdAt: number
   lastAccessed: number
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, any>
 }
 
 export class SessionManager {
@@ -307,7 +307,7 @@ export class SessionManager {
    * 清理会话相关的所有引用
    */
   private async cleanupSessionReferences(
-    client: { del(key: string): Promise<number>; srem(key: string, ...members: string[]): Promise<number>; zrem(key: string, ...members: string[]): Promise<number>; keys(pattern: string): Promise<string[]>; hgetall(key: string): Promise<Record<string, string>> },
+    client: any,
     keyPrefix: string,
     playerId: string,
     sessionId: string,

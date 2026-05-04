@@ -5,8 +5,6 @@ import { AbstractRule } from '../../core/AbstractRule'
 import { ValidationResultBuilder, ValidationErrorType } from '../../interfaces/ValidationResult'
 import type { ValidationResult } from '../../interfaces/ValidationResult'
 import type { SpeciesDataProvider } from '../../interfaces/SpeciesDataProvider'
-import { getGlobalClientSpeciesDataProvider } from '../../providers/ClientSpeciesDataProvider'
-import { getGlobalServerSpeciesDataProvider } from '../../providers/ServerSpeciesDataProvider'
 
 /**
  * 技能可用性验证规则
@@ -174,7 +172,7 @@ export class SkillAvailabilityRule extends AbstractRule {
       try {
         const ruleSystemExtraSkills = context.data.ruleSystem.getSpeciesExtraLearnableSkills(pet.species, context)
         extraSkills.push(...ruleSystemExtraSkills)
-      } catch {
+      } catch (error) {
         // 忽略获取额外技能时的错误
       }
     }
@@ -243,12 +241,14 @@ export function createStandardSkillAvailabilityRule(speciesDataProvider?: Specie
   if (!provider) {
     try {
       // 动态导入以避免循环依赖
+      const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
-    } catch {
+    } catch (error) {
       // 如果客户端提供者不可用，尝试服务端提供者
       try {
+        const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
-      } catch {
+      } catch (serverError) {
         console.warn('No species data provider available for skill availability rule')
       }
     }
@@ -272,12 +272,14 @@ export function createCompetitiveSkillAvailabilityRule(
   if (!provider) {
     try {
       // 动态导入以避免循环依赖
+      const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
-    } catch {
+    } catch (error) {
       // 如果客户端提供者不可用，尝试服务端提供者
       try {
+        const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
-      } catch {
+      } catch (serverError) {
         console.warn('No species data provider available for competitive skill availability rule')
       }
     }

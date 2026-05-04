@@ -178,7 +178,7 @@ export abstract class AbstractRuleSet implements RuleSet {
    * 克隆规则集
    */
   clone(): RuleSet {
-    return new (this.constructor as new (...args: unknown[]) => RuleSet)(this.id + '_clone', this.name + ' (Clone)', {
+    return new (this.constructor as any)(this.id + '_clone', this.name + ' (Clone)', {
       description: this.description,
       version: this.version,
       author: this.author,
@@ -198,7 +198,7 @@ export abstract class AbstractRuleSet implements RuleSet {
   /**
    * 获取规则集的详细信息
    */
-  getInfo(): Record<string, unknown> {
+  getInfo(): Record<string, any> {
     return {
       id: this.id,
       name: this.name,

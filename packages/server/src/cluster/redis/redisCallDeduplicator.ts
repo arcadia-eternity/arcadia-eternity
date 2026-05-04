@@ -9,7 +9,7 @@ const logger = pino({
  * 防止短时间内的重复Redis调用，减少Upstash成本
  */
 export class RedisCallDeduplicator {
-  private pendingCalls = new Map<string, Promise<unknown>>()
+  private pendingCalls = new Map<string, Promise<any>>()
   private callStats = new Map<string, { count: number; lastCall: number }>()
   private readonly dedupTTL: number
   private readonly statsCleanupInterval: number

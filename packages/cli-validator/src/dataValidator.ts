@@ -170,7 +170,7 @@ export class CLIDataValidator {
     const allIds = new Set<string>()
     const duplicates = new Set<string>()
 
-    const checkIds = (dataMap: Map<string, unknown>) => {
+    const checkIds = (dataMap: Map<string, unknown>, _category: string) => {
       for (const id of dataMap.keys()) {
         if (allIds.has(id)) {
           duplicates.add(id)

@@ -1,5 +1,6 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
 import type { BattleInstance } from '@arcadia-eternity/battle'
+import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
 import { BattleIntegration } from '../integration/BattleIntegration'
@@ -88,7 +89,7 @@ export class BattleRuleManager {
   /**
    * 验证战斗操作
    */
-  validateBattleOperation(operation: string, data: Record<string, unknown>): ValidationResult {
+  validateBattleOperation(operation: string, data: any): ValidationResult {
     if (!this.battle) {
       return { isValid: true, errors: [], warnings: [] }
     }

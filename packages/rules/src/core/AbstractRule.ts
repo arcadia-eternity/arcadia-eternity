@@ -51,7 +51,6 @@ export abstract class AbstractRule implements Rule {
    * 验证队伍 - 默认实现返回成功
    */
   validateTeam(team: Team, context?: RuleContext): ValidationResult {
-    void team; void context;
     return createSuccessResult()
   }
 
@@ -59,7 +58,6 @@ export abstract class AbstractRule implements Rule {
    * 验证精灵 - 默认实现返回成功
    */
   validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
-    void pet; void context;
     return createSuccessResult()
   }
 
@@ -67,7 +65,6 @@ export abstract class AbstractRule implements Rule {
    * 验证技能 - 默认实现返回成功
    */
   validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult {
-    void pet; void skill; void context;
     return createSuccessResult()
   }
 
@@ -75,7 +72,6 @@ export abstract class AbstractRule implements Rule {
    * 验证印记 - 默认实现返回成功
    */
   validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult {
-    void pet; void mark; void context;
     return createSuccessResult()
   }
 
@@ -83,7 +79,6 @@ export abstract class AbstractRule implements Rule {
    * 修改精灵数据 - 默认实现不做任何修改
    */
   modifyPet(pet: PetSchemaType, context?: RuleContext): void {
-    void pet; void context;
     // 默认不做任何修改
   }
 
@@ -91,7 +86,6 @@ export abstract class AbstractRule implements Rule {
    * 修改技能数据 - 默认实现不做任何修改
    */
   modifySkill(skill: SkillSchemaType, context?: RuleContext): void {
-    void skill; void context;
     // 默认不做任何修改
   }
 
@@ -99,7 +93,6 @@ export abstract class AbstractRule implements Rule {
    * 修改印记数据 - 默认实现不做任何修改
    */
   modifyMark(mark: MarkSchemaType, context?: RuleContext): void {
-    void mark; void context;
     // 默认不做任何修改
   }
 
@@ -107,15 +100,13 @@ export abstract class AbstractRule implements Rule {
    * 获取战斗配置修改 - 默认实现返回空对象
    */
   getBattleConfigModifications(context?: RuleContext): BattleConfigModifications {
-    void context;
-    return {} as BattleConfigModifications
+    return {}
   }
 
   /**
    * 获取计时器配置修改 - 默认实现返回空对象
    */
   getTimerConfigModifications(context?: RuleContext): Partial<TimerConfig> {
-    void context;
     return {}
   }
 
@@ -123,7 +114,6 @@ export abstract class AbstractRule implements Rule {
    * 获取额外内容 - 默认实现返回空内容
    */
   getAdditionalContent(context?: RuleContext): AdditionalContent {
-    void context;
     return {
       skills: [],
       marks: [],
@@ -137,7 +127,6 @@ export abstract class AbstractRule implements Rule {
    * 获取特定种族的额外可学习技能 - 默认实现返回空数组
    */
   getSpeciesExtraLearnableSkills(speciesId: string, context?: RuleContext): LearnableSkill[] {
-    void speciesId; void context;
     return []
   }
 
@@ -145,7 +134,6 @@ export abstract class AbstractRule implements Rule {
    * 规则初始化 - 默认实现为空
    */
   async initialize(context?: RuleContext): Promise<void> {
-    void context;
     // 默认不需要初始化
   }
 
@@ -153,7 +141,6 @@ export abstract class AbstractRule implements Rule {
    * 规则清理 - 默认实现为空
    */
   async cleanup(context?: RuleContext): Promise<void> {
-    void context;
     // 默认不需要清理
   }
 
@@ -161,7 +148,6 @@ export abstract class AbstractRule implements Rule {
    * 检查规则是否适用于当前上下文 - 默认实现返回true
    */
   isApplicable(context?: RuleContext): boolean {
-    void context;
     return true
   }
 

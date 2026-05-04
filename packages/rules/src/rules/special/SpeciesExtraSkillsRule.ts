@@ -112,7 +112,6 @@ export class SpeciesExtraSkillsRule extends AbstractRule {
    * @returns 额外可学习技能列表
    */
   getSpeciesExtraLearnableSkills(speciesId: string, context?: RuleContext): LearnableSkill[] {
-    void context;
     return this.getSpeciesSkills(speciesId)
   }
 
