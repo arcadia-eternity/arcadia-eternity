@@ -140,11 +140,10 @@ export class AuthService implements IAuthService {
 
       return decoded
     } catch (_error) {
-      if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError) {
-        // 正常的token验证失败，不需要记录debug日志
+      if (_error instanceof jwt.JsonWebTokenError || _error instanceof jwt.TokenExpiredError) {
         return null
       } else {
-        logger.error({ error }, 'Token verification error')
+        logger.error({ _error }, 'Token verification error')
         return null
       }
     }
@@ -184,7 +183,7 @@ export class AuthService implements IAuthService {
 
         return this.generateAuthForPlayer(player.id, player.is_registered || false, player.email || undefined)
       } catch (_error) {
-        logger.error({ error }, 'Failed to fetch player during token refresh')
+        logger.error({ _error }, 'Failed to fetch player during token refresh')
         return null
       }
     }
@@ -229,7 +228,7 @@ export class AuthService implements IAuthService {
 
       return true
     } catch (_error) {
-      logger.error({ error }, 'Failed to revoke token')
+      logger.error({ _error }, 'Failed to revoke token')
       return false
     }
   }

@@ -11,6 +11,7 @@ import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { PerformanceTracker } from '../../../cluster/monitoring/performanceTracker'
 import type { MatchmakingEntry, ServiceInstance, HttpErrorLike } from '../../../cluster/types'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
+import type { CreateBattleResponse } from '../../../generated/battle-rpc'
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import type {
   IResourceLoadingManager,
@@ -844,7 +845,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
               join_time: player2Entry.joinTime,
             },
           },
-          (error: grpc.ServiceError | null, response: unknown) => {
+          (error: grpc.ServiceError | null, response: CreateBattleResponse) => {
             if (error) {
               reject(error)
             } else {

@@ -7,6 +7,8 @@
 
 import { createClusterApp } from './cluster/core/clusterApp'
 import { initializeSupabase } from '@arcadia-eternity/database'
+import type { BattleReportService } from './domain/report/services/battleReportService'
+import type { IBattleService } from './domain/battle/services/interfaces'
 import pino from 'pino'
 
 const _logger = pino({ name: 'BattleReportDebug' })
