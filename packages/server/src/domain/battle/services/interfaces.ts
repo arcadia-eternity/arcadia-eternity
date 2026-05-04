@@ -21,7 +21,9 @@ export interface IMatchmakingDependencies {
 }
 
 // 战斗服务依赖接口
-export type IBattleDependencies = Record<string, never>
+export interface IBattleDependencies {
+  // 目前战斗服务没有外部依赖，保留接口以备将来扩展
+}
 
 // 匹配服务回调接口
 export interface MatchmakingCallbacks {

@@ -163,7 +163,7 @@ export class AuthService implements IAuthService {
       }
 
       return { playerId: decoded.playerId }
-    } catch (_error) {
+    } catch (error) {
       return null
     }
   }

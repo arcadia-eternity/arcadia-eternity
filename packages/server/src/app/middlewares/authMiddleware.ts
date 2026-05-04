@@ -13,10 +13,12 @@ interface ExtendedJWTPayload extends JWTPayload {
 }
 
 // 扩展Express Request接口以包含用户信息
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: ExtendedJWTPayload
-    playerId?: string
+declare global {
+  namespace Express {
+    interface Request {
+      user?: ExtendedJWTPayload
+      playerId?: string
+    }
   }
 }
 

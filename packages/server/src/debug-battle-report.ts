@@ -7,6 +7,9 @@
 
 import { createClusterApp } from './cluster/core/clusterApp'
 import { initializeSupabase } from '@arcadia-eternity/database'
+import pino from 'pino'
+
+const logger = pino({ name: 'BattleReportDebug' })
 
 async function debugBattleReportFlow() {
   console.log('🔍 调试战报记录流程...\n')

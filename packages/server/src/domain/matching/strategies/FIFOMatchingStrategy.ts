@@ -58,7 +58,7 @@ export class FIFOMatchingStrategy extends AbstractMatchingStrategy {
   async evaluateMatch(
     player1: MatchmakingEntry,
     player2: MatchmakingEntry,
-    _config: MatchingConfig,
+    config: MatchingConfig,
   ): Promise<MatchQuality> {
     const waitTimeDifference = this.getWaitTimeDifference(player1, player2)
 
@@ -75,9 +75,9 @@ export class FIFOMatchingStrategy extends AbstractMatchingStrategy {
   }
 
   async isMatchAcceptable(
-    _player1: MatchmakingEntry,
-    _player2: MatchmakingEntry,
-    _config: MatchingConfig,
+    player1: MatchmakingEntry,
+    player2: MatchmakingEntry,
+    config: MatchingConfig,
   ): Promise<boolean> {
     // FIFO策略下，只要有两个玩家就可以匹配
     return true

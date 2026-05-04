@@ -178,7 +178,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
             ...basicHealth,
             cluster: clusterHealth,
           })
-        } catch (_error) {
+        } catch (error) {
           res.json({
             ...basicHealth,
             cluster: {
@@ -257,7 +257,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       const metrics = await performanceTracker.getMetrics()
       res.set('Content-Type', 'text/plain')
       res.send(metrics)
-    } catch (_error) {
+    } catch (error) {
       res.status(500).send('Error retrieving metrics')
     }
   })

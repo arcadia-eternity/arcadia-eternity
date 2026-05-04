@@ -2,7 +2,7 @@ import pino from 'pino'
 import type { RedisClientManager } from '../redis/redisClient'
 import type { ClusterStateManager } from '../core/clusterStateManager'
 import type { ServiceInstance } from '../types'
-
+import { REDIS_KEYS } from '../types'
 
 const logger = pino().child({ module: 'LoadBalancingReporter' })
 
@@ -295,7 +295,7 @@ export class LoadBalancingReporter {
   /**
    * 获取战斗创建数量（模拟实现）
    */
-  private async getBattlesCreatedCount(_instanceId: string, _startTime: number, _endTime: number): Promise<number> {
+  private async getBattlesCreatedCount(instanceId: string, startTime: number, endTime: number): Promise<number> {
     // 这里应该从实际的监控数据中获取，暂时返回模拟数据
     return Math.floor(Math.random() * 50)
   }
@@ -304,9 +304,9 @@ export class LoadBalancingReporter {
    * 获取负载均衡选择次数（模拟实现）
    */
   private async getLoadBalancingSelectionsCount(
-    _instanceId: string,
-    _startTime: number,
-    _endTime: number,
+    instanceId: string,
+    startTime: number,
+    endTime: number,
   ): Promise<number> {
     // 这里应该从实际的监控数据中获取，暂时返回模拟数据
     return Math.floor(Math.random() * 100)

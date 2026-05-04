@@ -1,7 +1,6 @@
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 import * as promClient from 'prom-client'
-import * as os from 'os'
 import type { RedisClientManager } from '../redis/redisClient'
 
 const logger = pino({
@@ -585,8 +584,8 @@ export class PerformanceTracker {
     try {
       // 更新内存使用情况
       const memUsage = process.memoryUsage()
-      const totalMemory = os.totalmem()
-      const freeMemory = os.freemem()
+      const totalMemory = require('os').totalmem()
+      const freeMemory = require('os').freemem()
       const usedMemory = totalMemory - freeMemory
 
       this.currentPerformanceData.memoryUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024)
@@ -637,13 +636,13 @@ export class PerformanceTracker {
    */
   private updateCpuUsageMetric(): void {
     try {
-      const cpus = os.cpus()
+      const cpus = require('os').cpus()
       let totalIdle = 0
       let totalTick = 0
 
       for (const cpu of cpus) {
-        for (const tickType of Object.keys(cpu.times) as Array<keyof typeof cpu.times>) {
-          totalTick += cpu.times[tickType]
+        for (const type in cpu.times) {
+          totalTick += cpu.times[type]
         }
         totalIdle += cpu.times.idle
       }
