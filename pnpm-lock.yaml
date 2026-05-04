@@ -92,6 +92,9 @@ importers:
       tsparticles:
         specifier: ^3.9.1
         version: 3.9.1
+      vue-eslint-parser:
+        specifier: ^10.4.0
+        version: 10.4.0(eslint@10.0.3(jiti@2.6.1))
       yaml:
         specifier: ^2.8.2
         version: 2.8.2
