@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid'
 import pino from 'pino'
 import type { RedisClientManager } from './redisClient'
 import type { DistributedLockManager } from './distributedLock'
+import type { ChainableCommander } from 'ioredis'
 import { ClusterError, type DistributedLock } from '../types'
 
 const logger = pino({

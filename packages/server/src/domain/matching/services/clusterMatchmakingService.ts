@@ -23,6 +23,7 @@ import type { SessionStateManager } from '../../session/sessionStateManager'
 import { TYPES } from '../../../types'
 import { MatchingStrategyFactory } from '../strategies/MatchingStrategyFactory'
 import { MatchingConfigManager } from './MatchingConfigManager'
+import type { MatchingConfig } from '../strategies/MatchingStrategy'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
