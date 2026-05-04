@@ -1,9 +1,10 @@
 import type { Server, Socket } from 'socket.io'
+import type { EventsMap } from 'socket.io/dist/typed-events'
 
 export class ClientRealtimeGateway<
-  ListenEvents extends Record<string, any> = Record<string, any>,
-  EmitEvents extends Record<string, any> = Record<string, any>,
-  InterServerEvents extends Record<string, any> = Record<string, any>,
+  ListenEvents extends EventsMap = EventsMap,
+  EmitEvents extends EventsMap = EventsMap,
+  InterServerEvents extends EventsMap = EventsMap,
   SocketData = unknown,
 > {
   constructor(private readonly io: Server<ListenEvents, EmitEvents, InterServerEvents, SocketData>) {}
