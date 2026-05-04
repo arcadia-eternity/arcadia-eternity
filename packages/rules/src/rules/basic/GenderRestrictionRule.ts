@@ -4,6 +4,8 @@ import type { Team, RuleContext } from '../../interfaces/Rule'
 import { ValidationResultBuilder, ValidationErrorType, type ValidationResult } from '../../interfaces/ValidationResult'
 import { AbstractRule } from '../../core/AbstractRule'
 import type { SpeciesDataProvider } from '../../interfaces/SpeciesDataProvider'
+import { getGlobalClientSpeciesDataProvider } from '../../providers/ClientSpeciesDataProvider'
+import { getGlobalServerSpeciesDataProvider } from '../../providers/ServerSpeciesDataProvider'
 
 /**
  * 性别限制规则
@@ -207,13 +209,9 @@ export function createStandardGenderRestrictionRule(speciesDataProvider?: Specie
   let provider = speciesDataProvider
   if (!provider) {
     try {
-      // 动态导入以避免循环依赖
-      const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
     } catch (_error) {
-      // 如果客户端提供者不可用，尝试服务端提供者
       try {
-        const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
       } catch (_serverError) {
         console.warn('No species data provider available for gender restriction rule')

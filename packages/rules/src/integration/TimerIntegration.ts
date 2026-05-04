@@ -71,9 +71,7 @@ export class TimerIntegration {
   } {
     const errors: string[] = []
     const warnings: string[] = []
-    let suggestedConfig: Partial<TimerConfig> = {}
 
-    // 激活规则集并获取建议配置
     this.ruleSystem.clearActiveRuleSets()
     for (const ruleSetId of ruleSetIds) {
       try {
@@ -91,7 +89,7 @@ export class TimerIntegration {
     this.ruleSystem.setContext(context)
 
     const ruleModifications = this.ruleSystem.getTimerConfigModifications(context)
-    suggestedConfig = ruleModifications
+    const suggestedConfig = ruleModifications
 
     // 检查配置冲突
     for (const [key, ruleValue] of Object.entries(ruleModifications)) {
@@ -147,7 +145,7 @@ export class TimerIntegration {
       isValid: errors.length === 0,
       errors,
       warnings,
-      suggestedConfig: Object.keys(suggestedConfig).length > 0 ? suggestedConfig : undefined,
+      suggestedConfig: suggestedConfig && Object.keys(suggestedConfig).length > 0 ? suggestedConfig : undefined,
     }
   }
 

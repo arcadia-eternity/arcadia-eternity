@@ -259,7 +259,7 @@ export class TeamBuilderIntegration {
     this.ruleSystem.setContext(context)
 
     // 复制队伍数据
-    let fixedTeam: Team = team.map(pet => ({ ...pet }))
+    const fixedTeam: Team = team.map(pet => ({ ...pet }))
 
     // 应用规则修改
     for (const pet of fixedTeam) {
