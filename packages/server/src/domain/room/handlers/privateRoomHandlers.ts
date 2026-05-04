@@ -542,7 +542,7 @@ export class PrivateRoomHandlers {
    */
   async handleSwitchToSpectator(
     socket: PrivateRoomSocket,
-    data: {},
+    data: Record<string, never>,
     ack?: AckResponse<{ status: 'SWITCHED' }>,
   ) {
     try {
@@ -839,7 +839,7 @@ export class PrivateRoomHandlers {
    */
   async handleLeaveSpectateBattle(
     socket: PrivateRoomSocket,
-    data: {},
+    data: Record<string, never>,
     ack?: AckResponse<{ status: 'LEFT_SPECTATE' }>,
   ) {
     try {

@@ -35,7 +35,7 @@ export class InMemoryRedisClientManager {
     this.client = new Redis({
       data: {},
       keyPrefix: this.getKeyPrefix(),
-    } as unknown as ReturnType<typeof createClient>
+    })
     this.publisher = this.client.duplicate()
     this.subscriber = this.client.duplicate()
     this.patchPubSub(this.publisher, this.subscriber as PubSubSubscriber)
@@ -149,7 +149,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__patternSubscriptions?.size ?? 0)
     }) as typeof subscriber.psubscribe
 
-    subscriber.unsubscribe = ((...args: any[]) => {
+    subscriber.unsubscribe = ((...args: unknown[]) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const channels = args as string[]
       if (channels.length === 0) {
@@ -163,7 +163,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__channelSubscriptions?.size ?? 0)
     }) as typeof subscriber.unsubscribe
 
-    subscriber.punsubscribe = ((...args: any[]) => {
+    subscriber.punsubscribe = ((...args: unknown[]) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const patterns = args as string[]
       if (patterns.length === 0) {

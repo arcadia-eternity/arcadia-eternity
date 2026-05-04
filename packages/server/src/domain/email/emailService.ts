@@ -88,7 +88,7 @@ export class EmailService implements IEmailService {
           })
           break
 
-        case 'ses':
+        case 'ses': {
           if (!this.config.ses) {
             throw new Error('AWS SES configuration is required')
           }
@@ -104,6 +104,7 @@ export class EmailService implements IEmailService {
             SES: { sesClient, SendEmailCommand },
           })
           break
+        }
 
         case 'console':
           // 开发环境：输出到控制台

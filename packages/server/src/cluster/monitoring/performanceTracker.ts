@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 import * as promClient from 'prom-client'
+import os from 'os'
 import type { Request, Response, NextFunction } from 'express'
 import type { RedisClientManager } from '../redis/redisClient'
 
@@ -472,8 +473,8 @@ export class PerformanceTracker {
   /**
    * 创建HTTP中间件用于自动记录请求指标
    */
-  createHttpMiddleware() {
-    return (req: Request, res: Response, next: NextFunction) => {
+  createHttpMiddleware(): (req: Request, res: Response, next: NextFunction) => void {
+    return (req: Request, res: Response, next: NextFunction): void => {
       const startTime = Date.now()
 
       res.on('finish', () => {
@@ -585,8 +586,8 @@ export class PerformanceTracker {
     try {
       // 更新内存使用情况
       const memUsage = process.memoryUsage()
-      const totalMemory = require('os').totalmem()
-      const freeMemory = require('os').freemem()
+      const totalMemory = os.totalmem()
+      const freeMemory = os.freemem()
       const usedMemory = totalMemory - freeMemory
 
       this.currentPerformanceData.memoryUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024)
@@ -637,7 +638,7 @@ export class PerformanceTracker {
    */
   private updateCpuUsageMetric(): void {
     try {
-      const cpus = require('os').cpus()
+      const cpus = os.cpus()
       let totalIdle = 0
       let totalTick = 0
 

@@ -960,7 +960,7 @@ export class BattleClient {
 
   off<T extends keyof ServerToClientEvents>(
     event: T,
-    handler: ServerToClientEvents[T],
+    _handler: ServerToClientEvents[T],
   ): void {
     const handlers = this.eventHandlers.get(event)
     if (handlers) {

@@ -168,7 +168,7 @@ export class TTLHelper {
   /**
    * 为 Redis 键设置 TTL
    */
-  static async setKeyTTL(client: RedisClientManager, key: string, ttlMs: number): Promise<void> {
+  static async setKeyTTL(client: any, key: string, ttlMs: number): Promise<void> {
     if (ttlMs > 0) {
       await client.pexpire(key, ttlMs)
     }
@@ -177,7 +177,7 @@ export class TTLHelper {
   /**
    * 批量设置 TTL
    */
-  static async setBatchTTL(client: RedisClientManager, keyTTLPairs: Array<{ key: string; ttl: number }>): Promise<void> {
+  static async setBatchTTL(client: any, keyTTLPairs: Array<{ key: string; ttl: number }>): Promise<void> {
     if (keyTTLPairs.length === 0) return
 
     const pipeline = client.pipeline()
@@ -262,11 +262,12 @@ export class TTLHelper {
         switch (status) {
           case 'waiting':
             return config.room.waitingRoomTTL
-          case 'active':
+          case 'active': {
             // 活跃房间根据已运行时间调整 TTL
             const runTime = baseTime ? now - baseTime : 0
-            const remainingTTL = Math.max(config.room.activeRoomTTL - runTime, 30 * 60 * 1000) // 最少30分钟
+            const remainingTTL = Math.max(config.room.activeRoomTTL - runTime, 30 * 60 * 1000)
             return remainingTTL
+          }
           case 'ended':
             return config.room.endedRoomTTL
           default:

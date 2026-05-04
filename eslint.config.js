@@ -16,6 +16,7 @@ export default [
   eslintConfigPrettier,
   {
     rules: {
+      "@typescript-eslint/no-namespace": ["error", { "allowDeclarations": true }],
       "@typescript-eslint/no-unused-vars": ["error", {
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_",

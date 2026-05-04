@@ -19,13 +19,14 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
 
   // 错误处理中间件
   const handleError = (error: unknown, res: Response, operation: string) => {
-    apiLogger.error({ error, operation }, 'API operation failed')
+    const err = error instanceof Error ? error : new Error(String(error))
+    apiLogger.error({ error: err, operation }, 'API operation failed')
 
-    if (error.name === 'DatabaseError') {
+    if (err.name === 'DatabaseError') {
       res.status(500).json({
         error: 'Database error',
-        message: error.message,
-        code: error.code,
+        message: err.message,
+        code: (err as unknown as Record<string, unknown>).code,
       })
     } else {
       res.status(500).json({
@@ -33,9 +34,8 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
         message: 'An unexpected error occurred',
       })
     }
-  }
+}
 
-  // 参数验证中间件
   const validatePagination = (req: Request, res: Response, next: NextFunction): void => {
     const limit = parseInt(req.query.limit as string) || 20
     const offset = parseInt(req.query.offset as string) || 0
@@ -60,8 +60,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
     next()
   }
 
-  // 获取战报列表
-  /**
+/**
    * @swagger
    * /api/v1/battles:
    *   get:

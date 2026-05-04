@@ -243,7 +243,7 @@ export function createEmailInheritanceRoutes(): Router {
         // 执行智能认证检查
         const authResult = await performSmartAuth(req, playerId)
         if (!authResult.success) {
-          return res.status(authResult.status).json({
+          return res.status(authResult.status ?? 500).json({
             success: false,
             message: authResult.message,
             code: authResult.code,

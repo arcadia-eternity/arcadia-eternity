@@ -40,7 +40,7 @@ function loadTemplate(
     cache.set(templatePath, compiledTemplate)
     return compiledTemplate
   } catch (error) {
-    throw new Error(`Failed to load template from ${templatePath}: ${error}`)
+    throw new Error(`Failed to load template from ${templatePath}: ${error}`, { cause: error })
   }
 }
 

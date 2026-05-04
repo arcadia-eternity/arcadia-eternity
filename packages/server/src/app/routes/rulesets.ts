@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express'
+import { Router } from 'express'
 import { RuleRegistry } from '@arcadia-eternity/rules'
 import { MatchingConfigManager } from '../../domain/matching/services/MatchingConfigManager'
 import pino from 'pino'

@@ -76,7 +76,7 @@ type BattleSystemWithView = IBattleSystem & {
   BattleEvent(callback: (message: BattleMessage) => void, options?: BattleViewOptions): () => void
 }
 
-type DisconnectedPlayerInfo = {
+export type DisconnectedPlayerInfo = {
   playerId: string
   sessionId: string
   roomId: string
@@ -563,7 +563,7 @@ export class ClusterBattleService implements IBattleService {
             },
             'Failed to parse player 1 data',
           )
-          throw new Error(`Failed to parse player 1 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          throw new Error(`Failed to parse player 1 data: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error })
         }
 
         try {
@@ -577,7 +577,7 @@ export class ClusterBattleService implements IBattleService {
             },
             'Failed to parse player 2 data',
           )
-          throw new Error(`Failed to parse player 2 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          throw new Error(`Failed to parse player 2 data: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error })
         }
 
         // 先创建本地Battle实例
@@ -838,7 +838,7 @@ export class ClusterBattleService implements IBattleService {
    * 清理所有断线玩家信息
    */
   async clearAllDisconnectedPlayers(): Promise<void> {
-    for (const [key, info] of this.disconnectedPlayers.entries()) {
+    for (const [_key, info] of this.disconnectedPlayers.entries()) {
       if (info.graceTimer) {
         clearTimeout(info.graceTimer)
       }
@@ -1400,7 +1400,7 @@ export class ClusterBattleService implements IBattleService {
       await this.appendBattleActionLog(roomId, selection)
     } catch (error) {
       logger.error({ roomId, playerId, selection, error }, 'Failed to submit selection in battle')
-      throw new Error('INVALID_SELECTION')
+      throw new Error('INVALID_SELECTION', { cause: error })
     }
 
     return { status: 'ACTION_ACCEPTED' }
@@ -2127,7 +2127,7 @@ export class ClusterBattleService implements IBattleService {
       return selection
     } catch (error) {
       logger.error({ error, playerId, rawData }, 'Error processing player selection')
-      throw new Error('INVALID_SELECTION_DATA')
+      throw new Error('INVALID_SELECTION_DATA', { cause: error })
     }
   }
 
@@ -2384,7 +2384,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理计时器启用检查
    */
-  async handleLocalIsTimerEnabled(roomId: string, playerId: string): Promise<boolean> {
+  async handleLocalIsTimerEnabled(roomId: string, _playerId: string): Promise<boolean> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalIsTimerEnabled')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2414,7 +2414,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理所有玩家计时器状态获取
    */
-  async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<PlayerTimerState[]> {
+  async handleLocalGetAllPlayerTimerStates(roomId: string, _playerId: string): Promise<PlayerTimerState[]> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetAllPlayerTimerStates')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2425,7 +2425,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理计时器配置获取
    */
-  async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<TimerConfig> {
+  async handleLocalGetTimerConfig(roomId: string, _playerId: string): Promise<TimerConfig> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetTimerConfig')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2735,7 +2735,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取战斗状态（详细）
    */
-  async handleLocalGetBattleState(roomId: string, playerId: string): Promise<BattleState> {
+  async handleLocalGetBattleState(roomId: string, _playerId: string): Promise<BattleState> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetBattleState')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')

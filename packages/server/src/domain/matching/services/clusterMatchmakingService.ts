@@ -225,7 +225,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
           throw error
         }
         logger.error({ error, playerId, ruleSetId }, '队伍验证过程中发生错误')
-        throw new Error('TEAM_VALIDATION_ERROR')
+        throw new Error('TEAM_VALIDATION_ERROR', { cause: error })
       }
 
       // 使用队列专用锁确保队列操作的原子性
@@ -723,9 +723,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     } catch (error) {
       if (error instanceof Error) {
         logger.warn({ error: error.message, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.message}`)
+        throw new Error(`Invalid player data: ${error.message}`, { cause: error })
       }
-      throw new Error('Failed to validate raw player data')
+      throw new Error('Failed to validate raw player data', { cause: error })
     }
   }
 
@@ -735,9 +735,9 @@ export class ClusterMatchmakingService implements IMatchmakingService {
     } catch (error) {
       if (error instanceof Error) {
         logger.warn({ error: error.message, rawData }, 'Player data validation failed')
-        throw new Error(`Invalid player data: ${error.message}`)
+        throw new Error(`Invalid player data: ${error.message}`, { cause: error })
       }
-      throw new Error('Failed to validate player data')
+      throw new Error('Failed to validate player data', { cause: error })
     }
   }
 

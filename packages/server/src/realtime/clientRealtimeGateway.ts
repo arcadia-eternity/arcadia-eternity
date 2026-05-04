@@ -1,10 +1,10 @@
 import type { Server, Socket } from 'socket.io'
 
 export class ClientRealtimeGateway<
-  ListenEvents extends Record<string, unknown> = Record<string, unknown>,
-  EmitEvents extends Record<string, unknown> = Record<string, unknown>,
-  InterServerEvents extends Record<string, unknown> = Record<string, unknown>,
-  SocketData extends Record<string, unknown> = Record<string, unknown>,
+  ListenEvents extends Record<string, any> = Record<string, any>,
+  EmitEvents extends Record<string, any> = Record<string, any>,
+  InterServerEvents extends Record<string, any> = Record<string, any>,
+  SocketData extends Record<string, any> = Record<string, any>,
 > {
   constructor(private readonly io: Server<ListenEvents, EmitEvents, InterServerEvents, SocketData>) {}
 
@@ -25,7 +25,7 @@ export class ClientRealtimeGateway<
 
   emit<EventName extends keyof EmitEvents & string>(
     event: EventName,
-    ...args: EmitEvents[EventName] extends (...params: infer Params) => unknown ? Params : never
+    ...args: EmitEvents[EventName] extends (...params: infer Params) => any ? Params : never
   ): void {
 ;(this.io.emit as (event: string, ...args: unknown[]) => boolean)(event, ...args)
   }
