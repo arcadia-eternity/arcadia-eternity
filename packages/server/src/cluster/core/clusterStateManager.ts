@@ -13,7 +13,7 @@ import type {
   ClusterEvent,
   ClusterStats,
 } from '../types'
-import { REDIS_KEYS, ClusterError } from '../types'
+import { REDIS_KEYS, ClusterError, type PlayerSessionConnection } from '../types'
 import { dedupRedisCall } from '../redis/redisCallDeduplicator'
 import { TTLHelper } from '../config/ttlConfig'
 import { RedisKeyspaceConfig } from '../config/redisKeyspaceConfig'
@@ -440,14 +440,14 @@ export class ClusterStateManager extends EventEmitter {
     const results = (await Promise.race([
       multi.exec(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Player connection transaction timeout')), 5000)),
-    ])) as any[]
+    ])) as [Error | null, unknown][] | null
 
     // 检查事务执行结果
-    if (!results || results.some((result: any) => result[0] !== null)) {
+    if (!results || results.some((result: [Error | null, unknown]) => result[0] !== null)) {
       const errors = results
-        ? results.filter((result: any) => result[0] !== null).map((result: any) => result[0])
+        ? results.filter((result: [Error | null, unknown]) => result[0] !== null).map((result: [Error | null, unknown]) => result[0])
         : ['Transaction failed']
-      throw new Error(`Player connection transaction failed: ${errors.map(e => e.message || e).join(', ')}`)
+      throw new Error(`Player connection transaction failed: ${errors.map(e => (e as Error)?.message || String(e)).join(', ')}`)
     }
 
     // 异步发布玩家连接事件，不阻塞主流程
@@ -553,7 +553,7 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  async getPlayerSessionConnections(playerId: string): Promise<any[]> {
+  async getPlayerSessionConnections(playerId: string): Promise<PlayerSessionConnection[]> {
     const client = this.redisManager.getClient()
 
     try {
@@ -569,7 +569,7 @@ export class ClusterStateManager extends EventEmitter {
       }
 
       const results = await pipeline.exec()
-      const connections: any[] = []
+      const connections: PlayerSessionConnection[] = []
 
       if (results) {
         for (let i = 0; i < results.length; i++) {
@@ -621,14 +621,14 @@ export class ClusterStateManager extends EventEmitter {
 
   async setRoomState(roomState: RoomState): Promise<void> {
     const maxRetries = 3
-    let lastError: any
+    let lastError: Error | null = null
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await this.setRoomStateInternal(roomState)
         return // 成功则直接返回
       } catch (error) {
-        lastError = error
+        lastError = error instanceof Error ? error : new Error(String(error))
         logger.warn(
           { error, roomId: roomState.id, attempt, maxRetries },
           `Failed to set room state, attempt ${attempt}/${maxRetries}`,
@@ -679,12 +679,12 @@ export class ClusterStateManager extends EventEmitter {
     const results = (await Promise.race([
       pipeline.exec(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Pipeline execution timeout')), 8000)),
-    ])) as any[]
+    ])) as [Error | null, unknown][] | null
 
     // 检查pipeline执行结果
-    if (results && results.some((result: any) => result[0] !== null)) {
-      const errors = results.filter((result: any) => result[0] !== null).map((result: any) => result[0])
-      throw new Error(`Pipeline execution failed: ${errors.map(e => e.message).join(', ')}`)
+    if (results && results.some((result: [Error | null, unknown]) => result[0] !== null)) {
+      const errors = results.filter((result: [Error | null, unknown]) => result[0] !== null).map((result: [Error | null, unknown]) => result[0])
+      throw new Error(`Pipeline execution failed: ${errors.map(e => (e as Error)?.message || String(e)).join(', ')}`)
     }
 
     // 异步发布房间事件，不阻塞主流程
@@ -1274,7 +1274,7 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  private serializeSessionConnection(connection: any): Record<string, string> {
+  private serializeSessionConnection(connection: PlayerSessionConnection): Record<string, string> {
     return {
       playerId: connection.playerId,
       sessionId: connection.sessionId,
@@ -1286,14 +1286,14 @@ export class ClusterStateManager extends EventEmitter {
     }
   }
 
-  private deserializeSessionConnection(data: Record<string, string>): any {
+  private deserializeSessionConnection(data: Record<string, string>): PlayerSessionConnection {
     return {
       playerId: data.playerId,
       sessionId: data.sessionId,
       instanceId: data.instanceId,
       socketId: data.socketId,
       lastSeen: parseInt(data.lastSeen),
-      status: data.status,
+      status: data.status as PlayerSessionConnection['status'],
       metadata: data.metadata ? JSON.parse(data.metadata) : undefined,
     }
   }

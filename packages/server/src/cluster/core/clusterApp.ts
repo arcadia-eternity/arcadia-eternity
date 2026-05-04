@@ -381,8 +381,8 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
           await runtimeRedisManager.initialize()
           logger.warn('Single-instance mode forced to use in-memory Redis (non-persistent)')
         }
-        runtimeLockManager = new DistributedLockManager(runtimeRedisManager)
-        runtimeStateManager = new ClusterStateManager(runtimeRedisManager, runtimeLockManager, finalConfig.cluster!)
+        runtimeLockManager = new DistributedLockManager(runtimeRedisManager as RedisClientManager)
+        runtimeStateManager = new ClusterStateManager(runtimeRedisManager as RedisClientManager, runtimeLockManager, finalConfig.cluster!)
         await runtimeStateManager.initialize()
       }
 
@@ -392,31 +392,30 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
       // 创建并初始化集群组件
       if (clusterEnabled) {
-        performanceTracker = new PerformanceTracker(runtimeRedisManager, finalConfig.cluster!.instance.id)
-        monitoring = new MonitoringManager(runtimeStateManager, runtimeRedisManager, finalConfig.cluster!.instance.id)
+        performanceTracker = new PerformanceTracker(runtimeRedisManager as RedisClientManager, finalConfig.cluster!.instance.id)
+        monitoring = new MonitoringManager(runtimeStateManager, runtimeRedisManager as RedisClientManager, finalConfig.cluster!.instance.id)
       }
       // LogAggregationManager 已移除以减少 Redis 操作频率
       // 根据环境选择服务发现管理器
       if (clusterEnabled && process.env.FLY_APP_NAME) {
         // Fly.io 环境，使用专门的服务发现管理器
         serviceDiscovery = new FlyIoServiceDiscoveryManager(
-          runtimeRedisManager,
+          runtimeRedisManager as RedisClientManager,
           runtimeStateManager,
           new WeightedLoadStrategy(),
           process.env.FLY_APP_NAME,
           process.env.FLY_REGION,
         )
       } else if (clusterEnabled) {
-        // 标准环境
         serviceDiscovery = new ServiceDiscoveryManager(
-          runtimeRedisManager,
+          runtimeRedisManager as RedisClientManager,
           runtimeStateManager,
           new WeightedLoadStrategy(),
         )
       }
       realtimeGateway = new ClusterRealtimeGateway(
         io,
-        runtimeRedisManager,
+        runtimeRedisManager as RedisClientManager,
         runtimeStateManager,
         finalConfig.cluster!.instance.id,
       )
@@ -433,7 +432,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         stateManager: runtimeStateManager,
         realtimeGateway,
         lockManager: runtimeLockManager,
-        redisManager: runtimeRedisManager,
+        redisManager: runtimeRedisManager as RedisClientManager,
         instanceId: finalConfig.cluster!.instance.id,
         rpcPort: grpcPort,
         battleReportConfig: finalConfig.battleReport,
