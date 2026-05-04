@@ -172,7 +172,7 @@ export class SkillAvailabilityRule extends AbstractRule {
       try {
         const ruleSystemExtraSkills = context.data.ruleSystem.getSpeciesExtraLearnableSkills(pet.species, context)
         extraSkills.push(...ruleSystemExtraSkills)
-      } catch (error) {
+      } catch (_error) {
         // 忽略获取额外技能时的错误
       }
     }
@@ -243,12 +243,12 @@ export function createStandardSkillAvailabilityRule(speciesDataProvider?: Specie
       // 动态导入以避免循环依赖
       const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
-    } catch (error) {
+    } catch (_error) {
       // 如果客户端提供者不可用，尝试服务端提供者
       try {
         const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
-      } catch (serverError) {
+      } catch (_serverError) {
         console.warn('No species data provider available for skill availability rule')
       }
     }
@@ -274,12 +274,12 @@ export function createCompetitiveSkillAvailabilityRule(
       // 动态导入以避免循环依赖
       const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
-    } catch (error) {
+    } catch (_error) {
       // 如果客户端提供者不可用，尝试服务端提供者
       try {
         const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
-      } catch (serverError) {
+      } catch (_serverError) {
         console.warn('No species data provider available for competitive skill availability rule')
       }
     }

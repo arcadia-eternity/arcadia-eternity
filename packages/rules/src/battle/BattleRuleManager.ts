@@ -1,6 +1,5 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
 import type { BattleInstance } from '@arcadia-eternity/battle'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
 import { BattleIntegration } from '../integration/BattleIntegration'

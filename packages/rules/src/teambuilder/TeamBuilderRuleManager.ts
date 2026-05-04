@@ -149,7 +149,7 @@ export class TeamBuilderRuleManager {
     for (const ruleSetId of this.currentRuleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch (error) {
+      } catch (_error) {
         // 忽略无法激活的规则集
         continue
       }
@@ -169,7 +169,7 @@ export class TeamBuilderRuleManager {
     for (const ruleSetId of this.currentRuleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch (error) {
+      } catch (_error) {
         // 忽略无法激活的规则集
         continue
       }

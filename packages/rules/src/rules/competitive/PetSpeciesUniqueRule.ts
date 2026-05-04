@@ -30,7 +30,7 @@ export class PetSpeciesUniqueRule extends AbstractRule {
   /**
    * 验证队伍中精灵种族的唯一性
    */
-  validateTeam(team: Team, context?: RuleContext): ValidationResult {
+  validateTeam(team: Team, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
     const speciesMap = new Map<string, PetSchemaType[]>() // species -> 拥有该种族的精灵列表
 

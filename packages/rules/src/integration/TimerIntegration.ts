@@ -78,7 +78,7 @@ export class TimerIntegration {
     for (const ruleSetId of ruleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch (error) {
+      } catch (_error) {
         errors.push(`规则集 "${ruleSetId}" 不存在或无法激活`)
         continue
       }
@@ -208,7 +208,7 @@ export class TimerIntegration {
 
         const config = this.ruleSystem.getTimerConfigModifications(context)
         ruleSetConfigs.set(ruleSetId, config)
-      } catch (error) {
+      } catch (_error) {
         warnings.push(`无法获取规则集 "${ruleSetId}" 的计时器配置`)
       }
     }

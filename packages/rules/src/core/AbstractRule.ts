@@ -50,70 +50,70 @@ export abstract class AbstractRule implements Rule {
   /**
    * 验证队伍 - 默认实现返回成功
    */
-  validateTeam(team: Team, context?: RuleContext): ValidationResult {
+  validateTeam(_team: Team, _context?: RuleContext): ValidationResult {
     return createSuccessResult()
   }
 
   /**
    * 验证精灵 - 默认实现返回成功
    */
-  validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
+  validatePet(_pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     return createSuccessResult()
   }
 
   /**
    * 验证技能 - 默认实现返回成功
    */
-  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult {
+  validateSkill(_pet: PetSchemaType, _skill: SkillSchemaType, _context?: RuleContext): ValidationResult {
     return createSuccessResult()
   }
 
   /**
    * 验证印记 - 默认实现返回成功
    */
-  validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult {
+  validateMark(_pet: PetSchemaType, _mark: MarkSchemaType, _context?: RuleContext): ValidationResult {
     return createSuccessResult()
   }
 
   /**
    * 修改精灵数据 - 默认实现不做任何修改
    */
-  modifyPet(pet: PetSchemaType, context?: RuleContext): void {
+  modifyPet(_pet: PetSchemaType, _context?: RuleContext): void {
     // 默认不做任何修改
   }
 
   /**
    * 修改技能数据 - 默认实现不做任何修改
    */
-  modifySkill(skill: SkillSchemaType, context?: RuleContext): void {
+  modifySkill(_skill: SkillSchemaType, _context?: RuleContext): void {
     // 默认不做任何修改
   }
 
   /**
    * 修改印记数据 - 默认实现不做任何修改
    */
-  modifyMark(mark: MarkSchemaType, context?: RuleContext): void {
+  modifyMark(_mark: MarkSchemaType, _context?: RuleContext): void {
     // 默认不做任何修改
   }
 
   /**
    * 获取战斗配置修改 - 默认实现返回空对象
    */
-  getBattleConfigModifications(context?: RuleContext): BattleConfigModifications {
+  getBattleConfigModifications(_context?: RuleContext): BattleConfigModifications {
     return {}
   }
 
   /**
    * 获取计时器配置修改 - 默认实现返回空对象
    */
-  getTimerConfigModifications(context?: RuleContext): Partial<TimerConfig> {
+  getTimerConfigModifications(_context?: RuleContext): Partial<TimerConfig> {
     return {}
   }
 
   /**
    * 获取额外内容 - 默认实现返回空内容
    */
-  getAdditionalContent(context?: RuleContext): AdditionalContent {
+  getAdditionalContent(_context?: RuleContext): AdditionalContent {
     return {
       skills: [],
       marks: [],
@@ -126,28 +126,28 @@ export abstract class AbstractRule implements Rule {
   /**
    * 获取特定种族的额外可学习技能 - 默认实现返回空数组
    */
-  getSpeciesExtraLearnableSkills(speciesId: string, context?: RuleContext): LearnableSkill[] {
+  getSpeciesExtraLearnableSkills(_speciesId: string, _context?: RuleContext): LearnableSkill[] {
     return []
   }
 
   /**
    * 规则初始化 - 默认实现为空
    */
-  async initialize(context?: RuleContext): Promise<void> {
+  async initialize(_context?: RuleContext): Promise<void> {
     // 默认不需要初始化
   }
 
   /**
    * 规则清理 - 默认实现为空
    */
-  async cleanup(context?: RuleContext): Promise<void> {
+  async cleanup(_context?: RuleContext): Promise<void> {
     // 默认不需要清理
   }
 
   /**
    * 检查规则是否适用于当前上下文 - 默认实现返回true
    */
-  isApplicable(context?: RuleContext): boolean {
+  isApplicable(_context?: RuleContext): boolean {
     return true
   }
 

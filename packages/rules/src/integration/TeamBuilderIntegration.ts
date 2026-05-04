@@ -110,7 +110,7 @@ export class TeamBuilderIntegration {
     for (const ruleSetId of ruleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch (error) {
+      } catch (_error) {
         suggestions.push({
           type: 'warning',
           message: `无法激活规则集 "${ruleSetId}"`,

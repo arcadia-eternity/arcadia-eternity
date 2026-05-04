@@ -1,4 +1,4 @@
-import type { Rule, RuleContext } from '../interfaces/Rule'
+import type { Rule } from '../interfaces/Rule'
 import type { RuleSet } from '../interfaces/RuleSet'
 import { ValidationResultBuilder, ValidationErrorType, type ValidationResult } from '../interfaces/ValidationResult'
 

@@ -56,7 +56,7 @@ export class BanRule extends AbstractRule {
   /**
    * 验证精灵是否被禁用
    */
-  validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
+  validatePet(pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
     // 检查精灵种族是否被禁用
@@ -115,7 +115,7 @@ export class BanRule extends AbstractRule {
   /**
    * 验证技能是否被禁用
    */
-  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult {
+  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
     if (this.bannedSkills.has(skill.id as baseSkillId)) {
@@ -135,7 +135,7 @@ export class BanRule extends AbstractRule {
   /**
    * 验证印记是否被禁用
    */
-  validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult {
+  validateMark(pet: PetSchemaType, mark: MarkSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
     if (this.bannedMarks.has(mark.id as baseMarkId)) {

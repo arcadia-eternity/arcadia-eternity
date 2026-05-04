@@ -52,7 +52,7 @@ export class EVLimitRule extends AbstractRule {
   /**
    * 验证单个精灵的学习力
    */
-  validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
+  validatePet(pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
     const evs = pet.evs
 
@@ -115,7 +115,7 @@ export class EVLimitRule extends AbstractRule {
   /**
    * 修改精灵学习力（调整到合法范围）
    */
-  modifyPet(pet: PetSchemaType, context?: RuleContext): void {
+  modifyPet(pet: PetSchemaType, _context?: RuleContext): void {
     const evs = pet.evs
 
     // 确保所有学习力不为负数
