@@ -86,9 +86,11 @@ type RoomCandidate = {
 interface CrossInstanceAction {
   action: string
   playerId: string
-  requestId: string
-  responseChannel: string
+  requestId?: string
+  responseChannel?: string
   roomId?: string
+  from?: string
+  timestamp?: number
   data: ForwardActionData
 }
 
@@ -1274,7 +1276,7 @@ export class ClusterBattleServer {
         switch (actionType) {
           case 'submitPlayerSelection': {
             const selectionData = data.selection || data
-            result = await this.battleService.handleLocalPlayerSelection(roomId as string, playerId as string, selectionData as unknown as Parameters<typeof this.battleService.handleLocalPlayerSelection>[3])
+            result = await this.battleService.handleLocalPlayerSelection(roomId as string, playerId as string, selectionData as unknown as Parameters<typeof this.battleService.handleLocalPlayerSelection>[2])
             break
           }
 
@@ -5098,7 +5100,7 @@ export class ClusterBattleServer {
         await this.cleanupSessionRoomMappings(roomState)
       },
       forwardPlayerAction: async (instanceId: string, action: string, playerId: string, data: unknown) => {
-        return await this.forwardPlayerAction(instanceId, action, playerId, data)
+        return await this.forwardPlayerAction(instanceId, action, playerId, data as ForwardActionData)
       },
       createSessionRoomMappings: async (roomState: RoomState) => {
         await this.createSessionRoomMappings(roomState)

@@ -11,11 +11,14 @@ const logger = pino({
 // JWT载荷接口
 export interface JWTPayload {
   playerId: string
-  isRegistered: boolean
+  sessionId?: string
   email?: string
-  iat?: number
+  isAdmin?: boolean
+  isRegistered?: boolean
+  type?: string
+  jti?: string
   exp?: number
-  jti?: string // JWT ID，用于token撤销
+  iat?: number
 }
 
 // 认证配置接口

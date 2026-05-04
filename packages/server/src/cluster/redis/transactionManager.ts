@@ -1,6 +1,5 @@
 import { nanoid } from 'nanoid'
 import pino from 'pino'
-import type { ChainableCommander } from 'ioredis'
 import type { RedisClientManager } from './redisClient'
 import type { DistributedLockManager } from './distributedLock'
 import { ClusterError, type DistributedLock } from '../types'

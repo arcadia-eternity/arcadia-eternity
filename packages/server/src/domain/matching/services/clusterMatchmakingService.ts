@@ -12,6 +12,7 @@ import type { PerformanceTracker } from '../../../cluster/monitoring/performance
 import type { MatchmakingEntry, ServiceInstance, HttpErrorLike } from '../../../cluster/types'
 import { BattleRpcClient } from '../../../cluster/communication/rpc/battleRpcClient'
 import type { CreateBattleResponse } from '../../../generated/battle-rpc'
+import * as grpc from '@grpc/grpc-js'
 import type { ServiceDiscoveryManager } from '../../../cluster/discovery/serviceDiscovery'
 import type {
   IResourceLoadingManager,
@@ -828,7 +829,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
 
       // 通过RPC调用远程实例创建战斗
       const response = await new Promise<{ success: boolean; error?: string; roomId?: string }>((resolve, reject) => {
-        ;(rpcClient as BattleRpcClient).createBattle(
+        ;(rpcClient as unknown as { createBattle: (req: unknown, cb: (err: grpc.ServiceError | null, resp: CreateBattleResponse) => void) => void }).createBattle(
           {
             player1_entry: {
               player_id: player1Entry.playerId,
@@ -852,7 +853,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
               resolve({
                 success: response.success,
                 error: response.error,
-                roomId: response.room_id,
+                roomId: response.roomId,
               })
             }
           },
@@ -1316,7 +1317,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
   /**
    * 判断是否应该触发定时匹配
    */
-  private shouldTriggerPeriodicMatching(queue: unknown[], matchingConfig: unknown): boolean {
+  private shouldTriggerPeriodicMatching(queue: MatchmakingEntry[], matchingConfig: MatchingConfig): boolean {
     // FIFO策略：有2个以上玩家就可以匹配
     if (matchingConfig.strategy === 'fifo') {
       return queue.length >= 2
@@ -1337,7 +1338,7 @@ export class ClusterMatchmakingService implements IMatchmakingService {
   /**
    * 获取队列中最老玩家的等待时间 (秒)
    */
-  private getOldestWaitTime(queue: unknown[]): number {
+  private getOldestWaitTime(queue: MatchmakingEntry[]): number {
     if (queue.length === 0) return 0
 
     const now = Date.now()

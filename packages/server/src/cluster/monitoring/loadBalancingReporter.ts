@@ -58,6 +58,12 @@ export interface LoadBalancingReport {
   recommendations: string[]
 }
 
+interface LoadDistribution {
+  cpuDistribution: { avg: number; std: number }
+  memoryDistribution: { avg: number; std: number }
+  battlesPerInstance: Record<string, number>
+}
+
 export class LoadBalancingReporter {
   private redisManager: RedisClientManager
   private stateManager: ClusterStateManager
@@ -241,12 +247,6 @@ export class LoadBalancingReporter {
   }
 
   /**
-interface LoadDistribution {
-  cpuDistribution: { avg: number; std: number }
-  memoryDistribution: { avg: number; std: number }
-  battlesPerInstance: Record<string, number>
-}
-
    * 生成优化建议
    */
   private generateRecommendations(instances: ServiceInstance[], loadDistribution: LoadDistribution): string[] {

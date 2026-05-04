@@ -255,13 +255,13 @@ export class RedisClientManager {
     }
   }
 
-  async getInfo(): Promise<Record<string, string>> {
+  async getInfo(): Promise<Record<string, unknown>> {
     try {
       if (!this.client) throw new Error('Redis client not initialized')
 
       const info = await this.client.info()
       const lines = info.split('\r\n')
-      const result: Record<string, string> = {}
+      const result: Record<string, unknown> = {}
 
       for (const line of lines) {
         if (line && !line.startsWith('#')) {
@@ -313,7 +313,7 @@ export class RedisClientManager {
   // 健康检查
   async healthCheck(): Promise<{
     status: 'healthy' | 'unhealthy'
-    details: Record<string, string>
+    details: Record<string, unknown>
   }> {
     try {
       const startTime = Date.now()

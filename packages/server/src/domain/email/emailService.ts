@@ -5,7 +5,7 @@ import type { Transporter } from 'nodemailer'
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
 import pino from 'pino'
 import type { IEmailService, EmailMessage, VerificationEmailData } from '../../interfaces/IEmailService'
-import type { HttpErrorLike } from '../../../cluster/types'
+import type { HttpErrorLike } from '../../cluster/types'
 import { renderVerificationHtml, renderVerificationText, validateTemplates } from '../../utils/templateLoader'
 
 const logger = pino({

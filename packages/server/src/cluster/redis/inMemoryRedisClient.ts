@@ -75,7 +75,7 @@ export class InMemoryRedisClientManager {
     }
   }
 
-  async getInfo(): Promise<Record<string, string>> {
+  async getInfo(): Promise<Record<string, unknown>> {
     return {
       connected_clients: 3,
       used_memory_human: 'in-memory',
@@ -83,7 +83,7 @@ export class InMemoryRedisClientManager {
     }
   }
 
-  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: Record<string, string> }> {
+  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: Record<string, unknown> }> {
     return {
       status: 'healthy',
       details: {

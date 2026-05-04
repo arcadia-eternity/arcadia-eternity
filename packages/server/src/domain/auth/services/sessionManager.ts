@@ -4,6 +4,7 @@ import type { DistributedLockManager } from '../../../cluster/redis/distributedL
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { SessionData, AuthBlacklistEntry } from '../../../cluster/types'
 import { generateTimestampedSessionId } from '../../../cluster/types'
+import type { RedisClientManager } from '../../../cluster/redis/redisClient'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
