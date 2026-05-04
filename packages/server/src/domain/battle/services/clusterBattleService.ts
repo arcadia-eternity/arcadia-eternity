@@ -838,7 +838,7 @@ export class ClusterBattleService implements IBattleService {
    * 清理所有断线玩家信息
    */
   async clearAllDisconnectedPlayers(): Promise<void> {
-    for (const [key, info] of this.disconnectedPlayers.entries()) {
+    for (const [_key, info] of this.disconnectedPlayers.entries()) {
       if (info.graceTimer) {
         clearTimeout(info.graceTimer)
       }
@@ -2384,7 +2384,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理计时器启用检查
    */
-  async handleLocalIsTimerEnabled(roomId: string, playerId: string): Promise<boolean> {
+  async handleLocalIsTimerEnabled(roomId: string, _playerId: string): Promise<boolean> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalIsTimerEnabled')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2414,7 +2414,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理所有玩家计时器状态获取
    */
-  async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<PlayerTimerState[]> {
+  async handleLocalGetAllPlayerTimerStates(roomId: string, _playerId: string): Promise<PlayerTimerState[]> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetAllPlayerTimerStates')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2425,7 +2425,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理计时器配置获取
    */
-  async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<TimerConfig> {
+  async handleLocalGetTimerConfig(roomId: string, _playerId: string): Promise<TimerConfig> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetTimerConfig')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2735,7 +2735,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取战斗状态（详细）
    */
-  async handleLocalGetBattleState(roomId: string, playerId: string): Promise<BattleState> {
+  async handleLocalGetBattleState(roomId: string, _playerId: string): Promise<BattleState> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetBattleState')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')

@@ -3,7 +3,7 @@ import type { ClusterStateManager } from '../../../cluster/core/clusterStateMana
 import type { DistributedLockManager } from '../../../cluster/redis/distributedLock'
 import { LOCK_KEYS } from '../../../cluster/redis/distributedLock'
 import type { SessionData, AuthBlacklistEntry } from '../../../cluster/types'
-import { ClusterError, generateTimestampedSessionId } from '../../../cluster/types'
+import { generateTimestampedSessionId } from '../../../cluster/types'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',

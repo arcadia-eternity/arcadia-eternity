@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express'
+import { Router } from 'express'
 import { EloRepository } from '@arcadia-eternity/database'
 import { EloService } from '../../domain/elo/services/eloService'
 import { EloCalculationService } from '../../domain/elo/services/eloCalculationService'

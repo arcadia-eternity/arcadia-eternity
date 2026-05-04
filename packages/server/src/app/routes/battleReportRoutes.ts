@@ -470,13 +470,11 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
 }
 
 // 扩展 Request 接口以包含分页参数
-declare global {
-  namespace Express {
-    interface Request {
-      pagination?: {
-        limit: number
-        offset: number
-      }
+declare module 'express-serve-static-core' {
+  interface Request {
+    pagination?: {
+      limit: number
+      offset: number
     }
   }
 }

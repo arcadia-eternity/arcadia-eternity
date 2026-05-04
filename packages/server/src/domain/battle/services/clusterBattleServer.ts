@@ -14,7 +14,7 @@ import { PlayerSchema, parseWithErrors, type PlayerSchemaType, type PlayerSelect
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 import type { Static } from '@sinclair/typebox'
-import type { Server, Socket } from 'socket.io'
+import type { Socket } from 'socket.io'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import type { IAuthService, JWTPayload } from '../../auth/services/authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
@@ -1051,7 +1051,7 @@ export class ClusterBattleServer {
     }
   }
 
-  private async handleRoomDestroy(roomId: string) {
+  private async handleRoomDestroy(_roomId: string) {
     // Room destroyed in cluster
   }
 

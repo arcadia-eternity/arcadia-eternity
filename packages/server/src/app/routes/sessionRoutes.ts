@@ -12,7 +12,7 @@ class ValidationError extends Error {
   }
 }
 
-function parseRequest<T extends import('@sinclair/typebox').TSchema>(schema: T, data: unknown): Static<T> {
+function _parseRequest<T extends import('@sinclair/typebox').TSchema>(schema: T, data: unknown): Static<T> {
   const converted = Value.Convert(schema, structuredClone(data))
   const defaulted = Value.Default(schema, converted)
   if (Value.Check(schema, defaulted)) {
