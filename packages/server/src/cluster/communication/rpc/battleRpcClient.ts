@@ -35,6 +35,8 @@ import type {
   EndAnimationResponse,
   TerminateBattleRequest,
   TerminateBattleResponse,
+  JoinSpectateBattleRequest,
+  JoinSpectateBattleResponse,
 } from '../../../generated/battle-rpc'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -87,7 +89,7 @@ export class BattleRpcClient {
       }
 
       this.packageDefinition = protoLoader.loadSync(protoPath, {
-        keepCase: true,
+        keepCase: false,
         longs: String,
         enums: String,
         defaults: true,
@@ -127,7 +129,7 @@ export class BattleRpcClient {
     }
   }
 
-  private async callWithTimeout<TRequest, TResponse>(
+  private async callWithTimeout<TRequest, TResponse extends { success: boolean; error?: string }>(
     client: BattleServiceClient,
     method: keyof BattleServiceClient,
     request: TRequest,
@@ -145,8 +147,8 @@ export class BattleRpcClient {
         if (error) {
           logger.error({ error, method, request }, 'RPC call failed')
           reject(error)
-        } else if (response && (response as any).success === false) {
-          reject(new Error((response as any).error || 'RPC_ERROR'))
+        } else if (response && response.success === false) {
+          reject(new Error(response.error || 'RPC_ERROR'))
         } else if (response) {
           resolve(response)
         } else {
@@ -170,10 +172,10 @@ export class BattleRpcClient {
       client,
       'SubmitPlayerSelection',
       {
-        room_id: roomId,
-        player_id: playerId,
-        selection_data: JSON.stringify(selectionData),
-      } as unknown as PlayerSelectionRequest,
+        roomId,
+        playerId,
+        selectionData: JSON.stringify(selectionData),
+      },
     )
 
     return { status: response.status }
@@ -187,9 +189,10 @@ export class BattleRpcClient {
   ): Promise<unknown[]> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<SelectionRequest, SelectionResponse>(client, 'GetAvailableSelection', {
-      room_id: roomId,
-      player_id: playerId,
-    } as unknown as SelectionRequest)
+      roomId,
+      playerId,
+    },
+    )
 
     return JSON.parse(response.selections)
   }
@@ -197,11 +200,11 @@ export class BattleRpcClient {
   async getBattleState(instanceId: string, address: string, roomId: string, playerId: string): Promise<unknown> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<BattleStateRequest, BattleStateResponse>(client, 'GetBattleState', {
-      room_id: roomId,
-      player_id: playerId,
-    } as unknown as BattleStateRequest)
+      roomId,
+      playerId,
+    })
 
-    return JSON.parse((response as any).battle_state ?? (response as any).battleState)
+    return JSON.parse(response.battleState)
   }
 
   async playerReady(
@@ -212,9 +215,9 @@ export class BattleRpcClient {
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<ReadyRequest, ReadyResponse>(client, 'PlayerReady', {
-      room_id: roomId,
-      player_id: playerId,
-    } as unknown as ReadyRequest)
+      roomId,
+      playerId,
+    })
 
     return { status: response.status }
   }
@@ -227,9 +230,9 @@ export class BattleRpcClient {
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<AbandonRequest, AbandonResponse>(client, 'PlayerAbandon', {
-      room_id: roomId,
-      player_id: playerId,
-    } as unknown as AbandonRequest)
+      roomId,
+      playerId,
+    })
 
     return { status: response.status }
   }
@@ -246,10 +249,10 @@ export class BattleRpcClient {
       client,
       'ReportAnimationEnd',
       {
-        room_id: roomId,
-        player_id: playerId,
-        animation_data: JSON.stringify(animationData),
-      } as unknown as AnimationEndRequest,
+        roomId,
+        playerId,
+        animationData: JSON.stringify(animationData),
+      },
     )
 
     return { status: response.status }
@@ -258,9 +261,9 @@ export class BattleRpcClient {
   async isTimerEnabled(instanceId: string, address: string, roomId: string, playerId: string): Promise<boolean> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<TimerEnabledRequest, TimerEnabledResponse>(client, 'IsTimerEnabled', {
-      room_id: roomId,
-      player_id: playerId,
-    } as unknown as TimerEnabledRequest)
+      roomId,
+      playerId,
+    })
 
     return response.enabled
   }
@@ -277,13 +280,13 @@ export class BattleRpcClient {
       client,
       'GetPlayerTimerState',
       {
-        room_id: roomId,
-        player_id: playerId,
-        timer_data: JSON.stringify(timerData),
-      } as unknown as PlayerTimerStateRequest,
+        roomId,
+        playerId,
+        timerData: JSON.stringify(timerData),
+      },
     )
 
-    return JSON.parse((response as any).timer_state ?? (response as any).timerState)
+    return JSON.parse(response.timerState)
   }
 
   async getAllPlayerTimerStates(
@@ -297,20 +300,20 @@ export class BattleRpcClient {
       client,
       'GetAllPlayerTimerStates',
       {
-        room_id: roomId,
-        player_id: playerId,
-      } as unknown as AllPlayerTimerStatesRequest,
+        roomId,
+        playerId,
+      },
     )
 
-    return JSON.parse((response as any).timer_states ?? (response as any).timerStates)
+    return JSON.parse(response.timerStates)
   }
 
   async getTimerConfig(instanceId: string, address: string, roomId: string, playerId: string): Promise<unknown> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<TimerConfigRequest, TimerConfigResponse>(client, 'GetTimerConfig', {
-      room_id: roomId,
-      player_id: playerId,
-    } as unknown as TimerConfigRequest)
+      roomId,
+      playerId,
+    })
 
     return JSON.parse(response.config)
   }
@@ -320,17 +323,17 @@ export class BattleRpcClient {
     address: string,
     roomId: string,
     playerId: string,
-    animationData: any,
-  ): Promise<any> {
+    animationData: unknown,
+  ): Promise<unknown> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<StartAnimationRequest, StartAnimationResponse>(
       client,
       'StartAnimation',
       {
-        room_id: roomId,
-        player_id: playerId,
-        animation_data: JSON.stringify(animationData),
-      } as unknown as StartAnimationRequest,
+        roomId,
+        playerId,
+        animationData: JSON.stringify(animationData),
+      },
     )
 
     return JSON.parse(response.result)
@@ -341,14 +344,14 @@ export class BattleRpcClient {
     address: string,
     roomId: string,
     playerId: string,
-    animationData: any,
+    animationData: unknown,
   ): Promise<{ status: string }> {
     const client = this.getClient(instanceId, address)
     const response = await this.callWithTimeout<EndAnimationRequest, EndAnimationResponse>(client, 'EndAnimation', {
-      room_id: roomId,
-      player_id: playerId,
-      animation_data: JSON.stringify(animationData),
-    } as unknown as EndAnimationRequest)
+      roomId,
+      playerId,
+      animationData: JSON.stringify(animationData),
+    })
 
     return { status: response.status }
   }
@@ -365,10 +368,10 @@ export class BattleRpcClient {
       client,
       'TerminateBattle',
       {
-        room_id: roomId,
-        player_id: playerId,
+        roomId,
+        playerId,
         reason,
-      } as unknown as TerminateBattleRequest,
+      },
     )
 
     return { status: response.status }
@@ -382,11 +385,15 @@ export class BattleRpcClient {
     sessionId: string,
   ): Promise<boolean> {
     const client = this.getClient(instanceId, address)
-    const response = await this.callWithTimeout<any, any>(client, 'JoinSpectateBattle', {
-      roomId,
-      playerId,
-      sessionId,
-    })
+    const response = await this.callWithTimeout<JoinSpectateBattleRequest, JoinSpectateBattleResponse>(
+      client,
+      'JoinSpectateBattle',
+      {
+        roomId,
+        playerId,
+        sessionId,
+      },
+    )
 
     return response.success
   }
