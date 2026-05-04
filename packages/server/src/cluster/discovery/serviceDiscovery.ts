@@ -4,6 +4,7 @@ import type { ClusterStateManager } from '../core/clusterStateManager'
 import type { ServiceInstance } from '../types'
 import { ServiceDiscoveryError } from '../types'
 import { loadBalancingConfigManager, type LoadBalancingConfigManager } from '../config/loadBalancingConfig'
+import type { PerformanceTracker } from '../monitoring/performanceTracker'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -16,7 +17,8 @@ export interface LoadBalancingStrategy {
 export class RoundRobinStrategy implements LoadBalancingStrategy {
   private currentIndex = 0
 
-  selectInstance(instances: ServiceInstance[], _preferredRegion?: string): ServiceInstance | null {
+  selectInstance(instances: ServiceInstance[], preferredRegion?: string): ServiceInstance | null {
+    void preferredRegion;
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {
@@ -31,7 +33,8 @@ export class RoundRobinStrategy implements LoadBalancingStrategy {
 }
 
 export class LeastConnectionsStrategy implements LoadBalancingStrategy {
-  selectInstance(instances: ServiceInstance[], _preferredRegion?: string): ServiceInstance | null {
+  selectInstance(instances: ServiceInstance[], preferredRegion?: string): ServiceInstance | null {
+    void preferredRegion;
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {
@@ -43,7 +46,8 @@ export class LeastConnectionsStrategy implements LoadBalancingStrategy {
 }
 
 export class WeightedLoadStrategy implements LoadBalancingStrategy {
-  selectInstance(instances: ServiceInstance[], _preferredRegion?: string): ServiceInstance | null {
+  selectInstance(instances: ServiceInstance[], preferredRegion?: string): ServiceInstance | null {
+    void preferredRegion;
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {
@@ -98,9 +102,9 @@ export interface SmartLoadBalancingConfig {
 
 export class SmartLoadBalancingStrategy implements LoadBalancingStrategy {
   private configManager: LoadBalancingConfigManager
-  private performanceTracker?: any // PerformanceTracker type
+  private performanceTracker?: PerformanceTracker
 
-  constructor(configManager?: LoadBalancingConfigManager, performanceTracker?: any) {
+  constructor(configManager?: LoadBalancingConfigManager, performanceTracker?: PerformanceTracker) {
     this.configManager = configManager || loadBalancingConfigManager
     this.performanceTracker = performanceTracker
 

@@ -6,7 +6,6 @@ import {
   type ConditionDSL,
   type EvaluatorDSL,
   getEffectDslManifest,
-  type SelectorDSL,
   type Value,
 } from '@arcadia-eternity/schema'
 import {

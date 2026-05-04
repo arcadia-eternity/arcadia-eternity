@@ -30,11 +30,11 @@ function loadFromStorage<T>(key: string, defaultValue: T): T {
   }
 }
 
-function saveToStorage(key: string, value: any) {
+function saveToStorage(key: string, value: unknown) {
   localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value))
 }
 
-const debouncedSaveAllSettings = useDebounceFn((settings: Record<string, any>) => {
+const debouncedSaveAllSettings = useDebounceFn((settings: Record<string, unknown>) => {
   for (const key in settings) {
     if (Object.prototype.hasOwnProperty.call(settings, key)) {
       saveToStorage(key, settings[key])

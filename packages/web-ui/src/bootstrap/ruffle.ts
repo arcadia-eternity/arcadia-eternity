@@ -40,7 +40,7 @@ function ensureRuffleConfig(): void {
   }
 
   current.config = {
-    ...(current.config ?? {}),
+    ...current.config,
     publicPath,
   }
   globalWithRuffle.RufflePlayer = current

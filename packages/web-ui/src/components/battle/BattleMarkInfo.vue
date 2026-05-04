@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useResourceStore } from '@/stores/resource'
-import { useGameDataStore } from '@/stores/gameData'
 import type { SkillMarkRelation } from '@/services/skillMarkRelationService'
 import i18next from 'i18next'
 import { ShieldCheckIcon } from '@heroicons/vue/24/outline'
@@ -19,12 +18,6 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const resourceStore = useResourceStore()
-const gameDataStore = useGameDataStore()
-
-// 获取印记数据
-const mark = computed(() => {
-  return gameDataStore.marks.byId[props.markId]
-})
 
 // 获取印记名称
 const markName = computed(() => {

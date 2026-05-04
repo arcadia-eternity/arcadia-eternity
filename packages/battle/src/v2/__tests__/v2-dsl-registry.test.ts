@@ -30,7 +30,7 @@ describe('v2 dsl registries', () => {
     const battle = createBattle()
     const ctx = {
       world: battle.world,
-      systems: battle.world.systems as any,
+      systems: battle.world.systems as Record<string, unknown>,
       fireCtx: {
         sourceEntityId: 'test_source',
         trigger: 'selector-test',

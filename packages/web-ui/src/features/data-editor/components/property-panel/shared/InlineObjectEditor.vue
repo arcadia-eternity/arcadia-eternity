@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import i18next from 'i18next'
-import { type TSchema, type TObject, type TProperties } from '@sinclair/typebox'
+import { type TSchema, type TObject, type TProperties, type TUnion } from '@sinclair/typebox'
 import { KindGuard } from '@sinclair/typebox/type'
 import FieldEditor from './FieldEditor.vue'
 
@@ -22,7 +22,7 @@ const emit = defineEmits<{
 
 function unwrapSchema(schema: TSchema): TSchema {
   if (KindGuard.IsUnion(schema)) {
-    const members = (schema as any).anyOf
+    const members = (schema as TUnion<TSchema[]>).anyOf
     const nonNull = members.filter((m: TSchema) => !KindGuard.IsNull(m))
     if (nonNull.length === 1) return unwrapSchema(nonNull[0])
   }

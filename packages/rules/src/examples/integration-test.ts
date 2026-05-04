@@ -72,7 +72,7 @@ export async function testServerIntegration(): Promise<void> {
       console.log('  - 应用的计时器配置:', battlePreparation.battleOptions.timerConfig)
     } else {
       console.log('✗ 战斗验证失败:')
-      battlePreparation.validation.errors.forEach((error: any) => {
+      battlePreparation.validation.errors.forEach((error: Record<string, unknown>) => {
         console.log(`    - ${error.message}`)
       })
     }

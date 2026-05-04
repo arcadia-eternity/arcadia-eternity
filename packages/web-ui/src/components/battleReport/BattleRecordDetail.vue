@@ -238,7 +238,7 @@ const getMessageTypeText = (type: string) => {
 }
 
 // 格式化消息数据
-const formatMessageData = (message: any) => {
+const formatMessageData = (message: { type: string; data?: Record<string, unknown>; sequenceId?: number }) => {
   try {
     // 简化显示消息数据
     if (message.data) {

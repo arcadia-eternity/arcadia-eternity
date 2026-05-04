@@ -27,6 +27,7 @@ export class ServerRelayPeerTransport implements RelayPeerTransport {
   }
 
   async send(_message: PeerTransportMessage): Promise<void> {
+    void _message;
     throw new Error('ServerRelayPeerTransport.send should be routed through PrivateRoomSignalBridge')
   }
 

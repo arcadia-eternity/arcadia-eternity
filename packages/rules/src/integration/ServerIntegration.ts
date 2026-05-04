@@ -12,7 +12,7 @@ import type { Team } from '../interfaces/Rule'
 export class ServerRuleIntegration {
   private static initPromise: Promise<void> | null = null
   private static isInitialized: boolean = false
-  private static dataRepository: any = null
+  private static dataRepository: Record<string, unknown> | null = null
 
   /**
    * 确保服务器端规则系统已初始化
@@ -58,7 +58,7 @@ export class ServerRuleIntegration {
    * 应在服务器启动时调用，但不是必须的（会自动初始化）
    * @param dataRepository 可选的数据仓库实例，用于种族数据提供者
    */
-  static async initializeServer(dataRepository?: any): Promise<void> {
+  static async initializeServer(dataRepository?: Record<string, unknown>): Promise<void> {
     // 保存数据仓库以供后续自动初始化使用
     if (dataRepository) {
       ServerRuleIntegration.dataRepository = dataRepository
@@ -92,7 +92,7 @@ export class ServerRuleIntegration {
    * 初始化种族数据提供者
    * @param dataRepository 数据仓库实例
    */
-  static initializeSpeciesDataProvider(dataRepository: any): void {
+  static initializeSpeciesDataProvider(dataRepository: Record<string, unknown>): void {
     initializeGlobalServerSpeciesDataProvider(dataRepository)
     console.log('服务器端种族数据提供者已初始化')
   }

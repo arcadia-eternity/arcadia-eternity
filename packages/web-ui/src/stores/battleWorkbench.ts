@@ -36,7 +36,7 @@ function createDefaultBattleConfig(): BattleWorkbenchBattleConfig {
 function cloneTimerConfig(config?: TimerConfig): TimerConfig {
   return {
     ...DEFAULT_TIMER_CONFIG,
-    ...(config ?? {}),
+    ...config,
   }
 }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { EffectTrigger } from '@arcadia-eternity/const'
 
-const props = defineProps<{
+defineProps<{
   id: string
   modelValue: string | string[]
   priority: number

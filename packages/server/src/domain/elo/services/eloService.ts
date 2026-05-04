@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { EloRepository } from '@arcadia-eternity/database'
-import type { PlayerEloRating, EloUpdateResult } from '@arcadia-eternity/database'
+import type { PlayerEloRating } from '@arcadia-eternity/database'
 import { EloCalculationService, type EloCalculationResult } from './eloCalculationService'
 import pino from 'pino'
 

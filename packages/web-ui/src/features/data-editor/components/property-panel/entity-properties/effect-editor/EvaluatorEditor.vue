@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { EvaluatorDSL } from '@arcadia-eternity/schema'
+import type { EvaluatorDSL, EvaluatorDSLView, Value } from '@arcadia-eternity/schema'
 import { useEffectTyping } from './composables/useEffectTyping'
 
 const props = defineProps<{
@@ -12,7 +12,7 @@ const emit = defineEmits<{
 }>()
 
 defineSlots<{
-  value(props: { modelValue: any; update: (v: any) => void }): any
+  value(props: { modelValue: Value; update: (v: Value) => void }): unknown
 }>()
 
 const { resolveEvaluatorOptions } = useEffectTyping()
@@ -72,31 +72,31 @@ function emitUpdate(val: EvaluatorDSL) {
   emit('update:modelValue', val)
 }
 
-function updateField<K extends string>(field: K, value: any) {
-  emitUpdate({ ...(props.modelValue as any), [field]: value } as EvaluatorDSL)
+function updateField<K extends string>(field: K, value: unknown) {
+  emitUpdate({ ...props.modelValue, [field]: value } as EvaluatorDSL)
 }
 
 function updateChildCondition(index: number, child: EvaluatorDSL | undefined) {
-  const cond = props.modelValue as any
+  const cond = props.modelValue as { conditions: EvaluatorDSL[] }
   const children = [...(cond.conditions || [])]
   if (child === undefined) {
     children.splice(index, 1)
   } else {
     children[index] = child
   }
-  emitUpdate({ ...cond, conditions: children })
+  emitUpdate({ ...cond, conditions: children } as EvaluatorDSL)
 }
 
 function addChildCondition() {
-  const cond = props.modelValue as any
+  const cond = props.modelValue as { conditions: EvaluatorDSL[] }
   const children = [...(cond.conditions || [])]
   children.push({ type: 'exist' })
-  emitUpdate({ ...cond, conditions: children })
+  emitUpdate({ ...cond, conditions: children } as EvaluatorDSL)
 }
 
 function updateInnerChild(child: EvaluatorDSL | undefined) {
   if (!child) return
-  emitUpdate({ ...(props.modelValue as any), condition: child } as EvaluatorDSL)
+  emitUpdate({ ...props.modelValue, condition: child } as EvaluatorDSL)
 }
 
 const showingPicker = ref(false)
@@ -126,7 +126,7 @@ function changeType() {
       } else if (pickerType.value === 'anyOf') {
         evaluator = { type: 'anyOf', value: { type: 'raw:string', value: '' } }
       } else {
-        evaluator = { type: pickerType.value as any, value: { type: 'raw:number', value: 0 } }
+        evaluator = { type: pickerType.value as EvaluatorDSL['type'], value: { type: 'raw:number', value: 0 } } as EvaluatorDSL
       }
       break
     case 'children':
@@ -149,12 +149,8 @@ function changeType() {
 }
 
 const evaluator = computed(() => props.modelValue)
-const e = computed(() => evaluator.value as Record<string, any>)
+const e = computed(() => (evaluator.value ?? {}) as unknown as EvaluatorDSLView)
 const category = computed(() => categorizeEvaluator(evaluator.value.type))
-
-function passSlot(scope: any): any {
-  return scope
-}
 </script>
 
 <template>
@@ -165,7 +161,7 @@ function passSlot(scope: any): any {
           class="evaluator-type-tag"
           :style="{ backgroundColor: categoryTagColor[category] }"
         >
-          {{ evaluatorTypeLabel[e.type] || e.type }}
+          {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
         <el-popover
@@ -227,30 +223,30 @@ function passSlot(scope: any): any {
           </el-select>
           <slot
             name="value"
-            :model-value="e.value"
-            :update="(v: any) => updateField('value', v)"
+            :model-value="e.value as Value"
+            :update="(v) => updateField('value', v as Value)"
           />
         </template>
 
         <template v-else-if="category === 'same' || category === 'notSame'">
           <slot
             name="value"
-            :model-value="e.value"
-            :update="(v: any) => updateField('value', v)"
+            :model-value="e.value as Value"
+            :update="(v) => updateField('value', v as Value)"
           />
         </template>
 
         <template v-else-if="category === 'value'">
           <slot
             name="value"
-            :model-value="e.type === 'probability' ? e.percent : e.value"
-            :update="(v: any) => updateField(e.type === 'probability' ? 'percent' : 'value', v)"
+            :model-value="(e.percent ?? e.value) as unknown as Value"
+            :update="(v) => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
           />
         </template>
 
         <template v-else-if="category === 'input'">
           <el-input
-            :model-value="e.tag"
+            :model-value="e.tag as unknown as string"
             size="small"
             class="tag-input"
             placeholder="标签名"
@@ -270,7 +266,7 @@ function passSlot(scope: any): any {
           class="evaluator-type-tag"
           :style="{ backgroundColor: categoryTagColor[category] }"
         >
-          {{ evaluatorTypeLabel[e.type] || e.type }}
+          {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
         <el-popover
@@ -327,7 +323,7 @@ function passSlot(scope: any): any {
             @update:model-value="(v: EvaluatorDSL) => updateChildCondition(Number(index), v)"
           >
             <template #value="slotProps">
-              <slot name="value" v-bind="passSlot(slotProps)" />
+              <slot name="value" v-bind="slotProps" />
             </template>
           </EvaluatorEditor>
           <el-button
@@ -356,7 +352,7 @@ function passSlot(scope: any): any {
           class="evaluator-type-tag"
           :style="{ backgroundColor: categoryTagColor[category] }"
         >
-          {{ evaluatorTypeLabel[e.type] || e.type }}
+          {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
         <el-popover
@@ -409,7 +405,7 @@ function passSlot(scope: any): any {
             @update:model-value="(v: EvaluatorDSL) => updateInnerChild(v)"
           >
             <template #value="slotProps">
-              <slot name="value" v-bind="passSlot(slotProps)" />
+              <slot name="value" v-bind="slotProps" />
             </template>
           </EvaluatorEditor>
         </div>

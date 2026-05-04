@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { ConditionDSL, EvaluatorDSL, SelectorDSL } from '@arcadia-eternity/schema'
+import type { ConditionDSL, ConditionDSLView, EvaluatorDSL, SelectorDSL, Value } from '@arcadia-eternity/schema'
 import type { ContinuousUseSkillStrategy } from '@arcadia-eternity/const'
 import { useEffectTyping } from './composables/useEffectTyping'
 
@@ -16,9 +16,9 @@ const emit = defineEmits<{
 }>()
 
 defineSlots<{
-  selector(props: { modelValue: any; update: (v: any) => void }): any
-  value(props: { modelValue: any; update: (v: any) => void }): any
-  condition(props: { modelValue: any; update: (v: any) => void }): any
+  selector(props: { modelValue: SelectorDSL; update: (v: SelectorDSL) => void }): unknown
+  value(props: { modelValue: Value; update: (v: Value) => void }): unknown
+  condition(props: { modelValue: ConditionDSL | EvaluatorDSL; update: (v: ConditionDSL | EvaluatorDSL) => void }): unknown
 }>()
 
 const { resolveConditionOptions } = useEffectTyping()
@@ -48,14 +48,6 @@ function categorizeCondition(type: string): ConditionCategory {
   if (type === 'not') return 'singleChild'
   return 'leaf'
 }
-
-const leafTypes = new Set([
-  'petIsActive', 'checkSelf', 'selfUseSkill', 'opponentUseSkill',
-  'selfBeDamaged', 'opponentBeDamaged', 'selfAddMark', 'opponentAddMark',
-  'selfBeAddMark', 'opponentBeAddMark', 'selfBeHeal', 'selfSwitchIn',
-  'selfSwitchOut', 'selfBeSkillTarget', 'isFirstSkillUsedThisTurn',
-  'isLastSkillUsedThisTurn',
-])
 
 const conditionTypeLabel: Record<string, string> = {
   evaluate: '条件评估',
@@ -156,7 +148,7 @@ function addCondition() {
       condition = { type: 'evaluate', target: 'self', evaluator: { type: 'probability', percent: { type: 'raw:number', value: 50 } } }
       break
     default:
-      condition = { type: newType.value as any }
+      condition = { type: newType.value } as ConditionDSL
   }
 
   showingTypePicker.value = false
@@ -168,7 +160,7 @@ function deleteCondition() {
   emitUpdate(undefined)
 }
 
-function updateField<K extends string>(field: K, value: any) {
+function updateField<K extends string>(field: K, value: unknown) {
   if (!props.modelValue) return
   const updated = { ...props.modelValue, [field]: value }
   emitUpdate(updated)
@@ -176,74 +168,70 @@ function updateField<K extends string>(field: K, value: any) {
 
 function addChildCondition() {
   if (!props.modelValue) return
-  const cond = props.modelValue as any
+  const cond = props.modelValue as { conditions: ConditionDSL[] }
   const children = [...(cond.conditions || [])]
   children.push({ type: 'petIsActive' })
-  emitUpdate({ ...cond, conditions: children })
+  emitUpdate({ ...cond, conditions: children } as ConditionDSL)
 }
 
 function updateChildCondition(index: number, child: ConditionDSL | undefined) {
   if (!props.modelValue) return
-  const cond = props.modelValue as any
+  const cond = props.modelValue as { conditions: ConditionDSL[] }
   const children = [...(cond.conditions || [])]
   if (child === undefined) {
     children.splice(index, 1)
   } else {
     children[index] = child
   }
-  emitUpdate({ ...cond, conditions: children })
+  emitUpdate({ ...cond, conditions: children } as ConditionDSL)
 }
 
 function moveChildUp(index: number) {
   if (!props.modelValue || index <= 0) return
-  const cond = props.modelValue as any
+  const cond = props.modelValue as { conditions: ConditionDSL[] }
   const children = [...(cond.conditions || [])]
   const temp = children[index]
   children[index] = children[index - 1]
   children[index - 1] = temp
-  emitUpdate({ ...cond, conditions: children })
+  emitUpdate({ ...cond, conditions: children } as ConditionDSL)
 }
 
 function moveChildDown(index: number) {
   if (!props.modelValue) return
-  const cond = props.modelValue as any
+  const cond = props.modelValue as { conditions: ConditionDSL[] }
   const children = cond.conditions || []
   if (index >= children.length - 1) return
   const swapped = [...children]
   const temp = swapped[index]
   swapped[index] = swapped[index + 1]
   swapped[index + 1] = temp
-  emitUpdate({ ...cond, conditions: swapped })
+  emitUpdate({ ...cond, conditions: swapped } as ConditionDSL)
 }
 
 function updateChildConditionInner(child: ConditionDSL | undefined) {
   if (!props.modelValue) return
   if (child === undefined) return
-  const updated = { ...props.modelValue, condition: child }
+  const updated = { ...props.modelValue, condition: child } as ConditionDSL
   emitUpdate(updated)
 }
 
 function emitEvaluatorUpdate(evaluator: EvaluatorDSL) {
   if (!props.modelValue) return
-  const cond = props.modelValue as any
-  const updated = { ...cond, evaluator }
+  const cond = props.modelValue as { evaluator: EvaluatorDSL }
+  const updated = { ...cond, evaluator } as ConditionDSL
   emitUpdate(updated)
 }
 
 function emitSelectorUpdate(selector: SelectorDSL) {
   if (!props.modelValue) return
-  const cond = props.modelValue as any
-  const updated = { ...cond, target: selector }
+  const cond = props.modelValue as { target: SelectorDSL }
+  const updated = { ...cond, target: selector } as ConditionDSL
   emitUpdate(updated)
 }
 
 const condition = computed(() => props.modelValue)
-const c = computed(() => (condition.value ?? {}) as Record<string, any>)
+const c = computed(() => (condition.value ?? {}) as unknown as ConditionDSLView)
 const category = computed(() => condition.value ? categorizeCondition(condition.value.type) : null)
-
-function passSlot(scope: any): any {
-  return scope
-}
 </script>
 
 <template>
@@ -295,7 +283,7 @@ function passSlot(scope: any): any {
             class="condition-type-tag"
             :style="{ backgroundColor: categoryTagColor[category!] }"
           >
-            {{ conditionTypeLabel[c.type] || c.type }}
+            {{ conditionTypeLabel[c.type as string] || (c.type as string) }}
           </span>
 
           <el-button
@@ -322,7 +310,7 @@ function passSlot(scope: any): any {
             <slot
               name="condition"
               :model-value="c.evaluator"
-              :update="(v: EvaluatorDSL) => emitEvaluatorUpdate(v)"
+              :update="(v: ConditionDSL | EvaluatorDSL) => emitEvaluatorUpdate(v as EvaluatorDSL)"
             />
           </div>
         </div>
@@ -332,8 +320,8 @@ function passSlot(scope: any): any {
             <span class="field-label">概率值</span>
             <slot
               name="value"
-              :model-value="c.evaluator.percent"
-              :update="(v: any) => emitEvaluatorUpdate({ ...c.evaluator, percent: v })"
+              :model-value="(c.evaluator as Record<string, unknown>).percent as Value"
+              :update="(v) => emitEvaluatorUpdate({ ...c.evaluator, percent: v } as EvaluatorDSL)"
             />
           </div>
         </div>
@@ -344,7 +332,7 @@ function passSlot(scope: any): any {
             <slot
               name="value"
               :model-value="c.baseId"
-              :update="(v: any) => updateField('baseId', v)"
+              :update="(v) => updateField('baseId', v)"
             />
           </div>
         </div>
@@ -355,7 +343,7 @@ function passSlot(scope: any): any {
             <slot
               name="value"
               :model-value="c.times"
-              :update="(v: any) => updateField('times', v)"
+              :update="(v) => updateField('times', v)"
             />
           </div>
           <div class="field-row">
@@ -382,7 +370,7 @@ function passSlot(scope: any): any {
             <slot
               name="value"
               :model-value="c.sequence"
-              :update="(v: any) => updateField('sequence', v)"
+              :update="(v) => updateField('sequence', v)"
             />
           </div>
           <div class="field-row">
@@ -425,7 +413,7 @@ function passSlot(scope: any): any {
             <slot
               name="value"
               :model-value="c.stat"
-              :update="(v: any) => updateField('stat', v)"
+              :update="(v) => updateField('stat', v)"
             />
           </div>
           <div class="field-row">
@@ -464,13 +452,13 @@ function passSlot(scope: any): any {
               @update:model-value="(v: ConditionDSL | undefined) => updateChildCondition(Number(index), v)"
             >
               <template #selector="scope">
-                <slot name="selector" v-bind="passSlot(scope)" />
+                <slot name="selector" v-bind="scope" />
               </template>
               <template #value="scope">
-                <slot name="value" v-bind="passSlot(scope)" />
+                <slot name="value" v-bind="scope" />
               </template>
               <template #condition="scope">
-                <slot name="condition" v-bind="passSlot(scope)" />
+                <slot name="condition" v-bind="scope" />
               </template>
             </ConditionTreeEditor>
           </div>
@@ -491,13 +479,13 @@ function passSlot(scope: any): any {
               @update:model-value="(v: ConditionDSL | undefined) => updateChildConditionInner(v)"
             >
               <template #selector="scope">
-                <slot name="selector" v-bind="passSlot(scope)" />
+                <slot name="selector" v-bind="scope" />
               </template>
               <template #value="scope">
-                <slot name="value" v-bind="passSlot(scope)" />
+                <slot name="value" v-bind="scope" />
               </template>
               <template #condition="scope">
-                <slot name="condition" v-bind="passSlot(scope)" />
+                <slot name="condition" v-bind="scope" />
               </template>
             </ConditionTreeEditor>
           </div>

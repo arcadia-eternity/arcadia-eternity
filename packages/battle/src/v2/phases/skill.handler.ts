@@ -85,7 +85,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
   async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as SkillPhaseData
     const ctx = data.context
-    const rng = (world.systems as any).rng as GameRng
+    const rng = (world.systems as Record<string, unknown>).rng as GameRng
 
     await this.effectPipeline.fire(world, EffectTrigger.BeforeUseSkillCheck, {
       trigger: EffectTrigger.BeforeUseSkillCheck,

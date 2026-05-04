@@ -11,7 +11,7 @@ function resolveSandboxUrl(): string {
 }
 
 function renderBattleSandboxHtml(url: string): string {
-  const safeUrl = url.replace(/\"/g, '&quot;')
+  const safeUrl = url.replace(/"/g, '&quot;')
 
   return `<!DOCTYPE html>
 <html lang="en">

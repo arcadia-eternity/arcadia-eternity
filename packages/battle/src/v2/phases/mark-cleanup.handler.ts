@@ -13,7 +13,8 @@ export class MarkCleanupHandler implements PhaseHandler<MarkCleanupPhaseData> {
 
   constructor(private markSystem: MarkSystem) {}
 
-  initialize(_world: World, _phase: PhaseDef): MarkCleanupPhaseData {
+  initialize(world: World, phase: PhaseDef): MarkCleanupPhaseData {
+    void world; void phase;
     return { removedMarkIds: [] }
   }
 

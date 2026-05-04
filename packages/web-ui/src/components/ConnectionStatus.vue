@@ -103,7 +103,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Connection, Refresh, Loading, SuccessFilled, Warning } from '@element-plus/icons-vue'
+import { Connection, Refresh, Loading, SuccessFilled } from '@element-plus/icons-vue'
 import { useMobile } from '@/composition/useMobile'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { useServerStateStore } from '@/stores/serverState'
@@ -198,9 +198,9 @@ const handleReconnect = async () => {
     await battleClientStore.connect()
     ElMessage.success('重连成功')
     showReconnectDialog.value = false
-  } catch (error: any) {
-    console.error('重连失败:', error)
-    ElMessage.error(error.message || battleClientStore.serverWarmupHint || '重连失败，请稍后再试')
+  } catch (error: unknown) {
+    console.error('重连失败:', String(error))
+    ElMessage.error((error instanceof Error ? error.message : undefined) || battleClientStore.serverWarmupHint || '重连失败，请稍后再试')
   } finally {
     isReconnecting.value = false
   }

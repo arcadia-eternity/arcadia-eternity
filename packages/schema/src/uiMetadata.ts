@@ -29,12 +29,12 @@ export type UIHint = ArrayUIHint | ObjectUIHint | FieldUIHint
 export const UIHintKey = 'uiHint'
 
 export function withUIHint<T extends TSchema>(schema: T, hint: UIHint): T {
-  ;(schema as any)[UIHintKey] = hint
+  ;(schema as Record<string, unknown>)[UIHintKey] = hint
   return schema
 }
 
 export function getUIHint(schema: TSchema): UIHint | undefined {
-  return (schema as any)[UIHintKey]
+  return (schema as Record<string, unknown>)[UIHintKey] as UIHint | undefined
 }
 
 export function getArrayUIHint(schema: TSchema): ArrayUIHint {

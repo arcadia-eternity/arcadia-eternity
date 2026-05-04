@@ -86,8 +86,7 @@ const BATTLE_SELECTORS: SelectorOption[] = [
   { value: 'allPhases', label: '所有阶段', group: 'battle' },
 ]
 
-const ALL_SELECTOR_OPTIONS: SelectorOption[] = [
-  ...BASE_SELECTOR_KEYS.map((key) => {
+const ALL_SELECTOR_OPTIONS: SelectorOption[] = BASE_SELECTOR_KEYS.map((key) => {
     const known = Object.values(OWNER_TO_SELECTORS).find(s => s.value === key)
     if (known) return known
     const inPet = TARGET_TO_SELECTORS.pet.find(s => s.value === key)
@@ -97,8 +96,7 @@ const ALL_SELECTOR_OPTIONS: SelectorOption[] = [
     const allKnown = [...Object.values(TARGET_TO_SELECTORS).flat(), ...BATTLE_SELECTORS]
     const found = allKnown.find(s => s.value === key)
     return found ?? { value: key, label: key, group: 'other' as const }
-  }),
-]
+  })
 
 export function resolveSelectorOptions(
   fieldTyping: EffectDslFieldTypingRule | undefined,

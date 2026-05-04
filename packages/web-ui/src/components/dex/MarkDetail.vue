@@ -213,7 +213,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useGameDataStore } from '@/stores/gameData'
 import { useResourceStore } from '@/stores/resource'
 import { useTranslation } from 'i18next-vue'
@@ -222,7 +222,6 @@ import MarkdownIt from 'markdown-it'
 
 const { i18next } = useTranslation()
 const route = useRoute()
-const router = useRouter()
 const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 

@@ -29,7 +29,7 @@ function testTaggedConfigWithoutConfigId() {
   console.log('  注意：没有configId字段\n')
 
   // 解析效果
-  const effect = parseEffect(testEffectDSL)
+  parseEffect(testEffectDSL)
   console.log('✅ 效果解析成功\n')
 
   // 手动触发预注册来模拟系统行为

@@ -43,6 +43,7 @@ import {
   type PetMessage,
   type PetSwitchMessage,
   type skillId,
+  type baseSkillId,
   type SkillMessage,
   type SkillUseEndMessage,
 } from '@arcadia-eternity/const'
@@ -117,10 +118,10 @@ const panelState = ref<PanelState>(PanelState.SKILLS)
 // 定义一个更精确的类型，用于 handleCombatEventMessage，确保消息有 target
 type CombatEventMessageWithTarget = Extract<
   BattleMessage,
-  | { type: BattleMessageType.SkillMiss; data: { target: petId; [key: string]: any } }
-  | { type: BattleMessageType.Damage; data: { target: petId; [key: string]: any } }
-  | { type: BattleMessageType.DamageFail; data: { target: petId; [key: string]: any } }
-  | { type: BattleMessageType.Heal; data: { target: petId; [key: string]: any } }
+  | { type: BattleMessageType.SkillMiss; data: { target: petId; [key: string]: unknown } }
+  | { type: BattleMessageType.Damage; data: { target: petId; [key: string]: unknown } }
+  | { type: BattleMessageType.DamageFail; data: { target: petId; [key: string]: unknown } }
+  | { type: BattleMessageType.Heal; data: { target: petId; [key: string]: unknown } }
 >
 
 type AnimationEvents = {
@@ -569,11 +570,11 @@ const { playSkillSound, playPetSound, playVictorySound } = useSound(allSkillId, 
 
 // 缓存技能的原始顺序，避免在技能变身时位置发生变化
 const skillOrderCache = ref<
-  Map<string, Map<string, { id: string; baseId: any; originalCategory: any; index: number }>>
+  Map<string, Map<string, { id: string; baseId: baseSkillId; originalCategory: Category; index: number }>>
 >(new Map())
 
 // 全局技能原始状态缓存，用于记录技能的初始状态
-const globalSkillOriginalState = ref<Map<string, { baseId: any; originalCategory: any }>>(new Map())
+const globalSkillOriginalState = ref<Map<string, { baseId: baseSkillId; originalCategory: Category }>>(new Map())
 
 // 监听战斗状态变化，在战斗开始时建立技能原始状态快照
 watch(
@@ -638,7 +639,7 @@ const availableSkills = computed<SkillMessage[]>(() => {
     skills.some(skill => !existingOrderMap.has(skill.id))
 
   if (needsReinit) {
-    const orderMap = new Map<string, { id: string; baseId: any; originalCategory: any; index: number }>()
+    const orderMap = new Map<string, { id: string; baseId: baseSkillId; originalCategory: Category; index: number }>()
 
     skills.forEach((skill, index) => {
       // 泛用化逻辑：获取技能的原始属性
@@ -877,7 +878,7 @@ const setupDisconnectHandlers = () => {
   }
 
   // 监听对手重连事件
-  opponentReconnectedHandler = (data: { reconnectedPlayerId: string }) => {
+  opponentReconnectedHandler = () => {
     opponentDisconnected.value = false
 
     if (disconnectTimer.value) {
@@ -938,8 +939,8 @@ const resyncBattleAfterReconnect = async () => {
     store.waitingForResponse = false
     store.errorMessage = null
 
-    const battleClient = battleClientStore._instance as any
-    if (battleClient && typeof battleClient.refreshTimerSnapshotsFromServer === 'function') {
+    const battleClient = battleClientStore._instance
+    if (battleClient?.refreshTimerSnapshotsFromServer) {
       await battleClient.refreshTimerSnapshotsFromServer()
     }
   } catch (error) {
@@ -1949,8 +1950,7 @@ const startClimaxScreenShake = () => {
   // 捕获当前的缩放值，避免在动画过程中发生变化
   const currentScale = battleViewScale.value
 
-  // 创建强烈的震动效果，参考 useBattleAnimations.ts 的实现
-  const shakeIntensity = 20 + Math.random() * 30 // 强震动强度 (20-50px)
+  const shakeIntensity = 20 + Math.random() * 30
   const shakeAngle = Math.random() * Math.PI * 2
   const shakeX = Math.cos(shakeAngle) * shakeIntensity
   const shakeY = Math.sin(shakeAngle) * shakeIntensity
@@ -1958,25 +1958,24 @@ const startClimaxScreenShake = () => {
   const shakeAnimation = gsap.to(battleViewRef.value, {
     x: shakeX,
     y: shakeY,
-    scale: currentScale, // 保持当前的缩放比例
+    scale: currentScale,
     duration: 0.05,
-    repeat: -1, // 无限重复直到手动停止
+    repeat: -1,
     yoyo: true,
     ease: 'power1.inOut',
   })
 
-  // 存储动画引用以便后续停止
-  ;(battleViewRef.value as any)._climaxShakeAnimation = shakeAnimation
+  ;(battleViewRef.value as unknown as HTMLElement & Record<string, unknown>)._climaxShakeAnimation = shakeAnimation
 }
 
 const stopClimaxScreenShake = () => {
   if (!battleViewRef.value) return
 
-  // 停止震动动画
-  const shakeAnimation = (battleViewRef.value as any)._climaxShakeAnimation
+  const el = battleViewRef.value as unknown as HTMLElement & Record<string, unknown>
+  const shakeAnimation = el._climaxShakeAnimation as gsap.core.Tween | undefined
   if (shakeAnimation) {
     shakeAnimation.kill()
-    delete (battleViewRef.value as any)._climaxShakeAnimation
+    delete el._climaxShakeAnimation
   }
 
   // 恢复到正确的状态

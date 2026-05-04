@@ -41,7 +41,6 @@ const description = computed(() =>
   }),
 )
 const duration = computed(() => props.mark.duration ?? -1)
-const stack = computed(() => props.mark.stack ?? 1)
 </script>
 
 <template>

@@ -24,12 +24,12 @@ export interface ServerToClientEvents {
     battleEventBatch: (messages: BattleMessage[]) => void;
     timerEvent: (event: {
         type: string;
-        data: any;
+        data: unknown;
     }) => void;
     timerSnapshot: (data: {
-        snapshots: any[];
+        snapshots: unknown[];
     }) => void;
-    timerEventBatch: (events: any[]) => void;
+    timerEventBatch: (events: unknown[]) => void;
     roomClosed: (message: {
         roomId: string;
     }) => void;
@@ -120,7 +120,7 @@ export interface ClientToServerEvents {
     sendPrivateRoomPeerSignal: (data: SendPrivateRoomPeerSignalRequest, ack: AckResponse<{
         status: 'FORWARDED';
     }>) => void;
-    switchToSpectator: (data: {}, ack: AckResponse<{
+    switchToSpectator: (data: Record<string, never>, ack: AckResponse<{
         status: 'SWITCHED';
     }>) => void;
     switchToPlayer: (data: {
@@ -149,7 +149,7 @@ export interface ClientToServerEvents {
     }, ack: AckResponse<{
         status: 'SPECTATING';
     }>) => void;
-    leaveSpectateBattle: (data: {}, ack: AckResponse<{
+    leaveSpectateBattle: (data: Record<string, never>, ack: AckResponse<{
         status: 'LEFT_SPECTATE';
     }>) => void;
 }

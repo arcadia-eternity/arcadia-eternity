@@ -65,7 +65,8 @@ import { runPerformanceTest } from '../utils/cachePerformanceTest'
 
 const iterations = ref(1000)
 const testing = ref(false)
-const results = ref<any>(null)
+type PerformanceTestResults = ReturnType<typeof runPerformanceTest>
+const results = ref<PerformanceTestResults | null>(null)
 const chartCanvas = ref<HTMLCanvasElement>()
 
 async function runTest() {

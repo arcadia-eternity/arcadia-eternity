@@ -6,7 +6,7 @@ export interface Player {
   name: string
   created_at: string
   last_login_at: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
   email: string | null
   email_verified: boolean
   email_bound_at: string | null
@@ -48,8 +48,8 @@ export interface BattleRecord {
   battle_result: BattleResult
   end_reason: EndReason
   battle_messages: BattleMessage[]
-  final_state: BattleState | Record<string, any>
-  metadata: Record<string, any>
+  final_state: BattleState | Record<string, unknown>
+  metadata: Record<string, unknown>
   created_at: string
 }
 
@@ -73,13 +73,13 @@ export type VerificationPurpose = 'bind' | 'recover'
 export interface CreatePlayerInput {
   id: string
   name: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface UpdatePlayerInput {
   name?: string
   last_login_at?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   email?: string | null
   email_verified?: boolean
   email_bound_at?: string | null
@@ -93,7 +93,7 @@ export interface CreateBattleRecordInput {
   player_b_id: string
   player_b_name: string
   started_at?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface UpdateBattleRecordInput {
@@ -103,8 +103,8 @@ export interface UpdateBattleRecordInput {
   battle_result?: BattleResult
   end_reason?: EndReason
   battle_messages?: BattleMessage[]
-  final_state?: BattleState | Record<string, any>
-  metadata?: Record<string, any>
+  final_state?: BattleState | Record<string, unknown>
+  metadata?: Record<string, unknown>
 }
 
 export interface CreateEmailVerificationCodeInput {
@@ -250,7 +250,7 @@ export class DatabaseError extends Error {
   constructor(
     message: string,
     public code?: string,
-    public details?: any,
+    public details?: unknown,
   ) {
     super(message)
     this.name = 'DatabaseError'

@@ -6,6 +6,13 @@ import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
 import { useAuthStore, type PlayerInfo, type PlayerStatus } from './auth'
 import { ElMessage } from 'element-plus'
+import { AxiosError } from 'axios'
+
+declare global {
+  interface Window {
+    __authFallbackListenerAdded?: boolean
+  }
+}
 
 // 用于 pick id + name 的局部 schema
 const PlayerIdNameSchema = Type.Object({
@@ -27,14 +34,16 @@ interface PlayerState {
 }
 
 // 辅助函数：检测是否为网络错误
-function isNetworkError(error: any): boolean {
+function isNetworkError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const err = error as Record<string, unknown>
+  const message = typeof err.message === 'string' ? err.message : ''
   return (
-    error.message?.includes('网络') ||
-    error.message?.includes('连接') ||
-    error.message?.includes('timeout') ||
-    error.code === 'NETWORK_ERROR' ||
-    error.code === 'ECONNABORTED' ||
-    error.name === 'AxiosError'
+    (message.includes('网络') || message.includes('连接') || message.includes('timeout')) ||
+    err.code === 'NETWORK_ERROR' ||
+    err.code === 'ECONNABORTED' ||
+    err.name === 'AxiosError' ||
+    message.includes('timeout')
   )
 }
 
@@ -60,7 +69,7 @@ export const usePlayerStore = defineStore('player', {
         // 只做本地初始化，不调用API（避免在Pinia初始化前调用）
         const newId = nanoid() // 直接使用nanoid
         ctx.store.$patch({
-          // @ts-ignore
+          // @ts-expect-error Partial state patch during hydration includes extra fields
           id: newId,
           name: `游客-${newId.slice(-4)}`,
           email: null,
@@ -116,12 +125,12 @@ export const usePlayerStore = defineStore('player', {
      */
     setupAuthFallbackListener() {
       // 避免重复添加监听器
-      if ((window as any).__authFallbackListenerAdded) return
+      if (window.__authFallbackListenerAdded) return
 
       window.addEventListener('auth-fallback-to-guest', () => {
         this.handleAuthFallbackToGuest()
       })
-      ;(window as any).__authFallbackListenerAdded = true
+      window.__authFallbackListenerAdded = true
     },
 
     loadFromLocal() {
@@ -171,12 +180,16 @@ export const usePlayerStore = defineStore('player', {
           console.warn('Failed to sync name to server:', response.data.message)
           ElMessage.warning('名称同步到服务器失败，但本地已保存')
         }
-      } catch (error: any) {
-        console.warn('Failed to sync name to server:', error)
-        if (error.response?.status === 405) {
-          ElMessage.error('服务器不支持此操作，请检查服务器配置')
-        } else if (error.response?.data?.message) {
-          ElMessage.warning(`同步失败: ${error.response.data.message}`)
+      } catch (error: unknown) {
+        console.warn('Failed to sync name to server:', String(error))
+        if (error instanceof AxiosError) {
+          if (error.response?.status === 405) {
+            ElMessage.error('服务器不支持此操作，请检查服务器配置')
+          } else if (error.response?.data?.message) {
+            ElMessage.warning(`同步失败: ${error.response.data.message}`)
+          } else {
+            ElMessage.warning('名称同步到服务器失败，但本地已保存')
+          }
         } else {
           ElMessage.warning('名称同步到服务器失败，但本地已保存')
         }
@@ -433,8 +446,8 @@ export const usePlayerStore = defineStore('player', {
         this.isInitialized = true
         this.saveToLocal()
         ElMessage.success('已创建新的游客账户')
-      } catch (error: any) {
-        console.error('Failed to create guest:', error)
+      } catch (error: unknown) {
+        console.error('Failed to create guest:', String(error))
 
         // 如果是网络错误，创建本地游客账户
         if (isNetworkError(error)) {
@@ -452,7 +465,7 @@ export const usePlayerStore = defineStore('player', {
           this.saveToLocal()
           ElMessage.warning('网络连接异常，已创建本地游客账户')
         } else {
-          ElMessage.error(error.message || '创建游客账户失败')
+          ElMessage.error(error instanceof Error ? error.message : '创建游客账户失败')
         }
       }
     },

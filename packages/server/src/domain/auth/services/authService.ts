@@ -62,7 +62,7 @@ export interface IAuthService {
   /**
    * 刷新访问令牌
    */
-  refreshAccessToken(refreshToken: string, playerRepo?: any): Promise<AuthResult | null>
+  refreshAccessToken(refreshToken: string, playerRepo?: { getPlayerById: (id: string) => Promise<{ id: string; is_registered?: boolean; email?: string } | null> }): Promise<AuthResult | null>
 
   /**
    * 为玩家生成完整的认证信息
@@ -82,7 +82,7 @@ export interface IAuthService {
   /**
    * 获取会话（可选，用于集群环境）
    */
-  getSession?(playerId: string, sessionId?: string): Promise<any>
+  getSession?(playerId: string, sessionId?: string): Promise<unknown>
 }
 
 @injectable()
@@ -156,19 +156,19 @@ export class AuthService implements IAuthService {
         return null
       }
 
-      const decoded = jwt.verify(token, this.config.jwtSecret) as any
+      const decoded = jwt.verify(token, this.config.jwtSecret) as Record<string, unknown>
 
       if (decoded.type !== 'refresh' || !decoded.playerId) {
         return null
       }
 
       return { playerId: decoded.playerId }
-    } catch (error) {
+    } catch {
       return null
     }
   }
 
-  async refreshAccessToken(refreshToken: string, playerRepo?: any): Promise<AuthResult | null> {
+  async refreshAccessToken(refreshToken: string, playerRepo?: { getPlayerById: (id: string) => Promise<{ id: string; is_registered?: boolean; email?: string } | null> }): Promise<AuthResult | null> {
     const refreshPayload = this.verifyRefreshToken(refreshToken)
     if (!refreshPayload) {
       return null

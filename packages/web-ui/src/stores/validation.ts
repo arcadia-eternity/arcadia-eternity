@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, markRaw } from 'vue'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
-import { ClientRuleIntegration, GlobalRuleRegistry } from '@arcadia-eternity/rules'
+import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
+import { ClientRuleIntegration, GlobalRuleRegistry, type Rule } from '@arcadia-eternity/rules'
 import { useGameDataStore } from '@/stores/gameData'
 
 export interface RuleSet {
@@ -27,7 +27,7 @@ export interface ValidationError {
   message: string
   objectId?: string
   objectType?: string
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 }
 
 export interface ValidationWarning {
@@ -36,7 +36,7 @@ export interface ValidationWarning {
   message: string
   objectId?: string
   objectType?: string
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 }
 
 export interface ValidationResult {
@@ -44,6 +44,8 @@ export interface ValidationResult {
   errors: ValidationError[]
   warnings: ValidationWarning[]
 }
+
+type AutoFixTeamResult = Awaited<ReturnType<typeof ClientRuleIntegration.autoFixTeam>>
 
 export const useValidationStore = defineStore('validation', () => {
   // 状态
@@ -242,7 +244,7 @@ export const useValidationStore = defineStore('validation', () => {
   }
 
   // 生成规则影响描述
-  const generateRuleImpactDescription = (rule: any): string => {
+  const generateRuleImpactDescription = (rule: Rule): string => {
     // 根据规则ID和类型生成具体的影响描述
     switch (rule.id) {
       case 'standard_team_size_rule':
@@ -382,7 +384,7 @@ export const useValidationStore = defineStore('validation', () => {
   }
 
   // 自动修复队伍
-  const autoFixTeam = async (team: PetSchemaType[]): Promise<any> => {
+  const autoFixTeam = async (team: PetSchemaType[]): Promise<AutoFixTeamResult> => {
     if (!isInitialized.value) {
       throw new Error('验证系统未初始化')
     }
@@ -397,7 +399,7 @@ export const useValidationStore = defineStore('validation', () => {
   }
 
   // 获取种族的额外可学习技能
-  const getSpeciesExtraLearnableSkills = async (speciesId: string): Promise<any[]> => {
+  const getSpeciesExtraLearnableSkills = async (speciesId: string): Promise<LearnableSkill[]> => {
     if (!isInitialized.value) {
       return []
     }

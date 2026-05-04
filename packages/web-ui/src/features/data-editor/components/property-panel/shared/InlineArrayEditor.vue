@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
-import { type TSchema, type TArray, type TObject, type TProperties } from '@sinclair/typebox'
+import { type TSchema, type TArray, type TObject, type TProperties, type TUnion } from '@sinclair/typebox'
 import { KindGuard } from '@sinclair/typebox/type'
 import { Value } from '@sinclair/typebox/value'
 import FieldEditor from './FieldEditor.vue'
@@ -34,7 +34,7 @@ const items = computed(() => {
 
 function unwrapSchema(schema: TSchema): TSchema {
   if (KindGuard.IsUnion(schema)) {
-    const members = (schema as any).anyOf
+    const members = (schema as TUnion<TSchema[]>).anyOf
     const nonNull = members.filter((m: TSchema) => !KindGuard.IsNull(m))
     if (nonNull.length === 1) return unwrapSchema(nonNull[0])
   }
@@ -78,7 +78,7 @@ function getItemLabel(item: unknown): string {
   if (obj.id !== undefined) return String(obj.id)
   if (obj.name !== undefined) return String(obj.name)
   if (obj.skill_id !== undefined) return String(obj.skill_id)
-  return `#${(obj as any).__index ?? '?'}`
+  return `#${(obj as Record<string, unknown>).__index ?? '?'}`
 }
 
 function addItem() {
@@ -104,7 +104,7 @@ function updateItem(index: number, val: unknown) {
 function updateItemField(index: number, fieldName: string, fieldVal: unknown) {
   if (!Array.isArray(props.value)) return
   const arr = [...props.value]
-  arr[index] = { ...(arr[index] as any), [fieldName]: fieldVal }
+  arr[index] = { ...(arr[index] as Record<string, unknown>), [fieldName]: fieldVal }
   emit('update', arr)
 }
 </script>

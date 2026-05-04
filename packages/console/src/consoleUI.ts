@@ -11,9 +11,7 @@ import {
   type playerId,
   type PlayerSelection,
   type SkillMessage,
-  type Events,
 } from '@arcadia-eternity/const'
-import type { PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
 import { exit } from 'process'
 import readline from 'readline'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
@@ -21,6 +19,7 @@ import i18next from 'i18next'
 import { marked } from 'marked'
 import TerminalRenderer from 'marked-terminal'
 import * as jsondiffpatch from 'jsondiffpatch'
+import type { Delta } from 'jsondiffpatch/lib/types'
 export class ConsoleUIV2 {
   private messages: BattleMessage[] = []
   public battleState: BattleState = {} as BattleState
@@ -39,7 +38,7 @@ export class ConsoleUIV2 {
     })
 
     // 配置 marked
-    // @ts-ignore
+    // @ts-expect-error marked.setOptions is deprecated but still functional
     marked.setOptions({ renderer })
     this.currentPlayer = currentPlayer
   }
@@ -117,8 +116,8 @@ export class ConsoleUIV2 {
     const delta = message.stateDelta as Record<string, unknown> | undefined
     if (delta && Object.keys(delta).length > 0) {
       try {
-        jsondiffpatch.patch(this.battleState, delta as any)
-      } catch (_error) {
+        jsondiffpatch.patch(this.battleState, delta as unknown as Delta)
+      } catch {
         // Delta stream may drift from local base; recover via full snapshot.
         this.battleState = await this.battleInterface.getState(undefined, true)
       }
@@ -364,6 +363,7 @@ export class ConsoleUIV2 {
         )
         console.log(`➤ 结束原因：${this.translateEndReason(message.data.reason)}`)
         exit(0)
+        break
 
       case BattleMessageType.ForcedSwitch:
         console.log(
@@ -449,13 +449,11 @@ export class ConsoleUIV2 {
       }
 
       case BattleMessageType.Transform: {
-        const d = message.data
         // TODO
         break
       }
 
       case BattleMessageType.TransformEnd: {
-        const d = message.data
         // TODO
         break
       }
@@ -469,9 +467,9 @@ export class ConsoleUIV2 {
         break
 
       default:
-        // @ts-expect-error
+        // @ts-expect-error fallback for unknown message types
         console.log(`未知消息类型: ${message.type}`)
-        // @ts-expect-error
+        // @ts-expect-error fallback for unknown message types
         console.log(message.data)
     }
   }
@@ -695,7 +693,7 @@ export class ConsoleUIV2 {
     await this.renderTimerInfo(playerId)
 
     const selections = await this.battleInterface.getAvailableSelection(playerId)
-    this.showSelectionMenu(selections as any)
+    this.showSelectionMenu(selections)
 
     const choice = await this.prompt('请选择操作: ')
     const selection = this.parseSelection(selections, parseInt(choice))
@@ -723,7 +721,7 @@ export class ConsoleUIV2 {
       console.log(`   回合剩余时间: ${timerState.remainingTurnTime.toFixed(1)}秒`)
       console.log(`   总剩余时间: ${timerState.remainingTotalTime.toFixed(1)}秒`)
       console.log(`   状态: ${this.translateTimerState(timerState.state)}`)
-    } catch (error) {
+    } catch {
       // 如果获取计时器信息失败，静默忽略
     }
   }
@@ -738,9 +736,9 @@ export class ConsoleUIV2 {
     return states[state] || state
   }
 
-  private showSelectionMenu(selections: any[]) {
+  private showSelectionMenu(selections: PlayerSelection[]) {
     console.log('\n=== 可用操作 ===')
-    selections.forEach((s, i) => {
+    selections.forEach((s: PlayerSelection, i: number) => {
       const index = i + 1
       switch (s.type) {
         case 'use-skill': {
@@ -811,11 +809,18 @@ export class ConsoleUIV2 {
     )
   }
 
-  private async handleTeamSelection(playerId: playerId, config: any) {
+  private async handleTeamSelection(playerId: playerId, config: string | Record<string, unknown>) {
+    const cfg = typeof config === 'string' ? { mode: config } : config
+    const mode = String(cfg.mode ?? '')
+    const timeLimit = Number(cfg.timeLimit ?? 0)
+    const maxTeamSize = Number(cfg.maxTeamSize ?? 6)
+    const minTeamSize = Number(cfg.minTeamSize ?? 1)
+    const allowStarterSelection = Boolean(cfg.allowStarterSelection ?? false)
+
     console.log('\n=== 团队选择 ===')
-    console.log(`模式: ${this.translateTeamSelectionMode(config.mode)}`)
-    if (config.timeLimit) {
-      console.log(`时间限制: ${config.timeLimit}秒`)
+    console.log(`模式: ${this.translateTeamSelectionMode(mode)}`)
+    if (timeLimit > 0) {
+      console.log(`时间限制: ${timeLimit}秒`)
     }
 
     const player = this.battleState.players?.find(p => p.id === playerId)
@@ -825,7 +830,7 @@ export class ConsoleUIV2 {
     }
 
     // 临时类型断言，后续需要更新Player类型定义
-    const fullTeam = (player as any).fullTeam || player.team || []
+    const fullTeam = (player as unknown as { fullTeam: PetMessage[] }).fullTeam || player.team || []
     if (fullTeam.length === 0) {
       console.log('没有可用的精灵')
       return
@@ -833,12 +838,12 @@ export class ConsoleUIV2 {
 
     // 显示完整队伍
     console.log('\n可选精灵:')
-    fullTeam.forEach((pet: any, index: number) => {
+    fullTeam.forEach((pet: PetMessage, index: number) => {
       const status = pet.currentHp > 0 ? '健康' : '倒下'
-      console.log(`${index + 1}. ${pet.name} (Lv.${pet.level}) - ${pet.currentHp}/${pet.stat.maxHp} HP [${status}]`)
+      console.log(`${index + 1}. ${pet.name} (Lv.${pet.level}) - ${pet.currentHp}/${pet.maxHp} HP [${status}]`)
     })
 
-    if (config.mode === 'VIEW_ONLY') {
+    if (mode === 'VIEW_ONLY') {
       console.log('\n这是查看模式，无需选择。按回车继续...')
       await this.prompt('')
       return
@@ -847,10 +852,8 @@ export class ConsoleUIV2 {
     let selectedPets: string[] = []
     let starterPetId = ''
 
-    if (config.mode === 'TEAM_SELECTION') {
+    if (mode === 'TEAM_SELECTION') {
       // 选择队伍成员
-      const maxTeamSize = config.maxTeamSize || 6
-      const minTeamSize = config.minTeamSize || 1
 
       console.log(`\n请选择 ${minTeamSize}-${maxTeamSize} 只精灵组成队伍`)
       console.log('输入精灵编号，用空格分隔 (例如: 1 3 5):')
@@ -884,14 +887,14 @@ export class ConsoleUIV2 {
       }
     } else {
       // FULL_TEAM 模式，使用全部精灵
-      selectedPets = fullTeam.filter((pet: any) => pet.currentHp > 0).map((pet: any) => pet.id)
+      selectedPets = fullTeam.filter((pet: PetMessage) => pet.currentHp > 0).map((pet: PetMessage) => pet.id)
     }
 
     // 选择首发精灵
-    if (config.allowStarterSelection && selectedPets.length > 0) {
+    if (allowStarterSelection && selectedPets.length > 0) {
       console.log('\n选择的精灵:')
-      selectedPets.forEach((petId, index) => {
-        const pet = fullTeam.find((p: any) => p.id === petId)
+      selectedPets.forEach((petId: string, index: number) => {
+        const pet = fullTeam.find((p: PetMessage) => p.id === petId)
         console.log(`${index + 1}. ${pet?.name}`)
       })
 
@@ -919,7 +922,7 @@ export class ConsoleUIV2 {
 
     console.log('\n团队选择完成！')
     // 临时类型断言，后续需要更新PlayerSelection类型定义
-    await this.battleInterface.submitAction(teamSelection as any)
+    await this.battleInterface.submitAction(teamSelection as unknown as PlayerSelection)
   }
 
   private translateTeamSelectionMode(mode: string): string {

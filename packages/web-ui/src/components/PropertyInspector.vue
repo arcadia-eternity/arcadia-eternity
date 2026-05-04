@@ -204,7 +204,7 @@ import i18next from 'i18next'
 import { ArrowRight, Delete, Plus } from '@element-plus/icons-vue'
 import { type TSchema, type TObject, type TProperties, type TArray, type TUnion, type TTuple } from '@sinclair/typebox'
 import { KindGuard } from '@sinclair/typebox/type'
-import { Kind, OptionalKind } from '@sinclair/typebox'
+import { OptionalKind } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { getArrayUIHint, getObjectUIHint, type ArrayDisplayMode } from '@arcadia-eternity/schema'
 import FieldEditor from '@/components/FieldEditor.vue'
@@ -275,15 +275,6 @@ function unwrapSchema(schema: TSchema): TSchema {
     if (nonNull.length === 1) return unwrapSchema(nonNull[0])
   }
   return schema
-}
-
-function isOptional(schema: TSchema): boolean {
-  if (OptionalKind in schema) return true
-  if ('default' in schema) return true
-  if (KindGuard.IsUnion(schema)) {
-    return (schema as TUnion).anyOf.some((m: TSchema) => KindGuard.IsUndefined(m))
-  }
-  return false
 }
 
 function isSimpleType(schema: TSchema): boolean {
@@ -398,7 +389,7 @@ const currentFields = computed<FieldInfo[]>(() => {
     const arrayHint = KindGuard.IsArray(u) ? getArrayUIHint(u) : undefined
     const objectHint = KindGuard.IsObject(u) ? getObjectUIHint(u) : undefined
     const isOptional = !requiredSet.has(key) || 'default' in s || OptionalKind in s
-    const defaultValue = 'default' in s ? (s as any).default : undefined
+    const defaultValue = 'default' in s ? (s as Record<string, unknown>).default : undefined
 
     return {
       key,

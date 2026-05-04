@@ -19,7 +19,7 @@ export interface BattleConfigModifications {
   /** 随机数种子 */
   rngSeed?: number
   /** 其他自定义配置 */
-  customConfig?: Record<string, any>
+  customConfig?: Record<string, unknown>
 }
 
 /**
@@ -35,7 +35,7 @@ export interface AdditionalContent {
   /** 额外的效果 */
   effects?: Record<string, unknown>[]
   /** 自定义内容 */
-  custom?: Record<string, any>
+  custom?: Record<string, unknown>
 }
 
 /**
@@ -47,7 +47,7 @@ export interface RuleContext {
   /** 规则应用的阶段 */
   phase: RulePhase
   /** 额外的上下文数据 */
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 }
 
 /**

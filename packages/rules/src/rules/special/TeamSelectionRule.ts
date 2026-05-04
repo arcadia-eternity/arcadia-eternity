@@ -1,6 +1,5 @@
 import type { TimerConfig, petId } from '@arcadia-eternity/const'
 import type { TeamSelectionConfig, BattleTeamSelection } from '@arcadia-eternity/const'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { Team, RuleContext, BattleConfigModifications } from '../../interfaces/Rule'
 import { ValidationResultBuilder, ValidationErrorType, type ValidationResult } from '../../interfaces/ValidationResult'
 import { AbstractRule } from '../../core/AbstractRule'
@@ -141,7 +140,8 @@ export class TeamSelectionRule extends AbstractRule {
   /**
    * Get timer configuration modifications
    */
-  getTimerConfigModifications(_context?: RuleContext): Partial<TimerConfig> {
+  getTimerConfigModifications(context?: RuleContext): Partial<TimerConfig> {
+    void context;
     // Team selection timer is handled separately in the battle system
     // Return empty modifications for now
     return {}
@@ -194,7 +194,8 @@ export class TeamSelectionRule extends AbstractRule {
   /**
    * Get battle configuration modifications
    */
-  getBattleConfigModifications(_context?: RuleContext): BattleConfigModifications {
+  getBattleConfigModifications(context?: RuleContext): BattleConfigModifications {
+    void context;
     return {
       customConfig: {
         teamSelection: {

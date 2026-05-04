@@ -172,8 +172,6 @@ async function testGrpcCommunication(rpcClient: BattleRpcClient, serviceDiscover
     logger.info('成功获取 gRPC 客户端')
 
     // 测试各种 gRPC 方法
-    const testRoomId = 'test-room-' + Date.now()
-    const testPlayerId = 'test-player-' + Date.now()
 
     // 注意：这些测试可能会失败，因为目标实例可能没有对应的房间
     // 但我们主要是测试 gRPC 连接是否正常
@@ -188,7 +186,6 @@ async function testGrpcCommunication(rpcClient: BattleRpcClient, serviceDiscover
           logger.info({ instanceId, address }, '测试实例连接')
 
           // 这里我们只测试连接，不期望成功的业务响应
-          const testClient = rpcClient.getClient(instanceId, address)
           logger.info({ instanceId }, 'gRPC 客户端创建成功')
         } catch (error) {
           logger.warn({ error, instanceId, address }, '实例连接测试失败')

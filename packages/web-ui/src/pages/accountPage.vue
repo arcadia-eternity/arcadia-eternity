@@ -235,7 +235,7 @@ const copyPlayerId = async () => {
   try {
     await navigator.clipboard.writeText(playerStore.id)
     ElMessage.success('玩家ID已复制到剪贴板')
-  } catch (error) {
+  } catch {
     // 降级方案
     const textArea = document.createElement('textarea')
     textArea.value = playerStore.id
@@ -274,7 +274,7 @@ const generateNewId = async () => {
       battleClientStore.initialize()
       await battleClientStore.connect()
       console.log('BattleClient重新连接成功，使用新的玩家ID')
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('BattleClient重新连接失败:', error)
       // 不阻塞用户操作，只是记录警告
     }
@@ -302,12 +302,12 @@ const startPrecache = async () => {
     ElMessage.info(`开始预缓存 ${petNums.length} 个精灵资源...`)
 
     // 开始预缓存
-    await petResourceCache.preloadAllPets(petNums, (_progress: { current: number; total: number; percent: number }) => {
+    await petResourceCache.preloadAllPets(petNums, () => {
       // 可以在这里更新进度，但目前我们只在完成时显示消息
     })
 
     ElMessage.success(`成功预缓存 ${petNums.length} 个精灵资源！`)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('预缓存失败:', error)
     ElMessage.error(`预缓存失败: ${(error as Error).message}`)
   } finally {

@@ -35,7 +35,7 @@ export class InMemoryRedisClientManager {
     this.client = new Redis({
       data: {},
       keyPrefix: this.getKeyPrefix(),
-    } as any)
+    } as unknown as ConstructorParameters<typeof Redis>[0])
     this.publisher = this.client.duplicate()
     this.subscriber = this.client.duplicate()
     this.patchPubSub(this.publisher, this.subscriber as PubSubSubscriber)
@@ -75,7 +75,7 @@ export class InMemoryRedisClientManager {
     }
   }
 
-  async getInfo(): Promise<Record<string, any>> {
+  async getInfo(): Promise<Record<string, unknown>> {
     return {
       connected_clients: 3,
       used_memory_human: 'in-memory',
@@ -83,7 +83,7 @@ export class InMemoryRedisClientManager {
     }
   }
 
-  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: Record<string, any> }> {
+  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: Record<string, unknown> }> {
     return {
       status: 'healthy',
       details: {
@@ -129,7 +129,7 @@ export class InMemoryRedisClientManager {
       return publishedCount
     }) as typeof publisher.publish
 
-    subscriber.subscribe = ((...args: any[]) => {
+    subscriber.subscribe = ((...args: unknown[]) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const channels = args as string[]
       for (const channel of channels) {
@@ -139,7 +139,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__channelSubscriptions?.size ?? 0)
     }) as typeof subscriber.subscribe
 
-    subscriber.psubscribe = ((...args: any[]) => {
+    subscriber.psubscribe = ((...args: unknown[]) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const patterns = args as string[]
       for (const pattern of patterns) {
@@ -149,7 +149,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__patternSubscriptions?.size ?? 0)
     }) as typeof subscriber.psubscribe
 
-    subscriber.unsubscribe = ((...args: any[]) => {
+    subscriber.unsubscribe = ((...args: unknown[]) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const channels = args as string[]
       if (channels.length === 0) {
@@ -163,7 +163,7 @@ export class InMemoryRedisClientManager {
       return Promise.resolve(subscriber.__channelSubscriptions?.size ?? 0)
     }) as typeof subscriber.unsubscribe
 
-    subscriber.punsubscribe = ((...args: any[]) => {
+    subscriber.punsubscribe = ((...args: unknown[]) => {
       const callback = typeof args.at(-1) === 'function' ? args.pop() : undefined
       const patterns = args as string[]
       if (patterns.length === 0) {

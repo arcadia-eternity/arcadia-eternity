@@ -5,7 +5,7 @@ import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
 import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
-import type { PlayerMessage, SkillMessage } from '@arcadia-eternity/const'
+import type { PlayerMessage, SkillMessage, AttributeModifierInfo } from '@arcadia-eternity/const'
 import ElementIcon from './ElementIcon.vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
@@ -143,7 +143,7 @@ const petStatsInfo = computed(() => {
   }
 
   const stats = pet.stats
-  const statEntries: Array<{ key: string; name: string; value: number; modifierInfo?: any }> = []
+  const statEntries: Array<{ key: string; name: string; value: number; modifierInfo?: AttributeModifierInfo }> = []
 
   // 主要战斗属性
   const mainStats = ['atk', 'def', 'spa', 'spd', 'spe']

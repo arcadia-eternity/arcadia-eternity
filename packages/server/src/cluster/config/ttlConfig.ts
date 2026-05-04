@@ -1,3 +1,5 @@
+import type Redis from 'ioredis'
+
 /**
  * TTL (Time To Live) 配置管理器
  * 统一管理所有 Redis 数据的过期时间配置，减少手动清理的需求
@@ -168,7 +170,7 @@ export class TTLHelper {
   /**
    * 为 Redis 键设置 TTL
    */
-  static async setKeyTTL(client: any, key: string, ttlMs: number): Promise<void> {
+  static async setKeyTTL(client: Redis, key: string, ttlMs: number): Promise<void> {
     if (ttlMs > 0) {
       await client.pexpire(key, ttlMs)
     }
@@ -177,7 +179,7 @@ export class TTLHelper {
   /**
    * 批量设置 TTL
    */
-  static async setBatchTTL(client: any, keyTTLPairs: Array<{ key: string; ttl: number }>): Promise<void> {
+  static async setBatchTTL(client: Redis, keyTTLPairs: Array<{ key: string; ttl: number }>): Promise<void> {
     if (keyTTLPairs.length === 0) return
 
     const pipeline = client.pipeline()
@@ -262,11 +264,12 @@ export class TTLHelper {
         switch (status) {
           case 'waiting':
             return config.room.waitingRoomTTL
-          case 'active':
+          case 'active': {
             // 活跃房间根据已运行时间调整 TTL
             const runTime = baseTime ? now - baseTime : 0
             const remainingTTL = Math.max(config.room.activeRoomTTL - runTime, 30 * 60 * 1000) // 最少30分钟
             return remainingTTL
+          }
           case 'ended':
             return config.room.endedRoomTTL
           default:

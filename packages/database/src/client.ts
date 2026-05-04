@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import type { BattleMessage, BattleState } from '@arcadia-eternity/const'
 import type { DatabaseConfig } from './types'
 
 // 数据库表类型定义（用于 Supabase 类型推断）
@@ -11,7 +12,7 @@ export interface Database {
           name: string
           created_at: string
           last_login_at: string
-          metadata: Record<string, any>
+          metadata: Record<string, unknown>
           email: string | null
           email_verified: boolean
           email_bound_at: string | null
@@ -22,7 +23,7 @@ export interface Database {
           name: string
           created_at?: string
           last_login_at?: string
-          metadata?: Record<string, any>
+          metadata?: Record<string, unknown>
           email?: string | null
           email_verified?: boolean
           email_bound_at?: string | null
@@ -33,7 +34,7 @@ export interface Database {
           name?: string
           created_at?: string
           last_login_at?: string
-          metadata?: Record<string, any>
+          metadata?: Record<string, unknown>
           email?: string | null
           email_verified?: boolean
           email_bound_at?: string | null
@@ -81,9 +82,9 @@ export interface Database {
           winner_id: string | null
           battle_result: 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
           end_reason: 'all_pet_fainted' | 'surrender' | 'timeout' | 'disconnect'
-          battle_messages: any[]
-          final_state: Record<string, any>
-          metadata: Record<string, any>
+          battle_messages: BattleMessage[]
+          final_state: BattleState | Record<string, unknown>
+          metadata: Record<string, unknown>
           created_at: string
         }
         Insert: {
@@ -98,9 +99,9 @@ export interface Database {
           winner_id?: string | null
           battle_result: 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
           end_reason: 'all_pet_fainted' | 'surrender' | 'timeout' | 'disconnect'
-          battle_messages?: any[]
-          final_state?: Record<string, any>
-          metadata?: Record<string, any>
+          battle_messages?: BattleMessage[]
+          final_state?: BattleState | Record<string, unknown>
+          metadata?: Record<string, unknown>
           created_at?: string
         }
         Update: {
@@ -115,9 +116,9 @@ export interface Database {
           winner_id?: string | null
           battle_result?: 'player_a_wins' | 'player_b_wins' | 'draw' | 'abandoned'
           end_reason?: 'all_pet_fainted' | 'surrender' | 'timeout' | 'disconnect'
-          battle_messages?: any[]
-          final_state?: Record<string, any>
-          metadata?: Record<string, any>
+          battle_messages?: BattleMessage[]
+          final_state?: BattleState | Record<string, unknown>
+          metadata?: Record<string, unknown>
           created_at?: string
         }
         Relationships: []
@@ -238,7 +239,7 @@ export interface Database {
         }[]
       }
       get_battle_statistics: {
-        Args: {}
+        Args: Record<string, never>
         Returns: {
           total_battles: number
           total_players: number

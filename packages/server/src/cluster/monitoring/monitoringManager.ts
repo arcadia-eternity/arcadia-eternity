@@ -386,7 +386,7 @@ export class MonitoringManager {
       for (const rule of this.alertRules.values()) {
         if (!rule.enabled) continue
 
-        const metricValue = (metrics as any)[rule.metric]
+        const metricValue = (metrics as Record<string, unknown>)[rule.metric] as number | undefined
         if (metricValue === undefined) continue
 
         const shouldTrigger = this.evaluateAlertCondition(metricValue, rule)

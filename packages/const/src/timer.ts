@@ -107,7 +107,7 @@ export enum TimerEventType {
 export interface TimerEvent {
   type: TimerEventType
   playerId?: playerId
-  data?: any
+  data?: unknown
   timestamp: number
 }
 

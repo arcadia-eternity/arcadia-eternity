@@ -202,7 +202,7 @@ export class PackLoader {
 
       state.set(manifestUrl, 'visiting')
 
-      let manifestRaw = ''
+      let manifestRaw: string
       let manifest: V2DataPackManifest
       try {
         manifestRaw = await this.fetchText(manifestUrl)
@@ -214,7 +214,7 @@ export class PackLoader {
           errors.push(message)
           return
         }
-        throw new Error(message)
+        throw new Error(message, { cause: error })
       }
 
       if (context?.expectedId && manifest.id !== context.expectedId) {
@@ -435,15 +435,15 @@ export class PackLoader {
     } catch (error) {
       if (this.isMissingHttpError(error)) return undefined
       const message = `pack lockfile load error (${lockfileUrl}): ${error instanceof Error ? error.message : String(error)}`
-      if (!continueOnError) throw new Error(message)
+      if (!continueOnError) throw new Error(message, { cause: error })
       errors.push(message)
       return undefined
     }
   }
 
   private parseLockfile(raw: string, source: string): PackLockfile {
-    const parsed = YAML.parse(raw) as PackLockfile & { generatedAt?: any }
-    const generatedAtValue: any = parsed?.generatedAt
+    const parsed = YAML.parse(raw) as PackLockfile & { generatedAt?: unknown }
+    const generatedAtValue: unknown = parsed?.generatedAt
     const generatedAt =
       typeof generatedAtValue === 'string'
         ? generatedAtValue
@@ -636,7 +636,7 @@ export class PackLoader {
         const text = await this.fetchText(jsonUrl)
         const parsed = JSON.parse(text)
         if (!Array.isArray(parsed)) {
-          throw new Error(`Expected array content from ${jsonUrl}`)
+          throw new Error(`Expected array content from ${jsonUrl}`, { cause: error })
         }
         return parsed as Record<string, unknown>[]
       }
@@ -700,7 +700,6 @@ export class PackLoader {
     if (!manifest?.assetsRef) return []
     const continueOnError = options.continueOnError ?? false
     const refs = Array.isArray(manifest.assetsRef) ? manifest.assetsRef : [manifest.assetsRef]
-    const { dirname, resolve } = await import('node:path')
     const loaded: AssetLoadRecord[] = []
     const visited = new Set<string>()
     const stack = new Set<string>()

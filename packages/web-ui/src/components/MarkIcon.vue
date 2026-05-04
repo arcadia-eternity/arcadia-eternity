@@ -30,7 +30,7 @@ const resolvedMark = computed<Partial<MarkSchemaType> | undefined>(() => {
 
   if (props.mark && typeof props.mark === 'object') {
     return {
-      ...(markFromStore ?? {}),
+      ...markFromStore,
       ...props.mark,
       id: String(props.mark.id ?? normalizedMarkId.value).trim(),
     }

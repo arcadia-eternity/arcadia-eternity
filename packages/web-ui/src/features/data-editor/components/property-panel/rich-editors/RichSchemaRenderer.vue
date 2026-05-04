@@ -13,7 +13,7 @@ import { ensureDefaultRichEditors, resolveRichEditor } from './registry'
 import FieldEditor from '../shared/FieldEditor.vue'
 
 const props = defineProps<{
-  schema: any
+  schema: TSchema
   draft: Record<string, unknown>
   hints: Record<string, RichFieldHints>
   metadata: RichEditorMetadata
@@ -74,12 +74,12 @@ const fields = computed<ResolvedField[]>(() => {
         if (members.some((m: TSchema) => KindGuard.IsNull(m))) return true
       }
       // Check if field is Optional (not in parent's required array)
-      const required = (obj as any).required as string[] | undefined
+      const required = (obj as TObject<Record<string, TSchema>>).required
       if (required && !required.includes(key)) return true
       return false
     })()
 
-    const defaultValue = (fieldSchema as any).default ?? undefined
+    const defaultValue = (fieldSchema as TSchema & { default?: unknown }).default ?? undefined
 
     const context: RichFieldContext = {
       path,

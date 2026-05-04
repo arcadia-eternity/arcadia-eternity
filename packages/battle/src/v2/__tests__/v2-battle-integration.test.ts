@@ -245,13 +245,13 @@ describe('V2 Battle Integration', () => {
 
     // PlayerA surrenders, PlayerB uses skill
     await system.submitAction({
-      player: playerA.id as any,
+      player: playerA.id as unknown as playerId,
       type: 'surrender',
     })
     await system.submitAction({
-      player: playerB.id as any,
+      player: playerB.id as unknown as playerId,
       type: 'use-skill',
-      skill: skillA.id as any,
+      skill: skillA.id as unknown as string,
       target: AttackTargetOpinion.opponent,
     })
 

@@ -149,14 +149,16 @@ export function oldUpdateMapCaches(battleState: MockBattleState) {
   return { petMapCache, skillMapCache, playerMapCache, markMapCache }
 }
 
+type CacheEntry = Record<string, unknown> & { id: string }
+
 // 模拟新版本的 _updateMapCaches 方法（优化版本，使用 markRaw）
 export function newUpdateMapCaches(
   battleState: MockBattleState,
   existingCaches?: {
-    petMapCache: Map<string, any>
-    skillMapCache: Map<string, any>
-    playerMapCache: Map<string, any>
-    markMapCache: Map<string, any>
+    petMapCache: Map<string, CacheEntry>
+    skillMapCache: Map<string, CacheEntry>
+    playerMapCache: Map<string, CacheEntry>
+    markMapCache: Map<string, CacheEntry>
   },
 ) {
   const petMapCache = existingCaches?.petMapCache || markRaw(new Map())
@@ -165,10 +167,10 @@ export function newUpdateMapCaches(
   const markMapCache = existingCaches?.markMapCache || markRaw(new Map())
 
   // 新版本：一次性收集，减少数组操作
-  const currentPets: any[] = []
-  const currentSkills: any[] = []
+  const currentPets: CacheEntry[] = []
+  const currentSkills: CacheEntry[] = []
   const currentPlayers = battleState.players ?? []
-  const allMarks: any[] = []
+  const allMarks: CacheEntry[] = []
 
   // 收集玩家数据
   for (const player of currentPlayers) {
@@ -212,20 +214,24 @@ export function newUpdateMapCaches(
   }
 
   // 新版本：智能更新，只在需要时深拷贝
-  function shouldUpdateCacheEntry(cached: any, current: any): boolean {
+  function shouldUpdateCacheEntry(cached: CacheEntry, current: CacheEntry): boolean {
     if (cached === current) return false
-    if (current.currentHp !== undefined && cached.currentHp !== current.currentHp) return true
-    if (current.currentRage !== undefined && cached.currentRage !== current.currentRage) return true
-    if (current.marks && cached.marks?.length !== current.marks?.length) return true
-    if (current.rage !== undefined && cached.rage !== current.rage) return true
-    if (current.team && cached.team?.length !== current.team?.length) return true
-    if (current.modifierState?.hasModifiers !== cached.modifierState?.hasModifiers) return true
-    if (current.level !== undefined && cached.level !== current.level) return true
-    if (current.stacks !== undefined && cached.stacks !== current.stacks) return true
+    if (typeof current.currentHp === 'number' && cached.currentHp !== current.currentHp) return true
+    if (typeof current.currentRage === 'number' && cached.currentRage !== current.currentRage) return true
+    if (Array.isArray(current.marks) && (!Array.isArray(cached.marks) || cached.marks.length !== current.marks.length)) return true
+    if (typeof current.rage === 'number' && cached.rage !== current.rage) return true
+    if (Array.isArray(current.team) && (!Array.isArray(cached.team) || cached.team.length !== current.team.length)) return true
+    if (current.modifierState && cached.modifierState) {
+      const cMod = current.modifierState as CacheEntry
+      const cCached = cached.modifierState as CacheEntry
+      if (cMod.hasModifiers !== cCached.hasModifiers) return true
+    }
+    if (typeof current.level === 'number' && cached.level !== current.level) return true
+    if (typeof current.stacks === 'number' && cached.stacks !== current.stacks) return true
     return true
   }
 
-  function cloneObject(obj: any): any {
+  function cloneObject(obj: CacheEntry): CacheEntry {
     if (typeof structuredClone !== 'undefined') {
       try {
         return structuredClone(obj)
@@ -236,7 +242,7 @@ export function newUpdateMapCaches(
     return JSON.parse(JSON.stringify(obj))
   }
 
-  function batchUpdateCache(cache: Map<string, any>, objects: any[]) {
+  function batchUpdateCache(cache: Map<string, CacheEntry>, objects: CacheEntry[]) {
     for (const obj of objects) {
       if (obj) {
         const cached = cache.get(obj.id)

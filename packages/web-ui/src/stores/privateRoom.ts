@@ -18,7 +18,7 @@ import { BattleRuleManager } from '@arcadia-eternity/rules'
 
 import { ElMessageBox, ElNotification } from 'element-plus'
 import { useBattleStore } from './battle'
-import { RemoteBattleSystem } from '@arcadia-eternity/client'
+import { RemoteBattleSystem, type BattleClient } from '@arcadia-eternity/client'
 import { useGameDataStore } from './gameData'
 import {
   closePrivateRoomPeerSession,
@@ -363,11 +363,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         // 只有在没有有效连接时才重新建立连接
         await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
 
-        if (!battleClientStore._instance) {
+        const client = battleClientStore._instance as unknown as BattleClient
+        if (!client) {
           throw new Error('BattleClient 实例尚未初始化')
         }
 
-        await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
+        await battleStore.initBattle(new RemoteBattleSystem(client), playerStore.player.id)
       } else {
         // 如果已有连接，只需要确保后端知道当前session在观战
         await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
@@ -429,7 +430,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const switchToPlayer = async (team: any[]): Promise<void> => {
+  const switchToPlayer = async (team: PetSchemaType[]): Promise<void> => {
     if (!currentRoom.value) return
 
     isLoading.value = true
@@ -762,14 +763,16 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         throw new Error(`battleRoomId missing for private room battle start (${battleStartInfo.battleMode})`)
       }
 
-      if (!battleClientStore._instance) {
+      const client = battleClientStore._instance as unknown as BattleClient
+      if (!client) {
         throw new Error('BattleClient instance not available')
       }
 
-      const clientInstance = battleClientStore._instance as any
-      if (clientInstance && clientInstance.state) {
-        clientInstance.state = {
-          ...clientInstance.state,
+      // Mutate internal client state for routing (state is private on BattleClient)
+      const mutableClient = client as unknown as { state?: Record<string, unknown> }
+      if (mutableClient.state) {
+        mutableClient.state = {
+          ...mutableClient.state,
           matchmaking: 'matched',
           battle: 'active',
           roomId: battleStartInfo.battleRoomId,
@@ -777,7 +780,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       }
 
       const battleStore = useBattleStore()
-      await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
+      await battleStore.initBattle(new RemoteBattleSystem(client), playerStore.player.id)
 
       router.push({
         path: '/battle',

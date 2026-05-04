@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import 'seer2-pet-animator'
 import { ActionState } from 'seer2-pet-animator'
-import type {} from 'seer2-pet-animator' //Vue Declare
+import type { PetRendererEvent } from 'seer2-pet-animator'
 import { ref, useTemplateRef, watchEffect, watch, nextTick, computed } from 'vue'
+
+type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
+type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
 import { petResourceCache } from '@/services/petResourceCache'
 import { asyncComputed } from '@vueuse/core'
 
@@ -132,19 +135,19 @@ const getState = async () => {
   return petRenderRef.value?.getState()
 }
 
-const handleHitEvent = (event: { detail: any }) => {
+const handleHitEvent = (event: CustomEvent<HitEventDetail>) => {
   console.debug('hit', event.detail)
   emit('hit', event.detail)
 }
 
-const handleAnimationComplete = (event: { detail: any }) => {
+const handleAnimationComplete = (event: CustomEvent<AnimationCompleteEventDetail>) => {
   console.debug('播放完毕:', event.detail)
   emit('animateComplete', event.detail)
 }
 
 const emit = defineEmits<{
-  hit: [detail: any]
-  animateComplete: [detail: any]
+  hit: [detail: HitEventDetail]
+  animateComplete: [detail: AnimationCompleteEventDetail]
 }>()
 defineExpose({
   setState,

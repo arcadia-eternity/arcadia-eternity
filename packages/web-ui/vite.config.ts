@@ -88,7 +88,7 @@ export default defineConfig({
           return {
             src: `${baseDir}/**/*.yaml`,
             dest: outDir,
-            rename: (name: any, extension: any, fullPath: string) => {
+            rename: (fileName: string, fileExtension: string, fullPath: string) => {
               const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
               return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
             },
@@ -112,7 +112,7 @@ export default defineConfig({
         {
           src: '../../packs/base/assets/**/*',
           dest: 'assets',
-          rename: (name: any, extension: any, fullPath: string) => {
+          rename: (fileName: string, fileExtension: string, fullPath: string) => {
             const relativePath = path.relative(path.resolve(__dirname, '../../packs/base/assets'), fullPath)
             return relativePath.replace(/\\/g, '/')
           },
@@ -121,7 +121,7 @@ export default defineConfig({
         {
           src: '../../scripts/**/*.{js,mjs}',
           dest: 'scripts',
-          rename: (name: any, extension: any, fullPath: string) => {
+          rename: (fileName: string, fileExtension: string, fullPath: string) => {
             const relativePath = path.relative(path.resolve(__dirname, '../../scripts'), fullPath)
             return relativePath.replace(/\\/g, '/')
           },

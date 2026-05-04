@@ -8,7 +8,6 @@ import {
   selectorChainSchema,
   type SelectorDSL,
   type SelectorChain,
-  type ExtractorDSL,
   type Value,
 } from '@arcadia-eternity/schema'
 import {
@@ -937,7 +936,7 @@ function applyExtractor(ctx: InterpreterContext, entityId: unknown, extractor: u
       return pet ? pet.skillIds : []
     }
 
-    default:
+    default: {
       if (isStringEntity && entityId === BATTLE_OWNER_ID) {
         const value = getByPath(world.state, extractorKey)
         return value !== undefined ? [value] : []
@@ -950,5 +949,6 @@ function applyExtractor(ctx: InterpreterContext, entityId: unknown, extractor: u
       if (!isObjectEntity) return []
       const value = getByPath(entityId, extractorKey)
       return value !== undefined ? [value] : []
+    }
   }
 }

@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import type { RichFieldContext } from '../types'
 
 const props = defineProps<{ context: RichFieldContext }>()
-const emit = defineEmits<{ update: [value: unknown] }>()
 
 const statKeys = computed<readonly string[]>(
   () => props.context.hints.statKeys ?? [],
@@ -57,26 +56,11 @@ function statBarColor(percent: number): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-function statBarGradient(percent: number): string {
-  const color = statBarColor(percent)
-  return color
-}
-
 function onStatInput(key: string, event: Event) {
   const raw = (event.target as HTMLInputElement).value
   const num = Number(raw)
   const safe = Number.isFinite(num) ? Math.max(0, Math.round(num)) : 0
   props.context.onUpdate({ ...currentStats.value, [key]: safe })
-}
-
-function onBarClick(key: string, event: MouseEvent) {
-  const track = event.currentTarget as HTMLElement
-  const rect = track.getBoundingClientRect()
-  const ratio = (event.clientX - rect.left) / rect.width
-  // Scale: 0-100% of bar → 0 to maxStat*1.5 (allow going beyond max)
-  const max = maxStatValue.value * 1.5
-  const val = Math.max(0, Math.round(ratio * max))
-  props.context.onUpdate({ ...currentStats.value, [key]: val })
 }
 </script>
 

@@ -115,7 +115,7 @@ async function main() {
   const messages: BattleMessage[] = []
   system.BattleEvent((msg) => {
     messages.push(msg)
-    console.log(`  [MSG] ${msg.type}`, JSON.stringify((msg as any).data).slice(0, 120))
+    console.log(`  [MSG] ${msg.type}`, JSON.stringify(msg as unknown as Record<string, unknown>).slice(0, 120))
   })
 
   // Start battle

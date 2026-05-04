@@ -14,7 +14,7 @@ import { PlayerSchema, parseWithErrors, type PlayerSchemaType, type PlayerSelect
 import { nanoid } from 'nanoid'
 import pino from 'pino'
 import type { Static } from '@sinclair/typebox'
-import type { Server, Socket } from 'socket.io'
+import type { Socket } from 'socket.io'
 import { BattleReportService, type BattleReportConfig } from '../../report/services/battleReportService'
 import type { IAuthService, JWTPayload } from '../../auth/services/authService'
 import { PlayerRepository } from '@arcadia-eternity/database'
@@ -51,8 +51,7 @@ type PlayerMeta = {
   heartbeatTimer?: ReturnType<typeof setTimeout>
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface InterServerEvents {}
+interface InterServerEvents { [key: string]: never }
 
 interface SocketData {
   data: PlayerSchemaType
@@ -60,7 +59,7 @@ interface SocketData {
   user?: JWTPayload
   playerId?: string
   sessionId?: string // 会话ID
-  session?: any // 会话数据
+  session?: Record<string, unknown> // 会话数据
 }
 
 const BATTLE_OWNER_TEMP_UNAVAILABLE = 'BATTLE_OWNER_TEMP_UNAVAILABLE'
@@ -72,7 +71,7 @@ type ForwardFailureWindow = {
 }
 
 type TakeoverResult =
-  | { kind: 'handled'; result: any }
+  | { kind: 'handled'; result: unknown }
   | { kind: 'retry' }
   | { kind: 'failed' }
 
@@ -282,7 +281,7 @@ export class ClusterBattleServer {
   /**
    * 转发私人房间事件给客户端
    */
-  private async forwardPrivateRoomEvent(roomCode: string, event: any): Promise<void> {
+  private async forwardPrivateRoomEvent(roomCode: string, event: Record<string, unknown>): Promise<void> {
     try {
       // 获取房间内的所有玩家和观战者
       const room = await this.privateRoomService?.getRoom(roomCode)
@@ -1052,6 +1051,7 @@ export class ClusterBattleServer {
   }
 
   private async handleRoomDestroy(roomId: string) {
+    void roomId;
     // Room destroyed in cluster
   }
 
@@ -1100,7 +1100,7 @@ export class ClusterBattleServer {
       const allRooms = await this.stateManager.getRooms()
 
       // 找到属于离开实例的房间
-      const orphanedRooms = allRooms.filter((room: any) => room.instanceId === instanceId)
+      const orphanedRooms = allRooms.filter((room: RoomState) => room.instanceId === instanceId)
 
       if (orphanedRooms.length === 0) {
         logger.info({ instanceId }, 'No orphaned rooms found for left instance')
@@ -1108,8 +1108,8 @@ export class ClusterBattleServer {
       }
 
       // active/waiting 房间保留用于请求驱动接管恢复，不在此处清理
-      const recoverableRooms = orphanedRooms.filter((room: any) => room.status === 'active' || room.status === 'waiting')
-      const cleanupCandidates = orphanedRooms.filter((room: any) => room.status === 'ended')
+      const recoverableRooms = orphanedRooms.filter((room: RoomState) => room.status === 'active' || room.status === 'waiting')
+      const cleanupCandidates = orphanedRooms.filter((room: RoomState) => room.status === 'ended')
 
       logger.warn(
         {
@@ -1117,8 +1117,8 @@ export class ClusterBattleServer {
           orphanedRoomCount: orphanedRooms.length,
           recoverableRoomCount: recoverableRooms.length,
           cleanupCandidateCount: cleanupCandidates.length,
-          recoverableRoomIds: recoverableRooms.map((r: any) => r.id),
-          cleanupCandidateRoomIds: cleanupCandidates.map((r: any) => r.id),
+          recoverableRoomIds: recoverableRooms.map((r: RoomState) => r.id),
+          cleanupCandidateRoomIds: cleanupCandidates.map((r: RoomState) => r.id),
         },
         'Found orphaned rooms; preserving active/waiting rooms for takeover and cleaning ended rooms only',
       )
@@ -1143,7 +1143,7 @@ export class ClusterBattleServer {
   /**
    * 清理孤立房间状态
    */
-  private async cleanupOrphanedRoomState(room: any): Promise<void> {
+  private async cleanupOrphanedRoomState(room: RoomState): Promise<void> {
     try {
       const roomId = room.id
       const targetInstanceId = room.instanceId
@@ -1231,14 +1231,14 @@ export class ClusterBattleServer {
   /**
    * 处理跨实例操作
    */
-  private async handleCrossInstanceAction(action: any): Promise<void> {
+  private async handleCrossInstanceAction(action: Record<string, unknown>): Promise<void> {
     try {
       const { action: actionType, playerId, requestId, responseChannel, data } = action
 
       // 从data中提取roomId，如果没有则尝试从action中获取
       const roomId = data?.roomId || action.roomId
 
-      let result: any
+      let result: unknown
       let success = true
       let errorMessage: string | undefined
 
@@ -1248,11 +1248,12 @@ export class ClusterBattleServer {
         }
 
         switch (actionType) {
-          case 'submitPlayerSelection':
+          case 'submitPlayerSelection': {
             // 从data中提取selection数据，如果data包含selection字段则使用，否则使用整个data
             const selectionData = data.selection || data
             result = await this.battleService.handleLocalPlayerSelection(roomId, playerId, selectionData)
             break
+          }
 
           case 'getState':
             result = await this.battleService.handleLocalGetState(roomId, playerId)
@@ -1425,7 +1426,7 @@ export class ClusterBattleServer {
   /**
    * 向特定玩家的特定会话发送消息
    */
-  private async sendToPlayerSession(playerId: string, sessionId: string, event: string, data: any): Promise<boolean> {
+  private async sendToPlayerSession(playerId: string, sessionId: string, event: string, data: unknown): Promise<boolean> {
     try {
       // 添加详细日志用于调试重连问题
       logger.debug(
@@ -1702,9 +1703,7 @@ export class ClusterBattleServer {
       }
 
       // 更新房间状态 - 基于会话移除
-      let sessionToRemove: string | undefined
-
-      sessionToRemove = sessionId
+      const sessionToRemove: string | undefined = sessionId
 
       if (sessionToRemove && roomState.sessionPlayers[sessionToRemove] === playerId) {
         roomState.sessions = roomState.sessions.filter(id => id !== sessionToRemove)
@@ -1744,8 +1743,8 @@ export class ClusterBattleServer {
     targetInstanceId: string,
     action: string,
     playerId: string,
-    data: any,
-  ): Promise<any> {
+    data: Record<string, unknown>,
+  ): Promise<unknown> {
     try {
       const isMutation = this.isMutationAction(action)
       // 获取目标实例的RPC地址
@@ -1757,7 +1756,7 @@ export class ClusterBattleServer {
             { targetInstanceId, action, playerId, roomId },
             'Target instance unavailable for read action; returning temporary unavailable without cleanup',
           )
-          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
         }
         // mutation 请求优先走请求驱动 takeover，不在此处直接清理房间
         const takeover = await this.tryRequestDrivenTakeover(targetInstanceId, action, playerId, data)
@@ -1770,14 +1769,14 @@ export class ClusterBattleServer {
             { targetInstanceId, action, playerId, roomId },
             'Target instance unavailable; request-driven takeover deferred, retry later',
           )
-          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
         }
 
         logger.warn(
           { targetInstanceId, action, playerId, roomId },
           'Target instance unavailable; request-driven takeover failed',
         )
-        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
       }
 
       const roomId = data.roomId
@@ -1785,7 +1784,7 @@ export class ClusterBattleServer {
         throw new Error('Room ID is required for RPC forwarding')
       }
 
-      let result: any
+      let result: unknown
       switch (action) {
         case 'submitPlayerSelection':
           result = await this.rpcClient.submitPlayerSelection(
@@ -1920,7 +1919,7 @@ export class ClusterBattleServer {
           },
           'Read action forward failed with retryable error; skip failover/cleanup and return temporary unavailable',
         )
-        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
       }
 
       if (roomId && this.isRetryableForwardError(error)) {
@@ -1937,7 +1936,7 @@ export class ClusterBattleServer {
             },
             'Forward action failed, below failover threshold; returning temporary unavailable',
           )
-          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
         }
 
         const targetInstance = await this.stateManager.getInstance(targetInstanceId)
@@ -1952,7 +1951,7 @@ export class ClusterBattleServer {
             },
             'Forward action failures reached threshold but target instance still reachable; suppressing failover',
           )
-          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+          throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
         }
 
         const shouldCleanup = await this.shouldCleanupOrphanedRoom(targetInstanceId, roomId)
@@ -1984,11 +1983,11 @@ export class ClusterBattleServer {
             return takeover.result
           }
           if (takeover.kind === 'retry') {
-            throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+            throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
           }
 
           if (!shouldCleanup) {
-            throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+            throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
           }
 
           logger.warn(
@@ -2002,7 +2001,7 @@ export class ClusterBattleServer {
             return { status: 'ROOM_CLEANED' }
           }
 
-          throw new Error(`Target instance not available: ${targetInstanceId}`)
+          throw new Error(`Target instance not available: ${targetInstanceId}`, { cause: error })
         }
 
         logger.warn(
@@ -2015,7 +2014,7 @@ export class ClusterBattleServer {
           },
           'Forward action failures reached threshold but ownership still protected by lease; returning temporary unavailable',
         )
-        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE)
+        throw new Error(BATTLE_OWNER_TEMP_UNAVAILABLE, { cause: error })
       }
 
       logger.error(
@@ -2162,7 +2161,7 @@ export class ClusterBattleServer {
     targetInstanceId: string,
     action: string,
     playerId: string,
-    data: any,
+    data: Record<string, unknown>,
   ): Promise<TakeoverResult> {
     const roomId = typeof data?.roomId === 'string' ? data.roomId : undefined
     if (!roomId) {
@@ -2386,7 +2385,7 @@ export class ClusterBattleServer {
     }
   }
 
-  private async handleActionAsCurrentOwner(action: string, playerId: string, data: any): Promise<any> {
+  private async handleActionAsCurrentOwner(action: string, playerId: string, data: Record<string, unknown>): Promise<unknown> {
     const roomId = typeof data?.roomId === 'string' ? data.roomId : undefined
     if (roomId && this.isMutationAction(action)) {
       await this.ensureLocalMutationAllowed(roomId, action)
@@ -2519,7 +2518,7 @@ export class ClusterBattleServer {
   private isRetryableForwardError(error: unknown): boolean {
     if (!error) return false
 
-    const grpcCode = (error as any)?.code
+    const grpcCode = (error as Record<string, unknown>)?.code
     if (grpcCode === 4 || grpcCode === 14) {
       return true
     }
@@ -2619,7 +2618,7 @@ export class ClusterBattleServer {
     responseChannel: string,
     requestId: string,
     success: boolean,
-    data?: any,
+    data?: unknown,
     error?: string,
   ): Promise<void> {
     try {
@@ -2926,7 +2925,7 @@ export class ClusterBattleServer {
         )
 
         // 转发到正确的实例获取最新状态，传递roomId
-        let result: any
+        let result: unknown
         try {
           result = await this.forwardPlayerAction(targetInstanceId, 'getState', playerId, {
             roomId: roomState.id,
@@ -3118,7 +3117,7 @@ export class ClusterBattleServer {
         // 添加超时保护的转发操作
         const result = await Promise.race([
           this.forwardPlayerAction(targetInstanceId, 'ready', playerId, { roomId: roomState.id }),
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('FORWARD_ACTION_TIMEOUT')), 10000)),
+          new Promise<unknown>((_, reject) => setTimeout(() => reject(new Error('FORWARD_ACTION_TIMEOUT')), 10000)),
         ])
         ack?.({ status: 'SUCCESS', data: { status: result.status as 'READY' } })
         return
@@ -3141,7 +3140,7 @@ export class ClusterBattleServer {
   /**
    * 处理动画结束报告
    */
-  private async handleReportAnimationEnd(socket: Socket, data: any) {
+  private async handleReportAnimationEnd(socket: Socket, data: Record<string, unknown>) {
     try {
       const playerId = socket.data.playerId
       if (!playerId) {
@@ -3182,7 +3181,7 @@ export class ClusterBattleServer {
   /**
    * 检查计时器是否启用
    */
-  private async handleIsTimerEnabled(socket: Socket, ack: any) {
+  private async handleIsTimerEnabled(socket: Socket, ack: (response: Record<string, unknown>) => void) {
     try {
       const playerId = socket.data.playerId
       if (!playerId) {
@@ -3267,7 +3266,7 @@ export class ClusterBattleServer {
   /**
    * 获取玩家计时器状态
    */
-  private async handleGetPlayerTimerState(socket: Socket, data: any, ack: any) {
+  private async handleGetPlayerTimerState(socket: Socket, data: Record<string, unknown>, ack: (response: Record<string, unknown>) => void) {
     try {
       const playerId = socket.data.playerId
       if (!playerId) {
@@ -3306,7 +3305,7 @@ export class ClusterBattleServer {
   /**
    * 获取所有玩家计时器状态
    */
-  private async handleGetAllPlayerTimerStates(socket: Socket, ack: any) {
+  private async handleGetAllPlayerTimerStates(socket: Socket, ack: (response: Record<string, unknown>) => void) {
     try {
       const playerId = socket.data.playerId
       if (!playerId) {
@@ -3343,7 +3342,7 @@ export class ClusterBattleServer {
   /**
    * 获取计时器配置
    */
-  private async handleGetTimerConfig(socket: Socket, ack: any) {
+  private async handleGetTimerConfig(socket: Socket, ack: (response: Record<string, unknown>) => void) {
     try {
       const playerId = socket.data.playerId
       if (!playerId) {
@@ -3380,7 +3379,7 @@ export class ClusterBattleServer {
   /**
    * 开始动画
    */
-  private async handleStartAnimation(socket: Socket, data: any, ack: any) {
+  private async handleStartAnimation(socket: Socket, data: Record<string, unknown>, ack: (response: Record<string, unknown>) => void) {
     try {
       const playerId = socket.data.playerId
       if (!playerId) {
@@ -3423,7 +3422,7 @@ export class ClusterBattleServer {
   /**
    * 结束动画
    */
-  private async handleEndAnimation(socket: Socket, data: any) {
+  private async handleEndAnimation(socket: Socket, data: Record<string, unknown>) {
     try {
       const playerId = socket.data.playerId
       if (!playerId) {
@@ -3469,13 +3468,13 @@ export class ClusterBattleServer {
     } catch (error) {
       if (error instanceof Error) {
         logger.warn({ error: error.message, rawData }, 'Raw player data validation failed')
-        throw new Error(`Invalid player data: ${error.message}`)
+        throw new Error(`Invalid player data: ${error.message}`, { cause: error })
       }
-      throw new Error('Failed to validate raw player data')
+      throw new Error('Failed to validate raw player data', { cause: error })
     }
   }
 
-  private handleValidationError(error: unknown, _socket: Socket, ack?: any) {
+  private handleValidationError(error: unknown, _socket: Socket, ack?: (response: Record<string, unknown>) => void) {
     const response: ErrorResponse = {
       status: 'ERROR',
       code: 'VALIDATION_ERROR',
@@ -3713,7 +3712,7 @@ export class ClusterBattleServer {
       const allRooms = await this.stateManager.getRooms()
 
       // 找到属于崩溃实例的房间
-      const crashedInstanceRooms = allRooms.filter((room: any) => room.instanceId === instanceId)
+      const crashedInstanceRooms = allRooms.filter((room: RoomState) => room.instanceId === instanceId)
 
       if (crashedInstanceRooms.length === 0) {
         logger.info({ instanceId }, 'No rooms found for crashed instance')
@@ -3721,8 +3720,8 @@ export class ClusterBattleServer {
       }
 
       // active/waiting 房间保留，等待请求驱动 takeover
-      const recoverableRooms = crashedInstanceRooms.filter((room: any) => room.status === 'active' || room.status === 'waiting')
-      const cleanupCandidates = crashedInstanceRooms.filter((room: any) => room.status === 'ended')
+      const recoverableRooms = crashedInstanceRooms.filter((room: RoomState) => room.status === 'active' || room.status === 'waiting')
+      const cleanupCandidates = crashedInstanceRooms.filter((room: RoomState) => room.status === 'ended')
 
       logger.warn(
         {
@@ -3730,8 +3729,8 @@ export class ClusterBattleServer {
           roomCount: crashedInstanceRooms.length,
           recoverableRoomCount: recoverableRooms.length,
           cleanupCandidateCount: cleanupCandidates.length,
-          recoverableRoomIds: recoverableRooms.map((r: any) => r.id),
-          cleanupCandidateRoomIds: cleanupCandidates.map((r: any) => r.id),
+          recoverableRoomIds: recoverableRooms.map((r: RoomState) => r.id),
+          cleanupCandidateRoomIds: cleanupCandidates.map((r: RoomState) => r.id),
         },
         'Found rooms of crashed instance; preserving active/waiting rooms for takeover and cleaning ended rooms only',
       )
@@ -3878,7 +3877,7 @@ export class ClusterBattleServer {
           if (err || !roomData) continue
 
           try {
-            const roomState = JSON.parse((roomData as any).data || '{}') as RoomState
+            const roomState = JSON.parse((roomData as Record<string, unknown>).data || '{}') as RoomState
             if (!roomState.id || !roomState.lastActive) continue
 
             if (
@@ -4326,7 +4325,7 @@ export class ClusterBattleServer {
             }
 
             try {
-              const connection = JSON.parse((connectionData as any).data || '{}')
+              const connection = JSON.parse((connectionData as Record<string, unknown>).data || '{}')
               if (connection.lastSeen && now - connection.lastSeen > timeout) {
                 connectionsToRemove.push({ playerId, sessionId })
               }
@@ -4562,7 +4561,7 @@ export class ClusterBattleServer {
       }
 
       // 清理所有玩家连接
-      this.players.forEach((player, _socketId) => {
+      this.players.forEach((player) => {
         if (player.heartbeatTimer) {
           clearInterval(player.heartbeatTimer)
         }
@@ -4930,7 +4929,7 @@ export class ClusterBattleServer {
   /**
    * RPC 委托方法：处理玩家选择（委托给战斗服务）
    */
-  async handleLocalPlayerSelection(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+  async handleLocalPlayerSelection(roomId: string, playerId: string, data: Record<string, unknown>): Promise<{ status: string }> {
     await this.ensureLocalMutationAllowed(roomId, 'submitPlayerSelection')
     return await this.battleService.handleLocalPlayerSelection(roomId, playerId, data)
   }
@@ -4938,14 +4937,14 @@ export class ClusterBattleServer {
   /**
    * RPC 委托方法：获取可用选择（委托给战斗服务）
    */
-  async handleLocalGetSelection(roomId: string, playerId: string): Promise<any[]> {
+  async handleLocalGetSelection(roomId: string, playerId: string): Promise<unknown[]> {
     return await this.battleService.handleLocalGetSelection(roomId, playerId)
   }
 
   /**
    * RPC 委托方法：获取战斗状态（委托给战斗服务）
    */
-  async handleLocalGetState(roomId: string, playerId: string): Promise<any> {
+  async handleLocalGetState(roomId: string, playerId: string): Promise<unknown> {
     return await this.battleService.handleLocalGetState(roomId, playerId)
   }
 
@@ -4968,7 +4967,7 @@ export class ClusterBattleServer {
   /**
    * RPC 委托方法：动画结束报告（委托给战斗服务）
    */
-  async handleLocalReportAnimationEnd(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+  async handleLocalReportAnimationEnd(roomId: string, playerId: string, data: Record<string, unknown>): Promise<{ status: string }> {
     await this.ensureLocalMutationAllowed(roomId, 'reportAnimationEnd')
     return await this.battleService.handleLocalReportAnimationEnd(roomId, playerId, data)
   }
@@ -4983,28 +4982,28 @@ export class ClusterBattleServer {
   /**
    * RPC 委托方法：获取玩家计时器状态（委托给战斗服务）
    */
-  async handleLocalGetPlayerTimerState(roomId: string, playerId: string, data: any): Promise<any> {
+  async handleLocalGetPlayerTimerState(roomId: string, playerId: string, data: Record<string, unknown>): Promise<unknown> {
     return await this.battleService.handleLocalGetPlayerTimerState(roomId, playerId, data)
   }
 
   /**
    * RPC 委托方法：获取所有玩家计时器状态（委托给战斗服务）
    */
-  async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<any[]> {
+  async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<unknown[]> {
     return await this.battleService.handleLocalGetAllPlayerTimerStates(roomId, playerId)
   }
 
   /**
    * RPC 委托方法：获取计时器配置（委托给战斗服务）
    */
-  async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<any> {
+  async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<unknown> {
     return await this.battleService.handleLocalGetTimerConfig(roomId, playerId)
   }
 
   /**
    * RPC 委托方法：开始动画（委托给战斗服务）
    */
-  async handleLocalStartAnimation(roomId: string, playerId: string, data: any): Promise<string> {
+  async handleLocalStartAnimation(roomId: string, playerId: string, data: Record<string, unknown>): Promise<string> {
     await this.ensureLocalMutationAllowed(roomId, 'startAnimation')
     return await this.battleService.handleLocalStartAnimation(roomId, playerId, data)
   }
@@ -5012,7 +5011,7 @@ export class ClusterBattleServer {
   /**
    * RPC 委托方法：结束动画（委托给战斗服务）
    */
-  async handleLocalEndAnimation(roomId: string, playerId: string, data: any): Promise<{ status: string }> {
+  async handleLocalEndAnimation(roomId: string, playerId: string, data: Record<string, unknown>): Promise<{ status: string }> {
     await this.ensureLocalMutationAllowed(roomId, 'endAnimation')
     return await this.battleService.handleLocalEndAnimation(roomId, playerId, data)
   }
@@ -5032,10 +5031,10 @@ export class ClusterBattleServer {
    */
   createMatchmakingCallbacks(): MatchmakingCallbacks {
     return {
-      createLocalBattle: async (roomState: RoomState, player1Data: any, player2Data: any) => {
+      createLocalBattle: async (roomState: RoomState, player1Data: Record<string, unknown>, player2Data: Record<string, unknown>) => {
         return await this.battleService.createLocalBattle(roomState, player1Data, player2Data)
       },
-      sendToPlayerSession: async (playerId: string, sessionId: string, event: string, data: any) => {
+      sendToPlayerSession: async (playerId: string, sessionId: string, event: string, data: unknown) => {
         return await this.sendToPlayerSession(playerId, sessionId, event, data)
       },
       getPlayerName: async (playerId: string) => {
@@ -5047,7 +5046,7 @@ export class ClusterBattleServer {
       verifyInstanceReachability: async (instance: ServiceInstance) => {
         return await this.verifyInstanceReachability(instance)
       },
-      createClusterBattleRoom: async (player1Entry: any, player2Entry: any) => {
+      createClusterBattleRoom: async (player1Entry: MatchmakingEntry, player2Entry: MatchmakingEntry) => {
         return await this.battleService.createClusterBattleRoom(player1Entry, player2Entry)
       },
       broadcastServerStateUpdate: () => {
@@ -5061,10 +5060,10 @@ export class ClusterBattleServer {
    */
   createBattleCallbacks(): BattleCallbacks {
     return {
-      sendToPlayerSession: async (playerId: string, sessionId: string, event: string, data: any) => {
+      sendToPlayerSession: async (playerId: string, sessionId: string, event: string, data: unknown) => {
         return await this.sendToPlayerSession(playerId, sessionId, event, data)
       },
-      addToBatch: async (playerId: string, sessionId: string, message: any) => {
+      addToBatch: async (playerId: string, sessionId: string, message: unknown) => {
         // 延迟获取 battleService，确保它已经被设置
         if (this.battleService) {
           await this.battleService.addToBatch(playerId, sessionId, message)
@@ -5075,7 +5074,7 @@ export class ClusterBattleServer {
       cleanupSessionRoomMappings: async (roomState: RoomState) => {
         await this.cleanupSessionRoomMappings(roomState)
       },
-      forwardPlayerAction: async (instanceId: string, action: string, playerId: string, data: any) => {
+      forwardPlayerAction: async (instanceId: string, action: string, playerId: string, data: Record<string, unknown>) => {
         return await this.forwardPlayerAction(instanceId, action, playerId, data)
       },
       createSessionRoomMappings: async (roomState: RoomState) => {

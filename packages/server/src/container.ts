@@ -88,15 +88,15 @@ export function resetContainer(): void {
 export function configureBattleServices(
   container: Container,
   dependencies: {
-    stateManager: any
-    realtimeGateway: any
-    lockManager: any
+    stateManager: Record<string, unknown>
+    realtimeGateway: Record<string, unknown>
+    lockManager: Record<string, unknown>
     instanceId: string
-    matchmakingCallbacks: any
-    battleCallbacks: any
-    performanceTracker?: any
-    serviceDiscovery?: any
-    battleReportConfig?: any
+    matchmakingCallbacks: Record<string, unknown>
+    battleCallbacks: Record<string, unknown>
+    performanceTracker?: Record<string, unknown>
+    serviceDiscovery?: Record<string, unknown>
+    battleReportConfig?: Record<string, unknown>
   },
 ): void {
   // 检查是否已经配置过，如果是则跳过
@@ -134,19 +134,19 @@ export function configureBattleServices(
 export function configureClusterServices(
   container: Container,
   dependencies: {
-    io: any
-    clientRealtimeGateway?: any
-    stateManager: any
-    realtimeGateway: any
-    lockManager: any
-    redisManager: any // 添加 redisManager
+    io: Record<string, unknown>
+    clientRealtimeGateway?: Record<string, unknown>
+    stateManager: Record<string, unknown>
+    realtimeGateway: Record<string, unknown>
+    lockManager: Record<string, unknown>
+    redisManager: Record<string, unknown> // 添加 redisManager
     instanceId: string
     rpcPort?: number
-    battleReportConfig?: any
-    matchmakingCallbacks?: any
-    battleCallbacks?: any
-    performanceTracker?: any
-    serviceDiscovery?: any
+    battleReportConfig?: Record<string, unknown>
+    matchmakingCallbacks?: Record<string, unknown>
+    battleCallbacks?: Record<string, unknown>
+    performanceTracker?: Record<string, unknown>
+    serviceDiscovery?: Record<string, unknown>
   },
 ): { battleServer: ClusterBattleServer; rpcServer: BattleRpcServer } {
   // 绑定基础依赖

@@ -2,9 +2,7 @@ import { getSupabaseClient, getSupabaseServiceClient } from '../client'
 import {
   type PlayerEloRating,
   type EloLeaderboardEntry,
-  type CreateEloRatingInput,
   type UpdateEloRatingInput,
-  type EloUpdateResult,
   type PaginationParams,
   type PaginatedResponse,
   DatabaseError,

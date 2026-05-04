@@ -176,7 +176,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useGameDataStore } from '@/stores/gameData'
 import { useTranslation } from 'i18next-vue'
 import PetIcon from '@/components/PetIcon.vue'
@@ -185,7 +185,6 @@ import { ArrowLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 
 const { i18next } = useTranslation()
 const route = useRoute()
-const router = useRouter()
 const gameDataStore = useGameDataStore()
 
 const loading = ref(true)

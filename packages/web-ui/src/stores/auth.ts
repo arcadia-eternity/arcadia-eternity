@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { ElMessage } from 'element-plus'
 
 // API 基础配置
@@ -166,9 +166,14 @@ export const useAuthStore = defineStore('auth', {
           }
         }
         throw new Error(response.data.message || '创建游客失败')
-      } catch (error: any) {
-        console.error('Create guest error:', error)
-        throw new Error(error.response?.data?.message || '创建游客失败，请检查网络连接')
+      } catch (error: unknown) {
+        console.error('Create guest error:', String(error))
+        const message = error instanceof AxiosError
+          ? error.response?.data?.message
+          : error instanceof Error
+            ? error.message
+            : undefined
+        throw new Error(message || '创建游客失败，请检查网络连接')
       }
     },
 
@@ -191,8 +196,8 @@ export const useAuthStore = defineStore('auth', {
         } else {
           throw new Error(response.data.message || 'Token refresh failed')
         }
-      } catch (error: any) {
-        console.error('Token refresh error:', error)
+      } catch (error: unknown) {
+        console.error('Token refresh error:', String(error))
         this.clearTokens()
         throw error
       }
@@ -208,21 +213,26 @@ export const useAuthStore = defineStore('auth', {
           return response.data.data
         }
         throw new Error(response.data.message || '检查玩家状态失败')
-      } catch (error: any) {
-        console.error('Check player status error:', error)
-        throw new Error(error.response?.data?.message || '检查玩家状态失败，请检查网络连接')
+      } catch (error: unknown) {
+        console.error('Check player status error:', String(error))
+        const message = error instanceof AxiosError
+          ? error.response?.data?.message
+          : error instanceof Error
+            ? error.message
+            : undefined
+        throw new Error(message || '检查玩家状态失败，请检查网络连接')
       }
     },
 
     /**
      * 验证token有效性
      */
-    async verifyToken(): Promise<{ valid: boolean; data?: any }> {
+    async verifyToken(): Promise<{ valid: boolean; data?: unknown }> {
       try {
         const response = await api.get('/auth/verify')
         return response.data
-      } catch (error: any) {
-        console.error('Token verification error:', error)
+      } catch (error: unknown) {
+        console.error('Token verification error:', String(error))
         return { valid: false }
       }
     },

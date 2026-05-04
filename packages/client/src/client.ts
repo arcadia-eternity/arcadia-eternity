@@ -19,7 +19,7 @@ import {
   type PrivateRoomBattleStartInfo,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
-import { io, type ManagerOptions, type Socket, type SocketOptions } from 'socket.io-client'
+import { io, type ManagerOptions, type Socket } from 'socket.io-client'
 import { nanoid } from 'nanoid'
 
 // 私人房间相关类型定义
@@ -72,8 +72,8 @@ type ClientState = {
 
 export class BattleClient {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents>
-  private eventHandlers = new Map<string, Set<(...args: any[]) => void>>()
-  private timerEventHandlers = new Map<string, Set<(data: any) => void>>()
+  private eventHandlers = new Map<string, Set<(...args: unknown[]) => void>>()
+  private timerEventHandlers = new Map<string, Set<(data: unknown) => void>>()
   private state: ClientState = {
     status: 'disconnected',
     matchmaking: 'idle',
@@ -148,14 +148,14 @@ export class BattleClient {
     }
   }
 
-  private updateSocketAuth(config?: any) {
+  private updateSocketAuth(config?: Record<string, unknown>) {
     if (this.options.auth) {
       try {
         const playerId = this.options.auth.getPlayerId?.()
         const token = this.options.auth.getToken?.()
 
         if (playerId) {
-          const query: any = {
+          const query: Record<string, unknown> = {
             playerId,
             sessionId: this.sessionId,
           }
@@ -272,8 +272,8 @@ export class BattleClient {
     })
   }
 
-  private isAuthError(error: any): boolean {
-    const errorMessage = error?.message || error?.toString() || ''
+  private isAuthError(error: unknown): boolean {
+    const errorMessage = (error as Error)?.message || String(error)
     return (
       errorMessage.includes('INVALID_TOKEN') ||
       errorMessage.includes('TOKEN_REQUIRED_FOR_REGISTERED_USER') ||
@@ -685,7 +685,7 @@ export class BattleClient {
     })
   }
 
-  async getPrivateRoomInfo(roomCode: string): Promise<any> {
+  async getPrivateRoomInfo(roomCode: string): Promise<unknown> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -704,7 +704,7 @@ export class BattleClient {
     })
   }
 
-  async getCurrentPrivateRoom(): Promise<any> {
+  async getCurrentPrivateRoom(): Promise<unknown> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -825,7 +825,7 @@ export class BattleClient {
     })
   }
 
-  async switchToPlayer(team: any[]): Promise<void> {
+  async switchToPlayer(team: PetSchemaType[]): Promise<void> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -938,7 +938,7 @@ export class BattleClient {
   }
 
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
-    this.socket.once(event, listener as any)
+    this.socket.once(event, listener as unknown as (...args: unknown[]) => void)
     return this
   }
 
@@ -954,11 +954,11 @@ export class BattleClient {
       // 对于这些事件，不需要重复注册socket监听器，因为它们已经在setupEventListeners中注册了
       const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
       if (!preRegisteredEvents.includes(event)) {
-        this.socket.on(event, wrapper as any) // 使用安全类型断言
+        this.socket.on(event, wrapper as unknown as (...args: unknown[]) => void)
       }
     }
 
-    this.eventHandlers.get(event)?.add(wrapper)
+    this.eventHandlers.get(event)?.add(wrapper as unknown as (...args: unknown[]) => void)
     return () => this.off(event, wrapper)
   }
 
@@ -973,7 +973,7 @@ export class BattleClient {
           // 对于这些事件，不需要移除socket监听器，因为它们是在setupEventListeners中注册的，应该保持活跃
           const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
           if (!preRegisteredEvents.includes(event)) {
-            this.socket.off(event, h as any) // 使用安全类型断言
+            this.socket.off(event, h as unknown as (...args: unknown[]) => void)
           }
           handlers.delete(h)
         }
@@ -997,7 +997,7 @@ export class BattleClient {
       this.timerEventHandlers.set(eventType, new Set())
     }
 
-    this.timerEventHandlers.get(eventType)?.add(handler)
+    this.timerEventHandlers.get(eventType)?.add(handler as unknown as (data: unknown) => void)
 
     return () => this.offTimerEvent(eventType, handler)
   }
@@ -1005,7 +1005,7 @@ export class BattleClient {
   offTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): void {
     const handlers = this.timerEventHandlers.get(eventType)
     if (handlers) {
-      handlers.delete(handler)
+      handlers.delete(handler as unknown as (data: unknown) => void)
       if (handlers.size === 0) {
         this.timerEventHandlers.delete(eventType)
       }

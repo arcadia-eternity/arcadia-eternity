@@ -2,7 +2,7 @@
 // Generic entity transformation (base swap) system.
 // Manages temporary and permanent transformations with priority stacking.
 
-import type { World, Entity } from '@arcadia-eternity/engine'
+import type { World } from '@arcadia-eternity/engine'
 import { generateId } from '@arcadia-eternity/engine'
 
 // ---------------------------------------------------------------------------

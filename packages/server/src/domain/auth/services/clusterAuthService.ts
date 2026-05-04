@@ -21,7 +21,7 @@ const logger = pino({
 export class ClusterAuthService implements IAuthService {
   private config: AuthConfig
   private stateManager: ClusterStateManager
-  private sessionManager?: any // 延迟加载SessionManager
+  private sessionManager?: SessionManager // 延迟加载SessionManager
 
   constructor(config: AuthConfig, stateManager: ClusterStateManager) {
     this.config = config
@@ -128,7 +128,7 @@ export class ClusterAuthService implements IAuthService {
 
   verifyRefreshToken(token: string): { playerId: string } | null {
     try {
-      const decoded = jwt.verify(token, this.config.jwtSecret) as any
+      const decoded = jwt.verify(token, this.config.jwtSecret) as Record<string, unknown>
 
       if (decoded.type !== 'refresh' || !decoded.playerId) {
         logger.debug('Invalid refresh token')
@@ -142,7 +142,7 @@ export class ClusterAuthService implements IAuthService {
     }
   }
 
-  async refreshAccessToken(refreshToken: string, playerRepo?: any): Promise<AuthResult | null> {
+  async refreshAccessToken(refreshToken: string, playerRepo?: { getPlayerById: (id: string) => Promise<{ id: string; is_registered?: boolean; email?: string } | null> }): Promise<AuthResult | null> {
     const refreshPayload = this.verifyRefreshToken(refreshToken)
     if (!refreshPayload) {
       return null
@@ -150,7 +150,7 @@ export class ClusterAuthService implements IAuthService {
 
     try {
       // 检查刷新令牌是否在黑名单中
-      const refreshDecoded = jwt.decode(refreshToken) as any
+      const refreshDecoded = jwt.decode(refreshToken) as Record<string, unknown> | null
       if (refreshDecoded?.jti) {
         const isBlacklisted = await this.stateManager.isTokenBlacklisted(refreshDecoded.jti)
         if (isBlacklisted) {
@@ -231,7 +231,7 @@ export class ClusterAuthService implements IAuthService {
   // 异步版本的revokeToken，支持集群黑名单
   async revokeTokenAsync(token: string): Promise<boolean> {
     try {
-      const decoded = jwt.decode(token) as any
+      const decoded = jwt.decode(token) as Record<string, unknown> | null
 
       if (!decoded || !decoded.jti) {
         logger.debug('Cannot revoke token: missing JTI')

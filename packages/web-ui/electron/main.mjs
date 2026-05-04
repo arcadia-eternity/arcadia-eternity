@@ -83,7 +83,7 @@ async function isEditorContextAtPoint(window, x, y) {
       `(() => {
         const target = document.elementFromPoint(${safeX}, ${safeY})
         if (!target || typeof target.closest !== 'function') return false
-        return Boolean(target.closest('.monaco-editor, [data-editor-context-menu=\"true\"]'))
+        return Boolean(target.closest('.monaco-editor, [data-editor-context-menu="true"]'))
       })()`,
       true,
     )

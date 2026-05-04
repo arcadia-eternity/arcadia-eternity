@@ -87,7 +87,7 @@ const playerB = playerSystem.create(world, 'PlayerB', [petB.id])
 const battleState = createBattleState(playerA.id, playerB.id)
 world.state = battleState as unknown as Record<string, unknown>
 
-console.log('Systems:', Object.keys(world.systems as any))
+console.log('Systems:', Object.keys(world.systems as Record<string, unknown>))
 console.log('State:', world.state)
 
 // --- Run battle ---
@@ -137,8 +137,8 @@ while (turn++ < 30) {
 
 const final = await system.getState()
 console.log('\nBattle ended! Status:', final.status)
-console.log('Victor:', (world.state as any).victor)
-console.log('End reason:', (world.state as any).endReason)
+console.log('Victor:', (world.state as Record<string, unknown>).victor)
+console.log('End reason:', (world.state as Record<string, unknown>).endReason)
 
 await system.cleanup()
 console.log('Done!')

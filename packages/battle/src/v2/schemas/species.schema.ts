@@ -5,7 +5,6 @@ import { Type, type Static } from '@sinclair/typebox'
 import { StringEnum } from './utils.js'
 import {
   Element,
-  type speciesId,
 } from '@arcadia-eternity/const'
 
 const ElementValues = Object.values(Element) as [string, ...string[]]

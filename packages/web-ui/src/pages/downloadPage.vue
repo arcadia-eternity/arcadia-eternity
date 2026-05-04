@@ -289,10 +289,6 @@ import WindowsIcon from '@/components/icons/WindowsIcon.vue'
 import MacOSIcon from '@/components/icons/MacOSIcon.vue'
 import LinuxIcon from '@/components/icons/LinuxIcon.vue'
 
-// 简单的翻译函数，如果需要可以后续集成 i18next
-const t = (key: string, fallback: string) => fallback
-
-// 使用智能下载组合式函数
 const {
   isLoading,
   error,
@@ -300,8 +296,6 @@ const {
   sourceAvailability,
   version,
   availableSources,
-  recommendedPlatform,
-  recommendedArchitecture,
   recommendedFormat,
   isMobile,
   smartDownload,

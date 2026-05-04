@@ -198,7 +198,7 @@ interface Props {
   visible?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   visible: false,
 })
 
@@ -289,7 +289,7 @@ const sendBindCode = async () => {
         startBindCountdown()
       }
     }
-  } catch (error) {
+  } catch {
     ElMessage.error('发送验证码失败，请检查网络连接')
   } finally {
     bindLoading.value = false
@@ -362,7 +362,7 @@ const confirmBind = async () => {
         battleClientStore.initialize()
         await battleClientStore.connect()
         console.log('BattleClient重新连接成功，使用新的认证信息')
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn('BattleClient重新连接失败:', error)
         // 不阻塞用户操作，只是记录警告
       }
@@ -371,7 +371,7 @@ const confirmBind = async () => {
     } else {
       ElMessage.error(response.message)
     }
-  } catch (error) {
+  } catch {
     ElMessage.error('邮箱绑定失败，请检查网络连接')
   } finally {
     bindLoading.value = false
@@ -410,7 +410,7 @@ const sendRecoverCode = async () => {
         startRecoverCountdown()
       }
     }
-  } catch (error) {
+  } catch {
     ElMessage.error('发送验证码失败，请检查网络连接')
   } finally {
     recoverLoading.value = false
@@ -484,7 +484,7 @@ const confirmRecover = async () => {
         battleClientStore.initialize()
         await battleClientStore.connect()
         console.log('BattleClient重新连接成功，使用恢复的玩家ID和认证信息')
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn('BattleClient重新连接失败:', error)
         // 不阻塞用户操作，只是记录警告
       }
@@ -493,7 +493,7 @@ const confirmRecover = async () => {
     } else {
       ElMessage.error(response.message)
     }
-  } catch (error) {
+  } catch {
     ElMessage.error('玩家ID恢复失败，请检查网络连接')
   } finally {
     recoverLoading.value = false
@@ -529,7 +529,7 @@ const confirmUnbind = async () => {
         battleClientStore.initialize()
         await battleClientStore.connect()
         console.log('BattleClient重新连接成功，已切换到游客模式')
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn('BattleClient重新连接失败:', error)
         // 不阻塞用户操作，只是记录警告
       }
@@ -538,7 +538,7 @@ const confirmUnbind = async () => {
     } else {
       ElMessage.error(response.message)
     }
-  } catch (error) {
+  } catch {
     ElMessage.error('邮箱解绑失败，请检查网络连接')
   } finally {
     unbindLoading.value = false

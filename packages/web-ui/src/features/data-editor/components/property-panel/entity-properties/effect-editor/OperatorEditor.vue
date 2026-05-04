@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { OperatorDSL } from '@arcadia-eternity/schema'
+import type { OperatorDSL, OperatorDSLView } from '@arcadia-eternity/schema'
 import { useEffectTyping } from './composables/useEffectTyping'
 
 const props = defineProps<{
@@ -17,11 +17,11 @@ function updateField(field: string, value: unknown) {
 }
 
 const hasType = computed(() => {
-  const t = (props.modelValue as Record<string, any>)?.type
+  const t = props.modelValue.type
   return typeof t === 'string' && t.length > 0
 })
 
-const selectedType = computed(() => (props.modelValue as Record<string, any>)?.type as string ?? '')
+const selectedType = computed(() => props.modelValue.type as string ?? '')
 
 const validTypes = computed(() => typing.operatorTypes.value)
 
@@ -89,7 +89,7 @@ function goBack() {
   emit('update:modelValue', {} as OperatorDSL)
 }
 
-const model = computed(() => props.modelValue as Record<string, any>)
+const model = computed(() => props.modelValue as unknown as OperatorDSLView)
 
 const cleanStageOptions = [
   { value: 'all', label: '全部' },

@@ -4,7 +4,6 @@ import type {
   ValidationWarning,
   ValidationResult,
   DataValidationOptions,
-  NormalizedData,
 } from './types'
 
 /**
@@ -115,7 +114,7 @@ export class CLIDataValidator {
    */
   private validateIdFormats(errors: ValidationError[]) {
     // 验证物种ID格式 (应该以pet_开头)
-    for (const [id, species] of this.dataRepo.species) {
+    for (const [id] of this.dataRepo.species) {
       if (!id.startsWith('pet_')) {
         errors.push({
           type: 'invalid_format',
@@ -171,7 +170,7 @@ export class CLIDataValidator {
     const allIds = new Set<string>()
     const duplicates = new Set<string>()
 
-    const checkIds = (dataMap: Map<string, any>, category: string) => {
+    const checkIds = (dataMap: Map<string, unknown>) => {
       for (const id of dataMap.keys()) {
         if (allIds.has(id)) {
           duplicates.add(id)

@@ -329,7 +329,7 @@ const totalCount = computed(() => table.getFilteredRowModel().rows.length)
               v-for="cell in row.getVisibleCells()"
               :key="cell.id"
               class="data-table__td"
-              :class="(cell.column.columnDef.meta as Record<string, unknown> | undefined)?.className as string | undefined"
+              :class="((cell.column.columnDef.meta as Record<string, unknown> | undefined)?.className as unknown as string)"
             >
               <FlexRender
                 :render="cell.column.columnDef.cell"

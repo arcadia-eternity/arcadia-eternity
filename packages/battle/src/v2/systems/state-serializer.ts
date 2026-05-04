@@ -39,7 +39,7 @@ export function worldToBattleState(
   viewerId?: string,
   showHidden = false,
 ): BattleState {
-  const { playerSystem, petSystem, markSystem, skillSystem, attrSystem } = systems
+  const { playerSystem, markSystem } = systems
   const playerAId = world.state.playerAId as string
   const playerBId = world.state.playerBId as string
 
@@ -99,7 +99,7 @@ function serializePet(world: World, systems: StateSerializerSystems, petEntityId
     name: shouldShowDetails ? petSystem.getName(world, petEntityId) : '',
     id: pet.id as unknown as petId,
     speciesID: shouldShowDetails ? (petSystem.getSpeciesId(world, petEntityId) as unknown as speciesId) : ('' as speciesId),
-    element: shouldShowDetails ? (petSystem.getElement(world, petEntityId) as any) : Element.Normal as any,
+    element: shouldShowDetails ? petSystem.getElement(world, petEntityId) : Element.Normal,
     level: shouldShowDetails ? petSystem.getLevel(world, petEntityId) : 0,
     currentHp: shouldShowDetails ? petSystem.getCurrentHp(world, petEntityId) : 0,
     maxHp: shouldShowDetails ? maxHp : 0,
@@ -118,14 +118,14 @@ function serializePet(world: World, systems: StateSerializerSystems, petEntityId
           isUnknown: true,
           id: sid as unknown as skillId,
           baseId: '' as baseSkillId,
-          category: Category.Physical as any,
-          element: Element.Normal as any,
+          category: Category.Physical,
+          element: Element.Normal,
           power: 0,
           rage: 0,
           accuracy: 0,
           priority: 0,
-          target: AttackTargetOpinion.opponent as any,
-          multihit: 1 as any,
+          target: AttackTargetOpinion.opponent,
+          multihit: 1,
           sureHit: false,
           tag: [],
         }
@@ -134,14 +134,14 @@ function serializePet(world: World, systems: StateSerializerSystems, petEntityId
         isUnknown: false,
         id: sid as unknown as skillId,
         baseId: skill.baseSkillId as unknown as baseSkillId,
-        category: skillSystem.getCategory(world, sid) as any,
-        element: skillSystem.getElement(world, sid) as any,
+        category: skillSystem.getCategory(world, sid),
+        element: skillSystem.getElement(world, sid),
         power: skillSystem.getPower(world, sid),
         rage: skillSystem.getRage(world, sid),
         accuracy: skillSystem.getAccuracy(world, sid),
         priority: skillSystem.getPriority(world, sid),
-        target: skillSystem.getTarget(world, sid) as any,
-        multihit: skillSystem.getMultihit(world, sid) as any,
+        target: skillSystem.getTarget(world, sid),
+        multihit: skillSystem.getMultihit(world, sid),
         sureHit: skillSystem.getSureHit(world, sid),
         tag: skillSystem.getTags(world, sid),
         modifierState: isViewer || showHidden
@@ -242,7 +242,7 @@ function serializeMark(world: World, systems: Pick<StateSerializerSystems, 'mark
     stack: systems.markSystem.getStack(world, mark.id),
     duration: systems.markSystem.getDuration(world, mark.id),
     isActive: systems.markSystem.isActive(world, mark.id),
-    config: systems.markSystem.getConfig(world, mark.id) as unknown as Partial<MarkConfig>,
+    config: systems.markSystem.getConfig(world, mark.id) as Partial<MarkConfig>,
   }
 }
 

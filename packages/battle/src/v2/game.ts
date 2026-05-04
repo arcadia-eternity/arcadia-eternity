@@ -37,7 +37,6 @@ import {
 } from './systems/interpreter/selector-registry.js'
 import { registerDefaultSelectorHandlers } from './systems/interpreter/selector.js'
 import { registerSeer2Phases } from './phases/index.js'
-import { createBattleState } from './types/battle-state.js'
 import type { BattleSystems } from './types/battle-systems.js'
 
 import { SpeciesSchema } from './schemas/species.schema.js'

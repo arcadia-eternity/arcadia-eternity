@@ -65,6 +65,7 @@ export class InMemoryPeerTransport implements SignalingPeerTransport {
   }
 
   async handleSignal(_signal: PeerTransportSignal): Promise<void> {
+    void _signal;
     // in-memory transport does not require external signaling
   }
 

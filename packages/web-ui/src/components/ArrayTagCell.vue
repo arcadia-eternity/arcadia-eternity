@@ -139,7 +139,7 @@ const toggleEditMode = () => {
 }
 
 // 启动编辑项
-const startEdit = async (index: number, value: any) => {
+const startEdit = async (index: number, value: unknown) => {
   if (!props.editable) return
 
   editingIndex.value = index
@@ -245,7 +245,7 @@ const parseEditedValue = (value: string) => {
 }
 
 // 编辑值格式化
-const formatValueForEditing = (value: any): string => {
+const formatValueForEditing = (value: unknown): string => {
   if (typeof value === 'object') {
     return JSON.stringify(value)
   }

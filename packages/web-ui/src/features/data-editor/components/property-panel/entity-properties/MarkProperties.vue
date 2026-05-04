@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { TSchema } from '@sinclair/typebox'
 import { translateEntityName } from '../../../schemas/editorSchemas'
 import type { MarkSchemaType } from '@arcadia-eternity/schema'
 import { useGameConfig } from '../../../game-config'
@@ -9,10 +10,10 @@ import MarkIcon from '@/components/MarkIcon.vue'
 import RichSchemaRenderer from '../rich-editors/RichSchemaRenderer.vue'
 import type { RichEditorMetadata } from '../rich-editors/types'
 
-const props = defineProps<{
+defineProps<{
   record: MarkSchemaType | null
   draft: Record<string, unknown> | null
-  schema: any
+  schema: TSchema
 }>()
 const emit = defineEmits<{ 'update:draft': [draft: Record<string, unknown>] }>()
 

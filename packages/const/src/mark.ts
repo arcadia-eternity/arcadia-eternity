@@ -20,5 +20,5 @@ export type MarkConfig = {
   transferOnSwitch: boolean
   inheritOnFaint: boolean
   mutexGroup?: string
-  [id: string]: any
+  [id: string]: unknown
 }

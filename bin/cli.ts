@@ -5,8 +5,6 @@ import fs from 'fs/promises'
 import yaml from 'yaml'
 import type { TeamConfig, V2DataRepository } from '@arcadia-eternity/battle'
 import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
-import { fileURLToPath } from 'node:url'
-import { dirname } from 'node:path'
 import type { playerId, BattleMessage, PlayerSelection } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import {
@@ -16,13 +14,11 @@ import {
 // 加载环境变量
 dotenv.config()
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
 
 function toTeamConfig(player: PlayerSchemaType): TeamConfig {
   return {
     name: player.name,
-    team: player.team.map((pet: any) => ({
+      team: player.team.map((pet) => ({
       name: pet.name,
       species: pet.species,
       level: pet.level,
@@ -40,7 +36,8 @@ function toTeamConfig(player: PlayerSchemaType): TeamConfig {
 }
 
 // 解析玩家文件
-async function parsePlayerFile(filePath: string, _options: { validateData?: boolean } = {}): Promise<PlayerSchemaType> {
+async function parsePlayerFile(filePath: string): Promise<PlayerSchemaType> {
+  void _options;
   try {
     console.log(`[🔍] 正在解析玩家文件: ${filePath}`)
 
@@ -63,7 +60,7 @@ async function parsePlayerFile(filePath: string, _options: { validateData?: bool
     try {
       rawData = yaml.parse(content)
     } catch (yamlError) {
-      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`)
+      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`, { cause: yamlError })
     }
 
     // 基本数据验证
@@ -113,7 +110,7 @@ async function parsePlayerFile(filePath: string, _options: { validateData?: bool
     return player
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
-    throw new Error(`无法解析玩家文件 ${filePath}: ${errorMessage}`)
+    throw new Error(`无法解析玩家文件 ${filePath}: ${errorMessage}`, { cause: err })
   }
 }
 
@@ -242,8 +239,8 @@ program
       })
 
       console.log('[🌀] 正在解析玩家数据...')
-      let player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
-      let player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
+      const player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
+      const player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
 
       const aiControl = new Set<playerId>()
 
@@ -609,7 +606,7 @@ program
       const corsOrigins = options.corsOrigin.split(',').map((origin: string) => origin.trim())
 
       // 使用集群模式应用
-      const { app, start, stop } = createClusterApp({
+      const { start, stop } = createClusterApp({
         port: parseInt(options.port),
         cors: {
           origin: corsOrigins,

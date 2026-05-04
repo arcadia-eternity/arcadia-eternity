@@ -28,6 +28,7 @@ export class EffectEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken,
   ): Promise<void> {
+    void _token;
     webviewPanel.webview.options = {
       enableScripts: true,
     }

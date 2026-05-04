@@ -7,12 +7,11 @@ import eslintConfigPrettier from "eslint-config-prettier";
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
-    ignores: ["dist/", "tsconfig.json", "test/"]
+    ignores: ["**/dist/**", "**/test/**", "tsconfig.json", "packages/web-ui/**", "tools/load-test-cluster.js"]
   },
   { files: ["**/*.{js,mjs,cjs,ts}"] },
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
-  ...eslintPluginVue.configs['flat/recommended'],
 ];

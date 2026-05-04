@@ -25,6 +25,7 @@ import { createBattleReportRoutes } from '../../app/routes/battleReportRoutes'
 import { createEmailInheritanceRoutes } from '../../app/routes/emailInheritanceRoutes'
 import { createAuthRoutes } from '../../app/routes/authRoutes'
 import { createSessionRoutes } from '../../app/routes/sessionRoutes'
+import type { SessionManager } from '../../domain/auth/services/sessionManager'
 import { createResourceStatusRoutes } from '../../app/routes/resourceStatusRoutes'
 import eloRoutes from '../../app/routes/elo'
 import ruleSetsRoutes from '../../app/routes/rulesets'
@@ -178,7 +179,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
             ...basicHealth,
             cluster: clusterHealth,
           })
-        } catch (error) {
+        } catch {
           res.json({
             ...basicHealth,
             cluster: {
@@ -257,7 +258,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       const metrics = await performanceTracker.getMetrics()
       res.set('Content-Type', 'text/plain')
       res.send(metrics)
-    } catch (error) {
+    } catch {
       res.status(500).send('Error retrieving metrics')
     }
   })
@@ -317,10 +318,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   let clientRealtimeGateway: ClientRealtimeGateway<ClientToServerEvents, ServerToClientEvents>
   let battleServer: ClusterBattleServer
   let rpcServer: BattleRpcServer
-  let sessionManager: any // SessionManager实例
-  let runtimeRedisManager: any
-  let runtimeLockManager: any
-  let runtimeStateManager: any
+  let sessionManager: SessionManager // SessionManager实例
+  let runtimeRedisManager: RedisClientManager | InMemoryRedisClientManager
+  let runtimeLockManager: DistributedLockManager
+  let runtimeStateManager: ClusterStateManager
 
   // 设置基础 API 路由
   const apiRouter = express.Router()
@@ -372,16 +373,16 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       } else {
         const forceInMemoryRedis = process.env.SINGLE_INSTANCE_INMEMORY_REDIS === 'true'
         if (!forceInMemoryRedis) {
-          runtimeRedisManager = RedisClientManager.getInstance(finalConfig.cluster!.redis) as any
+          runtimeRedisManager = RedisClientManager.getInstance(finalConfig.cluster!.redis)
           await runtimeRedisManager.initialize()
           logger.info('Single-instance mode uses external Redis backend')
         } else {
-          runtimeRedisManager = new InMemoryRedisClientManager(finalConfig.cluster!.redis) as any
+          runtimeRedisManager = new InMemoryRedisClientManager(finalConfig.cluster!.redis)
           await runtimeRedisManager.initialize()
           logger.warn('Single-instance mode forced to use in-memory Redis (non-persistent)')
         }
-        runtimeLockManager = new DistributedLockManager(runtimeRedisManager) as any
-        runtimeStateManager = new ClusterStateManager(runtimeRedisManager, runtimeLockManager, finalConfig.cluster!) as any
+        runtimeLockManager = new DistributedLockManager(runtimeRedisManager)
+        runtimeStateManager = new ClusterStateManager(runtimeRedisManager, runtimeLockManager, finalConfig.cluster!)
         await runtimeStateManager.initialize()
       }
 

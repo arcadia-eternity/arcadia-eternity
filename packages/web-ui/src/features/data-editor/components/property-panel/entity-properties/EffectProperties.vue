@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import type { OperatorDSL, EvaluatorDSL, ConditionDSL, Value } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 import EffectHeader from './effect-editor/EffectHeader.vue'
 import SelectorBuilder from './effect-editor/SelectorBuilder.vue'
@@ -12,7 +13,6 @@ import EffectFooter from './effect-editor/EffectFooter.vue'
 import { useEffectTyping } from './effect-editor/composables/useEffectTyping'
 import { useEffectValidation } from './effect-editor/composables/useEffectValidation'
 import type { ValidationResult } from './effect-editor/composables/useEffectValidation'
-import { useTemplateDiscovery } from './effect-editor/composables/useTemplateDiscovery'
 
 const props = defineProps<{
   record: Record<string, unknown> | null
@@ -26,7 +26,6 @@ const emit = defineEmits<{
 
 const gameData = useGameDataStore()
 const typing = useEffectTyping()
-const templates = useTemplateDiscovery(computed(() => gameData.effectsList))
 
 const gameDataRef = computed(() => ({
   marks: gameData.marks,
@@ -68,12 +67,16 @@ const validationWarnings = computed<ValidationResult[]>(() => validation.warning
 const validationRefErrors = computed<ValidationResult[]>(() => validation.referenceErrors.value)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
-watch(() => props.draft, () => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    validation.validate(props.draft)
-  }, 300)
-}, { deep: true, immediate: true })
+watch(
+  () => props.draft,
+  () => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      validation.validate(props.draft)
+    }, 300)
+  },
+  { deep: true, immediate: true },
+)
 
 function applyTypingConstraints(
   field: unknown,
@@ -98,6 +101,14 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
   if (!opModel || typeof opModel !== 'object') return undefined
   return (opModel as Record<string, unknown>).type as string | undefined
 }
+
+function castValue(v: unknown): Value {
+  return v as unknown as Value
+}
+
+function castEvaluator(v: unknown): EvaluatorDSL {
+  return v as unknown as EvaluatorDSL
+}
 </script>
 
 <template>
@@ -111,18 +122,8 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
     />
 
     <div class="effect-tabs">
-      <button
-        :class="['tab-btn', { active: activeTab === 'editor' }]"
-        @click="activeTab = 'editor'"
-      >
-        可视化编辑
-      </button>
-      <button
-        :class="['tab-btn', { active: activeTab === 'monaco' }]"
-        @click="activeTab = 'monaco'"
-      >
-        YAML 源码
-      </button>
+      <button :class="['tab-btn', { active: activeTab === 'editor' }]" @click="activeTab = 'editor'">可视化编辑</button>
+      <button :class="['tab-btn', { active: activeTab === 'monaco' }]" @click="activeTab = 'monaco'">YAML 源码</button>
     </div>
 
     <div v-if="activeTab === 'editor'" class="effect-body">
@@ -132,14 +133,11 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
           <span class="section-hint">— 触发器触发时执行的操作</span>
         </div>
         <OperatorListEditor
-          :model-value="(getField('apply') as any) ?? {}"
-          @update:model-value="(v) => updateField('apply', v)"
+          :model-value="(getField('apply') as OperatorDSL | OperatorDSL[]) ?? {}"
+          @update:model-value="v => updateField('apply', v)"
         >
           <template #operator="{ modelValue, update }">
-            <OperatorEditor
-              :model-value="(modelValue ?? { type: 'TODO' } as any)"
-              @update:model-value="update"
-            >
+            <OperatorEditor :model-value="modelValue ?? ({ type: 'TODO' } as OperatorDSL)" @update:model-value="update">
               <template #target="{ modelValue: tv, update: tu, field }">
                 <SelectorBuilder
                   :model-value="tv"
@@ -147,37 +145,79 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
                   @update:model-value="tu"
                 >
                   <template #evaluator="{ modelValue: ev, update: eu }">
-                    <EvaluatorEditor :model-value="(ev as any)" @update:model-value="eu">
+                    <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                       <template #value="{ modelValue: evv, update: evu }">
-                        <ValueEditor :model-value="evv" @update:model-value="evu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                        <ValueEditor :model-value="evv" @update:model-value="evu"
+                          ><template #selector="{ modelValue: dsv, update: dsu }"
+                            ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                              ><template #value="{ modelValue: dcv, update: dcu }"
+                                ><ValueEditor
+                                  :model-value="castValue(dcv)"
+                                  @update:model-value="dcu" /></template></SelectorBuilder></template
+                        ></ValueEditor>
                       </template>
                     </EvaluatorEditor>
                   </template>
                   <template #value="{ modelValue: cv, update: cu }">
-                    <ValueEditor :model-value="cv" @update:model-value="cu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                    <ValueEditor :model-value="castValue(cv)" @update:model-value="cu"
+                      ><template #selector="{ modelValue: dsv, update: dsu }"
+                        ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                          ><template #value="{ modelValue: dcv, update: dcu }"
+                            ><ValueEditor
+                              :model-value="castValue(dcv)"
+                              @update:model-value="dcu" /></template></SelectorBuilder></template
+                    ></ValueEditor>
                   </template>
                   <template #condition="{ modelValue: ccv, update: ccu }">
-                    <ConditionTreeEditor :model-value="(ccv as any)" @update:model-value="ccu">
+                    <ConditionTreeEditor :model-value="ccv as ConditionDSL" @update:model-value="(v) => ccu(v as ConditionDSL)">
                       <template #selector="{ modelValue: csv, update: csu }">
                         <SelectorBuilder :model-value="csv" @update:model-value="csu" />
                       </template>
                       <template #value="{ modelValue: cvv, update: cvu }">
-                        <ValueEditor :model-value="cvv" @update:model-value="cvu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                        <ValueEditor :model-value="cvv" @update:model-value="cvu"
+                          ><template #selector="{ modelValue: dsv, update: dsu }"
+                            ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                              ><template #value="{ modelValue: dcv, update: dcu }"
+                                ><ValueEditor
+                                  :model-value="castValue(dcv)"
+                                  @update:model-value="dcu" /></template></SelectorBuilder></template
+                        ></ValueEditor>
                       </template>
                       <template #condition="{ modelValue: ccv2, update: ccu2 }">
-                        <EvaluatorEditor :model-value="ccv2" @update:model-value="ccu2">
+                        <EvaluatorEditor :model-value="ccv2 as EvaluatorDSL" @update:model-value="ccu2">
                           <template #value="{ modelValue: evv2, update: evu2 }">
-                            <ValueEditor :model-value="evv2" @update:model-value="evu2"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                            <ValueEditor :model-value="evv2" @update:model-value="evu2"
+                              ><template #selector="{ modelValue: dsv, update: dsu }"
+                                ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                                  ><template #value="{ modelValue: dcv, update: dcu }"
+                                    ><ValueEditor
+                                      :model-value="castValue(dcv)"
+                                      @update:model-value="dcu" /></template></SelectorBuilder></template
+                            ></ValueEditor>
                           </template>
                         </EvaluatorEditor>
                       </template>
                     </ConditionTreeEditor>
                   </template>
                   <template #trueValue="{ modelValue: tvv, update: tvu }">
-                    <ValueEditor :model-value="tvv" @update:model-value="tvu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                    <ValueEditor :model-value="castValue(tvv)" @update:model-value="tvu"
+                      ><template #selector="{ modelValue: dsv, update: dsu }"
+                        ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                          ><template #value="{ modelValue: dcv, update: dcu }"
+                            ><ValueEditor
+                              :model-value="castValue(dcv)"
+                              @update:model-value="dcu" /></template></SelectorBuilder></template
+                    ></ValueEditor>
                   </template>
                   <template #falseValue="{ modelValue: fvv, update: fvu }">
-                    <ValueEditor :model-value="fvv" @update:model-value="fvu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                    <ValueEditor :model-value="castValue(fvv)" @update:model-value="fvu"
+                      ><template #selector="{ modelValue: dsv, update: dsu }"
+                        ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                          ><template #value="{ modelValue: dcv, update: dcu }"
+                            ><ValueEditor
+                              :model-value="castValue(dcv)"
+                              @update:model-value="dcu" /></template></SelectorBuilder></template
+                    ></ValueEditor>
                   </template>
                 </SelectorBuilder>
               </template>
@@ -190,71 +230,118 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
                   <template #selector="{ modelValue: dsv, update: dsu }">
                     <SelectorBuilder :model-value="dsv" @update:model-value="dsu">
                       <template #evaluator="{ modelValue: dev, update: deu }">
-                        <EvaluatorEditor :model-value="(dev as any)" @update:model-value="deu">
+                        <EvaluatorEditor :model-value="dev as EvaluatorDSL" @update:model-value="deu">
                           <template #value="{ modelValue: devv, update: devu }">
-                            <ValueEditor :model-value="devv" @update:model-value="devu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                            <ValueEditor :model-value="devv" @update:model-value="devu"
+                              ><template #selector="{ modelValue: dsv, update: dsu }"
+                                ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                                  ><template #value="{ modelValue: dcv, update: dcu }"
+                                    ><ValueEditor
+                                      :model-value="castValue(dcv)"
+                                      @update:model-value="dcu" /></template></SelectorBuilder></template
+                            ></ValueEditor>
                           </template>
                         </EvaluatorEditor>
                       </template>
                       <template #value="{ modelValue: dcv, update: dcu }">
-                        <ValueEditor :model-value="dcv" @update:model-value="dcu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                        <ValueEditor :model-value="castValue(dcv)" @update:model-value="dcu"
+                          ><template #selector="{ modelValue: dsv, update: dsu }"
+                            ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                              ><template #value="{ modelValue: dcv, update: dcu }"
+                                ><ValueEditor
+                                  :model-value="castValue(dcv)"
+                                  @update:model-value="dcu" /></template></SelectorBuilder></template
+                        ></ValueEditor>
                       </template>
                     </SelectorBuilder>
                   </template>
                 </ValueEditor>
               </template>
               <template #condition="{ modelValue: cv, update: cu }">
-                <ConditionTreeEditor
-                  :model-value="cv"
-                  @update:model-value="cu"
-                >
+                <ConditionTreeEditor :model-value="cv" @update:model-value="cu">
                   <template #selector="{ modelValue: sv, update: su }">
                     <SelectorBuilder :model-value="sv" @update:model-value="su">
                       <template #evaluator="{ modelValue: ev, update: eu }">
-                        <EvaluatorEditor :model-value="(ev as any)" @update:model-value="eu">
+                        <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                           <template #value="{ modelValue: evv, update: evu }">
-                            <ValueEditor :model-value="evv" @update:model-value="evu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                            <ValueEditor :model-value="evv" @update:model-value="evu"
+                              ><template #selector="{ modelValue: dsv, update: dsu }"
+                                ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                                  ><template #value="{ modelValue: dcv, update: dcu }"
+                                    ><ValueEditor
+                                      :model-value="castValue(dcv)"
+                                      @update:model-value="dcu" /></template></SelectorBuilder></template
+                            ></ValueEditor>
                           </template>
                         </EvaluatorEditor>
                       </template>
                       <template #value="{ modelValue: cv2, update: cu2 }">
-                        <ValueEditor :model-value="cv2" @update:model-value="cu2"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                        <ValueEditor :model-value="castValue(cv2)" @update:model-value="cu2"
+                          ><template #selector="{ modelValue: dsv, update: dsu }"
+                            ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                              ><template #value="{ modelValue: dcv, update: dcu }"
+                                ><ValueEditor
+                                  :model-value="castValue(dcv)"
+                                  @update:model-value="dcu" /></template></SelectorBuilder></template
+                        ></ValueEditor>
                       </template>
                     </SelectorBuilder>
                   </template>
-                  <template #value="{ modelValue: vv2, update: vu2 }">
-                    <ValueEditor :model-value="vv2" @update:model-value="vu2"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
-                  </template>
                   <template #condition="{ modelValue: cv2, update: cu2 }">
-                    <EvaluatorEditor :model-value="cv2" @update:model-value="cu2">
+                    <EvaluatorEditor :model-value="castEvaluator(cv2)" @update:model-value="cu2">
                       <template #value="{ modelValue: vv3, update: vu3 }">
-                        <ValueEditor :model-value="vv3" @update:model-value="vu3"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                        <ValueEditor :model-value="vv3" @update:model-value="vu3"
+                          ><template #selector="{ modelValue: dsv, update: dsu }"
+                            ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                              ><template #value="{ modelValue: dcv, update: dcu }"
+                                ><ValueEditor
+                                  :model-value="castValue(dcv)"
+                                  @update:model-value="dcu" /></template></SelectorBuilder></template
+                        ></ValueEditor>
                       </template>
                     </EvaluatorEditor>
                   </template>
                 </ConditionTreeEditor>
               </template>
               <template #operator="{ modelValue: ov, update: ou }">
-                <OperatorEditor
-                  :model-value="ov"
-                  @update:model-value="ou"
-                >
+                <OperatorEditor :model-value="ov" @update:model-value="ou">
                   <template #target="{ modelValue: tv2, update: tu2 }">
                     <SelectorBuilder :model-value="tv2" @update:model-value="tu2">
                       <template #evaluator="{ modelValue: ev, update: eu }">
-                        <EvaluatorEditor :model-value="(ev as any)" @update:model-value="eu">
+                        <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                           <template #value="{ modelValue: evv, update: evu }">
-                            <ValueEditor :model-value="evv" @update:model-value="evu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                            <ValueEditor :model-value="evv" @update:model-value="evu"
+                              ><template #selector="{ modelValue: dsv, update: dsu }"
+                                ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                                  ><template #value="{ modelValue: dcv, update: dcu }"
+                                    ><ValueEditor
+                                      :model-value="castValue(dcv)"
+                                      @update:model-value="dcu" /></template></SelectorBuilder></template
+                            ></ValueEditor>
                           </template>
                         </EvaluatorEditor>
                       </template>
                       <template #value="{ modelValue: cv2, update: cu2 }">
-                        <ValueEditor :model-value="cv2" @update:model-value="cu2"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                        <ValueEditor :model-value="castValue(cv2)" @update:model-value="cu2"
+                          ><template #selector="{ modelValue: dsv, update: dsu }"
+                            ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                              ><template #value="{ modelValue: dcv, update: dcu }"
+                                ><ValueEditor
+                                  :model-value="castValue(dcv)"
+                                  @update:model-value="dcu" /></template></SelectorBuilder></template
+                        ></ValueEditor>
                       </template>
                     </SelectorBuilder>
                   </template>
                   <template #value="{ modelValue: vv4, update: vu4 }">
-                    <ValueEditor :model-value="vv4" @update:model-value="vu4"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                    <ValueEditor :model-value="castValue(vv4)" @update:model-value="vu4"
+                      ><template #selector="{ modelValue: dsv, update: dsu }"
+                        ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                          ><template #value="{ modelValue: dcv, update: dcu }"
+                            ><ValueEditor
+                              :model-value="castValue(dcv)"
+                              @update:model-value="dcu" /></template></SelectorBuilder></template
+                    ></ValueEditor>
                   </template>
                 </OperatorEditor>
               </template>
@@ -269,45 +356,80 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
           <span class="section-hint">— 可选，满足条件时才执行</span>
         </div>
         <ConditionTreeEditor
-          :model-value="(getField('condition') as any) ?? undefined"
-          @update:model-value="(v) => updateField('condition', v)"
+          :model-value="(getField('condition') as ConditionDSL | undefined) ?? undefined"
+          @update:model-value="v => updateField('condition', v)"
         >
           <template #selector="{ modelValue: sv, update: su }">
             <SelectorBuilder :model-value="sv" @update:model-value="su">
               <template #evaluator="{ modelValue: ev, update: eu }">
-                <EvaluatorEditor :model-value="(ev as any)" @update:model-value="eu">
+                <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                   <template #value="{ modelValue: evv, update: evu }">
-                    <ValueEditor :model-value="evv" @update:model-value="evu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                    <ValueEditor :model-value="evv" @update:model-value="evu"
+                      ><template #selector="{ modelValue: dsv, update: dsu }"
+                        ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                          ><template #value="{ modelValue: dcv, update: dcu }"
+                            ><ValueEditor
+                              :model-value="castValue(dcv)"
+                              @update:model-value="dcu" /></template></SelectorBuilder></template
+                    ></ValueEditor>
                   </template>
                 </EvaluatorEditor>
               </template>
               <template #value="{ modelValue: cv, update: cu }">
-                <ValueEditor :model-value="cv" @update:model-value="cu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                <ValueEditor :model-value="castValue(cv)" @update:model-value="cu"
+                  ><template #selector="{ modelValue: dsv, update: dsu }"
+                    ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                      ><template #value="{ modelValue: dcv, update: dcu }"
+                        ><ValueEditor
+                          :model-value="castValue(dcv)"
+                          @update:model-value="dcu" /></template></SelectorBuilder></template
+                ></ValueEditor>
               </template>
             </SelectorBuilder>
           </template>
           <template #value="{ modelValue: vv, update: vu }">
-            <ValueEditor :model-value="vv" @update:model-value="vu">
+            <ValueEditor :model-value="castValue(vv)" @update:model-value="vu">
               <template #selector="{ modelValue: dsv, update: dsu }">
                 <SelectorBuilder :model-value="dsv" @update:model-value="dsu">
                   <template #evaluator="{ modelValue: dev, update: deu }">
-                    <EvaluatorEditor :model-value="(dev as any)" @update:model-value="deu">
+                    <EvaluatorEditor :model-value="dev as EvaluatorDSL" @update:model-value="deu">
                       <template #value="{ modelValue: devv, update: devu }">
-                        <ValueEditor :model-value="devv" @update:model-value="devu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                        <ValueEditor :model-value="devv" @update:model-value="devu"
+                          ><template #selector="{ modelValue: dsv, update: dsu }"
+                            ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                              ><template #value="{ modelValue: dcv, update: dcu }"
+                                ><ValueEditor
+                                  :model-value="castValue(dcv)"
+                                  @update:model-value="dcu" /></template></SelectorBuilder></template
+                        ></ValueEditor>
                       </template>
                     </EvaluatorEditor>
                   </template>
                   <template #value="{ modelValue: dcv, update: dcu }">
-                    <ValueEditor :model-value="dcv" @update:model-value="dcu"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                    <ValueEditor :model-value="castValue(dcv)" @update:model-value="dcu"
+                      ><template #selector="{ modelValue: dsv, update: dsu }"
+                        ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                          ><template #value="{ modelValue: dcv, update: dcu }"
+                            ><ValueEditor
+                              :model-value="castValue(dcv)"
+                              @update:model-value="dcu" /></template></SelectorBuilder></template
+                    ></ValueEditor>
                   </template>
                 </SelectorBuilder>
               </template>
             </ValueEditor>
           </template>
           <template #condition="{ modelValue: cv, update: cu }">
-            <EvaluatorEditor :model-value="cv" @update:model-value="cu">
+            <EvaluatorEditor :model-value="castEvaluator(cv)" @update:model-value="cu">
               <template #value="{ modelValue: vv2, update: vu2 }">
-                <ValueEditor :model-value="vv2" @update:model-value="vu2"><template #selector="{ modelValue: dsv, update: dsu }"><SelectorBuilder :model-value="dsv" @update:model-value="dsu"><template #value="{ modelValue: dcv, update: dcu }"><ValueEditor :model-value="dcv" @update:model-value="dcu" /></template></SelectorBuilder></template></ValueEditor>
+                <ValueEditor :model-value="vv2" @update:model-value="vu2"
+                  ><template #selector="{ modelValue: dsv, update: dsu }"
+                    ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
+                      ><template #value="{ modelValue: dcv, update: dcu }"
+                        ><ValueEditor
+                          :model-value="castValue(dcv)"
+                          @update:model-value="dcu" /></template></SelectorBuilder></template
+                ></ValueEditor>
               </template>
             </EvaluatorEditor>
           </template>
@@ -315,27 +437,27 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
       </div>
 
       <EffectFooter
-        :model-value="{ consumesStacks: (getField('consumesStacks') as number), tags: (getField('tags') as string[] | undefined) }"
-        @update:model-value="(v) => { updateField('consumesStacks', v.consumesStacks); updateField('tags', v.tags) }"
+        :model-value="{
+          consumesStacks: getField('consumesStacks') as number,
+          tags: getField('tags') as string[] | undefined,
+        }"
+        @update:model-value="
+          v => {
+            updateField('consumesStacks', v.consumesStacks)
+            updateField('tags', v.tags)
+          }
+        "
       />
 
       <div v-if="validationErrors.length > 0" class="validation-errors">
-        <div
-          v-for="(err, i) in validationErrors"
-          :key="i"
-          class="validation-error-item"
-        >
+        <div v-for="(err, i) in validationErrors" :key="i" class="validation-error-item">
           <span class="error-badge L1">L1</span>
           <span>{{ err.message }}</span>
         </div>
       </div>
 
       <div v-if="validationWarnings.length > 0" class="validation-warnings">
-        <div
-          v-for="(warn, i) in validationWarnings"
-          :key="i"
-          class="validation-warn-item"
-        >
+        <div v-for="(warn, i) in validationWarnings" :key="i" class="validation-warn-item">
           <span class="warn-badge">⚠</span>
           <span>{{ warn.message }}</span>
         </div>
@@ -343,11 +465,7 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
 
       <div v-if="validationRefErrors.length > 0" class="validation-ref-errors">
         <div class="ref-errors-header">⚠ 引用完整性检查</div>
-        <div
-          v-for="(err, i) in validationRefErrors"
-          :key="i"
-          class="validation-ref-item"
-        >
+        <div v-for="(err, i) in validationRefErrors" :key="i" class="validation-ref-item">
           <span class="error-badge L3">L3</span>
           <span>{{ err.message }}</span>
         </div>
@@ -383,7 +501,9 @@ function getOperatorTypeFromModel(opModel: unknown): string | undefined {
   border-bottom: 2px solid transparent;
   color: var(--ae-text-muted);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .tab-btn.active {

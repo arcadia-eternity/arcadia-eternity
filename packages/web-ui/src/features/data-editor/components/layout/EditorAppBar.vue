@@ -12,7 +12,7 @@
  */
 import { inject } from 'vue'
 import { Document, RefreshRight, VideoPlay } from '@element-plus/icons-vue'
-import { ElInput, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon, ElTooltip } from 'element-plus'
+import { ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon, ElTooltip } from 'element-plus'
 import { useEditorState } from '../../composables/useEditorState'
 import GlobalSearch from './GlobalSearch.vue'
 

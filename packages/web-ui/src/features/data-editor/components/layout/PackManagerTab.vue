@@ -9,11 +9,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { listWorkspacePacks, setWorkspacePackEnabled, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { useEditorState } from '../../composables/useEditorState'
-import { useGameDataStore } from '@/stores/gameData'
 import PackLayeringView from './PackLayeringView.vue'
 
 const editorState = useEditorState()
-const gameData = useGameDataStore()
 
 const packs = ref<WorkspacePackSummary[]>([])
 const loading = ref(false)

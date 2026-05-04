@@ -181,16 +181,16 @@ export class BattleRpcServer {
   // === RPC方法实现 ===
 
   private async handleSubmitPlayerSelection(
-    call: grpc.ServerUnaryCall<PlayerSelectionRequest, any>,
+    call: grpc.ServerUnaryCall<PlayerSelectionRequest, PlayerSelectionResponse>,
     callback: grpc.sendUnaryData<PlayerSelectionResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
-      const selectionData = (call.request as any).selection_data ?? (call.request as any).selectionData
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
+      const selectionData = (call.request as Record<string, unknown>).selection_data ?? (call.request as Record<string, unknown>).selectionData
       logger.debug({ roomId, playerId }, 'RPC: SubmitPlayerSelection')
 
-      const selectionObj = JSON.parse(selectionData)
+      const selectionObj = JSON.parse(selectionData as string)
       const result = await this.battleServer.handleLocalPlayerSelection(roomId, playerId, selectionObj)
 
       callback(null, {
@@ -209,12 +209,12 @@ export class BattleRpcServer {
   }
 
   private async handleGetAvailableSelection(
-    call: grpc.ServerUnaryCall<SelectionRequest, any>,
+    call: grpc.ServerUnaryCall<SelectionRequest, SelectionResponse>,
     callback: grpc.sendUnaryData<SelectionResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetAvailableSelection')
 
       const result = await this.battleServer.handleLocalGetSelection(roomId, playerId)
@@ -235,12 +235,12 @@ export class BattleRpcServer {
   }
 
   private async handleGetBattleState(
-    call: grpc.ServerUnaryCall<BattleStateRequest, any>,
+    call: grpc.ServerUnaryCall<BattleStateRequest, BattleStateResponse>,
     callback: grpc.sendUnaryData<BattleStateResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetBattleState')
 
       const battleState = await this.battleServer.handleLocalGetState(roomId, playerId)
@@ -261,12 +261,12 @@ export class BattleRpcServer {
   }
 
   private async handlePlayerReady(
-    call: grpc.ServerUnaryCall<ReadyRequest, any>,
+    call: grpc.ServerUnaryCall<ReadyRequest, ReadyResponse>,
     callback: grpc.sendUnaryData<ReadyResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
       logger.debug({ roomId, playerId }, 'RPC: PlayerReady')
 
       const result = await this.battleServer.handleLocalReady(roomId, playerId)
@@ -287,12 +287,12 @@ export class BattleRpcServer {
   }
 
   private async handlePlayerAbandon(
-    call: grpc.ServerUnaryCall<AbandonRequest, any>,
+    call: grpc.ServerUnaryCall<AbandonRequest, AbandonResponse>,
     callback: grpc.sendUnaryData<AbandonResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
       logger.debug({ roomId, playerId }, 'RPC: PlayerAbandon')
 
       const result = await this.battleServer.handleLocalPlayerAbandon(roomId, playerId)
@@ -313,16 +313,16 @@ export class BattleRpcServer {
   }
 
   private async handleReportAnimationEnd(
-    call: grpc.ServerUnaryCall<AnimationEndRequest, any>,
+    call: grpc.ServerUnaryCall<AnimationEndRequest, AnimationEndResponse>,
     callback: grpc.sendUnaryData<AnimationEndResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
-      const animationData = (call.request as any).animation_data ?? (call.request as any).animationData
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
+      const animationData = (call.request as Record<string, unknown>).animation_data ?? (call.request as Record<string, unknown>).animationData
       logger.debug({ roomId, playerId }, 'RPC: ReportAnimationEnd')
 
-      const animationObj = JSON.parse(animationData)
+      const animationObj = JSON.parse(animationData as string)
       const result = await this.battleServer.handleLocalReportAnimationEnd(roomId, playerId, animationObj)
 
       callback(null, {
@@ -341,12 +341,12 @@ export class BattleRpcServer {
   }
 
   private async handleIsTimerEnabled(
-    call: grpc.ServerUnaryCall<TimerEnabledRequest, any>,
+    call: grpc.ServerUnaryCall<TimerEnabledRequest, TimerEnabledResponse>,
     callback: grpc.sendUnaryData<TimerEnabledResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
       logger.debug({ roomId, playerId }, 'RPC: IsTimerEnabled')
 
       const result = await this.battleServer.handleLocalIsTimerEnabled(roomId, playerId)
@@ -367,16 +367,16 @@ export class BattleRpcServer {
   }
 
   private async handleGetPlayerTimerState(
-    call: grpc.ServerUnaryCall<PlayerTimerStateRequest, any>,
+    call: grpc.ServerUnaryCall<PlayerTimerStateRequest, PlayerTimerStateResponse>,
     callback: grpc.sendUnaryData<PlayerTimerStateResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
-      const timerData = (call.request as any).timer_data ?? (call.request as any).timerData
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
+      const timerData = (call.request as Record<string, unknown>).timer_data ?? (call.request as Record<string, unknown>).timerData
       logger.debug({ roomId, playerId }, 'RPC: GetPlayerTimerState')
 
-      const timerObj = JSON.parse(timerData)
+      const timerObj = JSON.parse(timerData as string)
       const result = await this.battleServer.handleLocalGetPlayerTimerState(roomId, playerId, timerObj)
 
       callback(null, {
@@ -395,12 +395,12 @@ export class BattleRpcServer {
   }
 
   private async handleGetAllPlayerTimerStates(
-    call: grpc.ServerUnaryCall<AllPlayerTimerStatesRequest, any>,
+    call: grpc.ServerUnaryCall<AllPlayerTimerStatesRequest, AllPlayerTimerStatesResponse>,
     callback: grpc.sendUnaryData<AllPlayerTimerStatesResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetAllPlayerTimerStates')
 
       const result = await this.battleServer.handleLocalGetAllPlayerTimerStates(roomId, playerId)
@@ -421,12 +421,12 @@ export class BattleRpcServer {
   }
 
   private async handleGetTimerConfig(
-    call: grpc.ServerUnaryCall<TimerConfigRequest, any>,
+    call: grpc.ServerUnaryCall<TimerConfigRequest, TimerConfigResponse>,
     callback: grpc.sendUnaryData<TimerConfigResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
       logger.debug({ roomId, playerId }, 'RPC: GetTimerConfig')
 
       const result = await this.battleServer.handleLocalGetTimerConfig(roomId, playerId)
@@ -447,16 +447,16 @@ export class BattleRpcServer {
   }
 
   private async handleStartAnimation(
-    call: grpc.ServerUnaryCall<StartAnimationRequest, any>,
+    call: grpc.ServerUnaryCall<StartAnimationRequest, StartAnimationResponse>,
     callback: grpc.sendUnaryData<StartAnimationResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
-      const animationData = (call.request as any).animation_data ?? (call.request as any).animationData
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
+      const animationData = (call.request as Record<string, unknown>).animation_data ?? (call.request as Record<string, unknown>).animationData
       logger.debug({ roomId, playerId }, 'RPC: StartAnimation')
 
-      const animationObj = JSON.parse(animationData)
+      const animationObj = JSON.parse(animationData as string)
       const result = await this.battleServer.handleLocalStartAnimation(roomId, playerId, animationObj)
 
       callback(null, {
@@ -475,16 +475,16 @@ export class BattleRpcServer {
   }
 
   private async handleEndAnimation(
-    call: grpc.ServerUnaryCall<EndAnimationRequest, any>,
+    call: grpc.ServerUnaryCall<EndAnimationRequest, EndAnimationResponse>,
     callback: grpc.sendUnaryData<EndAnimationResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
-      const animationData = (call.request as any).animation_data ?? (call.request as any).animationData
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
+      const animationData = (call.request as Record<string, unknown>).animation_data ?? (call.request as Record<string, unknown>).animationData
       logger.debug({ roomId, playerId }, 'RPC: EndAnimation')
 
-      const animationObj = JSON.parse(animationData)
+      const animationObj = JSON.parse(animationData as string)
       const result = await this.battleServer.handleLocalEndAnimation(roomId, playerId, animationObj)
 
       callback(null, {
@@ -503,13 +503,13 @@ export class BattleRpcServer {
   }
 
   private async handleTerminateBattle(
-    call: grpc.ServerUnaryCall<TerminateBattleRequest, any>,
+    call: grpc.ServerUnaryCall<TerminateBattleRequest, TerminateBattleResponse>,
     callback: grpc.sendUnaryData<TerminateBattleResponse>,
   ): Promise<void> {
     try {
-      const roomId = (call.request as any).room_id ?? (call.request as any).roomId
-      const playerId = (call.request as any).player_id ?? (call.request as any).playerId
-      const reason = (call.request as any).reason
+      const roomId = (call.request as Record<string, unknown>).room_id ?? (call.request as Record<string, unknown>).roomId
+      const playerId = (call.request as Record<string, unknown>).player_id ?? (call.request as Record<string, unknown>).playerId
+      const reason = (call.request as Record<string, unknown>).reason as string
       logger.debug({ roomId, playerId, reason }, 'RPC: TerminateBattle')
 
       const result = await this.battleServer.handleLocalBattleTermination(roomId, playerId, reason)
@@ -530,12 +530,12 @@ export class BattleRpcServer {
   }
 
   private async handleCreateBattle(
-    call: grpc.ServerUnaryCall<CreateBattleRequest, any>,
+    call: grpc.ServerUnaryCall<CreateBattleRequest, CreateBattleResponse>,
     callback: grpc.sendUnaryData<CreateBattleResponse>,
   ): Promise<void> {
     try {
-      const player1Proto = (call.request as any).player1_entry ?? (call.request as any).player1Entry
-      const player2Proto = (call.request as any).player2_entry ?? (call.request as any).player2Entry
+      const player1Proto = ((call.request as Record<string, unknown>).player1_entry ?? (call.request as Record<string, unknown>).player1Entry) as Record<string, unknown>
+      const player2Proto = ((call.request as Record<string, unknown>).player2_entry ?? (call.request as Record<string, unknown>).player2Entry) as Record<string, unknown>
 
       if (!player1Proto || !player2Proto) {
         throw new Error('Missing player entries in CreateBattle request')
@@ -576,9 +576,9 @@ export class BattleRpcServer {
       }
 
       // 转换观战者
-      const spectators = ((call.request as any).spectators || []).map((s: any) => ({
-        playerId: s.playerId ?? s.player_id,
-        sessionId: s.sessionId ?? s.session_id,
+      const spectators = ((call.request as Record<string, unknown>).spectators || []).map((s: Record<string, unknown>) => ({
+        playerId: (s.playerId ?? s.player_id) as string,
+        sessionId: (s.sessionId ?? s.session_id) as string,
       }))
 
       // 调用本地战斗创建方法
@@ -627,7 +627,7 @@ export class BattleRpcServer {
   }
 
   private async handleJoinSpectateBattle(
-    call: grpc.ServerUnaryCall<JoinSpectateBattleRequest, any>,
+    call: grpc.ServerUnaryCall<JoinSpectateBattleRequest, JoinSpectateBattleResponse>,
     callback: grpc.sendUnaryData<JoinSpectateBattleResponse>,
   ): Promise<void> {
     try {

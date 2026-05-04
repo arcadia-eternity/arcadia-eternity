@@ -71,14 +71,13 @@ export class TimerIntegration {
   } {
     const errors: string[] = []
     const warnings: string[] = []
-    let suggestedConfig: Partial<TimerConfig> = {}
 
     // 激活规则集并获取建议配置
     this.ruleSystem.clearActiveRuleSets()
     for (const ruleSetId of ruleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch (error) {
+      } catch {
         errors.push(`规则集 "${ruleSetId}" 不存在或无法激活`)
         continue
       }
@@ -91,11 +90,11 @@ export class TimerIntegration {
     this.ruleSystem.setContext(context)
 
     const ruleModifications = this.ruleSystem.getTimerConfigModifications(context)
-    suggestedConfig = ruleModifications
+    const suggestedConfig: Partial<TimerConfig> = ruleModifications
 
     // 检查配置冲突
     for (const [key, ruleValue] of Object.entries(ruleModifications)) {
-      const configValue = (config as any)[key]
+      const configValue = (config as Record<string, unknown>)[key]
       if (configValue !== undefined && configValue !== ruleValue) {
         if (key === 'enabled') {
           if (ruleValue === true && configValue === false) {
@@ -208,7 +207,7 @@ export class TimerIntegration {
 
         const config = this.ruleSystem.getTimerConfigModifications(context)
         ruleSetConfigs.set(ruleSetId, config)
-      } catch (error) {
+      } catch {
         warnings.push(`无法获取规则集 "${ruleSetId}" 的计时器配置`)
       }
     }

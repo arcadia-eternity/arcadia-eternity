@@ -29,16 +29,18 @@ const baseExtractorSchema = StringEnum([...BASE_EXTRACTOR_KEYS])
 // The trick: define mutable schema holders, fill them in order.
 
 const _value: { schema: TSchema } = { schema: Type.Any() }
+void _value;
 const _selector: { schema: TSchema } = { schema: Type.Any() }
+void _selector;
 const _condition: { schema: TSchema } = { schema: Type.Any() }
+void _condition;
 const _evaluator: { schema: TSchema } = { schema: Type.Any() }
+void _evaluator;
 const _operator: { schema: TSchema } = { schema: Type.Any() }
+void _operator;
 const _selectorChain: { schema: TSchema } = { schema: Type.Any() }
+void _selectorChain;
 
-// Helper: lazily reference a schema holder (returns Type.Unsafe wrapping the holder)
-function Lazy(holder: { schema: TSchema }): TSchema {
-  return Type.Unsafe<any>({ ...holder.schema, $lazy: true })
-}
 
 // We'll use Type.Any() as the recursive placeholder and build real schemas.
 // Since TypeBox schemas are plain objects, we can construct them and they work

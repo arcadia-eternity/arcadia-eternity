@@ -5,7 +5,7 @@ import {
   type JoinSpectatorData,
   type SendPrivateRoomPeerSignalData,
 } from '@arcadia-eternity/client'
-import type { PrivateRoomBattleStartInfo, PrivateRoomInfo } from '@arcadia-eternity/protocol'
+import type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType, PrivateRoomBattleStartInfo, PrivateRoomInfo } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
@@ -36,7 +36,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
   // 状态
   const _instance = ref<BattleClient | null>(null)
-  const _pendingEventHandlers = ref(new Map<string, Set<(...args: any[]) => void>>())
+  const _pendingEventHandlers = ref(new Map<string, Set<(...args: unknown[]) => void>>())
   const isInitialized = ref(false)
   const serverWarmupState = ref<ServerWarmupState>('idle')
   const serverWarmupError = ref<string | null>(null)
@@ -47,7 +47,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   // 计算属性
   const currentState = computed(() => {
     // 依赖触发器确保响应式更新
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+     
     _stateUpdateTrigger.value // 触发依赖追踪
     const state = _instance.value?.currentState || { status: 'disconnected', matchmaking: 'idle', battle: 'idle' }
     return state
@@ -185,9 +185,13 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   }
 
   // 战斗重连处理器引用，用于防止重复注册
-  let _battleReconnectHandler:
-    | ((data: { roomId: string; shouldRedirect: boolean; fullBattleState?: any }) => void)
-    | null = null
+  type BattleReconnectData = {
+    roomId: string
+    shouldRedirect: boolean
+    battleState: string
+    fullBattleState?: Record<string, unknown>
+  }
+  let _battleReconnectHandler: ((data: BattleReconnectData) => void) | null = null
 
   // Actions
   const initialize = () => {
@@ -209,7 +213,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     // 设置战斗重连监听器（用于页面刷新后自动跳转）
     // 确保只注册一次
     if (!_battleReconnectHandler) {
-      _battleReconnectHandler = async (data: { roomId: string; shouldRedirect: boolean; fullBattleState?: any }) => {
+      _battleReconnectHandler = async (data: BattleReconnectData) => {
         if (data.shouldRedirect) {
           // 如果服务器提供了完整的战斗状态，说明战斗确实还在进行中
           if (data.fullBattleState) {
@@ -225,7 +229,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
         }
       }
 
-      _instance.value.on('battleReconnect', _battleReconnectHandler)
+      ;(_instance.value.on as (event: string, handler: (data: BattleReconnectData) => void) => void)('battleReconnect', _battleReconnectHandler)
     }
 
     // 注册之前缓存的事件监听器
@@ -263,7 +267,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     if (_instance.value) {
       // 清理战斗重连监听器
       if (_battleReconnectHandler) {
-        _instance.value.off('battleReconnect', _battleReconnectHandler)
+        ;(_instance.value.off as (event: string, handler: (data: BattleReconnectData) => void) => void)('battleReconnect', _battleReconnectHandler)
         _battleReconnectHandler = null
       }
       _instance.value.disconnect()
@@ -275,7 +279,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     serverWarmupError.value = null
   }
 
-  const joinMatchmaking = (data: any) => {
+  const joinMatchmaking = (data: PlayerSchemaType | { playerSchema: PlayerSchemaType; ruleSetId?: string }) => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
@@ -289,28 +293,26 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return _instance.value.cancelMatchmaking()
   }
 
-  const sendplayerSelection = (selection: any) => {
+  const sendplayerSelection = (selection: PlayerSelectionSchemaType) => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
     return _instance.value.sendplayerSelection(selection)
   }
 
-  const on = (event: any, handler: any) => {
+  const on = (event: string, handler: unknown): (() => void) => {
+    const fn = handler as (...args: unknown[]) => void
     if (_instance.value) {
-      return _instance.value.on(event, handler)
+      return (_instance.value.on as (event: string, handler: (...args: unknown[]) => void) => () => void)(event, fn)
     } else {
-      // 如果实例还没准备好，缓存事件监听器
       if (!_pendingEventHandlers.value.has(event)) {
         _pendingEventHandlers.value.set(event, new Set())
       }
-      _pendingEventHandlers.value.get(event)!.add(handler)
-
-      // 返回取消监听的函数
+      _pendingEventHandlers.value.get(event)!.add(fn)
       return () => {
         const handlers = _pendingEventHandlers.value.get(event)
         if (handlers) {
-          handlers.delete(handler)
+          handlers.delete(fn)
           if (handlers.size === 0) {
             _pendingEventHandlers.value.delete(event)
           }
@@ -319,15 +321,15 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     }
   }
 
-  const off = (event: any, handler?: any) => {
+  const off = (event: string, handler?: unknown) => {
+    const fn = handler as ((...args: unknown[]) => void) | undefined
     if (_instance.value) {
-      return _instance.value.off(event, handler)
+      return (_instance.value.off as (event: string, handler?: (...args: unknown[]) => void) => void)(event, fn)
     } else {
-      // 从缓存中移除
-      if (handler) {
+      if (fn) {
         const handlers = _pendingEventHandlers.value.get(event)
         if (handlers) {
-          handlers.delete(handler)
+          handlers.delete(fn)
           if (handlers.size === 0) {
             _pendingEventHandlers.value.delete(event)
           }
@@ -338,14 +340,14 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     }
   }
 
-  const once = (event: any, handler: any) => {
+  const once = (event: string, handler: unknown) => {
+    const fn = handler as (...args: unknown[]) => void
     if (_instance.value) {
-      return _instance.value.once(event, handler)
+      return (_instance.value.once as (event: string, handler: (...args: unknown[]) => void) => void)(event, fn)
     } else {
-      // 对于once，我们需要包装handler以确保只执行一次
-      const wrappedHandler = (...args: any[]) => {
+      const wrappedHandler = (...args: unknown[]) => {
         off(event, wrappedHandler)
-        handler(...args)
+        fn(...args)
       }
       return on(event, wrappedHandler)
     }
@@ -384,7 +386,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.joinPrivateRoomAsSpectator(data)
   }
 
-  const toggleRoomReady = async (team?: any[]): Promise<void> => {
+  const toggleRoomReady = async (team?: PetSchemaType[]): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
@@ -392,7 +394,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.togglePrivateRoomReady(team)
   }
 
-  const startRoomBattle = async (hostTeam: any[]): Promise<PrivateRoomBattleStartInfo> => {
+  const startRoomBattle = async (hostTeam: PetSchemaType[]): Promise<PrivateRoomBattleStartInfo> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
@@ -471,7 +473,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.switchToSpectator()
   }
 
-  const switchToPlayer = async (team: any[]): Promise<void> => {
+  const switchToPlayer = async (team: PetSchemaType[]): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
@@ -502,7 +504,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     const instance = _instance.value
     for (const [event, handlers] of _pendingEventHandlers.value.entries()) {
       for (const handler of handlers) {
-        instance.on(event as any, handler)
+        ;(instance.on as (event: string, handler: (...args: unknown[]) => void) => void)(event, handler)
       }
     }
     _pendingEventHandlers.value.clear()

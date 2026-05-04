@@ -15,7 +15,11 @@ import type {
   DownloadSource, 
   DownloadResult, 
   DownloadOptions, 
-  PlatformInfo 
+  PlatformInfo,
+  Platform,
+  Architecture,
+  WindowsFormat,
+  MacOSFormat,
 } from '@/types/download'
 
 /**
@@ -178,9 +182,9 @@ export function useSmartDownload() {
     format?: string
   ) => {
     return await smartDownload({
-      platform: platform as any,
-      architecture: architecture as any,
-      format: format as any
+      platform: platform as Platform,
+      architecture: architecture as Architecture,
+      format: format as WindowsFormat | MacOSFormat,
     })
   }
 
@@ -199,9 +203,9 @@ export function useSmartDownload() {
     const targetFormat = format || recommendedFormat.value
 
     return downloadManager.value.getDownloadUrls(
-      targetPlatform as any,
-      targetArchitecture as any,
-      targetFormat as any
+      targetPlatform as Platform,
+      targetArchitecture as Architecture,
+      targetFormat as WindowsFormat | MacOSFormat,
     )
   }
 

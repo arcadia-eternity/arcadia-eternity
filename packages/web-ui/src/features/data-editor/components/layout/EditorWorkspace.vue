@@ -9,14 +9,12 @@
 import { ref, computed } from 'vue'
 import { useEditorState } from '../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
-import { useGameConfig } from '../../game-config'
 import ResizeHandle from './ResizeHandle.vue'
 import DataTable from '@/features/data-editor/components/data-table/DataTable.vue'
 import PropertyPanel from '@/features/data-editor/components/property-panel/PropertyPanel.vue'
 
 const editorState = useEditorState()
 const gameData = useGameDataStore()
-const config = useGameConfig()
 
 const records = computed(() => {
   const type = editorState.selectedEntityType

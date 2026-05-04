@@ -405,7 +405,7 @@ import { useResourceStore } from './stores/resource'
 import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
 import { usePrivateRoomStore } from './stores/privateRoom'
-import { BattleMessageType } from '@arcadia-eternity/const'
+import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
 import {
   Menu,
   Close,
@@ -445,8 +445,16 @@ const isMobile = breakpoints.smaller('md') // md 断点是 768px
 // 移动端菜单状态
 const showMobileMenu = ref(false)
 
+// 战斗重连事件数据类型
+interface BattleReconnectData {
+  roomId: string
+  shouldRedirect: boolean
+  battleState: string
+  fullBattleState?: Record<string, unknown>
+}
+
 // 战斗重连处理器引用，用于清理
-let battleReconnectHandler: ((event: any) => void) | null = null
+let battleReconnectHandler: ((event: CustomEvent<BattleReconnectData>) => void) | null = null
 
 // 设置战斗重连处理器
 const setupBattleReconnectHandler = () => {
@@ -456,9 +464,9 @@ const setupBattleReconnectHandler = () => {
 
   // 使用对象来存储重定向状态
   const redirectState = { isRedirecting: false }
-  const refreshRecoveredBattleRuntime = async (fullBattleState: any) => {
-    battleStore.battleState = fullBattleState
-    battleStore.lastProcessedSequenceId = fullBattleState?.sequenceId ?? -1
+  const refreshRecoveredBattleRuntime = async (fullBattleState: Record<string, unknown>) => {
+    battleStore.battleState = fullBattleState as unknown as BattleState
+    battleStore.lastProcessedSequenceId = (fullBattleState?.sequenceId as number | undefined) ?? -1
 
     if (fullBattleState?.status === 'Ended' || !battleStore.playerId) {
       battleStore.availableActions = []
@@ -474,7 +482,7 @@ const setupBattleReconnectHandler = () => {
       console.warn('Failed to refresh available actions after reconnect:', error)
     }
 
-    const battleClient = battleClientStore._instance as any
+    const battleClient = battleClientStore._instance as unknown as BattleClient | null
     if (battleClient && typeof battleClient.refreshTimerSnapshotsFromServer === 'function') {
       try {
         await battleClient.refreshTimerSnapshotsFromServer()
@@ -484,7 +492,7 @@ const setupBattleReconnectHandler = () => {
     }
   }
 
-  battleReconnectHandler = async (event: any) => {
+  battleReconnectHandler = async (event: CustomEvent<BattleReconnectData>) => {
     const data = event.detail
     // 使用防抖避免重复处理
     if (redirectState.isRedirecting) return
@@ -499,8 +507,8 @@ const setupBattleReconnectHandler = () => {
             await refreshRecoveredBattleRuntime(data.fullBattleState)
           } else {
             // 没有现有接口，创建新的
-            const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
-            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+            const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
+            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState as unknown as BattleState)
           }
         } else {
           // 不在战斗页面，检查是否有现有的battle接口
@@ -509,8 +517,8 @@ const setupBattleReconnectHandler = () => {
             await refreshRecoveredBattleRuntime(data.fullBattleState)
           } else {
             // 没有现有接口，创建新的
-            const battleInterface = new RemoteBattleSystem(battleClientStore._instance as BattleClient)
-            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState)
+            const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
+            await battleStore.initBattleWithState(battleInterface, playerStore.id, data.fullBattleState as unknown as BattleState)
           }
           await router.push('/battle')
         }
@@ -528,7 +536,7 @@ const setupBattleReconnectHandler = () => {
     }
   }
 
-  window.addEventListener('battleReconnect', battleReconnectHandler)
+  window.addEventListener('battleReconnect', battleReconnectHandler as EventListener)
 }
 
 // 监听移动端状态变化，当切换到桌面端时自动关闭移动端菜单
@@ -647,7 +655,7 @@ onMounted(async () => {
 // 清理事件监听器
 onUnmounted(() => {
   if (battleReconnectHandler) {
-    window.removeEventListener('battleReconnect', battleReconnectHandler)
+    window.removeEventListener('battleReconnect', battleReconnectHandler as EventListener)
     battleReconnectHandler = null
   }
 })

@@ -45,11 +45,11 @@ export interface InMemoryP2PBattleE2EResult {
   playerAId: string
   playerBId: string
   roundsPlayed: number
-  finalState: any
-  playerASelections: any[]
-  playerBSelections: any[]
-  hostEvents: any[]
-  peerEvents: any[]
+  finalState: unknown
+  playerASelections: unknown[]
+  playerBSelections: unknown[]
+  hostEvents: unknown[]
+  peerEvents: unknown[]
 }
 
 export declare function runInMemoryP2PBattleE2E(

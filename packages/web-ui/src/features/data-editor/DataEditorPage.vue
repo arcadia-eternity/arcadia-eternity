@@ -24,7 +24,6 @@ import {
   readWorkspacePackFile,
   writeWorkspacePackFile,
   readWorkspacePackManifest,
-  writeWorkspacePackManifest,
   type WorkspacePackSummary,
 } from '@/services/packWorkspace'
 import { resolveManifestDataPath } from './utils/packHelpers'
@@ -32,7 +31,6 @@ import {
   parseYamlAnchoredDataset,
   upsertYamlAnchoredRecord,
   stringifyYamlAnchoredDataset,
-  type YamlAnchoredDataset,
 } from './schemas/yamlAnchoredRecords'
 
 import EditorAppBar from './components/layout/EditorAppBar.vue'

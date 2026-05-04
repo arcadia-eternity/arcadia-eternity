@@ -8,7 +8,7 @@ export interface FormattedBattleMessage {
   timestamp: string
 }
 
-const props = defineProps<{
+defineProps<{
   message: FormattedBattleMessage
 }>()
 </script>

@@ -45,7 +45,8 @@ export class ElementRestrictionRule extends AbstractRule {
   /**
    * 验证队伍的属性组合
    */
-  validateTeam(team: Team, _context?: RuleContext): ValidationResult {
+  validateTeam(team: Team, context?: RuleContext): ValidationResult {
+    void context;
     const builder = new ValidationResultBuilder()
 
     // 统计各属性的精灵数量
@@ -55,7 +56,7 @@ export class ElementRestrictionRule extends AbstractRule {
     for (const pet of team) {
       // 这里需要从数据仓库获取精灵的属性信息
       // 暂时假设pet对象有element属性，实际实现时需要查询species数据
-      const element = (pet as any).element as Element
+      const element = (pet as Record<string, unknown>).element as Element
       if (element) {
         elementCounts.set(element, (elementCounts.get(element) || 0) + 1)
         if (!petsByElement.has(element)) {

@@ -194,17 +194,17 @@ export class LocalBattleReportManager {
   /**
    * 验证战报数据结构
    */
-  private static validateReportStructure(report: any): report is LocalBattleReport {
+  private static validateReportStructure(report: unknown): report is LocalBattleReport {
+    if (!report || typeof report !== 'object') return false
+    const r = report as Record<string, unknown>
+    if (typeof r.id !== 'string' || typeof r.name !== 'string' || typeof r.savedAt !== 'string') return false
+    if (!r.battleRecord || typeof r.battleRecord !== 'object') return false
+    const br = r.battleRecord as Record<string, unknown>
     return (
-      report &&
-      typeof report.id === 'string' &&
-      typeof report.name === 'string' &&
-      typeof report.savedAt === 'string' &&
-      report.battleRecord &&
-      typeof report.battleRecord.id === 'string' &&
-      Array.isArray(report.battleRecord.battle_messages) &&
-      typeof report.battleRecord.player_a_name === 'string' &&
-      typeof report.battleRecord.player_b_name === 'string'
+      typeof br.id === 'string' &&
+      Array.isArray(br.battle_messages) &&
+      typeof br.player_a_name === 'string' &&
+      typeof br.player_b_name === 'string'
     )
   }
 

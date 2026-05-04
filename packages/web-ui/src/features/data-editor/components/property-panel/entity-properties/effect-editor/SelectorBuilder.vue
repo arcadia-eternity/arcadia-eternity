@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
-  BASE_SELECTOR_KEYS,
   BASE_EXTRACTOR_KEYS,
 } from '@arcadia-eternity/schema'
 import type {
   BaseSelectorKey,
-  SelectorDSL,
-  SelectorChain,
   ExtractorDSL,
+  SelectorChain,
+  SelectorDSL,
+  Value,
 } from '@arcadia-eternity/schema'
 import { useEffectTyping } from './composables/useEffectTyping'
 
@@ -21,10 +21,20 @@ const props = withDefaults(
     label?: string
   }>(),
   {
-    allowedBases: () => [],
+    modelValue: undefined,
     label: undefined,
+    allowedBases: undefined,
   },
 )
+
+defineSlots<{
+  default(props: { modelValue: SelectorDSL; update: (v: SelectorDSL) => void }): unknown
+  evaluator(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
+  value(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
+  condition(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
+  trueValue(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
+  falseValue(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
+}>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: SelectorDSL]
@@ -125,10 +135,6 @@ function ensureChainSelector(): { base: BaseSelectorKey; chain: SelectorChain[] 
     ? (props.modelValue as BaseSelectorKey)
     : 'self'
   return { base, chain: [] }
-}
-
-function makeExtractorStep(): SelectorChain {
-  return { type: 'select', arg: 'currentHp' } as SelectorChain
 }
 
 function makeStep(type: string): SelectorChain {
@@ -260,13 +266,6 @@ function updateStepKey(index: number, key: unknown) {
   const cs = ensureChainSelector()
   const step = { ...cs.chain[index] } as Record<string, unknown>
   step.key = key
-  updateStep(index, step as SelectorChain)
-}
-
-function updateStepExtractor(index: number, extractor: ExtractorDSL) {
-  const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.extractor = extractor
   updateStep(index, step as SelectorChain)
 }
 
@@ -526,7 +525,7 @@ function previewStep(step: SelectorChain): string {
               </svg>
             </span>
             <button type="button" class="card-move-btn" title="上移" :disabled="i === 0" @click="moveStepUp(i)">▲</button>
-            <button type="button" class="card-move-btn" title="下移" :disabled="i >= ((modelValue as { chain?: any[] }).chain?.length ?? 0) - 1" @click="moveStepDown(i)">▼</button>
+            <button type="button" class="card-move-btn" title="下移" :disabled="i >= ((modelValue as { chain?: SelectorChain[] }).chain?.length ?? 0) - 1" @click="moveStepDown(i)">▼</button>
             <el-select
               :model-value="step.type"
               class="card-type-select"
@@ -705,7 +704,7 @@ function previewStep(step: SelectorChain): string {
             <template v-else-if="step.type === 'configGet'">
               <slot
                 name="value"
-                :model-value="(step as { key: unknown }).key"
+                :model-value="(step as { key: unknown }).key as Value"
                 :update="(v: unknown) => updateStepKey(i, v)"
               />
             </template>
@@ -817,7 +816,7 @@ function previewStep(step: SelectorChain): string {
               </svg>
             </span>
             <button type="button" class="card-move-btn" title="上移" :disabled="i === 0" @click="moveStepUp(i)">▲</button>
-            <button type="button" class="card-move-btn" title="下移" :disabled="i >= ((modelValue as { chain?: any[] }).chain?.length ?? 0) - 1" @click="moveStepDown(i)">▼</button>
+            <button type="button" class="card-move-btn" title="下移" :disabled="i >= ((modelValue as { chain?: SelectorChain[] }).chain?.length ?? 0) - 1" @click="moveStepDown(i)">▼</button>
             <el-select
               :model-value="step.type"
               class="card-type-select"
@@ -996,7 +995,7 @@ function previewStep(step: SelectorChain): string {
             <template v-else-if="step.type === 'configGet'">
               <slot
                 name="value"
-                :model-value="(step as { key: unknown }).key"
+                :model-value="(step as { key: unknown }).key as Value"
                 :update="(v: unknown) => updateStepKey(i, v)"
               />
             </template>

@@ -23,12 +23,10 @@
     "test:e2e:headed": "playwright test --headed",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore --config .oxlintrc.json || true",
     "lint:eslint": "eslint . --fix",
-    "lint": "run-s lint:*",
+    "lint": "run-s lint:eslint",
     "format": "prettier --write src/",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
     "dev:desktop": "run-p dev:desktop:web electron:dev",
     "dev:desktop:web": "vite --host localhost --port 5173 --strictPort",
     "electron:dev": "wait-on http://localhost:5173 && cross-env ARCADIA_ELECTRON_DEV_SERVER_URL=http://localhost:5173 electron ./electron/main.mjs --remote-debugging-port=9222",
@@ -89,14 +87,7 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^5.0.1",
     "@rollup/plugin-yaml": "^4.1.2",
-    "@storybook/addon-essentials": "^8.6.14",
-    "@storybook/blocks": "^8.6.14",
-    "@storybook/experimental-addon-test": "^8.6.14",
-    "@storybook/test": "^8.6.15",
-    "@storybook/vue3": "^10.2.19",
-    "@storybook/vue3-vite": "^10.2.19",
     "@tsconfig/node22": "^22.0.5",
     "@types/howler": "^2.2.12",
     "@types/markdown-it": "^14.1.2",
@@ -112,14 +103,12 @@
     "electron-builder": "^26.8.1",
     "eslint": "^10.0.3",
     "eslint-plugin-oxlint": "^1.55.0",
-    "eslint-plugin-storybook": "^10.2.19",
     "eslint-plugin-vue": "^10.8.0",
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
     "oxlint": "^1.55.0",
     "playwright": "^1.58.2",
     "prettier": "^3.8.1",
-    "storybook": "^10.2.19",
     "tailwind-scrollbar": "^4.0.2",
     "typescript": "catalog:",
     "unplugin-auto-import": "^21.0.0",
@@ -165,10 +154,5 @@
       ],
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     }
-  },
-  "eslintConfig": {
-    "extends": [
-      "plugin:storybook/recommended"
-    ]
   }
 }

@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import type { PlayerTimerState, TimerConfig, TimerSnapshot } from '@arcadia-eternity/const'
+import type { Events, TimerSnapshot, playerId as PlayerId } from '@arcadia-eternity/const'
 import { TimerState } from '@arcadia-eternity/const'
 import { useBattleStore } from '../stores/battle'
 import { LocalTimerCalculator } from '../timer/localTimerCalculator'
@@ -121,7 +121,7 @@ const initializeTimerCalculator = () => {
   // 监听指定玩家的Timer更新
   if (props.playerId) {
     const unsubscribe = localTimerCalculator.value.onPlayerTimerUpdate(
-      props.playerId as any,
+      props.playerId as PlayerId,
       (snapshot: TimerSnapshot) => {
         timerSnapshot.value = snapshot
       },
@@ -146,7 +146,7 @@ const setupTimerEventListeners = () => {
   timerEventUnsubscribers.value = calculatorUnsubscribers
 
   // 新架构：监听Timer快照事件
-  const unsubscribeSnapshot = battleStore.battleInterface.onTimerEvent('timerSnapshot', (data: any) => {
+  const unsubscribeSnapshot = battleStore.battleInterface.onTimerEvent('timerSnapshot', (data: Events['timerSnapshot']) => {
     if (data.snapshots && localTimerCalculator.value) {
       localTimerCalculator.value.updateSnapshots(data.snapshots)
     }
@@ -159,7 +159,7 @@ const setupTimerEventListeners = () => {
   })
   timerEventUnsubscribers.value.push(unsubscribeStart)
 
-  const unsubscribeTimeout = battleStore.battleInterface.onTimerEvent('timerTimeout', (data: any) => {
+  const unsubscribeTimeout = battleStore.battleInterface.onTimerEvent('timerTimeout', (data: Events['timerTimeout']) => {
     if (data.player === props.playerId) {
       console.debug('Timer timeout for player:', props.playerId)
     }

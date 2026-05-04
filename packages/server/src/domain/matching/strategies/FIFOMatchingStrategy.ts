@@ -60,6 +60,7 @@ export class FIFOMatchingStrategy extends AbstractMatchingStrategy {
     player2: MatchmakingEntry,
     config: MatchingConfig,
   ): Promise<MatchQuality> {
+    void config;
     const waitTimeDifference = this.getWaitTimeDifference(player1, player2)
 
     // FIFO策略下，匹配质量主要基于等待时间的相似性
@@ -79,6 +80,7 @@ export class FIFOMatchingStrategy extends AbstractMatchingStrategy {
     player2: MatchmakingEntry,
     config: MatchingConfig,
   ): Promise<boolean> {
+    void player1; void player2; void config;
     // FIFO策略下，只要有两个玩家就可以匹配
     return true
   }

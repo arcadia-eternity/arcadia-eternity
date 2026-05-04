@@ -48,7 +48,7 @@ describe('V2DataRepository', () => {
       id: 'mark_1',
       config: {
         duration: 3, persistent: true, maxStacks: 1, stackable: false,
-        stackStrategy: 'extend' as any, destroyable: true, isShield: false,
+        stackStrategy: 'extend' as const, destroyable: true, isShield: false,
         keepOnSwitchOut: false, transferOnSwitch: false, inheritOnFaint: false,
       },
       tags: [],
@@ -349,7 +349,7 @@ describe('parseSpecies', () => {
       ability: [], emblem: [],
       learnable_skills: [{ skill_id: 'skill_x', level: 1, hidden: false }],
     }
-    const result = parseSpecies(raw) as any
+    const result = parseSpecies(raw) as Record<string, unknown>
     expect(result.learnable_skills).toBeUndefined()
   })
 
@@ -364,7 +364,7 @@ describe('parseSpecies', () => {
 
 describe('loadV2GameData', () => {
   test('loads all YAML files and populates repository', async () => {
-    const { repository, errors } = await loadV2GameData(DATA_DIR, { continueOnError: true })
+    const { errors } = await loadV2GameData(DATA_DIR, { continueOnError: true })
     const stats = repository.stats()
 
     // Should have loaded a significant number of each type
@@ -382,7 +382,7 @@ describe('loadV2GameData', () => {
   })
 
   test('cross-reference validation finds no missing effects for skills', async () => {
-    const { repository, errors } = await loadV2GameData(DATA_DIR, {
+    const { errors } = await loadV2GameData(DATA_DIR, {
       continueOnError: true,
       validateReferences: true,
     })
@@ -577,7 +577,8 @@ describe('loadV2GameData', () => {
       expect(result.pack?.id).toBe('arcadia-eternity.workspace')
       expect(result.repository.findEffect('eff_base')).toBeDefined()
       expect(result.repository.findEffect('eff_mod')).toBeDefined()
-      expect((result.repository.findEffect('eff_shared') as any)?.apply?.value).toBe(9)
+      const shared = result.repository.findEffect('eff_shared') as unknown as { apply?: { value?: number } }
+      expect(shared?.apply?.value).toBe(9)
     } finally {
       if (previousPacksDir === undefined) {
         delete process.env.ARCADIA_PACKS_DIR

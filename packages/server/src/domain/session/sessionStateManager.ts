@@ -140,7 +140,7 @@ export class SessionStateManager {
     sessionId: string,
     currentState: SessionStateInfo,
   ): Promise<boolean> {
-    let inQueue = false
+    let inQueue: boolean
     try {
       inQueue = await this.isSessionInMatchmakingQueue(playerId, sessionId)
     } catch (error) {
@@ -254,7 +254,7 @@ export class SessionStateManager {
     sessionId: string,
     currentState: SessionStateInfo,
   ): Promise<boolean> {
-    let inActiveBattle = false
+    let inActiveBattle: boolean
     try {
       inActiveBattle = await this.isSessionInActiveBattle(playerId, sessionId, currentState.context?.battleRoomId)
     } catch (error) {
