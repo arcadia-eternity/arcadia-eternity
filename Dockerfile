@@ -40,7 +40,7 @@ COPY packs/ ./packs/
 # Install only production dependencies
 # Use local store to avoid cache conflicts in parallel builds
 RUN pnpm config set store-dir /tmp/pnpm-store && \
-    pnpm install --frozen-lockfile --prod --prefer-offline && \
+    pnpm install --frozen-lockfile --prod --prefer-offline --ignore-scripts && \
     pnpm store prune
 
 # Production stage

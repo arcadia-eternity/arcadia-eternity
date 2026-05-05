@@ -8,7 +8,7 @@
     "url": "https://github.com/arcadia-eternity/arcadia-eternity.git"
   },
   "scripts": {
-    "prepare": "husky || true",
+    "prepare": "husky",
     "build": "run-s lint build:package typecheck build:cli",
     "build:quick": "run-s build:package build:cli",
     "watch": "run-p watch:package watch:cli",
