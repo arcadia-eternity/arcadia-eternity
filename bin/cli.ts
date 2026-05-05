@@ -8,6 +8,7 @@ import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-e
 import type { playerId, BattleMessage, PlayerSelection } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import { runInMemoryP2PE2E } from '@arcadia-eternity/p2p-transport'
+import type { ServerDataRepository } from '@arcadia-eternity/rules'
 
 // 加载环境变量
 dotenv.config()
@@ -511,7 +512,9 @@ program
           try {
             const loadedRepository = resourceLoadingManager.getLoadedRepository()
             if (loadedRepository) {
-              await ServerRuleIntegration.initializeServer(createRuleSpeciesRepository(loadedRepository))
+              await ServerRuleIntegration.initializeServer(
+                createRuleSpeciesRepository(loadedRepository) as ServerDataRepository,
+              )
             } else {
               await ServerRuleIntegration.initializeServer()
             }

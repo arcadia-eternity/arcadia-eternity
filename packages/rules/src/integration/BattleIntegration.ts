@@ -1,10 +1,19 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
 import type { BattleInstance } from '@arcadia-eternity/battle'
+import type { PetSchemaType, SkillSchemaType } from '@arcadia-eternity/schema'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
 import type { Team, RuleContext } from '../interfaces/Rule'
 import { RulePhase } from '../interfaces/Rule'
 import type { ValidationResult } from '../interfaces/ValidationResult'
+
+/**
+ * 战斗操作数据
+ */
+export interface BattleOperationData {
+  pet?: PetSchemaType
+  skill?: SkillSchemaType
+}
 
 /**
  * 战斗系统集成类
@@ -176,7 +185,7 @@ export class BattleIntegration {
    * @param data 操作数据
    * @returns 验证结果
    */
-  validateBattleOperation(battle: BattleInstance, operation: string, data: Record<string, unknown>): ValidationResult {
+  validateBattleOperation(battle: BattleInstance, operation: string, data: BattleOperationData): ValidationResult {
     const context: RuleContext = {
       battle,
       phase: RulePhase.BATTLE_EXECUTION,
@@ -188,16 +197,12 @@ export class BattleIntegration {
     switch (operation) {
       case 'useSkill':
         if (data.pet && data.skill) {
-          return this.ruleSystem.validateSkill(
-            data.pet as import('@arcadia-eternity/schema').PetSchemaType,
-            data.skill as import('@arcadia-eternity/schema').SkillSchemaType,
-            context,
-          )
+          return this.ruleSystem.validateSkill(data.pet, data.skill, context)
         }
         break
       case 'switchPet':
         if (data.pet) {
-          return this.ruleSystem.validatePet(data.pet as import('@arcadia-eternity/schema').PetSchemaType, context)
+          return this.ruleSystem.validatePet(data.pet, context)
         }
         break
       default:

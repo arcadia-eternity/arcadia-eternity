@@ -93,7 +93,7 @@ export class TimerIntegration {
 
     // 检查配置冲突
     for (const [key, ruleValue] of Object.entries(ruleModifications)) {
-      const configValue = (config as unknown as Record<string, unknown>)[key]
+      const configValue = config[key as keyof TimerConfig]
       if (configValue !== undefined && configValue !== ruleValue) {
         if (key === 'enabled') {
           if (ruleValue === true && configValue === false) {

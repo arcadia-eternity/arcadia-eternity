@@ -1,19 +1,23 @@
 import type { SpeciesSchemaType } from '@arcadia-eternity/schema'
 import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
+
+/**
+ * 客户端游戏数据存储接口
+ * 提供从客户端游戏数据存储获取种族信息的方法
+ */
+export interface ClientGameDataStore {
+  speciesList?: SpeciesSchemaType[]
+  species?: Record<string, unknown> & { byId?: Record<string, SpeciesSchemaType> }
+}
+
 /**
  * 客户端种族数据提供者
  * 从客户端的游戏数据存储中获取种族信息
  */
 export class ClientSpeciesDataProvider implements SpeciesDataProvider {
-  private gameDataStore:
-    | {
-        speciesList?: unknown
-        species?: Record<string, unknown> & { byId?: Record<string, unknown> }
-        [key: string]: unknown
-      }
-    | undefined
+  private gameDataStore: ClientGameDataStore | undefined
 
-  constructor(gameDataStore?: Record<string, unknown>) {
+  constructor(gameDataStore?: ClientGameDataStore) {
     this.gameDataStore = gameDataStore ?? {}
   }
 
@@ -21,7 +25,7 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
    * 设置游戏数据存储
    * @param gameDataStore 游戏数据存储实例
    */
-  setGameDataStore(gameDataStore: Record<string, unknown>): void {
+  setGameDataStore(gameDataStore: ClientGameDataStore): void {
     this.gameDataStore = gameDataStore
   }
 
@@ -37,10 +41,8 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
 
     try {
       // 尝试从speciesList中查找
-      if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
-        return this.gameDataStore.speciesList.find((species: SpeciesSchemaType) => species.id === speciesId) as
-          | SpeciesSchemaType
-          | undefined
+      if (this.gameDataStore.speciesList) {
+        return this.gameDataStore.speciesList.find(species => species.id === speciesId)
       }
 
       // 尝试从其他可能的数据结构中查找
@@ -50,7 +52,7 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
 
       // 如果有byId映射
       if (this.gameDataStore.species && this.gameDataStore.species.byId && this.gameDataStore.species.byId[speciesId]) {
-        return this.gameDataStore.species.byId[speciesId] as SpeciesSchemaType | undefined
+        return this.gameDataStore.species.byId[speciesId]
       }
 
       return undefined
@@ -78,8 +80,8 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
     }
 
     try {
-      if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
-        return this.gameDataStore.speciesList.map((species: SpeciesSchemaType) => species.id)
+      if (this.gameDataStore.speciesList) {
+        return this.gameDataStore.speciesList.map(species => species.id)
       }
 
       if (this.gameDataStore.species && this.gameDataStore.species.byId) {
@@ -133,9 +135,9 @@ export function getGlobalClientSpeciesDataProvider(): ClientSpeciesDataProvider 
  * 初始化全局客户端种族数据提供者
  * @param gameDataStore 游戏数据存储实例
  */
-export function initializeGlobalClientSpeciesDataProvider(gameDataStore: unknown): void {
+export function initializeGlobalClientSpeciesDataProvider(gameDataStore: ClientGameDataStore): void {
   const provider = getGlobalClientSpeciesDataProvider()
-  provider.setGameDataStore(gameDataStore as Record<string, unknown>)
+  provider.setGameDataStore(gameDataStore)
 }
 
 /**

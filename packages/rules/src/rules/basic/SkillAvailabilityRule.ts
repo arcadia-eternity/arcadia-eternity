@@ -1,4 +1,4 @@
-import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
+import type { PetSchemaType, LearnableSkill, SpeciesSchemaType } from '@arcadia-eternity/schema'
 import type { RuleContext, Team } from '../../interfaces/Rule'
 import { RulePriority } from '../../interfaces/Rule'
 import { AbstractRule } from '../../core/AbstractRule'
@@ -156,9 +156,7 @@ export class SkillAvailabilityRule extends AbstractRule {
 
     // 如果没有提供者，尝试从上下文获取
     if (!speciesData && context?.data?.speciesData) {
-      speciesData = (context.data as { speciesData: Record<string, unknown> }).speciesData[
-        pet.species
-      ] as typeof speciesData
+      speciesData = (context.data.speciesData as Record<string, SpeciesSchemaType>)[pet.species]
     }
 
     if (!speciesData) {
@@ -175,11 +173,11 @@ export class SkillAvailabilityRule extends AbstractRule {
     if (context?.data?.ruleSystem) {
       try {
         const ruleSystemExtraSkills = (
-          context.data as {
-            ruleSystem: { getSpeciesExtraLearnableSkills: (species: string, ctx: unknown) => string[] }
+          context.data.ruleSystem as {
+            getSpeciesExtraLearnableSkills(speciesId: string, context?: unknown): LearnableSkill[]
           }
-        ).ruleSystem.getSpeciesExtraLearnableSkills(pet.species, context)
-        extraSkills.push(...(ruleSystemExtraSkills as unknown as LearnableSkill[]))
+        ).getSpeciesExtraLearnableSkills(pet.species, context)
+        extraSkills.push(...ruleSystemExtraSkills)
       } catch (_error) {
         // 忽略获取额外技能时的错误
       }

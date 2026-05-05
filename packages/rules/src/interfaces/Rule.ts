@@ -6,6 +6,7 @@ import type {
   SkillSchemaType,
   MarkSchemaType,
   SpeciesSchemaType,
+  Effect,
 } from '@arcadia-eternity/schema'
 import type { ValidationResult } from './ValidationResult'
 
@@ -39,7 +40,7 @@ export interface AdditionalContent {
   /** 额外的精灵种族 */
   species?: SpeciesSchemaType[]
   /** 额外的效果 */
-  effects?: Record<string, unknown>[]
+  effects?: Effect[]
   /** 自定义内容 */
   custom?: Record<string, unknown>
 }

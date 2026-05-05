@@ -3,6 +3,7 @@ import type { BattleInstance } from '@arcadia-eternity/battle'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
 import { BattleIntegration } from '../integration/BattleIntegration'
+import type { BattleOperationData } from '../integration/BattleIntegration'
 import { TimerIntegration } from '../integration/TimerIntegration'
 import type { Team, RuleContext } from '../interfaces/Rule'
 import { RulePhase } from '../interfaces/Rule'
@@ -88,7 +89,7 @@ export class BattleRuleManager {
   /**
    * 验证战斗操作
    */
-  validateBattleOperation(operation: string, data: Record<string, unknown>): ValidationResult {
+  validateBattleOperation(operation: string, data: BattleOperationData): ValidationResult {
     if (!this.battle) {
       return { isValid: true, errors: [], warnings: [] }
     }

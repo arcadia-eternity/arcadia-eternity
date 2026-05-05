@@ -1,6 +1,6 @@
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { Rule, Team, RuleContext } from '../interfaces/Rule'
-import type { RuleSet, RuleSetBuilder, MatchingConfig } from '../interfaces/RuleSet'
+import type { RuleSet, RuleSetBuilder, MatchingConfig, RuleSetInfo } from '../interfaces/RuleSet'
 import { ValidationResultBuilder, type ValidationResult } from '../interfaces/ValidationResult'
 
 /**
@@ -198,7 +198,7 @@ export abstract class AbstractRuleSet implements RuleSet {
   /**
    * 获取规则集的详细信息
    */
-  getInfo(): Record<string, unknown> {
+  getInfo(): RuleSetInfo {
     return {
       id: this.id,
       name: this.name,
