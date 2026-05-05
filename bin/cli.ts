@@ -126,6 +126,7 @@ function createRuleSpeciesRepository(repo: V2DataRepository): {
         num: species.num,
         element: species.element,
         baseStats: species.baseStats,
+        learnable_skills: species.learnableSkills ?? [],
       }
     },
     getAllSpecies: () =>
@@ -134,6 +135,7 @@ function createRuleSpeciesRepository(repo: V2DataRepository): {
         num: species.num,
         element: species.element,
         baseStats: species.baseStats,
+        learnable_skills: species.learnableSkills ?? [],
       })),
   }
 }

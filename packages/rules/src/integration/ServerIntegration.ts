@@ -63,6 +63,8 @@ export class ServerRuleIntegration {
     // 保存数据仓库以供后续自动初始化使用
     if (dataRepository) {
       ServerRuleIntegration.dataRepository = dataRepository
+      // 即使已经初始化过，也需要更新种族数据提供者
+      ServerRuleIntegration.initializeSpeciesDataProvider(dataRepository)
     }
 
     // 如果已经初始化过，直接返回
