@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.5...arcadia-eternity-v3.2.6) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* **rules:** resolve species data provider dynamically instead of at construction time ([7c4e314](https://github.com/arcadia-eternity/arcadia-eternity/commit/7c4e3148d3d44720ed39e95552a0d9a6e60272bd))
+
 ## [3.2.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.4...arcadia-eternity-v3.2.5) (2026-05-05)
 
 
