@@ -27,7 +27,6 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
-    "peerjs": "^1.5.5",
     "ws": "^8.19.0"
   },
   "devDependencies": {

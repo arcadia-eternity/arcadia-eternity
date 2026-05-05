@@ -4,7 +4,6 @@ import express, { type Request, type Response } from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
-import { ExpressPeerServer } from 'peer'
 import pino from 'pino'
 import swaggerUi from 'swagger-ui-express'
 import { ClusterBattleServer } from '../../domain/battle/services/clusterBattleServer'
@@ -292,11 +291,6 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
   // 创建 HTTP 服务器
   const server = createServer(app)
-  const peerServer = ExpressPeerServer(server, {
-    proxied: true,
-    corsOptions: finalConfig.cors,
-  })
-  app.use('/peerjs', peerServer)
 
   // 创建 Socket.IO 服务器
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {

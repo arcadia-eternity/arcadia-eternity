@@ -54,7 +54,6 @@
     "jsonwebtoken": "^9.0.3",
     "nanoid": "catalog:",
     "nodemailer": "^8.0.5",
-    "peer": "^1.0.2",
     "pino": "^10.3.1",
     "prom-client": "^15.1.3",
     "redis": "^5.11.0",
