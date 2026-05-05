@@ -9,7 +9,7 @@
   },
   "scripts": {
     "prepare": "husky",
-    "build": "run-s lint typecheck build:package build:cli",
+    "build": "run-s lint build:package typecheck build:cli",
     "build:quick": "run-s build:package build:cli",
     "watch": "run-p watch:package watch:cli",
     "clear": "run-p clear:package clear:cli",
