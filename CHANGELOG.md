@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.3...arcadia-eternity-v3.2.4) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* remove unused PeerJS ExpressPeerServer to resolve socket.io WebSocket upgrade conflict ([c70076f](https://github.com/arcadia-eternity/arcadia-eternity/commit/c70076f77dc8c0a9dd2a5e3b4800a66cf773ef87))
+
 ## [3.2.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.2...arcadia-eternity-v3.2.3) (2026-05-05)
 
 
