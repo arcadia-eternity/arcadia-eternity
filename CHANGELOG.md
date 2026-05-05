@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.2...arcadia-eternity-v3.2.3) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* remove path-to-regexp override to fix Express 4 compatibility ([698d98a](https://github.com/arcadia-eternity/arcadia-eternity/commit/698d98abc4f6d8c519025ca1a24d793273b89ae0))
+
 ## [3.2.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.1...arcadia-eternity-v3.2.2) (2026-05-05)
 
 
