@@ -28,5 +28,6 @@ export function parseSpecies(raw: Record<string, unknown>): SpeciesData {
     weightRange: (raw.weightRange as [number, number]) ?? [0, 0],
     abilityIds: (raw.ability as string[]) ?? [],
     emblemIds: (raw.emblem as string[]) ?? [],
+    learnableSkills: (raw.learnable_skills as SpeciesData['learnableSkills']) ?? [],
   }
 }

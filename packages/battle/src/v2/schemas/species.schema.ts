@@ -29,6 +29,14 @@ export const SpeciesSchema = Type.Object(
     weightRange: Type.Tuple([Type.Number(), Type.Number()]),
     abilityIds: Type.Array(Type.String(), { default: [] }),
     emblemIds: Type.Array(Type.String(), { default: [] }),
+    learnableSkills: Type.Array(
+      Type.Object({
+        skill_id: Type.String(),
+        level: Type.Number({ default: 1 }),
+        hidden: Type.Boolean({ default: false }),
+      }),
+      { default: [] },
+    ),
   },
   { $id: 'Species' },
 )
