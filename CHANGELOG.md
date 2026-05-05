@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.1...arcadia-eternity-v3.2.2) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* add @oxc-project/runtime as production dependency to fix Fly.io deployment crash ([18337e1](https://github.com/arcadia-eternity/arcadia-eternity/commit/18337e19a2cd2a58a72341219dd6c139b1f82b91))
+
 ## [3.2.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.0...arcadia-eternity-v3.2.1) (2026-05-05)
 
 
