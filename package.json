@@ -9,8 +9,8 @@
   },
   "scripts": {
     "prepare": "husky",
-    "build": "run-s lint build:package typecheck build:cli",
-    "build:quick": "run-s build:package build:cli",
+    "build": "run-s build:package build:cli",
+    "check": "run-s lint typecheck",
     "watch": "run-p watch:package watch:cli",
     "clear": "run-p clear:package clear:cli",
     "build:package": "pnpm --filter \"./packages/**\" --filter=!@arcadia-eternity/web-ui run build",
