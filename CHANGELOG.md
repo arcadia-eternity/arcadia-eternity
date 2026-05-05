@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.7...arcadia-eternity-v3.2.8) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* **rules:** apply same dynamic provider resolution to GenderRestrictionRule ([306fd1f](https://github.com/arcadia-eternity/arcadia-eternity/commit/306fd1f7db4feb86f986d18f397038fc5ad4f8b6))
+
 ## [3.2.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.6...arcadia-eternity-v3.2.7) (2026-05-05)
 
 
