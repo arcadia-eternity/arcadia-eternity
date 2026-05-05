@@ -1,5 +1,5 @@
 lockfileVersion: 1
-generatedAt: 2026-03-15T11:48:20.189Z
+generatedAt: 2026-05-05T06:35:03.989Z
 importers:
   .:
     specifiers:
@@ -19,7 +19,7 @@ packages:
     entry: pack.json
     provenance: workspace
     resolution:
-      integrity: sha512-4oZXgJfrZiN3EQLIZPT6mTmxBPnLsLd7u2d942+mdynp4NPtDRiyCypYY8qD8V/WbZblme+tIjQrizReCwLE9Q==
+      integrity: sha512-MOj1LmoNDEUZMj7L+RP8ZzSTvR1biABQy1ntgBs1p2LSQFkq+Ilvp0U71RwlCdLOsIONvNxDHnCMA226z7ZnUw==
       path: /Users/yuuinih/GitHub/test_battle/packs/base/pack.json
     dependencies:
       arcadia-eternity.base-assets: /arcadia-eternity.base-assets@1.0.0
@@ -32,6 +32,6 @@ packages:
     entry: assets.json
     provenance: workspace
     resolution:
-      integrity: sha512-q0E7pSHhNglysZfyLSMH1kk9YNHIs5eCP/F+Y4kqMqANegQuCTUGvbEiqSOPbPYPPVBK9Stb9f1MyZKg4FZZDg==
+      integrity: sha512-kwM42BXHjJdaTjevE10YHHePGzWfd+zEnH7yfejC+BmSZQGRWVZPSNtvKBFYqBw/jIt9mnGF/7dtpMucvTPScg==
       path: /Users/yuuinih/GitHub/test_battle/packs/base/assets/assets.json
     dependencies: {}
