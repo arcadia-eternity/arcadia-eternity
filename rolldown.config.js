@@ -7,5 +7,5 @@ export default defineConfig({
     format: 'esm',
   },
   tsconfig: true,
-  external: id => !id.startsWith('.') && !id.startsWith('\0'),
+  external: id => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0'),
 })
