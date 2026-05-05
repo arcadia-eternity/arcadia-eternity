@@ -1,2 +1,9 @@
 pnpm exec lint-staged
+
+# Regenerate pack lockfile if any pack file changed (after formatting)
+if git diff --cached --name-only | grep -q '^packs/'; then
+  pnpm --filter @arcadia-eternity/data-pack-base run generate:lockfile
+  git add packs/base/pack-lock.yaml
+fi
+
 pnpm exec tsgo --noEmit
