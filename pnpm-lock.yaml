@@ -539,6 +539,9 @@ importers:
       '@grpc/proto-loader':
         specifier: ^0.8.0
         version: 0.8.0
+      '@oxc-project/runtime':
+        specifier: ^0.128.0
+        version: 0.128.0
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -1698,6 +1701,10 @@ packages:
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
+
+  '@oxc-project/runtime@0.128.0':
+    resolution: {integrity: sha512-MDmIwudSG4Ad3GzMlj98CgUzKukckMN6zaNr8FG46Lq+0dMHm7Iy8caVD6JBTTugzh0qqr/gL+WOwll4sOI0YQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
 
   '@oxc-project/types@0.127.0':
     resolution: {integrity: sha512-aIYXQBo4lCbO4z0R3FHeucQHpF46l2LbMdxRvqvuRuW2OxdnSkcng5B8+K12spgLDj93rtN3+J2Vac/TIO+ciQ==}
@@ -8529,6 +8536,8 @@ snapshots:
       semver: 7.7.4
 
   '@opentelemetry/api@1.9.0': {}
+
+  '@oxc-project/runtime@0.128.0': {}
 
   '@oxc-project/types@0.127.0': {}
 
