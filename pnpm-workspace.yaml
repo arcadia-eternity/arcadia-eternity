@@ -3,7 +3,6 @@ packages:
   - 'packs/**/*'
 allowBuilds:
   '@scarf/scarf': true
-  '@swc/core': true
   '@tsparticles/engine': true
   app-builder-bin: true
   electron: true

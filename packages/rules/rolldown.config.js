@@ -1,21 +1,13 @@
-import resolve from '@rollup/plugin-node-resolve'
-import typescript from '@rollup/plugin-typescript'
+import { defineConfig } from 'rolldown'
 
-export default {
+export default defineConfig({
   input: 'src/index.ts',
   output: {
     file: 'dist/index.js',
     format: 'esm',
     sourcemap: true,
   },
-  plugins: [
-    resolve({
-      preferBuiltins: false,
-    }),
-    typescript({
-      tsconfig: './tsconfig.json',
-    }),
-  ],
+  tsconfig: true,
   external: [
     '@arcadia-eternity/const',
     '@arcadia-eternity/battle',
@@ -24,4 +16,4 @@ export default {
     'rxjs',
     'rxjs/operators',
   ],
-}
+})
