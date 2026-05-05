@@ -1,9 +1,11 @@
+import type { EffectDef } from '@arcadia-eternity/engine';
 import { V2DataRepository } from './v2-data-repository.js';
 export interface V2DataPackManifest {
     id: string;
     version: string;
     engine: 'seer2-v2';
     layoutVersion?: 1;
+    assetsRef?: string | string[];
     dependencies?: V2DataPackDependency[];
     paths?: {
         dataDir?: string;
@@ -32,6 +34,7 @@ export interface LoadOptions {
     validateReferences?: boolean;
     packPath?: string;
     packRef?: string;
+    effectParser?: (raw: Record<string, unknown>) => EffectDef;
 }
 export interface LoadResult {
     repository: V2DataRepository;

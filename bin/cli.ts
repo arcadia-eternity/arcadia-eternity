@@ -337,48 +337,6 @@ program
   })
 
 program
-  .command('p2p-battle-e2e')
-  .description('通过 p2p transport 在 CLI 内跑一局 v2 battle e2e')
-  .requiredOption('-1, --player1 <path>', '玩家1数据文件路径')
-  .requiredOption('-2, --player2 <path>', '玩家2数据文件路径')
-  .option('-r, --rounds <number>', '最多自动推进回合数', '2')
-  .option('--strict', '使用严格模式加载数据（检测缺失引用）', false)
-  .option('--validate-data', '启用数据完整性验证', false)
-  .action(async options => {
-    try {
-      const { runInMemoryP2PBattleE2E } = await import('@arcadia-eternity/p2p-transport/node')
-
-      await preflightPack({
-        validateData: options.validateData,
-        strict: options.strict,
-      })
-
-      console.log('[🌀] 正在解析玩家数据...')
-      const player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
-      const player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
-
-      const result = await runInMemoryP2PBattleE2E({
-        playerATeam: toTeamConfig(player1),
-        playerBTeam: toTeamConfig(player2),
-        rounds: Number.parseInt(String(options.rounds), 10),
-      })
-
-      console.log(`[✅] p2p battle e2e 完成`)
-      console.log(`playerA=${result.playerAId}, playerB=${result.playerBId}`)
-      console.log(`roundsPlayed=${result.roundsPlayed}`)
-      console.log(`battleStatus=${result.finalState.status}, currentTurn=${result.finalState.currentTurn}`)
-      console.log(`hostEvents=${result.hostEvents.length}, peerEvents=${result.peerEvents.length}`)
-      console.log(
-        `playerASelections=${result.playerASelections.length}, playerBSelections=${result.playerBSelections.length}`,
-      )
-      process.exit(0)
-    } catch (err) {
-      console.error('[💥] 错误:', err instanceof Error ? err.message : err)
-      process.exit(1)
-    }
-  })
-
-program
   .command('p2p-e2e')
   .description('使用 in-memory transport 运行一组 P2P CLI 端到端握手与消息交换测试')
   .option('--rounds <number>', '消息往返轮数', '3')
