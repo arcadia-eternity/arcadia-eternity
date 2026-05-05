@@ -1,5 +1,73 @@
 # Changelog
 
+## [3.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.4...arcadia-eternity-v3.2.0) (2026-05-05)
+
+
+### ✨ Features
+
+* Add UI metadata and inline editors ([8e4eaaa](https://github.com/arcadia-eternity/arcadia-eternity/commit/8e4eaaab8b566116888aaaa34ee137c0068a36ca))
+* add VS Code extension and pack editor workbench ([cab7f0a](https://github.com/arcadia-eternity/arcadia-eternity/commit/cab7f0a90affd72763e8473c72b8f8491f08bf4c))
+* **data-editor:** add × clear button to all nullable field types ([60c0b97](https://github.com/arcadia-eternity/arcadia-eternity/commit/60c0b97720e038881214d59178c45b5d89fa7eac))
+* **data-editor:** add number-or-tuple editor for multihit union type ([493937f](https://github.com/arcadia-eternity/arcadia-eternity/commit/493937fde1c317a841220abd330485f5dd1101bb))
+* **data-editor:** add species pet icon column to DataTable ([bfe9932](https://github.com/arcadia-eternity/arcadia-eternity/commit/bfe9932469fa6cc13abb9a59f84196b7babcaa78))
+* **data-editor:** add visual effect editor with DSL-driven tree form ([247565a](https://github.com/arcadia-eternity/arcadia-eternity/commit/247565af1992c8cae3afbfa442f84ca83064b2f8))
+* **data-editor:** new Directus-style data editor with rich field editors ([ab953c6](https://github.com/arcadia-eternity/arcadia-eternity/commit/ab953c62d60da12753638a5fec7e3f9d18991270))
+* **data-editor:** nullable fields support clear + default value display ([b06d52c](https://github.com/arcadia-eternity/arcadia-eternity/commit/b06d52c08d565b702d01cbce788ffecf0247d801))
+* move connection status to nav bar ([79ca5db](https://github.com/arcadia-eternity/arcadia-eternity/commit/79ca5dbc1b9fadfab12054cae150e6f15745abbf))
+* separate local build (with checks) from production build ([e847341](https://github.com/arcadia-eternity/arcadia-eternity/commit/e847341b1455ff4210678bae9e99a1a983670521))
+
+
+### 🐛 Bug Fixes
+
+* 6 any remaining (Socket.IO EventsMap constraint) + 31 pre-existing build errors ([c571957](https://github.com/arcadia-eternity/arcadia-eternity/commit/c571957a8bcf588ce593c5ced8696c4621eb66ce))
+* add tsconfigRootDir to ESLint parserOptions, configure VS Code ESLint workingDirectories ([d64c6a2](https://github.com/arcadia-eternity/arcadia-eternity/commit/d64c6a2b574f86524a51fd1fa8068772b4aec07e))
+* align icons and text inline in nav bar tags ([4d297b8](https://github.com/arcadia-eternity/arcadia-eternity/commit/4d297b8a17ec35a020da39a6046ac3f6b80ba7e8))
+* build 0, ESLint 0, any 0 — EventsMap from [@socket](https://github.com/socket).io/component-emitter, all interface mismatches resolved ([10d64a3](https://github.com/arcadia-eternity/arcadia-eternity/commit/10d64a32297e5ee38652406ec3fc5c2990b2b990))
+* build 32→8 — all fixable errors resolved, 8 pre-existing interface/contravariance remain ([2bfc989](https://github.com/arcadia-eternity/arcadia-eternity/commit/2bfc9899506ec0e4f5892d6fc783b38143f51fbd))
+* build 49→28 — import paths, JWTPayload fields, CrossInstanceAction optional fields, Record&lt;string,unknown&gt; for health info ([f948894](https://github.com/arcadia-eternity/arcadia-eternity/commit/f9488942c093836d28886d90f76fe37562fdc961))
+* build 49→31, ESLint 6 any (Socket.IO EventsMap not exported) ([cad7e79](https://github.com/arcadia-eternity/arcadia-eternity/commit/cad7e79884a1bfb528179fd2c3e462b10c5e8a15))
+* build errors reduced 86→60, all type-narrowing issues from unknown/EventsMap changes ([5cde15d](https://github.com/arcadia-eternity/arcadia-eternity/commit/5cde15d3a100be343e109a7a19e7cfaf6416d9e8))
+* correct rolldown external filter for resolved absolute paths ([510c265](https://github.com/arcadia-eternity/arcadia-eternity/commit/510c265d3158cabc9169304998b7e383549c5f44))
+* **data-editor:** prevent page scrollbar by using h-full instead of h-screen ([1b2b7ec](https://github.com/arcadia-eternity/arcadia-eternity/commit/1b2b7ec93259bed887046d2c6737b854d6da6cc6))
+* **data-editor:** reliable save persistence via IPC-based data loading ([9574dae](https://github.com/arcadia-eternity/arcadia-eternity/commit/9574dae4035569b6dc6222e01fa7331d7dc6c1de))
+* **data-editor:** skill power/accuracy/rage/priority fields showing 0 ([0720ef6](https://github.com/arcadia-eternity/arcadia-eternity/commit/0720ef611af13d0323b909a59c37c0860b6d2703))
+* eliminate all ESLint errors across entire project (~1200→0) ([9da36ca](https://github.com/arcadia-eternity/arcadia-eternity/commit/9da36cacc9b0ae12d0b8f93387eae8d725fd2bdc))
+* ESLint 0, any 0 — import EventsMap from socket.io/dist/typed-events ([1fea283](https://github.com/arcadia-eternity/arcadia-eternity/commit/1fea283488d4870bd6fc0fc95e0455e4eb146ce8))
+* ESLint 0, build 0, any 0 — projectService+tsconfigRootDir, web-ui excluded (batch-mode known issue) ([d4704d3](https://github.com/arcadia-eternity/arcadia-eternity/commit/d4704d3a2464322c5945c69d22c3693e071cd82c))
+* ESLint 0, no-explicit-any 0, Record&lt;string,unknown&gt;→specific types (CrossInstanceAction, ForwardActionData, HttpErrorLike, LoadDistribution) ([4014ec8](https://github.com/arcadia-eternity/arcadia-eternity/commit/4014ec8d257e0c093064a61b882f37e790b2a583))
+* improve web-ui init flow — quiet console, shorten warmup timeout, hide disconnect until ready ([d54ed2b](https://github.com/arcadia-eternity/arcadia-eternity/commit/d54ed2b277efec5c9b0ee35fc2736fe1836bdc63))
+* inline rolldown configs, remove shared helper broken by .dockerignore ([3a9848b](https://github.com/arcadia-eternity/arcadia-eternity/commit/3a9848b9dcf76aaf953284ddc90ac30be22c1d81))
+* keep build fast for Docker, add separate check script ([a49dfb0](https://github.com/arcadia-eternity/arcadia-eternity/commit/a49dfb0788caa74e66f64e6e133c3c1c3f68d14c))
+* make prepare script production-safe (husky is devDependency) ([d0d502d](https://github.com/arcadia-eternity/arcadia-eternity/commit/d0d502d408c21c86abc86eaedf9ebec841330339))
+* Record&lt;string,unknown&gt;→HttpErrorLike,CrossInstanceAction,ForwardActionData; remaining fixes to authService, clusterManager, debug-battle-report ([d961bea](https://github.com/arcadia-eternity/arcadia-eternity/commit/d961beaa8a7d8f3caee150d8b45f07c7a2cc1a8d))
+* remove battleE2e test code leaked into production ([33f400e](https://github.com/arcadia-eternity/arcadia-eternity/commit/33f400e3ddb796bd3d554273b5ca35080818d41b))
+* remove erroneously committed .d.ts files from battle src/ ([58903a4](https://github.com/arcadia-eternity/arcadia-eternity/commit/58903a43d4eb09bd55e618217eec68f03ca0f2e4))
+* reorder build to build packages before typecheck ([2e7222f](https://github.com/arcadia-eternity/arcadia-eternity/commit/2e7222f67b340376ba05d0c51abb2f367542a351))
+* restore ESLint fixes + manual build corrections ([b915ac5](https://github.com/arcadia-eternity/arcadia-eternity/commit/b915ac504a5a2b95cb05a53730cfcf43fde2f156))
+* revert server to stable state (b915ac50), keep rules+web-ui clean ([b0c0960](https://github.com/arcadia-eternity/arcadia-eternity/commit/b0c0960bb49bee909535b18206eae2b46c93b829))
+* **rules:** 111 → 0 ESLint errors — all types cleaned ([c7e5691](https://github.com/arcadia-eternity/arcadia-eternity/commit/c7e569164a73302ef52e208957de10c87a6925ab))
+* **rules:** 45→8 no-explicit-any resolved, 2 misc + 6 require remaining ([715e098](https://github.com/arcadia-eternity/arcadia-eternity/commit/715e0981d04f2ff3b142a7e656ae177ce1f38ea8))
+* **rules:** Record&lt;string,any&gt;→Record&lt;string,unknown&gt;, fix TeamBuilderIntegration/SkillAvailabilityRule build errors ([2e5206e](https://github.com/arcadia-eternity/arcadia-eternity/commit/2e5206e4a95fd8fa89920ef26bf423b02f08acef))
+* **rules:** remove 58 no-unused-vars errors (111→53) ([65cdb41](https://github.com/arcadia-eternity/arcadia-eternity/commit/65cdb412f16d651b5cde7e268920ec863e442f4b))
+* **rules:** replace Record&lt;string, unknown&gt; with actual types ([688f92c](https://github.com/arcadia-eternity/arcadia-eternity/commit/688f92cb058fb45e82b85eec340936d4f08aff13))
+* **server:** 10 mechanical errors fixed ([dd79e05](https://github.com/arcadia-eternity/arcadia-eternity/commit/dd79e05d8ed24a0b446c999898193b7314d24a87))
+* **server:** 238 no-explicit-any removed — RPC, clusterBattleServer, privateRoomHandlers, container, interfaces ([8d3b71a](https://github.com/arcadia-eternity/arcadia-eternity/commit/8d3b71a74feb9502d8182f0b71a5778e4ee289cc))
+* **server:** 459 no-explicit-any removed — types, auth, redis, routes, monitoring, matching ([abe8ee0](https://github.com/arcadia-eternity/arcadia-eternity/commit/abe8ee035ed937ede7ff0bc5d041e26afd0ac73c))
+* **server:** 476→0 no-explicit-any — all ESLint rules clean, 86 build narrowing errors remaining ([933e4e0](https://github.com/arcadia-eternity/arcadia-eternity/commit/933e4e051a29e3ba8742f47707e4653875f14e96))
+* **server:** 476→29 no-explicit-any — all interface types defined, remaining 29 are Socket.IO/Redis infra constraints ([ba8743f](https://github.com/arcadia-eternity/arcadia-eternity/commit/ba8743f57a2b496a86928e4e2c70eb71eec65657))
+* use --ignore-scripts in Docker deps stage instead of hacky prepare script ([e4aa6b8](https://github.com/arcadia-eternity/arcadia-eternity/commit/e4aa6b87879acdbfc76b3b7d4fa564e630c7eed3))
+* VS Code ESLint — useFlatConfig, explicit working directory, tsconfigRootDir ([f27dbab](https://github.com/arcadia-eternity/arcadia-eternity/commit/f27dbab47b73934e06aa4e2c370ce00159d1952f))
+
+
+### 📚 Documentation
+
+* data editor save & load architecture design ([98325a8](https://github.com/arcadia-eternity/arcadia-eternity/commit/98325a88c54c5b98eb9f6083278c8cd1efcb5ec6))
+
+
+### ♻️ Code Refactoring
+
+* **data-editor:** decouple from game-specific hardcoding with GameConfig system ([fb99adf](https://github.com/arcadia-eternity/arcadia-eternity/commit/fb99adf7bf69357a81b220eacbef754239d78f71))
+
 ## [3.1.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.3...arcadia-eternity-v3.1.4) (2026-03-17)
 
 ### 🐛 Bug Fixes
