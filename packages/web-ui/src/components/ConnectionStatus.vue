@@ -3,7 +3,7 @@
     <!-- 连接状态指示器 -->
     <transition name="connection-status" mode="out-in">
       <div
-        v-if="showStatus"
+        v-if="showStatus && battleClientStore.initComplete"
         :class="{ 'cursor-pointer': !isMobile || connectionState === 'disconnected' }"
         @click="handleStatusClick"
       >
@@ -212,6 +212,7 @@ const handleReconnect = async () => {
 
 // 监听连接状态变化
 watch(connectionState, (newState, oldState) => {
+  if (!battleClientStore.initComplete) return
   console.log('连接状态变化:', oldState, '->', newState)
 
   // 从断开状态恢复连接时显示成功消息

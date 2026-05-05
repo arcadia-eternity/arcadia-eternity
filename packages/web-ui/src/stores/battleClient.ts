@@ -46,6 +46,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const isInitialized = ref(false)
   const serverWarmupState = ref<ServerWarmupState>('idle')
   const serverWarmupError = ref<string | null>(null)
+  const initComplete = ref(false)
 
   // 响应式状态触发器
   const _stateUpdateTrigger = ref(0)
@@ -70,7 +71,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const serverWarmupHint = computed(() => {
     switch (serverWarmupState.value) {
       case 'waking':
-        return '服务器唤醒中（通常 5-20 秒）'
+        return '服务器唤醒中（通常 5-10 秒）'
       case 'failed':
         return serverWarmupError.value || '服务器唤醒超时，请稍后再试'
       case 'ready':
@@ -93,7 +94,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return wsUrl.toString()
   }
 
-  const waitForServerReady = async (maxWaitMs = 25000): Promise<void> => {
+  const waitForServerReady = async (maxWaitMs = 10000): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
@@ -149,7 +150,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     }
 
     serverWarmupState.value = 'failed'
-    serverWarmupError.value = '服务器唤醒超时（超过 25 秒）'
+    serverWarmupError.value = '服务器唤醒超时（超过 10 秒）'
     throw new Error(serverWarmupError.value)
   }
 
@@ -294,6 +295,10 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     isInitialized.value = false
     serverWarmupState.value = 'idle'
     serverWarmupError.value = null
+  }
+
+  const markInitComplete = () => {
+    initComplete.value = true
   }
 
   const joinMatchmaking = (data: PlayerSchemaType | { playerSchema: PlayerSchemaType; ruleSetId?: string }) => {
@@ -530,6 +535,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   return {
     // 状态
     isInitialized,
+    initComplete,
     currentState,
     isConnected,
     isServerWaking,
@@ -543,6 +549,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     disconnect,
     reset,
     resetState,
+    markInitComplete,
     joinMatchmaking,
     cancelMatchmaking,
     sendplayerSelection,

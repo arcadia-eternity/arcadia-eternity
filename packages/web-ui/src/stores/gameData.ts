@@ -204,7 +204,15 @@ export const useGameDataStore = defineStore('gameData', {
         this.error = error instanceof Error ? error.message : '未知错误'
         this.loaded = false
         this.gameDataLoaded = false
-        console.error('❌ Game data initialization failed:', error)
+        const isNetworkError =
+          error instanceof TypeError ||
+          String(error).includes('Failed to fetch') ||
+          String(error).includes('NetworkError')
+        if (isNetworkError) {
+          console.warn('游戏数据加载失败：服务器未响应，部分功能不可用')
+        } else {
+          console.error('❌ Game data initialization failed:', error)
+        }
         throw error
       }
     },

@@ -654,8 +654,10 @@ onMounted(async () => {
     })
 
     await bootstrap.runAll()
+    battleClientStore.markInitComplete()
   } catch (err) {
     console.error('Initialization error:', err)
+    battleClientStore.markInitComplete()
     ElMessage.error('初始化失败，请刷新页面重试')
   }
 })

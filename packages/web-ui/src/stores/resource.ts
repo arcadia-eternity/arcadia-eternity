@@ -269,7 +269,15 @@ export const useResourceStore = defineStore('Resource', {
       } catch (error) {
         this.error = error instanceof Error ? error.message : '未知错误'
         this.loaded = false
-        console.error('❌ Resource initialization failed:', error)
+        const isNetworkError =
+          error instanceof TypeError ||
+          String(error).includes('Failed to fetch') ||
+          String(error).includes('NetworkError')
+        if (isNetworkError) {
+          console.warn('资源加载失败：服务器未响应，部分功能不可用')
+        } else {
+          console.error('❌ Resource initialization failed:', error)
+        }
         throw error
       }
     },
