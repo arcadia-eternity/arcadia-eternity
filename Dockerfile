@@ -22,7 +22,7 @@ RUN pnpm config set store-dir /tmp/pnpm-store && \
 COPY . .
 
 # Build the application
-RUN pnpm build
+RUN pnpm run build:prod
 
 # Dependencies stage - install production dependencies
 FROM node:24-alpine AS deps
