@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.6...arcadia-eternity-v3.2.7) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* restore server species validation by plumbing learnable_skills through data pipeline ([339be83](https://github.com/arcadia-eternity/arcadia-eternity/commit/339be83d86a84af090ce277d270c44119b02f2ca))
+
 ## [3.2.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.5...arcadia-eternity-v3.2.6) (2026-05-05)
 
 
