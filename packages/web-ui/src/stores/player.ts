@@ -477,8 +477,18 @@ export const usePlayerStore = defineStore('player', {
     player: (state): PlayerSchemaType => {
       const petStorage = usePetStorageStore()
       const team = petStorage.getCurrentTeam().map(pet => ({ ...toRaw(pet) }))
+      // 只取 state 的实际状态字段，避免 ...state 展开整个 store 实例（包含 getters/actions），
+      // 在 Pinia 3 中 getter 的 state 参数实际是 store 实例，展开会触发 player getter 自身递归导致栈溢出
       return {
-        ...state,
+        id: state.id,
+        name: state.name,
+        email: state.email,
+        email_verified: state.email_verified,
+        email_bound_at: state.email_bound_at,
+        is_registered: state.is_registered,
+        requiresAuth: state.requiresAuth,
+        isAuthenticated: state.isAuthenticated,
+        isInitialized: state.isInitialized,
         team,
       } as PlayerSchemaType
     },
