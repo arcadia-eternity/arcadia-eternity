@@ -1,9 +1,4 @@
-import {
-  type TimerSnapshot,
-  type playerId,
-  TimerState,
-  TIMER_CONSTANTS,
-} from '@arcadia-eternity/const'
+import { type TimerSnapshot, type playerId, TimerState, TIMER_CONSTANTS } from '@arcadia-eternity/const'
 
 /**
  * 本地Timer计算器
@@ -13,7 +8,11 @@ import {
 export class LocalTimerCalculator {
   private snapshots = new Map<playerId, TimerSnapshot>()
   private updateTimer?: ReturnType<typeof setInterval>
-  private listeners = new Map<string, Set<(snapshot: TimerSnapshot) => void>>()
+  private listeners = new Map<string, Set<(...args: never[]) => void>>()
+
+  private callListener(cb: (...args: never[]) => void, arg: unknown): void {
+    ;(cb as (a: unknown) => void)(arg)
+  }
   private isRunning = false
 
   constructor() {
@@ -102,12 +101,12 @@ export class LocalTimerCalculator {
     if (!this.listeners.has(key)) {
       this.listeners.set(key, new Set())
     }
-    this.listeners.get(key)!.add(callback as any)
+    this.listeners.get(key)!.add(callback)
 
     return () => {
       const listeners = this.listeners.get(key)
       if (listeners) {
-        listeners.delete(callback as any)
+        listeners.delete(callback)
         if (listeners.size === 0) {
           this.listeners.delete(key)
         }
@@ -184,7 +183,7 @@ export class LocalTimerCalculator {
       if (listeners && listeners.size > 0) {
         const realTimeState = this.getPlayerTimerState(playerId)
         if (realTimeState) {
-          listeners.forEach(callback => callback(realTimeState))
+          listeners.forEach(callback => this.callListener(callback, realTimeState))
         }
       }
     })
@@ -193,7 +192,7 @@ export class LocalTimerCalculator {
     const allListeners = this.listeners.get('all')
     if (allListeners && allListeners.size > 0) {
       const allStates = this.getAllPlayerTimerStates()
-      allListeners.forEach(callback => (callback as any)(allStates))
+      allListeners.forEach(callback => this.callListener(callback, allStates))
     }
   }
 
@@ -202,7 +201,7 @@ export class LocalTimerCalculator {
    */
   public hasActiveTimers(): boolean {
     return Array.from(this.snapshots.values()).some(
-      snapshot => snapshot.config && snapshot.config.enabled && snapshot.state === TimerState.Running
+      snapshot => snapshot.config && snapshot.config.enabled && snapshot.state === TimerState.Running,
     )
   }
 

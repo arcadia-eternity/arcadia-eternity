@@ -2,7 +2,7 @@ import pino from 'pino'
 import type { RedisClientManager } from '../redis/redisClient'
 import type { ClusterStateManager } from '../core/clusterStateManager'
 import type { ServiceInstance } from '../types'
-import { REDIS_KEYS } from '../types'
+import { REDIS_KEYS as _REDIS_KEYS } from '../types'
 
 const logger = pino().child({ module: 'LoadBalancingReporter' })
 
@@ -56,6 +56,12 @@ export interface LoadBalancingReport {
     }
   }
   recommendations: string[]
+}
+
+interface LoadDistribution {
+  cpuDistribution: { avg: number; std: number }
+  memoryDistribution: { avg: number; std: number }
+  battlesPerInstance: Record<string, number>
 }
 
 export class LoadBalancingReporter {
@@ -243,8 +249,9 @@ export class LoadBalancingReporter {
   /**
    * 生成优化建议
    */
-  private generateRecommendations(instances: ServiceInstance[], loadDistribution: any): string[] {
+  private generateRecommendations(instances: ServiceInstance[], loadDistribution: LoadDistribution): string[] {
     const recommendations: string[] = []
+    const ld = loadDistribution
     const healthyInstances = instances.filter(i => i.status === 'healthy')
 
     if (healthyInstances.length === 0) {
@@ -253,21 +260,21 @@ export class LoadBalancingReporter {
     }
 
     // CPU使用率建议
-    if (loadDistribution.cpuDistribution.avg > 80) {
+    if (ld.cpuDistribution.avg > 80) {
       recommendations.push('🔥 集群平均CPU使用率过高，建议增加实例或优化代码')
-    } else if (loadDistribution.cpuDistribution.std > 20) {
+    } else if (ld.cpuDistribution.std > 20) {
       recommendations.push('⚖️ CPU负载分布不均，建议调整负载均衡权重配置')
     }
 
     // 内存使用率建议
-    if (loadDistribution.memoryDistribution.avg > 85) {
+    if (ld.memoryDistribution.avg > 85) {
       recommendations.push('💾 集群平均内存使用率过高，建议增加实例或优化内存使用')
-    } else if (loadDistribution.memoryDistribution.std > 15) {
+    } else if (ld.memoryDistribution.std > 15) {
       recommendations.push('⚖️ 内存负载分布不均，建议调整负载均衡权重配置')
     }
 
     // 战斗分布建议
-    const battleCounts = Object.values(loadDistribution.battlesPerInstance) as number[]
+    const battleCounts = Object.values(ld.battlesPerInstance) as number[]
     const battleStd = this.calculateDistributionStats(battleCounts).std
     if (battleStd > 10) {
       recommendations.push('🎮 战斗分布不均，建议调整战斗权重或检查实例性能')
@@ -295,7 +302,7 @@ export class LoadBalancingReporter {
   /**
    * 获取战斗创建数量（模拟实现）
    */
-  private async getBattlesCreatedCount(instanceId: string, startTime: number, endTime: number): Promise<number> {
+  private async getBattlesCreatedCount(_instanceId: string, _startTime: number, _endTime: number): Promise<number> {
     // 这里应该从实际的监控数据中获取，暂时返回模拟数据
     return Math.floor(Math.random() * 50)
   }
@@ -304,9 +311,9 @@ export class LoadBalancingReporter {
    * 获取负载均衡选择次数（模拟实现）
    */
   private async getLoadBalancingSelectionsCount(
-    instanceId: string,
-    startTime: number,
-    endTime: number,
+    _instanceId: string,
+    _startTime: number,
+    _endTime: number,
   ): Promise<number> {
     // 这里应该从实际的监控数据中获取，暂时返回模拟数据
     return Math.floor(Math.random() * 100)

@@ -48,10 +48,10 @@ function isBattleUnavailableError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
   const upper = message.toUpperCase()
   return (
-    upper.includes('NOT_IN_BATTLE')
-    || upper.includes('BATTLE_NOT_FOUND')
-    || upper.includes('BATTLE_ALREADY_ENDED')
-    || upper.includes('BATTLE IS NOT ACTIVE')
+    upper.includes('NOT_IN_BATTLE') ||
+    upper.includes('BATTLE_NOT_FOUND') ||
+    upper.includes('BATTLE_ALREADY_ENDED') ||
+    upper.includes('BATTLE IS NOT ACTIVE')
   )
 }
 
@@ -238,7 +238,8 @@ export const useBattleStore = defineStore('battle', {
 
       try {
         const delta = msg.stateDelta
-        const hasDelta = delta !== undefined && !(typeof delta === 'object' && delta !== null && Object.keys(delta).length === 0)
+        const hasDelta =
+          delta !== undefined && !(typeof delta === 'object' && delta !== null && Object.keys(delta).length === 0)
         if (hasDelta) {
           jsondiffpatch.patch(this.battleState, delta)
         }

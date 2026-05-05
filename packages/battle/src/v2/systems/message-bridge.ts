@@ -167,9 +167,11 @@ export class MessageBridge {
   }
 
   private on(eventType: string, handler: (data: Record<string, unknown>) => void): void {
-    this.unsubscribers.push(this.bus.on(eventType, (event: GameEvent) => {
-      handler(event.data)
-    }))
+    this.unsubscribers.push(
+      this.bus.on(eventType, (event: GameEvent) => {
+        handler(event.data)
+      }),
+    )
   }
 
   private toMarkMessage(mark: MarkData): MarkMessage {
@@ -188,30 +190,30 @@ export class MessageBridge {
       this.emitMessage(BattleMessageType.BattleStart, {})
     })
 
-    this.on('turnStart', (data) => {
+    this.on('turnStart', data => {
       this.emitMessage(BattleMessageType.TurnStart, { turn: data.turn })
     })
 
-    this.on('turnEnd', (data) => {
+    this.on('turnEnd', data => {
       this.emitMessage(BattleMessageType.TurnEnd, { turn: data.turn })
     })
 
-    this.on('battleEnd', (data) => {
+    this.on('battleEnd', data => {
       const rawReason = String(data.reason ?? 'all_pet_fainted')
-      const reason = rawReason === 'timeout'
-        ? 'total_time_timeout'
-        : (rawReason === 'allFainted' ? 'all_pet_fainted' : rawReason)
+      const reason =
+        rawReason === 'timeout' ? 'total_time_timeout' : rawReason === 'allFainted' ? 'all_pet_fainted' : rawReason
       this.emitMessage(BattleMessageType.BattleEnd, {
         winner: data.winner ?? null,
         reason,
       })
     })
 
-    this.on('skillUse', (data) => {
+    this.on('skillUse', data => {
       const skillId = String(data.skillId)
       const skill = this.systems.skillSystem.get(this.world, skillId)
       const target =
-        typeof data.target === 'string' && Object.values(AttackTargetOpinion).includes(data.target as AttackTargetOpinion)
+        typeof data.target === 'string' &&
+        Object.values(AttackTargetOpinion).includes(data.target as AttackTargetOpinion)
           ? (data.target as AttackTargetOpinion)
           : AttackTargetOpinion.opponent
       this.emitMessage(BattleMessageType.SkillUse, {
@@ -223,7 +225,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('skillFail', (data) => {
+    this.on('skillFail', data => {
       const reasonMap: Record<string, string> = {
         noRage: 'no_rage',
         noTarget: 'invalid_target',
@@ -238,7 +240,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('skillMiss', (data) => {
+    this.on('skillMiss', data => {
       this.emitMessage(BattleMessageType.SkillMiss, {
         user: data.petId,
         target: data.targetId,
@@ -247,11 +249,11 @@ export class MessageBridge {
       })
     })
 
-    this.on('skillUseEnd', (data) => {
+    this.on('skillUseEnd', data => {
       this.emitMessage(BattleMessageType.SkillUseEnd, { user: data.petId })
     })
 
-    this.on('damage', (data) => {
+    this.on('damage', data => {
       this.emitMessage(BattleMessageType.Damage, {
         source: data.sourceId,
         target: data.targetId,
@@ -264,7 +266,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('damageFail', (data) => {
+    this.on('damageFail', data => {
       this.emitMessage(BattleMessageType.DamageFail, {
         source: data.sourceId,
         target: data.targetId,
@@ -272,7 +274,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('heal', (data) => {
+    this.on('heal', data => {
       this.emitMessage(BattleMessageType.Heal, {
         target: data.targetId,
         amount: data.heal,
@@ -280,7 +282,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('switchIn', (data) => {
+    this.on('switchIn', data => {
       this.emitMessage(BattleMessageType.PetSwitch, {
         player: data.playerId,
         fromPet: data.fromPetId ?? data.petId,
@@ -289,17 +291,18 @@ export class MessageBridge {
       })
     })
 
-    this.on('petDefeated', (data) => {
+    this.on('petDefeated', data => {
       this.emitMessage(BattleMessageType.PetDefeated, {
         pet: data.petId,
         killer: data.killerId,
       })
     })
 
-    this.on('rageChange', (data) => {
+    this.on('rageChange', data => {
       const playerId = String(data.playerId)
       const player = this.systems.playerSystem.get(this.world, playerId)
-      const after = typeof data.newRage === 'number' ? data.newRage : this.systems.playerSystem.getRage(this.world, playerId)
+      const after =
+        typeof data.newRage === 'number' ? data.newRage : this.systems.playerSystem.getRage(this.world, playerId)
       const before = typeof data.before === 'number' ? data.before : after
       const reason = String(data.reason ?? 'effect')
       const rageReason = ['turn', 'damage', 'skill', 'skillHit', 'switch', 'effect'].includes(reason)
@@ -314,7 +317,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('hpChange', (data) => {
+    this.on('hpChange', data => {
       this.emitMessage(BattleMessageType.HpChange, {
         pet: data.pet,
         before: data.before,
@@ -324,7 +327,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('markAdd', (data) => {
+    this.on('markAdd', data => {
       const markId = String(data.markId)
       const mark = this.systems.markSystem.get(this.world, markId)
       if (!mark) return
@@ -335,7 +338,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('markStack', (data) => {
+    this.on('markStack', data => {
       const markId = String(data.markId)
       const mark = this.systems.markSystem.get(this.world, markId)
       if (!mark) return
@@ -345,7 +348,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('markUpdate', (data) => {
+    this.on('markUpdate', data => {
       const markId = String(data.markId)
       const mark = this.systems.markSystem.get(this.world, markId)
       if (!mark) return
@@ -355,7 +358,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('markRemove', (data) => {
+    this.on('markRemove', data => {
       this.emitMessage(BattleMessageType.MarkDestroy, {
         mark: String(data.markId),
         baseMarkId: data.baseMarkId,
@@ -363,32 +366,32 @@ export class MessageBridge {
       })
     })
 
-    this.on('markExpire', (data) => {
+    this.on('markExpire', data => {
       this.emitMessage(BattleMessageType.MarkExpire, {
         mark: data.markId,
         target: data.ownerId ?? 'battle',
       })
     })
 
-    this.on('forcedSwitch', (data) => {
+    this.on('forcedSwitch', data => {
       this.emitMessage(BattleMessageType.ForcedSwitch, {
         player: data.playerIds,
       })
     })
 
-    this.on('faintSwitch', (data) => {
+    this.on('faintSwitch', data => {
       this.emitMessage(BattleMessageType.FaintSwitch, {
         player: data.playerId,
       })
     })
 
-    this.on('turnAction', (data) => {
+    this.on('turnAction', data => {
       this.emitMessage(BattleMessageType.TurnAction, {
         player: data.playerIds,
       })
     })
 
-    this.on('teamSelectionStart', (data) => {
+    this.on('teamSelectionStart', data => {
       this.emitMessage(BattleMessageType.TeamSelectionStart, {
         config: data.config,
         playerATeam: data.playerATeam ?? null,
@@ -396,14 +399,14 @@ export class MessageBridge {
       })
     })
 
-    this.on('teamSelectionComplete', (data) => {
+    this.on('teamSelectionComplete', data => {
       this.emitMessage(BattleMessageType.TeamSelectionComplete, {
         playerASelection: data.playerASelection,
         playerBSelection: data.playerBSelection,
       })
     })
 
-    this.on('statStageChange', (data) => {
+    this.on('statStageChange', data => {
       this.emitMessage(BattleMessageType.StatChange, {
         pet: data.entityId,
         stat: data.stat,
@@ -412,7 +415,7 @@ export class MessageBridge {
       })
     })
 
-    this.on('info', (data) => {
+    this.on('info', data => {
       this.emitMessage(BattleMessageType.Info, {
         message: data.message ?? 'info',
       })

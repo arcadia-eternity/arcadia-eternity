@@ -123,6 +123,11 @@ describe('ClusterBattleServer dual-disconnect healing', () => {
     await server.handlePlayerDisconnect(socket)
 
     expect(server.battleService.forceTerminateBattle).not.toHaveBeenCalled()
-    expect(server.notifyInstanceBattleTermination).toHaveBeenCalledWith('instance-b', 'room-1', 'player-1', 'disconnect')
+    expect(server.notifyInstanceBattleTermination).toHaveBeenCalledWith(
+      'instance-b',
+      'room-1',
+      'player-1',
+      'disconnect',
+    )
   })
 })

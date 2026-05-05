@@ -1,6 +1,12 @@
 // src/protocol.ts
 import type { BattleMessage, BattleState, TimerConfig, PlayerTimerState } from '@arcadia-eternity/const'
-import type { PlayerSchemaType, PlayerSelectionSchemaType, PetSchemaType, PackLock, AssetLock } from '@arcadia-eternity/schema'
+import type {
+  PlayerSchemaType,
+  PlayerSelectionSchemaType,
+  PetSchemaType,
+  PackLock,
+  AssetLock,
+} from '@arcadia-eternity/schema'
 
 // 重新导出常用类型
 export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
@@ -36,11 +42,11 @@ export interface ServerToClientEvents {
   // 批量战斗事件（新增）
   battleEventBatch: (messages: BattleMessage[]) => void
   // 计时器事件
-  timerEvent: (event: { type: string; data: any }) => void
+  timerEvent: (event: { type: string; data: unknown }) => void
   // 新架构：Timer快照事件
-  timerSnapshot: (data: { snapshots: any[] }) => void
+  timerSnapshot: (data: { snapshots: unknown[] }) => void
   // 新架构：Timer事件批处理
-  timerEventBatch: (events: any[]) => void
+  timerEventBatch: (events: unknown[]) => void
   // 房间关闭通知
   roomClosed: (message: { roomId: string }) => void
   // 匹配成功事件
@@ -121,15 +127,9 @@ export interface ClientToServerEvents {
   joinPrivateRoomAsSpectator: (data: JoinPrivateRoomSpectatorRequest, ack: AckResponse<{ status: 'JOINED' }>) => void
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
-  startPrivateRoomBattle: (
-    data: StartPrivateRoomBattleRequest,
-    ack: AckResponse<PrivateRoomBattleStartInfo>,
-  ) => void
-  sendPrivateRoomPeerSignal: (
-    data: SendPrivateRoomPeerSignalRequest,
-    ack: AckResponse<{ status: 'FORWARDED' }>,
-  ) => void
-  switchToSpectator: (data: {}, ack: AckResponse<{ status: 'SWITCHED' }>) => void
+  startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<PrivateRoomBattleStartInfo>) => void
+  sendPrivateRoomPeerSignal: (data: SendPrivateRoomPeerSignalRequest, ack: AckResponse<{ status: 'FORWARDED' }>) => void
+  switchToSpectator: (data: Record<string, never>, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   getPrivateRoomInfo: (data: { roomCode: string }, ack: AckResponse<PrivateRoomInfo>) => void
   updatePrivateRoomRuleSet: (data: UpdatePrivateRoomRuleSetRequest, ack: AckResponse<{ status: 'UPDATED' }>) => void
@@ -138,7 +138,7 @@ export interface ClientToServerEvents {
   kickPlayerFromPrivateRoom: (data: KickPlayerFromPrivateRoomRequest, ack: AckResponse<{ status: 'KICKED' }>) => void
   getCurrentPrivateRoom: (ack: AckResponse<PrivateRoomInfo | null>) => void
   joinSpectateBattle: (data: { battleRoomId: string }, ack: AckResponse<{ status: 'SPECTATING' }>) => void
-  leaveSpectateBattle: (data: {}, ack: AckResponse<{ status: 'LEFT_SPECTATE' }>) => void
+  leaveSpectateBattle: (data: Record<string, never>, ack: AckResponse<{ status: 'LEFT_SPECTATE' }>) => void
 }
 
 // 私人房间相关类型定义

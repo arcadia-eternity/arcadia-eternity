@@ -3,6 +3,7 @@
 ## 概述
 
 为了简化condition系统中判断印记存在的语法，我们新增了两个专用的condition类型：
+
 - `selfHasMark` - 判断自己是否有指定baseId的印记
 - `opponentHasMark` - 判断对手是否有指定baseId的印记
 
@@ -182,7 +183,7 @@ opponentHasMark: (baseId: ValueSource<string>): Condition => {
     } else {
       return false
     }
-    
+
     const _baseId = GetValueFromSource(context, baseId)
     if (_baseId.length === 0) return false
     return opponentPet.marks.some(mark => mark.baseId === _baseId[0])

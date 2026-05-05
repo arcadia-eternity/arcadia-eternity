@@ -11,11 +11,14 @@ const logger = pino({
 // JWT载荷接口
 export interface JWTPayload {
   playerId: string
-  isRegistered: boolean
+  sessionId?: string
   email?: string
-  iat?: number
+  isAdmin?: boolean
+  isRegistered?: boolean
+  type?: string
+  jti?: string
   exp?: number
-  jti?: string // JWT ID，用于token撤销
+  iat?: number
 }
 
 // 认证配置接口
@@ -62,7 +65,7 @@ export interface IAuthService {
   /**
    * 刷新访问令牌
    */
-  refreshAccessToken(refreshToken: string, playerRepo?: any): Promise<AuthResult | null>
+  refreshAccessToken(refreshToken: string, playerRepo?: unknown): Promise<AuthResult | null>
 
   /**
    * 为玩家生成完整的认证信息
@@ -82,7 +85,7 @@ export interface IAuthService {
   /**
    * 获取会话（可选，用于集群环境）
    */
-  getSession?(playerId: string, sessionId?: string): Promise<any>
+  getSession?(playerId: string, sessionId?: string): Promise<unknown>
 }
 
 @injectable()
@@ -139,12 +142,11 @@ export class AuthService implements IAuthService {
       }
 
       return decoded
-    } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError) {
-        // 正常的token验证失败，不需要记录debug日志
+    } catch (_error) {
+      if (_error instanceof jwt.JsonWebTokenError || _error instanceof jwt.TokenExpiredError) {
         return null
       } else {
-        logger.error({ error }, 'Token verification error')
+        logger.error({ _error }, 'Token verification error')
         return null
       }
     }
@@ -156,19 +158,24 @@ export class AuthService implements IAuthService {
         return null
       }
 
-      const decoded = jwt.verify(token, this.config.jwtSecret) as any
+      const decoded = jwt.verify(token, this.config.jwtSecret) as JWTPayload
 
       if (decoded.type !== 'refresh' || !decoded.playerId) {
         return null
       }
 
       return { playerId: decoded.playerId }
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }
 
-  async refreshAccessToken(refreshToken: string, playerRepo?: any): Promise<AuthResult | null> {
+  async refreshAccessToken(
+    refreshToken: string,
+    playerRepo?: {
+      getPlayerById: (id: string) => Promise<{ id: string; is_registered?: boolean; email?: string } | null>
+    },
+  ): Promise<AuthResult | null> {
     const refreshPayload = this.verifyRefreshToken(refreshToken)
     if (!refreshPayload) {
       return null
@@ -183,8 +190,8 @@ export class AuthService implements IAuthService {
         }
 
         return this.generateAuthForPlayer(player.id, player.is_registered || false, player.email || undefined)
-      } catch (error) {
-        logger.error({ error }, 'Failed to fetch player during token refresh')
+      } catch (_error) {
+        logger.error({ _error }, 'Failed to fetch player during token refresh')
         return null
       }
     }
@@ -228,8 +235,8 @@ export class AuthService implements IAuthService {
       }
 
       return true
-    } catch (error) {
-      logger.error({ error }, 'Failed to revoke token')
+    } catch (_error) {
+      logger.error({ _error }, 'Failed to revoke token')
       return false
     }
   }

@@ -12,12 +12,14 @@ import type {
   playerId,
 } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
-import { createSnapshot, restoreWorld, GameRng, type RngState, type PhaseExecutionEvent } from '@arcadia-eternity/engine'
-import type {
-  IBattleSystem,
-  BattleRuntimeSnapshot,
-  BattlePhaseExecutionEvent,
-} from '@arcadia-eternity/interface'
+import {
+  createSnapshot,
+  restoreWorld,
+  GameRng,
+  type RngState,
+  type PhaseExecutionEvent,
+} from '@arcadia-eternity/engine'
+import type { IBattleSystem, BattleRuntimeSnapshot, BattlePhaseExecutionEvent } from '@arcadia-eternity/interface'
 import type { BattleInstance } from './game.js'
 import { BattleOrchestrator } from './orchestrator.js'
 import { SelectionSystem } from './systems/selection.system.js'
@@ -76,11 +78,7 @@ export class LocalBattleSystemV2 implements IBattleSystem {
   private removePhaseExecutionObserver: (() => void) | null = null
 
   constructor(private battle: BattleInstance) {
-    this.selectionSystem = new SelectionSystem(
-      battle.playerSystem,
-      battle.petSystem,
-      battle.skillSystem,
-    )
+    this.selectionSystem = new SelectionSystem(battle.playerSystem, battle.petSystem, battle.skillSystem)
 
     this.timerSystem = new TimerSystem(battle.world, battle.config.timerConfig)
     this.timerSystem.setReconnectTimeoutHandler(async timedOutPlayerId =>
@@ -130,7 +128,9 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     )
   }
 
-  get world() { return this.battle.world }
+  get world() {
+    return this.battle.world
+  }
 
   async ready(): Promise<void> {
     const resume = this.resumeFromSnapshot
@@ -168,7 +168,9 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     return this.messageBridge.subscribe(callback, options)
   }
 
-  async isTimerEnabled(): Promise<boolean> { return this.timerSystem.isEnabled() }
+  async isTimerEnabled(): Promise<boolean> {
+    return this.timerSystem.isEnabled()
+  }
   async getPlayerTimerState(playerId: playerId): Promise<PlayerTimerState | null> {
     return this.timerSystem.getPlayerState(playerId)
   }
@@ -200,9 +202,7 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     this.timerSystem.off(eventType, handler)
   }
 
-  onPhaseExecutionEvent(
-    handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>,
-  ): () => void {
+  onPhaseExecutionEvent(handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>): () => void {
     this.phaseEventSubscribers.add(handler)
     return () => {
       this.phaseEventSubscribers.delete(handler)

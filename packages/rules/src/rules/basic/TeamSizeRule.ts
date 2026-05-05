@@ -1,4 +1,3 @@
-import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { Team, RuleContext } from '../../interfaces/Rule'
 import { ValidationResultBuilder, ValidationErrorType, type ValidationResult } from '../../interfaces/ValidationResult'
 import { AbstractRule } from '../../core/AbstractRule'
@@ -38,7 +37,7 @@ export class TeamSizeRule extends AbstractRule {
   /**
    * 验证队伍大小
    */
-  validateTeam(team: Team, context?: RuleContext): ValidationResult {
+  validateTeam(team: Team, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
     const teamSize = team.length
 

@@ -39,7 +39,10 @@ export interface PackManager {
   verify(lockfile: PackLockfile): Promise<PackResolveResult>
   install(request: PackInstallRequest): Promise<InstalledPack>
   resolve(lockfile: PackLockfile): Promise<PackResolveResult>
-  load(entryRef: string, options?: {
-    enforceLockfile?: boolean
-  }): Promise<PackLoadResult>
+  load(
+    entryRef: string,
+    options?: {
+      enforceLockfile?: boolean
+    },
+  ): Promise<PackLoadResult>
 }

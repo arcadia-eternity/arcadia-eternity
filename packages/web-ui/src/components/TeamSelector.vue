@@ -86,7 +86,7 @@
                 </div>
               </div>
               <div class="text-sm text-gray-600 mt-1">
-                {{ team.pets.map((p: any) => p.name).join('、') }}
+                {{ team.pets.map((p) => (p as Record<string, unknown>).name).join('、') }}
               </div>
               <div class="text-xs text-orange-600 mt-1">
                 队伍使用{{ getRuleSetName(team.ruleSetId || 'casual_standard_ruleset') }}规则集
@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useValidationStore } from '@/stores/validation'
 import { useGameDataStore } from '@/stores/gameData'
@@ -108,7 +108,7 @@ import { User, Warning, Edit, Select, Loading } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   selectedRuleSetId: string | null
-  modelValue: any | null
+  modelValue: { name: string; pets: unknown[]; ruleSetId: string } | null
 }>()
 
 const emit = defineEmits(['update:modelValue', 'update:isValid', 'update:validationErrors'])

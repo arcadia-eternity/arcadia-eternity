@@ -1,9 +1,6 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
 
-const DEFAULT_EFFECT_TRIGGERS = new Set<string>([
-  ...Object.values(EffectTrigger),
-  'BeforeEffect',
-])
+const DEFAULT_EFFECT_TRIGGERS = new Set<string>([...Object.values(EffectTrigger), 'BeforeEffect'])
 
 const effectTriggerRegistry = new Set<string>(DEFAULT_EFFECT_TRIGGERS)
 

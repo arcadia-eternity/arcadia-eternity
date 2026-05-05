@@ -57,4 +57,3 @@ export type LockImporterDependency = Static<typeof LockImporterDependencySchema>
 export type LockImporterSnapshot = Static<typeof LockImporterSnapshotSchema>
 export type LockPackageSnapshot = Static<typeof LockPackageSnapshotSchema>
 export type PackLockfile = Static<typeof PackLockfileSchema>
-

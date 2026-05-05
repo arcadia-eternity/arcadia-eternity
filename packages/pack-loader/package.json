@@ -12,8 +12,8 @@
   "scripts": {
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rollup -c",
-    "watch:code": "rollup -c --watch",
+    "build:code": "rolldown -c",
+    "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly",
@@ -25,9 +25,9 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
-    "yaml": "^2.8.2"
+    "yaml": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0"
+    "@types/node": "catalog:"
   }
 }

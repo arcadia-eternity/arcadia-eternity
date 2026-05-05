@@ -2,13 +2,7 @@
 // Condition and evaluator evaluation for effect DSL.
 
 import type { InterpreterContext } from './context.js'
-import {
-  type ConditionDSL,
-  type EvaluatorDSL,
-  getEffectDslManifest,
-  type SelectorDSL,
-  type Value,
-} from '@arcadia-eternity/schema'
+import { type ConditionDSL, type EvaluatorDSL, getEffectDslManifest, type Value } from '@arcadia-eternity/schema'
 import {
   evaluateCommonCondition,
   evaluateRuntimeEvaluator,
@@ -41,10 +35,7 @@ function isCommonCondition(
 ): condition is CommonConditionDsl | boolean | undefined | null {
   if (condition === undefined || condition === null || typeof condition === 'boolean') return true
   return (
-    condition.type === 'every'
-    || condition.type === 'some'
-    || condition.type === 'not'
-    || condition.type === 'evaluate'
+    condition.type === 'every' || condition.type === 'some' || condition.type === 'not' || condition.type === 'evaluate'
   )
 }
 
@@ -162,10 +153,7 @@ function toStringArray(value: unknown): string[] {
   return value.filter((v): v is string => typeof v === 'string')
 }
 
-function pickSequenceSourcePetId(
-  ctx: InterpreterContext,
-  source: 'self' | 'opponent',
-): string | undefined {
+function pickSequenceSourcePetId(ctx: InterpreterContext, source: 'self' | 'opponent'): string | undefined {
   const sourcePetId = getSourceOwnerPetId(ctx)
   if (!sourcePetId) return undefined
   if (source === 'self') return sourcePetId
@@ -278,14 +266,15 @@ function evaluateDefaultRegisteredCondition(
     const sequenceRaw = resolveValue(ctx, seqCond.sequence)
     const sequence = Array.isArray(sequenceRaw)
       ? sequenceRaw.filter((s): s is string => typeof s === 'string')
-      : (typeof sequenceRaw === 'string' ? [sequenceRaw] : [])
+      : typeof sequenceRaw === 'string'
+        ? [sequenceRaw]
+        : []
     if (sequence.length === 0) return false
 
     const mode = (resolveValue(ctx, seqCond.mode) as 'exact' | 'inOrder' | 'withGap' | undefined) ?? 'exact'
     const windowValue = resolveValue(ctx, seqCond.window)
-    const windowSize = typeof windowValue === 'number' && Number.isFinite(windowValue)
-      ? Math.max(1, Math.floor(windowValue))
-      : undefined
+    const windowSize =
+      typeof windowValue === 'number' && Number.isFinite(windowValue) ? Math.max(1, Math.floor(windowValue)) : undefined
 
     const historyAll = toStringArray(pet.skillHistoryBaseIds)
     const history = windowSize ? historyAll.slice(-windowSize) : historyAll
@@ -374,7 +363,7 @@ function evaluateDefaultRegisteredCondition(
 
     case 'opponentUseSkill': {
       // Check if source owner is NOT the skill user
-      const useSkillCtx = findContextInStack(ctx, 'use-skill')  // Fixed: use 'use-skill'
+      const useSkillCtx = findContextInStack(ctx, 'use-skill') // Fixed: use 'use-skill'
       if (!useSkillCtx) return false
       const sourceOwnerPetId = getSourceOwnerPetId(ctx)
       if (!sourceOwnerPetId) return false
@@ -383,7 +372,7 @@ function evaluateDefaultRegisteredCondition(
 
     case 'selfBeDamaged': {
       // Check if source owner is the damage target
-      const damageCtx = findContextInStack(ctx, 'damage')  // Already correct
+      const damageCtx = findContextInStack(ctx, 'damage') // Already correct
       if (!damageCtx) return false
 
       const sourceOwnerPetId = getSourceOwnerPetId(ctx)
@@ -400,7 +389,7 @@ function evaluateDefaultRegisteredCondition(
 
     case 'opponentBeDamaged': {
       // Check if source owner is NOT the damage target
-      const damageCtx = findContextInStack(ctx, 'damage')  // Already correct
+      const damageCtx = findContextInStack(ctx, 'damage') // Already correct
       if (!damageCtx) return false
 
       const { world, systems } = ctx
@@ -434,7 +423,6 @@ function evaluateDefaultRegisteredCondition(
       const creatorPet = petSystem.get(world, creatorId)
       if (!sourcePet || !creatorPet) return false
       return sourcePet.ownerId === creatorPet.ownerId
-
     }
 
     case 'opponentAddMark': {
@@ -554,7 +542,7 @@ function evaluateDefaultRegisteredCondition(
         const playerBId = world.state.playerBId
         if (!playerAId || !playerBId) return false
 
-        const opponentId = pet.ownerId === playerAId ? playerBId as string : playerAId as string
+        const opponentId = pet.ownerId === playerAId ? (playerBId as string) : (playerAId as string)
         const opponentPet = playerSystem.getActivePet(world, opponentId)
         if (opponentPet) {
           const mark = markSystem.findByBaseId(world, opponentPet.id, baseId)

@@ -281,7 +281,9 @@ describe('PrivateRoomService', () => {
       },
     })
 
-    const signalMessage = redis.published.find(entry => entry.channel === REDIS_KEYS.PRIVATE_ROOM_SIGNAL_EVENTS(roomCode))
+    const signalMessage = redis.published.find(
+      entry => entry.channel === REDIS_KEYS.PRIVATE_ROOM_SIGNAL_EVENTS(roomCode),
+    )
     expect(signalMessage).toBeDefined()
     expect(JSON.parse(signalMessage!.message)).toMatchObject({
       roomCode,

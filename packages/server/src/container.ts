@@ -12,7 +12,23 @@ import { ClusterBattleServer } from './domain/battle/services/clusterBattleServe
 import { BattleRpcServer } from './cluster/communication/rpc/battleRpcServer'
 import { BattleRpcClient } from './cluster/communication/rpc/battleRpcClient'
 import { SessionStateManager } from './domain/session/sessionStateManager'
-import type { IMatchmakingService, IBattleService, IResourceLoadingManager } from './domain/battle/services/interfaces'
+import type {
+  IMatchmakingService,
+  IBattleService,
+  IResourceLoadingManager,
+  MatchmakingCallbacks,
+  BattleCallbacks,
+} from './domain/battle/services/interfaces'
+import type { ClusterStateManager } from './cluster/core/clusterStateManager'
+import type { RealtimeTransport } from './realtime/realtimeTransport'
+import type { DistributedLockManager } from './cluster/redis/distributedLock'
+import type { PerformanceTracker } from './cluster/monitoring/performanceTracker'
+import type { ServiceDiscoveryManager } from './cluster/discovery/serviceDiscovery'
+import type { BattleReportConfig } from './domain/report/services/battleReportService'
+import type { RedisClientManager } from './cluster/redis/redisClient'
+import type { ClientRealtimeGateway } from './realtime/clientRealtimeGateway'
+import type { Server } from 'socket.io'
+import type { ClientToServerEvents, ServerToClientEvents } from '@arcadia-eternity/protocol'
 import { resourceLoadingManager } from './resourceLoadingManager'
 import { TYPES } from './types'
 
@@ -88,20 +104,24 @@ export function resetContainer(): void {
 export function configureBattleServices(
   container: Container,
   dependencies: {
-    stateManager: any
-    realtimeGateway: any
-    lockManager: any
+    stateManager: ClusterStateManager
+    realtimeGateway: RealtimeTransport
+    lockManager: DistributedLockManager
     instanceId: string
-    matchmakingCallbacks: any
-    battleCallbacks: any
-    performanceTracker?: any
-    serviceDiscovery?: any
-    battleReportConfig?: any
+    matchmakingCallbacks: MatchmakingCallbacks
+    battleCallbacks: BattleCallbacks
+    performanceTracker?: PerformanceTracker | null
+    serviceDiscovery?: ServiceDiscoveryManager | null
+    battleReportConfig?: BattleReportConfig
   },
-): void {
-  // 检查是否已经配置过，如果是则跳过
-  if (container.isBound(TYPES.ClusterStateManager)) {
-    return
+) {
+  container.bind(TYPES.MatchmakingCallbacks).toConstantValue(dependencies.matchmakingCallbacks)
+  container.bind(TYPES.BattleCallbacks).toConstantValue(dependencies.battleCallbacks)
+  if (dependencies.performanceTracker) {
+    container.bind(TYPES.PerformanceTracker).toConstantValue(dependencies.performanceTracker)
+  }
+  if (dependencies.serviceDiscovery) {
+    container.bind(TYPES.ServiceDiscoveryManager).toConstantValue(dependencies.serviceDiscovery)
   }
 
   // 绑定核心依赖
@@ -134,19 +154,19 @@ export function configureBattleServices(
 export function configureClusterServices(
   container: Container,
   dependencies: {
-    io: any
-    clientRealtimeGateway?: any
-    stateManager: any
-    realtimeGateway: any
-    lockManager: any
-    redisManager: any // 添加 redisManager
+    io: Server<ClientToServerEvents, ServerToClientEvents>
+    clientRealtimeGateway?: ClientRealtimeGateway<ClientToServerEvents, ServerToClientEvents>
+    stateManager: ClusterStateManager
+    realtimeGateway: RealtimeTransport
+    lockManager: DistributedLockManager
+    redisManager: RedisClientManager
     instanceId: string
     rpcPort?: number
-    battleReportConfig?: any
-    matchmakingCallbacks?: any
-    battleCallbacks?: any
-    performanceTracker?: any
-    serviceDiscovery?: any
+    battleReportConfig?: BattleReportConfig
+    matchmakingCallbacks?: MatchmakingCallbacks
+    battleCallbacks?: BattleCallbacks
+    performanceTracker?: PerformanceTracker | null
+    serviceDiscovery?: ServiceDiscoveryManager | null
   },
 ): { battleServer: ClusterBattleServer; rpcServer: BattleRpcServer } {
   // 绑定基础依赖

@@ -4,7 +4,7 @@ import LobbyView from '../pages/lobbyPage.vue'
 const BattleView = () => import('../pages/battlePage.vue')
 // import LocalBattlePage from '../pages/localBattlePage.vue'
 const LocalBattlePage = () => import('../pages/localBattlePage.vue')
-const PackWorkspaceEditor = () => import('@/pages/PackWorkspaceEditor.vue')
+const DataEditorPage = () => import('@/features/data-editor/DataEditorPage.vue')
 
 // 路由守卫
 import { battleGuard } from './guards'
@@ -197,6 +197,14 @@ const routes: RouteRecordRaw[] = [
       title: '本地战报回放',
     },
   },
+  {
+    path: '/pack-editor',
+    name: 'DataEditor',
+    component: DataEditorPage,
+    meta: {
+      title: '数据编辑器',
+    },
+  },
 
   {
     path: '/:pathMatch(.*)*',
@@ -210,17 +218,6 @@ if (import.meta.env.DEV) {
   routes.push(...devOnlyRoutes)
 }
 
-const desktopOnlyRoutes: RouteRecordRaw[] = [
-  {
-    path: '/pack-editor',
-    name: 'PackWorkspaceEditor',
-    component: PackWorkspaceEditor,
-    meta: {
-      title: '数据包编辑器',
-    },
-  },
-]
-
 const webOnlyRoutes: RouteRecordRaw[] = [
   {
     path: '/download',
@@ -232,9 +229,7 @@ const webOnlyRoutes: RouteRecordRaw[] = [
   },
 ]
 
-if (isDesktop) {
-  routes.push(...desktopOnlyRoutes)
-} else {
+if (!isDesktop) {
   routes.push(...webOnlyRoutes)
 }
 

@@ -308,9 +308,7 @@
             <el-radio value="webrtc">WebRTC</el-radio>
             <el-radio value="relay">Relay</el-radio>
           </el-radio-group>
-          <div class="form-help-text">
-            自动模式下，浏览器手测默认优先 WebRTC；自动化测试和受限环境会回退到 Relay。
-          </div>
+          <div class="form-help-text">自动模式下，浏览器手测默认优先 WebRTC；自动化测试和受限环境会回退到 Relay。</div>
         </el-form-item>
 
         <el-form-item v-if="privateRoomStore.roomConfigForm.isPrivate" label="房间密码">
@@ -342,6 +340,7 @@ import { useValidationStore } from '@/stores/validation'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { User, Loading, MoreFilled, Star, Close } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { PetSchemaType } from '@arcadia-eternity/schema'
 import PlayerCard from '@/components/PlayerCard.vue'
 import TeamSelector from '@/components/TeamSelector.vue'
 
@@ -354,7 +353,8 @@ const battleClientStore = useBattleClientStore()
 
 const roomCode = route.params.roomCode as string
 
-const selectedTeam = ref<any | null>(null)
+type TeamWithPets = { name: string; pets: unknown[]; ruleSetId: string }
+const selectedTeam = ref<TeamWithPets | null>(null)
 const isTeamValid = ref(false)
 const teamValidationErrors = ref<string[]>([])
 
@@ -362,7 +362,7 @@ const showRoomConfigDialog = ref(false)
 
 watch(selectedTeam, newTeam => {
   if (newTeam) {
-    privateRoomStore.updateSelectedTeam(newTeam.pets)
+    privateRoomStore.updateSelectedTeam(newTeam.pets as PetSchemaType[])
   } else {
     privateRoomStore.updateSelectedTeam([])
   }
@@ -471,7 +471,7 @@ const copyRoomCode = async () => {
   try {
     await navigator.clipboard.writeText(roomCode)
     ElMessage.success('房间码已复制到剪贴板')
-  } catch (error) {
+  } catch {
     ElMessage.error('复制失败，请手动复制房间码')
   }
 }
@@ -481,7 +481,7 @@ const copyRoomLink = async () => {
     const roomUrl = `${window.location.origin}/room/${roomCode}`
     await navigator.clipboard.writeText(roomUrl)
     ElMessage.success('房间链接已复制到剪贴板')
-  } catch (error) {
+  } catch {
     ElMessage.error('复制失败，请手动复制房间链接')
   }
 }
@@ -490,7 +490,7 @@ const toggleReady = async () => {
   try {
     await privateRoomStore.toggleReady()
     ElMessage.success(privateRoomStore.myReadyStatus ? '已准备' : '已取消准备')
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('操作失败: ' + (error as Error).message)
   }
 }
@@ -499,7 +499,7 @@ const startBattle = async () => {
   try {
     await privateRoomStore.startBattle()
     ElMessage.success('战斗已开始')
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('开始战斗失败: ' + (error as Error).message)
   }
 }
@@ -508,7 +508,7 @@ const joinSpectate = async () => {
   try {
     await privateRoomStore.joinSpectateBattle()
     ElMessage.success('正在进入观战...')
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('进入观战失败: ' + (error as Error).message)
   }
 }
@@ -520,7 +520,7 @@ const leaveRoom = async () => {
     await privateRoomStore.leaveRoom()
     ElMessage.success('已离开房间')
     router.push('/')
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('离开房间失败: ' + (error as Error).message)
   }
 }
@@ -531,7 +531,7 @@ const transferHost = async (targetPlayerId: string) => {
     const targetPlayer = privateRoomStore.players.find(p => p.playerId === targetPlayerId)
     await privateRoomStore.transferHost(targetPlayerId)
     ElMessage.success(`房主权限已转移给 ${targetPlayer?.playerName || '该玩家'}`)
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('转移房主失败: ' + (error as Error).message)
   }
 }
@@ -551,7 +551,7 @@ const kickPlayer = async (targetPlayerId: string) => {
 
     await privateRoomStore.kickPlayer(targetPlayerId)
     ElMessage.success(`已踢出 ${targetName}`)
-  } catch (error) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
       ElMessage.error('踢出玩家失败: ' + (error as Error).message)
     }
@@ -563,7 +563,7 @@ const switchToSpectator = async () => {
   try {
     await privateRoomStore.switchToSpectator()
     ElMessage.success('已转为观战者')
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('转换为观战者失败: ' + (error as Error).message)
   }
 }
@@ -578,9 +578,9 @@ const confirmSwitchToPlayer = async () => {
       return
     }
 
-    await privateRoomStore.switchToPlayer(teamToSwitch)
+    await privateRoomStore.switchToPlayer(teamToSwitch as PetSchemaType[])
     ElMessage.success('已转为玩家')
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('转换为玩家失败: ' + (error as Error).message)
   }
 }
@@ -609,7 +609,7 @@ const saveRoomConfig = async () => {
     await privateRoomStore.updateRoomConfig(configUpdates)
     showRoomConfigDialog.value = false
     ElMessage.success('房间配置已更新')
-  } catch (error) {
+  } catch (error: unknown) {
     ElMessage.error('更新房间配置失败: ' + (error as Error).message)
   }
 }
@@ -639,7 +639,7 @@ onMounted(async () => {
       console.log(`🚪 Attempting to join room: ${roomCode}`)
       await privateRoomStore.joinRoom(roomCode)
       console.log(`✅ Successfully joined room: ${roomCode}`)
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       if (errorMessage.includes('ALREADY_IN_ROOM') || errorMessage.includes('已在房间')) {
         try {

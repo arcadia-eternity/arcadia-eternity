@@ -22,7 +22,7 @@ RUN pnpm config set store-dir /tmp/pnpm-store && \
 COPY . .
 
 # Build the application
-RUN pnpm build
+RUN pnpm run build:prod
 
 # Dependencies stage - install production dependencies
 FROM node:24-alpine AS deps
@@ -40,7 +40,7 @@ COPY packs/ ./packs/
 # Install only production dependencies
 # Use local store to avoid cache conflicts in parallel builds
 RUN pnpm config set store-dir /tmp/pnpm-store && \
-    pnpm install --frozen-lockfile --prod --prefer-offline && \
+    pnpm install --frozen-lockfile --prod --prefer-offline --ignore-scripts && \
     pnpm store prune
 
 # Production stage

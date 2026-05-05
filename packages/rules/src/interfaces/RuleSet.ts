@@ -3,6 +3,27 @@ import type { ValidationResult } from './ValidationResult'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
 /**
+ * 规则集概要信息
+ */
+export interface RuleSetInfo {
+  id: string
+  name: string
+  description?: string
+  version: string
+  author?: string
+  tags: string[]
+  enabled: boolean
+  ruleCount: number
+  enabledRuleCount: number
+  rules: Array<{
+    id: string
+    name: string
+    enabled: boolean
+    priority: number
+  }>
+}
+
+/**
  * 匹配策略配置
  */
 export interface MatchingConfig {

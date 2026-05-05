@@ -2,10 +2,7 @@ import type { World } from '@arcadia-eternity/engine'
 import type { OperatorDSL } from '@arcadia-eternity/schema'
 import type { InterpreterContext } from './context.js'
 
-export type OperatorHandler = (
-  ctx: InterpreterContext,
-  operator: OperatorDSL,
-) => Promise<void> | void
+export type OperatorHandler = (ctx: InterpreterContext, operator: OperatorDSL) => Promise<void> | void
 
 const OPERATOR_REGISTRY_KEY = '__effectOperatorRegistry'
 
@@ -18,28 +15,18 @@ function ensureOperatorRegistry(world: World): Map<string, OperatorHandler> {
   return created
 }
 
-export function registerOperatorHandler(
-  world: World,
-  type: string,
-  handler: OperatorHandler,
-): void {
+export function registerOperatorHandler(world: World, type: string, handler: OperatorHandler): void {
   if (!type) return
   ensureOperatorRegistry(world).set(type, handler)
 }
 
-export function registerOperatorHandlers(
-  world: World,
-  handlers: Record<string, OperatorHandler>,
-): void {
+export function registerOperatorHandlers(world: World, handlers: Record<string, OperatorHandler>): void {
   for (const [type, handler] of Object.entries(handlers)) {
     registerOperatorHandler(world, type, handler)
   }
 }
 
-export function getOperatorHandler(
-  world: World,
-  type: string,
-): OperatorHandler | undefined {
+export function getOperatorHandler(world: World, type: string): OperatorHandler | undefined {
   if (!type) return undefined
   return ensureOperatorRegistry(world).get(type)
 }

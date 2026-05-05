@@ -5,24 +5,18 @@ import fs from 'fs/promises'
 import yaml from 'yaml'
 import type { TeamConfig, V2DataRepository } from '@arcadia-eternity/battle'
 import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
-import { fileURLToPath } from 'node:url'
-import { dirname } from 'node:path'
 import type { playerId, BattleMessage, PlayerSelection } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
-import {
-  runInMemoryP2PE2E,
-} from '@arcadia-eternity/p2p-transport'
+import { runInMemoryP2PE2E } from '@arcadia-eternity/p2p-transport'
+import type { ServerDataRepository } from '@arcadia-eternity/rules'
 
 // 加载环境变量
 dotenv.config()
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
 function toTeamConfig(player: PlayerSchemaType): TeamConfig {
   return {
     name: player.name,
-    team: player.team.map((pet: any) => ({
+    team: player.team.map(pet => ({
       name: pet.name,
       species: pet.species,
       level: pet.level,
@@ -40,7 +34,7 @@ function toTeamConfig(player: PlayerSchemaType): TeamConfig {
 }
 
 // 解析玩家文件
-async function parsePlayerFile(filePath: string, _options: { validateData?: boolean } = {}): Promise<PlayerSchemaType> {
+async function parsePlayerFile(filePath: string, _options?: { validateData?: boolean }): Promise<PlayerSchemaType> {
   try {
     console.log(`[🔍] 正在解析玩家文件: ${filePath}`)
 
@@ -63,7 +57,9 @@ async function parsePlayerFile(filePath: string, _options: { validateData?: bool
     try {
       rawData = yaml.parse(content)
     } catch (yamlError) {
-      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`)
+      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`, {
+        cause: yamlError,
+      })
     }
 
     // 基本数据验证
@@ -113,7 +109,7 @@ async function parsePlayerFile(filePath: string, _options: { validateData?: bool
     return player
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
-    throw new Error(`无法解析玩家文件 ${filePath}: ${errorMessage}`)
+    throw new Error(`无法解析玩家文件 ${filePath}: ${errorMessage}`, { cause: err })
   }
 }
 
@@ -132,12 +128,13 @@ function createRuleSpeciesRepository(repo: V2DataRepository): {
         baseStats: species.baseStats,
       }
     },
-    getAllSpecies: () => Array.from(repo.allSpecies()).map(species => ({
-      id: species.id,
-      num: species.num,
-      element: species.element,
-      baseStats: species.baseStats,
-    })),
+    getAllSpecies: () =>
+      Array.from(repo.allSpecies()).map(species => ({
+        id: species.id,
+        num: species.num,
+        element: species.element,
+        baseStats: species.baseStats,
+      })),
   }
 }
 
@@ -242,8 +239,8 @@ program
       })
 
       console.log('[🌀] 正在解析玩家数据...')
-      let player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
-      let player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
+      const player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
+      const player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
 
       const aiControl = new Set<playerId>()
 
@@ -286,14 +283,12 @@ program
           const available = await battleSystem.getAvailableSelection(pid)
           if (available.length === 0) return
 
-          const picked = (
-            available.find(a => a.type === 'team-selection') ??
+          const picked = (available.find(a => a.type === 'team-selection') ??
             available.find(a => a.type === 'use-skill') ??
             available.find(a => a.type === 'switch-pet') ??
             available.find(a => a.type === 'do-nothing') ??
             available.find(a => a.type === 'surrender') ??
-            available[0]
-          ) as PlayerSelection
+            available[0]) as PlayerSelection
           await battleSystem.submitAction(picked)
         } finally {
           aiPending.delete(pid)
@@ -337,46 +332,6 @@ program
       await battleSystem.ready()
     } catch (err) {
       console.error('[💥] 致命错误:', err instanceof Error ? err.message : err)
-      process.exit(1)
-    }
-  })
-
-program
-  .command('p2p-battle-e2e')
-  .description('通过 p2p transport 在 CLI 内跑一局 v2 battle e2e')
-  .requiredOption('-1, --player1 <path>', '玩家1数据文件路径')
-  .requiredOption('-2, --player2 <path>', '玩家2数据文件路径')
-  .option('-r, --rounds <number>', '最多自动推进回合数', '2')
-  .option('--strict', '使用严格模式加载数据（检测缺失引用）', false)
-  .option('--validate-data', '启用数据完整性验证', false)
-  .action(async options => {
-    try {
-      const { runInMemoryP2PBattleE2E } = await import('@arcadia-eternity/p2p-transport/node')
-
-      await preflightPack({
-        validateData: options.validateData,
-        strict: options.strict,
-      })
-
-      console.log('[🌀] 正在解析玩家数据...')
-      const player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
-      const player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
-
-      const result = await runInMemoryP2PBattleE2E({
-        playerATeam: toTeamConfig(player1),
-        playerBTeam: toTeamConfig(player2),
-        rounds: Number.parseInt(String(options.rounds), 10),
-      })
-
-      console.log(`[✅] p2p battle e2e 完成`)
-      console.log(`playerA=${result.playerAId}, playerB=${result.playerBId}`)
-      console.log(`roundsPlayed=${result.roundsPlayed}`)
-      console.log(`battleStatus=${result.finalState.status}, currentTurn=${result.finalState.currentTurn}`)
-      console.log(`hostEvents=${result.hostEvents.length}, peerEvents=${result.peerEvents.length}`)
-      console.log(`playerASelections=${result.playerASelections.length}, playerBSelections=${result.playerBSelections.length}`)
-      process.exit(0)
-    } catch (err) {
-      console.error('[💥] 错误:', err instanceof Error ? err.message : err)
       process.exit(1)
     }
   })
@@ -496,11 +451,10 @@ program
   )
   .action(async options => {
     try {
-      const [{ resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli }, { ServerRuleIntegration }] =
-        await Promise.all([
-          import('@arcadia-eternity/server'),
-          import('@arcadia-eternity/rules'),
-        ])
+      const [
+        { resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli },
+        { ServerRuleIntegration },
+      ] = await Promise.all([import('@arcadia-eternity/server'), import('@arcadia-eternity/rules')])
 
       console.log('[🌀] 启动异步游戏资源加载...')
       // 启动异步资源加载，不等待完成
@@ -516,7 +470,9 @@ program
           try {
             const loadedRepository = resourceLoadingManager.getLoadedRepository()
             if (loadedRepository) {
-              await ServerRuleIntegration.initializeServer(createRuleSpeciesRepository(loadedRepository))
+              await ServerRuleIntegration.initializeServer(
+                createRuleSpeciesRepository(loadedRepository) as ServerDataRepository,
+              )
             } else {
               await ServerRuleIntegration.initializeServer()
             }
@@ -609,7 +565,7 @@ program
       const corsOrigins = options.corsOrigin.split(',').map((origin: string) => origin.trim())
 
       // 使用集群模式应用
-      const { app, start, stop } = createClusterApp({
+      const { start, stop } = createClusterApp({
         port: parseInt(options.port),
         cors: {
           origin: corsOrigins,

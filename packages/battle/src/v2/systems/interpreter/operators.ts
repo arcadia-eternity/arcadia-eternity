@@ -5,11 +5,7 @@
 import type { InterpreterContext, InterpreterFireContext } from './context.js'
 import type { UseSkillContextData, DamageContextData } from '../../schemas/context.schema.js'
 import type { BaseMarkData } from '../../schemas/mark.schema.js'
-import {
-  getEffectDslManifest,
-  type OperatorDSL,
-  type Value,
-} from '@arcadia-eternity/schema'
+import { getEffectDslManifest, type OperatorDSL, type Value } from '@arcadia-eternity/schema'
 import type { ConfigValue, ConfigModifierType, EffectDef, World } from '@arcadia-eternity/engine'
 import {
   getComponent,
@@ -18,10 +14,7 @@ import {
   addConfigModifier,
   getConfigKeysByTag,
 } from '@arcadia-eternity/engine'
-import {
-  applyTransformation,
-  removeTransformation,
-} from '@arcadia-eternity/plugin-transformation'
+import { applyTransformation, removeTransformation } from '@arcadia-eternity/plugin-transformation'
 import { resolveSelector } from './selector.js'
 import { resolveValue } from './value.js'
 import { evaluateCondition } from './conditions.js'
@@ -45,9 +38,7 @@ function asSelectorDsl(value: unknown): import('@arcadia-eternity/schema').Selec
   return isSelectorDsl(value) ? value : undefined
 }
 
-function getDynamicSelectorFromValue(
-  value: unknown,
-): import('@arcadia-eternity/schema').SelectorDSL | undefined {
+function getDynamicSelectorFromValue(value: unknown): import('@arcadia-eternity/schema').SelectorDSL | undefined {
   if (!isRecord(value)) return undefined
   if (value.type !== 'dynamic') return undefined
   return asSelectorDsl(value.selector)
@@ -146,7 +137,12 @@ function setPropertyValue(ctx: InterpreterContext, ref: PropertyRef, value: unkn
   if (id) {
     const base = ctx.systems.attrSystem.getBaseValue(ctx.world, id, ref.key)
     if (base !== undefined) {
-      ctx.systems.attrSystem.setBaseValue(ctx.world, id, ref.key, value as Parameters<typeof ctx.systems.attrSystem.setBaseValue>[3])
+      ctx.systems.attrSystem.setBaseValue(
+        ctx.world,
+        id,
+        ref.key,
+        value as Parameters<typeof ctx.systems.attrSystem.setBaseValue>[3],
+      )
     }
   }
   ref.object[ref.key] = value
@@ -328,8 +324,8 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       if (!baseMark) break
       const defaultStack = baseMark.config.maxStacks ?? 1
       const defaultDuration = baseMark.config.duration
-      const stack = op.stack !== undefined ? resolveValue(ctx, op.stack) as number : defaultStack
-      const duration = op.duration !== undefined ? resolveValue(ctx, op.duration) as number : defaultDuration
+      const stack = op.stack !== undefined ? (resolveValue(ctx, op.stack) as number) : defaultStack
+      const duration = op.duration !== undefined ? (resolveValue(ctx, op.duration) as number) : defaultDuration
       for (const targetId of targets) {
         await phaseManager.execute(world, 'addMark', eventBus, {
           context: {
@@ -424,16 +420,17 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
             context: syntheticAddMarkContext,
           })
           if (!syntheticAddMarkContext.available) continue
-          const adjustedLevel = typeof syntheticAddMarkContext.statLevelMarkLevel === 'number'
-            ? syntheticAddMarkContext.statLevelMarkLevel
-            : Math.abs(stage)
+          const adjustedLevel =
+            typeof syntheticAddMarkContext.statLevelMarkLevel === 'number'
+              ? syntheticAddMarkContext.statLevelMarkLevel
+              : Math.abs(stage)
           finalDelta = (stage < 0 ? -1 : 1) * adjustedLevel
         }
         await phaseManager.execute(world, 'statStage', eventBus, {
           operation: 'add',
-          entityId: targetId,  // Fixed: use entityId not targetId
+          entityId: targetId, // Fixed: use entityId not targetId
           stat,
-          delta: finalDelta,   // Fixed: use delta not stage
+          delta: finalDelta, // Fixed: use delta not stage
         })
       }
       break
@@ -587,7 +584,8 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'setSkill': {
       const value = resolveValue(ctx, op.value)
-      const newSkillId = typeof value === 'string' ? value : (Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined)
+      const newSkillId =
+        typeof value === 'string' ? value : Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined
       if (!newSkillId) break
 
       const context = getUseSkillContext(ctx)
@@ -599,7 +597,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
           const { world, systems } = ctx
           const { skillSystem, playerSystem } = systems
           skillSystem.applyToUseSkillContext(world, newSkillId, context, {
-            getOpponentActivePetId: (originPlayerId) => {
+            getOpponentActivePetId: originPlayerId => {
               const rawOpponentId =
                 originPlayerId === world.state.playerAId ? world.state.playerBId : world.state.playerAId
               const opponentId = typeof rawOpponentId === 'string' ? rawOpponentId : undefined
@@ -679,8 +677,8 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addModified': {
       const targets = resolveSelector(ctx, op.target)
-      const percent = op.percent !== undefined ? resolveValue(ctx, op.percent) as number : 0
-      const delta = op.delta !== undefined ? resolveValue(ctx, op.delta) as number : 0
+      const percent = op.percent !== undefined ? (resolveValue(ctx, op.percent) as number) : 0
+      const delta = op.delta !== undefined ? (resolveValue(ctx, op.delta) as number) : 0
 
       // Modify the context's modified array
       for (const target of targets) {
@@ -1071,8 +1069,8 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     case 'addClampModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
       const stat = resolveValue(ctx, op.stat) as string
-      const min = op.minValue !== undefined ? resolveValue(ctx, op.minValue) as number : undefined
-      const max = op.maxValue !== undefined ? resolveValue(ctx, op.maxValue) as number : undefined
+      const min = op.minValue !== undefined ? (resolveValue(ctx, op.minValue) as number) : undefined
+      const max = op.maxValue !== undefined ? (resolveValue(ctx, op.maxValue) as number) : undefined
       if (targets.length === 0 || !stat) break
 
       const { world, systems } = ctx
@@ -1294,7 +1292,12 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       if (!key) break
 
       const tagArray = Array.isArray(tags) ? tags : [tags]
-      registerConfig(ctx.world.configStore, key, initialValue, tagArray.filter((t): t is string => typeof t === 'string'))
+      registerConfig(
+        ctx.world.configStore,
+        key,
+        initialValue,
+        tagArray.filter((t): t is string => typeof t === 'string'),
+      )
       break
     }
 
@@ -1460,18 +1463,21 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     case 'transformWithPreservation': {
       const targets = resolveSelector(ctx, op.target) as string[]
       const newBaseValue = resolveValue(ctx, op.newBase)
-      const newBaseId = typeof newBaseValue === 'string'
-        ? newBaseValue
-        : (isRecord(newBaseValue) && typeof newBaseValue.id === 'string' ? newBaseValue.id : undefined)
+      const newBaseId =
+        typeof newBaseValue === 'string'
+          ? newBaseValue
+          : isRecord(newBaseValue) && typeof newBaseValue.id === 'string'
+            ? newBaseValue.id
+            : undefined
       const transformType = (resolveValue(ctx, op.transformType) as string) ?? 'temporary'
       const priority = op.priority ? (resolveValue(ctx, op.priority) as number) : 0
       const effectHandlingSource = toRecord(op)?.effectHandlingStrategy as Value | undefined
-      const effectHandlingStrategy = ((resolveValue(ctx, effectHandlingSource) as string) ?? 'preserve') === 'override'
-        ? 'override'
-        : 'preserve'
-      const permanentStrategy = op.type === 'transformWithPreservation'
-        ? 'preserve_temporary' as const
-        : ((resolveValue(ctx, op.permanentStrategy) as string) ?? 'clear_temporary')
+      const effectHandlingStrategy =
+        ((resolveValue(ctx, effectHandlingSource) as string) ?? 'preserve') === 'override' ? 'override' : 'preserve'
+      const permanentStrategy =
+        op.type === 'transformWithPreservation'
+          ? ('preserve_temporary' as const)
+          : ((resolveValue(ctx, op.permanentStrategy) as string) ?? 'clear_temporary')
       if (targets.length === 0 || !newBaseId) break
 
       const { world, systems } = ctx
@@ -1568,7 +1574,9 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const targetId of targets) {
         systems.effectPipeline.attachEffect(world, targetId, {
           id: typeof effect.id === 'string' ? effect.id : `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-          triggers: Array.isArray(effect.triggers) ? effect.triggers.filter((t): t is string => typeof t === 'string') : [],
+          triggers: Array.isArray(effect.triggers)
+            ? effect.triggers.filter((t): t is string => typeof t === 'string')
+            : [],
           priority: typeof effect.priority === 'number' ? effect.priority : 0,
           apply: effect.apply,
           condition: effect.condition,
@@ -1626,8 +1634,6 @@ export async function executeOperator(ctx: InterpreterContext, operator: Executa
   }
   await executeDefaultRegisteredOperator(ctx, op as OperatorDSL)
 }
-type InterpreterOperator =
-  | { type: 'sequence'; operators: ExecutableOperator[] }
-  | { type: 'noop' }
+type InterpreterOperator = { type: 'sequence'; operators: ExecutableOperator[] } | { type: 'noop' }
 
 type ExecutableOperator = OperatorDSL | InterpreterOperator

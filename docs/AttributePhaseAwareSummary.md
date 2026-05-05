@@ -9,6 +9,7 @@
 ## ✅ 核心特性
 
 ### 🔧 新的DurationType
+
 ```typescript
 enum DurationType {
   instant = 'instant',
@@ -18,17 +19,18 @@ enum DurationType {
 ```
 
 ### 🎮 Phase-Aware Attribute Modifiers
+
 ```typescript
 // 创建phase type modifier
 const phaseModifier = ModifierHelpers.createPhaseTypeDelta(
   'skill_power_boost',
   50, // +50 power
-  { 
-    phaseType: PhaseType.Skill, 
-    scope: PhaseScope.Current 
+  {
+    phaseType: PhaseType.Skill,
+    scope: PhaseScope.Current,
   },
   100, // priority
-  markInstance
+  markInstance,
 )
 
 // 添加到attribute系统
@@ -38,6 +40,7 @@ attributeSystem.addPhaseTypeModifier('power', phaseModifier, phaseModifier.phase
 ## 🚀 测试验证的功能
 
 ### 1. **基础Phase Type Modifier**
+
 ```typescript
 // 测试结果：
 // 无phase时：power = 100 (modifier不生效)
@@ -46,6 +49,7 @@ attributeSystem.addPhaseTypeModifier('power', phaseModifier, phaseModifier.phase
 ```
 
 ### 2. **多层级Phase嵌套**
+
 ```typescript
 // 复杂嵌套场景：
 // Turn Phase: attack = 120 (turn modifier生效)
@@ -55,6 +59,7 @@ attributeSystem.addPhaseTypeModifier('power', phaseModifier, phaseModifier.phase
 ```
 
 ### 3. **特定Phase ID**
+
 ```typescript
 // 只对特定技能生效：
 // 火焰爆炸技能：damage = 200 (modifier生效)
@@ -62,6 +67,7 @@ attributeSystem.addPhaseTypeModifier('power', phaseModifier, phaseModifier.phase
 ```
 
 ### 4. **混合Modifier类型**
+
 ```typescript
 // binding + phaseType modifiers：
 // 平时：value = 120 (只有binding modifier)
@@ -72,6 +78,7 @@ attributeSystem.addPhaseTypeModifier('power', phaseModifier, phaseModifier.phase
 ## 🔧 技术实现亮点
 
 ### 1. **智能Phase检测**
+
 ```typescript
 private isModifierApplicableInCurrentPhase(modifier: Modifier): boolean {
   // 非phase-type modifier总是生效
@@ -82,40 +89,45 @@ private isModifierApplicableInCurrentPhase(modifier: Modifier): boolean {
   // 检查当前phase状态
   const configSystem = AttributeSystem.configSystemGetter()
   const isInTargetPhaseType = configSystem.hasActivePhaseOfType(spec.phaseType)
-  
+
   // 根据scope策略决定是否生效
   return isInTargetPhaseType
 }
 ```
 
 ### 2. **响应式计算流**
+
 ```typescript
 // Observable流自动响应phase变化
 const computed$ = combineLatest([
-  this.baseAttributes.get(key)!, 
+  this.baseAttributes.get(key)!,
   this.modifiers.get(key)!,
-  AttributeSystem.phaseChangeSubject.pipe(startWith(Date.now()))
+  AttributeSystem.phaseChangeSubject.pipe(startWith(Date.now())),
 ]).pipe(
   map(([base, modifiers, _timestamp]) => {
     // 过滤phase-aware modifiers
     const applicableModifiers = this.filterModifiersByPhaseContext(modifiers)
     // 应用modifiers
     return sortedModifiers.reduce((acc, modifier) => modifier.apply(acc), base)
-  })
+  }),
 )
 ```
 
 ### 3. **ESM动态导入**
+
 ```typescript
 // 避免循环依赖的ESM解决方案
-import('./attributeSystem.js').then(({ AttributeSystem }) => {
-  AttributeSystem.setConfigSystemGetter(() => ConfigSystem.getInstance())
-}).catch(() => {
-  // AttributeSystem not available, ignore
-})
+import('./attributeSystem.js')
+  .then(({ AttributeSystem }) => {
+    AttributeSystem.setConfigSystemGetter(() => ConfigSystem.getInstance())
+  })
+  .catch(() => {
+    // AttributeSystem not available, ignore
+  })
 ```
 
 ### 4. **自动Phase通知**
+
 ```typescript
 // ConfigSystem在phase变化时自动通知AttributeSystem
 pushPhase(phase: BattlePhaseBase): void {
@@ -128,6 +140,7 @@ pushPhase(phase: BattlePhaseBase): void {
 ## 🎮 实际游戏应用
 
 ### 场景1：技能增强印记
+
 ```typescript
 // 只在使用技能时攻击力+50
 const skillAttackBoost = ModifierHelpers.createPhaseTypeDelta(
@@ -135,13 +148,14 @@ const skillAttackBoost = ModifierHelpers.createPhaseTypeDelta(
   50,
   { phaseType: PhaseType.Skill, scope: PhaseScope.Current },
   100,
-  markInstance
+  markInstance,
 )
 
 attributeSystem.addPhaseTypeModifier('attack', skillAttackBoost, skillAttackBoost.phaseTypeSpec!)
 ```
 
 ### 场景2：防护印记
+
 ```typescript
 // 只在受到伤害时防御力+30
 const damageDefenseBoost = ModifierHelpers.createPhaseTypeDelta(
@@ -149,13 +163,14 @@ const damageDefenseBoost = ModifierHelpers.createPhaseTypeDelta(
   30,
   { phaseType: PhaseType.Damage, scope: PhaseScope.Current },
   100,
-  shieldMark
+  shieldMark,
 )
 
 attributeSystem.addPhaseTypeModifier('defense', damageDefenseBoost, damageDefenseBoost.phaseTypeSpec!)
 ```
 
 ### 场景3：回合增益
+
 ```typescript
 // 整个回合期间速度+20%
 const turnSpeedBoost = ModifierHelpers.createPhaseTypePercent(
@@ -163,25 +178,26 @@ const turnSpeedBoost = ModifierHelpers.createPhaseTypePercent(
   1.2, // 120%
   { phaseType: PhaseType.Turn, scope: PhaseScope.Current },
   100,
-  abilityInstance
+  abilityInstance,
 )
 
 attributeSystem.addPhaseTypeModifier('speed', turnSpeedBoost, turnSpeedBoost.phaseTypeSpec!)
 ```
 
 ### 场景4：特定技能增强
+
 ```typescript
 // 只对火焰爆炸技能威力翻倍
 const fireBlastBoost = ModifierHelpers.createPhaseTypeDelta(
   'fire_blast_boost',
   100, // +100 damage
-  { 
-    phaseType: PhaseType.Skill, 
+  {
+    phaseType: PhaseType.Skill,
     scope: PhaseScope.Current,
-    phaseId: 'skill_fire_blast' // 🆕 特定技能
+    phaseId: 'skill_fire_blast', // 🆕 特定技能
   },
   100,
-  fireMastery
+  fireMastery,
 )
 
 attributeSystem.addPhaseTypeModifier('damage', fireBlastBoost, fireBlastBoost.phaseTypeSpec!)
@@ -190,6 +206,7 @@ attributeSystem.addPhaseTypeModifier('damage', fireBlastBoost, fireBlastBoost.ph
 ## 📊 Helper方法
 
 ### 便捷的创建方法
+
 ```typescript
 // Delta modifier (最常用)
 ModifierHelpers.createPhaseTypeDelta(id, value, phaseTypeSpec, priority, source)
@@ -202,6 +219,7 @@ ModifierHelpers.createPhaseTypeModifier(id, value, type, phaseTypeSpec, priority
 ```
 
 ### 添加到系统
+
 ```typescript
 // 直接添加
 attributeSystem.addPhaseTypeModifier(attributeKey, modifier, phaseTypeSpec)
@@ -213,6 +231,7 @@ attributeSystem.addModifier(attributeKey, modifier)
 ## 🔍 调试和监控
 
 ### 实时查看attribute值
+
 ```typescript
 // 获取当前值（考虑phase状态）
 const currentValue = attributeSystem.getCurrentValue('power')
@@ -224,6 +243,7 @@ attributeSystem.getAttribute$('power').subscribe(value => {
 ```
 
 ### Phase状态检查
+
 ```typescript
 // 检查当前phase状态
 const hasSkillPhase = configSystem.hasActivePhaseOfType(PhaseType.Skill)
@@ -232,14 +252,14 @@ const currentSkillPhase = configSystem.getCurrentPhaseOfType(PhaseType.Skill)
 
 ## 🎯 与Config System的对比
 
-| 特性 | Config System | Attribute System |
-|------|---------------|------------------|
-| **数据类型** | 任意配置值 | 数值/布尔/字符串属性 |
-| **计算方式** | 手动计算 | 响应式Observable流 |
-| **Scope支持** | ✅ 完整scope隔离 | ❌ 暂无scope隔离 |
-| **Phase支持** | ✅ Phase-aware | ✅ Phase-aware |
-| **性能** | 按需计算 | 响应式缓存 |
-| **用途** | 全局配置 | 实体属性 |
+| 特性          | Config System    | Attribute System     |
+| ------------- | ---------------- | -------------------- |
+| **数据类型**  | 任意配置值       | 数值/布尔/字符串属性 |
+| **计算方式**  | 手动计算         | 响应式Observable流   |
+| **Scope支持** | ✅ 完整scope隔离 | ❌ 暂无scope隔离     |
+| **Phase支持** | ✅ Phase-aware   | ✅ Phase-aware       |
+| **性能**      | 按需计算         | 响应式缓存           |
+| **用途**      | 全局配置         | 实体属性             |
 
 ## 🎉 总结
 

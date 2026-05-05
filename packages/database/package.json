@@ -13,8 +13,8 @@
   "scripts": {
     "build": "run-p build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rollup -c",
-    "watch:code": "rollup -c --watch",
+    "build:code": "rolldown -c",
+    "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly"
@@ -30,15 +30,11 @@
     "@arcadia-eternity/const": "workspace:^",
     "@supabase/supabase-js": "^2.99.1",
     "inversify": "^8.1.0",
-    "nanoid": "^5.1.6",
+    "nanoid": "catalog:",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-typescript": "^12.3.0",
-    "@types/node": "^25.5.0",
-    "rollup": "^4.59.0",
-    "rollup-plugin-node-externals": "^8.1.2",
+    "@types/node": "catalog:",
     "tslib": "^2.8.1",
     "typescript": "catalog:"
   }

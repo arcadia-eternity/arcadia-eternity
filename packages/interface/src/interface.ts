@@ -66,9 +66,7 @@ export interface IBattleSystem {
   /**
    * Optional phase execution lifecycle feed for deterministic host checkpoints.
    */
-  onPhaseExecutionEvent?(
-    handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>,
-  ): () => void
+  onPhaseExecutionEvent?(handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>): () => void
 }
 
 /**

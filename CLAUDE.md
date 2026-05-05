@@ -9,6 +9,7 @@ Arcadia Eternity is a battle simulation system for the "Joseph Legend" (Seer 2) 
 ## Architecture
 
 **Monorepo Structure**: Uses pnpm workspaces with multiple packages:
+
 - `@arcadia-eternity/battle` - Core battle system with phase-based mechanics
 - `@arcadia-eternity/server` - Backend server with cluster support
 - `@arcadia-eternity/web-ui` - Vue 3 frontend application
@@ -18,6 +19,7 @@ Arcadia Eternity is a battle simulation system for the "Joseph Legend" (Seer 2) 
 - `@arcadia-eternity/database` - Database access layer
 
 **Key Technologies**:
+
 - Frontend: Vue 3 + TypeScript + Element Plus + Vite
 - Backend: Node.js + Express + Socket.IO + Redis
 - Database: Supabase (PostgreSQL)
@@ -27,6 +29,7 @@ Arcadia Eternity is a battle simulation system for the "Joseph Legend" (Seer 2) 
 ## Development Commands
 
 ### Build Commands
+
 ```bash
 # Build all packages
 pnpm run build
@@ -42,6 +45,7 @@ pnpm run build:cli
 ```
 
 ### Testing Commands
+
 ```bash
 # Run all tests (types, units, integration)
 pnpm run test
@@ -60,6 +64,7 @@ pnpm --filter @arcadia-eternity/server run test -- test/file.test.ts
 ```
 
 ### Development Servers
+
 ```bash
 # Start backend server
 pnpm run cli server --port 8102
@@ -72,6 +77,7 @@ pnpm run storybook
 ```
 
 ### CLI Tools
+
 ```bash
 # Run test battle between two teams
 pnpm run cli -1 testteam.yaml -2 testteam.yaml
@@ -94,6 +100,7 @@ pnpm run generate
 ## Data Structure
 
 The game uses YAML files for data definitions:
+
 - `species.yaml` - Pet species definitions
 - `skill.yaml` - Skill definitions
 - `effect_skill.yaml` - Skill effect definitions

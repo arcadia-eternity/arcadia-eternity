@@ -151,7 +151,7 @@ describe('V2 Battle Integration', () => {
     const system = new LocalBattleSystemV2(battle)
 
     const messages: BattleMessage[] = []
-    system.BattleEvent((msg) => messages.push(msg))
+    system.BattleEvent(msg => messages.push(msg))
 
     // Start battle
     await system.ready()
@@ -238,20 +238,20 @@ describe('V2 Battle Integration', () => {
     const system = new LocalBattleSystemV2(battle)
 
     const messages: BattleMessage[] = []
-    system.BattleEvent((msg) => messages.push(msg))
+    system.BattleEvent(msg => messages.push(msg))
 
     await system.ready()
     await new Promise(r => setTimeout(r, 50))
 
     // PlayerA surrenders, PlayerB uses skill
     await system.submitAction({
-      player: playerA.id as any,
+      player: playerA.id as unknown as playerId,
       type: 'surrender',
     })
     await system.submitAction({
-      player: playerB.id as any,
+      player: playerB.id as unknown as playerId,
       type: 'use-skill',
-      skill: skillA.id as any,
+      skill: skillA.id as unknown as string,
       target: AttackTargetOpinion.opponent,
     })
 

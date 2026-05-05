@@ -1,6 +1,7 @@
 import type { Request, Response, Router, NextFunction } from 'express'
 import { databaseService } from '@arcadia-eternity/database'
 import type { Logger } from 'pino'
+import type { HttpErrorLike } from '../../cluster/types'
 
 export interface BattleReportRoutesConfig {
   enableApi: boolean
@@ -18,14 +19,15 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
   const apiLogger = logger.child({ module: 'BattleReportAPI' })
 
   // 错误处理中间件
-  const handleError = (error: any, res: Response, operation: string) => {
-    apiLogger.error({ error, operation }, 'API operation failed')
+  const handleError = (error: unknown, res: Response, operation: string) => {
+    const err = error instanceof Error ? error : new Error(String(error))
+    apiLogger.error({ error: err, operation }, 'API operation failed')
 
-    if (error.name === 'DatabaseError') {
+    if (err.name === 'DatabaseError') {
       res.status(500).json({
         error: 'Database error',
-        message: error.message,
-        code: error.code,
+        message: err.message,
+        code: (err as unknown as HttpErrorLike).code,
       })
     } else {
       res.status(500).json({
@@ -35,7 +37,6 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
     }
   }
 
-  // 参数验证中间件
   const validatePagination = (req: Request, res: Response, next: NextFunction): void => {
     const limit = parseInt(req.query.limit as string) || 20
     const offset = parseInt(req.query.offset as string) || 0
@@ -60,7 +61,6 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
     next()
   }
 
-  // 获取战报列表
   /**
    * @swagger
    * /api/v1/battles:

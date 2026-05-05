@@ -7,7 +7,7 @@ import type {
   Architecture,
   WindowsFormat,
   MacOSFormat,
-  PlatformAssets
+  PlatformAssets,
 } from '@/types/download'
 
 /**
@@ -35,7 +35,7 @@ export class DownloadManager {
     } else {
       this.sources.push(source)
     }
-    
+
     // 按优先级排序
     this.sources.sort((a, b) => a.priority - b.priority)
   }
@@ -82,7 +82,7 @@ export class DownloadManager {
     sourceId: string,
     platform: Platform,
     architecture: Architecture,
-    format?: WindowsFormat | MacOSFormat
+    format?: WindowsFormat | MacOSFormat,
   ): string | null {
     const source = this.getSource(sourceId)
     if (!source) return null
@@ -99,14 +99,14 @@ export class DownloadManager {
   getDownloadUrls(
     platform: Platform,
     architecture: Architecture,
-    format?: WindowsFormat | MacOSFormat
+    format?: WindowsFormat | MacOSFormat,
   ): Array<{ source: DownloadSource; url: string }> {
     const filename = this.getAssetFilename(platform, architecture, format)
     if (!filename) return []
 
     return this.getSources().map(source => ({
       source,
-      url: `${source.baseUrl}/${filename}`
+      url: `${source.baseUrl}/${filename}`,
     }))
   }
 
@@ -116,7 +116,7 @@ export class DownloadManager {
   private getAssetFilename(
     platform: Platform,
     architecture: Architecture,
-    format?: WindowsFormat | MacOSFormat
+    format?: WindowsFormat | MacOSFormat,
   ): string | null {
     switch (platform) {
       case 'windows':
@@ -150,7 +150,7 @@ export class DownloadManager {
       const response = await fetch(source.checkUrl, {
         method: 'HEAD',
         mode: 'no-cors',
-        cache: 'no-cache'
+        cache: 'no-cache',
       })
       return true
     } catch {
@@ -163,11 +163,11 @@ export class DownloadManager {
    */
   async checkAllSourcesAvailability(): Promise<Record<string, boolean>> {
     const results: Record<string, boolean> = {}
-    
+
     await Promise.all(
       this.sources.map(async source => {
         results[source.id] = await this.checkSourceAvailability(source.id)
-      })
+      }),
     )
 
     return results
@@ -178,11 +178,11 @@ export class DownloadManager {
    */
   async getBestSource(region?: string): Promise<DownloadSource | null> {
     const availableSources = this.getSources()
-    
+
     // 如果指定了地区，优先选择支持该地区的源
     if (region) {
       const regionalSources = availableSources.filter(
-        s => !s.regions || s.regions.includes(region) || s.regions.includes('global')
+        s => !s.regions || s.regions.includes(region) || s.regions.includes('global'),
       )
       if (regionalSources.length > 0) {
         // 检测可用性并返回第一个可用的
@@ -209,18 +209,12 @@ export class DownloadManager {
    * 执行智能下载
    */
   async smartDownload(options: DownloadOptions = {}): Promise<DownloadResult> {
-    const {
-      platform,
-      architecture,
-      format,
-      forceSource,
-      enableFallback = true
-    } = options
+    const { platform, architecture, format, forceSource, enableFallback = true } = options
 
     if (!platform || !architecture) {
       return {
         success: false,
-        error: 'Platform and architecture are required'
+        error: 'Platform and architecture are required',
       }
     }
 
@@ -231,7 +225,7 @@ export class DownloadManager {
     if (forceSource) {
       const url = this.generateDownloadUrl(forceSource, platform, architecture, format)
       const source = this.getSource(forceSource)
-      
+
       if (url && source) {
         try {
           window.open(url, '_blank')
@@ -244,11 +238,11 @@ export class DownloadManager {
 
     // 获取所有可用的下载链接
     const downloadUrls = this.getDownloadUrls(platform, architecture, format)
-    
+
     if (downloadUrls.length === 0) {
       return {
         success: false,
-        error: 'No download URLs available for the specified platform'
+        error: 'No download URLs available for the specified platform',
       }
     }
 
@@ -266,12 +260,12 @@ export class DownloadManager {
           success: true,
           source,
           url,
-          fallbackCount
+          fallbackCount,
         }
       } catch (error) {
         lastError = `Failed to download from ${source.name}: ${error}`
         fallbackCount++
-        
+
         if (!enableFallback) break
       }
     }
@@ -279,7 +273,7 @@ export class DownloadManager {
     return {
       success: false,
       error: lastError || 'All download sources failed',
-      fallbackCount
+      fallbackCount,
     }
   }
 
@@ -290,7 +284,7 @@ export class DownloadManager {
     return {
       version: this.version,
       sources: this.getSources(),
-      assets: this.assets
+      assets: this.assets,
     }
   }
 

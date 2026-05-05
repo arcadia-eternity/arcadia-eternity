@@ -123,7 +123,7 @@ value: { type: 'raw:number', value: 25 }
 phaseType: { type: 'raw:string', value: 'skill' }
 scope: { type: 'raw:string', value: 'current' }
 priority: { type: 'raw:number', value: 100 }
-phaseId: { type: 'raw:string', value: 'fire_blast' }  # 可选：特定phase ID
+phaseId: { type: 'raw:string', value: 'fire_blast' } # 可选：特定phase ID
 ```
 
 ### 7. addDynamicPhaseTypeConfigModifier - 动态Phase类型配置修改器
@@ -158,7 +158,7 @@ apply:
   target: { base: self }
   configKey: { type: 'raw:string', value: 'damage.multiplier' }
   modifierType: { type: 'raw:string', value: 'delta' }
-  value: { type: 'raw:number', value: 0.3 }  # 增加30%伤害
+  value: { type: 'raw:number', value: 0.3 } # 增加30%伤害
   priority: { type: 'raw:number', value: 100 }
 ```
 

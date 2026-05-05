@@ -157,7 +157,7 @@ watch(healthPercentage, newPercentage => {
   }
 })
 
-watch(ragePercentage, (newPercentage, oldPercentage) => {
+watch(ragePercentage, newPercentage => {
   if (rageValueRef.value) {
     const state = Flip.getState(rageValueRef.value)
     rageValueRef.value.style.width = `${newPercentage}%`

@@ -1,7 +1,12 @@
 // Simple v2 battle test
 import {
-  Nature, Element, Category, AttackTargetOpinion,
-  IgnoreStageStrategy, BattleStatus, type playerId,
+  Nature,
+  Element,
+  Category,
+  AttackTargetOpinion,
+  IgnoreStageStrategy,
+  BattleStatus,
+  type playerId,
 } from '@arcadia-eternity/const'
 import { createBattle } from './packages/battle/src/v2/game.js'
 import { LocalBattleSystemV2 } from './packages/battle/src/v2/local-battle.js'
@@ -12,34 +17,64 @@ import type { BaseSkillData } from './packages/battle/src/v2/schemas/skill.schem
 
 // --- Test data ---
 const speciesA: SpeciesData = {
-  type: 'species', id: 'species_a', num: 1,
+  type: 'species',
+  id: 'species_a',
+  num: 1,
   element: Element.Fire,
   baseStats: { hp: 100, atk: 120, def: 80, spa: 60, spd: 60, spe: 90 },
-  genderRatio: [50, 50], heightRange: [50, 100], weightRange: [20, 40],
-  abilityIds: [], emblemIds: [],
+  genderRatio: [50, 50],
+  heightRange: [50, 100],
+  weightRange: [20, 40],
+  abilityIds: [],
+  emblemIds: [],
 }
 const speciesB: SpeciesData = {
-  type: 'species', id: 'species_b', num: 2,
+  type: 'species',
+  id: 'species_b',
+  num: 2,
   element: Element.Water,
   baseStats: { hp: 100, atk: 80, def: 100, spa: 80, spd: 80, spe: 70 },
-  genderRatio: [50, 50], heightRange: [50, 100], weightRange: [20, 40],
-  abilityIds: [], emblemIds: [],
+  genderRatio: [50, 50],
+  heightRange: [50, 100],
+  weightRange: [20, 40],
+  abilityIds: [],
+  emblemIds: [],
 }
 const baseSkillA: BaseSkillData = {
-  type: 'baseSkill', id: 'skill_a', category: Category.Physical,
-  element: Element.Fire, power: 80, accuracy: 100, rage: 0, priority: 0,
-  target: AttackTargetOpinion.opponent, multihit: 1,
-  sureHit: true, sureCrit: false, ignoreShield: false,
+  type: 'baseSkill',
+  id: 'skill_a',
+  category: Category.Physical,
+  element: Element.Fire,
+  power: 80,
+  accuracy: 100,
+  rage: 0,
+  priority: 0,
+  target: AttackTargetOpinion.opponent,
+  multihit: 1,
+  sureHit: true,
+  sureCrit: false,
+  ignoreShield: false,
   ignoreOpponentStageStrategy: IgnoreStageStrategy.none,
-  tags: [], effectIds: [],
+  tags: [],
+  effectIds: [],
 }
 const baseSkillB: BaseSkillData = {
-  type: 'baseSkill', id: 'skill_b', category: Category.Special,
-  element: Element.Water, power: 80, accuracy: 100, rage: 0, priority: 0,
-  target: AttackTargetOpinion.opponent, multihit: 1,
-  sureHit: true, sureCrit: false, ignoreShield: false,
+  type: 'baseSkill',
+  id: 'skill_b',
+  category: Category.Special,
+  element: Element.Water,
+  power: 80,
+  accuracy: 100,
+  rage: 0,
+  priority: 0,
+  target: AttackTargetOpinion.opponent,
+  multihit: 1,
+  sureHit: true,
+  sureCrit: false,
+  ignoreShield: false,
   ignoreOpponentStageStrategy: IgnoreStageStrategy.none,
-  tags: [], effectIds: [],
+  tags: [],
+  effectIds: [],
 }
 
 // --- Setup battle ---
@@ -61,16 +96,22 @@ setComponent(world, baseSkillB.id, 'baseSkill', baseSkillB)
 
 // Create pets
 const petA = petSystem.create(world, speciesA, {
-  name: 'FirePet', speciesId: speciesA.id, level: 50,
+  name: 'FirePet',
+  speciesId: speciesA.id,
+  level: 50,
   evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
   ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-  nature: Nature.Hardy, baseSkillIds: [],
+  nature: Nature.Hardy,
+  baseSkillIds: [],
 })
 const petB = petSystem.create(world, speciesB, {
-  name: 'WaterPet', speciesId: speciesB.id, level: 50,
+  name: 'WaterPet',
+  speciesId: speciesB.id,
+  level: 50,
   evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
   ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-  nature: Nature.Hardy, baseSkillIds: [],
+  nature: Nature.Hardy,
+  baseSkillIds: [],
 })
 
 // Create skills
@@ -87,13 +128,13 @@ const playerB = playerSystem.create(world, 'PlayerB', [petB.id])
 const battleState = createBattleState(playerA.id, playerB.id)
 world.state = battleState as unknown as Record<string, unknown>
 
-console.log('Systems:', Object.keys(world.systems as any))
+console.log('Systems:', Object.keys(world.systems as Record<string, unknown>))
 console.log('State:', world.state)
 
 // --- Run battle ---
 const system = new LocalBattleSystemV2(battle)
 
-system.BattleEvent((msg) => {
+system.BattleEvent(msg => {
   console.log(`[${msg.type}]`, JSON.stringify(msg.data ?? '').slice(0, 120))
 })
 
@@ -103,7 +144,10 @@ await new Promise(r => setTimeout(r, 200))
 
 const state = await system.getState()
 console.log('Status:', state.status)
-console.log('Players:', state.players.map(p => `${p.name} (${p.teamAlives} alive)`))
+console.log(
+  'Players:',
+  state.players.map(p => `${p.name} (${p.teamAlives} alive)`),
+)
 
 if (state.status !== BattleStatus.OnBattle) {
   console.error('Battle did not start properly!')
@@ -137,8 +181,8 @@ while (turn++ < 30) {
 
 const final = await system.getState()
 console.log('\nBattle ended! Status:', final.status)
-console.log('Victor:', (world.state as any).victor)
-console.log('End reason:', (world.state as any).endReason)
+console.log('Victor:', (world.state as Record<string, unknown>).victor)
+console.log('End reason:', (world.state as Record<string, unknown>).endReason)
 
 await system.cleanup()
 console.log('Done!')

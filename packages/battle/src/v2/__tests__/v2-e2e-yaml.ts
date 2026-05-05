@@ -2,12 +2,7 @@
 // End-to-end test: load real YAML data → createBattleFromConfig → run full battle.
 // Run with: npx tsx packages/battle/src/v2/__tests__/v2-e2e-yaml.ts
 
-import {
-  BattleMessageType,
-  BattleStatus,
-  type BattleMessage,
-  type playerId,
-} from '@arcadia-eternity/const'
+import { BattleMessageType, BattleStatus, type BattleMessage, type playerId } from '@arcadia-eternity/const'
 import { loadV2GameDataFromPack } from '../data/v2-data-loader.js'
 import { createBattleFromConfig } from '../data/battle-factory.js'
 import { LocalBattleSystemV2 } from '../local-battle.js'
@@ -52,7 +47,9 @@ async function main() {
   console.log(`Loading data pack: ${PACK_REF}`)
   const { repository, errors } = await loadV2GameDataFromPack(PACK_REF, { continueOnError: true })
   const stats = repository.stats()
-  console.log(`Loaded: ${stats.effects} effects, ${stats.marks} marks, ${stats.skills} skills, ${stats.species} species`)
+  console.log(
+    `Loaded: ${stats.effects} effects, ${stats.marks} marks, ${stats.skills} skills, ${stats.species} species`,
+  )
   if (errors.length > 0) {
     console.warn(`Warnings: ${errors.length} (first 3: ${errors.slice(0, 3).join(', ')})`)
   }
@@ -120,10 +117,16 @@ async function main() {
   console.log('Message counts:', Object.fromEntries(msgCounts))
 
   // Assertions
-  let passed = 0, failed = 0
+  let passed = 0,
+    failed = 0
   function assert(cond: boolean, msg: string) {
-    if (cond) { passed++; console.log(`  ✓ ${msg}`) }
-    else { failed++; console.error(`  ✗ ${msg}`) }
+    if (cond) {
+      passed++
+      console.log(`  ✓ ${msg}`)
+    } else {
+      failed++
+      console.error(`  ✗ ${msg}`)
+    }
   }
 
   console.log('\n=== Assertions ===')
@@ -132,9 +135,18 @@ async function main() {
   assert(stats.species > 10, `Loaded ${stats.species} species`)
   assert(finalState.status === BattleStatus.Ended, 'Battle ended')
   assert(world.state.victor !== undefined, 'Has a victor')
-  assert(messages.some(m => m.type === BattleMessageType.BattleStart), 'BattleStart emitted')
-  assert(messages.some(m => m.type === BattleMessageType.Damage), 'Damage emitted')
-  assert(messages.some(m => m.type === BattleMessageType.BattleEnd), 'BattleEnd emitted')
+  assert(
+    messages.some(m => m.type === BattleMessageType.BattleStart),
+    'BattleStart emitted',
+  )
+  assert(
+    messages.some(m => m.type === BattleMessageType.Damage),
+    'Damage emitted',
+  )
+  assert(
+    messages.some(m => m.type === BattleMessageType.BattleEnd),
+    'BattleEnd emitted',
+  )
   assert(turn > 0, `Battle lasted ${turn} turns`)
 
   console.log(`\n${passed} passed, ${failed} failed`)
@@ -143,6 +155,11 @@ async function main() {
   process.exit(failed > 0 ? 1 : 0)
 }
 
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
+function sleep(ms: number) {
+  return new Promise(r => setTimeout(r, ms))
+}
 
-main().catch(e => { console.error(e); process.exit(1) })
+main().catch(e => {
+  console.error(e)
+  process.exit(1)
+})

@@ -53,7 +53,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { User, Lock, Unlock } from '@element-plus/icons-vue'
 import { usePlayerStore } from '../../stores/player'
 import EmailInheritance from '../EmailInheritance.vue'

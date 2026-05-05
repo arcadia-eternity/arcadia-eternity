@@ -30,12 +30,12 @@ Battle (全局)
 
 ```typescript
 // 不同scope下的配置值获取
-configSystem.get('effects.damageMultiplier')           // 1.0 (全局，无影响)
-configSystem.get('effects.damageMultiplier', battle)   // 1.0 (战斗层级，无影响)
-configSystem.get('effects.damageMultiplier', playerA)  // 1.0 (玩家层级，无影响)
-configSystem.get('effects.damageMultiplier', petA1)    // 1.5 (Pet A1，modifier生效)
-configSystem.get('effects.damageMultiplier', petA2)    // 1.0 (Pet A2，无影响)
-configSystem.get('effects.damageMultiplier', markA1)   // 1.5 (Pet A1的印记，modifier生效)
+configSystem.get('effects.damageMultiplier') // 1.0 (全局，无影响)
+configSystem.get('effects.damageMultiplier', battle) // 1.0 (战斗层级，无影响)
+configSystem.get('effects.damageMultiplier', playerA) // 1.0 (玩家层级，无影响)
+configSystem.get('effects.damageMultiplier', petA1) // 1.5 (Pet A1，modifier生效)
+configSystem.get('effects.damageMultiplier', petA2) // 1.0 (Pet A2，无影响)
+configSystem.get('effects.damageMultiplier', markA1) // 1.5 (Pet A1的印记，modifier生效)
 ```
 
 ## 🔧 技术实现
@@ -51,7 +51,7 @@ private isModifierScopeCompatible(modifier: ConfigModifier, currentScope?: Scope
 
   // 获取modifier的source scope
   const modifierScope = this.getModifierSourceScope(modifier)
-  
+
   // 检查当前scope是否是modifier scope的后代
   return this.isScopeDescendantOf(currentScope, modifierScope)
 }
@@ -62,17 +62,17 @@ private isModifierScopeCompatible(modifier: ConfigModifier, currentScope?: Scope
 ```typescript
 private isScopeDescendantOf(currentScope: ScopeObject, ancestorScope: ScopeObject): boolean {
   let scope = currentScope
-  
+
   // 向上遍历scope层级
   while (scope) {
     if (scope === ancestorScope) {
       return true // 找到祖先scope
     }
-    
+
     // 获取父scope
     scope = this.getParentScope(scope)
   }
-  
+
   return false
 }
 ```
@@ -82,12 +82,12 @@ private isScopeDescendantOf(currentScope: ScopeObject, ancestorScope: ScopeObjec
 ```typescript
 private getModifierSourceScope(modifier: ConfigModifier): ScopeObject | undefined {
   if (!modifier.source) return undefined
-  
+
   // MarkInstance -> Pet (owner)
   if ('owner' in modifier.source && modifier.source.owner) {
     return modifier.source.owner as ScopeObject
   }
-  
+
   // SkillInstance -> Pet (owner)
   // BattlePhaseBase -> Battle
   // ...
@@ -99,6 +99,7 @@ private getModifierSourceScope(modifier: ConfigModifier): ScopeObject | undefine
 ### 基础用法
 
 #### Pet专属增益
+
 ```typescript
 const petSpecificBoost = {
   trigger: 'OnMarkAdded',
@@ -110,11 +111,12 @@ const petSpecificBoost = {
     phaseType: 'skill',
     scope: 'current',
     // source会自动设置为mark实例，限制scope到拥有mark的pet
-  }
+  },
 }
 ```
 
 #### 全局效果
+
 ```typescript
 const globalEffect = {
   trigger: 'OnBattleStart',
@@ -124,13 +126,14 @@ const globalEffect = {
     modifierType: 'delta',
     value: -10, // 减少10秒
     // 无source = 全局效果，影响所有scope
-  }
+  },
 }
 ```
 
 ### 高级场景
 
 #### 多层级modifier组合
+
 ```typescript
 // 场景：全局+玩家+精灵多层modifier
 const baseValue = 100
@@ -153,6 +156,7 @@ const petMod = new ConfigModifier(..., petMark)
 ## 📊 Scope层级规则
 
 ### 层级结构
+
 ```
 Battle (Level 0)
 ├── Player (Level 1)
@@ -165,13 +169,13 @@ Battle (Level 0)
 
 ### 影响规则
 
-| Modifier Source | 影响范围 | 示例 |
-|-----------------|---------|------|
-| 无source (全局) | 所有scope | 战场效果、全局规则 |
-| Battle | Battle及其所有子scope | 战斗特殊规则 |
-| Player | 该Player及其所有Pet | 队伍增益 |
-| Pet | 该Pet及其Mark/Skill | 精灵专属能力 |
-| Mark/Skill | 该Mark/Skill所属的Pet | 印记/技能效果 |
+| Modifier Source | 影响范围              | 示例               |
+| --------------- | --------------------- | ------------------ |
+| 无source (全局) | 所有scope             | 战场效果、全局规则 |
+| Battle          | Battle及其所有子scope | 战斗特殊规则       |
+| Player          | 该Player及其所有Pet   | 队伍增益           |
+| Pet             | 该Pet及其Mark/Skill   | 精灵专属能力       |
+| Mark/Skill      | 该Mark/Skill所属的Pet | 印记/技能效果      |
 
 ### 隔离保证
 
@@ -192,6 +196,7 @@ Battle (Level 0)
 ## 🎮 实际游戏应用
 
 ### 1. 精灵专属能力
+
 ```typescript
 // 只影响拥有能力的精灵
 const firemastery = {
@@ -202,6 +207,7 @@ const firemastery = {
 ```
 
 ### 2. 队伍增益技能
+
 ```typescript
 // 影响使用者队伍的所有精灵
 const teamRally = {
@@ -212,6 +218,7 @@ const teamRally = {
 ```
 
 ### 3. 印记的局部效果
+
 ```typescript
 // 只影响中毒的精灵
 const poisonMark = {
@@ -222,6 +229,7 @@ const poisonMark = {
 ```
 
 ### 4. 全场环境效果
+
 ```typescript
 // 影响所有参与者
 const sandstorm = {
@@ -234,6 +242,7 @@ const sandstorm = {
 ## 🔍 调试支持
 
 ### Scope检查工具
+
 ```typescript
 // 检查modifier是否应该在当前scope生效
 const isApplicable = configSystem.isModifierApplicableInScopeHierarchy(modifier, currentScope)

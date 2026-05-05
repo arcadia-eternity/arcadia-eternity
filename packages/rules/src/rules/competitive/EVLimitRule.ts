@@ -23,14 +23,14 @@ export class EVLimitRule extends AbstractRule {
       author?: string
       tags?: string[]
       enabled?: boolean
-    } = {}
+    } = {},
   ) {
     super(id, name, {
       description: options.description ?? `限制学习力总和不超过 ${maxTotalEV}，单项不超过 ${maxSingleEV}`,
       ...options,
       tags: ['competitive', 'ev', 'stats', ...(options.tags ?? [])],
     })
-    
+
     this.maxTotalEV = maxTotalEV
     this.maxSingleEV = maxSingleEV
   }
@@ -52,7 +52,7 @@ export class EVLimitRule extends AbstractRule {
   /**
    * 验证单个精灵的学习力
    */
-  validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
+  validatePet(pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
     const evs = pet.evs
 
@@ -66,7 +66,7 @@ export class EVLimitRule extends AbstractRule {
         `精灵 "${pet.name}" 学习力总和超限，最大允许 ${this.maxTotalEV}，当前为 ${totalEV}`,
         pet.id,
         'pet',
-        { maxTotalEV: this.maxTotalEV, currentTotalEV: totalEV, petName: pet.name }
+        { maxTotalEV: this.maxTotalEV, currentTotalEV: totalEV, petName: pet.name },
       )
     }
 
@@ -88,12 +88,12 @@ export class EVLimitRule extends AbstractRule {
           `精灵 "${pet.name}" 的 ${stat.name} 学习力超限，最大允许 ${this.maxSingleEV}，当前为 ${stat.value}`,
           pet.id,
           'pet',
-          { 
-            maxSingleEV: this.maxSingleEV, 
-            currentEV: stat.value, 
-            statName: stat.name, 
-            petName: pet.name 
-          }
+          {
+            maxSingleEV: this.maxSingleEV,
+            currentEV: stat.value,
+            statName: stat.name,
+            petName: pet.name,
+          },
         )
       }
 
@@ -104,7 +104,7 @@ export class EVLimitRule extends AbstractRule {
           `精灵 "${pet.name}" 的 ${stat.name} 学习力不能为负数，当前为 ${stat.value}`,
           pet.id,
           'pet',
-          { currentEV: stat.value, statName: stat.name, petName: pet.name }
+          { currentEV: stat.value, statName: stat.name, petName: pet.name },
         )
       }
     }
@@ -115,7 +115,7 @@ export class EVLimitRule extends AbstractRule {
   /**
    * 修改精灵学习力（调整到合法范围）
    */
-  modifyPet(pet: PetSchemaType, context?: RuleContext): void {
+  modifyPet(pet: PetSchemaType, _context?: RuleContext): void {
     const evs = pet.evs
 
     // 确保所有学习力不为负数
@@ -174,7 +174,7 @@ export class EVLimitRule extends AbstractRule {
     if (maxSingleEV * 6 < maxTotalEV) {
       throw new Error('Maximum single EV * 6 should be at least equal to maximum total EV')
     }
-    
+
     this.maxTotalEV = maxTotalEV
     this.maxSingleEV = maxSingleEV
   }
@@ -184,46 +184,28 @@ export class EVLimitRule extends AbstractRule {
  * 创建标准学习力限制规则
  */
 export function createStandardEVLimitRule(): EVLimitRule {
-  return new EVLimitRule(
-    'standard_ev_limit',
-    '标准学习力限制',
-    510,
-    252,
-    {
-      description: '标准游戏模式的学习力限制（总和510，单项252）',
-      tags: ['standard', 'competitive'],
-    }
-  )
+  return new EVLimitRule('standard_ev_limit', '标准学习力限制', 510, 252, {
+    description: '标准游戏模式的学习力限制（总和510，单项252）',
+    tags: ['standard', 'competitive'],
+  })
 }
 
 /**
  * 创建宽松学习力限制规则
  */
 export function createRelaxedEVLimitRule(): EVLimitRule {
-  return new EVLimitRule(
-    'relaxed_ev_limit',
-    '宽松学习力限制',
-    600,
-    300,
-    {
-      description: '宽松模式的学习力限制（总和600，单项300）',
-      tags: ['casual', 'relaxed'],
-    }
-  )
+  return new EVLimitRule('relaxed_ev_limit', '宽松学习力限制', 600, 300, {
+    description: '宽松模式的学习力限制（总和600，单项300）',
+    tags: ['casual', 'relaxed'],
+  })
 }
 
 /**
  * 创建严格学习力限制规则
  */
 export function createStrictEVLimitRule(): EVLimitRule {
-  return new EVLimitRule(
-    'strict_ev_limit',
-    '严格学习力限制',
-    400,
-    200,
-    {
-      description: '严格模式的学习力限制（总和400，单项200）',
-      tags: ['strict', 'limited'],
-    }
-  )
+  return new EVLimitRule('strict_ev_limit', '严格学习力限制', 400, 200, {
+    description: '严格模式的学习力限制（总和400，单项200）',
+    tags: ['strict', 'limited'],
+  })
 }

@@ -7,11 +7,13 @@
 ## ✅ 测试结果概览
 
 ### 🔒 基础Scope + Phase交互
+
 - ✅ **精确隔离**：modifier只在正确的scope + phase组合中生效
 - ✅ **自动清理**：phase结束时modifier自动移除
 - ✅ **跨scope隔离**：不同scope的modifier互不影响
 
 ### 🎮 复杂游戏场景
+
 - ✅ **多层级phase嵌套**：Turn → Skill → Damage 正确处理
 - ✅ **不同phase类型**：Skill、Damage、Heal、Turn 独立工作
 - ✅ **特定phase ID**：只对指定技能生效的modifier
@@ -20,13 +22,14 @@
 ## 🚀 实际测试场景
 
 ### 场景1：狂暴印记（只在技能使用时生效）
+
 ```typescript
 // 火龙有狂暴印记，只在使用技能时伤害+50%
 const berserkerRage = {
-  phaseType: PhaseType.Skill,  // 只在技能阶段
-  scope: PhaseScope.Current,   // 当前这次
-  source: berserkerMark,       // 来源：火龙的印记
-  effect: '+50% damage'
+  phaseType: PhaseType.Skill, // 只在技能阶段
+  scope: PhaseScope.Current, // 当前这次
+  source: berserkerMark, // 来源：火龙的印记
+  effect: '+50% damage',
 }
 
 // 测试结果：
@@ -36,13 +39,14 @@ const berserkerRage = {
 ```
 
 ### 场景2：治疗光环（只在治疗时生效）
+
 ```typescript
 // 凤凰有治疗光环，只在治疗阶段治疗+80%
 const healingAura = {
-  phaseType: PhaseType.Heal,   // 只在治疗阶段
-  scope: PhaseScope.Any,       // 任何治疗
-  source: healingAura,         // 来源：凤凰的光环
-  effect: '+80% healing'
+  phaseType: PhaseType.Heal, // 只在治疗阶段
+  scope: PhaseScope.Any, // 任何治疗
+  source: healingAura, // 来源：凤凰的光环
+  effect: '+80% healing',
 }
 
 // 测试结果：
@@ -52,13 +56,14 @@ const healingAura = {
 ```
 
 ### 场景3：水之护盾（只在受伤时生效）
+
 ```typescript
 // 海龟有水之护盾，只在伤害计算时减伤30%
 const waterShield = {
   phaseType: PhaseType.Damage, // 只在伤害阶段
-  scope: PhaseScope.Current,   // 当前这次
-  source: waterShield,         // 来源：海龟的护盾
-  effect: '-30% damage taken'
+  scope: PhaseScope.Current, // 当前这次
+  source: waterShield, // 来源：海龟的护盾
+  effect: '-30% damage taken',
 }
 
 // 测试结果：
@@ -68,13 +73,14 @@ const waterShield = {
 ```
 
 ### 场景4：深海之力（整个回合生效）
+
 ```typescript
 // 海妖有深海之力，整个回合暴击率+5%
 const deepSeaPower = {
-  phaseType: PhaseType.Turn,   // 整个回合
-  scope: PhaseScope.Current,   // 当前回合
-  source: deepSeaPower,        // 来源：海妖的能力
-  effect: '+5% critical chance'
+  phaseType: PhaseType.Turn, // 整个回合
+  scope: PhaseScope.Current, // 当前回合
+  source: deepSeaPower, // 来源：海妖的能力
+  effect: '+5% critical chance',
 }
 
 // 测试结果：
@@ -86,6 +92,7 @@ const deepSeaPower = {
 ## 🔧 复杂嵌套场景测试
 
 ### 多层级Phase嵌套
+
 ```
 Turn Phase (Level 1)
 ├── Skill Phase (Level 2)
@@ -94,18 +101,20 @@ Turn Phase (Level 1)
 ```
 
 **测试结果**：
+
 - **Turn阶段**：只有Turn类型的modifier生效
 - **Turn + Skill阶段**：Turn和Skill类型的modifier都生效
 - **Turn + Skill + Damage阶段**：所有三种类型的modifier都生效
 - **Turn + Heal阶段**：Turn和Heal类型的modifier生效
 
 ### 跨队伍隔离测试
+
 ```typescript
 // Alpha队长有领导光环，但只影响自己
 const leadershipAura = {
   phaseType: PhaseType.Turn,
-  source: alphaLeaderMark,  // 来源：Alpha队长
-  effect: '+20% team bonus'
+  source: alphaLeaderMark, // 来源：Alpha队长
+  effect: '+20% team bonus',
 }
 
 // 测试结果：
@@ -118,18 +127,21 @@ const leadershipAura = {
 ## 📊 性能和准确性验证
 
 ### ✅ Scope隔离准确性
+
 - **同scope内**：modifier正确生效
 - **父scope**：modifier不会向上泄露
 - **兄弟scope**：modifier完全隔离
 - **子scope**：正确继承适用的modifier
 
 ### ✅ Phase类型准确性
+
 - **正确phase**：modifier在对应phase类型中生效
 - **错误phase**：modifier在其他phase类型中不生效
 - **phase结束**：modifier自动清理
 - **嵌套phase**：多个phase类型可以同时生效
 
 ### ✅ 优先级处理
+
 - **高优先级**：优先应用高优先级modifier
 - **同优先级**：按添加顺序应用
 - **scope内排序**：在正确scope内正确排序
@@ -137,6 +149,7 @@ const leadershipAura = {
 ## 🎯 实际游戏价值
 
 ### 1. 精确的效果控制
+
 ```typescript
 // 只有使用火焰爆炸技能的火龙获得双倍伤害
 {
@@ -149,6 +162,7 @@ const leadershipAura = {
 ```
 
 ### 2. 完美的隔离机制
+
 ```typescript
 // 中毒印记只影响中毒的精灵，不影响队友
 {
@@ -160,6 +174,7 @@ const leadershipAura = {
 ```
 
 ### 3. 灵活的时机控制
+
 ```typescript
 // 护盾只在受到伤害时生效，平时不消耗
 {
@@ -171,6 +186,7 @@ const leadershipAura = {
 ```
 
 ### 4. 自动的生命周期管理
+
 ```typescript
 // 技能增益在技能结束时自动消失，无需手动清理
 {
@@ -184,6 +200,7 @@ const leadershipAura = {
 ## 🔍 调试和监控
 
 ### 实时状态查询
+
 ```typescript
 // 查看当前scope下的配置值
 const currentValue = configSystem.get('effects.damageMultiplier', pet)
@@ -196,6 +213,7 @@ const hasSkillPhase = configSystem.hasActivePhaseOfType(PhaseType.Skill)
 ```
 
 ### 调试工具
+
 ```typescript
 // 检查modifier是否应该生效
 const shouldApply = configSystem.isModifierApplicableInScopeHierarchy(modifier, currentScope)

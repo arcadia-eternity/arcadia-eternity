@@ -33,7 +33,7 @@ export function createSeer2DamageFormula(petSystem: PetSystem): DamageFormula {
         defStat = petSystem.getStatValue(world, ctx.targetId, 'spd')
       }
 
-      let baseDamage = ((2 * level / 5 + 2) * power * atkStat / defStat) / 50 + 2
+      let baseDamage = (((2 * level) / 5 + 2) * power * atkStat) / defStat / 50 + 2
 
       baseDamage *= extra.stabMultiplier ?? 1
       baseDamage *= extra.typeMultiplier ?? ctx.effectiveness

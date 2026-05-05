@@ -48,4 +48,3 @@ describe('v2 message bridge switch prompt', () => {
     bridge.cleanup()
   })
 })
-

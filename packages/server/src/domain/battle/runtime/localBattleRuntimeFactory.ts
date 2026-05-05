@@ -66,7 +66,7 @@ export class LocalBattleRuntimeFactory {
     player1Data: PlayerSchemaType,
     player2Data: PlayerSchemaType,
   ): Promise<IBattleSystem> {
-    const ruleSetId = roomState.metadata?.ruleSetId || 'casual_standard_ruleset'
+    const ruleSetId = (roomState.metadata?.ruleSetId as string) || 'casual_standard_ruleset'
     const requiredPackLock = roomState.metadata?.requiredPackLock as PackLock | undefined
     const packRef = resolvePackRefFromLock(requiredPackLock)
     const runtimeSeed = resolveRuntimeSeed(roomState)
@@ -157,12 +157,7 @@ export class LocalBattleRuntimeFactory {
         },
       }
 
-      return createLocalBattleFromYAML(
-        packRef,
-        toTeamConfig(player1Data),
-        toTeamConfig(player2Data),
-        fallbackConfig,
-      )
+      return createLocalBattleFromYAML(packRef, toTeamConfig(player1Data), toTeamConfig(player2Data), fallbackConfig)
     }
   }
 
@@ -182,8 +177,8 @@ export class LocalBattleRuntimeFactory {
       playersReady: new Set(),
       status: 'waiting',
       lastActive: Date.now(),
-      battleRecordId: roomState.metadata?.battleRecordId,
-      privateRoom: roomState.metadata?.privateRoom,
+      battleRecordId: roomState.metadata?.battleRecordId as string | undefined,
+      privateRoom: roomState.metadata?.privateRoom as boolean | undefined,
     }
   }
 }

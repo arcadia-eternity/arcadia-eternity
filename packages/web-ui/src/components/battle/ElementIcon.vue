@@ -4,6 +4,7 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   element: Element
+  size?: number
 }>()
 
 const elementIndexMap: Record<Element, number> = {
@@ -36,16 +37,24 @@ const iconUrl = computed(() => {
   const index = elementIndexMap[props.element]
   return `https://seer2-resource.yuuinih.com/png/petElementIcon/${index}.png`
 })
+
+const iconSizeStyle = computed(() => {
+  const size = Number.isFinite(props.size) && (props.size ?? 0) > 0 ? Number(props.size) : 24
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    minHeight: `${size}px`,
+  }
+})
 </script>
 
 <template>
-  <img :src="iconUrl" :alt="element" class="element-icon" />
+  <img :src="iconUrl" :alt="element" class="element-icon" :style="iconSizeStyle" />
 </template>
 
 <style scoped>
 .element-icon {
-  /* width: 24px; */
-  min-height: 24px;
+  display: inline-block;
   object-fit: contain;
 }
 </style>

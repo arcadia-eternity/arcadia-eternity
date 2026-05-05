@@ -289,13 +289,14 @@ export function useBattleAnimations(
           const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
           return { timestamp: now + delayTime, value }
         },
-        { timestamp: 0, value: null } as { timestamp: number; value: any },
+        { timestamp: 0, value: null as { side: 'left' | 'right'; value: number } | null },
       ),
       concatMap(({ value, timestamp }) =>
         of(value).pipe(
           delay(Math.max(0, timestamp - Date.now())),
-          tap(({ side, value }) => {
-            if (!battleViewRef.value) return
+          tap(val => {
+            if (!val || !battleViewRef.value) return
+            const { side, value } = val
 
             const { x: baseX, y: baseY } = getBattleViewPosition(side, 80)
             const randomOffsetX = (Math.random() - 0.5) * 100
@@ -391,12 +392,23 @@ export function useBattleAnimations(
           const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
           return { timestamp: now + delayTime, value }
         },
-        { timestamp: 0, value: null } as { timestamp: number; value: any },
+        {
+          timestamp: 0,
+          value: null as {
+            side: 'left' | 'right'
+            value: number
+            effectiveness: 'up' | 'normal' | 'down'
+            crit: boolean
+            skillId?: string
+          } | null,
+        },
       ),
       concatMap(({ value, timestamp }) =>
         of(value).pipe(
           delay(Math.max(0, timestamp - Date.now())),
-          tap(({ side, value, effectiveness, crit, skillId }) => {
+          tap(val => {
+            if (!val) return
+            const { side, value, effectiveness, crit, skillId } = val
             const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet
             if (typeof activePetId !== 'string') return
             const currentPet = store.getPetById(activePetId)

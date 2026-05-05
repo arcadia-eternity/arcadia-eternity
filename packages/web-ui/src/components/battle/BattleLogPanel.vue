@@ -354,7 +354,10 @@ watch(
 </script>
 
 <template>
-  <div data-testid="battle-log-panel" class="bg-black/80 rounded-lg h-full flex flex-col min-w-0 max-h-full overflow-hidden">
+  <div
+    data-testid="battle-log-panel"
+    class="bg-black/80 rounded-lg h-full flex flex-col min-w-0 max-h-full overflow-hidden"
+  >
     <!-- 日志面板标题栏 -->
     <div class="flex items-center justify-between px-3 py-1 border-b border-white/10 flex-none">
       <div class="text-xs font-medium text-white/70">战斗日志</div>

@@ -1,6 +1,13 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
 import type { BattleInstance } from '@arcadia-eternity/battle'
-import type { PetSchemaType, LearnableSkill, SkillSchemaType, MarkSchemaType, SpeciesSchemaType } from '@arcadia-eternity/schema'
+import type {
+  PetSchemaType,
+  LearnableSkill,
+  SkillSchemaType,
+  MarkSchemaType,
+  SpeciesSchemaType,
+  Effect,
+} from '@arcadia-eternity/schema'
 import type { ValidationResult } from './ValidationResult'
 
 /**
@@ -19,7 +26,7 @@ export interface BattleConfigModifications {
   /** 随机数种子 */
   rngSeed?: number
   /** 其他自定义配置 */
-  customConfig?: Record<string, any>
+  customConfig?: Record<string, unknown>
 }
 
 /**
@@ -33,9 +40,9 @@ export interface AdditionalContent {
   /** 额外的精灵种族 */
   species?: SpeciesSchemaType[]
   /** 额外的效果 */
-  effects?: Record<string, unknown>[]
+  effects?: Effect[]
   /** 自定义内容 */
-  custom?: Record<string, any>
+  custom?: Record<string, unknown>
 }
 
 /**
@@ -47,7 +54,7 @@ export interface RuleContext {
   /** 规则应用的阶段 */
   phase: RulePhase
   /** 额外的上下文数据 */
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 }
 
 /**

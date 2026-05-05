@@ -29,11 +29,13 @@ export interface V2DataPackManifest {
     skills: string[]
     species: string[]
   }
-  locales?: Record<string, string[]> | Array<{
-    locale: string
-    files?: string[]
-    namespaces?: string[]
-  }>
+  locales?:
+    | Record<string, string[]>
+    | Array<{
+        locale: string
+        files?: string[]
+        namespaces?: string[]
+      }>
 }
 
 export interface V2DataPackDependency {
@@ -72,10 +74,7 @@ export interface LoadResult {
  * @param options - Loading options
  * @returns Repository and any errors encountered
  */
-export async function loadV2GameData(
-  _dataDir: string,
-  options: LoadOptions = {},
-): Promise<LoadResult> {
+export async function loadV2GameData(_dataDir: string, options: LoadOptions = {}): Promise<LoadResult> {
   const {
     continueOnError = false,
     validateReferences = true,
@@ -99,9 +98,24 @@ export async function loadV2GameData(
         continueOnError,
         effectParser,
       )
-      await loadMarksFromPaths(resolvePathList(item.dataRoot, item.manifest.data.marks), repository, errors, continueOnError)
-      await loadSkillsFromPaths(resolvePathList(item.dataRoot, item.manifest.data.skills), repository, errors, continueOnError)
-      await loadSpeciesFromPaths(resolvePathList(item.dataRoot, item.manifest.data.species), repository, errors, continueOnError)
+      await loadMarksFromPaths(
+        resolvePathList(item.dataRoot, item.manifest.data.marks),
+        repository,
+        errors,
+        continueOnError,
+      )
+      await loadSkillsFromPaths(
+        resolvePathList(item.dataRoot, item.manifest.data.skills),
+        repository,
+        errors,
+        continueOnError,
+      )
+      await loadSpeciesFromPaths(
+        resolvePathList(item.dataRoot, item.manifest.data.species),
+        repository,
+        errors,
+        continueOnError,
+      )
       await loadLocales(normalizeLocaleFiles(item.manifest, item.localesRoot), locales, errors, continueOnError)
     }
     const pack = resolved.entryManifest
@@ -179,7 +193,13 @@ async function loadEffectsFromPaths(
   continueOnError: boolean,
   effectParser: (raw: Record<string, unknown>) => EffectDef,
 ): Promise<void> {
-  await loadRawArrayFiles(files, effectParser, effect => repo.registerEffect(effect.id, effect), errors, continueOnError)
+  await loadRawArrayFiles(
+    files,
+    effectParser,
+    effect => repo.registerEffect(effect.id, effect),
+    errors,
+    continueOnError,
+  )
 }
 
 async function loadMarksFromPaths(
@@ -206,7 +226,13 @@ async function loadSpeciesFromPaths(
   errors: string[],
   continueOnError: boolean,
 ): Promise<void> {
-  await loadRawArrayFiles(files, parseSpecies, species => repo.registerSpecies(species.id, species), errors, continueOnError)
+  await loadRawArrayFiles(
+    files,
+    parseSpecies,
+    species => repo.registerSpecies(species.id, species),
+    errors,
+    continueOnError,
+  )
 }
 
 async function loadPackManifest(packPath: string): Promise<V2DataPackManifest> {
@@ -241,10 +267,10 @@ async function resolvePackReference(packRef?: string): Promise<string | undefine
   const candidate = ref.startsWith('npm:') ? ref.slice(4) : ref
 
   if (
-    candidate.startsWith('.')
-    || candidate.startsWith('/')
-    || candidate.startsWith('..')
-    || candidate.endsWith('.json')
+    candidate.startsWith('.') ||
+    candidate.startsWith('/') ||
+    candidate.startsWith('..') ||
+    candidate.endsWith('.json')
   ) {
     return resolve(candidate)
   }
@@ -261,9 +287,10 @@ async function resolvePackReference(packRef?: string): Promise<string | undefine
   }
 
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8')) as PackPackageJsonLike
-  const packEntry = typeof packageJson.arcadiaEternityPack === 'string' && packageJson.arcadiaEternityPack.length > 0
-    ? packageJson.arcadiaEternityPack
-    : 'pack.json'
+  const packEntry =
+    typeof packageJson.arcadiaEternityPack === 'string' && packageJson.arcadiaEternityPack.length > 0
+      ? packageJson.arcadiaEternityPack
+      : 'pack.json'
   return resolve(packageRoot, packEntry)
 }
 
@@ -375,9 +402,7 @@ async function discoverWorkspacePackDescriptors(packsDir: string): Promise<Works
       const raw = await readFile(packPath, 'utf-8')
       const parsed = JSON.parse(raw) as { id?: string; assetsRef?: string | string[] }
       if (!parsed.id) continue
-      const refs = parsed.assetsRef
-        ? (Array.isArray(parsed.assetsRef) ? parsed.assetsRef : [parsed.assetsRef])
-        : []
+      const refs = parsed.assetsRef ? (Array.isArray(parsed.assetsRef) ? parsed.assetsRef : [parsed.assetsRef]) : []
       const resolvedRefs = refs.map(ref => {
         if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(ref)) return ref
         return resolve(dirname(packPath), ref)

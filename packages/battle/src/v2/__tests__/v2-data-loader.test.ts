@@ -47,9 +47,16 @@ describe('V2DataRepository', () => {
       type: 'baseMark' as const,
       id: 'mark_1',
       config: {
-        duration: 3, persistent: true, maxStacks: 1, stackable: false,
-        stackStrategy: 'extend' as any, destroyable: true, isShield: false,
-        keepOnSwitchOut: false, transferOnSwitch: false, inheritOnFaint: false,
+        duration: 3,
+        persistent: true,
+        maxStacks: 1,
+        stackable: false,
+        stackStrategy: 'extend' as const,
+        destroyable: true,
+        isShield: false,
+        keepOnSwitchOut: false,
+        transferOnSwitch: false,
+        inheritOnFaint: false,
       },
       tags: [],
       effectIds: [],
@@ -88,14 +95,24 @@ describe('V2DataRepository', () => {
 
 describe('parseEffect', () => {
   test('converts string trigger to array', () => {
-    const raw = { id: 'eff_test', trigger: 'OnDamage', priority: 5, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } }
+    const raw = {
+      id: 'eff_test',
+      trigger: 'OnDamage',
+      priority: 5,
+      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+    }
     const result = parseEffect(raw)
     expect(result.triggers).toEqual(['OnDamage'])
     expect(result.priority).toBe(5)
   })
 
   test('keeps array trigger as-is', () => {
-    const raw = { id: 'eff_test', trigger: ['OnDamage', 'OnHit'], priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } }
+    const raw = {
+      id: 'eff_test',
+      trigger: ['OnDamage', 'OnHit'],
+      priority: 0,
+      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+    }
     const result = parseEffect(raw)
     expect(result.triggers).toEqual(['OnDamage', 'OnHit'])
   })
@@ -110,7 +127,13 @@ describe('parseEffect', () => {
   })
 
   test('throws if id is missing', () => {
-    expect(() => parseEffect({ trigger: 'OnDamage', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } })).toThrow('strict compile failed')
+    expect(() =>
+      parseEffect({
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+      }),
+    ).toThrow('strict compile failed')
   })
 
   test('throws if apply is missing', () => {
@@ -118,96 +141,108 @@ describe('parseEffect', () => {
   })
 
   test('strict compile rejects invalid operator at parse time', () => {
-    expect(() => parseEffect({
-      id: 'eff_invalid_operator',
-      trigger: 'OnDamage',
-      priority: 0,
-      apply: { type: 'noSuchOperator', target: 'useSkillContext', value: 1 },
-    } as Record<string, unknown>)).toThrow('strict compile failed')
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_operator',
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: { type: 'noSuchOperator', target: 'useSkillContext', value: 1 },
+      } as Record<string, unknown>),
+    ).toThrow('strict compile failed')
   })
 
   test('strict compile rejects unknown selectPath on known owner at parse time', () => {
-    expect(() => parseEffect({
-      id: 'eff_invalid_select_path',
-      trigger: 'OnDamage',
-      priority: 0,
-      condition: {
-        type: 'evaluate',
-        target: {
-          base: 'useSkillContext',
-          chain: [
-            { type: 'selectPath', arg: 'notARealField' },
-          ],
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_select_path',
+        trigger: 'OnDamage',
+        priority: 0,
+        condition: {
+          type: 'evaluate',
+          target: {
+            base: 'useSkillContext',
+            chain: [{ type: 'selectPath', arg: 'notARealField' }],
+          },
+          evaluator: { type: 'exist' },
         },
-        evaluator: { type: 'exist' },
-      },
-      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
-    } as Record<string, unknown>)).toThrow('selector typing failed')
+        apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+      } as Record<string, unknown>),
+    ).toThrow('selector typing failed')
   })
 
   test('strict compile rejects operator selector type mismatch at parse time', () => {
-    expect(() => parseEffect({
-      id: 'eff_invalid_operator_target',
-      trigger: 'OnDamage',
-      priority: 0,
-      apply: { type: 'dealDamage', target: 'useSkillContext', value: 10 },
-    } as Record<string, unknown>)).toThrow('expected id(pet)')
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_operator_target',
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: { type: 'dealDamage', target: 'useSkillContext', value: 10 },
+      } as Record<string, unknown>),
+    ).toThrow('expected id(pet)')
   })
 
   test('strict compile rejects condition value type mismatch at parse time', () => {
-    expect(() => parseEffect({
-      id: 'eff_invalid_condition_value',
-      trigger: 'OnDamage',
-      priority: 0,
-      condition: { type: 'continuousUseSkill', times: '2' },
-      apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
-    } as Record<string, unknown>)).toThrow('expected scalar(number)')
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_condition_value',
+        trigger: 'OnDamage',
+        priority: 0,
+        condition: { type: 'continuousUseSkill', times: '2' },
+        apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+      } as Record<string, unknown>),
+    ).toThrow('expected scalar(number)')
   })
 
   test('strict compile accepts addTemporaryEffect with effect entity selector value', () => {
-    expect(() => parseEffect({
-      id: 'eff_add_temp_effect',
-      trigger: 'BeforeSort',
-      priority: 0,
-      apply: {
-        type: 'addTemporaryEffect',
-        target: 'skill',
-        effect: {
-          type: 'entity:effect',
-          value: 'effect_placeholder',
+    expect(() =>
+      parseEffect({
+        id: 'eff_add_temp_effect',
+        trigger: 'BeforeSort',
+        priority: 0,
+        apply: {
+          type: 'addTemporaryEffect',
+          target: 'skill',
+          effect: {
+            type: 'entity:effect',
+            value: 'effect_placeholder',
+          },
         },
-      },
-    } as Record<string, unknown>)).not.toThrow()
+      } as Record<string, unknown>),
+    ).not.toThrow()
   })
 
   test('strict compile rejects executeActions with non-operator object target at parse time', () => {
-    expect(() => parseEffect({
-      id: 'eff_invalid_execute_actions_target',
-      trigger: 'OnDamage',
-      priority: 0,
-      apply: {
-        type: 'executeActions',
-        target: {
-          type: 'selectorValue',
-          value: [{ foo: 'bar' }],
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_execute_actions_target',
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: {
+          type: 'executeActions',
+          target: {
+            type: 'selectorValue',
+            value: [{ foo: 'bar' }],
+          },
         },
-      },
-    } as Record<string, unknown>)).toThrow('expected object(dsl:operator)')
+      } as Record<string, unknown>),
+    ).toThrow('expected object(dsl:operator)')
   })
 
   test('strict compile rejects registerTaggedConfig tags that are not string arrays at parse time', () => {
-    expect(() => parseEffect({
-      id: 'eff_invalid_tagged_config_tags',
-      trigger: 'OnDamage',
-      priority: 0,
-      apply: {
-        type: 'registerTaggedConfig',
-        target: 'self',
-        configKey: 'cfg_test',
-        initialValue: 1,
-        tags: [1, 2, 3],
-      },
-    } as Record<string, unknown>)).toThrow('object(json:stringArray)')
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_tagged_config_tags',
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: {
+          type: 'registerTaggedConfig',
+          target: 'self',
+          configKey: 'cfg_test',
+          initialValue: 1,
+          tags: [1, 2, 3],
+        },
+      } as Record<string, unknown>),
+    ).toThrow('object(json:stringArray)')
   })
 
   test('default strict compile rejects undeclared custom path on useSkillContext', () => {
@@ -301,8 +336,13 @@ describe('parseMark', () => {
 describe('parseSkill', () => {
   test('converts effect array to effectIds', () => {
     const raw = {
-      id: 'skill_test', element: 'Fire', category: 'Physical',
-      power: 80, rage: 0, accuracy: 100, effect: ['eff_1'],
+      id: 'skill_test',
+      element: 'Fire',
+      category: 'Physical',
+      power: 80,
+      rage: 0,
+      accuracy: 100,
+      effect: ['eff_1'],
     }
     const result = parseSkill(raw)
     expect(result.type).toBe('baseSkill')
@@ -329,10 +369,15 @@ describe('parseSkill', () => {
 describe('parseSpecies', () => {
   test('converts ability/emblem arrays to abilityIds/emblemIds', () => {
     const raw = {
-      id: 'species_test', num: 1, element: 'Fire',
+      id: 'species_test',
+      num: 1,
+      element: 'Fire',
       baseStats: { hp: 80, atk: 100, def: 80, spa: 60, spd: 60, spe: 90 },
-      genderRatio: [50, 50], heightRange: [50, 100], weightRange: [20, 40],
-      ability: ['mark_ability_1'], emblem: ['mark_emblem_1'],
+      genderRatio: [50, 50],
+      heightRange: [50, 100],
+      weightRange: [20, 40],
+      ability: ['mark_ability_1'],
+      emblem: ['mark_emblem_1'],
       learnable_skills: [],
     }
     const result = parseSpecies(raw)
@@ -343,13 +388,18 @@ describe('parseSpecies', () => {
 
   test('discards learnable_skills', () => {
     const raw = {
-      id: 'species_test', num: 1, element: 'Water',
+      id: 'species_test',
+      num: 1,
+      element: 'Water',
       baseStats: { hp: 80, atk: 100, def: 80, spa: 60, spd: 60, spe: 90 },
-      genderRatio: null, heightRange: [0, 0], weightRange: [0, 0],
-      ability: [], emblem: [],
+      genderRatio: null,
+      heightRange: [0, 0],
+      weightRange: [0, 0],
+      ability: [],
+      emblem: [],
       learnable_skills: [{ skill_id: 'skill_x', level: 1, hidden: false }],
     }
-    const result = parseSpecies(raw) as any
+    const result = parseSpecies(raw) as Record<string, unknown>
     expect(result.learnable_skills).toBeUndefined()
   })
 
@@ -364,7 +414,7 @@ describe('parseSpecies', () => {
 
 describe('loadV2GameData', () => {
   test('loads all YAML files and populates repository', async () => {
-    const { repository, errors } = await loadV2GameData(DATA_DIR, { continueOnError: true })
+    const { errors } = await loadV2GameData(DATA_DIR, { continueOnError: true })
     const stats = repository.stats()
 
     // Should have loaded a significant number of each type
@@ -382,7 +432,7 @@ describe('loadV2GameData', () => {
   })
 
   test('cross-reference validation finds no missing effects for skills', async () => {
-    const { repository, errors } = await loadV2GameData(DATA_DIR, {
+    const { errors } = await loadV2GameData(DATA_DIR, {
       continueOnError: true,
       validateReferences: true,
     })
@@ -440,67 +490,104 @@ describe('loadV2GameData', () => {
     await mkdir(resolve(mainDir, 'locales/zh-CN'), { recursive: true })
 
     try {
-      await writeFile(resolve(depDir, 'data/effect_dep.yaml'), YAML.stringify([
-        { id: 'eff_dep', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } },
-      ]))
+      await writeFile(
+        resolve(depDir, 'data/effect_dep.yaml'),
+        YAML.stringify([
+          {
+            id: 'eff_dep',
+            trigger: 'OnBattleStart',
+            priority: 0,
+            apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+          },
+        ]),
+      )
       await writeFile(resolve(depDir, 'data/mark_dep.yaml'), YAML.stringify([]))
-      await writeFile(resolve(depDir, 'data/skill_dep.yaml'), YAML.stringify([
-        { id: 'skill_dep', element: 'Normal', category: 'Status', power: 0, rage: 0, accuracy: 100, effect: ['eff_dep'] },
-      ]))
-      await writeFile(resolve(depDir, 'data/species_dep.yaml'), YAML.stringify([
-        {
-          id: 'species_dep',
-          num: 1,
-          element: 'Normal',
-          baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
-          genderRatio: [50, 50],
-          heightRange: [10, 20],
-          weightRange: [10, 20],
-          ability: [],
-          emblem: [],
-          learnable_skills: [],
-        },
-      ]))
+      await writeFile(
+        resolve(depDir, 'data/skill_dep.yaml'),
+        YAML.stringify([
+          {
+            id: 'skill_dep',
+            element: 'Normal',
+            category: 'Status',
+            power: 0,
+            rage: 0,
+            accuracy: 100,
+            effect: ['eff_dep'],
+          },
+        ]),
+      )
+      await writeFile(
+        resolve(depDir, 'data/species_dep.yaml'),
+        YAML.stringify([
+          {
+            id: 'species_dep',
+            num: 1,
+            element: 'Normal',
+            baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
+            genderRatio: [50, 50],
+            heightRange: [10, 20],
+            weightRange: [10, 20],
+            ability: [],
+            emblem: [],
+            learnable_skills: [],
+          },
+        ]),
+      )
       await writeFile(resolve(depDir, 'locales/zh-CN/skill.yaml'), YAML.stringify({ skill_dep: { name: 'Dep Skill' } }))
-      await writeFile(resolve(depDir, 'pack.json'), JSON.stringify({
-        id: 'dep.pack',
-        version: '1.0.0',
-        engine: 'seer2-v2',
-        layoutVersion: 1,
-        paths: { dataDir: 'data', localesDir: 'locales' },
-        data: {
-          effects: ['effect_dep.yaml'],
-          marks: ['mark_dep.yaml'],
-          skills: ['skill_dep.yaml'],
-          species: ['species_dep.yaml'],
-        },
-        locales: { 'zh-CN': ['skill'] },
-      }))
+      await writeFile(
+        resolve(depDir, 'pack.json'),
+        JSON.stringify({
+          id: 'dep.pack',
+          version: '1.0.0',
+          engine: 'seer2-v2',
+          layoutVersion: 1,
+          paths: { dataDir: 'data', localesDir: 'locales' },
+          data: {
+            effects: ['effect_dep.yaml'],
+            marks: ['mark_dep.yaml'],
+            skills: ['skill_dep.yaml'],
+            species: ['species_dep.yaml'],
+          },
+          locales: { 'zh-CN': ['skill'] },
+        }),
+      )
 
-      await writeFile(resolve(mainDir, 'data/effect_main.yaml'), YAML.stringify([
-        { id: 'eff_main', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 2 } },
-      ]))
-      await writeFile(resolve(mainDir, 'data/mark_main.yaml'), YAML.stringify([
-        { id: 'mark_main', effect: ['eff_dep'] },
-      ]))
+      await writeFile(
+        resolve(mainDir, 'data/effect_main.yaml'),
+        YAML.stringify([
+          {
+            id: 'eff_main',
+            trigger: 'OnBattleStart',
+            priority: 0,
+            apply: { type: 'addPower', target: 'useSkillContext', value: 2 },
+          },
+        ]),
+      )
+      await writeFile(
+        resolve(mainDir, 'data/mark_main.yaml'),
+        YAML.stringify([{ id: 'mark_main', effect: ['eff_dep'] }]),
+      )
       await writeFile(resolve(mainDir, 'data/skill_main.yaml'), YAML.stringify([]))
       await writeFile(resolve(mainDir, 'data/species_main.yaml'), YAML.stringify([]))
       await writeFile(resolve(mainDir, 'locales/zh-CN/mark.yaml'), YAML.stringify({ mark_main: { name: 'Main Mark' } }))
-      await writeFile(resolve(mainDir, 'pack.json'), JSON.stringify({
-        id: 'main.pack',
-        version: '1.0.0',
-        engine: 'seer2-v2',
-        layoutVersion: 1,
-        dependencies: [{ id: 'dep.pack', path: '../dep/pack.json' }],
-        paths: { dataDir: 'data', localesDir: 'locales' },
-        data: {
-          effects: ['effect_main.yaml'],
-          marks: ['mark_main.yaml'],
-          skills: ['skill_main.yaml'],
-          species: ['species_main.yaml'],
-        },
-        locales: { 'zh-CN': ['mark'] },
-      }))
+      await writeFile(
+        resolve(mainDir, 'pack.json'),
+        JSON.stringify({
+          id: 'main.pack',
+          version: '1.0.0',
+          engine: 'seer2-v2',
+          layoutVersion: 1,
+          dependencies: [{ id: 'dep.pack', path: '../dep/pack.json' }],
+          paths: { dataDir: 'data', localesDir: 'locales' },
+          data: {
+            effects: ['effect_main.yaml'],
+            marks: ['mark_main.yaml'],
+            skills: ['skill_main.yaml'],
+            species: ['species_main.yaml'],
+          },
+          locales: { 'zh-CN': ['mark'] },
+        }),
+      )
 
       const result = await loadV2GameDataFromPack(resolve(mainDir, 'pack.json'), {
         continueOnError: false,
@@ -527,47 +614,79 @@ describe('loadV2GameData', () => {
     await mkdir(resolve(modDir, 'data'), { recursive: true })
 
     try {
-      await writeFile(resolve(baseDir, 'data/effects.yaml'), YAML.stringify([
-        { id: 'eff_base', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } },
-        { id: 'eff_shared', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 1 } },
-      ]))
+      await writeFile(
+        resolve(baseDir, 'data/effects.yaml'),
+        YAML.stringify([
+          {
+            id: 'eff_base',
+            trigger: 'OnBattleStart',
+            priority: 0,
+            apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+          },
+          {
+            id: 'eff_shared',
+            trigger: 'OnBattleStart',
+            priority: 0,
+            apply: { type: 'addPower', target: 'useSkillContext', value: 1 },
+          },
+        ]),
+      )
       await writeFile(resolve(baseDir, 'data/marks.yaml'), YAML.stringify([]))
       await writeFile(resolve(baseDir, 'data/skills.yaml'), YAML.stringify([]))
       await writeFile(resolve(baseDir, 'data/species.yaml'), YAML.stringify([]))
-      await writeFile(resolve(baseDir, 'pack.json'), JSON.stringify({
-        id: 'arcadia-eternity.base',
-        version: '1.0.0',
-        engine: 'seer2-v2',
-        layoutVersion: 1,
-        paths: { dataDir: 'data' },
-        data: {
-          effects: ['effects.yaml'],
-          marks: ['marks.yaml'],
-          skills: ['skills.yaml'],
-          species: ['species.yaml'],
-        },
-      }))
+      await writeFile(
+        resolve(baseDir, 'pack.json'),
+        JSON.stringify({
+          id: 'arcadia-eternity.base',
+          version: '1.0.0',
+          engine: 'seer2-v2',
+          layoutVersion: 1,
+          paths: { dataDir: 'data' },
+          data: {
+            effects: ['effects.yaml'],
+            marks: ['marks.yaml'],
+            skills: ['skills.yaml'],
+            species: ['species.yaml'],
+          },
+        }),
+      )
 
-      await writeFile(resolve(modDir, 'data/effects.yaml'), YAML.stringify([
-        { id: 'eff_mod', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 2 } },
-        { id: 'eff_shared', trigger: 'OnBattleStart', priority: 0, apply: { type: 'addPower', target: 'useSkillContext', value: 9 } },
-      ]))
+      await writeFile(
+        resolve(modDir, 'data/effects.yaml'),
+        YAML.stringify([
+          {
+            id: 'eff_mod',
+            trigger: 'OnBattleStart',
+            priority: 0,
+            apply: { type: 'addPower', target: 'useSkillContext', value: 2 },
+          },
+          {
+            id: 'eff_shared',
+            trigger: 'OnBattleStart',
+            priority: 0,
+            apply: { type: 'addPower', target: 'useSkillContext', value: 9 },
+          },
+        ]),
+      )
       await writeFile(resolve(modDir, 'data/marks.yaml'), YAML.stringify([]))
       await writeFile(resolve(modDir, 'data/skills.yaml'), YAML.stringify([]))
       await writeFile(resolve(modDir, 'data/species.yaml'), YAML.stringify([]))
-      await writeFile(resolve(modDir, 'pack.json'), JSON.stringify({
-        id: 'mod.alpha',
-        version: '1.0.0',
-        engine: 'seer2-v2',
-        layoutVersion: 1,
-        paths: { dataDir: 'data' },
-        data: {
-          effects: ['effects.yaml'],
-          marks: ['marks.yaml'],
-          skills: ['skills.yaml'],
-          species: ['species.yaml'],
-        },
-      }))
+      await writeFile(
+        resolve(modDir, 'pack.json'),
+        JSON.stringify({
+          id: 'mod.alpha',
+          version: '1.0.0',
+          engine: 'seer2-v2',
+          layoutVersion: 1,
+          paths: { dataDir: 'data' },
+          data: {
+            effects: ['effects.yaml'],
+            marks: ['marks.yaml'],
+            skills: ['skills.yaml'],
+            species: ['species.yaml'],
+          },
+        }),
+      )
 
       process.env.ARCADIA_PACKS_DIR = packsDir
       const result = await loadV2GameDataFromPack('builtin:workspace', {
@@ -577,7 +696,8 @@ describe('loadV2GameData', () => {
       expect(result.pack?.id).toBe('arcadia-eternity.workspace')
       expect(result.repository.findEffect('eff_base')).toBeDefined()
       expect(result.repository.findEffect('eff_mod')).toBeDefined()
-      expect((result.repository.findEffect('eff_shared') as any)?.apply?.value).toBe(9)
+      const shared = result.repository.findEffect('eff_shared') as unknown as { apply?: { value?: number } }
+      expect(shared?.apply?.value).toBe(9)
     } finally {
       if (previousPacksDir === undefined) {
         delete process.env.ARCADIA_PACKS_DIR

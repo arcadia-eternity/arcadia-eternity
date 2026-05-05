@@ -13,8 +13,8 @@
     "generate": "tsx script/schema.ts",
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rollup -c",
-    "watch:code": "rollup -c --watch",
+    "build:code": "rolldown -c",
+    "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --skipLibCheck --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo -p tsconfig.build.json --skipLibCheck",
@@ -26,11 +26,11 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
-    "@sinclair/typebox": "^0.34.48",
-    "nanoid": "^5.1.6"
+    "@sinclair/typebox": "catalog:",
+    "nanoid": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "vitest": "^4.1.0"
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
   }
 }

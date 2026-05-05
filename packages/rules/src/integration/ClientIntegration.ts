@@ -5,6 +5,7 @@ import { TeamBuilderIntegration } from './TeamBuilderIntegration'
 import type { Team } from '../interfaces/Rule'
 import { initializeGlobalClientSpeciesDataProvider } from '../providers/ClientSpeciesDataProvider'
 import { getGlobalClientSpeciesDataProvider } from '../providers/ClientSpeciesDataProvider'
+import type { ClientGameDataStore } from '../providers/ClientSpeciesDataProvider'
 
 /**
  * 客户端规则系统集成
@@ -13,7 +14,7 @@ export class ClientRuleIntegration {
   private static teamBuilderManager: TeamBuilderRuleManager | null = null
   private static initPromise: Promise<void> | null = null
   private static isInitialized: boolean = false
-  private static gameDataStore: any = null
+  private static gameDataStore: ClientGameDataStore | null = null
 
   /**
    * 确保客户端规则系统已初始化
@@ -66,7 +67,7 @@ export class ClientRuleIntegration {
    * 应在应用启动时调用，但不是必须的（会自动初始化）
    * @param gameDataStore 可选的游戏数据存储实例，用于种族数据提供者
    */
-  static async initializeClient(gameDataStore?: any): Promise<void> {
+  static async initializeClient(gameDataStore?: ClientGameDataStore): Promise<void> {
     // 保存游戏数据存储以供后续自动初始化使用
     if (gameDataStore) {
       ClientRuleIntegration.gameDataStore = gameDataStore
@@ -274,7 +275,7 @@ export class ClientRuleIntegration {
 
       // 设置规则上下文
       const context = {
-        phase: 'TEAM_BUILDING' as any,
+        phase: 'team_building' as unknown as import('../interfaces/Rule').RulePhase,
         data: {
           team,
           ruleSystem: ruleSystem,
@@ -340,7 +341,7 @@ export class ClientRuleIntegration {
    * 初始化种族数据提供者
    * @param gameDataStore 游戏数据存储实例
    */
-  static async initializeSpeciesDataProvider(gameDataStore: any): Promise<void> {
+  static async initializeSpeciesDataProvider(gameDataStore: ClientGameDataStore): Promise<void> {
     initializeGlobalClientSpeciesDataProvider(gameDataStore)
 
     // 重新设置所有需要种族数据的规则的种族数据提供者
@@ -366,13 +367,21 @@ export class ClientRuleIntegration {
       let updatedCount = 0
       for (const rule of allRules) {
         // 更新技能验证规则
-        if (rule.id.includes('skill_availability') && typeof (rule as any).setSpeciesDataProvider === 'function') {
-          ;(rule as any).setSpeciesDataProvider(provider)
+        if (
+          rule.id.includes('skill_availability') &&
+          typeof (rule as unknown as { setSpeciesDataProvider?: (provider: unknown) => void })
+            .setSpeciesDataProvider === 'function'
+        ) {
+          ;(rule as unknown as { setSpeciesDataProvider(provider: unknown): void }).setSpeciesDataProvider(provider)
           updatedCount++
         }
         // 更新性别限制规则
-        else if (rule.id.includes('gender_restriction') && typeof (rule as any).setSpeciesDataProvider === 'function') {
-          ;(rule as any).setSpeciesDataProvider(provider)
+        else if (
+          rule.id.includes('gender_restriction') &&
+          typeof (rule as unknown as { setSpeciesDataProvider?: (provider: unknown) => void })
+            .setSpeciesDataProvider === 'function'
+        ) {
+          ;(rule as unknown as { setSpeciesDataProvider(provider: unknown): void }).setSpeciesDataProvider(provider)
           updatedCount++
         }
       }

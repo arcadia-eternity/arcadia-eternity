@@ -34,9 +34,10 @@ class ObjectProxyManager<T extends object> {
   }
 
   private createProxy(): T {
+    const targetRecord = this.target as Record<string | symbol, unknown>
     return new Proxy(this.target as object, {
       get: (_, prop) => {
-        const value = (this.target as any)[prop]
+        const value = targetRecord[prop]
         // 如果是函数，绑定正确的 this
         if (typeof value === 'function') {
           return value.bind(this.target)
@@ -44,13 +45,14 @@ class ObjectProxyManager<T extends object> {
         return value
       },
       set: (_, prop, value) => {
-        ;(this.target as any)[prop] = value
+        targetRecord[prop] = value
         return true
       },
       has: (_, prop) => {
         return prop in (this.target as object)
       },
-      ownKeys: _ => {
+      ownKeys: _unused => {
+        void _unused
         return Reflect.ownKeys(this.target as object)
       },
       getOwnPropertyDescriptor: (_, prop) => {
@@ -359,7 +361,7 @@ function createRegisterDecorator<T extends Prototype>(registerFn: (instance: T) 
       } catch (error) {
         // 包装错误信息，增加类名信息
         const className = constructor.name
-        throw new Error(`Failed to register ${className}: ${(error as Error).message}`)
+        throw new Error(`Failed to register ${className}: ${(error as Error).message}`, { cause: error })
       }
     }
   }

@@ -1,21 +1,31 @@
 import type { SpeciesSchemaType } from '@arcadia-eternity/schema'
 import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
+
+/**
+ * 客户端游戏数据存储接口
+ * 提供从客户端游戏数据存储获取种族信息的方法
+ */
+export interface ClientGameDataStore {
+  speciesList?: SpeciesSchemaType[]
+  species?: Record<string, unknown> & { byId?: Record<string, SpeciesSchemaType> }
+}
+
 /**
  * 客户端种族数据提供者
  * 从客户端的游戏数据存储中获取种族信息
  */
 export class ClientSpeciesDataProvider implements SpeciesDataProvider {
-  private gameDataStore: any
+  private gameDataStore: ClientGameDataStore | undefined
 
-  constructor(gameDataStore?: any) {
-    this.gameDataStore = gameDataStore
+  constructor(gameDataStore?: ClientGameDataStore) {
+    this.gameDataStore = gameDataStore ?? {}
   }
 
   /**
    * 设置游戏数据存储
    * @param gameDataStore 游戏数据存储实例
    */
-  setGameDataStore(gameDataStore: any): void {
+  setGameDataStore(gameDataStore: ClientGameDataStore): void {
     this.gameDataStore = gameDataStore
   }
 
@@ -31,13 +41,13 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
 
     try {
       // 尝试从speciesList中查找
-      if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
-        return this.gameDataStore.speciesList.find((species: SpeciesSchemaType) => species.id === speciesId)
+      if (this.gameDataStore.speciesList) {
+        return this.gameDataStore.speciesList.find(species => species.id === speciesId)
       }
 
       // 尝试从其他可能的数据结构中查找
       if (this.gameDataStore.species && this.gameDataStore.species[speciesId]) {
-        return this.gameDataStore.species[speciesId]
+        return this.gameDataStore.species[speciesId] as SpeciesSchemaType | undefined
       }
 
       // 如果有byId映射
@@ -70,8 +80,8 @@ export class ClientSpeciesDataProvider implements SpeciesDataProvider {
     }
 
     try {
-      if (this.gameDataStore.speciesList && Array.isArray(this.gameDataStore.speciesList)) {
-        return this.gameDataStore.speciesList.map((species: SpeciesSchemaType) => species.id)
+      if (this.gameDataStore.speciesList) {
+        return this.gameDataStore.speciesList.map(species => species.id)
       }
 
       if (this.gameDataStore.species && this.gameDataStore.species.byId) {
@@ -125,7 +135,7 @@ export function getGlobalClientSpeciesDataProvider(): ClientSpeciesDataProvider 
  * 初始化全局客户端种族数据提供者
  * @param gameDataStore 游戏数据存储实例
  */
-export function initializeGlobalClientSpeciesDataProvider(gameDataStore: any): void {
+export function initializeGlobalClientSpeciesDataProvider(gameDataStore: ClientGameDataStore): void {
   const provider = getGlobalClientSpeciesDataProvider()
   provider.setGameDataStore(gameDataStore)
 }

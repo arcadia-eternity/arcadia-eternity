@@ -37,10 +37,7 @@ export const PackManifestSchema = Type.Object({
   engine: PackEngineSchema,
   engineRange: Type.Optional(Type.String({ minLength: 1 })),
   assetsRef: Type.Optional(
-    Type.Union([
-      Type.String({ minLength: 1 }),
-      Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
-    ]),
+    Type.Union([Type.String({ minLength: 1 }), Type.Array(Type.String({ minLength: 1 }), { minItems: 1 })]),
   ),
   layoutVersion: Type.Optional(Type.Literal(1)),
   dependencies: Type.Optional(Type.Array(PackDependencySchema)),

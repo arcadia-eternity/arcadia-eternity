@@ -125,13 +125,13 @@ FLY_REGION = "hkg"
 
 ### 环境变量
 
-| 变量名 | 描述 | 默认值 |
-|--------|------|--------|
-| `GRPC_PORT` | gRPC 服务端口 | `50051` |
-| `GRPC_BIND_ADDRESS` | gRPC 绑定地址 | `0.0.0.0` |
-| `FLY_APP_NAME` | Fly.io 应用名称 | - |
-| `FLY_REGION` | Fly.io 区域 | - |
-| `FLY_PRIVATE_IP` | Fly.io 私有 IP（自动设置） | - |
+| 变量名              | 描述                       | 默认值    |
+| ------------------- | -------------------------- | --------- |
+| `GRPC_PORT`         | gRPC 服务端口              | `50051`   |
+| `GRPC_BIND_ADDRESS` | gRPC 绑定地址              | `0.0.0.0` |
+| `FLY_APP_NAME`      | Fly.io 应用名称            | -         |
+| `FLY_REGION`        | Fly.io 区域                | -         |
+| `FLY_PRIVATE_IP`    | Fly.io 私有 IP（自动设置） | -         |
 
 ## 服务发现机制
 

@@ -61,16 +61,11 @@ configSystem.addTaggedConfigModifierSingle(
   100, // priority
   ConfigDurationType.binding,
   markInstance, // source
-  petScope // scope
+  petScope, // scope
 )
 
 // 增加所有带"damage"标签的效果的伤害10点
-configSystem.addTaggedConfigModifierSingle(
-  'damage',
-  ConfigModifierType.delta,
-  10,
-  100
-)
+configSystem.addTaggedConfigModifierSingle('damage', ConfigModifierType.delta, 10, 100)
 ```
 
 ## DSL使用示例
@@ -187,7 +182,7 @@ configSystem.addTaggedConfigModifierSingle(
     target: { base: self }
     tag: { type: 'raw:string', value: 'ice' }
     modifierType: { type: 'raw:string', value: 'delta' }
-    value: 
+    value:
       type: dynamic
       selector:
         base: self
@@ -197,7 +192,7 @@ configSystem.addTaggedConfigModifierSingle(
               type: base
               arg: level
           - type: multiply
-            arg: 0.02  # 每级增加2%
+            arg: 0.02 # 每级增加2%
     priority: { type: 'raw:number', value: 100 }
 
 # 3. 创建概率增强印记 - 增强所有概率类效果

@@ -21,7 +21,7 @@ function resolveRuntimeAssetUrl(value: string): string {
 }
 
 export function resolveMarkIconUrl(
-  mark: MarkSchemaType | undefined,
+  mark: Partial<MarkSchemaType> | undefined,
   getMarkImage: (id: string) => string | null,
 ): string {
   if (!mark) return MARK_ICON_FALLBACK
@@ -31,8 +31,11 @@ export function resolveMarkIconUrl(
     if (mapped) return mapped
     return resolveRuntimeAssetUrl(mark.iconRef)
   }
-  const byId = getMarkImage(mark.id)
-  if (byId) return byId
+  const markId = typeof mark.id === 'string' ? mark.id.trim() : ''
+  if (markId) {
+    const byId = getMarkImage(markId)
+    if (byId) return byId
+  }
   if (mark.tags?.includes('ability')) {
     return 'https://seer2-resource.yuuinih.com/png/markImage/ability.png'
   }

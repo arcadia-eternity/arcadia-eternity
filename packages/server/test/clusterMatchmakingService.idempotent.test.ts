@@ -67,8 +67,6 @@ describe('ClusterMatchmakingService idempotent join', () => {
       },
     })
     expect(stateManager.addToMatchmakingQueue).not.toHaveBeenCalled()
-
     ;(service as any).stopPeriodicMatching?.()
   })
 })
-

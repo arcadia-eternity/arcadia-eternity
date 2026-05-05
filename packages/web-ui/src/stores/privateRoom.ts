@@ -7,6 +7,7 @@ import { usePetStorageStore } from './petStorage'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig, type playerId } from '@arcadia-eternity/const'
 import type {
   CreatePrivateRoomRequest,
+  PrivateRoomBattleStartInfo,
   PrivateRoomEvent,
   PrivateRoomInfo,
   PrivateRoomPeerSignalEvent,
@@ -17,7 +18,7 @@ import { BattleRuleManager } from '@arcadia-eternity/rules'
 
 import { ElMessageBox, ElNotification } from 'element-plus'
 import { useBattleStore } from './battle'
-import { RemoteBattleSystem } from '@arcadia-eternity/client'
+import { RemoteBattleSystem, type BattleClient } from '@arcadia-eternity/client'
 import { useGameDataStore } from './gameData'
 import {
   closePrivateRoomPeerSession,
@@ -40,21 +41,11 @@ type P2PTransportMode = 'auto' | 'webrtc' | 'relay'
 
 const buildRoomPeerTransportId = (roomCode: string, playerId: string): string => {
   const raw = `ae-${roomCode}-${playerId}`
-  const sanitized = raw.replace(/[^A-Za-z0-9_-]/g, '_').replace(/^[^A-Za-z0-9]+/, '').replace(/[^A-Za-z0-9]+$/, '')
+  const sanitized = raw
+    .replace(/[^A-Za-z0-9_-]/g, '_')
+    .replace(/^[^A-Za-z0-9]+/, '')
+    .replace(/[^A-Za-z0-9]+$/, '')
   return sanitized.length > 0 ? sanitized : `ae-${roomCode}`
-}
-
-const resolvePeerBrokerConfig = () => {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_WS_URL || window.location.origin
-  const url = new URL(apiBase, window.location.origin)
-  const configuredPath = (import.meta.env.VITE_PEERJS_PATH || '/peerjs').trim()
-  const peerPath = configuredPath.startsWith('/') ? configuredPath : `/${configuredPath}`
-  return {
-    host: url.hostname,
-    port: url.port ? Number(url.port) : undefined,
-    path: peerPath,
-    secure: url.protocol === 'https:',
-  }
 }
 
 const resolveP2PTimerConfig = (ruleSetId: string): Partial<TimerConfig> => {
@@ -375,11 +366,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         // 只有在没有有效连接时才重新建立连接
         await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
 
-        if (!battleClientStore._instance) {
+        const client = battleClientStore._instance as unknown as BattleClient
+        if (!client) {
           throw new Error('BattleClient 实例尚未初始化')
         }
 
-        await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
+        await battleStore.initBattle(new RemoteBattleSystem(client), playerStore.player.id)
       } else {
         // 如果已有连接，只需要确保后端知道当前session在观战
         await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
@@ -441,7 +433,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const switchToPlayer = async (team: any[]): Promise<void> => {
+  const switchToPlayer = async (team: PetSchemaType[]): Promise<void> => {
     if (!currentRoom.value) return
 
     isLoading.value = true
@@ -608,7 +600,6 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         ? new ServerRelayPeerTransport()
         : new BrowserWebRTCPeerTransport({
             localPeerId: buildRoomPeerTransportId(currentRoom.value.config.roomCode, playerStore.player.id),
-            broker: resolvePeerBrokerConfig(),
           })
     transport.onStateChange(state => {
       if (state === 'connected') {
@@ -722,7 +713,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         ) {
           const [battleState, availableSelections] = await Promise.all([
             battleInterface.getState(),
-            battleInterface.getAvailableSelection(localPlayerId),
+            battleInterface.getAvailableSelection(),
           ])
 
           if (availableSelections.length > 0) {
@@ -746,9 +737,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         if (latestRoom) {
           currentRoom.value = latestRoom
         }
+        const room = currentRoom.value
+        if (!room) {
+          throw new Error('房间信息丢失，无法初始化 P2P 对战')
+        }
 
         await teardownPeerTransport()
-        peerSession.value = preparePrivateRoomPeerSession(currentRoom.value, playerStore.player.id, battleStartInfo)
+        peerSession.value = preparePrivateRoomPeerSession(room, playerStore.player.id, battleStartInfo)
         await setupPeerTransport()
 
         if (!isSpectator.value) {
@@ -771,14 +766,16 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         throw new Error(`battleRoomId missing for private room battle start (${battleStartInfo.battleMode})`)
       }
 
-      if (!battleClientStore._instance) {
+      const client = battleClientStore._instance as unknown as BattleClient
+      if (!client) {
         throw new Error('BattleClient instance not available')
       }
 
-      const clientInstance = battleClientStore._instance as any
-      if (clientInstance && clientInstance.state) {
-        clientInstance.state = {
-          ...clientInstance.state,
+      // Mutate internal client state for routing (state is private on BattleClient)
+      const mutableClient = client as unknown as { state?: Record<string, unknown> }
+      if (mutableClient.state) {
+        mutableClient.state = {
+          ...mutableClient.state,
           matchmaking: 'matched',
           battle: 'active',
           roomId: battleStartInfo.battleRoomId,
@@ -786,7 +783,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       }
 
       const battleStore = useBattleStore()
-      await battleStore.initBattle(new RemoteBattleSystem(battleClientStore._instance as any), playerStore.player.id)
+      await battleStore.initBattle(new RemoteBattleSystem(client), playerStore.player.id)
 
       router.push({
         path: '/battle',
@@ -888,6 +885,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       try {
         const latestRoom = await battleClientStore.getPrivateRoomInfo(roomCode)
+        if (!latestRoom) {
+          stopRoomPolling()
+          cleanup()
+          return
+        }
         const previousStatus = currentRoom.value?.status
         currentRoom.value = latestRoom
         await ensureP2PBattleHostAvailable()

@@ -8,8 +8,8 @@
   "scripts": {
     "build": "run-p build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rollup -c",
-    "watch:code": "rollup -c --watch",
+    "build:code": "rolldown -c",
+    "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck"
@@ -18,6 +18,6 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "jsondiffpatch": "^0.7.3"
+    "jsondiffpatch": "catalog:"
   }
 }

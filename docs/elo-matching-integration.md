@@ -7,15 +7,18 @@
 ## 核心特性
 
 ### 🎯 规则集级别的匹配策略
+
 - **休闲模式** (`casual_standard_ruleset`): FIFO匹配 - 简单快速
 - **竞技模式** (`competitive_ruleset`): ELO匹配 - 技能平衡
 - **自定义规则集**: 可配置任意匹配策略
 
 ### 📊 智能匹配算法
+
 - **FIFO策略**: 按加入时间顺序匹配，适合休闲游戏
 - **ELO策略**: 基于技能评级匹配，确保公平竞技
 
 ### ⚙️ 灵活配置系统
+
 - 可为每个规则集单独配置匹配策略
 - ELO匹配支持动态参数调整
 - 向后兼容现有匹配系统
@@ -23,6 +26,7 @@
 ## 系统架构
 
 ### 匹配策略接口
+
 ```typescript
 interface MatchingStrategy {
   findMatch(queue: MatchmakingEntry[], config: MatchingConfig): Promise<MatchResult | null>
@@ -32,14 +36,15 @@ interface MatchingStrategy {
 ```
 
 ### 匹配配置
+
 ```typescript
 interface MatchingConfig {
   strategy: 'fifo' | 'elo'
   eloConfig?: {
-    initialRange: number        // 初始ELO匹配范围
-    rangeExpansionPerSecond: number  // 每秒扩大的范围
-    maxEloDifference: number    // 最大ELO差距
-    maxWaitTime: number         // 最大等待时间(秒)
+    initialRange: number // 初始ELO匹配范围
+    rangeExpansionPerSecond: number // 每秒扩大的范围
+    maxEloDifference: number // 最大ELO差距
+    maxWaitTime: number // 最大等待时间(秒)
   }
 }
 ```
@@ -47,6 +52,7 @@ interface MatchingConfig {
 ## 当前配置
 
 ### 休闲规则集 (casual_standard_ruleset)
+
 ```typescript
 {
   strategy: 'fifo'
@@ -55,6 +61,7 @@ interface MatchingConfig {
 ```
 
 ### 竞技规则集 (competitive_ruleset)
+
 ```typescript
 {
   strategy: 'elo',
@@ -70,18 +77,22 @@ interface MatchingConfig {
 ## ELO匹配算法
 
 ### 匹配范围计算
+
 ```
 当前可接受范围 = 初始范围 + (等待时间秒数 × 扩展速度)
 最终范围 = min(当前可接受范围, 最大ELO差距)
 ```
 
 ### 匹配质量评估
+
 - **ELO相似性**: ELO差距越小，匹配质量越高
 - **等待时间**: 等待时间相近的玩家优先匹配
 - **综合评分**: ELO权重80% + 等待时间权重20%
 
 ### 示例场景
+
 玩家A (ELO: 1500) 等待60秒：
+
 - 可接受范围: 100 + (60 × 15) = 1000
 - 实际范围: min(1000, 400) = 400
 - 匹配对象: ELO 1100-1900 的玩家
@@ -91,6 +102,7 @@ interface MatchingConfig {
 ### 为新规则集启用ELO匹配
 
 1. **修改规则集定义**:
+
 ```typescript
 export function createCustomRuleSet(): RuleSetImpl {
   const ruleSet = new RuleSetImpl('custom_ruleset', '自定义规则集', {
@@ -110,6 +122,7 @@ export function createCustomRuleSet(): RuleSetImpl {
 ```
 
 2. **注册规则集**:
+
 ```typescript
 registry.registerRuleSet(createCustomRuleSet())
 ```
@@ -134,6 +147,7 @@ configManager.setMatchingConfig('custom_ruleset', {
 ## API接口
 
 ### 查询匹配配置
+
 ```bash
 # 获取规则集匹配配置
 curl "http://localhost:8102/api/v1/elo/config"
@@ -146,7 +160,9 @@ curl "http://localhost:8102/api/v1/elo/predict/player1/player2/competitive_rules
 ```
 
 ### 匹配质量监控
+
 系统会记录详细的匹配日志：
+
 ```json
 {
   "ruleSetId": "competitive_ruleset",
@@ -165,6 +181,7 @@ curl "http://localhost:8102/api/v1/elo/predict/player1/player2/competitive_rules
 ## 测试验证
 
 ### 运行测试脚本
+
 ```bash
 # 测试ELO计算逻辑
 cd packages/server && npx tsx src/test-elo.ts
@@ -174,6 +191,7 @@ cd packages/server && npx tsx src/test-elo-matching.ts
 ```
 
 ### 测试结果示例
+
 ```
 ✓ 休闲规则集: FIFO匹配 (禁用ELO)
 ✓ 竞技规则集: ELO匹配 (启用ELO)
@@ -184,12 +202,14 @@ cd packages/server && npx tsx src/test-elo-matching.ts
 ## 部署步骤
 
 ### 1. 数据库迁移
+
 ```sql
 -- 在Supabase SQL编辑器中执行
 \i packages/database/sql/06_add_elo_system.sql
 ```
 
 ### 2. 服务器重启
+
 ```bash
 # 重新构建并启动服务器
 npm run build
@@ -197,6 +217,7 @@ node dist/cli.js server --port 8102
 ```
 
 ### 3. 验证功能
+
 ```bash
 # 检查ELO API
 curl "http://localhost:8102/api/v1/elo/config"
@@ -208,12 +229,14 @@ curl "http://localhost:8102/api/v1/elo/config"
 ## 监控和调优
 
 ### 关键指标
+
 - **匹配成功率**: 不同策略的匹配成功率对比
 - **匹配质量**: ELO差距分布和匹配满意度
 - **等待时间**: 平均匹配等待时间
 - **队列大小**: 不同规则集的队列长度
 
 ### 性能优化
+
 - **ELO缓存**: 玩家ELO评级缓存机制
 - **匹配算法**: 根据队列大小动态调整匹配参数
 - **负载均衡**: 跨实例的匹配负载分布
@@ -238,6 +261,7 @@ curl "http://localhost:8102/api/v1/elo/config"
    - 增加initialRange
 
 ### 调试工具
+
 ```bash
 # 查看匹配配置
 curl "http://localhost:8102/api/v1/elo/config"
@@ -252,17 +276,20 @@ npx tsx packages/server/src/test-elo-matching.ts
 ## 未来扩展
 
 ### 计划功能
+
 1. **动态匹配参数**: 根据队列状态自动调整匹配参数
 2. **匹配预测**: 基于历史数据预测匹配成功率
 3. **多维度匹配**: 结合ELO、延迟、地区等多个因素
 4. **匹配分析**: 详细的匹配质量分析和报告
 
 ### 新策略支持
+
 系统设计支持轻松添加新的匹配策略：
+
 ```typescript
 class CustomMatchingStrategy extends AbstractMatchingStrategy {
   readonly name = 'Custom'
-  
+
   async findMatch(queue: MatchmakingEntry[], config: MatchingConfig) {
     // 自定义匹配逻辑
   }

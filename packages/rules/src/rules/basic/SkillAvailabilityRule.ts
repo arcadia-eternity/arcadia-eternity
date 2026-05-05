@@ -1,10 +1,12 @@
-import type { PetSchemaType, LearnableSkill } from '@arcadia-eternity/schema'
+import type { PetSchemaType, LearnableSkill, SpeciesSchemaType } from '@arcadia-eternity/schema'
 import type { RuleContext, Team } from '../../interfaces/Rule'
 import { RulePriority } from '../../interfaces/Rule'
 import { AbstractRule } from '../../core/AbstractRule'
 import { ValidationResultBuilder, ValidationErrorType } from '../../interfaces/ValidationResult'
 import type { ValidationResult } from '../../interfaces/ValidationResult'
 import type { SpeciesDataProvider } from '../../interfaces/SpeciesDataProvider'
+import { getGlobalClientSpeciesDataProvider } from '../../providers/ClientSpeciesDataProvider'
+import { getGlobalServerSpeciesDataProvider } from '../../providers/ServerSpeciesDataProvider'
 
 /**
  * 技能可用性验证规则
@@ -154,7 +156,7 @@ export class SkillAvailabilityRule extends AbstractRule {
 
     // 如果没有提供者，尝试从上下文获取
     if (!speciesData && context?.data?.speciesData) {
-      speciesData = context.data.speciesData[pet.species]
+      speciesData = (context.data.speciesData as Record<string, SpeciesSchemaType>)[pet.species]
     }
 
     if (!speciesData) {
@@ -170,9 +172,13 @@ export class SkillAvailabilityRule extends AbstractRule {
     const extraSkills: LearnableSkill[] = []
     if (context?.data?.ruleSystem) {
       try {
-        const ruleSystemExtraSkills = context.data.ruleSystem.getSpeciesExtraLearnableSkills(pet.species, context)
+        const ruleSystemExtraSkills = (
+          context.data.ruleSystem as {
+            getSpeciesExtraLearnableSkills(speciesId: string, context?: unknown): LearnableSkill[]
+          }
+        ).getSpeciesExtraLearnableSkills(pet.species, context)
         extraSkills.push(...ruleSystemExtraSkills)
-      } catch (error) {
+      } catch (_error) {
         // 忽略获取额外技能时的错误
       }
     }
@@ -241,14 +247,12 @@ export function createStandardSkillAvailabilityRule(speciesDataProvider?: Specie
   if (!provider) {
     try {
       // 动态导入以避免循环依赖
-      const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
-    } catch (error) {
+    } catch (_error) {
       // 如果客户端提供者不可用，尝试服务端提供者
       try {
-        const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
-      } catch (serverError) {
+      } catch (_serverError) {
         console.warn('No species data provider available for skill availability rule')
       }
     }
@@ -272,14 +276,12 @@ export function createCompetitiveSkillAvailabilityRule(
   if (!provider) {
     try {
       // 动态导入以避免循环依赖
-      const { getGlobalClientSpeciesDataProvider } = require('../../providers/ClientSpeciesDataProvider')
       provider = getGlobalClientSpeciesDataProvider()
-    } catch (error) {
+    } catch (_error) {
       // 如果客户端提供者不可用，尝试服务端提供者
       try {
-        const { getGlobalServerSpeciesDataProvider } = require('../../providers/ServerSpeciesDataProvider')
         provider = getGlobalServerSpeciesDataProvider()
-      } catch (serverError) {
+      } catch (_serverError) {
         console.warn('No species data provider available for competitive skill availability rule')
       }
     }

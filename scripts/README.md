@@ -30,14 +30,14 @@ export class MyEffect extends Effect<EffectTrigger.OnDamage> {
     super(
       'my_effect',
       EffectTrigger.OnDamage,
-      (context) => {
+      context => {
         // 效果逻辑
         console.log('我的效果被触发:', context)
       },
       0, // priority
       undefined, // condition
       undefined, // consumesStacks
-      ['custom'] // tags
+      ['custom'], // tags
     )
   }
 }
@@ -54,13 +54,13 @@ import { declareEffect } from '@arcadia-eternity/data-repository'
 const myEffect = new Effect(
   'my_functional_effect',
   EffectTrigger.OnDamage,
-  (context) => {
+  context => {
     console.log('函数式效果被触发:', context)
   },
   0,
   undefined,
   undefined,
-  ['functional', 'custom']
+  ['functional', 'custom'],
 )
 
 declareEffect(myEffect)
@@ -95,7 +95,7 @@ import { ScriptLoader } from '@arcadia-eternity/data-repository'
 
 const loader = new ScriptLoader({
   baseUrl: '/scripts',
-  scriptPaths: ['effects/my-effect.js']
+  scriptPaths: ['effects/my-effect.js'],
 })
 await loader.loadScriptsFromHttp('/scripts', ['effects/my-effect.js'])
 ```
@@ -110,6 +110,7 @@ await loader.loadScriptsFromHttp('/scripts', ['effects/my-effect.js'])
 ## 示例
 
 查看 `scripts/` 目录下的示例文件：
+
 - `effects/example-effect.ts` - 装饰器模式示例
 - `effects/example-effect-functional.js` - 函数式API示例
 - `skills/example-skill.ts` - 技能声明示例

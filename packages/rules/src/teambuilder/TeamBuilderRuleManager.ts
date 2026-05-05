@@ -149,7 +149,7 @@ export class TeamBuilderRuleManager {
     for (const ruleSetId of this.currentRuleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch (error) {
+      } catch (_error) {
         // 忽略无法激活的规则集
         continue
       }
@@ -169,7 +169,7 @@ export class TeamBuilderRuleManager {
     for (const ruleSetId of this.currentRuleSetIds) {
       try {
         this.ruleSystem.activateRuleSet(ruleSetId)
-      } catch (error) {
+      } catch (_error) {
         // 忽略无法激活的规则集
         continue
       }
@@ -183,7 +183,9 @@ export class TeamBuilderRuleManager {
     }
 
     try {
-      return (genderRule as any).getAllowedGendersForSpecies(speciesId)
+      return (
+        genderRule as unknown as { getAllowedGendersForSpecies(id: string): string[] }
+      ).getAllowedGendersForSpecies(speciesId)
     } catch (error) {
       console.warn('获取性别限制失败:', error)
       return ['Male', 'Female', 'NoGender']

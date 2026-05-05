@@ -2,13 +2,23 @@ import type { SpeciesSchemaType } from '@arcadia-eternity/schema'
 import type { SpeciesDataProvider } from '../interfaces/SpeciesDataProvider'
 
 /**
+ * 服务端数据仓库接口
+ * 提供从服务端数据仓库获取种族信息的方法
+ */
+export interface ServerDataRepository {
+  getSpeciesById?: (speciesId: string) => SpeciesSchemaType | undefined
+  getAllSpecies?: () => SpeciesSchemaType[]
+  species?: Record<string, SpeciesSchemaType>
+}
+
+/**
  * 服务端种族数据提供者
  * 从服务端的数据仓库中获取种族信息
  */
 export class ServerSpeciesDataProvider implements SpeciesDataProvider {
-  private dataRepository: any
+  private dataRepository: ServerDataRepository | undefined
 
-  constructor(dataRepository?: any) {
+  constructor(dataRepository?: ServerDataRepository) {
     this.dataRepository = dataRepository
   }
 
@@ -16,7 +26,7 @@ export class ServerSpeciesDataProvider implements SpeciesDataProvider {
    * 设置数据仓库
    * @param dataRepository 数据仓库实例
    */
-  setDataRepository(dataRepository: any): void {
+  setDataRepository(dataRepository: ServerDataRepository): void {
     this.dataRepository = dataRepository
   }
 
@@ -130,7 +140,7 @@ export function getGlobalServerSpeciesDataProvider(): ServerSpeciesDataProvider 
  * 初始化全局服务端种族数据提供者
  * @param dataRepository 数据仓库实例
  */
-export function initializeGlobalServerSpeciesDataProvider(dataRepository: any): void {
+export function initializeGlobalServerSpeciesDataProvider(dataRepository: ServerDataRepository): void {
   const provider = getGlobalServerSpeciesDataProvider()
   provider.setDataRepository(dataRepository)
   console.log('Global server species data provider initialized')

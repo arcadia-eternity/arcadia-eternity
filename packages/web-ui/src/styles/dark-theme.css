@@ -1,0 +1,267 @@
+/*
+ * Arcadia Eternity - Dark Theme Design Tokens
+ * Inspired by Unity/Unreal game engine editors
+ */
+
+:root {
+  /* Base surfaces */
+  --ae-bg-base: #1a1d23;
+  --ae-bg-surface: #1f2229;
+  --ae-bg-elevated: #252830;
+  --ae-bg-overlay: #2c303a;
+
+  /* Borders */
+  --ae-border-subtle: #2a2e37;
+  --ae-border-default: #363b47;
+  --ae-border-strong: #454b5a;
+
+  /* Text */
+  --ae-text-primary: #e8eaed;
+  --ae-text-secondary: #9aa0ab;
+  --ae-text-muted: #6b7280;
+  --ae-text-disabled: #4b5563;
+
+  /* Accent colors */
+  --ae-accent-primary: #6c8cff;
+  --ae-accent-primary-hover: #8ba3ff;
+  --ae-accent-primary-subtle: rgba(108, 140, 255, 0.15);
+
+  /* Status colors */
+  --ae-success: #4ade80;
+  --ae-success-subtle: rgba(74, 222, 128, 0.15);
+  --ae-warning: #fbbf24;
+  --ae-warning-subtle: rgba(251, 191, 36, 0.15);
+  --ae-error: #f87171;
+  --ae-error-subtle: rgba(248, 113, 113, 0.15);
+  --ae-info: #60a5fa;
+  --ae-info-subtle: rgba(96, 165, 250, 0.15);
+
+  /* Interactive states */
+  --ae-hover: rgba(255, 255, 255, 0.06);
+  --ae-active: rgba(255, 255, 255, 0.1);
+  --ae-selected: rgba(108, 140, 255, 0.2);
+  --ae-focus-ring: rgba(108, 140, 255, 0.5);
+
+  /* Spacing scale */
+  --ae-space-1: 4px;
+  --ae-space-2: 8px;
+  --ae-space-3: 12px;
+  --ae-space-4: 16px;
+  --ae-space-5: 20px;
+  --ae-space-6: 24px;
+
+  /* Border radius */
+  --ae-radius-sm: 4px;
+  --ae-radius-md: 6px;
+  --ae-radius-lg: 8px;
+
+  /* Typography */
+  --ae-font-xs: 11px;
+  --ae-font-sm: 12px;
+  --ae-font-base: 13px;
+  --ae-font-md: 14px;
+
+  /* Shadows */
+  --ae-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --ae-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --ae-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* Element Plus dark mode overrides */
+.dark,
+.dark-theme {
+  /* Element Plus base variables */
+  --el-bg-color: var(--ae-bg-base);
+  --el-bg-color-overlay: var(--ae-bg-overlay);
+  --el-bg-color-page: var(--ae-bg-base);
+
+  --el-text-color-primary: var(--ae-text-primary);
+  --el-text-color-regular: var(--ae-text-secondary);
+  --el-text-color-secondary: var(--ae-text-muted);
+  --el-text-color-placeholder: var(--ae-text-disabled);
+
+  --el-border-color: var(--ae-border-default);
+  --el-border-color-light: var(--ae-border-subtle);
+  --el-border-color-lighter: var(--ae-border-subtle);
+  --el-border-color-dark: var(--ae-border-strong);
+  --el-border-color-darker: var(--ae-border-strong);
+
+  --el-fill-color: var(--ae-bg-elevated);
+  --el-fill-color-light: var(--ae-bg-overlay);
+  --el-fill-color-lighter: var(--ae-bg-surface);
+  --el-fill-color-blank: var(--ae-bg-surface);
+
+  --el-disabled-bg-color: var(--ae-bg-elevated);
+  --el-disabled-text-color: var(--ae-text-disabled);
+  --el-disabled-border-color: var(--ae-border-subtle);
+
+  /* Component specific */
+  --el-card-bg-color: var(--ae-bg-surface);
+  --el-dialog-bg-color: var(--ae-bg-surface);
+  --el-drawer-bg-color: var(--ae-bg-surface);
+
+  --el-input-bg-color: var(--ae-bg-elevated);
+  --el-input-border-color: var(--ae-border-default);
+  --el-input-hover-border-color: var(--ae-border-strong);
+  --el-input-focus-border-color: var(--ae-accent-primary);
+  --el-input-text-color: var(--ae-text-primary);
+  --el-input-placeholder-color: var(--ae-text-muted);
+
+  --el-input-number-bg-color: var(--ae-bg-elevated);
+  --el-input-number-border-color: var(--ae-border-default);
+  --el-input-number-hover-border-color: var(--ae-border-strong);
+  --el-input-number-text-color: var(--ae-text-primary);
+
+  --el-select-input-color: var(--ae-text-primary);
+  --el-select-border-color-hover: var(--ae-accent-primary);
+
+  --el-table-bg-color: var(--ae-bg-surface);
+  --el-table-tr-bg-color: var(--ae-bg-surface);
+  --el-table-header-bg-color: var(--ae-bg-elevated);
+  --el-table-row-hover-bg-color: var(--ae-hover);
+  --el-table-current-row-bg-color: var(--ae-selected);
+  --el-table-border-color: var(--ae-border-subtle);
+
+  --el-pagination-bg-color: var(--ae-bg-elevated);
+  --el-pagination-button-bg-color: var(--ae-bg-elevated);
+  --el-pagination-hover-color: var(--ae-accent-primary);
+
+  --el-button-bg-color: var(--ae-bg-elevated);
+  --el-button-border-color: var(--ae-border-default);
+  --el-button-hover-bg-color: var(--ae-bg-overlay);
+  --el-button-hover-border-color: var(--ae-border-strong);
+
+  --el-tag-bg-color: var(--ae-bg-elevated);
+  --el-tag-border-color: var(--ae-border-default);
+  --el-tag-text-color: var(--ae-text-secondary);
+
+  --el-switch-on-color: var(--ae-accent-primary);
+  --el-switch-off-color: var(--ae-border-strong);
+
+  /* Tree component */
+  --el-tree-node-hover-bg-color: var(--ae-hover);
+
+  /* Scrollbar */
+  --el-scrollbar-bg-color: var(--ae-bg-overlay);
+  --el-scrollbar-hover-bg-color: var(--ae-border-default);
+}
+
+/* Utility classes for dark theme */
+.ae-surface {
+  background-color: var(--ae-bg-surface);
+  border: 1px solid var(--ae-border-subtle);
+  border-radius: var(--ae-radius-md);
+}
+
+.ae-surface-elevated {
+  background-color: var(--ae-bg-elevated);
+  border: 1px solid var(--ae-border-default);
+  border-radius: var(--ae-radius-md);
+}
+
+.ae-text-primary {
+  color: var(--ae-text-primary);
+}
+
+.ae-text-secondary {
+  color: var(--ae-text-secondary);
+}
+
+.ae-text-muted {
+  color: var(--ae-text-muted);
+}
+
+/* Selection highlight */
+.ae-selected {
+  background-color: var(--ae-selected);
+}
+
+/* Hover state */
+.ae-hover:hover {
+  background-color: var(--ae-hover);
+}
+
+/* Focus ring */
+.ae-focus:focus-visible {
+  outline: 2px solid var(--ae-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Badge styles for data types */
+.ae-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--ae-font-xs);
+  font-weight: 500;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+
+.ae-badge--info {
+  background-color: var(--ae-info-subtle);
+  color: var(--ae-info);
+}
+
+.ae-badge--success {
+  background-color: var(--ae-success-subtle);
+  color: var(--ae-success);
+}
+
+.ae-badge--warning {
+  background-color: var(--ae-warning-subtle);
+  color: var(--ae-warning);
+}
+
+.ae-badge--error {
+  background-color: var(--ae-error-subtle);
+  color: var(--ae-error);
+}
+
+.ae-badge--muted {
+  background-color: var(--ae-bg-overlay);
+  color: var(--ae-text-secondary);
+}
+
+.el-input-number {
+  background-color: var(--ae-bg-elevated) !important;
+  border-color: var(--ae-border-default) !important;
+}
+
+.el-input-number .el-input__wrapper {
+  background-color: var(--ae-bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--ae-border-default) inset !important;
+}
+
+.el-input-number .el-input__inner {
+  color: var(--ae-text-primary) !important;
+  background-color: transparent !important;
+  width: 100% !important;
+  flex: 1 !important;
+}
+
+.el-input .el-input__inner {
+  width: 100% !important;
+  flex: 1 !important;
+}
+
+.el-input-number .el-input-number__decrease,
+.el-input-number .el-input-number__increase {
+  background-color: var(--ae-bg-overlay) !important;
+  color: var(--ae-text-secondary) !important;
+  border-color: var(--ae-border-default) !important;
+}
+
+.el-input-number .el-input-number__decrease:hover,
+.el-input-number .el-input-number__increase:hover {
+  color: var(--ae-text-primary) !important;
+}
+
+.el-input-number:hover {
+  border-color: var(--ae-border-strong) !important;
+}
+
+.el-input-number:focus-within,
+.el-input-number.is-active {
+  border-color: var(--ae-accent-primary) !important;
+}

@@ -64,7 +64,6 @@
         <span class="text-sm md:text-base">人机对战</span>
       </router-link>
       <router-link
-        v-if="isDesktop"
         to="/pack-editor"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
       >
@@ -118,14 +117,14 @@
                 <div class="text-xs text-gray-600">ELO评分</div>
                 <div class="flex items-center gap-1">
                   <span class="font-bold text-sm text-blue-600">
-                    {{ ruleSetElos[ruleSet.id].elo_rating }}
+                    {{ ruleSetElos[ruleSet.id]!.elo_rating }}
                   </span>
                 </div>
               </div>
               <div class="flex items-center justify-between mt-1">
                 <div class="text-xs text-gray-600">排名</div>
                 <div class="text-xs text-gray-700">
-                  {{ ruleSetElos[ruleSet.id].rank ? `#${ruleSetElos[ruleSet.id].rank}` : '未排名' }}
+                  {{ ruleSetElos[ruleSet.id]!.rank ? `#${ruleSetElos[ruleSet.id]!.rank}` : '未排名' }}
                 </div>
               </div>
               <div class="flex items-center justify-between mt-1">
@@ -133,12 +132,12 @@
                 <div class="text-xs text-gray-700">
                   {{
                     eloStore.formatWinRate(
-                      ruleSetElos[ruleSet.id].wins,
-                      ruleSetElos[ruleSet.id].losses,
-                      ruleSetElos[ruleSet.id].draws,
+                      ruleSetElos[ruleSet.id]!.wins,
+                      ruleSetElos[ruleSet.id]!.losses,
+                      ruleSetElos[ruleSet.id]!.draws,
                     )
                   }}
-                  ({{ ruleSetElos[ruleSet.id].games_played }}场)
+                  ({{ ruleSetElos[ruleSet.id]!.games_played }}场)
                 </div>
               </div>
             </div>
@@ -344,6 +343,7 @@ import { useEloStore } from '@/stores/elo'
 import { useValidationStore } from '@/stores/validation'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { type BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
+import type { PetSchemaType } from '@arcadia-eternity/schema'
 import {
   User,
   Document,
@@ -360,6 +360,7 @@ import { isDesktop } from '@/utils/env'
 import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 import TeamSelector from '@/components/TeamSelector.vue'
 import { BattleReportService } from '@/services/battleReportService'
+import type { PlayerEloInfo } from '@/stores/elo'
 
 const router = useRouter()
 const route = useRoute()
@@ -372,7 +373,13 @@ const validationStore = useValidationStore()
 const privateRoomStore = usePrivateRoomStore()
 
 // 匹配配置状态
-const selectedTeam = ref<any | null>(null)
+interface SelectedTeam {
+  name: string
+  pets: PetSchemaType[]
+  ruleSetId: string
+}
+
+const selectedTeam = ref<SelectedTeam | null>(null)
 const isSelectedTeamValid = ref(false)
 const selectedTeamValidationErrors = ref<string[]>([])
 
@@ -396,7 +403,7 @@ const selectedRuleSetId = computed({
 
 // ELO相关计算属性
 const ruleSetElos = computed(() => {
-  const eloMap: Record<string, any> = {}
+  const eloMap: Record<string, PlayerEloInfo | null> = {}
   availableRuleSets.value.forEach(ruleSet => {
     eloMap[ruleSet.id] = eloStore.getEloForRuleSet(ruleSet.id)
   })
@@ -552,9 +559,8 @@ const handleMatchmaking = async () => {
 const saveLastMatchingConfig = () => {
   if (!selectedTeam.value) return
 
-  const actualTeamIndex = petStorageStore.teams.findIndex(
-    team => team.name === selectedTeam.value.name && team.ruleSetId === selectedTeam.value.ruleSetId,
-  )
+  const team = selectedTeam.value
+  const actualTeamIndex = petStorageStore.teams.findIndex(t => t.name === team.name && t.ruleSetId === team.ruleSetId)
 
   if (actualTeamIndex >= 0) {
     petStorageStore.saveLastMatchingConfig(actualTeamIndex, selectedRuleSetId.value)

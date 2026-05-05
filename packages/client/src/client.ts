@@ -19,7 +19,7 @@ import {
   type PrivateRoomBattleStartInfo,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
-import { io, type ManagerOptions, type Socket, type SocketOptions } from 'socket.io-client'
+import { io, type ManagerOptions, type Socket } from 'socket.io-client'
 import { nanoid } from 'nanoid'
 
 // 私人房间相关类型定义
@@ -50,6 +50,7 @@ export type SendPrivateRoomPeerSignalData = {
 
 type BattleClientOptions = {
   serverUrl: string
+  socketPath?: string
   autoReconnect?: boolean
   reconnectAttempts?: number
   actionTimeout?: number
@@ -71,8 +72,8 @@ type ClientState = {
 
 export class BattleClient {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents>
-  private eventHandlers = new Map<string, Set<(...args: any[]) => void>>()
-  private timerEventHandlers = new Map<string, Set<(data: any) => void>>()
+  private eventHandlers = new Map<string, Set<(...args: unknown[]) => void>>()
+  private timerEventHandlers = new Map<string, Set<(data: unknown) => void>>()
   private state: ClientState = {
     status: 'disconnected',
     matchmaking: 'idle',
@@ -93,6 +94,7 @@ export class BattleClient {
 
   constructor(options: BattleClientOptions) {
     this.options = {
+      socketPath: '/socket.io',
       autoReconnect: true,
       reconnectAttempts: 5,
       actionTimeout: 30000,
@@ -113,12 +115,19 @@ export class BattleClient {
       reconnection: this.options.autoReconnect,
       reconnectionAttempts: this.options.reconnectAttempts,
       reconnectionDelay: 1000,
+      path: this.normalizeSocketPath(this.options.socketPath),
     }
 
     // 初始化时设置认证信息
     this.updateSocketAuth(socketConfig)
 
     return io(this.options.serverUrl, socketConfig)
+  }
+
+  private normalizeSocketPath(pathValue: string): string {
+    const trimmed = pathValue.trim()
+    if (!trimmed) return '/socket.io'
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
   }
 
   private getOrCreateSessionId(): string {
@@ -139,14 +148,14 @@ export class BattleClient {
     }
   }
 
-  private updateSocketAuth(config?: any) {
+  private updateSocketAuth(config?: Record<string, unknown>) {
     if (this.options.auth) {
       try {
         const playerId = this.options.auth.getPlayerId?.()
         const token = this.options.auth.getToken?.()
 
         if (playerId) {
-          const query: any = {
+          const query: Record<string, unknown> = {
             playerId,
             sessionId: this.sessionId,
           }
@@ -263,8 +272,8 @@ export class BattleClient {
     })
   }
 
-  private isAuthError(error: any): boolean {
-    const errorMessage = error?.message || error?.toString() || ''
+  private isAuthError(error: unknown): boolean {
+    const errorMessage = (error as Error)?.message || String(error)
     return (
       errorMessage.includes('INVALID_TOKEN') ||
       errorMessage.includes('TOKEN_REQUIRED_FOR_REGISTERED_USER') ||
@@ -676,7 +685,7 @@ export class BattleClient {
     })
   }
 
-  async getPrivateRoomInfo(roomCode: string): Promise<any> {
+  async getPrivateRoomInfo(roomCode: string): Promise<unknown> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -695,7 +704,7 @@ export class BattleClient {
     })
   }
 
-  async getCurrentPrivateRoom(): Promise<any> {
+  async getCurrentPrivateRoom(): Promise<unknown> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -816,7 +825,7 @@ export class BattleClient {
     })
   }
 
-  async switchToPlayer(team: any[]): Promise<void> {
+  async switchToPlayer(team: PetSchemaType[]): Promise<void> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -929,45 +938,32 @@ export class BattleClient {
   }
 
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
-    this.socket.once(event, listener as any)
+    this.socket.once(event, listener as never)
     return this
   }
 
-  on<T extends keyof ServerToClientEvents>(
-    event: T,
-    handler: (...args: Parameters<ServerToClientEvents[T]>) => void,
-  ): () => void {
-    // 使用类型安全的包装函数
-    const wrapper = (...args: Parameters<ServerToClientEvents[T]>) => handler(...args)
-
+  on<T extends keyof ServerToClientEvents>(event: T, handler: ServerToClientEvents[T]): () => void {
+    const wrapper: (...args: unknown[]) => void = (...args) => (handler as (...args: unknown[]) => void)(...args)
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
-      // 对于这些事件，不需要重复注册socket监听器，因为它们已经在setupEventListeners中注册了
       const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
       if (!preRegisteredEvents.includes(event)) {
-        this.socket.on(event, wrapper as any) // 使用安全类型断言
+        this.socket.on(event, handler as never)
       }
     }
-
-    this.eventHandlers.get(event)?.add(wrapper)
-    return () => this.off(event, wrapper)
+    this.eventHandlers.get(event)!.add(wrapper)
+    return () => this.off(event, handler)
   }
 
-  off<T extends keyof ServerToClientEvents>(
-    event: T,
-    handler: (...args: Parameters<ServerToClientEvents[T]>) => void,
-  ): void {
+  off<T extends keyof ServerToClientEvents>(event: T, _handler: ServerToClientEvents[T]): void {
     const handlers = this.eventHandlers.get(event)
     if (handlers) {
       handlers.forEach(h => {
-        if (h === handler) {
-          // 对于这些事件，不需要移除socket监听器，因为它们是在setupEventListeners中注册的，应该保持活跃
-          const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
-          if (!preRegisteredEvents.includes(event)) {
-            this.socket.off(event, h as any) // 使用安全类型断言
-          }
-          handlers.delete(h)
+        const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
+        if (!preRegisteredEvents.includes(event)) {
+          this.socket.off(event, h as never)
         }
+        handlers.delete(h)
       })
     }
   }
@@ -988,7 +984,7 @@ export class BattleClient {
       this.timerEventHandlers.set(eventType, new Set())
     }
 
-    this.timerEventHandlers.get(eventType)?.add(handler)
+    this.timerEventHandlers.get(eventType)?.add(handler as unknown as (data: unknown) => void)
 
     return () => this.offTimerEvent(eventType, handler)
   }
@@ -996,7 +992,7 @@ export class BattleClient {
   offTimerEvent<K extends keyof Events>(eventType: K, handler: (data: Events[K]) => void): void {
     const handlers = this.timerEventHandlers.get(eventType)
     if (handlers) {
-      handlers.delete(handler)
+      handlers.delete(handler as unknown as (data: unknown) => void)
       if (handlers.size === 0) {
         this.timerEventHandlers.delete(eventType)
       }
@@ -1092,8 +1088,9 @@ export class BattleClient {
 
     // 新架构：Timer快照事件处理
     this.socket.on('timerSnapshot', data => {
-      if (data.snapshots) {
-        this.updateTimerSnapshots(data.snapshots)
+      const snapshots = data.snapshots as TimerSnapshot[] | undefined
+      if (snapshots) {
+        this.updateTimerSnapshots(snapshots)
 
         // 触发timerSnapshot事件处理器
         const handlers = this.timerEventHandlers.get('timerSnapshot')
@@ -1105,8 +1102,8 @@ export class BattleClient {
 
     // 新架构：Timer事件批处理
     this.socket.on('timerEventBatch', events => {
-      // 逐个处理批量Timer事件
-      events.forEach(event => {
+      const batch = events as Array<{ type: string; data: unknown }>
+      batch.forEach(event => {
         const handlers = this.timerEventHandlers.get(event.type)
         if (handlers) {
           handlers.forEach(handler => handler(event.data))
@@ -1243,11 +1240,7 @@ export class BattleClient {
     const details = response.details ?? ''
     const detailUpper = details.toUpperCase()
 
-    const directTerminalCodes = new Set([
-      'NOT_IN_BATTLE',
-      'BATTLE_NOT_FOUND',
-      'BATTLE_ALREADY_ENDED',
-    ])
+    const directTerminalCodes = new Set(['NOT_IN_BATTLE', 'BATTLE_NOT_FOUND', 'BATTLE_ALREADY_ENDED'])
 
     if (directTerminalCodes.has(code)) {
       this.markBattleEnded(code)
@@ -1263,10 +1256,10 @@ export class BattleClient {
 
     if (wrappedTerminalCodes.has(code)) {
       const wrappedTerminal =
-        detailUpper.includes('NOT_IN_BATTLE')
-        || detailUpper.includes('BATTLE_NOT_FOUND')
-        || detailUpper.includes('BATTLE_ALREADY_ENDED')
-        || detailUpper.includes('BATTLE IS NOT ACTIVE')
+        detailUpper.includes('NOT_IN_BATTLE') ||
+        detailUpper.includes('BATTLE_NOT_FOUND') ||
+        detailUpper.includes('BATTLE_ALREADY_ENDED') ||
+        detailUpper.includes('BATTLE IS NOT ACTIVE')
       if (wrappedTerminal) {
         this.markBattleEnded(`${code}:${details}`)
       }

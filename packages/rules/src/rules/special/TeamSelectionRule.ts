@@ -1,6 +1,5 @@
 import type { TimerConfig, petId } from '@arcadia-eternity/const'
 import type { TeamSelectionConfig, BattleTeamSelection } from '@arcadia-eternity/const'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { Team, RuleContext, BattleConfigModifications } from '../../interfaces/Rule'
 import { ValidationResultBuilder, ValidationErrorType, type ValidationResult } from '../../interfaces/ValidationResult'
 import { AbstractRule } from '../../core/AbstractRule'

@@ -1,12 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import {
-  AttackTargetOpinion,
-  Category,
-  Element,
-  Gender,
-  IgnoreStageStrategy,
-  Nature,
-} from '@arcadia-eternity/const'
+import { AttackTargetOpinion, Category, Element, Gender, IgnoreStageStrategy, Nature } from '@arcadia-eternity/const'
 import { createEntity, setComponent } from '@arcadia-eternity/engine'
 import { createBattle } from '../game.js'
 import type { SpeciesData } from '../schemas/species.schema.js'
@@ -156,4 +149,3 @@ describe('v2 skill defeat bookkeeping', () => {
     expect(defeatedEvents).toEqual([{ petId: petB.id, killerId: petA.id }])
   })
 })
-

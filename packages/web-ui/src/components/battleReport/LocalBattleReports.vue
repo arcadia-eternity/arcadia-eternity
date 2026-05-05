@@ -16,18 +16,11 @@
             accept=".json"
             :auto-upload="false"
           >
-            <el-button type="primary" :icon="Upload">
-              导入战报
-            </el-button>
+            <el-button type="primary" :icon="Upload"> 导入战报 </el-button>
           </el-upload>
-          
+
           <!-- 清空所有战报按钮 -->
-          <el-button 
-            type="danger" 
-            :icon="Delete"
-            @click="handleClearAll"
-            :disabled="localBattleReports.length === 0"
-          >
+          <el-button type="danger" :icon="Delete" @click="handleClearAll" :disabled="localBattleReports.length === 0">
             清空所有
           </el-button>
         </div>
@@ -69,23 +62,14 @@
           </el-icon>
           <h3 class="text-lg font-medium text-gray-900 mb-2">暂无本地战报</h3>
           <p class="text-gray-500 mb-4">您可以从战报详情页面保存战报到本地，或导入战报文件</p>
-          <el-upload
-            :show-file-list="false"
-            :before-upload="handleImportReport"
-            accept=".json"
-            :auto-upload="false"
-          >
+          <el-upload :show-file-list="false" :before-upload="handleImportReport" accept=".json" :auto-upload="false">
             <el-button type="primary">导入战报文件</el-button>
           </el-upload>
         </div>
       </div>
 
       <div v-else class="reports-grid">
-        <div 
-          v-for="report in localBattleReports" 
-          :key="report.id"
-          class="report-card"
-        >
+        <div v-for="report in localBattleReports" :key="report.id" class="report-card">
           <div class="card-header">
             <h3 class="card-title">{{ report.name }}</h3>
             <div class="card-actions">
@@ -118,7 +102,7 @@
                 <span class="vs">VS</span>
                 <span class="player-name">{{ report.battleRecord.player_b_name }}</span>
               </div>
-              
+
               <div class="battle-meta">
                 <div class="meta-item">
                   <span class="label">战斗结果:</span>
@@ -127,7 +111,9 @@
                 <div class="meta-item">
                   <span class="label">战斗时长:</span>
                   <span class="value">
-                    {{ report.battleRecord.duration_seconds ? formatDuration(report.battleRecord.duration_seconds) : '-' }}
+                    {{
+                      report.battleRecord.duration_seconds ? formatDuration(report.battleRecord.duration_seconds) : '-'
+                    }}
                   </span>
                 </div>
                 <div class="meta-item">
@@ -143,11 +129,7 @@
           </div>
 
           <div class="card-footer">
-            <el-button 
-              type="primary" 
-              size="small"
-              @click="playReport(report)"
-            >
+            <el-button type="primary" size="small" @click="playReport(report)">
               <el-icon><VideoPlay /></el-icon>
               播放战报
             </el-button>
@@ -164,14 +146,7 @@ import { useRouter } from 'vue-router'
 import { useBattleReportStore } from '@/stores/battleReport'
 import { storeToRefs } from 'pinia'
 import { ElMessageBox } from 'element-plus'
-import { 
-  Upload, 
-  Delete, 
-  Document, 
-  MoreFilled, 
-  VideoPlay, 
-  Download 
-} from '@element-plus/icons-vue'
+import { Upload, Delete, Document, MoreFilled, VideoPlay, Download } from '@element-plus/icons-vue'
 import type { LocalBattleReport } from '@/utils/localBattleReport'
 
 const router = useRouter()
@@ -232,16 +207,12 @@ const handleReportAction = (command: string, report: LocalBattleReport) => {
 // 删除战报
 const handleDeleteReport = async (reportId: string, reportName: string) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除战报 "${reportName}" 吗？此操作不可撤销。`,
-      '删除战报',
-      {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
+    await ElMessageBox.confirm(`确定要删除战报 "${reportName}" 吗？此操作不可撤销。`, '删除战报', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
     battleReportStore.deleteLocalBattleReport(reportId)
   } catch {
     // 用户取消
@@ -257,16 +228,12 @@ const handleImportReport = async (file: File) => {
 // 清空所有战报
 const handleClearAll = async () => {
   try {
-    await ElMessageBox.confirm(
-      `确定要清空所有本地战报吗？此操作不可撤销。`,
-      '清空所有战报',
-      {
-        confirmButtonText: '清空',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
+    await ElMessageBox.confirm(`确定要清空所有本地战报吗？此操作不可撤销。`, '清空所有战报', {
+      confirmButtonText: '清空',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
     battleReportStore.clearAllLocalBattleReports()
   } catch {
     // 用户取消

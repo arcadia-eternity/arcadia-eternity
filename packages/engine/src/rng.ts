@@ -14,19 +14,19 @@ export interface RngState {
  * Hash a seed string/number into 4 initial state values.
  */
 function hashSeed(seed: string | number): Omit<RngState, 'seed'> {
-  let h = 0x9E3779B9
+  let h = 0x9e3779b9
   const s = String(seed)
   for (let i = 0; i < s.length; i++) {
-    h = Math.imul(h ^ s.charCodeAt(i), 0x85EBCA6B)
+    h = Math.imul(h ^ s.charCodeAt(i), 0x85ebca6b)
     h ^= h >>> 13
   }
   // Generate 4 state values from hash
   const a = h >>> 0
-  h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B)
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b)
   const b = h >>> 0
-  h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35)
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35)
   const c = h >>> 0
-  h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B)
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b)
   const d = h >>> 0
   return { a, b, c, d }
 }
@@ -62,11 +62,11 @@ export class GameRng {
     this.b |= 0
     this.c |= 0
     this.d |= 0
-    const t = (this.a + this.b | 0) + this.d | 0
+    const t = (((this.a + this.b) | 0) + this.d) | 0
     this.d = (this.d + 1) | 0
     this.a = this.b ^ (this.b >>> 9)
     this.b = (this.c + (this.c << 3)) | 0
-    this.c = ((this.c << 21) | (this.c >>> 11))
+    this.c = (this.c << 21) | (this.c >>> 11)
     this.c = (this.c + t) | 0
     return (t >>> 0) / 4294967296
   }

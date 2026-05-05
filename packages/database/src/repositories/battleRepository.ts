@@ -7,6 +7,8 @@ import {
   type BattleStatistics,
   type PaginationParams,
   type PaginatedResponse,
+  type BattleResult,
+  type EndReason,
   DatabaseError,
 } from '../types'
 
@@ -56,7 +58,7 @@ export class BattleRepository {
   async updateBattleRecord(id: string, input: UpdateBattleRecordInput): Promise<BattleRecord> {
     const supabase = getSupabaseServiceClient() // 使用服务客户端绕过 RLS
 
-    const updateData: any = { ...input }
+    const updateData: Record<string, unknown> = { ...input }
 
     // 如果设置了结束时间但没有设置持续时间，自动计算
     if (input.ended_at && !input.duration_seconds) {
@@ -200,16 +202,16 @@ export class BattleRepository {
   async completeBattleRecord(
     id: string,
     winnerId: string | null,
-    battleResult: string,
-    endReason: string,
-    battleMessages: any[],
-    finalState: any,
+    battleResult: BattleResult,
+    endReason: EndReason,
+    battleMessages: BattleRecord['battle_messages'],
+    finalState: BattleRecord['final_state'],
   ): Promise<BattleRecord> {
     return this.updateBattleRecord(id, {
       ended_at: new Date().toISOString(),
       winner_id: winnerId,
-      battle_result: battleResult as any,
-      end_reason: endReason as any,
+      battle_result: battleResult,
+      end_reason: endReason,
       battle_messages: battleMessages,
       final_state: finalState,
     })

@@ -1,6 +1,6 @@
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { Rule, Team, RuleContext } from '../interfaces/Rule'
-import type { RuleSet, RuleSetBuilder, MatchingConfig } from '../interfaces/RuleSet'
+import type { RuleSet, RuleSetBuilder, MatchingConfig, RuleSetInfo } from '../interfaces/RuleSet'
 import { ValidationResultBuilder, type ValidationResult } from '../interfaces/ValidationResult'
 
 /**
@@ -178,7 +178,7 @@ export abstract class AbstractRuleSet implements RuleSet {
    * 克隆规则集
    */
   clone(): RuleSet {
-    return new (this.constructor as any)(this.id + '_clone', this.name + ' (Clone)', {
+    return new (this.constructor as new (...args: unknown[]) => RuleSet)(this.id + '_clone', this.name + ' (Clone)', {
       description: this.description,
       version: this.version,
       author: this.author,
@@ -198,7 +198,7 @@ export abstract class AbstractRuleSet implements RuleSet {
   /**
    * 获取规则集的详细信息
    */
-  getInfo(): Record<string, any> {
+  getInfo(): RuleSetInfo {
     return {
       id: this.id,
       name: this.name,

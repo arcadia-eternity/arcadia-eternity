@@ -24,13 +24,7 @@ function toFiniteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
-export function applyCommonSelectorChain<
-  TValue,
-  TSelector,
-  TCondition,
-  TEvaluator,
-  TExtractor,
->(
+export function applyCommonSelectorChain<TValue, TSelector, TCondition, TEvaluator, TExtractor>(
   initial: unknown[],
   chain: CommonSelectorChainStep<TValue, TSelector, TCondition, TEvaluator, TExtractor>[],
   hooks: SelectorChainRuntimeHooks<TValue, TSelector, TCondition, TEvaluator, TExtractor>,
@@ -58,9 +52,7 @@ export function applyCommonSelectorChain<
         break
       }
       case 'selectProp': {
-        current = current
-          .map(item => (isRecord(item) ? item[step.arg] : undefined))
-          .filter(v => v !== undefined)
+        current = current.map(item => (isRecord(item) ? item[step.arg] : undefined)).filter(v => v !== undefined)
         break
       }
       case 'where': {
@@ -220,9 +212,7 @@ export function resolveRuntimeValue<TValue, TSelector, TChain, TCondition>(
         return base
       }
       case 'conditional': {
-        const branch = hooks.evaluateCondition(node.condition as TCondition)
-          ? node.trueValue
-          : node.falseValue
+        const branch = hooks.evaluateCondition(node.condition as TCondition) ? node.trueValue : node.falseValue
         return resolveRuntimeValue(branch as TValue, hooks)
       }
       default:
@@ -259,10 +249,7 @@ export function resolveRuntimeSelector<TBase extends string, TChain, TCondition,
 
   if ('condition' in selector && 'trueSelector' in selector) {
     const ok = hooks.evaluateCondition(selector.condition)
-    return resolveRuntimeSelector(
-      ok ? selector.trueSelector : selector.falseSelector,
-      hooks,
-    )
+    return resolveRuntimeSelector(ok ? selector.trueSelector : selector.falseSelector, hooks)
   }
 
   if ('type' in selector && selector.type === 'selectorValue') {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import type { AttributeModifierInfo } from '@arcadia-eternity/const'
 import Tooltip from './Tooltip.vue'
 import i18next from 'i18next'

@@ -46,15 +46,12 @@ export class MatchingConfigManager {
           strategy: config.strategy,
           eloConfig: config.eloConfig,
         },
-        'Using rule set matching configuration'
+        'Using rule set matching configuration',
       )
     } else {
       // 默认使用FIFO匹配
       config = { strategy: 'fifo' }
-      logger.info(
-        { ruleSetId },
-        'No matching configuration found for rule set, using default FIFO strategy'
-      )
+      logger.info({ ruleSetId }, 'No matching configuration found for rule set, using default FIFO strategy')
     }
 
     // 缓存配置
@@ -75,7 +72,7 @@ export class MatchingConfigManager {
         strategy: config.strategy,
         eloConfig: config.eloConfig,
       },
-      'Updated matching configuration for rule set'
+      'Updated matching configuration for rule set',
     )
   }
 
@@ -119,7 +116,7 @@ export class MatchingConfigManager {
    */
   getEloEnabledRuleSets(): string[] {
     const eloRuleSets: string[] = []
-    
+
     for (const [ruleSetId, config] of this.configCache) {
       if (config.strategy === 'elo') {
         eloRuleSets.push(ruleSetId)
@@ -134,7 +131,7 @@ export class MatchingConfigManager {
    */
   getFifoEnabledRuleSets(): string[] {
     const fifoRuleSets: string[] = []
-    
+
     for (const [ruleSetId, config] of this.configCache) {
       if (config.strategy === 'fifo') {
         fifoRuleSets.push(ruleSetId)

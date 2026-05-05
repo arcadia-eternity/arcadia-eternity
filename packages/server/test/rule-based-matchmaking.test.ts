@@ -64,14 +64,8 @@ describe('Rule-based Matchmaking', () => {
       const mockClient = mockRedisManager.getClient()
       const pipeline = mockClient.pipeline()
 
-      expect(pipeline.sadd).toHaveBeenCalledWith(
-        'matchmaking:queue:standard',
-        'player1:session1'
-      )
-      expect(pipeline.sadd).toHaveBeenCalledWith(
-        'matchmaking:queue:competitive',
-        'player2:session2'
-      )
+      expect(pipeline.sadd).toHaveBeenCalledWith('matchmaking:queue:standard', 'player1:session1')
+      expect(pipeline.sadd).toHaveBeenCalledWith('matchmaking:queue:competitive', 'player2:session2')
     })
 
     it('should get active rule set IDs correctly', async () => {
@@ -107,10 +101,7 @@ describe('Rule-based Matchmaking', () => {
       const pipeline = mockClient.pipeline()
 
       // Should default to 'standard' rule set
-      expect(pipeline.sadd).toHaveBeenCalledWith(
-        'matchmaking:queue:standard',
-        'player3:session3'
-      )
+      expect(pipeline.sadd).toHaveBeenCalledWith('matchmaking:queue:standard', 'player3:session3')
     })
   })
 
@@ -124,20 +115,26 @@ describe('Rule-based Matchmaking', () => {
       // Mock player data retrieval
       const pipeline = mockClient.pipeline()
       pipeline.exec.mockResolvedValue([
-        [null, { 
-          playerId: 'player1',
-          joinTime: '1000',
-          playerData: JSON.stringify({ name: 'Player 1' }),
-          sessionId: 'session1',
-          ruleSetId: 'standard'
-        }],
-        [null, {
-          playerId: 'player2', 
-          joinTime: '2000',
-          playerData: JSON.stringify({ name: 'Player 2' }),
-          sessionId: 'session2',
-          ruleSetId: 'standard'
-        }]
+        [
+          null,
+          {
+            playerId: 'player1',
+            joinTime: '1000',
+            playerData: JSON.stringify({ name: 'Player 1' }),
+            sessionId: 'session1',
+            ruleSetId: 'standard',
+          },
+        ],
+        [
+          null,
+          {
+            playerId: 'player2',
+            joinTime: '2000',
+            playerData: JSON.stringify({ name: 'Player 2' }),
+            sessionId: 'session2',
+            ruleSetId: 'standard',
+          },
+        ],
       ])
 
       const queue = await ruleBasedQueueManager.getRuleBasedQueue('standard')

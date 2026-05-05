@@ -26,14 +26,14 @@ export class BanRule extends AbstractRule {
       bannedSpecies?: speciesId[]
       bannedSkills?: baseSkillId[]
       bannedMarks?: baseMarkId[]
-    } = {}
+    } = {},
   ) {
     super(id, name, {
       description: options.description ?? '禁用特定的精灵、技能或印记',
       ...options,
       tags: ['basic', 'ban', 'restriction', ...(options.tags ?? [])],
     })
-    
+
     this.bannedSpecies = new Set(options.bannedSpecies ?? [])
     this.bannedSkills = new Set(options.bannedSkills ?? [])
     this.bannedMarks = new Set(options.bannedMarks ?? [])
@@ -56,7 +56,7 @@ export class BanRule extends AbstractRule {
   /**
    * 验证精灵是否被禁用
    */
-  validatePet(pet: PetSchemaType, context?: RuleContext): ValidationResult {
+  validatePet(pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
     // 检查精灵种族是否被禁用
@@ -67,7 +67,7 @@ export class BanRule extends AbstractRule {
         `精灵 "${pet.name}" 的种族 "${pet.species}" 已被禁用`,
         pet.id,
         'pet',
-        { species: pet.species, petName: pet.name }
+        { species: pet.species, petName: pet.name },
       )
     }
 
@@ -80,7 +80,7 @@ export class BanRule extends AbstractRule {
           `精灵 "${pet.name}" 的技能 "${skillId}" 已被禁用`,
           pet.id,
           'skill',
-          { skillId, petName: pet.name }
+          { skillId, petName: pet.name },
         )
       }
     }
@@ -93,7 +93,7 @@ export class BanRule extends AbstractRule {
         `精灵 "${pet.name}" 的特性 "${pet.ability}" 已被禁用`,
         pet.id,
         'mark',
-        { markId: pet.ability, petName: pet.name }
+        { markId: pet.ability, petName: pet.name },
       )
     }
 
@@ -105,7 +105,7 @@ export class BanRule extends AbstractRule {
         `精灵 "${pet.name}" 的徽章 "${pet.emblem}" 已被禁用`,
         pet.id,
         'mark',
-        { markId: pet.emblem, petName: pet.name }
+        { markId: pet.emblem, petName: pet.name },
       )
     }
 
@@ -115,7 +115,7 @@ export class BanRule extends AbstractRule {
   /**
    * 验证技能是否被禁用
    */
-  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, context?: RuleContext): ValidationResult {
+  validateSkill(pet: PetSchemaType, skill: SkillSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
     if (this.bannedSkills.has(skill.id as baseSkillId)) {
@@ -125,7 +125,7 @@ export class BanRule extends AbstractRule {
         `技能 "${skill.id}" 已被禁用`,
         skill.id,
         'skill',
-        { skillId: skill.id }
+        { skillId: skill.id },
       )
     }
 
@@ -135,7 +135,7 @@ export class BanRule extends AbstractRule {
   /**
    * 验证印记是否被禁用
    */
-  validateMark(pet: PetSchemaType, mark: MarkSchemaType, context?: RuleContext): ValidationResult {
+  validateMark(pet: PetSchemaType, mark: MarkSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
     if (this.bannedMarks.has(mark.id as baseMarkId)) {
@@ -145,7 +145,7 @@ export class BanRule extends AbstractRule {
         `印记 "${mark.id}" 已被禁用`,
         mark.id,
         'mark',
-        { markId: mark.id }
+        { markId: mark.id },
       )
     }
 

@@ -81,16 +81,22 @@ async function main() {
 
   // Pets
   const petA = petSystem.create(world, speciesA, {
-    name: 'FirePet', speciesId: speciesA.id, level: 50,
+    name: 'FirePet',
+    speciesId: speciesA.id,
+    level: 50,
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    nature: Nature.Hardy, baseSkillIds: [],
+    nature: Nature.Hardy,
+    baseSkillIds: [],
   })
   const petB = petSystem.create(world, speciesB, {
-    name: 'WaterPet', speciesId: speciesB.id, level: 50,
+    name: 'WaterPet',
+    speciesId: speciesB.id,
+    level: 50,
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    nature: Nature.Hardy, baseSkillIds: [],
+    nature: Nature.Hardy,
+    baseSkillIds: [],
   })
 
   // Skills
@@ -113,9 +119,9 @@ async function main() {
   const system = new LocalBattleSystemV2(battle)
 
   const messages: BattleMessage[] = []
-  system.BattleEvent((msg) => {
+  system.BattleEvent(msg => {
     messages.push(msg)
-    console.log(`  [MSG] ${msg.type}`, JSON.stringify((msg as any).data).slice(0, 120))
+    console.log(`  [MSG] ${msg.type}`, JSON.stringify(msg as unknown as Record<string, unknown>).slice(0, 120))
   })
 
   // Start battle
@@ -189,19 +195,42 @@ async function main() {
   let failed = 0
 
   function assert(condition: boolean, msg: string) {
-    if (condition) { passed++; console.log(`  ✓ ${msg}`) }
-    else { failed++; console.error(`  ✗ ${msg}`) }
+    if (condition) {
+      passed++
+      console.log(`  ✓ ${msg}`)
+    } else {
+      failed++
+      console.error(`  ✗ ${msg}`)
+    }
   }
 
   console.log('\n=== Assertions ===')
   assert(finalState.status === BattleStatus.Ended, 'Battle ended')
   assert(world.state.victor !== undefined, 'Has a victor')
-  assert(messages.some(m => m.type === BattleMessageType.BattleStart), 'BattleStart message emitted')
-  assert(messages.some(m => m.type === BattleMessageType.Damage), 'Damage messages emitted')
-  assert(messages.some(m => m.type === BattleMessageType.BattleEnd), 'BattleEnd message emitted')
-  assert(messages.some(m => m.type === BattleMessageType.SkillUse), 'SkillUse messages emitted')
-  assert(messages.some(m => m.type === BattleMessageType.RageChange), 'RageChange messages emitted')
-  assert(messages.some(m => m.type === BattleMessageType.PetDefeated), 'PetDefeated message emitted')
+  assert(
+    messages.some(m => m.type === BattleMessageType.BattleStart),
+    'BattleStart message emitted',
+  )
+  assert(
+    messages.some(m => m.type === BattleMessageType.Damage),
+    'Damage messages emitted',
+  )
+  assert(
+    messages.some(m => m.type === BattleMessageType.BattleEnd),
+    'BattleEnd message emitted',
+  )
+  assert(
+    messages.some(m => m.type === BattleMessageType.SkillUse),
+    'SkillUse messages emitted',
+  )
+  assert(
+    messages.some(m => m.type === BattleMessageType.RageChange),
+    'RageChange messages emitted',
+  )
+  assert(
+    messages.some(m => m.type === BattleMessageType.PetDefeated),
+    'PetDefeated message emitted',
+  )
   assert(turn > 0, `Battle lasted ${turn} turns`)
 
   console.log(`\n${passed} passed, ${failed} failed`)
@@ -210,6 +239,11 @@ async function main() {
   process.exit(failed > 0 ? 1 : 0)
 }
 
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
+function sleep(ms: number) {
+  return new Promise(r => setTimeout(r, ms))
+}
 
-main().catch(e => { console.error(e); process.exit(1) })
+main().catch(e => {
+  console.error(e)
+  process.exit(1)
+})

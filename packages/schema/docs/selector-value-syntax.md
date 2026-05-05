@@ -22,9 +22,7 @@ export type SelectorValue = {
 {
   "type": "selector",
   "value": 100,
-  "chain": [
-    { "type": "add", "arg": 50 }
-  ]
+  "chain": [{ "type": "add", "arg": 50 }]
 }
 ```
 
@@ -36,9 +34,7 @@ export type SelectorValue = {
 {
   "type": "selector",
   "value": [10, 20, 30],
-  "chain": [
-    { "type": "multiply", "arg": 2 }
-  ]
+  "chain": [{ "type": "multiply", "arg": 2 }]
 }
 ```
 
@@ -54,9 +50,7 @@ export type SelectorValue = {
     "value": 75,
     "configId": "damage_base"
   },
-  "chain": [
-    { "type": "clampMax", "arg": 200 }
-  ]
+  "chain": [{ "type": "clampMax", "arg": 200 }]
 }
 ```
 
@@ -69,14 +63,10 @@ export type SelectorValue = {
     "type": "dynamic",
     "selector": {
       "base": "self",
-      "chain": [
-        { "type": "selectPath", "arg": "currentHp" }
-      ]
+      "chain": [{ "type": "selectPath", "arg": "currentHp" }]
     }
   },
-  "chain": [
-    { "type": "divide", "arg": 10 }
-  ]
+  "chain": [{ "type": "divide", "arg": 10 }]
 }
 ```
 
@@ -95,9 +85,7 @@ export type SelectorValue = {
     "trueValue": 100,
     "falseValue": 50
   },
-  "chain": [
-    { "type": "multiply", "arg": 1.5 }
-  ]
+  "chain": [{ "type": "multiply", "arg": 1.5 }]
 }
 ```
 
@@ -133,6 +121,7 @@ export type SelectorValue = {
 ```
 
 这个效果会：
+
 1. 获取自身当前HP
 2. 除以10
 3. 加上50
@@ -152,9 +141,7 @@ export type SelectorValue = {
     "value": {
       "type": "selector",
       "value": [20, 30, 40],
-      "chain": [
-        { "type": "randomPick", "arg": 1 }
-      ]
+      "chain": [{ "type": "randomPick", "arg": 1 }]
     }
   }
 }

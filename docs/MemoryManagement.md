@@ -104,7 +104,7 @@ console.log('Instance memory usage:', {
   attributeCount: memoryStats.attributeCount,
   modifierCount: memoryStats.modifierCount,
   subscriptionCount: memoryStats.subscriptionCount,
-  inactiveTime: Math.floor(memoryStats.inactiveTime / 1000) + 's'
+  inactiveTime: Math.floor(memoryStats.inactiveTime / 1000) + 's',
 })
 ```
 
@@ -118,7 +118,7 @@ console.log('Global memory usage:', {
   destroyedInstances: globalStats.destroyedInstances,
   globalCalculationStackSize: globalStats.globalCalculationStackSize,
   globalDependencyGraphSize: globalStats.globalDependencyGraphSize,
-  oldestInactiveTime: Math.floor(globalStats.oldestInactiveTime / 60000) + ' minutes'
+  oldestInactiveTime: Math.floor(globalStats.oldestInactiveTime / 60000) + ' minutes',
 })
 ```
 
@@ -345,12 +345,13 @@ if (process.env.NODE_ENV === 'development') {
     console.log('Memory stats:', {
       instances: stats.totalInstances,
       active: stats.activeInstances,
-      oldestInactive: Math.floor(stats.oldestInactiveTime / 60000) + 'min'
+      oldestInactive: Math.floor(stats.oldestInactiveTime / 60000) + 'min',
     })
 
     // 详细的实例信息
     stats.memoryUsageByInstance.forEach(instance => {
-      if (instance.inactiveTime > 120000) { // 超过2分钟未访问
+      if (instance.inactiveTime > 120000) {
+        // 超过2分钟未访问
         console.warn(`Inactive instance: ${instance.objectId} (${Math.floor(instance.inactiveTime / 60000)}min)`)
       }
     })

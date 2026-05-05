@@ -51,9 +51,36 @@ function resolveAssetBaseFromPackRef(packRef: string): string {
   }
 }
 
-export async function resolveRuntimePackRef(): Promise<string> {
-  if (runtimeCache.resolvedPackRef) return runtimeCache.resolvedPackRef
-  if (runtimeCache.resolvePromise) return runtimeCache.resolvePromise
+function withCacheBust(url: string, token: string): string {
+  try {
+    const parsed = new URL(url, window.location.origin)
+    parsed.searchParams.set('__ae_pack_ts', token)
+    return parsed.toString()
+  } catch {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}__ae_pack_ts=${encodeURIComponent(token)}`
+  }
+}
+
+export function invalidateRuntimePackRefCache(): void {
+  runtimeCache.resolvedPackRef = null
+  runtimeCache.resolvePromise = null
+}
+
+export async function resolveRuntimePackRef(options?: { forceRefresh?: boolean }): Promise<string> {
+  const forceRefresh = options?.forceRefresh === true
+
+  if (forceRefresh) {
+    invalidateRuntimePackRefCache()
+  }
+
+  if (runtimeCache.resolvedPackRef) {
+    return forceRefresh ? withCacheBust(runtimeCache.resolvedPackRef, `${Date.now()}`) : runtimeCache.resolvedPackRef
+  }
+  if (runtimeCache.resolvePromise) {
+    const resolved = await runtimeCache.resolvePromise
+    return forceRefresh ? withCacheBust(resolved, `${Date.now()}`) : resolved
+  }
 
   runtimeCache.resolvePromise = (async () => {
     const explicit = (import.meta.env.VITE_PACK_REF || '').trim()
@@ -70,7 +97,7 @@ export async function resolveRuntimePackRef(): Promise<string> {
   const resolved = await runtimeCache.resolvePromise
   runtimeCache.resolvedPackRef = resolved
   runtimeCache.resolvePromise = null
-  return resolved
+  return forceRefresh ? withCacheBust(resolved, `${Date.now()}`) : resolved
 }
 
 export function applyRuntimeAssetBase(packRef: string): void {

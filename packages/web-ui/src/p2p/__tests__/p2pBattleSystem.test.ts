@@ -14,10 +14,7 @@ const DEFAULT_DISABLED_TIMER = {
   states: [],
 }
 
-function createInitPayload(
-  battleState: BattleState,
-  availableSelections: PlayerSelection[],
-) {
+function createInitPayload(battleState: BattleState, availableSelections: PlayerSelection[]) {
   return {
     viewerId: 'peer',
     battleState,
@@ -310,12 +307,14 @@ describe('P2PPeerBattleSystem', () => {
     await peerSystem.endAnimation('anim_remote_1', 1000)
 
     expect(hostReceived.some(message => message.type === 'p2p-battle-start-animation')).toBe(true)
-    expect(hostReceived.some(message => {
-      if (message.type !== 'p2p-battle-end-animation') {
-        return false
-      }
-      return (message.payload as { animationId: string }).animationId === 'anim_remote_1'
-    })).toBe(true)
+    expect(
+      hostReceived.some(message => {
+        if (message.type !== 'p2p-battle-end-animation') {
+          return false
+        }
+        return (message.payload as { animationId: string }).animationId === 'anim_remote_1'
+      }),
+    ).toBe(true)
   })
 
   test('requests resync after submitAction when no event arrives', async () => {
@@ -720,11 +719,13 @@ describe('P2PPeerBattleSystem', () => {
     await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(messages.some(message => message.sequenceId === 2)).toBe(true)
-    expect(hostReceived.some(message => {
-      return (
-        message.type === 'p2p-battle-sync-request' &&
-        (message.payload as { lastSeenSequenceId?: number }).lastSeenSequenceId === 1
-      )
-    })).toBe(true)
+    expect(
+      hostReceived.some(message => {
+        return (
+          message.type === 'p2p-battle-sync-request' &&
+          (message.payload as { lastSeenSequenceId?: number }).lastSeenSequenceId === 1
+        )
+      }),
+    ).toBe(true)
   })
 })

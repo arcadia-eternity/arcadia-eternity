@@ -6,12 +6,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
 
 async function main() {
   // 从环境变量获取Supabase配置
@@ -86,7 +80,7 @@ async function main() {
 
     // 3. 创建函数
     console.log('⚙️ 创建数据库函数...')
-    
+
     // 获取或创建玩家ELO评级记录函数
     const getOrCreateEloSQL = `
       CREATE OR REPLACE FUNCTION get_or_create_player_elo(
@@ -172,7 +166,6 @@ async function main() {
     console.log('   ✓ get_or_create_player_elo 函数')
     console.log('')
     console.log('🎯 下一步: 启动服务器测试ELO功能')
-
   } catch (error) {
     console.error('❌ 迁移失败:', error)
     console.log('')

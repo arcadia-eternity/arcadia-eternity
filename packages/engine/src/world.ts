@@ -170,9 +170,7 @@ export function queryByTag(world: World, tag: string): string[] {
 export function queryByTags(world: World, tags: string[]): string[] {
   if (tags.length === 0) return Object.keys(world.entities)
   // Start with the smallest set for efficiency
-  const sets = tags
-    .map(t => world.byTag[t])
-    .filter((s): s is Set<string> => s !== undefined)
+  const sets = tags.map(t => world.byTag[t]).filter((s): s is Set<string> => s !== undefined)
   if (sets.length !== tags.length) return [] // Some tag has no entities
   sets.sort((a, b) => a.size - b.size)
 
@@ -192,12 +190,7 @@ export function queryByTags(world: World, tags: string[]): string[] {
 /**
  * Set a component on an entity. Creates the component store if needed.
  */
-export function setComponent<T>(
-  world: World,
-  entityId: string,
-  componentType: string,
-  data: T,
-): void {
+export function setComponent<T>(world: World, entityId: string, componentType: string, data: T): void {
   if (!world.components[componentType]) {
     world.components[componentType] = {}
   }
@@ -207,22 +200,14 @@ export function setComponent<T>(
 /**
  * Get a component from an entity.
  */
-export function getComponent<T>(
-  world: World,
-  entityId: string,
-  componentType: string,
-): T | undefined {
+export function getComponent<T>(world: World, entityId: string, componentType: string): T | undefined {
   return world.components[componentType]?.[entityId] as T | undefined
 }
 
 /**
  * Get a component, throw if not found.
  */
-export function getComponentOrThrow<T>(
-  world: World,
-  entityId: string,
-  componentType: string,
-): T {
+export function getComponentOrThrow<T>(world: World, entityId: string, componentType: string): T {
   const data = world.components[componentType]?.[entityId]
   if (data === undefined) {
     throw new Error(`Component '${componentType}' not found on entity '${entityId}'`)
@@ -233,22 +218,14 @@ export function getComponentOrThrow<T>(
 /**
  * Check if an entity has a specific component.
  */
-export function hasComponent(
-  world: World,
-  entityId: string,
-  componentType: string,
-): boolean {
+export function hasComponent(world: World, entityId: string, componentType: string): boolean {
   return world.components[componentType]?.[entityId] !== undefined
 }
 
 /**
  * Remove a component from an entity.
  */
-export function removeComponent(
-  world: World,
-  entityId: string,
-  componentType: string,
-): boolean {
+export function removeComponent(world: World, entityId: string, componentType: string): boolean {
   if (!world.components[componentType]) return false
   const existed = entityId in world.components[componentType]
   delete world.components[componentType][entityId]

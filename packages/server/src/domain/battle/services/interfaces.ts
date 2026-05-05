@@ -1,7 +1,11 @@
 import type { Socket } from 'socket.io'
 import type { AckResponse } from '@arcadia-eternity/protocol'
 import type { RoomState, MatchmakingEntry, ServiceInstance } from '../../../cluster/types'
-import type { BattleMessage } from '@arcadia-eternity/const'
+import type { BattleMessage, BattleState, PlayerTimerState, TimerConfig } from '@arcadia-eternity/const'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
+import type { PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
+import type { LocalBattleRoomData } from '../runtime/battleRuntimeHost'
+import type { DisconnectedPlayerInfo } from './clusterBattleService'
 
 // 资源加载管理器接口
 export interface IResourceLoadingManager {
@@ -21,20 +25,18 @@ export interface IMatchmakingDependencies {
 }
 
 // 战斗服务依赖接口
-export interface IBattleDependencies {
-  // 目前战斗服务没有外部依赖，保留接口以备将来扩展
-}
+export type IBattleDependencies = Record<string, never>
 
 // 匹配服务回调接口
 export interface MatchmakingCallbacks {
-  createLocalBattle: (roomState: RoomState, player1Data: any, player2Data: any) => Promise<any>
-  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: any) => Promise<boolean>
+  createLocalBattle: (roomState: RoomState, player1Data: unknown, player2Data: unknown) => Promise<IBattleSystem>
+  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: unknown) => Promise<boolean>
   getPlayerName: (playerId: string) => Promise<string>
   createSessionRoomMappings: (roomState: RoomState) => Promise<void>
   verifyInstanceReachability: (instance: ServiceInstance) => Promise<boolean>
   createClusterBattleRoom: (
-    player1Entry: any,
-    player2Entry: any,
+    player1Entry: MatchmakingEntry,
+    player2Entry: MatchmakingEntry,
     spectators?: { playerId: string; sessionId: string }[],
   ) => Promise<string | null>
   broadcastServerStateUpdate?: () => void
@@ -42,10 +44,10 @@ export interface MatchmakingCallbacks {
 
 // 战斗服务回调接口
 export interface BattleCallbacks {
-  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: any) => Promise<boolean>
-  addToBatch: (playerId: string, sessionId: string, message: any) => Promise<void>
+  sendToPlayerSession: (playerId: string, sessionId: string, event: string, data: unknown) => Promise<boolean>
+  addToBatch: (playerId: string, sessionId: string, message: BattleMessage) => Promise<void>
   cleanupSessionRoomMappings: (roomState: RoomState) => Promise<void>
-  forwardPlayerAction: (instanceId: string, action: string, playerId: string, data: any) => Promise<any>
+  forwardPlayerAction: (instanceId: string, action: string, playerId: string, data: unknown) => Promise<unknown>
   createSessionRoomMappings: (roomState: RoomState) => Promise<void>
   handlePrivateRoomBattleFinished?: (
     battleRoomId: string,
@@ -63,45 +65,45 @@ export interface IMatchmakingService {
 
 // 战斗服务接口
 export interface IBattleService {
-  createLocalBattle(roomState: RoomState, player1Data: any, player2Data: any): Promise<any>
+  createLocalBattle(roomState: RoomState, player1Data: unknown, player2Data: unknown): Promise<IBattleSystem>
   createClusterBattleRoom(
     player1Entry: MatchmakingEntry,
     player2Entry: MatchmakingEntry,
     spectators?: { playerId: string; sessionId: string }[],
   ): Promise<string | null>
-  getLocalBattle(roomId: string): any
+  getLocalBattle(roomId: string): IBattleSystem | undefined
   isRoomInCurrentInstance(roomState: RoomState): boolean
-  getAllLocalRooms(): Map<string, any>
-  getLocalRoom(roomId: string): any
+  getAllLocalRooms(): Map<string, LocalBattleRoomData>
+  getLocalRoom(roomId: string): LocalBattleRoomData | undefined
   addDisconnectedPlayer(
     playerId: string,
     sessionId: string,
     roomId: string,
     graceTimer?: ReturnType<typeof setTimeout>,
   ): void
-  getDisconnectedPlayer(key: string): any
+  getDisconnectedPlayer(key: string): DisconnectedPlayerInfo | undefined
   removeDisconnectedPlayer(key: string): void
   clearAllDisconnectedPlayers(): void
-  handleLocalPlayerSelection(roomId: string, playerId: string, data: any): Promise<{ status: string }>
-  handleLocalReportAnimationEnd(roomId: string, playerId: string, data: any): Promise<{ status: string }>
+  handleLocalPlayerSelection(roomId: string, playerId: string, data: unknown): Promise<{ status: string }>
+  handleLocalReportAnimationEnd(roomId: string, playerId: string, data: unknown): Promise<{ status: string }>
   handleLocalIsTimerEnabled(roomId: string, playerId: string): Promise<boolean>
-  handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<any[]>
-  handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<any>
-  handleLocalStartAnimation(roomId: string, playerId: string, data: any): Promise<string>
-  handleLocalEndAnimation(roomId: string, playerId: string, data: any): Promise<{ status: string }>
-  handleLocalGetState(roomId: string, playerId: string): Promise<any>
-  handleLocalGetSelection(roomId: string, playerId: string): Promise<any>
+  handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<PlayerTimerState[]>
+  handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<TimerConfig>
+  handleLocalStartAnimation(roomId: string, playerId: string, data: unknown): Promise<string>
+  handleLocalEndAnimation(roomId: string, playerId: string, data: unknown): Promise<{ status: string }>
+  handleLocalGetState(roomId: string, playerId: string): Promise<BattleState>
+  handleLocalGetSelection(roomId: string, playerId: string): Promise<PlayerSelectionSchemaType[]>
   handleLocalReady(roomId: string, playerId: string): Promise<{ status: string }>
   recoverLocalBattleRuntime?(roomId: string): Promise<boolean>
-  handleLocalGetBattleState(roomId: string, playerId: string): Promise<any>
-  handleLocalGetBattleHistory(roomId: string, playerId: string): Promise<any>
-  handleLocalGetBattleReport(roomId: string, playerId: string): Promise<any>
-  handleLocalPlayerAbandon(roomId: string, playerId: string): Promise<any>
-  handleLocalBattleTermination(roomId: string, playerId: string, reason: string): Promise<any>
-  handleLocalGetPlayerTimerState(roomId: string, playerId: string, data: any): Promise<any>
+  handleLocalGetBattleState(roomId: string, playerId: string): Promise<BattleState>
+  handleLocalGetBattleHistory(roomId: string, playerId: string): Promise<BattleState>
+  handleLocalGetBattleReport(roomId: string, playerId: string): Promise<{ battleRecordId: string }>
+  handleLocalPlayerAbandon(roomId: string, playerId: string): Promise<{ status: string }>
+  handleLocalBattleTermination(roomId: string, playerId: string, reason: string): Promise<{ status: string }>
+  handleLocalGetPlayerTimerState(roomId: string, playerId: string, data: unknown): Promise<PlayerTimerState | null>
   forceTerminateBattle(roomState: RoomState, playerId: string, reason: string): Promise<void>
   cleanupLocalRoom(roomId: string): Promise<void>
-  addToBatch(playerId: string, sessionId: string, message: any): Promise<void>
+  addToBatch(playerId: string, sessionId: string, message: BattleMessage): Promise<void>
   cleanupAllBatches(): Promise<void>
   cleanupPlayerBatches(playerId: string, sessionId: string): Promise<void>
   pauseBattleForDisconnect(roomId: string, playerId: string): Promise<void>

@@ -1,11 +1,19 @@
 import type { TimerConfig } from '@arcadia-eternity/const'
 import type { BattleInstance } from '@arcadia-eternity/battle'
-import type { PetSchemaType } from '@arcadia-eternity/schema'
+import type { PetSchemaType, SkillSchemaType } from '@arcadia-eternity/schema'
 import { RuleSystem } from '../core/RuleSystem'
 import { RuleRegistry } from '../core/RuleRegistry'
-import type { Team, RuleContext, BattleConfigModifications } from '../interfaces/Rule'
+import type { Team, RuleContext } from '../interfaces/Rule'
 import { RulePhase } from '../interfaces/Rule'
 import type { ValidationResult } from '../interfaces/ValidationResult'
+
+/**
+ * 战斗操作数据
+ */
+export interface BattleOperationData {
+  pet?: PetSchemaType
+  skill?: SkillSchemaType
+}
 
 /**
  * 战斗系统集成类
@@ -177,7 +185,7 @@ export class BattleIntegration {
    * @param data 操作数据
    * @returns 验证结果
    */
-  validateBattleOperation(battle: BattleInstance, operation: string, data: any): ValidationResult {
+  validateBattleOperation(battle: BattleInstance, operation: string, data: BattleOperationData): ValidationResult {
     const context: RuleContext = {
       battle,
       phase: RulePhase.BATTLE_EXECUTION,
@@ -225,14 +233,14 @@ export class BattleIntegration {
    * @returns 兼容性检查结果
    */
   checkRuleSetCompatibility(ruleSetIds: string[]): ValidationResult {
-    const errors: any[] = []
-    const warnings: any[] = []
+    const errors: import('../interfaces/ValidationResult').ValidationError[] = []
+    const warnings: import('../interfaces/ValidationResult').ValidationWarning[] = []
 
     // 检查规则集是否存在
     for (const ruleSetId of ruleSetIds) {
       if (!this.registry.hasRuleSet(ruleSetId)) {
         errors.push({
-          type: 'SYSTEM_ERROR',
+          type: 'system_error' as import('../interfaces/ValidationResult').ValidationErrorType,
           code: 'RULESET_NOT_FOUND',
           message: `规则集 "${ruleSetId}" 不存在`,
           objectId: ruleSetId,
@@ -246,7 +254,7 @@ export class BattleIntegration {
       const ruleSet = this.registry.getRuleSet(ruleSetId)
       if (ruleSet && !ruleSet.enabled) {
         warnings.push({
-          type: 'COMPATIBILITY_WARNING',
+          type: 'compatibility_warning' as import('../interfaces/ValidationResult').ValidationWarningType,
           code: 'RULESET_DISABLED',
           message: `规则集 "${ruleSetId}" 已被禁用`,
           objectId: ruleSetId,

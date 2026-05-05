@@ -67,9 +67,9 @@ describe('ResourceLoadingManager', () => {
 
     const { ResourceLoadingManager, ResourceLoadingStatus } = await import('../src/resourceLoadingManager')
     const manager = ResourceLoadingManager.getInstance()
-    await expect(
-      manager.startAsyncLoading({ validateData: true, continueOnError: false }),
-    ).rejects.toThrow('数据包校验失败')
+    await expect(manager.startAsyncLoading({ validateData: true, continueOnError: false })).rejects.toThrow(
+      '数据包校验失败',
+    )
 
     expect(manager.isReady()).toBe(false)
     expect(manager.getProgress().status).toBe(ResourceLoadingStatus.Failed)

@@ -985,3 +985,12 @@ export type ConditionalValue = {
 export type { EffectDSL as Effect }
 import { effectDSLSchema, EffectDSLSetSchema } from './effectSchema'
 export { effectDSLSchema as EffectSchema, EffectDSLSetSchema as EffectSetSchema }
+
+type MergeUnionMembers<T> = {
+  [K in T extends T ? keyof T : never]-?: T extends Record<K, infer V> ? V : never
+}
+
+export type ConditionDSLView = MergeUnionMembers<ConditionDSL>
+export type EvaluatorDSLView = MergeUnionMembers<EvaluatorDSL>
+export type OperatorDSLView = MergeUnionMembers<OperatorDSL>
+export type ValueView = MergeUnionMembers<Value>

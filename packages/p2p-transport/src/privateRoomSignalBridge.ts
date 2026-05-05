@@ -24,9 +24,7 @@ function isRelayPeerTransport(transport: PeerTransport): transport is RelayPeerT
   return 'receiveRelayMessage' in transport && 'markConnected' in transport
 }
 
-export function createPrivateRoomSignalBridge(
-  options: PrivateRoomSignalBridgeOptions,
-): PrivateRoomSignalBridge {
+export function createPrivateRoomSignalBridge(options: PrivateRoomSignalBridgeOptions): PrivateRoomSignalBridge {
   const { transport, onOutgoingSignal, signalTransport = 'webrtc' } = options
   let connectedOnce = false
   let currentRole: 'host' | 'peer' | null = null
@@ -85,12 +83,7 @@ export function createPrivateRoomSignalBridge(
             })
           }
         }
-        if (
-          isSignalingPeerTransport(transport) &&
-          currentRole === 'host' &&
-          currentRemotePeerId &&
-          connectedOnce
-        ) {
+        if (isSignalingPeerTransport(transport) && currentRole === 'host' && currentRemotePeerId && connectedOnce) {
           await transport.connect({ role: 'host', remotePeerId: currentRemotePeerId })
         }
         return
@@ -105,9 +98,7 @@ export function createPrivateRoomSignalBridge(
 
       if (
         isSignalingPeerTransport(transport) &&
-        (event.signal.kind === 'offer' ||
-          event.signal.kind === 'answer' ||
-          event.signal.kind === 'ice-candidate')
+        (event.signal.kind === 'offer' || event.signal.kind === 'answer' || event.signal.kind === 'ice-candidate')
       ) {
         await (transport as SignalingPeerTransport).handleSignal({
           kind: event.signal.kind,

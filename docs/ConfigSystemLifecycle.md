@@ -29,7 +29,7 @@ class Battle {
 
     // 自动清理所有与此 Battle 关联的 AttributeSystem 实例
     const attributeCleanedCount = AttributeSystem.cleanupBattle(this.id)
-    
+
     // 自动清理所有与此 Battle 关联的 ConfigSystem 实例
     const configCleanedCount = ConfigSystem.cleanupBattle(this.id)
   }
@@ -60,32 +60,41 @@ configSystem.registerConfig('new.config', 'value') // 显示警告并忽略
 ### 静态方法
 
 #### `ConfigSystem.createInstance(battleId?: string): ConfigSystem`
+
 创建新的 ConfigSystem 实例，可选择性地关联到特定的 Battle。
 
 #### `ConfigSystem.cleanupBattle(battleId: string): number`
+
 清理与特定 Battle 关联的所有 ConfigSystem 实例，返回清理的实例数量。
 
 #### `ConfigSystem.cleanupAllBattles(): number`
+
 清理所有 Battle 的 ConfigSystem 实例，返回清理的总实例数量。
 
 #### `ConfigSystem.getBattleInstances(battleId: string): Set<ConfigSystem> | undefined`
+
 获取与特定 Battle 关联的所有 ConfigSystem 实例。
 
 #### `ConfigSystem.getGlobalMemoryStats(): { totalBattles: number, totalInstances: number, activeInstances: number }`
+
 获取全局内存统计信息，用于调试和监控。
 
 ### 实例方法
 
 #### `cleanup(): void`
+
 清理所有资源和订阅，但不销毁实例。
 
 #### `destroy(): void`
+
 完全销毁实例，包括从 Battle 注册表中移除。
 
 #### `getIsDestroyed(): boolean`
+
 检查实例是否已被销毁。
 
 #### `getBattleId(): string | undefined`
+
 获取关联的 Battle ID。
 
 ## 使用示例
@@ -149,6 +158,7 @@ node test/configSystemLifecycleTest.js
 ```
 
 测试会验证：
+
 - ConfigSystem 实例的创建和注册
 - 配置的注册和使用
 - 单个 Battle 的清理

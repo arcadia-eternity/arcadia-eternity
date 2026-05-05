@@ -8,7 +8,7 @@
 
 选择效果拥有者的全队精灵（包括存活和濒死的精灵）。
 
-### `opponentTeam` - 敌方全队  
+### `opponentTeam` - 敌方全队
 
 选择效果拥有者对手的全队精灵（包括存活和濒死的精灵）。
 
@@ -39,7 +39,7 @@ const opponentTeam = BaseSelector.opponentTeam
 // 对敌方全队造成伤害
 {
   type: 'dealDamage',
-  target: 'opponentTeam', 
+  target: 'opponentTeam',
   value: 30
 }
 ```
@@ -115,7 +115,7 @@ const opponentTeam = BaseSelector.opponentTeam
 ```typescript
 {
   id: 'aoe_attack',
-  trigger: 'OnSkillUse', 
+  trigger: 'OnSkillUse',
   operator: {
     type: 'dealDamage',
     target: 'opponentTeam',
@@ -173,12 +173,12 @@ const opponentTeam = BaseSelector.opponentTeam
 
 ## 与现有选择器的区别
 
-| 选择器 | 选择范围 | 数量 |
-|--------|----------|------|
-| `self` | 己方当前出战精灵 | 1个 |
-| `opponent` | 敌方当前出战精灵 | 1个 |
-| `selfTeam` | 己方全队精灵 | 多个 |
-| `opponentTeam` | 敌方全队精灵 | 多个 |
+| 选择器         | 选择范围         | 数量 |
+| -------------- | ---------------- | ---- |
+| `self`         | 己方当前出战精灵 | 1个  |
+| `opponent`     | 敌方当前出战精灵 | 1个  |
+| `selfTeam`     | 己方全队精灵     | 多个 |
+| `opponentTeam` | 敌方全队精灵     | 多个 |
 
 ## 注意事项
 

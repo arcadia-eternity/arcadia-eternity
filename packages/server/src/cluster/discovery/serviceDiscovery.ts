@@ -4,6 +4,7 @@ import type { ClusterStateManager } from '../core/clusterStateManager'
 import type { ServiceInstance } from '../types'
 import { ServiceDiscoveryError } from '../types'
 import { loadBalancingConfigManager, type LoadBalancingConfigManager } from '../config/loadBalancingConfig'
+import type { PerformanceTracker } from '../monitoring/performanceTracker'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -97,10 +98,10 @@ export interface SmartLoadBalancingConfig {
 }
 
 export class SmartLoadBalancingStrategy implements LoadBalancingStrategy {
-  private configManager: LoadBalancingConfigManager
-  private performanceTracker?: any // PerformanceTracker type
+  private configManager!: LoadBalancingConfigManager
+  private performanceTracker?: PerformanceTracker
 
-  constructor(configManager?: LoadBalancingConfigManager, performanceTracker?: any) {
+  constructor(configManager?: LoadBalancingConfigManager, performanceTracker?: PerformanceTracker) {
     this.configManager = configManager || loadBalancingConfigManager
     this.performanceTracker = performanceTracker
 

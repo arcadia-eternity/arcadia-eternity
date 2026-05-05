@@ -80,19 +80,19 @@ export class SkillSystem {
   }
 
   getPower(world: World, skillId: string): number {
-    return this.attrSystem.getValue(world, skillId, 'power') as number ?? 0
+    return (this.attrSystem.getValue(world, skillId, 'power') as number) ?? 0
   }
 
   getAccuracy(world: World, skillId: string): number {
-    return this.attrSystem.getValue(world, skillId, 'accuracy') as number ?? 100
+    return (this.attrSystem.getValue(world, skillId, 'accuracy') as number) ?? 100
   }
 
   getRage(world: World, skillId: string): number {
-    return this.attrSystem.getValue(world, skillId, 'rage') as number ?? 0
+    return (this.attrSystem.getValue(world, skillId, 'rage') as number) ?? 0
   }
 
   getPriority(world: World, skillId: string): number {
-    return this.attrSystem.getValue(world, skillId, 'priority') as number ?? 0
+    return (this.attrSystem.getValue(world, skillId, 'priority') as number) ?? 0
   }
 
   getCategory(world: World, skillId: string): SkillData['category'] {

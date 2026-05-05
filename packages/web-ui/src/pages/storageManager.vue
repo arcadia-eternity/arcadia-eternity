@@ -1829,7 +1829,7 @@ import ContextMenu from '../components/ContextMenu.vue'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useStorageImportExport } from '@/composition/useStorageImportExport'
-import { Loading, Check, Close, Warning, Refresh, ArrowDown } from '@element-plus/icons-vue'
+import { Loading, Check, Close, Refresh, ArrowDown } from '@element-plus/icons-vue'
 import { ClientRuleIntegration } from '@arcadia-eternity/rules'
 
 const petStorage = usePetStorageStore()
@@ -1845,10 +1845,6 @@ const {
   importTeam,
   moveToStorage,
   addToCurrentTeam,
-  moveToTeam,
-  deletePet,
-  copyPet,
-  showPetDetails,
   showContextMenu,
   showTeamPetContextMenu,
   closeContextMenu,
@@ -2186,7 +2182,7 @@ const filteredPets = computed(() => {
 
   // 排序
   pets.sort((a, b) => {
-    let aValue: any, bValue: any
+    let aValue: number | string | undefined, bValue: number | string | undefined
 
     switch (sortBy.value) {
       case 'name':
@@ -2234,7 +2230,7 @@ const filteredPets = computed(() => {
       const result = aValue.localeCompare(bValue)
       return sortOrder.value === 'asc' ? result : -result
     } else {
-      const result = aValue - bValue
+      const result = (aValue as number) - (bValue as number)
       return sortOrder.value === 'asc' ? result : -result
     }
   })
@@ -2330,11 +2326,11 @@ const calculatePageSizes = () => {
 }
 
 // 防抖函数
-const debounce = (func: Function, wait: number) => {
+const debounce = <Args extends unknown[]>(func: (...args: Args) => void, wait: number): ((...args: Args) => void) => {
   let timeout: ReturnType<typeof setTimeout>
-  return (...args: any[]) => {
+  return (...args: Args) => {
     clearTimeout(timeout)
-    timeout = setTimeout(() => func.apply(null, args), wait)
+    timeout = setTimeout(() => func(...args), wait)
   }
 }
 
@@ -2620,8 +2616,8 @@ const validateTeam = async (teamIndex: number) => {
     teamValidationStatus.value[teamIndex] = {
       isValidating: false,
       isValid: result.isValid,
-      errors: result.errors?.map(e => e.message || e.toString()) || [],
-      warnings: result.warnings?.map(w => w.message || w.toString()) || [],
+      errors: result.errors?.map((e: { message?: string; toString(): string }) => e.message || e.toString()) || [],
+      warnings: result.warnings?.map((w: { message?: string; toString(): string }) => w.message || w.toString()) || [],
     }
   } catch (error) {
     console.error('队伍校验失败:', error)

@@ -40,9 +40,15 @@ type CompileNodeTypingRule = {
 const defaultConditionTypeSet = collectNodeTypes(conditionDSLSchema)
 const defaultEvaluatorTypeSet = collectNodeTypes(evaluatorDSLSchema)
 const defaultOperatorTypeSet = collectNodeTypes(operatorDSLSchema)
-const defaultConditionTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(conditionDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
-const defaultEvaluatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(evaluatorDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
-const defaultOperatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(operatorDSLSchema) as Partial<Record<string, CompileNodeTypingRule>>
+const defaultConditionTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(conditionDSLSchema) as Partial<
+  Record<string, CompileNodeTypingRule>
+>
+const defaultEvaluatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(evaluatorDSLSchema) as Partial<
+  Record<string, CompileNodeTypingRule>
+>
+const defaultOperatorTypingRules = extractDslTypingMetadata<CompileNodeTypingRule>(operatorDSLSchema) as Partial<
+  Record<string, CompileNodeTypingRule>
+>
 
 type RelationMeta = {
   target: CompileOwner
@@ -153,9 +159,7 @@ export function createScalarValueState(valueType: CompileScalarType): CompileVal
   return { kind: 'scalar', valueType }
 }
 
-function createCompileTypingContext(
-  environment: EffectCompileTypingEnvironment,
-): CompileTypingContext {
+function createCompileTypingContext(environment: EffectCompileTypingEnvironment): CompileTypingContext {
   const attributeKeysByOwner = new Map<CompileOwner, Set<string>>()
   const attributeTypesByOwner = new Map<CompileOwner, Map<string, CompileValueState>>()
   const relationByOwner = new Map<CompileOwner, Map<string, RelationMeta>>()
@@ -224,7 +228,10 @@ function createCompileTypingContext(
   const baseSelectorStateMap = new Map<string, CompileState[]>()
   if (environment.baseSelectorStates) {
     for (const [key, states] of Object.entries(environment.baseSelectorStates)) {
-      baseSelectorStateMap.set(key, states.map(state => ({ ...state })))
+      baseSelectorStateMap.set(
+        key,
+        states.map(state => ({ ...state })),
+      )
     }
   }
 
@@ -334,14 +341,10 @@ function inferValueStateFromSchema(owner: CompileOwner, path: string, schema: un
     const inferred = variants.map(variant => inferValueStateFromSchema(owner, path, variant))
     const first = inferred[0]
     if (first) {
-      if (
-        inferred.every(v => v.kind === 'scalar' && first.kind === 'scalar' && v.valueType === first.valueType)
-      ) {
+      if (inferred.every(v => v.kind === 'scalar' && first.kind === 'scalar' && v.valueType === first.valueType)) {
         return first
       }
-      if (
-        inferred.every(v => v.kind === 'object' && first.kind === 'object' && v.objectClass === first.objectClass)
-      ) {
+      if (inferred.every(v => v.kind === 'object' && first.kind === 'object' && v.objectClass === first.objectClass)) {
         return first
       }
     }
@@ -592,7 +595,9 @@ function resolvePathFromState(state: CompileState, path: string, at: string): Co
   if (state.kind === 'object' && state.owner && state.path) {
     const nestedPath = `${state.path}.${path}`
     if (!hasField(state.owner, nestedPath)) {
-      throw new Error(`selector typing failed at ${at}: path '${path}' is not declared on object class '${state.objectClass}'`)
+      throw new Error(
+        `selector typing failed at ${at}: path '${path}' is not declared on object class '${state.objectClass}'`,
+      )
     }
     return stateFromPath(state.owner, nestedPath)
   }
@@ -603,15 +608,16 @@ function dedupeStates(states: CompileState[]): CompileState[] {
   const out: CompileState[] = []
   const seen = new Set<string>()
   for (const state of states) {
-    const key = state.kind === 'owner'
-      ? `owner:${state.owner}`
-      : state.kind === 'id'
-        ? `id:${state.target}`
-        : state.kind === 'scalar'
-          ? `scalar:${state.valueType}`
-          : state.kind === 'object'
-            ? `object:${state.objectClass}`
-          : 'propertyRef'
+    const key =
+      state.kind === 'owner'
+        ? `owner:${state.owner}`
+        : state.kind === 'id'
+          ? `id:${state.target}`
+          : state.kind === 'scalar'
+            ? `scalar:${state.valueType}`
+            : state.kind === 'object'
+              ? `object:${state.objectClass}`
+              : 'propertyRef'
     if (seen.has(key)) continue
     seen.add(key)
     out.push(state)
@@ -737,9 +743,8 @@ function validateSelectorNode(selector: unknown, at: string): CompileState[] {
   if ('condition' in selector && 'trueSelector' in selector) {
     validateConditionNode(selector.condition, `${at}/condition`)
     const trueStates = validateSelectorNode(selector.trueSelector, `${at}/trueSelector`)
-    const falseStates = 'falseSelector' in selector
-      ? validateSelectorNode(selector.falseSelector, `${at}/falseSelector`)
-      : []
+    const falseStates =
+      'falseSelector' in selector ? validateSelectorNode(selector.falseSelector, `${at}/falseSelector`) : []
     return dedupeStates([...trueStates, ...falseStates])
   }
 
@@ -777,7 +782,9 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
         const next = states.flatMap(state => resolvePathFromState(state, extractorPath, `${stepPath}/arg`))
         states = dedupeStates(next)
         if (states.length === 0) {
-          throw new Error(`selector typing failed at ${stepPath}: select '${extractorPath}' produced no statically valid state`)
+          throw new Error(
+            `selector typing failed at ${stepPath}: select '${extractorPath}' produced no statically valid state`,
+          )
         }
         break
       }
@@ -790,7 +797,9 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
         const next = states.flatMap(state => resolvePathFromState(state, path, `${stepPath}/arg`))
         states = dedupeStates(next)
         if (states.length === 0) {
-          throw new Error(`selector typing failed at ${stepPath}: selectPath '${path}' produced no statically valid state`)
+          throw new Error(
+            `selector typing failed at ${stepPath}: selectPath '${path}' produced no statically valid state`,
+          )
         }
         break
       }
@@ -811,7 +820,9 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
         if (extractorPath && extractorPath.includes('.')) {
           for (const state of states) {
             if (state.kind === 'scalar') {
-              throw new Error(`selector typing failed at ${stepPath}/extractor: cannot apply extractor '${extractorPath}' on scalar state`)
+              throw new Error(
+                `selector typing failed at ${stepPath}/extractor: cannot apply extractor '${extractorPath}' on scalar state`,
+              )
             }
             // Validate dotted extractor path existence, but keep permissive state transition.
             resolvePathFromState(state, extractorPath, `${stepPath}/extractor`)
@@ -824,9 +835,7 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
       case 'when': {
         validateConditionNode(step.condition, `${stepPath}/condition`)
         const trueStates = inferStatesFromValue(step.trueValue, `${stepPath}/trueValue`)
-        const falseStates = 'falseValue' in step
-          ? inferStatesFromValue(step.falseValue, `${stepPath}/falseValue`)
-          : []
+        const falseStates = 'falseValue' in step ? inferStatesFromValue(step.falseValue, `${stepPath}/falseValue`) : []
         states = dedupeStates([...trueStates, ...falseStates])
         if (states.length === 0) {
           throw new Error(`selector typing failed at ${stepPath}: when produced no statically valid state`)
@@ -841,7 +850,9 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
         }
         for (const state of states) {
           if (state.kind === 'scalar' || state.kind === 'propertyRef') {
-            throw new Error(`selector typing failed at ${stepPath}/arg: selectProp cannot be applied to ${formatState(state)}`)
+            throw new Error(
+              `selector typing failed at ${stepPath}/arg: selectProp cannot be applied to ${formatState(state)}`,
+            )
           }
         }
         states = [{ kind: 'propertyRef' }]
@@ -864,7 +875,9 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
         const next = states.flatMap(state => resolvePathFromState(state, key, `${stepPath}/arg`))
         states = dedupeStates(next)
         if (states.length === 0) {
-          throw new Error(`selector typing failed at ${stepPath}: selectAttribute$ '${key}' produced no statically valid state`)
+          throw new Error(
+            `selector typing failed at ${stepPath}: selectAttribute$ '${key}' produced no statically valid state`,
+          )
         }
         break
       }
@@ -919,9 +932,7 @@ function inferStatesFromValue(value: unknown, at: string): CompileState[] {
   if (value.type === 'conditional') {
     validateConditionNode(value.condition, `${at}/condition`)
     const trueStates = inferStatesFromValue(value.trueValue, `${at}/trueValue`)
-    const falseStates = 'falseValue' in value
-      ? inferStatesFromValue(value.falseValue, `${at}/falseValue`)
-      : []
+    const falseStates = 'falseValue' in value ? inferStatesFromValue(value.falseValue, `${at}/falseValue`) : []
     return dedupeStates([...trueStates, ...falseStates])
   }
 
@@ -966,14 +977,10 @@ function formatState(state: CompileState): string {
 
 function formatConstraint(constraint: EffectDslStateConstraint): string {
   if (constraint.kind === 'id') {
-    return constraint.targets && constraint.targets.length > 0
-      ? `id(${constraint.targets.join('|')})`
-      : 'id(*)'
+    return constraint.targets && constraint.targets.length > 0 ? `id(${constraint.targets.join('|')})` : 'id(*)'
   }
   if (constraint.kind === 'owner') {
-    return constraint.owners && constraint.owners.length > 0
-      ? `owner(${constraint.owners.join('|')})`
-      : 'owner(*)'
+    return constraint.owners && constraint.owners.length > 0 ? `owner(${constraint.owners.join('|')})` : 'owner(*)'
   }
   if (constraint.kind === 'scalar') {
     return constraint.valueTypes && constraint.valueTypes.length > 0
@@ -981,9 +988,7 @@ function formatConstraint(constraint: EffectDslStateConstraint): string {
       : 'scalar(*)'
   }
   if (constraint.kind === 'object') {
-    return constraint.classes && constraint.classes.length > 0
-      ? `object(${constraint.classes.join('|')})`
-      : 'object(*)'
+    return constraint.classes && constraint.classes.length > 0 ? `object(${constraint.classes.join('|')})` : 'object(*)'
   }
   return 'propertyRef'
 }
@@ -1009,16 +1014,14 @@ function stateMatchesConstraint(state: CompileState, constraint: EffectDslStateC
   return true
 }
 
-function assertStatesMatchRule(
-  states: CompileState[],
-  rule: EffectDslFieldTypingRule,
-  at: string,
-): void {
+function assertStatesMatchRule(states: CompileState[], rule: EffectDslFieldTypingRule, at: string): void {
   if (!rule.allow || rule.allow.length === 0) return
   if (states.length === 0) {
     throw new Error(`selector typing failed at ${at}: no static value inferred`)
   }
-  const invalidStates = states.filter(state => !rule.allow.some(constraint => stateMatchesConstraint(state, constraint)))
+  const invalidStates = states.filter(
+    state => !rule.allow.some(constraint => stateMatchesConstraint(state, constraint)),
+  )
   if (invalidStates.length > 0) {
     const expected = rule.allow.map(formatConstraint).join(' | ')
     const actual = invalidStates.map(formatState).join(', ')

@@ -55,7 +55,12 @@ function inferEntityKind(world: World, systems: BattleSystems, value: unknown): 
   }
 }
 
-function ensureAllowed(owner: EntityKind | undefined, kind: 'attribute' | 'field' | 'relation', key: string, world: World): void {
+function ensureAllowed(
+  owner: EntityKind | undefined,
+  kind: 'attribute' | 'field' | 'relation',
+  key: string,
+  world: World,
+): void {
   if (!owner) return
   if (kind === 'attribute') {
     const ok = battleExtractorRegistry.attributes.some(a => a.key === key && a.owners.includes(owner))

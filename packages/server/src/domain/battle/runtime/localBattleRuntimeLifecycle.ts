@@ -24,7 +24,7 @@ export async function startLocalBattleRuntime(
     logger.info({ roomId }, 'Game resources are ready, proceeding with battle start')
   } catch (error) {
     logger.error({ error, roomId }, 'Failed to load game resources, battle cannot start')
-    throw new Error(`游戏资源加载失败: ${error instanceof Error ? error.message : error}`)
+    throw new Error(`游戏资源加载失败: ${error instanceof Error ? error.message : error}`, { cause: error })
   }
 
   await localRoom.battle.ready()

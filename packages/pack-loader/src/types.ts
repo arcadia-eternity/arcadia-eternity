@@ -12,31 +12,40 @@ export type LockProvenance = 'npm' | 'workspace' | 'file' | 'git' | 'http' | 'bu
 export interface PackLockfile {
   lockfileVersion: 1
   generatedAt: string
-  importers: Record<string, {
-    specifiers?: Record<string, string>
-    dependencies?: Record<string, {
-      specifier: string
-      version: string
-      packageKey: string
-    }>
-  }>
-  packages: Record<string, {
-    name: string
-    version: string
-    kind: 'data' | 'asset'
-    engine: string
-    source: string
-    entry: string
-    provenance: LockProvenance
-    resolution?: {
-      integrity?: string
-      resolved?: string
-      tarball?: string
-      path?: string
-      commit?: string
+  importers: Record<
+    string,
+    {
+      specifiers?: Record<string, string>
+      dependencies?: Record<
+        string,
+        {
+          specifier: string
+          version: string
+          packageKey: string
+        }
+      >
     }
-    dependencies?: Record<string, string>
-  }>
+  >
+  packages: Record<
+    string,
+    {
+      name: string
+      version: string
+      kind: 'data' | 'asset'
+      engine: string
+      source: string
+      entry: string
+      provenance: LockProvenance
+      resolution?: {
+        integrity?: string
+        resolved?: string
+        tarball?: string
+        path?: string
+        commit?: string
+      }
+      dependencies?: Record<string, string>
+    }
+  >
 }
 
 export interface AssetConflict {

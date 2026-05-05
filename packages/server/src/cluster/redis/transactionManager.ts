@@ -2,7 +2,8 @@ import { nanoid } from 'nanoid'
 import pino from 'pino'
 import type { RedisClientManager } from './redisClient'
 import type { DistributedLockManager } from './distributedLock'
-import { ClusterError } from '../types'
+import type { ChainableCommander } from 'ioredis'
+import { ClusterError, type DistributedLock } from '../types'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -11,7 +12,7 @@ const logger = pino({
 export interface TransactionOperation {
   type: 'set' | 'del' | 'sadd' | 'srem' | 'hset' | 'hdel' | 'zadd' | 'zrem'
   key: string
-  value?: any
+  value?: unknown
   field?: string
   score?: number
   ttl?: number
@@ -62,7 +63,7 @@ export class TransactionManager {
     logger.debug({ transactionId, operationCount: operations.length }, 'Starting distributed transaction')
 
     let executedOperations = 0
-    const acquiredLocks: Array<{ key: string; lock: any }> = []
+    const acquiredLocks: Array<{ key: string; lock: DistributedLock }> = []
 
     try {
       // 获取所有需要的锁
@@ -161,13 +162,13 @@ export class TransactionManager {
     return this.executeTransaction(operations, { lockKeys })
   }
 
-  private addOperationToMulti(multi: any, operation: TransactionOperation): void {
+  private addOperationToMulti(multi: ChainableCommander, operation: TransactionOperation): void {
     switch (operation.type) {
       case 'set':
         if (operation.ttl) {
-          multi.setex(operation.key, Math.floor(operation.ttl / 1000), operation.value)
+          multi.setex(operation.key, Math.floor(operation.ttl / 1000), operation.value as string | number | Buffer)
         } else {
-          multi.set(operation.key, operation.value)
+          multi.set(operation.key, operation.value as string | number | Buffer)
         }
         break
 
@@ -176,18 +177,18 @@ export class TransactionManager {
         break
 
       case 'sadd':
-        multi.sadd(operation.key, operation.value)
+        multi.sadd(operation.key, operation.value as string | Buffer | number)
         break
 
       case 'srem':
-        multi.srem(operation.key, operation.value)
+        multi.srem(operation.key, operation.value as string | Buffer | number)
         break
 
       case 'hset':
         if (operation.field) {
-          multi.hset(operation.key, operation.field, operation.value)
+          multi.hset(operation.key, operation.field!, operation.value as string | Buffer | number)
         } else {
-          multi.hset(operation.key, operation.value)
+          multi.hset(operation.key, operation.value as string | Buffer | number)
         }
         break
 
@@ -199,12 +200,12 @@ export class TransactionManager {
 
       case 'zadd':
         if (operation.score !== undefined) {
-          multi.zadd(operation.key, operation.score, operation.value)
+          multi.zadd(operation.key, operation.score!, operation.value as string | Buffer | number)
         }
         break
 
       case 'zrem':
-        multi.zrem(operation.key, operation.value)
+        multi.zrem(operation.key, operation.value as string | Buffer | number)
         break
 
       default:
@@ -365,7 +366,7 @@ export class TransactionManager {
 export class TransactionBuilder {
   private operations: TransactionOperation[] = []
 
-  set(key: string, value: any, ttl?: number): this {
+  set(key: string, value: unknown, ttl?: number): this {
     this.operations.push({ type: 'set', key, value, ttl })
     return this
   }
@@ -375,17 +376,17 @@ export class TransactionBuilder {
     return this
   }
 
-  sadd(key: string, value: any): this {
+  sadd(key: string, value: unknown): this {
     this.operations.push({ type: 'sadd', key, value })
     return this
   }
 
-  srem(key: string, value: any): this {
+  srem(key: string, value: unknown): this {
     this.operations.push({ type: 'srem', key, value })
     return this
   }
 
-  hset(key: string, field: string, value: any): this {
+  hset(key: string, field: string, value: unknown): this {
     this.operations.push({ type: 'hset', key, field, value })
     return this
   }
@@ -395,12 +396,12 @@ export class TransactionBuilder {
     return this
   }
 
-  zadd(key: string, score: number, value: any): this {
+  zadd(key: string, score: number, value: unknown): this {
     this.operations.push({ type: 'zadd', key, score, value })
     return this
   }
 
-  zrem(key: string, value: any): this {
+  zrem(key: string, value: unknown): this {
     this.operations.push({ type: 'zrem', key, value })
     return this
   }

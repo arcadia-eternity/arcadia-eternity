@@ -113,9 +113,7 @@ export class EffectPipeline {
 
     for (const { entityId, effect } of candidates) {
       const triggerSourceEntityId =
-        typeof context.triggerSourceEntityId === 'string'
-          ? context.triggerSourceEntityId
-          : context.sourceEntityId
+        typeof context.triggerSourceEntityId === 'string' ? context.triggerSourceEntityId : context.sourceEntityId
       const effectContext: EffectFireContext = trigger === 'BeforeEffect' ? context : { ...context }
       effectContext.triggerSourceEntityId = triggerSourceEntityId
       effectContext.sourceEntityId = entityId

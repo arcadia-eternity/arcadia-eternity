@@ -19,10 +19,10 @@ export class GlobalRuleRegistry {
 
     try {
       const registry = RuleRegistry.getInstance()
-      
+
       // 注册默认规则和规则集
       registerDefaultRules(registry)
-      
+
       // 验证注册表
       const validation = validateRuleSystemSetup(registry)
       if (!validation.isValid) {
@@ -68,7 +68,7 @@ export class GlobalRuleRegistry {
 
     const registry = RuleRegistry.getInstance()
     const validation = validateRuleSystemSetup(registry)
-    
+
     return {
       isInitialized: true,
       validation,

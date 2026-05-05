@@ -14,6 +14,7 @@
 ### 1. 修复重连时获取战斗状态 (handlePlayerReconnect)
 
 **修复前：**
+
 ```typescript
 const battle = this.getLocalBattle(reconnectInfo.roomId)
 if (battle) {
@@ -22,6 +23,7 @@ if (battle) {
 ```
 
 **修复后：**
+
 ```typescript
 // 检查房间是否在当前实例
 if (this.isRoomInCurrentInstance(currentRoomState)) {
@@ -32,18 +34,16 @@ if (this.isRoomInCurrentInstance(currentRoomState)) {
   }
 } else {
   // 房间在其他实例，通过跨实例调用获取战斗状态
-  fullBattleState = await this.forwardPlayerAction(
-    currentRoomState.instanceId, 
-    'getState', 
-    socket.data.playerId!, 
-    { roomId: reconnectInfo.roomId }
-  )
+  fullBattleState = await this.forwardPlayerAction(currentRoomState.instanceId, 'getState', socket.data.playerId!, {
+    roomId: reconnectInfo.roomId,
+  })
 }
 ```
 
 ### 2. 修复发送战斗状态到玩家 (sendBattleStateToPlayer)
 
 **修复前：**
+
 ```typescript
 const battle = this.getLocalBattle(roomId)
 if (battle) {
@@ -52,6 +52,7 @@ if (battle) {
 ```
 
 **修复后：**
+
 ```typescript
 // 获取房间状态以确定房间所在实例
 const roomState = await this.stateManager.getRoomState(roomId)
@@ -63,18 +64,17 @@ if (this.isRoomInCurrentInstance(roomState)) {
   // ...
 } else {
   // 房间在其他实例，通过跨实例调用获取计时器状态
-  const timerState = await this.forwardPlayerAction(
-    roomState.instanceId, 
-    'getPlayerTimerState', 
-    playerId, 
-    { roomId, playerId }
-  )
+  const timerState = await this.forwardPlayerAction(roomState.instanceId, 'getPlayerTimerState', playerId, {
+    roomId,
+    playerId,
+  })
 }
 ```
 
 ### 3. 修复重连后恢复战斗 (resumeBattleAfterReconnect)
 
 **修复前：**
+
 ```typescript
 const battle = this.getLocalBattle(roomId)
 if (battle) {
@@ -84,6 +84,7 @@ if (battle) {
 ```
 
 **修复后：**
+
 ```typescript
 // 获取房间状态以确定房间所在实例
 const roomState = await this.stateManager.getRoomState(roomId)
@@ -98,8 +99,7 @@ if (this.isRoomInCurrentInstance(roomState)) {
 } else {
   // 房间在其他实例，记录日志
   // 实际的计时器恢复会在目标实例的重连处理中完成
-  logger.info({ roomId, playerId, roomInstance: roomState.instanceId }, 
-    '跨实例重连，计时器恢复将在目标实例处理')
+  logger.info({ roomId, playerId, roomInstance: roomState.instanceId }, '跨实例重连，计时器恢复将在目标实例处理')
 }
 ```
 

@@ -1,4 +1,5 @@
 import type { Player } from '@arcadia-eternity/database'
+import { AxiosError } from 'axios'
 import { useAuthStore } from '../stores/auth'
 
 // 使用认证服务的API实例
@@ -71,8 +72,8 @@ export class EmailInheritanceService {
       const api = getApi()
       const response = await api.post('/email/send-verification-code', request)
       return response.data
-    } catch (error: any) {
-      if (error.response?.data) {
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.data) {
         return error.response.data
       }
       throw new Error('发送验证码失败，请检查网络连接')
@@ -87,8 +88,8 @@ export class EmailInheritanceService {
       const api = getApi()
       const response = await api.post('/email/verify-code', request)
       return response.data
-    } catch (error: any) {
-      if (error.response?.data) {
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.data) {
         return error.response.data
       }
       throw new Error('验证码验证失败，请检查网络连接')
@@ -107,8 +108,8 @@ export class EmailInheritanceService {
         playerId,
       })
       return response.data
-    } catch (error: any) {
-      if (error.response?.data) {
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.data) {
         return error.response.data
       }
       throw new Error('邮箱绑定失败，请检查网络连接')
@@ -126,8 +127,8 @@ export class EmailInheritanceService {
         code,
       })
       return response.data
-    } catch (error: any) {
-      if (error.response?.data) {
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.data) {
         return error.response.data
       }
       throw new Error('玩家ID恢复失败，请检查网络连接')
@@ -142,8 +143,8 @@ export class EmailInheritanceService {
       const api = getApi()
       const response = await api.get(`/email/check-binding?email=${encodeURIComponent(email)}`)
       return response.data
-    } catch (error: any) {
-      if (error.response?.data) {
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.data) {
         return error.response.data
       }
       throw new Error('检查邮箱绑定状态失败，请检查网络连接')
@@ -158,8 +159,8 @@ export class EmailInheritanceService {
       const api = getApi()
       const response = await api.post('/email/unbind', { playerId })
       return response.data
-    } catch (error: any) {
-      if (error.response?.data) {
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.data) {
         return error.response.data
       }
       throw new Error('邮箱解绑失败，请检查网络连接')

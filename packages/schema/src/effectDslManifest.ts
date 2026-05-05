@@ -41,10 +41,7 @@ export function getEffectDslManifest(): EffectDslManifest {
   return effectDslManifest
 }
 
-export function getEffectDslNodeTyping(
-  kind: EffectDslNodeKind,
-  type: string,
-): EffectDslNodeTypingRule | undefined {
+export function getEffectDslNodeTyping(kind: EffectDslNodeKind, type: string): EffectDslNodeTypingRule | undefined {
   if (!type) return undefined
   return effectDslManifest[kind][type]
 }

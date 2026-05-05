@@ -91,7 +91,7 @@ export class ClusterManager {
 
   async healthCheck(): Promise<{
     status: 'healthy' | 'unhealthy'
-    details: Record<string, any>
+    details: Record<string, unknown>
   }> {
     try {
       if (!this.initialized) {

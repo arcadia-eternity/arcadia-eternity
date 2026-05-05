@@ -180,7 +180,12 @@ export class ClusterRealtimeGateway implements RealtimeTransport {
     }
   }
 
-  private async publishSessionMessage(playerId: string, sessionId: string, event: string, data: unknown): Promise<void> {
+  private async publishSessionMessage(
+    playerId: string,
+    sessionId: string,
+    event: string,
+    data: unknown,
+  ): Promise<void> {
     const publisher = this.redisManager.getPublisher()
     await publisher.publish(
       'cluster:session-message',
@@ -211,13 +216,15 @@ export class ClusterRealtimeGateway implements RealtimeTransport {
       subscriber.on('message', async (channel, message) => {
         try {
           if (channel !== sessionChannel) return
-          await this.handleBroadcastSessionMessage(JSON.parse(message) as {
-            playerId: string
-            sessionId: string
-            event: string
-            data: unknown
-            sourceInstanceId: string
-          })
+          await this.handleBroadcastSessionMessage(
+            JSON.parse(message) as {
+              playerId: string
+              sessionId: string
+              event: string
+              data: unknown
+              sourceInstanceId: string
+            },
+          )
         } catch (error) {
           logger.error({ error, message, channel }, 'Failed to handle session message')
         }

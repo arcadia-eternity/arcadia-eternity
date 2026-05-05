@@ -4,7 +4,14 @@ import { promisify } from 'node:util'
 import { basename, dirname, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PackLoader } from '@arcadia-eternity/pack-loader'
-import type { InstalledPack, PackInstallRequest, PackLoadResult, PackLockfile, PackManager, PackResolveResult } from '@arcadia-eternity/pack-loader'
+import type {
+  InstalledPack,
+  PackInstallRequest,
+  PackLoadResult,
+  PackLockfile,
+  PackManager,
+  PackResolveResult,
+} from '@arcadia-eternity/pack-loader'
 
 const execFileAsync = promisify(execFile)
 
@@ -88,7 +95,9 @@ export class ServerPackManager implements PackManager {
     const conflicts: string[] = []
 
     for (const [packageKey, snapshot] of Object.entries(lockfile.packages)) {
-      const match = installed.find(pack => pack.id === snapshot.name && pack.version === snapshot.version && pack.kind === snapshot.kind)
+      const match = installed.find(
+        pack => pack.id === snapshot.name && pack.version === snapshot.version && pack.kind === snapshot.kind,
+      )
       if (!match) {
         missing.push({
           name: snapshot.name,
@@ -231,11 +240,12 @@ export class ServerPackManager implements PackManager {
     const preferred = [...added].sort((a, b) => (a.kind === 'data' ? -1 : 1) - (b.kind === 'data' ? -1 : 1))
     if (preferred.length > 0) return preferred[0]
 
-    return after.find(pack =>
-      pack.packageName === request.specifier
-      || pack.packageName === installSpecifier
-      || pack.root === resolve(this.workspaceRoot, request.specifier.replace(/^file:/, ''))
-      || pack.resolved === resolve(this.workspaceRoot, request.specifier.replace(/^file:/, '')),
+    return after.find(
+      pack =>
+        pack.packageName === request.specifier ||
+        pack.packageName === installSpecifier ||
+        pack.root === resolve(this.workspaceRoot, request.specifier.replace(/^file:/, '')) ||
+        pack.resolved === resolve(this.workspaceRoot, request.specifier.replace(/^file:/, '')),
     )
   }
 }

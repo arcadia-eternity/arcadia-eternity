@@ -8,7 +8,11 @@ import {
   preparePrivateRoomPeerSession,
   pushPrivateRoomPeerSignal,
 } from '../privateRoomPeerSession'
-import type { PrivateRoomBattleStartInfo, PrivateRoomInfo, PrivateRoomPeerSignalEvent } from '@arcadia-eternity/protocol'
+import type {
+  PrivateRoomBattleStartInfo,
+  PrivateRoomInfo,
+  PrivateRoomPeerSignalEvent,
+} from '@arcadia-eternity/protocol'
 
 const room: PrivateRoomInfo = {
   id: 'room-1',

@@ -16,13 +16,7 @@ attributeSystem.registerBaseAttribute('defense', 80)
 attributeSystem.registerBaseAttribute('speed', 60)
 
 // 正常使用 - 不会有循环依赖问题
-const attackBoost = new Modifier(
-  DurationType.binding,
-  'attack_boost',
-  50,
-  'delta',
-  100
-)
+const attackBoost = new Modifier(DurationType.binding, 'attack_boost', 50, 'delta', 100)
 
 attributeSystem.addModifier('attack', attackBoost)
 console.log('Attack:', attributeSystem.getCurrentValue('attack')) // 150
@@ -43,7 +37,7 @@ const attackFromDefense = new Modifier(
     return Math.floor(defense * 0.5)
   }, [attributeSystem.getAttribute$('defense')]),
   'delta',
-  100
+  100,
 )
 
 const defenseFromAttack = new Modifier(
@@ -55,7 +49,7 @@ const defenseFromAttack = new Modifier(
     return Math.floor(attack * 0.3)
   }, [attributeSystem.getAttribute$('attack')]),
   'delta',
-  100
+  100,
 )
 
 // 添加这两个modifier会触发循环依赖检测
@@ -82,7 +76,7 @@ const selfBoostingSpeed = new Modifier(
     return currentSpeed + 10
   }, [attributeSystem.getAttribute$('speed')]),
   'delta',
-  100
+  100,
 )
 
 attributeSystem.addModifier('speed', selfBoostingSpeed)
@@ -100,11 +94,11 @@ attributeSystem.addModifier('speed', selfBoostingSpeed)
 // 检查是否存在循环依赖
 if (attributeSystem.hasCircularDependencies()) {
   console.log('Warning: Circular dependencies detected!')
-  
+
   // 查看依赖图
   const graph = attributeSystem.getDependencyGraph()
   console.log('Dependency graph:', graph)
-  
+
   // 查看当前计算栈
   const stack = attributeSystem.getCalculationStack()
   console.log('Calculation stack:', Array.from(stack))
@@ -161,7 +155,7 @@ const levelBonus = new Modifier(
     return level * 5 // 等级影响攻击力
   }, [petInstance.level$]),
   'delta',
-  100
+  100,
 )
 
 // ✅ 推荐：基于外部状态的modifier
@@ -173,7 +167,7 @@ const weatherBonus = new Modifier(
     return weather === 'sunny' ? 20 : 0
   }, [battleInstance.weather$]),
   'delta',
-  50
+  50,
 )
 ```
 
@@ -188,15 +182,12 @@ const hpRatioBonus = new Modifier(
     const currentHp = attributeSystem.getCurrentValue('currentHp') as number
     const maxHp = attributeSystem.getCurrentValue('maxHp') as number
     const ratio = currentHp / maxHp
-    
+
     // 低血量时攻击力提升，但不依赖攻击力本身
     return ratio < 0.3 ? 50 : 0
-  }, [
-    attributeSystem.getAttribute$('currentHp'),
-    attributeSystem.getAttribute$('maxHp')
-  ]),
+  }, [attributeSystem.getAttribute$('currentHp'), attributeSystem.getAttribute$('maxHp')]),
   'delta',
-  200
+  200,
 )
 
 attributeSystem.addModifier('attack', hpRatioBonus)
@@ -209,10 +200,10 @@ try {
   // 添加可能有问题的modifier
   const riskyModifier = createComplexModifier()
   const cleanup = attributeSystem.addModifier('attack', riskyModifier)
-  
+
   // 检查是否工作正常
   const value = attributeSystem.getCurrentValue('attack')
-  
+
   if (attributeSystem.hasCircularDependencies()) {
     console.warn('Circular dependency detected, cleaning up...')
     cleanup()
@@ -234,7 +225,7 @@ if (process.env.NODE_ENV === 'development') {
   // 监听属性变化
   attributeSystem.getAttribute$('attack').subscribe(value => {
     console.log('Attack changed to:', value)
-    
+
     if (attributeSystem.hasCircularDependencies()) {
       console.warn('Circular dependency detected!')
       console.log('Stack:', Array.from(attributeSystem.getCalculationStack()))
@@ -249,15 +240,16 @@ if (process.env.NODE_ENV === 'development') {
 ```typescript
 // 监控计算深度
 const originalGetCurrentValue = attributeSystem.getCurrentValue.bind(attributeSystem)
-attributeSystem.getCurrentValue = function(key) {
+attributeSystem.getCurrentValue = function (key) {
   const start = performance.now()
   const result = originalGetCurrentValue(key)
   const end = performance.now()
-  
-  if (end - start > 10) { // 超过10ms
+
+  if (end - start > 10) {
+    // 超过10ms
     console.warn(`Slow calculation for ${key}: ${end - start}ms`)
   }
-  
+
   return result
 }
 ```

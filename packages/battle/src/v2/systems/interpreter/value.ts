@@ -37,11 +37,7 @@ function getTaggedTemplates(ctx: InterpreterContext): TaggedConfigModifierTempla
   return Array.isArray(existing) ? (existing as TaggedConfigModifierTemplate[]) : []
 }
 
-function applyTaggedTemplatesIfNeeded(
-  ctx: InterpreterContext,
-  key: string,
-  tags: string[],
-): void {
+function applyTaggedTemplatesIfNeeded(ctx: InterpreterContext, key: string, tags: string[]): void {
   if (tags.length === 0) return
   const templates = getTaggedTemplates(ctx)
   if (templates.length === 0) return
@@ -70,9 +66,7 @@ function resolveRawConfigValue(ctx: InterpreterContext, raw: RawValueNode): unkn
 
   const key = (() => {
     if (raw.configId) {
-      return raw.configId.includes('.')
-        ? raw.configId
-        : `${effectId}.${raw.configId}`
+      return raw.configId.includes('.') ? raw.configId : `${effectId}.${raw.configId}`
     }
     if (tags.length > 0) {
       const tagPart = tags.join('|')

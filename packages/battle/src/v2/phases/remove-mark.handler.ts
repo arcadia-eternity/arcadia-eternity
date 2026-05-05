@@ -46,12 +46,17 @@ export class RemoveMarkHandler implements PhaseHandler<RemoveMarkPhaseData> {
       return { success: true, state: 'completed', data }
     }
 
-    await this.effectPipeline.fire(world, EffectTrigger.OnMarkDestroy, {
-      trigger: EffectTrigger.OnMarkDestroy,
-      sourceEntityId: ctx.markId,
-      markId: ctx.markId,
-      baseMarkId: mark.baseMarkId,
-    }, [ctx.markId])
+    await this.effectPipeline.fire(
+      world,
+      EffectTrigger.OnMarkDestroy,
+      {
+        trigger: EffectTrigger.OnMarkDestroy,
+        sourceEntityId: ctx.markId,
+        markId: ctx.markId,
+        baseMarkId: mark.baseMarkId,
+      },
+      [ctx.markId],
+    )
 
     const ownerId = mark.ownerId
     this.markSystem.destroy(world, ctx.markId)

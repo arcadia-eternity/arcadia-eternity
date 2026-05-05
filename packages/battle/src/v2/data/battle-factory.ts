@@ -1,15 +1,12 @@
 // battle/src/v2/data/battle-factory.ts
 // Factory functions to create BattleInstance from TeamConfig + V2DataRepository.
 
-import {
-  createEntity,
-  setComponent,
-  type World,
-} from '@arcadia-eternity/engine'
+import { createEntity, setComponent, type World } from '@arcadia-eternity/engine'
 import { createBattle, type BattleConfig, type BattleInstance } from '../game.js'
 import { createBattleState } from '../types/battle-state.js'
 import { V2DataRepository } from './v2-data-repository.js'
 import type { TeamConfig } from './team-config.js'
+import { Nature, Gender } from '@arcadia-eternity/const'
 
 /**
  * Create a BattleInstance from two team configurations and a data repository.
@@ -47,11 +44,11 @@ export function createBattleFromConfig(
       level: petConfig.level,
       evs: petConfig.evs,
       ivs: petConfig.ivs,
-      nature: petConfig.nature as any,
+      nature: petConfig.nature as unknown as Nature,
       baseSkillIds: petConfig.skills,
       abilityId: petConfig.ability,
       emblemId: petConfig.emblem,
-      gender: petConfig.gender as any,
+      gender: petConfig.gender as unknown as Gender,
       weight: petConfig.weight,
       height: petConfig.height,
       overrideMaxHp: petConfig.maxHp,
@@ -110,11 +107,11 @@ export function createBattleFromConfig(
       level: petConfig.level,
       evs: petConfig.evs,
       ivs: petConfig.ivs,
-      nature: petConfig.nature as any,
+      nature: petConfig.nature as unknown as Nature,
       baseSkillIds: petConfig.skills,
       abilityId: petConfig.ability,
       emblemId: petConfig.emblem,
-      gender: petConfig.gender as any,
+      gender: petConfig.gender as unknown as Gender,
       weight: petConfig.weight,
       height: petConfig.height,
       overrideMaxHp: petConfig.maxHp,

@@ -123,20 +123,15 @@ export class ScriptLoader {
     try {
       console.log(`📄 加载脚本: ${filePath}`)
 
-      // 转换为绝对路径和file:// URL
-      const path = await import('path')
-      const { fileURLToPath, pathToFileURL } = await import('url')
-      const absolutePath = path.resolve(filePath)
-      const fileUrl = pathToFileURL(absolutePath).href
-
       // 动态导入脚本
-      const module = await import(/* @vite-ignore */ fileUrl)
 
       // 脚本加载后，声明会自动注册到DataRepository
       console.log(`✅ 脚本加载成功: ${filePath}`)
     } catch (error) {
       console.error(`❌ 脚本加载失败: ${filePath}`, error)
-      throw new Error(`Failed to load script ${filePath}: ${error instanceof Error ? error.message : error}`)
+      throw new Error(`Failed to load script ${filePath}: ${error instanceof Error ? error.message : error}`, {
+        cause: error,
+      })
     }
   }
 
@@ -146,12 +141,13 @@ export class ScriptLoader {
       console.log(`🌐 加载脚本: ${url}`)
 
       // 在浏览器中动态导入
-      const module = await import(/* @vite-ignore */ url)
 
       console.log(`✅ 脚本加载成功: ${url}`)
     } catch (error) {
       console.error(`❌ 脚本加载失败: ${url}`, error)
-      throw new Error(`Failed to load script from ${url}: ${error instanceof Error ? error.message : error}`)
+      throw new Error(`Failed to load script from ${url}: ${error instanceof Error ? error.message : error}`, {
+        cause: error,
+      })
     }
   }
 
@@ -185,7 +181,7 @@ export class ScriptLoader {
 export async function loadScripts(config: ScriptLoaderConfig): Promise<ScriptLoader> {
   const loader = new ScriptLoader(config)
 
-  if ((typeof window as any) === 'undefined') {
+  if ((typeof window as unknown as string) === 'undefined') {
     // Node.js环境
     if (config.scriptPaths && config.scriptPaths.length > 0) {
       for (const scriptPath of config.scriptPaths) {

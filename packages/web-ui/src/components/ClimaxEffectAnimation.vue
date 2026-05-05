@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 // 导入所有 climax_effect 图片
 import climaxEffect90 from '@/assets/images/climax_effect/90.png'
@@ -214,7 +214,7 @@ const getImageStyle = (frame: AnimationFrame) => {
 }
 
 // 更新帧显示状态
-const updateFrameVisibility = (frameData: any) => {
+const updateFrameVisibility = (frameData: { show?: number[]; hide?: number[] }) => {
   // 隐藏指定的帧
   if (frameData.hide && frameData.hide.length > 0) {
     frameData.hide.forEach((frameId: number) => {

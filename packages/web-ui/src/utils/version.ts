@@ -130,7 +130,7 @@ export async function checkForUpdates(
   options: {
     isAutoCheck?: boolean
     onSuccess?: (hasUpdate: boolean, version?: string) => void
-    onError?: (error: any) => void
+    onError?: (error: unknown) => void
   } = {},
 ): Promise<void> {
   const { isAutoCheck = false, onSuccess, onError } = options
@@ -187,7 +187,7 @@ export async function checkForUpdates(
       }
     }
   } catch (error) {
-    console.error('检查更新失败:', error)
+    console.error('检查更新失败:', String(error))
     onError?.(error)
 
     if (!isAutoCheck) {

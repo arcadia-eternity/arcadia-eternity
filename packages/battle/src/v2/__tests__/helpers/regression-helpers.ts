@@ -24,8 +24,9 @@ let repoPromise: Promise<V2DataRepository> | undefined
 
 export async function getTestRepository(): Promise<V2DataRepository> {
   if (!repoPromise) {
-    repoPromise = loadV2GameDataFromPack(PACK_REF, { continueOnError: false, validateReferences: true })
-      .then((result: LoadResult) => result.repository)
+    repoPromise = loadV2GameDataFromPack(PACK_REF, { continueOnError: false, validateReferences: true }).then(
+      (result: LoadResult) => result.repository,
+    )
   }
   return repoPromise
 }
@@ -127,11 +128,12 @@ export function makeUseSkillContextFromSkill(params: {
   const { world, skillSystem, playerSystem } = battle
   const targetOpinion = skillSystem.getTarget(world, skillId)
   const { playerAId, playerBId } = getBattlePlayerIds(world)
-  const actualTargetId = targetOpinion === AttackTargetOpinion.self
-    ? petId
-    : (targetOpinion === AttackTargetOpinion.opponent
-      ? playerSystem.getActivePet(world, originPlayerId === playerAId ? playerBId : playerAId).id
-      : fallbackTargetId)
+  const actualTargetId =
+    targetOpinion === AttackTargetOpinion.self
+      ? petId
+      : targetOpinion === AttackTargetOpinion.opponent
+        ? playerSystem.getActivePet(world, originPlayerId === playerAId ? playerBId : playerAId).id
+        : fallbackTargetId
   const ctx = makeUseSkillContext({
     petId,
     skillId,
@@ -246,7 +248,7 @@ export async function runAutoBattleWithSeed(
   await system.cleanup()
   const victorId = typeof world.state.victor === 'string' ? world.state.victor : undefined
   return {
-    winnerSide: victorId === playerAId ? 'A' : (victorId === playerBId ? 'B' : undefined),
+    winnerSide: victorId === playerAId ? 'A' : victorId === playerBId ? 'B' : undefined,
     turn,
     messageTypeCount,
     critCount,

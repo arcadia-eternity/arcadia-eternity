@@ -50,20 +50,13 @@ import { BattleIntegration } from '@arcadia-eternity/rules'
 const battleIntegration = new BattleIntegration()
 
 // 准备战斗
-const result = await battleIntegration.prepareBattle(
-  playerATeam,
-  playerBTeam,
-  ['competitive_ruleset'],
-  { allowFaintSwitch: true }
-)
+const result = await battleIntegration.prepareBattle(playerATeam, playerBTeam, ['competitive_ruleset'], {
+  allowFaintSwitch: true,
+})
 
 if (result.validation.isValid) {
   // 创建战斗实例
-  const battle = new Battle(
-    playerA,
-    playerB,
-    result.battleOptions
-  )
+  const battle = new Battle(playerA, playerB, result.battleOptions)
 }
 ```
 
@@ -97,7 +90,7 @@ class CustomRule extends AbstractRule {
   validateTeam(team: Team): ValidationResult {
     // 实现验证逻辑
   }
-  
+
   modifyPet(pet: PetSchemaType): void {
     // 实现修改逻辑
   }
@@ -198,11 +191,13 @@ class MyCustomRule extends AbstractRule {
   validateTeam(team: Team): ValidationResult {
     // 实现验证逻辑
     if (team.length > 3) {
-      return createFailureResult([{
-        type: ValidationErrorType.TEAM_VALIDATION,
-        code: 'TOO_MANY_PETS',
-        message: '队伍精灵数量不能超过3只',
-      }])
+      return createFailureResult([
+        {
+          type: ValidationErrorType.TEAM_VALIDATION,
+          code: 'TOO_MANY_PETS',
+          message: '队伍精灵数量不能超过3只',
+        },
+      ])
     }
     return createSuccessResult()
   }

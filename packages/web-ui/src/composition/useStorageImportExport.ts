@@ -103,25 +103,27 @@ export function useStorageImportExport() {
   /**
    * 验证导入数据格式
    */
-  function validateImportData(data: any): StorageData | null {
+  function validateImportData(data: unknown): StorageData | null {
     try {
       // 基本结构验证
       if (!data || typeof data !== 'object') {
         throw new Error('无效的数据格式')
       }
 
+      const record = data as Record<string, unknown>
+
       // 检查必要字段
-      if (!data.storage || !Array.isArray(data.storage)) {
+      if (!record.storage || !Array.isArray(record.storage)) {
         throw new Error('缺少有效的仓库数据')
       }
 
-      if (!data.teams || !Array.isArray(data.teams)) {
+      if (!record.teams || !Array.isArray(record.teams)) {
         throw new Error('缺少有效的队伍数据')
       }
 
       // 验证精灵数据
       const validatedStorage: PetSchemaType[] = []
-      for (const pet of data.storage) {
+      for (const pet of record.storage) {
         try {
           const validatedPet = parseWithErrors(PetSchema, pet)
           validatedStorage.push(validatedPet)
@@ -132,7 +134,8 @@ export function useStorageImportExport() {
 
       // 验证队伍数据
       const validatedTeams: Array<{ name: string; pets: PetSchemaType[] }> = []
-      for (const team of data.teams) {
+      for (const teamRaw of record.teams) {
+        const team = teamRaw as Record<string, unknown>
         if (!team.name || typeof team.name !== 'string') {
           console.warn('跳过无效队伍数据:', team)
           continue
@@ -157,8 +160,8 @@ export function useStorageImportExport() {
       }
 
       return {
-        version: data.version || '1.0.0',
-        exportDate: data.exportDate || new Date().toISOString(),
+        version: (typeof record.version === 'string' ? record.version : '1.0.0') as string,
+        exportDate: (typeof record.exportDate === 'string' ? record.exportDate : new Date().toISOString()) as string,
         storage: validatedStorage,
         teams: validatedTeams,
       }

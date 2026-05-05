@@ -8,11 +8,12 @@ const windowHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 76
 const isMobile = computed(() => {
   // 基于屏幕宽度的检测
   const isSmallScreen = windowWidth.value < 768
-  
+
   // 基于用户代理的检测
-  const isMobileDevice = typeof navigator !== 'undefined' && 
+  const isMobileDevice =
+    typeof navigator !== 'undefined' &&
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  
+
   return isSmallScreen || isMobileDevice
 })
 

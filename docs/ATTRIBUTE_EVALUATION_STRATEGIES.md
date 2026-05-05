@@ -7,10 +7,12 @@
 ## 问题背景
 
 在之前的实现中，所有属性都使用相同的评估逻辑：
+
 - 数值增加 = 正面效果（绿色）
 - 数值减少 = 负面效果（红色）
 
 但这对于"成本型属性"（如怒气消耗）是不正确的：
+
 - 怒气消耗增加 = 负面效果（应该显示红色）
 - 怒气消耗减少 = 正面效果（应该显示绿色）
 
@@ -30,24 +32,24 @@ export type AttributeEvaluationStrategy = 'benefit' | 'cost'
 ```typescript
 const ATTRIBUTE_STRATEGIES: Record<string, AttributeEvaluationStrategy> = {
   // 收益型属性 - 数值越高越好
-  power: 'benefit',        // 技能威力
-  accuracy: 'benefit',     // 命中率
-  priority: 'benefit',     // 优先级
-  atk: 'benefit',         // 攻击力
-  def: 'benefit',         // 防御力
-  spa: 'benefit',         // 特攻
-  spd: 'benefit',         // 特防
-  spe: 'benefit',         // 速度
-  maxHp: 'benefit',       // 最大生命值
-  currentHp: 'benefit',   // 当前生命值
-  maxRage: 'benefit',     // 最大怒气值
+  power: 'benefit', // 技能威力
+  accuracy: 'benefit', // 命中率
+  priority: 'benefit', // 优先级
+  atk: 'benefit', // 攻击力
+  def: 'benefit', // 防御力
+  spa: 'benefit', // 特攻
+  spd: 'benefit', // 特防
+  spe: 'benefit', // 速度
+  maxHp: 'benefit', // 最大生命值
+  currentHp: 'benefit', // 当前生命值
+  maxRage: 'benefit', // 最大怒气值
   currentRage: 'benefit', // 当前怒气值
-  critRate: 'benefit',    // 暴击率
-  evasion: 'benefit',     // 闪避率
-  level: 'benefit',       // 等级
-  
+  critRate: 'benefit', // 暴击率
+  evasion: 'benefit', // 闪避率
+  level: 'benefit', // 等级
+
   // 成本型属性 - 数值越低越好
-  rage: 'cost',           // 怒气消耗
+  rage: 'cost', // 怒气消耗
 }
 ```
 
@@ -66,10 +68,7 @@ function getAttributeStrategy(attributeName: string): AttributeEvaluationStrateg
 ### 1. 更新的 analyzeModifierType 函数
 
 ```typescript
-export function analyzeModifierType(
-  attributeInfo?: AttributeModifierInfo, 
-  attributeName?: string
-): ModifierEffectType
+export function analyzeModifierType(attributeInfo?: AttributeModifierInfo, attributeName?: string): ModifierEffectType
 ```
 
 新增了 `attributeName` 参数，用于指定属性名以获取正确的评估策略。
@@ -77,10 +76,12 @@ export function analyzeModifierType(
 ### 2. 策略应用逻辑
 
 #### 对于 benefit 策略（收益型）
+
 - 数值增加 → 正面效果（绿色）
 - 数值减少 → 负面效果（红色）
 
 #### 对于 cost 策略（成本型）
+
 - 数值增加 → 负面效果（红色）
 - 数值减少 → 正面效果（绿色）
 
@@ -90,7 +91,7 @@ export function analyzeModifierType(
 // 根据策略检查正面效果
 const hasPositive = modifiers.some(m => {
   let isIncrease = false
-  
+
   switch (m.type) {
     case 'delta':
       isIncrease = typeof m.value === 'number' && m.value > 0
@@ -102,7 +103,7 @@ const hasPositive = modifiers.some(m => {
       isIncrease = typeof m.value === 'number' && m.value > baseValue
       break
   }
-  
+
   // 根据策略判断增加是否为正面效果
   return strategy === 'benefit' ? isIncrease : !isIncrease
 })
@@ -146,19 +147,19 @@ const rageModifierType = computed(() => {
 
 ### 怒气消耗 (rage) - 成本型属性
 
-| 基础值 | 当前值 | 变化 | 效果类型 | 显示颜色 | 说明 |
-|--------|--------|------|----------|----------|------|
-| 15 | 18 | +3 | debuffed | 红色 | 消耗增加，负面 |
-| 15 | 12 | -3 | buffed | 绿色 | 消耗减少，正面 |
-| 15 | 15 | 0 | none | 白色 | 无变化 |
+| 基础值 | 当前值 | 变化 | 效果类型 | 显示颜色 | 说明           |
+| ------ | ------ | ---- | -------- | -------- | -------------- |
+| 15     | 18     | +3   | debuffed | 红色     | 消耗增加，负面 |
+| 15     | 12     | -3   | buffed   | 绿色     | 消耗减少，正面 |
+| 15     | 15     | 0    | none     | 白色     | 无变化         |
 
 ### 技能威力 (power) - 收益型属性
 
-| 基础值 | 当前值 | 变化 | 效果类型 | 显示颜色 | 说明 |
-|--------|--------|------|----------|----------|------|
-| 80 | 120 | +40 | buffed | 绿色 | 威力提升，正面 |
-| 80 | 60 | -20 | debuffed | 红色 | 威力降低，负面 |
-| 80 | 80 | 0 | none | 白色 | 无变化 |
+| 基础值 | 当前值 | 变化 | 效果类型 | 显示颜色 | 说明           |
+| ------ | ------ | ---- | -------- | -------- | -------------- |
+| 80     | 120    | +40  | buffed   | 绿色     | 威力提升，正面 |
+| 80     | 60     | -20  | debuffed | 红色     | 威力降低，负面 |
+| 80     | 80     | 0    | none     | 白色     | 无变化         |
 
 ## 测试验证
 
@@ -199,11 +200,11 @@ const rageModifierType = computed(() => {
 ```typescript
 const ATTRIBUTE_STRATEGIES: Record<string, AttributeEvaluationStrategy> = {
   // 现有配置...
-  
+
   // 新增成本型属性
-  cooldown: 'cost',        // 冷却时间
-  castTime: 'cost',        // 施法时间
-  energyCost: 'cost',      // 能量消耗
+  cooldown: 'cost', // 冷却时间
+  castTime: 'cost', // 施法时间
+  energyCost: 'cost', // 能量消耗
 }
 ```
 
@@ -218,18 +219,22 @@ export type AttributeEvaluationStrategy = 'benefit' | 'cost' | 'neutral' | 'comp
 ## 技术优势
 
 ### 1. 语义正确性
+
 - 正确反映了不同属性类型的实际意义
 - 提供了符合用户直觉的视觉反馈
 
 ### 2. 可扩展性
+
 - 易于添加新的属性类型
 - 支持未来更复杂的评估策略
 
 ### 3. 向后兼容
+
 - 默认策略确保现有属性不受影响
 - 渐进式升级，不破坏现有功能
 
 ### 4. 类型安全
+
 - TypeScript 类型定义确保编译时检查
 - 减少运行时错误
 

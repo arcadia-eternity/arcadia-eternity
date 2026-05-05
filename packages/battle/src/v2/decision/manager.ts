@@ -129,9 +129,10 @@ export class DecisionManager {
       for (const playerId of windowPlayerIds) {
         const existing = this.selectionSystem.getSelection(this.battle.world, playerId)
         if (existing) continue
-        const selection = playerId === timeoutPlayerId
-          ? this.pickSurrenderSelection(playerId, phase)
-          : this.pickTurnTimeoutSelection(playerId, phase)
+        const selection =
+          playerId === timeoutPlayerId
+            ? this.pickSurrenderSelection(playerId, phase)
+            : this.pickTurnTimeoutSelection(playerId, phase)
         this.selectionSystem.setSelection(this.battle.world, playerId, selection)
         this.timerSystem?.markPlayerResolved(playerId)
       }

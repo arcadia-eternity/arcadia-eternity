@@ -38,12 +38,7 @@
       },
       "category": {
         "type": "string",
-        "enum": [
-          "Physical",
-          "Special",
-          "Status",
-          "Climax"
-        ]
+        "enum": ["Physical", "Special", "Status", "Climax"]
       },
       "power": {
         "type": "integer",
@@ -67,10 +62,7 @@
       },
       "target": {
         "type": "string",
-        "enum": [
-          "self",
-          "opponent"
-        ]
+        "enum": ["self", "opponent"]
       },
       "multihit": {
         "anyOf": [
@@ -105,12 +97,7 @@
       "ignoreOpponentStageStrategy": {
         "default": "none",
         "type": "string",
-        "enum": [
-          "none",
-          "all",
-          "positive",
-          "negative"
-        ]
+        "enum": ["none", "all", "positive", "negative"]
       },
       "tags": {
         "default": [],
@@ -126,13 +113,6 @@
         }
       }
     },
-    "required": [
-      "id",
-      "element",
-      "category",
-      "power",
-      "rage",
-      "accuracy"
-    ]
+    "required": ["id", "element", "category", "power", "rage", "accuracy"]
   }
 }

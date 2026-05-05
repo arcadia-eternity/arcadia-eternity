@@ -10,9 +10,12 @@ export const MarkConfigSchema = Type.Object(
     persistent: Type.Boolean({ default: true }),
     maxStacks: Type.Integer({ default: 1 }),
     stackable: Type.Boolean({ default: false }),
-    stackStrategy: Type.Union(Object.values(StackStrategy).map(v => Type.Literal(v)), {
-      default: StackStrategy.extend,
-    }),
+    stackStrategy: Type.Union(
+      Object.values(StackStrategy).map(v => Type.Literal(v)),
+      {
+        default: StackStrategy.extend,
+      },
+    ),
     destroyable: Type.Boolean({ default: true }),
     isShield: Type.Boolean({ default: false }),
     keepOnSwitchOut: Type.Boolean({ default: false }),
@@ -27,8 +30,8 @@ export const MarkSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   iconRef: Type.Optional(Type.String()),
   config: Type.Optional(MarkConfigSchema),
-  tags: Type.Optional(Type.Array(Type.String())),
-  effect: Type.Optional(Type.Array(Type.String())),
+  tags: Type.Optional(Type.Array(Type.String(), { default: [] })),
+  effect: Type.Optional(Type.Array(Type.String(), { default: [] })),
 })
 
 export type MarkSchemaType = Static<typeof MarkSchema>

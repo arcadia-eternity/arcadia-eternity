@@ -2,13 +2,7 @@
 // SelectionSystem — manages player selections during battle.
 
 import type { World } from '@arcadia-eternity/engine'
-import type {
-  PlayerSelection,
-  UseSkillSelection,
-  playerId,
-  petId,
-  skillId,
-} from '@arcadia-eternity/const'
+import type { PlayerSelection, UseSkillSelection, playerId, petId, skillId } from '@arcadia-eternity/const'
 import { AttackTargetOpinion } from '@arcadia-eternity/const'
 import type { PlayerSystem } from './player.system.js'
 import type { SkillSystem } from './skill.system.js'
@@ -69,7 +63,7 @@ export class SelectionSystem {
 
     if (phase === 'switch') {
       // Forced switch: only switch-pet and surrender
-      const isForcedSwitch = (world.state.pendingForcedSwitchPlayerIds as string[] ?? []).includes(pid)
+      const isForcedSwitch = ((world.state.pendingForcedSwitchPlayerIds as string[]) ?? []).includes(pid)
       const isFaintSwitch = world.state.pendingFaintSwitchPlayerId === pid
 
       if (isFaintSwitch && !isForcedSwitch) {
@@ -109,19 +103,19 @@ export class SelectionSystem {
     // Available skills (filtered by rage)
     const availableSkills: UseSkillSelection[] = []
     for (const sid of activePet.skillIds) {
-        const skillRage = this.skillSystem.getRage(world, sid)
-        if (skillRage <= currentRage) {
-          const rawTarget = this.skillSystem.getTarget(world, sid)
-          const normalizedTarget =
-            rawTarget === AttackTargetOpinion.self ? AttackTargetOpinion.self : AttackTargetOpinion.opponent
-          availableSkills.push({
-            player: pId,
-            type: 'use-skill',
-            skill: sid as unknown as skillId,
-            target: normalizedTarget,
-          })
-        }
+      const skillRage = this.skillSystem.getRage(world, sid)
+      if (skillRage <= currentRage) {
+        const rawTarget = this.skillSystem.getTarget(world, sid)
+        const normalizedTarget =
+          rawTarget === AttackTargetOpinion.self ? AttackTargetOpinion.self : AttackTargetOpinion.opponent
+        availableSkills.push({
+          player: pId,
+          type: 'use-skill',
+          skill: sid as unknown as skillId,
+          target: normalizedTarget,
+        })
       }
+    }
 
     selections.push(...availableSkills)
 

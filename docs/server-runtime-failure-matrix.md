@@ -51,20 +51,20 @@ Last updated: `2026-03-13`
 
 ## 3. 故障矩阵（核心）
 
-| Case | Owner | Lease | 请求到达实例 | 请求类型 | 预期行为 | 一致性级别 | 当前状态 |
-|---|---|---|---|---|---|---|---|
-| M01 | O1 | L1 | owner 本机 | R1/R2 | 本地处理 | 强一致 | 已实现 |
-| M02 | O1 | L1 | 非 owner | R1/R2 | RPC 转发到 owner | 强一致 | 已实现 |
-| M03 | O2 | L1 | 非 owner | R1 | 不能清房；返回可重试错误，等待 owner 恢复 | 强一致 | 已实现 |
-| M04 | O2 | L1 | 非 owner | R2 | 可返回 stale/重试提示，不迁移 owner | 最终一致 | 已实现 |
-| M05 | O3 | L1 | 非 owner | R1 | 首次超时不切主；重试窗口后再评估 failover | 强一致 | 已实现 |
-| M06 | O4 | L3/L4 | candidate | R1 | candidate 抢占 lease 并接管，再处理请求 | 强一致 | 已实现（支持 runtime 缺失时 bootstrap + action log 恢复，且 snapshot 版本不兼容时回退 replay-from-start） |
-| M07 | O4 | L1(残留) | candidate | R1 | 等 lease 过期后接管；期间返回可重试 | 强一致 | 已实现（owner 自动续约 + lease 过期后接管） |
-| M08 | O5 | L2 | 任意 | R1 | 拒绝新 mutation 或重路由到新 owner | 强一致 | 已实现（draining 拒写 + mutation 重路由） |
-| M09 | O5 | L2 | 任意 | R2 | 优先读旧 owner，必要时读快照 | 最终一致 | 已实现（读优先旧 owner + 本地fallback + Redis 快照 fallback） |
-| M10 | O4 | L4 | 任意 | R3 | 通过 room/session 映射定位新 owner，恢复战斗态 | 强一致 | 部分实现 |
-| M11 | O2/O3 | L1 | 任意 | R3 | 重连不应误判为 abandon；保留 grace window | 强一致 | 部分实现 |
-| M12 | O4 | L3/L4 | 任意 | R4 | 清理 orphan 映射 + 广播 roomClosed | 最终一致 | 已实现 |
+| Case | Owner | Lease    | 请求到达实例 | 请求类型 | 预期行为                                       | 一致性级别 | 当前状态                                                                                                  |
+| ---- | ----- | -------- | ------------ | -------- | ---------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+| M01  | O1    | L1       | owner 本机   | R1/R2    | 本地处理                                       | 强一致     | 已实现                                                                                                    |
+| M02  | O1    | L1       | 非 owner     | R1/R2    | RPC 转发到 owner                               | 强一致     | 已实现                                                                                                    |
+| M03  | O2    | L1       | 非 owner     | R1       | 不能清房；返回可重试错误，等待 owner 恢复      | 强一致     | 已实现                                                                                                    |
+| M04  | O2    | L1       | 非 owner     | R2       | 可返回 stale/重试提示，不迁移 owner            | 最终一致   | 已实现                                                                                                    |
+| M05  | O3    | L1       | 非 owner     | R1       | 首次超时不切主；重试窗口后再评估 failover      | 强一致     | 已实现                                                                                                    |
+| M06  | O4    | L3/L4    | candidate    | R1       | candidate 抢占 lease 并接管，再处理请求        | 强一致     | 已实现（支持 runtime 缺失时 bootstrap + action log 恢复，且 snapshot 版本不兼容时回退 replay-from-start） |
+| M07  | O4    | L1(残留) | candidate    | R1       | 等 lease 过期后接管；期间返回可重试            | 强一致     | 已实现（owner 自动续约 + lease 过期后接管）                                                               |
+| M08  | O5    | L2       | 任意         | R1       | 拒绝新 mutation 或重路由到新 owner             | 强一致     | 已实现（draining 拒写 + mutation 重路由）                                                                 |
+| M09  | O5    | L2       | 任意         | R2       | 优先读旧 owner，必要时读快照                   | 最终一致   | 已实现（读优先旧 owner + 本地fallback + Redis 快照 fallback）                                             |
+| M10  | O4    | L4       | 任意         | R3       | 通过 room/session 映射定位新 owner，恢复战斗态 | 强一致     | 部分实现                                                                                                  |
+| M11  | O2/O3 | L1       | 任意         | R3       | 重连不应误判为 abandon；保留 grace window      | 强一致     | 部分实现                                                                                                  |
+| M12  | O4    | L3/L4    | 任意         | R4       | 清理 orphan 映射 + 广播 roomClosed             | 最终一致   | 已实现                                                                                                    |
 
 ## 4. “请求在故障窗口内到达”细化
 
@@ -109,34 +109,34 @@ Last updated: `2026-03-13`
 
 ## 6. 自动化测试覆盖矩阵
 
-| Test ID | 覆盖 Case | 级别 | 文件 | 状态 |
-|---|---|---|---|---|
-| T01 | M01/M12 | unit/integration | `packages/server/test/clusterBattleService.v2.test.ts` | 已有 |
-| T02 | M07 | unit | `packages/server/test/ownershipCoordinator.test.ts` (`lease expiry takeover`) | 已有 |
-| T03 | M02 | integration | `cluster battle RPC forward` 相关流程 | 已有（间接） |
-| T04 | M03 | integration | 非 owner RPC 失败但 lease 有效时，不清房 | 已有（`clusterBattleServer.ownership-routing.test.ts`） |
-| T05 | M05 | integration | 连续超时阈值后才触发 failover | 已有（`clusterBattleServer.ownership-routing.test.ts`） |
-| T06 | M06 | integration | lease 过期后请求触发接管并成功处理 | 已有（`clusterBattleServer.ownership-routing.test.ts`，stub runtime） |
-| T07 | M08 | integration | draining 期间 mutation 拒绝/重路由 | 已有（`clusterBattleServer.ownership-routing.test.ts`，拒写+重路由） |
-| T09 | M09 | integration | draining 期间读请求优先旧 owner，失败时降级读取 | 已有（`clusterBattleServer.ownership-routing.test.ts`，local+snapshot fallback） |
-| T08 | M10/M11 | integration/e2e | 断线重连跨实例恢复 | 已实现（`clusterBattleServer.reconnect.socketio.e2e.test.ts` 覆盖真实 socket.io client + gRPC owner 的跨实例重连恢复） |
-| T10 | M10/M11 | unit | 重连主链（本地断线缓存/Redis断线记录/观战者过滤） | 已有（`clusterBattleServer.ownership-routing.test.ts`） |
-| T11 | M11 | unit | 断线备份检查器避免“已重连被误判 abandon” | 已有（`clusterBattleService.v2.test.ts`） |
-| T12 | M10/M11 | integration | socket 连接重连分支（`battleReconnect` 事件，含同实例/跨实例 full state） | 已有（`clusterBattleServer.reconnect.socketflow.test.ts`） |
-| T13 | M10/M11 | integration | 跨实例重连通过真实 gRPC 转发获取状态（非 stub） | 已有（`clusterBattleServer.reconnect.grpc-forward.integration.test.ts`） |
-| T14 | M04 | unit/integration | 非 owner 读请求转发失败时不触发 cleanup/takeover（读失败不污染 mutation failover 窗口） | 已有（`clusterBattleServer.ownership-routing.test.ts`） |
-| T15 | M10/M11 | unit/integration | 重连取状态使用 ownership 解析（避免 stale room routing）+ 转发失败时 snapshot 兜底 | 已有（`clusterBattleServer.reconnect.socketflow.test.ts`） |
-| T16 | M06 | integration | request-driven takeover 在本地 runtime 缺失时返回可重试，不执行误清房（等待 replay/handoff 能力） | 已有（`clusterBattleServer.ownership-routing.test.ts`） |
-| T17 | M06 | unit/integration | request-driven takeover 在本地 runtime 缺失时，通过 bootstrap + action log 恢复 runtime 后继续处理 mutation | 已有（`clusterBattleServer.ownership-routing.test.ts` + `clusterBattleService.v2.test.ts`） |
-| T18 | M07 | unit | active owner 续约 lease（same-owner claim refresh）保持本地 runtime 正常运行 | 已有（`clusterBattleService.v2.test.ts`） |
-| T19 | M07 | unit/integration | lease 刷新发现 owner 漂移时主动丢弃本地 runtime 并更新 room routing（防止 split-brain） | 已有（`clusterBattleService.v2.test.ts`） |
-| T20 | M06 | unit/integration | runtime world snapshot 存在时，以 `snapshot.actionSeq` 作为 replay baseline（减少全量 replay） | 已有（`clusterBattleService.v2.test.ts`） |
-| T21 | M06 | unit/integration | runtime world snapshot 的 `actionSeq` 超前于 action log 时，恢复基线应夹紧到最新 action seq | 已有（`clusterBattleService.v2.test.ts`） |
-| T22 | M06 | unit/integration | runtime world snapshot 位于终态边界（BattleEnd 且 seq 对齐）时，恢复不应重启 battle loop | 已有（`clusterBattleService.v2.test.ts`） |
-| T23 | M02/M10/M11 | mock e2e | mock 多实例语义下的 ranked/server 匹配 + p2p 私人房间信令转发 | 已实现（`cluster.multi-instance.e2e.test.ts`） |
-| T24 | M06 | unit/integration | snapshot 版本不兼容时忽略 snapshot 并回退 replay baseline=0 | 已有（`clusterBattleService.v2.test.ts`） |
-| T25 | M06 | unit | runtime snapshot 恢复 RNG 状态一致性（deterministic tail） | 已有（`v2-runtime-snapshot.test.ts`） |
-| T26 | M06 | integration | 未完成 turn 的 inflight checkpoint 恢复：仅重放 baseline 之后的 action | 已有（`clusterBattleService.v2.test.ts`） |
+| Test ID | 覆盖 Case   | 级别             | 文件                                                                                                        | 状态                                                                                                                   |
+| ------- | ----------- | ---------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| T01     | M01/M12     | unit/integration | `packages/server/test/clusterBattleService.v2.test.ts`                                                      | 已有                                                                                                                   |
+| T02     | M07         | unit             | `packages/server/test/ownershipCoordinator.test.ts` (`lease expiry takeover`)                               | 已有                                                                                                                   |
+| T03     | M02         | integration      | `cluster battle RPC forward` 相关流程                                                                       | 已有（间接）                                                                                                           |
+| T04     | M03         | integration      | 非 owner RPC 失败但 lease 有效时，不清房                                                                    | 已有（`clusterBattleServer.ownership-routing.test.ts`）                                                                |
+| T05     | M05         | integration      | 连续超时阈值后才触发 failover                                                                               | 已有（`clusterBattleServer.ownership-routing.test.ts`）                                                                |
+| T06     | M06         | integration      | lease 过期后请求触发接管并成功处理                                                                          | 已有（`clusterBattleServer.ownership-routing.test.ts`，stub runtime）                                                  |
+| T07     | M08         | integration      | draining 期间 mutation 拒绝/重路由                                                                          | 已有（`clusterBattleServer.ownership-routing.test.ts`，拒写+重路由）                                                   |
+| T09     | M09         | integration      | draining 期间读请求优先旧 owner，失败时降级读取                                                             | 已有（`clusterBattleServer.ownership-routing.test.ts`，local+snapshot fallback）                                       |
+| T08     | M10/M11     | integration/e2e  | 断线重连跨实例恢复                                                                                          | 已实现（`clusterBattleServer.reconnect.socketio.e2e.test.ts` 覆盖真实 socket.io client + gRPC owner 的跨实例重连恢复） |
+| T10     | M10/M11     | unit             | 重连主链（本地断线缓存/Redis断线记录/观战者过滤）                                                           | 已有（`clusterBattleServer.ownership-routing.test.ts`）                                                                |
+| T11     | M11         | unit             | 断线备份检查器避免“已重连被误判 abandon”                                                                    | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
+| T12     | M10/M11     | integration      | socket 连接重连分支（`battleReconnect` 事件，含同实例/跨实例 full state）                                   | 已有（`clusterBattleServer.reconnect.socketflow.test.ts`）                                                             |
+| T13     | M10/M11     | integration      | 跨实例重连通过真实 gRPC 转发获取状态（非 stub）                                                             | 已有（`clusterBattleServer.reconnect.grpc-forward.integration.test.ts`）                                               |
+| T14     | M04         | unit/integration | 非 owner 读请求转发失败时不触发 cleanup/takeover（读失败不污染 mutation failover 窗口）                     | 已有（`clusterBattleServer.ownership-routing.test.ts`）                                                                |
+| T15     | M10/M11     | unit/integration | 重连取状态使用 ownership 解析（避免 stale room routing）+ 转发失败时 snapshot 兜底                          | 已有（`clusterBattleServer.reconnect.socketflow.test.ts`）                                                             |
+| T16     | M06         | integration      | request-driven takeover 在本地 runtime 缺失时返回可重试，不执行误清房（等待 replay/handoff 能力）           | 已有（`clusterBattleServer.ownership-routing.test.ts`）                                                                |
+| T17     | M06         | unit/integration | request-driven takeover 在本地 runtime 缺失时，通过 bootstrap + action log 恢复 runtime 后继续处理 mutation | 已有（`clusterBattleServer.ownership-routing.test.ts` + `clusterBattleService.v2.test.ts`）                            |
+| T18     | M07         | unit             | active owner 续约 lease（same-owner claim refresh）保持本地 runtime 正常运行                                | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
+| T19     | M07         | unit/integration | lease 刷新发现 owner 漂移时主动丢弃本地 runtime 并更新 room routing（防止 split-brain）                     | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
+| T20     | M06         | unit/integration | runtime world snapshot 存在时，以 `snapshot.actionSeq` 作为 replay baseline（减少全量 replay）              | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
+| T21     | M06         | unit/integration | runtime world snapshot 的 `actionSeq` 超前于 action log 时，恢复基线应夹紧到最新 action seq                 | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
+| T22     | M06         | unit/integration | runtime world snapshot 位于终态边界（BattleEnd 且 seq 对齐）时，恢复不应重启 battle loop                    | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
+| T23     | M02/M10/M11 | mock e2e         | mock 多实例语义下的 ranked/server 匹配 + p2p 私人房间信令转发                                               | 已实现（`cluster.multi-instance.e2e.test.ts`）                                                                         |
+| T24     | M06         | unit/integration | snapshot 版本不兼容时忽略 snapshot 并回退 replay baseline=0                                                 | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
+| T25     | M06         | unit             | runtime snapshot 恢复 RNG 状态一致性（deterministic tail）                                                  | 已有（`v2-runtime-snapshot.test.ts`）                                                                                  |
+| T26     | M06         | integration      | 未完成 turn 的 inflight checkpoint 恢复：仅重放 baseline 之后的 action                                      | 已有（`clusterBattleService.v2.test.ts`）                                                                              |
 
 ## 7. 下一步落地顺序
 

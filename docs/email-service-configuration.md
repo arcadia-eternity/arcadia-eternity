@@ -41,6 +41,7 @@ SMTP_PASS=your-app-password
 #### 常见SMTP配置
 
 **Gmail:**
+
 ```bash
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -50,6 +51,7 @@ SMTP_PASS=your-app-password  # 需要开启两步验证并生成应用密码
 ```
 
 **Outlook/Hotmail:**
+
 ```bash
 SMTP_HOST=smtp-mail.outlook.com
 SMTP_PORT=587
@@ -59,6 +61,7 @@ SMTP_PASS=your-password
 ```
 
 **QQ邮箱:**
+
 ```bash
 SMTP_HOST=smtp.qq.com
 SMTP_PORT=587
@@ -68,6 +71,7 @@ SMTP_PASS=your-authorization-code  # 需要开启SMTP服务并获取授权码
 ```
 
 **163邮箱:**
+
 ```bash
 SMTP_HOST=smtp.163.com
 SMTP_PORT=587
@@ -107,6 +111,7 @@ AWS_SECRET_ACCESS_KEY=your-secret-access-key
 **主题：** 绑定邮箱验证码 - 阿卡迪亚永恒
 
 **内容：**
+
 ```
 您好！
 
@@ -133,6 +138,7 @@ node dist/cli.js server --port 8103
 ```
 
 成功时会看到：
+
 ```
 Email service initialized with provider: smtp
 Email service connection verified
@@ -188,11 +194,13 @@ curl -X POST http://localhost:8103/api/v1/email/send-verification-code \
 ### 调试技巧
 
 1. **启用详细日志**：
+
    ```bash
    NODE_ENV=development node dist/cli.js server --port 8103
    ```
 
 2. **测试SMTP连接**：
+
    ```bash
    # 使用telnet测试SMTP连接
    telnet smtp.gmail.com 587
@@ -240,6 +248,7 @@ curl -X POST http://localhost:8103/api/v1/email/send-verification-code \
 ## 示例配置文件
 
 ### .env.development
+
 ```bash
 # 开发环境 - 控制台输出
 EMAIL_PROVIDER=console
@@ -248,6 +257,7 @@ EMAIL_FROM_NAME=阿卡迪亚永恒(开发)
 ```
 
 ### .env.production
+
 ```bash
 # 生产环境 - SendGrid
 EMAIL_PROVIDER=sendgrid
@@ -257,6 +267,7 @@ EMAIL_FROM_NAME=阿卡迪亚永恒
 ```
 
 ### .env.staging
+
 ```bash
 # 测试环境 - SMTP
 EMAIL_PROVIDER=smtp

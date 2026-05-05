@@ -14,23 +14,23 @@
 # 示例种族数据
 species:
   pet_normal:
-    genderRatio: [0.5, 0.5]  # 50% 雌性, 50% 雄性
-  
+    genderRatio: [0.5, 0.5] # 50% 雌性, 50% 雄性
+
   pet_male_only:
-    genderRatio: [0, 1]      # 0% 雌性, 100% 雄性 (只能是雄性)
-  
+    genderRatio: [0, 1] # 0% 雌性, 100% 雄性 (只能是雄性)
+
   pet_female_only:
-    genderRatio: [1, 0]      # 100% 雌性, 0% 雄性 (只能是雌性)
-  
+    genderRatio: [1, 0] # 100% 雌性, 0% 雄性 (只能是雌性)
+
   pet_genderless:
-    genderRatio: [0, 0]      # 0% 雌性, 0% 雄性 (无性别)
+    genderRatio: [0, 0] # 0% 雌性, 0% 雄性 (无性别)
 ```
 
 ### 2. 规则验证逻辑
 
 - **正常种族** (`[0.5, 0.5]`): 允许雌性和雄性
 - **雄性专属** (`[0, 1]`): 只允许雄性
-- **雌性专属** (`[1, 0]`): 只允许雌性  
+- **雌性专属** (`[1, 0]`): 只允许雌性
 - **无性别** (`[0, 0]`): 只允许无性别
 
 ### 3. teamBuilder 集成
@@ -41,18 +41,18 @@ species:
 // 监听精灵种族变化
 watch(
   () => selectedPet.value?.species,
-  async (newSpecies) => {
+  async newSpecies => {
     if (!newSpecies) return
-    
+
     // 获取允许的性别
     const allowedGenders = await ClientRuleIntegration.getAllowedGendersForSpecies(newSpecies)
     allowedGendersForCurrentSpecies.value = allowedGenders
-    
+
     // 自动修正不合法的性别选择
     if (selectedPet.value?.gender && !allowedGenders.includes(selectedPet.value.gender)) {
       selectedPet.value.gender = allowedGenders[0] as Gender
     }
-  }
+  },
 )
 
 // 过滤性别选项

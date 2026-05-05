@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { EloRepository } from '@arcadia-eternity/database'
-import type { PlayerEloRating, EloUpdateResult } from '@arcadia-eternity/database'
+import type { PlayerEloRating } from '@arcadia-eternity/database'
 import { EloCalculationService, type EloCalculationResult } from './eloCalculationService'
 import pino from 'pino'
 
@@ -14,7 +14,7 @@ const logger = pino({ name: 'EloService' })
 export class EloService {
   constructor(
     @inject('EloRepository') private eloRepository: EloRepository,
-    @inject('EloCalculationService') private calculationService: EloCalculationService
+    @inject('EloCalculationService') private calculationService: EloCalculationService,
   ) {}
 
   /**
@@ -29,7 +29,7 @@ export class EloService {
     playerAId: string,
     playerBId: string,
     winnerId: string | null,
-    ruleSetId: string
+    ruleSetId: string,
   ): Promise<EloCalculationResult> {
     try {
       logger.info(
@@ -39,7 +39,7 @@ export class EloService {
           winnerId,
           ruleSetId,
         },
-        'Processing battle ELO update'
+        'Processing battle ELO update',
       )
 
       // 获取或创建两个玩家的ELO记录
@@ -61,16 +61,11 @@ export class EloService {
             gamesPlayed: playerBElo.games_played,
           },
         },
-        'Current ELO ratings before battle'
+        'Current ELO ratings before battle',
       )
 
       // 计算ELO变化
-      const eloResult = this.calculationService.calculateBattleEloChanges(
-        playerAElo,
-        playerBElo,
-        winnerId,
-        ruleSetId
-      )
+      const eloResult = this.calculationService.calculateBattleEloChanges(playerAElo, playerBElo, winnerId, ruleSetId)
 
       logger.info(
         {
@@ -89,7 +84,7 @@ export class EloService {
             result: eloResult.playerB.result,
           },
         },
-        'Calculated ELO changes'
+        'Calculated ELO changes',
       )
 
       // 生成更新输入
@@ -104,7 +99,7 @@ export class EloService {
           playerBId,
           ruleSetId,
         },
-        'Successfully updated ELO ratings'
+        'Successfully updated ELO ratings',
       )
 
       return eloResult
@@ -117,7 +112,7 @@ export class EloService {
           winnerId,
           ruleSetId,
         },
-        'Failed to process battle ELO update'
+        'Failed to process battle ELO update',
       )
       throw error
     }
@@ -140,11 +135,7 @@ export class EloService {
    * @param initialElo 初始ELO（可选）
    * @returns ELO记录
    */
-  async getOrCreatePlayerElo(
-    playerId: string,
-    ruleSetId: string,
-    initialElo?: number
-  ): Promise<PlayerEloRating> {
+  async getOrCreatePlayerElo(playerId: string, ruleSetId: string, initialElo?: number): Promise<PlayerEloRating> {
     return await this.eloRepository.getOrCreatePlayerElo(playerId, ruleSetId, initialElo)
   }
 
@@ -197,7 +188,7 @@ export class EloService {
   async predictBattleOutcome(
     playerAId: string,
     playerBId: string,
-    ruleSetId: string
+    ruleSetId: string,
   ): Promise<{
     playerAWinProbability: number
     playerBWinProbability: number
@@ -213,7 +204,7 @@ export class EloService {
 
     const playerAWinProbability = this.calculationService.predictWinProbability(
       playerAElo.elo_rating,
-      playerBElo.elo_rating
+      playerBElo.elo_rating,
     )
 
     return {

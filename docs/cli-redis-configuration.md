@@ -105,7 +105,7 @@ pnpm cli server \
 配置参数的优先级顺序（从高到低）：
 
 1. **命令行参数** - 最高优先级
-2. **环境变量** - 中等优先级  
+2. **环境变量** - 中等优先级
 3. **默认值** - 最低优先级
 
 例如：
@@ -121,15 +121,15 @@ pnpm cli server --redis-host cli-redis.com
 
 ## 环境变量对照表
 
-| CLI 参数 | 环境变量 | 默认值 |
-|---------|---------|--------|
-| `--redis-host` | `REDIS_HOST` | `localhost` |
-| `--redis-port` | `REDIS_PORT` | `6379` |
-| `--redis-password` | `REDIS_PASSWORD` | (无) |
-| `--redis-db` | `REDIS_DB` | `0` |
-| `--redis-key-prefix` | `REDIS_KEY_PREFIX` | `arcadia:` |
-| `--cluster-enabled` | `CLUSTER_ENABLED` | `true` |
-| `--cluster-instance-id` | `CLUSTER_INSTANCE_ID` | (自动生成) |
+| CLI 参数                | 环境变量              | 默认值      |
+| ----------------------- | --------------------- | ----------- |
+| `--redis-host`          | `REDIS_HOST`          | `localhost` |
+| `--redis-port`          | `REDIS_PORT`          | `6379`      |
+| `--redis-password`      | `REDIS_PASSWORD`      | (无)        |
+| `--redis-db`            | `REDIS_DB`            | `0`         |
+| `--redis-key-prefix`    | `REDIS_KEY_PREFIX`    | `arcadia:`  |
+| `--cluster-enabled`     | `CLUSTER_ENABLED`     | `true`      |
+| `--cluster-instance-id` | `CLUSTER_INSTANCE_ID` | (自动生成)  |
 
 ## 故障排除
 

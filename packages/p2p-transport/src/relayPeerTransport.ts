@@ -1,4 +1,9 @@
-import type { PeerTransport, PeerTransportConnectOptions, PeerTransportMessage, PeerTransportState } from './peerTransport'
+import type {
+  PeerTransport,
+  PeerTransportConnectOptions,
+  PeerTransportMessage,
+  PeerTransportState,
+} from './peerTransport'
 
 type MessageHandler = (message: PeerTransportMessage) => void
 type StateHandler = (state: PeerTransportState) => void
@@ -27,6 +32,7 @@ export class ServerRelayPeerTransport implements RelayPeerTransport {
   }
 
   async send(_message: PeerTransportMessage): Promise<void> {
+    void _message
     throw new Error('ServerRelayPeerTransport.send should be routed through PrivateRoomSignalBridge')
   }
 

@@ -2,9 +2,7 @@ import { getSupabaseClient, getSupabaseServiceClient } from '../client'
 import {
   type PlayerEloRating,
   type EloLeaderboardEntry,
-  type CreateEloRatingInput,
   type UpdateEloRatingInput,
-  type EloUpdateResult,
   type PaginationParams,
   type PaginatedResponse,
   DatabaseError,
@@ -14,11 +12,7 @@ export class EloRepository {
   /**
    * 获取或创建玩家ELO评级记录
    */
-  async getOrCreatePlayerElo(
-    playerId: string,
-    ruleSetId: string,
-    initialElo: number = 1200
-  ): Promise<PlayerEloRating> {
+  async getOrCreatePlayerElo(playerId: string, ruleSetId: string, initialElo: number = 1200): Promise<PlayerEloRating> {
     const supabase = getSupabaseServiceClient()
 
     const { data, error } = await supabase.rpc('get_or_create_player_elo', {
@@ -125,7 +119,7 @@ export class EloRepository {
    */
   async getEloLeaderboard(
     ruleSetId: string,
-    params: PaginationParams = {}
+    params: PaginationParams = {},
   ): Promise<PaginatedResponse<EloLeaderboardEntry>> {
     const supabase = getSupabaseClient()
     const { limit = 50, offset = 0 } = params

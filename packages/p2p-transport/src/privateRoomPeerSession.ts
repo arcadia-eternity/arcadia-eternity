@@ -34,10 +34,7 @@ const cloneState = (state: PrivateRoomPeerSessionState): PrivateRoomPeerSessionS
   pendingRemoteSignals: [...state.pendingRemoteSignals],
 })
 
-const getPrimaryRemotePeer = (
-  room: PrivateRoomInfo,
-  selfPlayerId: string,
-): PrivateRoomPeerEndpoint | undefined => {
+const getPrimaryRemotePeer = (room: PrivateRoomInfo, selfPlayerId: string): PrivateRoomPeerEndpoint | undefined => {
   const otherPlayer = room.players.find(player => player.playerId !== selfPlayerId)
   if (otherPlayer) {
     return {

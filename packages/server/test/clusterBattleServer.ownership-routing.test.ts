@@ -661,12 +661,9 @@ describe('ClusterBattleServer ownership routing', () => {
     expect(server.forwardPlayerAction).toHaveBeenCalledWith('instance-b', 'getAvailableSelection', 'player-1', {
       roomId: 'room-1',
     })
-    expect(server.tryRequestDrivenTakeover).toHaveBeenCalledWith(
-      'instance-b',
-      'getAvailableSelection',
-      'player-1',
-      { roomId: 'room-1' },
-    )
+    expect(server.tryRequestDrivenTakeover).toHaveBeenCalledWith('instance-b', 'getAvailableSelection', 'player-1', {
+      roomId: 'room-1',
+    })
     expect(ack).toHaveBeenCalledWith({
       status: 'SUCCESS',
       data: [{ type: 'surrender', player: 'player-1' }],

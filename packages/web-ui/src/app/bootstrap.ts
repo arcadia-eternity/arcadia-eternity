@@ -23,9 +23,7 @@ export class AppBootstrap {
   }
 
   async runPhase(phase: AppInitPhase): Promise<AppInitHookFailure[]> {
-    const phaseHooks = this.hooks
-      .filter(hook => hook.phase === phase)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    const phaseHooks = this.hooks.filter(hook => hook.phase === phase).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
     const failures: AppInitHookFailure[] = []
 

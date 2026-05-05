@@ -1382,7 +1382,7 @@ interface ValidationError {
   message: string
   objectId?: string
   objectType?: string
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 }
 
 type ValidationResult = {
@@ -1897,26 +1897,26 @@ const handleDeletePet = (petId: string) => {
 const setAsStarter = (petId: string) => {
   const team = [...currentTeam.value]
   const petIndex = team.findIndex(pet => pet.id === petId)
-  
+
   if (petIndex === 0) {
     // 已经是首发，不需要操作
     ElMessage.info('该精灵已经是首发位置')
     return
   }
-  
+
   if (petIndex === -1) {
     ElMessage.error('未找到该精灵')
     return
   }
-  
+
   // 将精灵移动到队伍首位
   const [pet] = team.splice(petIndex, 1)
   team.unshift(pet)
-  
+
   // 更新队伍顺序
   petStorage.updateTeamOrder(petStorage.currentTeamIndex, team)
   petStorage.saveToLocal()
-  
+
   ElMessage.success('已设置为首发精灵')
 }
 
@@ -1986,7 +1986,7 @@ const getErrorObjectId = (error: ValidationError): string | undefined => {
   return error.objectId
 }
 
-const getErrorContext = (error: ValidationError): Record<string, any> => {
+const getErrorContext = (error: ValidationError): Record<string, unknown> => {
   return error.context || {}
 }
 
@@ -1994,7 +1994,7 @@ const getPetNameById = (petId: string) => {
   return currentTeam.value.find(pet => pet.id === petId)?.name
 }
 
-const formatErrorContext = (context: Record<string, any>) => {
+const formatErrorContext = (context: Record<string, unknown>) => {
   const parts = []
   if (context.minSize !== undefined) parts.push(`最少${context.minSize}只`)
   if (context.maxSize !== undefined) parts.push(`最多${context.maxSize}只`)
@@ -2034,7 +2034,7 @@ const handleAutoFix = async () => {
 
     // 显示修复预览
     const changeMessages = result.changes
-      .map((change: any) => {
+      .map((change: { type: string; petName?: string; description: string }) => {
         switch (change.type) {
           case 'removed':
             return `• 移除精灵: ${change.petName} (${change.description})`

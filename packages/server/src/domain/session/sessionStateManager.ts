@@ -140,7 +140,7 @@ export class SessionStateManager {
     sessionId: string,
     currentState: SessionStateInfo,
   ): Promise<boolean> {
-    let inQueue = false
+    let inQueue: boolean
     try {
       inQueue = await this.isSessionInMatchmakingQueue(playerId, sessionId)
     } catch (error) {
@@ -254,7 +254,7 @@ export class SessionStateManager {
     sessionId: string,
     currentState: SessionStateInfo,
   ): Promise<boolean> {
-    let inActiveBattle = false
+    let inActiveBattle: boolean
     try {
       inActiveBattle = await this.isSessionInActiveBattle(playerId, sessionId, currentState.context?.battleRoomId)
     } catch (error) {
@@ -276,11 +276,7 @@ export class SessionStateManager {
     return false
   }
 
-  private async isSessionInActiveBattle(
-    playerId: string,
-    sessionId: string,
-    hintedRoomId?: string,
-  ): Promise<boolean> {
+  private async isSessionInActiveBattle(playerId: string, sessionId: string, hintedRoomId?: string): Promise<boolean> {
     const client = this.stateManager.redisManager.getClient()
     const sessionRoomKey = REDIS_KEYS.SESSION_ROOM_MAPPING(playerId, sessionId)
     const mappedRoomIds = await client.smembers(sessionRoomKey)
@@ -334,7 +330,10 @@ export class SessionStateManager {
     return false
   }
 
-  private async hasActiveOwnershipLease(client: { get(key: string): Promise<string | null> }, roomId: string): Promise<boolean> {
+  private async hasActiveOwnershipLease(
+    client: { get(key: string): Promise<string | null> },
+    roomId: string,
+  ): Promise<boolean> {
     const ownershipRaw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_OWNERSHIP(roomId))
     if (!ownershipRaw) {
       return false

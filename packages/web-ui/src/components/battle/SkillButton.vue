@@ -8,7 +8,6 @@ import { Z_INDEX } from '@/constants/zIndex'
 import MarkdownIt from 'markdown-it'
 import i18next from 'i18next'
 import { computed, ref } from 'vue'
-import { analyzeModifierType } from '@/utils/modifierStyles'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
@@ -45,7 +44,7 @@ const category = computed(() =>
 // 获取技能的原始类别，用于UI显示逻辑（避免回忆重现技能变身时的显示问题）
 const originalCategory = computed(() => {
   // 如果技能有_originalCategory属性，使用它；否则使用当前category
-  return (props.skill as any)._originalCategory || props.skill.category
+  return (props.skill as SkillMessage & { _originalCategory?: string })._originalCategory || props.skill.category
 })
 const name = computed(() =>
   i18next.t(`${props.skill.baseId}.name`, {
@@ -58,11 +57,6 @@ const description = computed(() =>
     ns: 'skill',
   }),
 )
-
-// Modifier 效果类型
-const powerModifierType = computed(() => {
-  return analyzeModifierType(props.powerModifierInfo, 'power')
-})
 
 // 计算属性相性效果（自动计算或使用传入值）
 const typeEffectivenessConfig = computed(() => {
@@ -135,14 +129,6 @@ const typeEffectivenessInfo = computed(() => {
     textClass: 'text-gray-300',
     bgClass: 'bg-gray-600/20 border border-gray-600/50',
   }
-})
-
-const accuracyModifierType = computed(() => {
-  return analyzeModifierType(props.accuracyModifierInfo, 'accuracy')
-})
-
-const rageModifierType = computed(() => {
-  return analyzeModifierType(props.rageModifierInfo, 'rage')
 })
 
 // 技能印记关联分析

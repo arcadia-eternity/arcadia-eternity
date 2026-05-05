@@ -159,8 +159,9 @@ const relations: ExtractorRegistry['relations'] = [
 ]
 
 const autoFields = uniqueFields(
-  (Object.entries(schemaByOwner) as Array<[EntityKind, TSchema | undefined]>)
-    .flatMap(([owner, schema]) => (schema ? collectFieldMeta(owner, schema) : [])),
+  (Object.entries(schemaByOwner) as Array<[EntityKind, TSchema | undefined]>).flatMap(([owner, schema]) =>
+    schema ? collectFieldMeta(owner, schema) : [],
+  ),
 )
 
 export const battleExtractorRegistry: ExtractorRegistry = {

@@ -46,17 +46,17 @@ async function main() {
 
 async function cleanupOldRecords() {
   console.log('开始清理超过7天的战报记录...')
-  
+
   const cleanedCount = await databaseService.battles.cleanupOldBattleRecords(7)
-  
+
   console.log(`✅ 已清理 ${cleanedCount} 条超过7天的战报记录`)
 }
 
 async function cleanupAbandonedRecords() {
   console.log('开始清理超过24小时未完成的战报...')
-  
+
   const cleanedCount = await databaseService.battles.cleanupAbandonedBattles(24)
-  
+
   console.log(`✅ 已清理 ${cleanedCount} 条超过24小时未完成的战报`)
 }
 

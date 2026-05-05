@@ -21,13 +21,7 @@ const STRINGY = { allow: [{ kind: 'scalar', valueTypes: ['string'] }] } as const
 const BOOLEAN = { allow: [{ kind: 'scalar', valueTypes: ['boolean'] }] } as const
 const PROPERTY_REF = { allow: [{ kind: 'propertyRef' }] } as const
 const ANY_SELECTOR_RESULT = {
-  allow: [
-    { kind: 'id' },
-    { kind: 'owner' },
-    { kind: 'scalar' },
-    { kind: 'object' },
-    { kind: 'propertyRef' },
-  ],
+  allow: [{ kind: 'id' }, { kind: 'owner' }, { kind: 'scalar' }, { kind: 'object' }, { kind: 'propertyRef' }],
 } as const
 const JSON_RECORD_OBJECT = {
   allow: [{ kind: 'object', classes: ['json:record'] }],
@@ -133,9 +127,7 @@ export const effectDslTypingMetadata = {
     addMark: {
       selectorFields: {
         target: {
-          allow: [
-            { kind: 'id', targets: ['pet', 'battle'] },
-          ],
+          allow: [{ kind: 'id', targets: ['pet', 'battle'] }],
         },
       },
       valueFields: {

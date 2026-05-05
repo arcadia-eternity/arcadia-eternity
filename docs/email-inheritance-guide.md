@@ -49,7 +49,7 @@
 #### 玩家表扩展
 
 ```sql
-ALTER TABLE players 
+ALTER TABLE players
 ADD COLUMN email TEXT UNIQUE,
 ADD COLUMN email_verified BOOLEAN DEFAULT FALSE,
 ADD COLUMN email_bound_at TIMESTAMPTZ;

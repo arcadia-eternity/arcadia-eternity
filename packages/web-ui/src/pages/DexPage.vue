@@ -142,8 +142,10 @@ const paginatedItems = computed(() => {
   return filteredItems.value.slice(start, end)
 })
 
+type DexItem = { id: string }
+
 // 方法
-function getItemName(item: any): string {
+function getItemName(item: DexItem): string {
   try {
     switch (activeTab.value) {
       case 'species':
@@ -164,7 +166,7 @@ function getItemName(item: any): string {
   }
 }
 
-function handleItemClick(item: any) {
+function handleItemClick(item: DexItem) {
   if (activeTab.value === 'typeChart') {
     // 属性克制表直接跳转到专门页面
     router.push({ name: 'TypeChart' })

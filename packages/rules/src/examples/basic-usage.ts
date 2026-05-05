@@ -55,7 +55,7 @@ export function basicRuleSystemExample(): void {
   console.log('=== 规则系统基本使用示例 ===')
 
   // 1. 创建规则系统
-  const { ruleSystem, registry } = createRuleSystemWithDefaults()
+  const { ruleSystem } = createRuleSystemWithDefaults()
 
   // 2. 获取推荐的规则集
   const competitiveRules = getAvailableRuleSets().filter(id => id.includes('competitive'))

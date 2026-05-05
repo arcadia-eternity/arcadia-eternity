@@ -34,7 +34,7 @@ export class TimerRule extends AbstractRule {
   /**
    * 获取计时器配置修改
    */
-  getTimerConfigModifications(context?: RuleContext): Partial<TimerConfig> {
+  getTimerConfigModifications(_context?: RuleContext): Partial<TimerConfig> {
     return { ...this.timerConfig }
   }
 

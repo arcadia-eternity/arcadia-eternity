@@ -21,6 +21,7 @@ import { DistributedLockManager } from '../redis/distributedLock'
 import { getGlobalRedisDeduplicationStats, getGlobalRedisDeduplicationSavings } from '../redis/redisCallDeduplicator'
 import { RedisClientManager } from '../redis/redisClient'
 import { InMemoryRedisClientManager } from '../redis/inMemoryRedisClient'
+import type { SessionManager } from '../../domain/auth/services/sessionManager'
 import { createBattleReportRoutes } from '../../app/routes/battleReportRoutes'
 import { createEmailInheritanceRoutes } from '../../app/routes/emailInheritanceRoutes'
 import { createAuthRoutes } from '../../app/routes/authRoutes'
@@ -178,7 +179,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
             ...basicHealth,
             cluster: clusterHealth,
           })
-        } catch (error) {
+        } catch (_error) {
           res.json({
             ...basicHealth,
             cluster: {
@@ -257,7 +258,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       const metrics = await performanceTracker.getMetrics()
       res.set('Content-Type', 'text/plain')
       res.send(metrics)
-    } catch (error) {
+    } catch (_error) {
       res.status(500).send('Error retrieving metrics')
     }
   })
@@ -292,14 +293,14 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   // 创建 HTTP 服务器
   const server = createServer(app)
   const peerServer = ExpressPeerServer(server, {
-    path: '/peerjs',
     proxied: true,
     corsOptions: finalConfig.cors,
   })
-  app.use(peerServer)
+  app.use('/peerjs', peerServer)
 
   // 创建 Socket.IO 服务器
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
+    path: '/socket.io',
     cors: finalConfig.cors,
     pingTimeout: 60000,
     pingInterval: 25000,
@@ -317,10 +318,10 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
   let clientRealtimeGateway: ClientRealtimeGateway<ClientToServerEvents, ServerToClientEvents>
   let battleServer: ClusterBattleServer
   let rpcServer: BattleRpcServer
-  let sessionManager: any // SessionManager实例
-  let runtimeRedisManager: any
-  let runtimeLockManager: any
-  let runtimeStateManager: any
+  let sessionManager: SessionManager
+  let runtimeRedisManager: RedisClientManager | InMemoryRedisClientManager | null
+  let runtimeLockManager: DistributedLockManager | null
+  let runtimeStateManager: ClusterStateManager | null
 
   // 设置基础 API 路由
   const apiRouter = express.Router()
@@ -372,16 +373,20 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
       } else {
         const forceInMemoryRedis = process.env.SINGLE_INSTANCE_INMEMORY_REDIS === 'true'
         if (!forceInMemoryRedis) {
-          runtimeRedisManager = RedisClientManager.getInstance(finalConfig.cluster!.redis) as any
+          runtimeRedisManager = RedisClientManager.getInstance(finalConfig.cluster!.redis)
           await runtimeRedisManager.initialize()
           logger.info('Single-instance mode uses external Redis backend')
         } else {
-          runtimeRedisManager = new InMemoryRedisClientManager(finalConfig.cluster!.redis) as any
+          runtimeRedisManager = new InMemoryRedisClientManager(finalConfig.cluster!.redis)
           await runtimeRedisManager.initialize()
           logger.warn('Single-instance mode forced to use in-memory Redis (non-persistent)')
         }
-        runtimeLockManager = new DistributedLockManager(runtimeRedisManager) as any
-        runtimeStateManager = new ClusterStateManager(runtimeRedisManager, runtimeLockManager, finalConfig.cluster!) as any
+        runtimeLockManager = new DistributedLockManager(runtimeRedisManager as RedisClientManager)
+        runtimeStateManager = new ClusterStateManager(
+          runtimeRedisManager as RedisClientManager,
+          runtimeLockManager,
+          finalConfig.cluster!,
+        )
         await runtimeStateManager.initialize()
       }
 
@@ -391,39 +396,43 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
 
       // 创建并初始化集群组件
       if (clusterEnabled) {
-        performanceTracker = new PerformanceTracker(runtimeRedisManager, finalConfig.cluster!.instance.id)
-        monitoring = new MonitoringManager(runtimeStateManager, runtimeRedisManager, finalConfig.cluster!.instance.id)
+        performanceTracker = new PerformanceTracker(
+          runtimeRedisManager as RedisClientManager,
+          finalConfig.cluster!.instance.id,
+        )
+        monitoring = new MonitoringManager(
+          runtimeStateManager,
+          runtimeRedisManager as RedisClientManager,
+          finalConfig.cluster!.instance.id,
+        )
       }
       // LogAggregationManager 已移除以减少 Redis 操作频率
       // 根据环境选择服务发现管理器
       if (clusterEnabled && process.env.FLY_APP_NAME) {
         // Fly.io 环境，使用专门的服务发现管理器
         serviceDiscovery = new FlyIoServiceDiscoveryManager(
-          runtimeRedisManager,
+          runtimeRedisManager as RedisClientManager,
           runtimeStateManager,
           new WeightedLoadStrategy(),
           process.env.FLY_APP_NAME,
           process.env.FLY_REGION,
         )
       } else if (clusterEnabled) {
-        // 标准环境
         serviceDiscovery = new ServiceDiscoveryManager(
-          runtimeRedisManager,
+          runtimeRedisManager as RedisClientManager,
           runtimeStateManager,
           new WeightedLoadStrategy(),
         )
       }
       realtimeGateway = new ClusterRealtimeGateway(
         io,
-        runtimeRedisManager,
+        runtimeRedisManager as RedisClientManager,
         runtimeStateManager,
         finalConfig.cluster!.instance.id,
       )
       clientRealtimeGateway = new ClientRealtimeGateway(io)
       // 使用 DI 容器创建集群服务（解决循环依赖）
-      const grpcPort =
-        finalConfig.rpcPort ??
-        (clusterEnabled ? (finalConfig.cluster!.instance.grpcPort ?? 50051) : 0)
+      const grpcPort = finalConfig.rpcPort ?? (clusterEnabled ? (finalConfig.cluster!.instance.grpcPort ?? 50051) : 0)
       const container = getContainer()
 
       const { battleServer: diServer, rpcServer: diRpcServer } = configureClusterServices(container, {
@@ -432,7 +441,7 @@ export function createClusterApp(config: Partial<ClusterServerConfig> = {}): {
         stateManager: runtimeStateManager,
         realtimeGateway,
         lockManager: runtimeLockManager,
-        redisManager: runtimeRedisManager,
+        redisManager: runtimeRedisManager as RedisClientManager,
         instanceId: finalConfig.cluster!.instance.id,
         rpcPort: grpcPort,
         battleReportConfig: finalConfig.battleReport,

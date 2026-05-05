@@ -1,27 +1,8 @@
 import express, { type Router, type Request, type Response, type NextFunction } from 'express'
 import pino from 'pino'
-import { Type, type Static } from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
+import { Type } from '@sinclair/typebox'
 import type { ClusterAuthService } from '../../domain/auth/services/clusterAuthService'
 import type { SessionManager } from '../../domain/auth/services/sessionManager'
-
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ValidationError'
-  }
-}
-
-function parseRequest<T extends import('@sinclair/typebox').TSchema>(schema: T, data: unknown): Static<T> {
-  const converted = Value.Convert(schema, structuredClone(data))
-  const defaulted = Value.Default(schema, converted)
-  if (Value.Check(schema, defaulted)) {
-    return defaulted as Static<T>
-  }
-  const errors = [...Value.Errors(schema, defaulted)]
-  const message = errors.map(e => `${e.path}: ${e.message}`).join('; ')
-  throw new ValidationError(message)
-}
 
 // 简单的认证中间件
 function authenticateToken(authService: ClusterAuthService) {
@@ -282,7 +263,7 @@ export function createSessionRoutes(authService: ClusterAuthService, sessionMana
       const { includeDetails } = SessionStatsSchema.parse(req.query)
       const stats = await sessionManager.getSessionStats()
 
-      let responseData: any = stats
+      let responseData: unknown = stats
 
       if (includeDetails) {
         // 如果需要详细信息，可以添加更多统计数据

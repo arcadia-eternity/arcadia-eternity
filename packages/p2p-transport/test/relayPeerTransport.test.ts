@@ -118,10 +118,12 @@ describe('ServerRelayPeerTransport', () => {
     })
 
     expect(transport.getState()).toBe('connected')
-    expect(outgoingSignals).toEqual([{
-      transport: 'relay',
-      kind: 'ready',
-      payload: { role: 'peer', remotePeerId: 'host-1' },
-    }])
+    expect(outgoingSignals).toEqual([
+      {
+        transport: 'relay',
+        kind: 'ready',
+        payload: { role: 'peer', remotePeerId: 'host-1' },
+      },
+    ])
   })
 })

@@ -1,10 +1,5 @@
 import type { ConditionDSL, EvaluatorDSL, OperatorDSL } from './effectDsl'
-import {
-  conditionDSLSchema,
-  evaluatorDSLSchema,
-  operatorDSLSchema,
-  extractDslTypingMetadata,
-} from './effectSchema'
+import { conditionDSLSchema, evaluatorDSLSchema, operatorDSLSchema, extractDslTypingMetadata } from './effectSchema'
 
 export type EffectDslScalarType = 'number' | 'string' | 'boolean' | 'unknown'
 export type EffectDslObjectClass<TOwner extends string = string> =
@@ -51,7 +46,11 @@ export function defineEffectDslTypingContract<TOwner extends string>(
 }
 
 export const effectDslTypingContract = defineEffectDslTypingContract({
-  condition: extractDslTypingMetadata<EffectDslNodeTypingRule>(conditionDSLSchema) as EffectDslTypingContract['condition'],
-  evaluator: extractDslTypingMetadata<EffectDslNodeTypingRule>(evaluatorDSLSchema) as EffectDslTypingContract['evaluator'],
+  condition: extractDslTypingMetadata<EffectDslNodeTypingRule>(
+    conditionDSLSchema,
+  ) as EffectDslTypingContract['condition'],
+  evaluator: extractDslTypingMetadata<EffectDslNodeTypingRule>(
+    evaluatorDSLSchema,
+  ) as EffectDslTypingContract['evaluator'],
   operator: extractDslTypingMetadata<EffectDslNodeTypingRule>(operatorDSLSchema) as EffectDslTypingContract['operator'],
 })

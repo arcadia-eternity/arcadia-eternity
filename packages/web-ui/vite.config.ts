@@ -27,6 +27,9 @@ export default defineConfig({
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '1.0.0'),
   },
   server: {
+    watch: {
+      ignored: ['**/packs/**'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8102',
@@ -85,7 +88,7 @@ export default defineConfig({
           return {
             src: `${baseDir}/**/*.yaml`,
             dest: outDir,
-            rename: (name: any, extension: any, fullPath: string) => {
+            rename: (fileName: string, fileExtension: string, fullPath: string) => {
               const relativePath = path.relative(path.resolve(__dirname, baseDir), fullPath)
               return relativePath.replace(/\.yaml$/, '.json').replace(/\\/g, '/')
             },
@@ -109,7 +112,7 @@ export default defineConfig({
         {
           src: '../../packs/base/assets/**/*',
           dest: 'assets',
-          rename: (name: any, extension: any, fullPath: string) => {
+          rename: (fileName: string, fileExtension: string, fullPath: string) => {
             const relativePath = path.relative(path.resolve(__dirname, '../../packs/base/assets'), fullPath)
             return relativePath.replace(/\\/g, '/')
           },
@@ -118,7 +121,7 @@ export default defineConfig({
         {
           src: '../../scripts/**/*.{js,mjs}',
           dest: 'scripts',
-          rename: (name: any, extension: any, fullPath: string) => {
+          rename: (fileName: string, fileExtension: string, fullPath: string) => {
             const relativePath = path.relative(path.resolve(__dirname, '../../scripts'), fullPath)
             return relativePath.replace(/\\/g, '/')
           },
@@ -132,8 +135,7 @@ export default defineConfig({
       // 忽略找不到文件的错误，继续处理其他目标
       silent: true,
       watch: {
-        // 开发模式监听文件变化
-        reloadPageOnChange: true,
+        reloadPageOnChange: false,
       },
     }),
   ],

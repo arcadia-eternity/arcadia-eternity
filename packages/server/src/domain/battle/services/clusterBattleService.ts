@@ -6,8 +6,6 @@ import {
   type playerId,
   type BattleMessage,
   type PlayerSelection,
-  type TimerEvent,
-  type TimerSnapshot,
   type PlayerTimerState,
   type TimerConfig,
   TimerEventType,
@@ -19,11 +17,7 @@ import {
   type PlayerSchemaType,
   type PlayerSelectionSchemaType,
 } from '@arcadia-eternity/schema'
-import type {
-  IBattleSystem,
-  BattleRuntimeSnapshot,
-  BattlePhaseExecutionEvent,
-} from '@arcadia-eternity/interface'
+import type { IBattleSystem, BattleRuntimeSnapshot, BattlePhaseExecutionEvent } from '@arcadia-eternity/interface'
 
 import pino from 'pino'
 import type { ClusterStateManager } from '../../../cluster/core/clusterStateManager'
@@ -56,7 +50,11 @@ import {
 } from '../runtime/battleRuntimeHost'
 import { LocalBattleRuntimeFactory } from '../runtime/localBattleRuntimeFactory'
 import { cleanupLocalBattleRuntime, startLocalBattleRuntime } from '../runtime/localBattleRuntimeLifecycle'
-import { RedisOwnershipCoordinator, type OwnershipCoordinator, type RuntimeOwnershipRecord } from '../runtime/ownershipCoordinator'
+import {
+  RedisOwnershipCoordinator,
+  type OwnershipCoordinator,
+  type RuntimeOwnershipRecord,
+} from '../runtime/ownershipCoordinator'
 
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -76,7 +74,7 @@ type BattleSystemWithView = IBattleSystem & {
   BattleEvent(callback: (message: BattleMessage) => void, options?: BattleViewOptions): () => void
 }
 
-type DisconnectedPlayerInfo = {
+export type DisconnectedPlayerInfo = {
   playerId: string
   sessionId: string
   roomId: string
@@ -126,9 +124,7 @@ type SnapshotCapableBattleSystem = IBattleSystem & {
 }
 
 type PhaseObservableBattleSystem = IBattleSystem & {
-  onPhaseExecutionEvent?: (
-    handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>,
-  ) => () => void
+  onPhaseExecutionEvent?: (handler: (event: BattlePhaseExecutionEvent) => void | Promise<void>) => () => void
 }
 
 type RuntimePhaseExecutionEntry = {
@@ -231,16 +227,10 @@ export class ClusterBattleService implements IBattleService {
     this.ownershipCoordinator = new RedisOwnershipCoordinator(this.stateManager.redisManager, this.instanceId)
 
     // 初始化Timer批处理系统
-    this.timerEventBatcher = new TimerEventBatcher(
-      async (
-        sessionKey: string,
-        eventType: string,
-        data: TimerEvent | TimerEvent[] | { snapshots: TimerSnapshot[] },
-      ) => {
-        const [playerId, sessionId] = sessionKey.split(':')
-        await this.callbacks.sendToPlayerSession(playerId, sessionId, eventType, data)
-      },
-    )
+    this.timerEventBatcher = new TimerEventBatcher(async (sessionKey: string, eventType: string, data: unknown) => {
+      const [playerId, sessionId] = sessionKey.split(':')
+      await this.callbacks.sendToPlayerSession(playerId, sessionId, eventType, data)
+    })
 
     // 初始化战报服务
     if (this._battleReportConfig) {
@@ -563,7 +553,10 @@ export class ClusterBattleService implements IBattleService {
             },
             'Failed to parse player 1 data',
           )
-          throw new Error(`Failed to parse player 1 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          throw new Error(
+            `Failed to parse player 1 data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            { cause: error },
+          )
         }
 
         try {
@@ -577,7 +570,10 @@ export class ClusterBattleService implements IBattleService {
             },
             'Failed to parse player 2 data',
           )
-          throw new Error(`Failed to parse player 2 data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          throw new Error(
+            `Failed to parse player 2 data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            { cause: error },
+          )
         }
 
         // 先创建本地Battle实例
@@ -588,11 +584,11 @@ export class ClusterBattleService implements IBattleService {
         const ruleSetId = player1Entry.ruleSetId || player2Entry.ruleSetId || 'casual_standard_ruleset'
 
         // 检查是否是私人房间战斗
-        const isPrivateRoom = player1Entry.metadata?.privateRoom || player2Entry.metadata?.privateRoom || false
+        const isPrivateRoom =
+          (player1Entry.metadata?.privateRoom as boolean) || (player2Entry.metadata?.privateRoom as boolean) || false
         const roomCode = player1Entry.metadata?.roomCode || player2Entry.metadata?.roomCode
         const requiredPackLock = player1Entry.metadata?.requiredPackLock || player2Entry.metadata?.requiredPackLock
-        const requiredAssetLock =
-          player1Entry.metadata?.requiredAssetLock || player2Entry.metadata?.requiredAssetLock
+        const requiredAssetLock = player1Entry.metadata?.requiredAssetLock || player2Entry.metadata?.requiredAssetLock
 
         // 创建战报记录
         let battleRecordId: string | undefined
@@ -838,7 +834,7 @@ export class ClusterBattleService implements IBattleService {
    * 清理所有断线玩家信息
    */
   async clearAllDisconnectedPlayers(): Promise<void> {
-    for (const [key, info] of this.disconnectedPlayers.entries()) {
+    for (const [_key, info] of this.disconnectedPlayers.entries()) {
       if (info.graceTimer) {
         clearTimeout(info.graceTimer)
       }
@@ -1003,7 +999,10 @@ export class ClusterBattleService implements IBattleService {
           return
         }
 
-        logger.info({ playerId, sessionId, ttl, roomId: localInfo.roomId }, 'Player disconnect TTL expired, handling abandonment')
+        logger.info(
+          { playerId, sessionId, ttl, roomId: localInfo.roomId },
+          'Player disconnect TTL expired, handling abandonment',
+        )
         await this.handlePlayerAbandonmentAfterTTLExpiry(localInfo.roomId, playerId, sessionId)
         this.disconnectedPlayers.delete(playerKey)
       }
@@ -1111,7 +1110,10 @@ export class ClusterBattleService implements IBattleService {
     return this.timerEventBatcher
   }
 
-  private async getRuntimeOrRecover(roomId: string, operation: string): Promise<LocalBattleRuntimeInstance | undefined> {
+  private async getRuntimeOrRecover(
+    roomId: string,
+    operation: string,
+  ): Promise<LocalBattleRuntimeInstance | undefined> {
     const existing = this.runtimeHost.getInstance(roomId)
     if (existing) {
       return existing
@@ -1176,7 +1178,7 @@ export class ClusterBattleService implements IBattleService {
 
           // 如果是私人房间，发布战斗结束事件
           if (runtime.data.privateRoom && roomState && roomState.metadata?.roomCode) {
-            await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode, roomId, battleEndData)
+            await this.publishPrivateBattleFinishedEvent(roomState.metadata.roomCode as string, roomId, battleEndData)
             if (currentRoomState)
               await this.sessionStateManager.batchUpdateSessionStates(
                 currentRoomState.sessions.map(sessionId => ({
@@ -1258,10 +1260,7 @@ export class ClusterBattleService implements IBattleService {
     this.setupTimerEventListeners(battle, roomState)
   }
 
-  private async handleRuntimePhaseExecutionEvent(
-    roomId: string,
-    event: BattlePhaseExecutionEvent,
-  ): Promise<void> {
+  private async handleRuntimePhaseExecutionEvent(roomId: string, event: BattlePhaseExecutionEvent): Promise<void> {
     const ownership = await this.ownershipCoordinator.get(roomId)
     if (ownership && ownership.ownerInstanceId !== this.instanceId) {
       return
@@ -1400,7 +1399,7 @@ export class ClusterBattleService implements IBattleService {
       await this.appendBattleActionLog(roomId, selection)
     } catch (error) {
       logger.error({ roomId, playerId, selection, error }, 'Failed to submit selection in battle')
-      throw new Error('INVALID_SELECTION')
+      throw new Error('INVALID_SELECTION', { cause: error })
     }
 
     return { status: 'ACTION_ACCEPTED' }
@@ -1553,14 +1552,8 @@ export class ClusterBattleService implements IBattleService {
         return null
       }
 
-      const player1Data = parseWithErrors(
-        PlayerSchema,
-        this.parseMaybeJson(candidate.player1Data),
-      ) as PlayerSchemaType
-      const player2Data = parseWithErrors(
-        PlayerSchema,
-        this.parseMaybeJson(candidate.player2Data),
-      ) as PlayerSchemaType
+      const player1Data = parseWithErrors(PlayerSchema, this.parseMaybeJson(candidate.player1Data)) as PlayerSchemaType
+      const player2Data = parseWithErrors(PlayerSchema, this.parseMaybeJson(candidate.player2Data)) as PlayerSchemaType
       const createdAt =
         typeof candidate.createdAt === 'number' && Number.isFinite(candidate.createdAt)
           ? candidate.createdAt
@@ -1642,11 +1635,7 @@ export class ClusterBattleService implements IBattleService {
       }
 
       const existing = this.parseRoomMetadataBootstrap(roomState.metadata?.runtimeBootstrap)
-      if (
-        existing
-        && existing.player1Data.id === player1Data.id
-        && existing.player2Data.id === player2Data.id
-      ) {
+      if (existing && existing.player1Data.id === player1Data.id && existing.player2Data.id === player2Data.id) {
         return
       }
 
@@ -1830,7 +1819,11 @@ export class ClusterBattleService implements IBattleService {
         return null
       }
       const parsed = JSON.parse(raw) as Partial<PersistedBattleRuntimeSnapshot>
-      if (typeof parsed.format !== 'string' || typeof parsed.version !== 'number' || typeof parsed.payload !== 'string') {
+      if (
+        typeof parsed.format !== 'string' ||
+        typeof parsed.version !== 'number' ||
+        typeof parsed.payload !== 'string'
+      ) {
         return null
       }
       if (parsed.format !== RUNTIME_SNAPSHOT_FORMAT || parsed.version !== RUNTIME_SNAPSHOT_VERSION) {
@@ -1866,8 +1859,8 @@ export class ClusterBattleService implements IBattleService {
                     ? (parsed.boundary as { battleStatus: string }).battleStatus
                     : undefined,
                 currentTurn:
-                  typeof (parsed.boundary as { currentTurn?: unknown }).currentTurn === 'number'
-                  && Number.isFinite((parsed.boundary as { currentTurn: number }).currentTurn)
+                  typeof (parsed.boundary as { currentTurn?: unknown }).currentTurn === 'number' &&
+                  Number.isFinite((parsed.boundary as { currentTurn: number }).currentTurn)
                     ? (parsed.boundary as { currentTurn: number }).currentTurn
                     : undefined,
                 currentPhase:
@@ -1883,10 +1876,7 @@ export class ClusterBattleService implements IBattleService {
     }
   }
 
-  private async persistRuntimeInflightPhase(
-    roomId: string,
-    entry: RuntimePhaseExecutionEntry,
-  ): Promise<void> {
+  private async persistRuntimeInflightPhase(roomId: string, entry: RuntimePhaseExecutionEntry): Promise<void> {
     try {
       const client = this.stateManager.redisManager.getClient()
       const payload: PersistedRuntimeInflightPhase = {
@@ -2127,7 +2117,7 @@ export class ClusterBattleService implements IBattleService {
       return selection
     } catch (error) {
       logger.error({ error, playerId, rawData }, 'Error processing player selection')
-      throw new Error('INVALID_SELECTION_DATA')
+      throw new Error('INVALID_SELECTION_DATA', { cause: error })
     }
   }
 
@@ -2208,10 +2198,7 @@ export class ClusterBattleService implements IBattleService {
       const runtime = this.runtimeHost.getInstance(roomId)
       if (runtime) {
         for (const battlePlayerId of localRoom.battlePlayerIds) {
-          await runtime.startReconnectGraceTimer(
-            battlePlayerId as playerId,
-            this.DISCONNECT_GRACE_PERIOD / 1000,
-          )
+          await runtime.startReconnectGraceTimer(battlePlayerId as playerId, this.DISCONNECT_GRACE_PERIOD / 1000)
         }
       }
     } catch (error) {
@@ -2284,11 +2271,7 @@ export class ClusterBattleService implements IBattleService {
    * 清理本地房间
    */
   async cleanupLocalRoom(roomId: string, options: CleanupLocalRoomOptions = {}): Promise<void> {
-    const {
-      removeRuntimeArtifacts = true,
-      releaseOwnership = true,
-      publishCleanupEvent = true,
-    } = options
+    const { removeRuntimeArtifacts = true, releaseOwnership = true, publishCleanupEvent = true } = options
 
     try {
       const unsubscribePhaseExecution = this.phaseExecutionUnsubscribers.get(roomId)
@@ -2333,10 +2316,7 @@ export class ClusterBattleService implements IBattleService {
           this.performanceTracker.updateActiveBattleRooms(this.runtimeHost.size())
         }
 
-        logger.info(
-          { roomId, removeRuntimeArtifacts, releaseOwnership, publishCleanupEvent },
-          'Local room cleaned up',
-        )
+        logger.info({ roomId, removeRuntimeArtifacts, releaseOwnership, publishCleanupEvent }, 'Local room cleaned up')
       }
     } catch (error) {
       logger.error({ error, roomId }, 'Error cleaning up local room')
@@ -2384,7 +2364,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理计时器启用检查
    */
-  async handleLocalIsTimerEnabled(roomId: string, playerId: string): Promise<boolean> {
+  async handleLocalIsTimerEnabled(roomId: string, _playerId: string): Promise<boolean> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalIsTimerEnabled')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2406,7 +2386,8 @@ export class ClusterBattleService implements IBattleService {
     }
 
     const targetPlayerId = data?.playerId || playerId
-    const timerState = (await runtime.getAllPlayerTimerStates()).find(state => state.playerId === targetPlayerId) ?? null
+    const timerState =
+      (await runtime.getAllPlayerTimerStates()).find(state => state.playerId === targetPlayerId) ?? null
 
     return timerState
   }
@@ -2414,7 +2395,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理所有玩家计时器状态获取
    */
-  async handleLocalGetAllPlayerTimerStates(roomId: string, playerId: string): Promise<PlayerTimerState[]> {
+  async handleLocalGetAllPlayerTimerStates(roomId: string, _playerId: string): Promise<PlayerTimerState[]> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetAllPlayerTimerStates')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2425,7 +2406,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 本地处理计时器配置获取
    */
-  async handleLocalGetTimerConfig(roomId: string, playerId: string): Promise<TimerConfig> {
+  async handleLocalGetTimerConfig(roomId: string, _playerId: string): Promise<TimerConfig> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetTimerConfig')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2712,7 +2693,8 @@ export class ClusterBattleService implements IBattleService {
           this.cleanupLocalRoom(roomId, {
             removeRuntimeArtifacts: false,
             publishCleanupEvent: false,
-          })),
+          }),
+        ),
       )
 
       // 清理所有断线玩家信息
@@ -2735,7 +2717,7 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 获取战斗状态（详细）
    */
-  async handleLocalGetBattleState(roomId: string, playerId: string): Promise<BattleState> {
+  async handleLocalGetBattleState(roomId: string, _playerId: string): Promise<BattleState> {
     const runtime = await this.getRuntimeOrRecover(roomId, 'handleLocalGetBattleState')
     if (!runtime) {
       throw new Error('BATTLE_NOT_FOUND')
@@ -2973,10 +2955,7 @@ export class ClusterBattleService implements IBattleService {
       logger.info({ roomId, playerId }, '观战者掉线，不暂停计时器')
       return
     }
-    const started = await runtime.startReconnectGraceTimer(
-      playerId as playerId,
-      this.DISCONNECT_GRACE_PERIOD / 1000,
-    )
+    const started = await runtime.startReconnectGraceTimer(playerId as playerId, this.DISCONNECT_GRACE_PERIOD / 1000)
     if (!started) {
       logger.warn({ roomId, playerId }, '玩家掉线：当前运行时不支持重连宽限计时器')
       return

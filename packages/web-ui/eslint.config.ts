@@ -22,12 +22,20 @@ export default defineConfigWithVueTs(
 
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/electron/preload.cjs'],
   },
   autoImportFlatConfig,
 
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   oxlint.configs['flat/recommended'],
+  {
+    name: 'app/overrides',
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      'vue/no-deprecated-filter': 'off',
+      'vue/multi-word-component-names': 'off',
+    },
+  },
   skipFormatting,
 )

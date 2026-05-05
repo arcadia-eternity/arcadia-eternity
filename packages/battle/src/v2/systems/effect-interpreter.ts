@@ -6,10 +6,7 @@ import type { World, EffectInterpreter } from '@arcadia-eternity/engine'
 import type { InterpreterContext, InterpreterFireContext } from './interpreter/context.js'
 import { evaluateCondition } from './interpreter/conditions.js'
 import { executeOperator } from './interpreter/operators.js'
-import {
-  parseConditionDsl,
-  parseOperatorDslList,
-} from './interpreter/dsl-validation.js'
+import { parseConditionDsl, parseOperatorDslList } from './interpreter/dsl-validation.js'
 
 /**
  * Build an InterpreterContext from World + EffectFireContext.

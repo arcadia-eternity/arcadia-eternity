@@ -8,8 +8,8 @@
   "scripts": {
     "build": "run-p build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rollup -c",
-    "watch:code": "rollup -c --watch",
+    "build:code": "rolldown -c",
+    "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
     "build:types": "pnpm exec tsgo --emitDeclarationOnly"
@@ -18,7 +18,7 @@
   "author": "yuuinih",
   "license": "MIT",
   "dependencies": {
-    "@sinclair/typebox": "^0.34.48",
-    "nanoid": "^5.1.6"
+    "@sinclair/typebox": "catalog:",
+    "nanoid": "catalog:"
   }
 }

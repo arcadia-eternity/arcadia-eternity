@@ -44,12 +44,17 @@ export class MarkUpdateHandler implements PhaseHandler<MarkUpdatePhaseData> {
         stack: this.markSystem.getStack(world, data.markId),
       })
     } else {
-      await this.effectPipeline.fire(world, EffectTrigger.OnMarkDurationEnd, {
-        trigger: EffectTrigger.OnMarkDurationEnd,
-        sourceEntityId: data.markId,
-        markId: data.markId,
-        baseMarkId: mark.baseMarkId,
-      }, [data.markId])
+      await this.effectPipeline.fire(
+        world,
+        EffectTrigger.OnMarkDurationEnd,
+        {
+          trigger: EffectTrigger.OnMarkDurationEnd,
+          sourceEntityId: data.markId,
+          markId: data.markId,
+          baseMarkId: mark.baseMarkId,
+        },
+        [data.markId],
+      )
 
       bus.emit(world, 'markExpire', {
         markId: data.markId,

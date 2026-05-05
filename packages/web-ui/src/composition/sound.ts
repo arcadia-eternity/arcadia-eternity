@@ -93,8 +93,7 @@ export function useSound(
 
   const playPetSound = (petSpriteNum: number) => {
     const src =
-      resourceStore.getPetSoundByNum(petSpriteNum) ??
-      `https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`
+      resourceStore.getPetSoundByNum(petSpriteNum) ?? `https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`
     const howler = ensureHowlInstance(src)
     howler.play()
   }

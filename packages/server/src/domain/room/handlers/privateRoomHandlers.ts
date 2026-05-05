@@ -2,6 +2,8 @@ import type { Socket } from 'socket.io'
 import pino from 'pino'
 import type { PrivateRoomService } from '../services/privateRoomService'
 import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
   CreatePrivateRoomRequest,
   JoinPrivateRoomRequest,
   JoinPrivateRoomSpectatorRequest,
@@ -16,6 +18,7 @@ import type {
   PrivateRoomInfo,
   PrivateRoomBattleStartInfo,
 } from '@arcadia-eternity/protocol'
+import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { RoomPlayer, SpectatorEntry, PrivateRoomError } from '../types/PrivateRoom'
 
 const logger = pino({
@@ -30,6 +33,8 @@ interface SocketData {
   }
 }
 
+type PrivateRoomSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>
+
 export class PrivateRoomHandlers {
   constructor(private roomService: PrivateRoomService) {}
 
@@ -37,7 +42,7 @@ export class PrivateRoomHandlers {
    * 处理创建私人房间请求
    */
   async handleCreateRoom(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: CreatePrivateRoomRequest,
     ack?: AckResponse<{ roomCode: string }>,
   ) {
@@ -99,7 +104,7 @@ export class PrivateRoomHandlers {
    * 处理加入私人房间请求
    */
   async handleJoinRoom(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: JoinPrivateRoomRequest,
     ack?: AckResponse<{ status: 'JOINED' }>,
   ) {
@@ -157,7 +162,7 @@ export class PrivateRoomHandlers {
    * 处理观战者加入请求
    */
   async handleJoinAsSpectator(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: JoinPrivateRoomSpectatorRequest,
     ack?: AckResponse<{ status: 'JOINED' }>,
   ) {
@@ -221,7 +226,7 @@ export class PrivateRoomHandlers {
   /**
    * 处理离开房间请求
    */
-  async handleLeaveRoom(socket: Socket<any, any, any, SocketData>, ack?: AckResponse<{ status: 'LEFT' }>) {
+  async handleLeaveRoom(socket: PrivateRoomSocket, ack?: AckResponse<{ status: 'LEFT' }>) {
     try {
       const playerId = socket.data?.playerId
       const sessionId = socket.data?.sessionId
@@ -262,7 +267,7 @@ export class PrivateRoomHandlers {
    * 处理切换准备状态请求
    */
   async handleToggleReady(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: TogglePrivateRoomReadyRequest,
     ack?: AckResponse<{ status: 'READY_TOGGLED' }>,
   ) {
@@ -309,7 +314,7 @@ export class PrivateRoomHandlers {
    * 处理开始战斗请求
    */
   async handleStartBattle(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: StartPrivateRoomBattleRequest,
     ack?: AckResponse<PrivateRoomBattleStartInfo>,
   ) {
@@ -356,7 +361,7 @@ export class PrivateRoomHandlers {
   }
 
   async handleSendPeerSignal(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: SendPrivateRoomPeerSignalRequest,
     ack?: AckResponse<{ status: 'FORWARDED' }>,
   ) {
@@ -392,11 +397,7 @@ export class PrivateRoomHandlers {
   /**
    * 处理获取房间信息请求
    */
-  async handleGetRoomInfo(
-    socket: Socket<any, any, any, SocketData>,
-    data: { roomCode: string },
-    ack?: AckResponse<PrivateRoomInfo>,
-  ) {
+  async handleGetRoomInfo(socket: PrivateRoomSocket, data: { roomCode: string }, ack?: AckResponse<PrivateRoomInfo>) {
     try {
       const room = await this.roomService.getRoom(data.roomCode)
 
@@ -440,7 +441,7 @@ export class PrivateRoomHandlers {
    * 处理转移房主请求
    */
   async handleTransferHost(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: TransferPrivateRoomHostRequest,
     ack?: AckResponse<{ status: 'TRANSFERRED' }>,
   ) {
@@ -488,7 +489,7 @@ export class PrivateRoomHandlers {
    * 处理踢出玩家请求
    */
   async handleKickPlayer(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: KickPlayerFromPrivateRoomRequest,
     ack?: AckResponse<{ status: 'KICKED' }>,
   ) {
@@ -536,8 +537,8 @@ export class PrivateRoomHandlers {
    * 处理玩家转换为观战者请求
    */
   async handleSwitchToSpectator(
-    socket: Socket<any, any, any, SocketData>,
-    data: {},
+    socket: PrivateRoomSocket,
+    data: Record<string, never>,
     ack?: AckResponse<{ status: 'SWITCHED' }>,
   ) {
     try {
@@ -583,8 +584,8 @@ export class PrivateRoomHandlers {
    * 处理观战者转换为玩家请求
    */
   async handleSwitchToPlayer(
-    socket: Socket<any, any, any, SocketData>,
-    data: { team: any[] },
+    socket: PrivateRoomSocket,
+    data: { team: PetSchemaType[] },
     ack?: AckResponse<{ status: 'SWITCHED' }>,
   ) {
     try {
@@ -631,7 +632,7 @@ export class PrivateRoomHandlers {
    * 处理更新房间规则集请求
    */
   async handleUpdateRuleSet(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: UpdatePrivateRoomRuleSetRequest,
     ack?: AckResponse<{ status: 'UPDATED' }>,
   ) {
@@ -679,7 +680,7 @@ export class PrivateRoomHandlers {
    * 处理更新房间配置请求
    */
   async handleUpdateRoomConfig(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: UpdatePrivateRoomConfigRequest,
     ack?: AckResponse<{ status: 'UPDATED' }>,
   ) {
@@ -726,7 +727,7 @@ export class PrivateRoomHandlers {
   /**
    * 处理获取当前房间请求
    */
-  async handleGetCurrentRoom(socket: Socket<any, any, any, SocketData>, ack?: AckResponse<PrivateRoomInfo | null>) {
+  async handleGetCurrentRoom(socket: PrivateRoomSocket, ack?: AckResponse<PrivateRoomInfo | null>) {
     try {
       const playerId = socket.data?.playerId
       const sessionId = socket.data?.sessionId
@@ -789,7 +790,7 @@ export class PrivateRoomHandlers {
    * 处理中途加入观战请求
    */
   async handleJoinSpectateBattle(
-    socket: Socket<any, any, any, SocketData>,
+    socket: PrivateRoomSocket,
     data: { battleRoomId: string },
     ack?: AckResponse<{ status: 'SPECTATING' }>,
   ) {
@@ -833,8 +834,8 @@ export class PrivateRoomHandlers {
    * 处理离开观战请求
    */
   async handleLeaveSpectateBattle(
-    socket: Socket<any, any, any, SocketData>,
-    data: {},
+    socket: PrivateRoomSocket,
+    data: Record<string, never>,
     ack?: AckResponse<{ status: 'LEFT_SPECTATE' }>,
   ) {
     try {

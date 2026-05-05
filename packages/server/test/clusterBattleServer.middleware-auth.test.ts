@@ -3,11 +3,7 @@ import { ClusterBattleServer } from '../src/domain/battle/services/clusterBattle
 
 type MiddlewareFn = (socket: any, next: (err?: Error) => void) => Promise<void>
 
-function createMiddlewareHarness(overrides?: {
-  player?: any
-  payload?: any
-  isTokenBlacklisted?: boolean
-}) {
+function createMiddlewareHarness(overrides?: { player?: any; payload?: any; isTokenBlacklisted?: boolean }) {
   const server = Object.create(ClusterBattleServer.prototype) as any
   let middleware: MiddlewareFn | undefined
 
@@ -76,4 +72,3 @@ describe('ClusterBattleServer middleware auth/session behavior', () => {
     expect((error as Error).message).toBe('PLAYER_ID_TOKEN_MISMATCH')
   })
 })
-
