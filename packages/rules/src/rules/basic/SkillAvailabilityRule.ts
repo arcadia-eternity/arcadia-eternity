@@ -145,23 +145,42 @@ export class SkillAvailabilityRule extends AbstractRule {
    * @returns 可学习技能列表
    */
   private getAvailableSkillsForPet(pet: PetSchemaType, context?: RuleContext): LearnableSkill[] {
-    // 检查种族数据提供者是否可用
-    if (!this.speciesDataProvider) {
-      // 返回空数组，但不报错，因为数据可能还在加载中
-      return []
+    // 获取种族数据 - 尝试多个提供者
+    let speciesData: SpeciesSchemaType | undefined
+
+    // 1. 尝试显式设置的提供者（通常来自工厂函数或测试）
+    if (this.speciesDataProvider) {
+      speciesData = this.speciesDataProvider.getSpeciesById(pet.species)
     }
 
-    // 获取种族数据
-    let speciesData = this.speciesDataProvider.getSpeciesById(pet.species)
+    // 2. 如果未找到，尝试服务端全局提供者
+    if (!speciesData) {
+      try {
+        const serverProvider = getGlobalServerSpeciesDataProvider()
+        speciesData = serverProvider.getSpeciesById(pet.species)
+      } catch {
+        // 服务端提供者不可用（客户端环境）
+      }
+    }
 
-    // 如果没有提供者，尝试从上下文获取
+    // 3. 如果仍未找到，尝试客户端全局提供者
+    if (!speciesData) {
+      try {
+        const clientProvider = getGlobalClientSpeciesDataProvider()
+        speciesData = clientProvider.getSpeciesById(pet.species)
+      } catch {
+        // 客户端提供者不可用（服务端环境）
+      }
+    }
+
+    // 4. 最后尝试从上下文获取
     if (!speciesData && context?.data?.speciesData) {
       speciesData = (context.data.speciesData as Record<string, SpeciesSchemaType>)[pet.species]
     }
 
+    // 如果所有提供者都无法提供种族数据，返回空数组
+    // validatePet 会跳过验证，不报错
     if (!speciesData) {
-      // 如果无法获取种族数据，返回空数组
-      // 这种情况通常发生在数据还在加载时
       return []
     }
 
@@ -242,26 +261,10 @@ export class SkillAvailabilityRule extends AbstractRule {
  * 创建标准技能可用性验证规则
  */
 export function createStandardSkillAvailabilityRule(speciesDataProvider?: SpeciesDataProvider): SkillAvailabilityRule {
-  // 如果没有提供数据提供者，尝试获取全局提供者
-  let provider = speciesDataProvider
-  if (!provider) {
-    try {
-      // 动态导入以避免循环依赖
-      provider = getGlobalClientSpeciesDataProvider()
-    } catch (_error) {
-      // 如果客户端提供者不可用，尝试服务端提供者
-      try {
-        provider = getGlobalServerSpeciesDataProvider()
-      } catch (_serverError) {
-        console.warn('No species data provider available for skill availability rule')
-      }
-    }
-  }
-
   return new SkillAvailabilityRule('standard_skill_availability', '标准技能可用性验证', {
     description: '验证精灵只能选择他们可以学习的技能（包括规则系统提供的额外技能）',
     tags: ['standard', 'basic', 'skill'],
-    speciesDataProvider: provider,
+    speciesDataProvider,
   })
 }
 
@@ -271,26 +274,10 @@ export function createStandardSkillAvailabilityRule(speciesDataProvider?: Specie
 export function createCompetitiveSkillAvailabilityRule(
   speciesDataProvider?: SpeciesDataProvider,
 ): SkillAvailabilityRule {
-  // 如果没有提供数据提供者，尝试获取全局提供者
-  let provider = speciesDataProvider
-  if (!provider) {
-    try {
-      // 动态导入以避免循环依赖
-      provider = getGlobalClientSpeciesDataProvider()
-    } catch (_error) {
-      // 如果客户端提供者不可用，尝试服务端提供者
-      try {
-        provider = getGlobalServerSpeciesDataProvider()
-      } catch (_serverError) {
-        console.warn('No species data provider available for competitive skill availability rule')
-      }
-    }
-  }
-
   return new SkillAvailabilityRule('competitive_skill_availability', '竞技技能可用性验证', {
     description: '严格验证精灵技能选择的合法性，确保竞技环境的公平性',
     tags: ['competitive', 'strict', 'skill'],
-    priority: RulePriority.HIGHEST, // 竞技模式下优先级更高
-    speciesDataProvider: provider,
+    priority: RulePriority.HIGHEST,
+    speciesDataProvider,
   })
 }
