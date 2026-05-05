@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.5](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.4...arcadia-eternity-v3.2.5) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* prevent stack overflow in player getter caused by Pinia 3 state spread ([5250380](https://github.com/arcadia-eternity/arcadia-eternity/commit/52503801c8794961563882853b8b53e85175c55a))
+
 ## [3.2.4](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.3...arcadia-eternity-v3.2.4) (2026-05-05)
 
 
