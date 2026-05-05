@@ -63,13 +63,59 @@ export class GenderRestrictionRule extends AbstractRule {
   validatePet(pet: PetSchemaType, _context?: RuleContext): ValidationResult {
     const builder = new ValidationResultBuilder()
 
-    // 如果没有种族数据提供者，跳过验证
-    if (!this.speciesDataProvider) {
+    let speciesData: SpeciesSchemaType | undefined
+
+    if (this.speciesDataProvider) {
+      speciesData = this.speciesDataProvider.getSpeciesById(pet.species)
+    }
+    if (!speciesData) {
+      try {
+        speciesData = getGlobalServerSpeciesDataProvider().getSpeciesById(pet.species)
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!speciesData) {
+      try {
+        speciesData = getGlobalClientSpeciesDataProvider().getSpeciesById(pet.species)
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // 如果没有种族数据提供者可用（数据未加载），跳过验证
+    if (!speciesData && !this.speciesDataProvider) {
       return builder.build()
     }
 
-    // 获取种族数据
-    const speciesData = this.speciesDataProvider.getSpeciesById(pet.species)
+    if (!speciesData) {
+      builder.addError(
+        ValidationErrorType.PET_VALIDATION,
+        'SPECIES_NOT_FOUND',
+        `精灵 "${pet.name}" 的种族 "${pet.species}" 未找到`,
+        pet.id,
+        'pet',
+        { speciesId: pet.species, petName: pet.name },
+      )
+      return builder.build()
+    }
+    if (!speciesData) {
+      try {
+        const serverProvider = getGlobalServerSpeciesDataProvider()
+        speciesData = serverProvider.getSpeciesById(pet.species)
+      } catch {
+        // 服务端提供者不可用
+      }
+    }
+    if (!speciesData) {
+      try {
+        const clientProvider = getGlobalClientSpeciesDataProvider()
+        speciesData = clientProvider.getSpeciesById(pet.species)
+      } catch {
+        // 客户端提供者不可用
+      }
+    }
+
     if (!speciesData) {
       builder.addError(
         ValidationErrorType.PET_VALIDATION,
@@ -180,13 +226,27 @@ export class GenderRestrictionRule extends AbstractRule {
    * 获取精灵种族的允许性别（用于编辑器显示）
    */
   getAllowedGendersForSpecies(speciesId: string): Gender[] {
-    if (!this.speciesDataProvider) {
-      return [Gender.Male, Gender.Female, Gender.NoGender]
-    }
+    let speciesData: SpeciesSchemaType | undefined
 
-    const speciesData = this.speciesDataProvider.getSpeciesById(speciesId)
+    if (this.speciesDataProvider) {
+      speciesData = this.speciesDataProvider.getSpeciesById(speciesId)
+    }
     if (!speciesData) {
-      return []
+      try {
+        speciesData = getGlobalServerSpeciesDataProvider().getSpeciesById(speciesId)
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!speciesData) {
+      try {
+        speciesData = getGlobalClientSpeciesDataProvider().getSpeciesById(speciesId)
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!speciesData) {
+      return [Gender.Male, Gender.Female, Gender.NoGender]
     }
 
     return this.getAllowedGenders(speciesData)
@@ -205,21 +265,7 @@ export class GenderRestrictionRule extends AbstractRule {
  * 创建标准性别限制规则
  */
 export function createStandardGenderRestrictionRule(speciesDataProvider?: SpeciesDataProvider): GenderRestrictionRule {
-  // 如果没有提供数据提供者，尝试获取全局提供者
-  let provider = speciesDataProvider
-  if (!provider) {
-    try {
-      provider = getGlobalClientSpeciesDataProvider()
-    } catch (_error) {
-      try {
-        provider = getGlobalServerSpeciesDataProvider()
-      } catch (_serverError) {
-        console.warn('No species data provider available for gender restriction rule')
-      }
-    }
-  }
-
-  return new GenderRestrictionRule('standard_gender_restriction', '标准性别限制', provider, {
+  return new GenderRestrictionRule('standard_gender_restriction', '标准性别限制', speciesDataProvider, {
     description: '根据精灵种族的性别比例限制可选择的性别',
     tags: ['standard', 'basic'],
   })
