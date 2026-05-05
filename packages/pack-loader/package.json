@@ -25,9 +25,9 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
-    "yaml": "^2.8.2"
+    "yaml": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0"
+    "@types/node": "catalog:"
   }
 }

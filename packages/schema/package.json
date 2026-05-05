@@ -26,11 +26,11 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:^",
-    "@sinclair/typebox": "^0.34.48",
-    "nanoid": "^5.1.6"
+    "@sinclair/typebox": "catalog:",
+    "nanoid": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "vitest": "^4.1.0"
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -41,14 +41,14 @@
     "@arcadia-eternity/plugin-damage": "workspace:*",
     "@arcadia-eternity/plugin-element": "workspace:*",
     "@arcadia-eternity/plugin-transformation": "workspace:*",
-    "@sinclair/typebox": "^0.34.48",
-    "jsondiffpatch": "^0.7.3",
+    "@sinclair/typebox": "catalog:",
+    "jsondiffpatch": "catalog:",
     "mitt": "^3.0.1",
-    "nanoid": "^5.1.6",
+    "nanoid": "catalog:",
     "prando": "^6.0.1",
-    "rxjs": "^7.8.2"
+    "rxjs": "catalog:"
   },
   "devDependencies": {
-    "vitest": "^4.1.0"
+    "vitest": "catalog:"
   }
 }
