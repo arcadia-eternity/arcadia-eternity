@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.0...arcadia-eternity-v3.2.1) (2026-05-05)
+
+
+### 🐛 Bug Fixes
+
+* regenerate stale pack-lock.yaml, add pre-commit auto-regeneration ([e89a876](https://github.com/arcadia-eternity/arcadia-eternity/commit/e89a876cb9655eeeb628ba232ffa181eda1412b8))
+
 ## [3.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.1.4...arcadia-eternity-v3.2.0) (2026-05-05)
 
 
