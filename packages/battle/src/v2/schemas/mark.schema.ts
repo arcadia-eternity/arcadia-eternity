@@ -5,7 +5,7 @@ import { Type, type Static } from '@sinclair/typebox'
 import { StringEnum } from './utils.js'
 import { StackStrategy } from '@arcadia-eternity/const'
 
-const StackStrategyValues = Object.values(StackStrategy) as [string, ...string[]]
+const StackStrategyValues = Object.values(StackStrategy) as StackStrategy[]
 
 export const MarkConfigSchema = Type.Object({
   duration: Type.Number({ default: -1 }),

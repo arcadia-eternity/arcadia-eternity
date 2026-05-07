@@ -15,7 +15,7 @@ import {
   getConfigKeysByTag,
 } from '@arcadia-eternity/engine'
 import { applyTransformation, removeTransformation } from '@arcadia-eternity/plugin-transformation'
-import { DamageType } from '@arcadia-eternity/const'
+import { DamageType, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import { resolveSelector } from './selector.js'
 import { resolveValue } from './value.js'
 import { evaluateCondition } from './conditions.js'
@@ -729,7 +729,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     }
 
     case 'setIgnoreStageStrategy': {
-      const value = resolveValue(ctx, op.value) as string
+      const value = resolveValue(ctx, op.value) as IgnoreStageStrategy
       const context = getUseSkillContext(ctx)
       if (context && value !== undefined) {
         context.ignoreStageStrategy = value

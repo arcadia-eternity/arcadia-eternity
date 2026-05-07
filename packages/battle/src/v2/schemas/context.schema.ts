@@ -6,11 +6,11 @@ import { Type, type Static } from '@sinclair/typebox'
 import { StringEnum } from './utils.js'
 import { Category, DamageType, AttackTargetOpinion, IgnoreStageStrategy, StackStrategy } from '@arcadia-eternity/const'
 
-const CategoryValues = Object.values(Category) as [string, ...string[]]
+const CategoryValues = Object.values(Category) as Category[]
 const DamageTypeValues = Object.values(DamageType) as DamageType[]
-const TargetValues = Object.values(AttackTargetOpinion) as [string, ...string[]]
-const IgnoreStageValues = Object.values(IgnoreStageStrategy) as [string, ...string[]]
-const StackStrategyValues = Object.values(StackStrategy) as [string, ...string[]]
+const TargetValues = Object.values(AttackTargetOpinion) as AttackTargetOpinion[]
+const IgnoreStageValues = Object.values(IgnoreStageStrategy) as IgnoreStageStrategy[]
+const StackStrategyValues = Object.values(StackStrategy) as StackStrategy[]
 
 export const UseSkillContextSchema = Type.Object(
   {

@@ -1,5 +1,6 @@
 import type { World, AttributeSystem, ModifierDef } from '@arcadia-eternity/engine'
 import { createEntity, setComponent, getComponent } from '@arcadia-eternity/engine'
+import { StackStrategy } from '@arcadia-eternity/const'
 import type { BaseMarkData } from '../schemas/mark.schema.js'
 import type { MarkSystem } from './mark.system.js'
 
@@ -174,7 +175,7 @@ export class StatStageMarkSystem {
         persistent: true,
         maxStacks: MAX_STAGE,
         stackable: true,
-        stackStrategy: 'max',
+        stackStrategy: StackStrategy.max,
         destroyable: true,
         isShield: false,
         keepOnSwitchOut: true,
