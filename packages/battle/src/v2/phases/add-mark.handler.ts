@@ -5,7 +5,7 @@ import { getComponent } from '@arcadia-eternity/engine'
 import { StackStrategy, EffectTrigger } from '@arcadia-eternity/const'
 import type { MarkSystem } from '../systems/mark.system.js'
 import { BATTLE_OWNER_ID } from '../systems/mark.system.js'
-import type { AddMarkContextData } from '../schemas/context.schema.js'
+import type { AddMarkContextData, StackContextData } from '../schemas/context.schema.js'
 import type { BaseMarkData } from '../schemas/mark.schema.js'
 import type { V2DataRepository } from '../data/v2-data-repository.js'
 
@@ -110,9 +110,51 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData> {
           return { success: true, state: 'completed', data }
       }
 
+      const stackCtx: StackContextData = {
+        type: 'stack',
+        parentId: phase.id,
+        existingMarkId: existing.id,
+        incomingMarkId: ctx.baseMarkId,
+        stacksBefore,
+        durationBefore,
+        stacksAfter,
+        durationAfter,
+        stackStrategy: strategy,
+        available: true,
+      }
+
+      await this.effectPipeline.fire(
+        world,
+        EffectTrigger.OnStackBefore,
+        {
+          trigger: EffectTrigger.OnStackBefore,
+          sourceEntityId: existing.id,
+          context: stackCtx,
+        },
+        [existing.id],
+      )
+
+      if (!stackCtx.available) {
+        return { success: true, state: 'completed', data }
+      }
+
+      stacksAfter = stackCtx.stacksAfter
+      durationAfter = stackCtx.durationAfter
+
       // Keep mark attribute store in sync so dynamic selectors (e.g. mark.stack) see latest stacks.
       this.markSystem.setStack(world, existing.id, stacksAfter)
       this.markSystem.setDuration(world, existing.id, durationAfter)
+
+      await this.effectPipeline.fire(
+        world,
+        EffectTrigger.OnStack,
+        {
+          trigger: EffectTrigger.OnStack,
+          sourceEntityId: existing.id,
+          context: stackCtx,
+        },
+        [existing.id],
+      )
 
       bus.emit(world, 'markStack', {
         targetId: ctx.targetId,
