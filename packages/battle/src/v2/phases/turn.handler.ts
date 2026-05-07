@@ -3,7 +3,7 @@
 
 import type { PhaseHandler, PhaseDef, PhaseResult, World, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
-import { Category, AttackTargetOpinion, EffectTrigger, type PlayerSelection } from '@arcadia-eternity/const'
+import { Category, AttackTargetOpinion, EffectTrigger, DamageType, type PlayerSelection } from '@arcadia-eternity/const'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { SkillSystem } from '../systems/skill.system.js'
@@ -118,7 +118,9 @@ export class TurnHandler implements PhaseHandler<TurnData> {
             multihitResult: 1,
             currentHitCount: 1,
             damageType:
-              skillCategory === Category.Physical || skillCategory === Category.Climax ? 'physical' : 'special',
+              skillCategory === Category.Physical || skillCategory === Category.Climax
+                ? DamageType.Physical
+                : DamageType.Special,
             typeMultiplier,
             stabMultiplier,
             critMultiplier: 2,

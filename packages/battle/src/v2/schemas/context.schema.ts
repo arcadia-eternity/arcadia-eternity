@@ -7,7 +7,7 @@ import { StringEnum } from './utils.js'
 import { Category, DamageType, AttackTargetOpinion, IgnoreStageStrategy, StackStrategy } from '@arcadia-eternity/const'
 
 const CategoryValues = Object.values(Category) as [string, ...string[]]
-const DamageTypeValues = Object.values(DamageType) as [string, ...string[]]
+const DamageTypeValues = Object.values(DamageType) as DamageType[]
 const TargetValues = Object.values(AttackTargetOpinion) as [string, ...string[]]
 const IgnoreStageValues = Object.values(IgnoreStageStrategy) as [string, ...string[]]
 const StackStrategyValues = Object.values(StackStrategy) as [string, ...string[]]

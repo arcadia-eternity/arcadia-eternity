@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import BattleLogEntry from './BattleLogEntry.vue'
 import {
   BattleMessageType,
+  DamageType,
   type baseMarkId,
   type baseSkillId,
   type BattleMessageData,
@@ -63,12 +64,9 @@ const MESSAGE_ICONS: Record<BattleMessageType, string> = {
 
 // 伤害类型映射
 const DAMAGE_TYPE_MAP: Record<string, string> = {
-  Physical: '物理',
-  Special: '特殊',
-  Effect: '效果',
-  physical: '物理',
-  special: '特殊',
-  effect: '效果',
+  [DamageType.Physical]: '物理',
+  [DamageType.Special]: '特殊',
+  [DamageType.Effect]: '效果',
 }
 
 // 怒气变化原因
@@ -141,7 +139,11 @@ function formatBattleMessage(msg: TimestampedBattleMessage): FormattedBattleMess
         currentHp: number
         maxHp: number
       }
-      const damageTypeLabel = DAMAGE_TYPE_MAP[data.damageType] ?? data.damageType ?? '未知'
+      const damageTypeLabel =
+        DAMAGE_TYPE_MAP[data.damageType] ??
+        DAMAGE_TYPE_MAP[data.damageType.charAt(0).toUpperCase() + data.damageType.slice(1)] ??
+        data.damageType ??
+        '未知'
       content = `${getPetName(data.target as petId)} 受到 ${data.damage} 点 ${damageTypeLabel}伤害`
       if (data.isCrit) content += ' (暴击)'
       if (data.effectiveness > 1) content += ' 效果拔群！'

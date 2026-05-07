@@ -15,6 +15,7 @@ import {
   getConfigKeysByTag,
 } from '@arcadia-eternity/engine'
 import { applyTransformation, removeTransformation } from '@arcadia-eternity/plugin-transformation'
+import { DamageType } from '@arcadia-eternity/const'
 import { resolveSelector } from './selector.js'
 import { resolveValue } from './value.js'
 import { evaluateCondition } from './conditions.js'
@@ -259,7 +260,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
             sourceId: fireCtx.sourceEntityId,
             targetId,
             baseDamage: value,
-            damageType: 'effect',
+            damageType: DamageType.Effect,
             crit: false,
             effectiveness: 1,
             ignoreShield: false,
