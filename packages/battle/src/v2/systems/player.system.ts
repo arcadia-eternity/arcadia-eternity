@@ -13,9 +13,19 @@ import {
 import { MAX_RAGE } from '@arcadia-eternity/const'
 import type { PlayerData } from '../schemas/player.schema.js'
 import type { PetData } from '../schemas/pet.schema.js'
+import type { EntityAttributeDef } from './pet.system.js'
 
 export const PLAYER = 'player' as const
 const PET = 'pet' as const
+
+// ---------------------------------------------------------------------------
+// Attribute declarations — single source of truth for extractor registry
+// ---------------------------------------------------------------------------
+
+export const playerAttributes: EntityAttributeDef[] = [
+  { key: 'currentRage', valueType: 'number', modifiable: true },
+  { key: 'maxRage', valueType: 'number', modifiable: true },
+]
 
 // ---------------------------------------------------------------------------
 // PlayerSystem

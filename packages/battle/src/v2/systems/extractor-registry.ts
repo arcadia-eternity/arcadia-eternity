@@ -20,6 +20,10 @@ import {
   StackContextSchema,
   ConsumeStackContextSchema,
 } from '../schemas/context.schema.js'
+import { petAttributes } from './pet.system.js'
+import { skillAttributes } from './skill.system.js'
+import { markAttributes } from './mark.system.js'
+import { playerAttributes } from './player.system.js'
 
 type JsonSchemaNode = {
   type?: unknown
@@ -110,45 +114,38 @@ const schemaByOwner: Record<EntityKind, TSchema | undefined> = {
   consumeStackContext: ConsumeStackContextSchema,
 }
 
+// Attributes aggregated from each system's own declarations.
+// Each system file (pet.system.ts, skill.system.ts, etc.) exports its attribute
+// list as the single source of truth — no duplication.
 const attributes: ExtractorRegistry['attributes'] = [
-  { kind: 'attribute', key: 'maxHp', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'atk', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'def', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'spa', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'spd', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'spe', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'accuracy', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'evasion', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'critRate', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'ragePerTurn', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'weight', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'height', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'currentHp', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'isAlive', owners: ['pet'], valueType: 'boolean', modifiable: true },
-  { kind: 'attribute', key: 'appeared', owners: ['pet', 'skill'], valueType: 'boolean', modifiable: true },
-  { kind: 'attribute', key: 'name', owners: ['pet'], valueType: 'string', modifiable: true },
-  { kind: 'attribute', key: 'speciesId', owners: ['pet'], valueType: 'string', modifiable: true },
-  { kind: 'attribute', key: 'level', owners: ['pet'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'element', owners: ['pet', 'skill'], valueType: 'string', modifiable: true },
-  { kind: 'attribute', key: 'gender', owners: ['pet'], valueType: 'string', modifiable: true },
-  { kind: 'attribute', key: 'nature', owners: ['pet'], valueType: 'string', modifiable: true },
-  { kind: 'attribute', key: 'power', owners: ['skill'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'accuracy', owners: ['skill'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'priority', owners: ['skill'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'rage', owners: ['skill'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'category', owners: ['skill'], valueType: 'string', modifiable: true },
-  { kind: 'attribute', key: 'target', owners: ['skill'], valueType: 'string', modifiable: true },
-  { kind: 'attribute', key: 'multihit', owners: ['skill'], valueType: 'object', modifiable: true },
-  { kind: 'attribute', key: 'sureHit', owners: ['skill'], valueType: 'boolean', modifiable: true },
-  { kind: 'attribute', key: 'sureCrit', owners: ['skill'], valueType: 'boolean', modifiable: true },
-  { kind: 'attribute', key: 'ignoreShield', owners: ['skill'], valueType: 'boolean', modifiable: true },
-  { kind: 'attribute', key: 'tags', owners: ['skill', 'mark'], valueType: 'object', modifiable: true },
-  { kind: 'attribute', key: 'duration', owners: ['mark'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'stack', owners: ['mark'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'isActive', owners: ['mark'], valueType: 'boolean', modifiable: true },
-  { kind: 'attribute', key: 'config', owners: ['mark'], valueType: 'object', modifiable: true },
-  { kind: 'attribute', key: 'currentRage', owners: ['player'], valueType: 'number', modifiable: true },
-  { kind: 'attribute', key: 'maxRage', owners: ['player'], valueType: 'number', modifiable: true },
+  ...petAttributes.map(a => ({
+    kind: 'attribute' as const,
+    key: a.key,
+    owners: ['pet'] as EntityKind[],
+    valueType: a.valueType,
+    modifiable: a.modifiable,
+  })),
+  ...skillAttributes.map(a => ({
+    kind: 'attribute' as const,
+    key: a.key,
+    owners: ['skill'] as EntityKind[],
+    valueType: a.valueType,
+    modifiable: a.modifiable,
+  })),
+  ...markAttributes.map(a => ({
+    kind: 'attribute' as const,
+    key: a.key,
+    owners: ['mark'] as EntityKind[],
+    valueType: a.valueType,
+    modifiable: a.modifiable,
+  })),
+  ...playerAttributes.map(a => ({
+    kind: 'attribute' as const,
+    key: a.key,
+    owners: ['player'] as EntityKind[],
+    valueType: a.valueType,
+    modifiable: a.modifiable,
+  })),
 ]
 
 const relations: ExtractorRegistry['relations'] = [

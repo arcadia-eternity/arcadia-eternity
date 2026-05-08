@@ -698,6 +698,9 @@ function getExtractorArg(step: SelectorChain): string | undefined {
         : undefined
   if (!extractor) return undefined
   if (typeof extractor === 'string') return extractor
+  if (typeof extractor === 'object' && 'type' in extractor && extractor.type === 'base' && 'arg' in extractor) {
+    return (extractor as { arg: string }).arg
+  }
   return undefined
 }
 
@@ -744,6 +747,18 @@ function previewStep(step: SelectorChain): string {
   if (step.type === 'select') {
     const s = step as { arg: ExtractorDSL }
     if (typeof s.arg === 'string') return `${typeLabel}: ${s.arg}`
+    if (typeof s.arg === 'object' && s.arg.type === 'base' && 'arg' in s.arg) {
+      return `${typeLabel}: ${(s.arg as { arg: string }).arg}`
+    }
+    if (typeof s.arg === 'object' && (s.arg.type === 'attribute' || s.arg.type === 'relation')) {
+      return `${typeLabel}: ${String((s.arg as { key?: string }).key || s.arg.type)}`
+    }
+    if (typeof s.arg === 'object' && s.arg.type === 'field') {
+      return `${typeLabel}: ${String((s.arg as { path?: string }).path || s.arg.type)}`
+    }
+    if (typeof s.arg === 'object' && s.arg.type === 'dynamic') {
+      return `${typeLabel}: ${String((s.arg as { arg?: string }).arg || s.arg.type)}`
+    }
     return `${typeLabel}: ${s.arg.type}`
   }
   if (step.type === 'where') return `${typeLabel}: …`

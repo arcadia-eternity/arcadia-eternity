@@ -12,10 +12,23 @@ import {
 } from '@arcadia-eternity/engine'
 import type { BaseMarkData, MarkData, MarkConfigData } from '../schemas/mark.schema.js'
 import type { PetData } from '../schemas/pet.schema.js'
+import type { EntityAttributeDef } from './pet.system.js'
 
 export const MARK = 'mark' as const
 const PET = 'pet' as const
 export const BATTLE_OWNER_ID = 'battle' as const
+
+// ---------------------------------------------------------------------------
+// Attribute declarations — single source of truth for extractor registry
+// ---------------------------------------------------------------------------
+
+export const markAttributes: EntityAttributeDef[] = [
+  { key: 'duration', valueType: 'number', modifiable: true },
+  { key: 'stack', valueType: 'number', modifiable: true },
+  { key: 'isActive', valueType: 'boolean', modifiable: true },
+  { key: 'tags', valueType: 'object', modifiable: true },
+  { key: 'config', valueType: 'object', modifiable: true },
+]
 
 // ---------------------------------------------------------------------------
 // MarkSystem

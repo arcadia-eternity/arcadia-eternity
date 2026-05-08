@@ -24,6 +24,40 @@ import type { SpeciesData } from '../schemas/species.schema.js'
 export const PET = 'pet' as const
 
 // ---------------------------------------------------------------------------
+// Attribute declarations — single source of truth for extractor registry
+// ---------------------------------------------------------------------------
+
+export interface EntityAttributeDef {
+  key: string
+  valueType: 'number' | 'string' | 'boolean' | 'object'
+  modifiable: boolean
+}
+
+export const petAttributes: EntityAttributeDef[] = [
+  { key: 'maxHp', valueType: 'number', modifiable: true },
+  { key: 'atk', valueType: 'number', modifiable: true },
+  { key: 'def', valueType: 'number', modifiable: true },
+  { key: 'spa', valueType: 'number', modifiable: true },
+  { key: 'spd', valueType: 'number', modifiable: true },
+  { key: 'spe', valueType: 'number', modifiable: true },
+  { key: 'accuracy', valueType: 'number', modifiable: true },
+  { key: 'evasion', valueType: 'number', modifiable: true },
+  { key: 'critRate', valueType: 'number', modifiable: true },
+  { key: 'ragePerTurn', valueType: 'number', modifiable: true },
+  { key: 'weight', valueType: 'number', modifiable: true },
+  { key: 'height', valueType: 'number', modifiable: true },
+  { key: 'currentHp', valueType: 'number', modifiable: true },
+  { key: 'isAlive', valueType: 'boolean', modifiable: true },
+  { key: 'appeared', valueType: 'boolean', modifiable: true },
+  { key: 'name', valueType: 'string', modifiable: true },
+  { key: 'speciesId', valueType: 'string', modifiable: true },
+  { key: 'level', valueType: 'number', modifiable: true },
+  { key: 'element', valueType: 'string', modifiable: true },
+  { key: 'gender', valueType: 'string', modifiable: true },
+  { key: 'nature', valueType: 'string', modifiable: true },
+]
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
