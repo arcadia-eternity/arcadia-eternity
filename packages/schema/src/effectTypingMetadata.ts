@@ -1,4 +1,135 @@
-import type { EffectDslTypingContract } from './effectTypingContract'
+import type { EffectDslTypingContract, StringEnumOption } from './effectTypingContract'
+import {
+  CleanStageStrategy,
+  ContinuousUseSkillStrategy,
+  IgnoreStageStrategy,
+  SetStageStrategy,
+  StackStrategy,
+  StatTypeWithoutHp,
+} from '@arcadia-eternity/const'
+
+// Type-safe enum-to-options mapper.
+// Adding a new member to any source enum WITHOUT updating the
+// corresponding labels map = TypeScript compile error.  Exhaustive.
+function mapEnumOptions<TEnum extends Record<string, string>>(labels: {
+  [K in TEnum[keyof TEnum]]: string | { label: string; description?: string }
+}): StringEnumOption[] {
+  return (Object.entries(labels) as [string, string | { label: string; description?: string }][]).map(
+    ([value, info]) => {
+      const resolved = typeof info === 'string' ? { label: info } : info
+      return { value, label: resolved.label, description: resolved.description } as StringEnumOption
+    },
+  )
+}
+
+// Pseudo-enums (values not in @arcadia-eternity/const yet)
+const ModifierType = { add: 'add', multiply: 'multiply', replace: 'replace', set: 'set' } as const
+const TransformTypeValues = { temporary: 'temporary', permanent: 'permanent' } as const
+const PermanentStrategyValues = {
+  preserve_temporary: 'preserve_temporary',
+  clear_temporary: 'clear_temporary',
+} as const
+const StatKey = {
+  atk: 'atk',
+  def: 'def',
+  spa: 'spa',
+  spd: 'spd',
+  speed: 'speed',
+  hp: 'hp',
+  hitRate: 'hitRate',
+  critRate: 'critRate',
+  recoverHp: 'recoverHp',
+  damageReduce: 'damageReduce',
+  damageBoost: 'damageBoost',
+  healBoost: 'healBoost',
+} as const
+
+// ── Enum option registries (all type-safe) ──────────────────────────
+
+const ENUM_ModifierType = mapEnumOptions<typeof ModifierType>({
+  [ModifierType.add]: '加',
+  [ModifierType.multiply]: '乘',
+  [ModifierType.replace]: '替换',
+  [ModifierType.set]: '设',
+})
+
+const ENUM_StatType = mapEnumOptions<typeof StatKey>({
+  [StatKey.atk]: '攻击',
+  [StatKey.def]: '防御',
+  [StatKey.spa]: '特攻',
+  [StatKey.spd]: '特防',
+  [StatKey.speed]: '速度',
+  [StatKey.hp]: '体力',
+  [StatKey.hitRate]: '命中率',
+  [StatKey.critRate]: '暴击率',
+  [StatKey.recoverHp]: '恢复体力',
+  [StatKey.damageReduce]: '减伤',
+  [StatKey.damageBoost]: '增伤',
+  [StatKey.healBoost]: '治疗加成',
+})
+
+const ENUM_CleanStageStrategy = mapEnumOptions<typeof CleanStageStrategy>({
+  [CleanStageStrategy.all]: '全部',
+  [CleanStageStrategy.positive]: '有利',
+  [CleanStageStrategy.negative]: '负面',
+  [CleanStageStrategy.reverse]: '反转',
+})
+
+const ENUM_TransformType = mapEnumOptions<typeof TransformTypeValues>({
+  [TransformTypeValues.temporary]: '临时',
+  [TransformTypeValues.permanent]: '永久',
+})
+
+const ENUM_PermanentStrategy = mapEnumOptions<typeof PermanentStrategyValues>({
+  [PermanentStrategyValues.preserve_temporary]: '保留临时效果',
+  [PermanentStrategyValues.clear_temporary]: '清除临时效果',
+})
+
+const ENUM_IgnoreStageStrategy = mapEnumOptions<typeof IgnoreStageStrategy>({
+  [IgnoreStageStrategy.none]: '无',
+  [IgnoreStageStrategy.all]: '全部',
+  [IgnoreStageStrategy.positive]: '有利',
+  [IgnoreStageStrategy.negative]: '负面',
+})
+
+const ENUM_ContinuousUseSkillStrategy = mapEnumOptions<typeof ContinuousUseSkillStrategy>({
+  [ContinuousUseSkillStrategy.Periodic]: '周期',
+  [ContinuousUseSkillStrategy.Once]: '一次',
+  [ContinuousUseSkillStrategy.Continuous]: '持续',
+})
+
+const ENUM_SetStageStrategy = mapEnumOptions<typeof SetStageStrategy>({
+  [SetStageStrategy.add]: '累加',
+  [SetStageStrategy.set]: '强制设置',
+})
+
+const ENUM_StackStrategy = mapEnumOptions<typeof StackStrategy>({
+  [StackStrategy.stack]: '叠加',
+  [StackStrategy.refresh]: '刷新',
+  [StackStrategy.extend]: '延长',
+  [StackStrategy.max]: '取最大',
+  [StackStrategy.replace]: '替换',
+  [StackStrategy.none]: '无',
+  [StackStrategy.remove]: '移除',
+})
+
+const ENUM_StatTypeWithoutHp = mapEnumOptions<typeof StatTypeWithoutHp>({
+  [StatTypeWithoutHp.atk]: '攻击',
+  [StatTypeWithoutHp.def]: '防御',
+  [StatTypeWithoutHp.spa]: '特攻',
+  [StatTypeWithoutHp.spd]: '特防',
+  [StatTypeWithoutHp.spe]: '速度',
+})
+
+// ── Constraint helpers ──────────────────────────────────────────────
+
+const STRING_ENUM = (values: readonly StringEnumOption[]) =>
+  ({
+    allow: [
+      { kind: 'scalar' as const, valueTypes: ['string' as const] },
+      { kind: 'stringEnum' as const, values },
+    ],
+  }) as const
 
 const ANY_ID = { allow: [{ kind: 'id' }] } as const
 const PET_ID = { allow: [{ kind: 'id', targets: ['pet'] }] } as const
@@ -96,6 +227,7 @@ export const effectDslTypingMetadata = {
     continuousUseSkill: {
       valueFields: {
         times: NUMERIC,
+        strategy: STRING_ENUM(ENUM_ContinuousUseSkillStrategy),
       },
     },
     skillSequence: {
@@ -179,7 +311,7 @@ export const effectDslTypingMetadata = {
     modifyStat: {
       selectorFields: { target: PET_ID },
       valueFields: {
-        statType: STRINGY,
+        statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
         delta: NUMERIC,
         percent: NUMERIC,
       },
@@ -187,20 +319,23 @@ export const effectDslTypingMetadata = {
     statStageBuff: {
       selectorFields: { target: PET_ID },
       valueFields: {
-        statType: STRINGY,
+        statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
         value: NUMERIC,
+        strategy: STRING_ENUM(ENUM_SetStageStrategy),
       },
     },
     clearStatStage: {
       selectorFields: { target: PET_ID },
       valueFields: {
-        statType: STRINGY,
+        statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
+        cleanStageStrategy: STRING_ENUM(ENUM_CleanStageStrategy),
       },
     },
     reverseStatStage: {
       selectorFields: { target: PET_ID },
       valueFields: {
-        statType: STRINGY,
+        statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
+        cleanStageStrategy: STRING_ENUM(ENUM_CleanStageStrategy),
       },
     },
     transferStatStage: {
@@ -209,7 +344,8 @@ export const effectDslTypingMetadata = {
         target: PET_ID,
       },
       valueFields: {
-        statType: STRINGY,
+        statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
+        cleanStageStrategy: STRING_ENUM(ENUM_CleanStageStrategy),
       },
     },
     transferMark: {
@@ -333,7 +469,7 @@ export const effectDslTypingMetadata = {
         target: USE_SKILL_CONTEXT_OWNER,
       },
       valueFields: {
-        value: STRINGY,
+        value: STRING_ENUM(ENUM_IgnoreStageStrategy),
       },
     },
     setSureHit: {
@@ -422,7 +558,7 @@ export const effectDslTypingMetadata = {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
-      valueFields: { value: STRINGY },
+      valueFields: { value: STRING_ENUM(ENUM_StackStrategy) },
     },
     setMarkDestroyable: {
       selectorFields: {
@@ -463,8 +599,8 @@ export const effectDslTypingMetadata = {
     addAttributeModifier: {
       selectorFields: { target: ANY_ID },
       valueFields: {
-        stat: STRINGY,
-        modifierType: STRINGY,
+        stat: STRING_ENUM(ENUM_StatType),
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         value: NUMERIC,
         priority: NUMERIC,
         phaseType: STRINGY,
@@ -478,8 +614,8 @@ export const effectDslTypingMetadata = {
         observableValue: NUMERIC,
       },
       valueFields: {
-        stat: STRINGY,
-        modifierType: STRINGY,
+        stat: STRING_ENUM(ENUM_StatType),
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         priority: NUMERIC,
         phaseType: STRINGY,
         scope: STRINGY,
@@ -489,7 +625,7 @@ export const effectDslTypingMetadata = {
     addClampMaxModifier: {
       selectorFields: { target: ANY_ID },
       valueFields: {
-        stat: STRINGY,
+        stat: STRING_ENUM(ENUM_StatType),
         maxValue: NUMERIC,
         priority: NUMERIC,
       },
@@ -497,7 +633,7 @@ export const effectDslTypingMetadata = {
     addClampMinModifier: {
       selectorFields: { target: ANY_ID },
       valueFields: {
-        stat: STRINGY,
+        stat: STRING_ENUM(ENUM_StatType),
         minValue: NUMERIC,
         priority: NUMERIC,
       },
@@ -505,7 +641,7 @@ export const effectDslTypingMetadata = {
     addClampModifier: {
       selectorFields: { target: ANY_ID },
       valueFields: {
-        stat: STRINGY,
+        stat: STRING_ENUM(ENUM_StatType),
         minValue: NUMERIC,
         maxValue: NUMERIC,
         priority: NUMERIC,
@@ -517,8 +653,8 @@ export const effectDslTypingMetadata = {
     addSkillAttributeModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRINGY,
-        modifierType: STRINGY,
+        attribute: STRING_ENUM(ENUM_StatType),
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         value: NUMERIC,
         priority: NUMERIC,
         phaseType: STRINGY,
@@ -532,15 +668,15 @@ export const effectDslTypingMetadata = {
         observableValue: NUMERIC,
       },
       valueFields: {
-        attribute: STRINGY,
-        modifierType: STRINGY,
+        attribute: STRING_ENUM(ENUM_StatType),
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         priority: NUMERIC,
       },
     },
     addSkillClampMaxModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRINGY,
+        attribute: STRING_ENUM(ENUM_StatType),
         maxValue: NUMERIC,
         priority: NUMERIC,
       },
@@ -548,7 +684,7 @@ export const effectDslTypingMetadata = {
     addSkillClampMinModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRINGY,
+        attribute: STRING_ENUM(ENUM_StatType),
         minValue: NUMERIC,
         priority: NUMERIC,
       },
@@ -556,7 +692,7 @@ export const effectDslTypingMetadata = {
     addSkillClampModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRINGY,
+        attribute: STRING_ENUM(ENUM_StatType),
         minValue: NUMERIC,
         maxValue: NUMERIC,
         priority: NUMERIC,
@@ -585,7 +721,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRINGY,
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         value: NUMERIC,
         priority: NUMERIC,
       },
@@ -597,7 +733,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRINGY,
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         priority: NUMERIC,
       },
     },
@@ -605,7 +741,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         tag: STRINGY,
-        modifierType: STRINGY,
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         value: NUMERIC,
         priority: NUMERIC,
       },
@@ -614,7 +750,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRINGY,
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         value: NUMERIC,
         priority: NUMERIC,
       },
@@ -626,7 +762,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRINGY,
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         priority: NUMERIC,
       },
     },
@@ -634,7 +770,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRINGY,
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         value: NUMERIC,
         phaseType: STRINGY,
         scope: STRINGY,
@@ -649,7 +785,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRINGY,
+        modifierType: STRING_ENUM(ENUM_ModifierType),
         phaseType: STRINGY,
         scope: STRINGY,
         priority: NUMERIC,
@@ -658,11 +794,21 @@ export const effectDslTypingMetadata = {
     },
     transform: {
       selectorFields: { target: ANY_ID },
-      valueFields: { newBase: BASE_SKILL_REF, priority: NUMERIC },
+      valueFields: {
+        newBase: BASE_SKILL_REF,
+        priority: NUMERIC,
+        transformType: STRING_ENUM(ENUM_TransformType),
+        permanentStrategy: STRING_ENUM(ENUM_PermanentStrategy),
+      },
     },
     transformWithPreservation: {
       selectorFields: { target: ANY_ID },
-      valueFields: { newBase: BASE_SKILL_REF, priority: NUMERIC },
+      valueFields: {
+        newBase: BASE_SKILL_REF,
+        priority: NUMERIC,
+        transformType: STRING_ENUM(ENUM_TransformType),
+        permanentStrategy: STRING_ENUM(ENUM_PermanentStrategy),
+      },
     },
     removeTransformation: {
       selectorFields: { target: ANY_ID },

@@ -1,5 +1,10 @@
 import { computed, type Ref } from 'vue'
-import { getEffectDslManifest, getEffectDslNodeTyping, type EffectDslNodeKind } from '@arcadia-eternity/schema'
+import {
+  getEffectDslManifest,
+  getEffectDslNodeTyping,
+  type EffectDslNodeKind,
+  type StringEnumOption,
+} from '@arcadia-eternity/schema'
 import type { EffectDslFieldTypingRule, EffectDslStateConstraint } from '@arcadia-eternity/schema'
 import { BASE_SELECTOR_KEYS, BASE_EXTRACTOR_KEYS, COMPARE_OPERATORS } from '@arcadia-eternity/schema'
 import type { CompileState } from '@arcadia-eternity/battle'
@@ -243,6 +248,18 @@ export function compileStatesToFieldTyping(states: readonly CompileState[]): Eff
 export function resolveConditionOptions(fieldTyping?: EffectDslFieldTypingRule | undefined): string[] {
   const manifest = getEffectDslManifest()
   return Object.keys(manifest.condition).filter(k => manifest.condition[k] !== undefined)
+}
+
+export function resolveStringEnumOptions(
+  fieldTyping: EffectDslFieldTypingRule | undefined,
+): StringEnumOption[] | undefined {
+  if (!fieldTyping) return undefined
+  for (const constraint of fieldTyping.allow) {
+    if (constraint.kind === 'stringEnum') {
+      return constraint.values as unknown as StringEnumOption[]
+    }
+  }
+  return undefined
 }
 
 /**
@@ -659,6 +676,7 @@ export function useEffectTyping() {
     resolveValueTypeOptions,
     resolveEvaluatorOptions,
     resolveConditionOptions,
+    resolveStringEnumOptions,
     getOperatorFieldHint,
   }
 }

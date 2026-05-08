@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Value, ValueView, ConditionDSL, SelectorDSL, SelectorChain } from '@arcadia-eternity/schema'
+import type { StringEnumOption } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 
 const props = withDefaults(
@@ -10,8 +11,9 @@ const props = withDefaults(
     label?: string
     maxDepth?: number
     depth?: number
+    stringEnumOptions?: StringEnumOption[]
   }>(),
-  { allowedTypes: undefined, label: undefined, maxDepth: 4, depth: 0 },
+  { allowedTypes: undefined, label: undefined, maxDepth: 4, depth: 0, stringEnumOptions: undefined },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: Value] }>()
@@ -256,22 +258,51 @@ function updateArrayItem(index: number, value: Value) {
       </template>
       <template v-else-if="currentType === 'raw:string'">
         <div class="editor-row">
-          <el-input
-            :model-value="isBarePrimitive ? (modelValue as unknown as string) : safeString"
-            @update:model-value="
-              (v: string) =>
-                emitRawString(
-                  v,
-                  typedConfigId,
-                  typedTags
-                    ? typedTags
-                        .split(',')
-                        .map((s: string) => s.trim())
-                        .filter(Boolean)
-                    : undefined,
-                )
-            "
-          />
+          <template v-if="props.stringEnumOptions && props.stringEnumOptions.length > 0">
+            <el-select
+              :model-value="isBarePrimitive ? (modelValue as unknown as string) : safeString"
+              filterable
+              placeholder="选择..."
+              class="enum-select"
+              @update:model-value="
+                (v: string) =>
+                  emitRawString(
+                    v,
+                    typedConfigId,
+                    typedTags
+                      ? typedTags
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter(Boolean)
+                      : undefined,
+                  )
+              "
+            >
+              <el-option v-for="opt in props.stringEnumOptions" :key="opt.value" :label="opt.label" :value="opt.value">
+                <el-tooltip v-if="opt.description" :content="opt.description" placement="right" effect="dark">
+                  <span>{{ opt.label }}</span>
+                </el-tooltip>
+              </el-option>
+            </el-select>
+          </template>
+          <template v-else>
+            <el-input
+              :model-value="isBarePrimitive ? (modelValue as unknown as string) : safeString"
+              @update:model-value="
+                (v: string) =>
+                  emitRawString(
+                    v,
+                    typedConfigId,
+                    typedTags
+                      ? typedTags
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter(Boolean)
+                      : undefined,
+                  )
+              "
+            />
+          </template>
           <template v-if="isObjectValue">
             <el-input
               :model-value="typedConfigId"
@@ -597,6 +628,11 @@ function updateArrayItem(index: number, value: Value) {
 
 .config-input {
   width: 120px;
+}
+
+.enum-select {
+  min-width: 120px;
+  max-width: 280px;
 }
 
 .switch-row {

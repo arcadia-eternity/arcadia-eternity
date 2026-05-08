@@ -81,7 +81,12 @@ watch(
 function applyTypingConstraints(
   field: unknown,
   opType: string | undefined,
-): { selectorFilter?: string[]; valueFilter?: string[]; expectedScalarType?: 'number' | 'string' | 'boolean' } {
+): {
+  selectorFilter?: string[]
+  valueFilter?: string[]
+  expectedScalarType?: 'number' | 'string' | 'boolean'
+  stringEnumOptions?: import('@arcadia-eternity/schema').StringEnumOption[]
+} {
   const fieldName = typeof field === 'string' ? field : undefined
   if (!fieldName || !opType) return {}
 
@@ -101,10 +106,13 @@ function applyTypingConstraints(
     }
   }
 
+  const stringEnumOptions = typing.resolveStringEnumOptions(valRule)
+
   return {
     selectorFilter: selOpts?.map(o => o.value),
     valueFilter: valOpts,
     expectedScalarType,
+    stringEnumOptions: stringEnumOptions as import('@arcadia-eternity/schema').StringEnumOption[] | undefined,
   }
 }
 
@@ -298,6 +306,9 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                 <ValueEditor
                   :model-value="vv"
                   :allowed-types="applyTypingConstraints(field, getOperatorTypeFromModel(modelValue)).valueFilter"
+                  :string-enum-options="
+                    applyTypingConstraints(field, getOperatorTypeFromModel(modelValue)).stringEnumOptions
+                  "
                   @update:model-value="vu"
                 >
                   <template #selector="{ modelValue: dsv, update: dsu }">

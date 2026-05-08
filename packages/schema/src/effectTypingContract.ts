@@ -13,12 +13,20 @@ export type EffectDslObjectClass<TOwner extends string = string> =
   | 'json:stringArray'
   | 'json:record'
 
+/** A single enum option with value, display label, and optional description tooltip. */
+export type StringEnumOption = {
+  value: string
+  label: string
+  description?: string
+}
+
 export type EffectDslStateConstraint<TOwner extends string = string> =
   | { kind: 'id'; targets?: readonly TOwner[] }
   | { kind: 'owner'; owners?: readonly TOwner[] }
   | { kind: 'scalar'; valueTypes?: readonly EffectDslScalarType[] }
   | { kind: 'object'; classes?: readonly EffectDslObjectClass<TOwner>[] }
   | { kind: 'propertyRef' }
+  | { kind: 'stringEnum'; values: readonly StringEnumOption[] }
 
 export type EffectDslFieldTypingRule<TOwner extends string = string> = {
   allow: readonly EffectDslStateConstraint<TOwner>[]
