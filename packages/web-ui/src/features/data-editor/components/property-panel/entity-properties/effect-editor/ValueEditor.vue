@@ -447,18 +447,9 @@ function updateArrayItem(index: number, value: Value) {
                   })
               "
             >
-              <el-input
-                :model-value="(typedValue?.condition as string | undefined) ?? ''"
-                placeholder="条件..."
-                @update:model-value="
-                  (v: string) =>
-                    emitStructured('conditional', {
-                      condition: v,
-                      trueValue: typedValue?.trueValue,
-                      falseValue: typedValue?.falseValue,
-                    })
-                "
-              />
+              <span class="fallback-text">{{
+                typeof typedValue?.condition === 'object' ? '(ConditionTree)' : (typedValue?.condition ?? '(空)')
+              }}</span>
             </slot>
           </div>
           <div class="conditional-section">
