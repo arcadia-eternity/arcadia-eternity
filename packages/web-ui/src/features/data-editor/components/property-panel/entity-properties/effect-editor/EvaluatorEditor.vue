@@ -11,6 +11,14 @@ const props = defineProps<{
   modelValue: EvaluatorDSL
 }>()
 
+const emit = defineEmits<{
+  'update:modelValue': [value: EvaluatorDSL]
+}>()
+
+defineSlots<{
+  value(props: { modelValue: Value; update: (v: Value) => void; field?: string }): unknown
+}>()
+
 type EvaluatorCategory = 'compare' | 'same' | 'notSame' | 'value' | 'children' | 'singleChild' | 'input' | 'leaf'
 
 function categorizeEvaluator(type: string): EvaluatorCategory {
@@ -206,7 +214,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
             name="value"
             :model-value="e.value as Value"
             :field="'value'"
-            :update="v => updateField('value', v as Value)"
+            :update="(v: unknown) => updateField('value', v as Value)"
           />
         </template>
 
@@ -215,7 +223,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
             name="value"
             :model-value="e.value as Value"
             :field="'value'"
-            :update="v => updateField('value', v as Value)"
+            :update="(v: unknown) => updateField('value', v as Value)"
           />
         </template>
 
@@ -224,7 +232,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
             name="value"
             :model-value="(e.percent ?? e.value) as unknown as Value"
             :field="e.type === 'probability' ? 'percent' : 'value'"
-            :update="v => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
+            :update="(v: unknown) => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
           />
         </template>
 
@@ -283,8 +291,13 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
             :model-value="child"
             @update:model-value="(v: EvaluatorDSL) => updateChildCondition(Number(index), v)"
           >
-            <template #value="slotProps">
-              <slot name="value" v-bind="slotProps" />
+            <template #value="slotProps: { modelValue: Value; update: (v: Value) => void; field?: string }">
+              <slot
+                name="value"
+                :model-value="slotProps.modelValue"
+                :update="slotProps.update"
+                :field="slotProps.field"
+              />
             </template>
           </EvaluatorEditor>
           <el-button size="small" text class="child-delete-btn" @click="updateChildCondition(Number(index), undefined)">
@@ -331,8 +344,13 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
         <div class="evaluator-child-item">
           <span class="child-connector">├</span>
           <EvaluatorEditor :model-value="e.condition" @update:model-value="(v: EvaluatorDSL) => updateInnerChild(v)">
-            <template #value="slotProps">
-              <slot name="value" v-bind="slotProps" />
+            <template #value="slotProps: { modelValue: Value; update: (v: Value) => void; field?: string }">
+              <slot
+                name="value"
+                :model-value="slotProps.modelValue"
+                :update="slotProps.update"
+                :field="slotProps.field"
+              />
             </template>
           </EvaluatorEditor>
         </div>
