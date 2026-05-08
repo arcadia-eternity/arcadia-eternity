@@ -126,14 +126,24 @@ function getEvaluatorTypeFromModel(evModel: unknown): string | undefined {
   return (evModel as Record<string, unknown>).type as string | undefined
 }
 
-function applyEvaluatorTypingConstraints(field: unknown, evType: string | undefined): { valueFilter?: string[] } {
+function applyEvaluatorTypingConstraints(
+  field: unknown,
+  evType: string | undefined,
+): {
+  valueFilter?: string[]
+  stringEnumOptions?: import('@arcadia-eternity/schema').StringEnumOption[]
+} {
   const fieldName = typeof field === 'string' ? field : undefined
   if (!fieldName || !evType) return {}
 
   const valRule = typing.getFieldTyping('evaluator', evType, fieldName, 'valueFields')
   const valOpts = valRule ? typing.resolveValueTypeOptions(valRule).map(o => o.value) : undefined
+  const stringEnumOptions = typing.resolveStringEnumOptions(valRule)
 
-  return { valueFilter: valOpts }
+  return {
+    valueFilter: valOpts,
+    stringEnumOptions: stringEnumOptions as import('@arcadia-eternity/schema').StringEnumOption[] | undefined,
+  }
 }
 
 function castValue(v: unknown): Value {
@@ -186,6 +196,9 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                           :allowed-types="
                             applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).valueFilter
                           "
+                          :string-enum-options="
+                            applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).stringEnumOptions
+                          "
                           @update:model-value="evu"
                           ><template #selector="{ modelValue: dsv, update: dsu }"
                             ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
@@ -232,6 +245,10 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                               :model-value="evv2"
                               :allowed-types="
                                 applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ccv2)).valueFilter
+                              "
+                              :string-enum-options="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ccv2))
+                                  .stringEnumOptions
                               "
                               @update:model-value="evu2"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
@@ -327,6 +344,9 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                               :allowed-types="
                                 applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(dev)).valueFilter
                               "
+                              :string-enum-options="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(dev)).stringEnumOptions
+                              "
                               @update:model-value="devu"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
                                 ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
@@ -361,6 +381,10 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                                   :model-value="evv"
                                   :allowed-types="
                                     applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).valueFilter
+                                  "
+                                  :string-enum-options="
+                                    applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev))
+                                      .stringEnumOptions
                                   "
                                   @update:model-value="evu"
                                   ><template #selector="{ modelValue: dsv, update: dsu }"
@@ -424,6 +448,9 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                               :allowed-types="
                                 applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).valueFilter
                               "
+                              :string-enum-options="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).stringEnumOptions
+                              "
                               @update:model-value="evu"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
                                 ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
@@ -474,6 +501,9 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                               :model-value="evv"
                               :allowed-types="
                                 applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).valueFilter
+                              "
+                              :string-enum-options="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).stringEnumOptions
                               "
                               @update:model-value="evu"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
