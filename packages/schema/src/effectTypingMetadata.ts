@@ -162,7 +162,7 @@ export const effectDslTypingMetadata = {
       valueFields: { value: NUMERIC },
     },
     modifyStat: {
-      selectorFields: { target: ANY_ID },
+      selectorFields: { target: PET_ID },
       valueFields: {
         statType: STRINGY,
         delta: NUMERIC,
@@ -170,28 +170,28 @@ export const effectDslTypingMetadata = {
       },
     },
     statStageBuff: {
-      selectorFields: { target: ANY_ID },
+      selectorFields: { target: PET_ID },
       valueFields: {
         statType: STRINGY,
         value: NUMERIC,
       },
     },
     clearStatStage: {
-      selectorFields: { target: ANY_ID },
+      selectorFields: { target: PET_ID },
       valueFields: {
         statType: STRINGY,
       },
     },
     reverseStatStage: {
-      selectorFields: { target: ANY_ID },
+      selectorFields: { target: PET_ID },
       valueFields: {
         statType: STRINGY,
       },
     },
     transferStatStage: {
       selectorFields: {
-        source: ANY_ID,
-        target: ANY_ID,
+        source: PET_ID,
+        target: PET_ID,
       },
       valueFields: {
         statType: STRINGY,

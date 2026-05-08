@@ -32,33 +32,282 @@ const emit = defineEmits<{
   'update:modelValue': [value: SelectorDSL]
 }>()
 
-const CHAIN_STEP_TYPES = [
-  { value: 'select', label: '筛选', group: 'extract' },
-  { value: 'selectPath', label: '路径选择', group: 'extract' },
-  { value: 'selectProp', label: '属性选择', group: 'extract' },
-  { value: 'selectObservable', label: '可观察选择', group: 'extract' },
-  { value: 'selectAttribute$', label: '动态属性', group: 'extract' },
-  { value: 'configGet', label: '配置获取', group: 'extract' },
-  { value: 'where', label: '条件过滤', group: 'filter' },
-  { value: 'whereAttr', label: '属性过滤', group: 'filter' },
-  { value: 'flat', label: '展平', group: 'transform' },
-  { value: 'sum', label: '求和', group: 'math' },
-  { value: 'avg', label: '平均', group: 'math' },
-  { value: 'add', label: '加法', group: 'math' },
-  { value: 'multiply', label: '乘法', group: 'math' },
-  { value: 'divide', label: '除法', group: 'math' },
-  { value: 'shuffled', label: '乱序', group: 'transform' },
-  { value: 'asStatLevelMark', label: '等级标记', group: 'transform' },
-  { value: 'sampleBetween', label: '区间采样', group: 'transform' },
-  { value: 'and', label: '交集', group: 'set' },
-  { value: 'or', label: '并集', group: 'set' },
-  { value: 'randomPick', label: '随机选取', group: 'random' },
-  { value: 'randomSample', label: '随机采样', group: 'random' },
-  { value: 'limit', label: '限制数量', group: 'limit' },
-  { value: 'clampMax', label: '上限', group: 'limit' },
-  { value: 'clampMin', label: '下限', group: 'limit' },
-  { value: 'when', label: '条件分支', group: 'flow' },
+interface ChainStepMeta {
+  value: string
+  label: string
+  group: string
+  description: string
+  inputState?: PipelineState // expected input state
+  outputState?: PipelineState // produced output state
+}
+
+type PipelineState = 'entityIds' | 'numeric' | 'mixed' | 'context' | 'unknown'
+
+const CHAIN_STEP_TYPES: readonly ChainStepMeta[] = [
+  {
+    value: 'select',
+    label: '筛选',
+    group: 'extract',
+    description: '从每个实体中提取指定属性（如当前生命值、怒气等）。输入为实体列表，输出为属性值列表。',
+    inputState: 'entityIds',
+    outputState: 'numeric',
+  },
+  {
+    value: 'selectPath',
+    label: '路径选择',
+    group: 'extract',
+    description: '通过 JSON 路径从对象中提取嵌套值。输入为对象列表，输出为路径对应的值列表。',
+    outputState: 'numeric',
+  },
+  {
+    value: 'selectProp',
+    label: '属性选择',
+    group: 'extract',
+    description: '通过对象属性名从每个实体中提取属性值。输入为对象列表，输出为属性值列表。',
+    outputState: 'numeric',
+  },
+  {
+    value: 'selectObservable',
+    label: '可观察选择',
+    group: 'extract',
+    description: '从每个实体中提取可观察的运行时动态值。输入为上下文对象，输出为对应值列表。',
+    outputState: 'numeric',
+  },
+  {
+    value: 'selectAttribute$',
+    label: '动态属性',
+    group: 'extract',
+    description: '从每个实体中提取动态属性（基于运行时状态计算）。输入为实体列表，输出为动态属性值列表。',
+    outputState: 'numeric',
+  },
+  {
+    value: 'configGet',
+    label: '配置获取',
+    group: 'extract',
+    description: '从每个实体的配置存储中按 key 获取值。输入为含配置的对象，输出为配置值列表。',
+    outputState: 'numeric',
+  },
+  {
+    value: 'where',
+    label: '条件过滤',
+    group: 'filter',
+    description: '按条件过滤实体列表。保留满足条件的实体，输出仍为实体列表。',
+    inputState: 'entityIds',
+    outputState: 'entityIds',
+  },
+  {
+    value: 'whereAttr',
+    label: '属性过滤',
+    group: 'filter',
+    description: '先提取属性值再按条件过滤实体。适用于需要通过属性值比较来筛选的场景。',
+    inputState: 'entityIds',
+    outputState: 'entityIds',
+  },
+  {
+    value: 'flat',
+    label: '展平',
+    group: 'transform',
+    description: '将嵌套数组展平为一维数组。',
+  },
+  {
+    value: 'sum',
+    label: '求和',
+    group: 'math',
+    description: '对数组中的所有数值求和，输出单个数值。',
+    inputState: 'numeric',
+    outputState: 'numeric',
+  },
+  {
+    value: 'avg',
+    label: '平均',
+    group: 'math',
+    description: '计算数组的平均值，输出单个数值。',
+    inputState: 'numeric',
+    outputState: 'numeric',
+  },
+  {
+    value: 'add',
+    label: '加法',
+    group: 'math',
+    description: '将数组中的每个数值加上指定值。',
+    inputState: 'numeric',
+    outputState: 'numeric',
+  },
+  {
+    value: 'multiply',
+    label: '乘法',
+    group: 'math',
+    description: '将数组中的每个数值乘以指定值。',
+    inputState: 'numeric',
+    outputState: 'numeric',
+  },
+  {
+    value: 'divide',
+    label: '除法',
+    group: 'math',
+    description: '将数组中的每个数值除以指定值。',
+    inputState: 'numeric',
+    outputState: 'numeric',
+  },
+  {
+    value: 'shuffled',
+    label: '乱序',
+    group: 'transform',
+    description: '随机打乱数组顺序。',
+  },
+  {
+    value: 'asStatLevelMark',
+    label: '等级标记',
+    group: 'transform',
+    description: '将实体标记转换为统计等级标记对象进行计数。',
+  },
+  {
+    value: 'sampleBetween',
+    label: '区间采样',
+    group: 'transform',
+    description: '在数组相邻元素之间进行插值采样。',
+  },
+  {
+    value: 'and',
+    label: '交集',
+    group: 'set',
+    description: '计算当前实体列表与另一个选择器结果的交集，输出共同的实体。',
+    inputState: 'entityIds',
+    outputState: 'entityIds',
+  },
+  {
+    value: 'or',
+    label: '并集',
+    group: 'set',
+    description: '计算当前实体列表与另一个选择器结果的并集，输出去重后的实体。',
+    inputState: 'entityIds',
+    outputState: 'entityIds',
+  },
+  {
+    value: 'randomPick',
+    label: '随机选取',
+    group: 'random',
+    description: '从数组中随机选取指定数量的元素。',
+  },
+  {
+    value: 'randomSample',
+    label: '随机采样',
+    group: 'random',
+    description: '从数组中随机采样指定比例的元素。',
+  },
+  {
+    value: 'limit',
+    label: '限制数量',
+    group: 'limit',
+    description: '限制数组长度为指定值，超过则截断前 N 个。',
+  },
+  {
+    value: 'clampMax',
+    label: '上限',
+    group: 'limit',
+    description: '将每个值限制在最大上限以内，超过上限的改为上限值。',
+    inputState: 'numeric',
+    outputState: 'numeric',
+  },
+  {
+    value: 'clampMin',
+    label: '下限',
+    group: 'limit',
+    description: '将每个值限制在最小下限以上，低于下限的改为下限值。',
+    inputState: 'numeric',
+    outputState: 'numeric',
+  },
+  {
+    value: 'when',
+    label: '条件分支',
+    group: 'flow',
+    description: '根据条件选择不同的值输出，类似 if/else 逻辑。',
+  },
 ] as const
+
+function getChainStepMeta(type: string): ChainStepMeta | undefined {
+  return CHAIN_STEP_TYPES.find(t => t.value === type)
+}
+
+/**
+ * Returns the entity state produced by a base selector.
+ */
+function baseSelectorOutputState(base: BaseSelectorKey): PipelineState {
+  const entityIdBases = new Set([
+    'self',
+    'opponent',
+    'target',
+    'selfTeam',
+    'opponentTeam',
+    'mark',
+    'selfMarks',
+    'opponentMarks',
+    'dataMarks',
+    'skill',
+    'selfSkills',
+    'opponentSkills',
+    'selfAvailableSkills',
+    'opponentAvailableSkills',
+    'selfPlayer',
+    'opponentPlayer',
+    'battle',
+  ])
+  if (entityIdBases.has(base)) return 'entityIds'
+  const contextBases = new Set([
+    'useSkillContext',
+    'damageContext',
+    'healContext',
+    'rageContext',
+    'addMarkContext',
+    'switchPetContext',
+    'turnContext',
+    'stackContext',
+    'consumeStackContext',
+    'effectContext',
+    'currentPhase',
+    'allPhases',
+  ])
+  if (contextBases.has(base)) return 'context'
+  return 'unknown'
+}
+
+/**
+ * Check if a chain step is compatible with the current pipeline state.
+ * Returns null if compatible, or a warning message if likely incompatible.
+ */
+function checkStepCompatibility(stepMeta: ChainStepMeta | undefined, currentState: PipelineState): string | null {
+  if (!stepMeta?.inputState) return null
+  if (currentState === 'unknown') return null
+  if (stepMeta.inputState === currentState) return null
+  if (stepMeta.inputState === 'entityIds' && currentState === 'context') {
+    return '该步骤期望输入为实体 ID 列表，当前状态为上下文对象，可能不兼容'
+  }
+  if (stepMeta.inputState === 'numeric' && currentState === 'entityIds') {
+    return '该步骤期望输入为数值，当前状态为实体 ID 列表，请先使用"筛选"步骤提取数值'
+  }
+  if (stepMeta.inputState === 'numeric' && currentState === 'context') {
+    return '该步骤期望输入为数值，当前状态为上下文对象，可能不兼容'
+  }
+  if (stepMeta.inputState === 'entityIds' && currentState === 'numeric') {
+    return '该步骤期望输入为实体 ID 列表，当前状态为数值，类型不兼容'
+  }
+  return null
+}
+
+function getPipelineStateLabel(state: PipelineState): string {
+  switch (state) {
+    case 'entityIds':
+      return '实体 ID 列表'
+    case 'numeric':
+      return '数值'
+    case 'mixed':
+      return '混合'
+    case 'context':
+      return '上下文对象'
+    case 'unknown':
+      return '未知'
+  }
+}
 
 const EXTRACTOR_TYPES = [
   { value: 'base', label: '基础' },
@@ -88,12 +337,82 @@ const RECURSIVE_TYPES = new Set(['and', 'or'])
 
 const BASE_EXTRACTOR_OPTIONS = BASE_EXTRACTOR_KEYS.map(k => ({ value: k, label: k }))
 
+// Common known keys for extractor autocomplete (attribute / relation / field / dynamic)
+const COMMON_EXTRACTOR_KEYS = [
+  { value: 'hp', label: 'hp (生命值)' },
+  { value: 'maxHp', label: 'maxHp (最大生命值)' },
+  { value: 'attack', label: 'attack (攻击)' },
+  { value: 'defense', label: 'defense (防御)' },
+  { value: 'spAttack', label: 'spAttack (特攻)' },
+  { value: 'spDefense', label: 'spDefense (特防)' },
+  { value: 'speed', label: 'speed (速度)' },
+  { value: 'level', label: 'level (等级)' },
+  { value: 'type', label: 'type (类型/元素)' },
+  { value: 'element', label: 'element (元素)' },
+  { value: 'gender', label: 'gender (性别)' },
+  { value: 'stage', label: 'stage (阶段/等级)' },
+  { value: 'value', label: 'value (值)' },
+  { value: 'count', label: 'count (计数)' },
+  { value: 'id', label: 'id (ID)' },
+  { value: 'name', label: 'name (名称)' },
+  { value: 'owner', label: 'owner (所有者)' },
+  { value: 'config', label: 'config (配置)' },
+  { value: 'stacks', label: 'stacks (堆叠数)' },
+  { value: 'duration', label: 'duration (持续时间)' },
+  { value: 'power', label: 'power (威力)' },
+  { value: 'priority', label: 'priority (优先级)' },
+  { value: 'tags', label: 'tags (标签)' },
+  { value: 'marks', label: 'marks (标记列表)' },
+  { value: 'skills', label: 'skills (技能列表)' },
+  { value: 'activePet', label: 'activePet (当前宠物)' },
+  { value: 'rage', label: 'rage (怒气)' },
+  { value: 'rageCost', label: 'rageCost (怒气消耗)' },
+  { value: 'baseId', label: 'baseId (基础ID)' },
+] as const
+
+// Common field paths for autocomplete (used in 'field' type extractors)
+const COMMON_FIELD_PATHS = [
+  { value: 'hp', label: 'hp' },
+  { value: 'maxHp', label: 'maxHp' },
+  { value: 'attack', label: 'attack' },
+  { value: 'defense', label: 'defense' },
+  { value: 'stats', label: 'stats' },
+  { value: 'config.value', label: 'config.value' },
+  { value: 'config.stacks', label: 'config.stacks' },
+  { value: 'config.duration', label: 'config.duration' },
+  { value: 'config.power', label: 'config.power' },
+  { value: 'stage.value', label: 'stage.value' },
+  { value: 'modifiers.flat', label: 'modifiers.flat' },
+  { value: 'modifiers.percent', label: 'modifiers.percent' },
+] as const
+
 const allSelectorOptions = computed(() => {
   const opts = resolveSelectorOptions(undefined)
   if (props.allowedBases && props.allowedBases.length > 0) {
     return opts.filter(o => props.allowedBases!.includes(o.value))
   }
   return opts
+})
+
+/** Computed step-level warnings for compatibility issues. */
+const stepWarnings = computed((): Map<number, string> => {
+  const warnings = new Map<number, string>()
+  if (!isChain.value && !isSelectorValue.value) return warnings
+  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
+  const chain = val.chain ?? []
+  if (chain.length === 0) return warnings
+
+  let currentState: PipelineState = isChain.value ? baseSelectorOutputState(val.base ?? 'self') : 'unknown'
+
+  for (let i = 0; i < chain.length; i++) {
+    const meta = getChainStepMeta(chain[i].type)
+    const warning = checkStepCompatibility(meta, currentState)
+    if (warning) {
+      warnings.set(i, warning)
+    }
+    currentState = meta?.outputState ?? 'unknown'
+  }
+  return warnings
 })
 
 const isBareString = computed(() => typeof props.modelValue === 'string')
@@ -533,9 +852,18 @@ function previewStep(step: SelectorChain): string {
                   :key="t"
                   :label="CHAIN_STEP_TYPES.find(s => s.value === t)?.label ?? t"
                   :value="t"
+                  :title="CHAIN_STEP_TYPES.find(s => s.value === t)?.description ?? t"
                 />
               </el-option-group>
             </el-select>
+            <el-tooltip
+              v-if="getChainStepMeta(step.type)?.description"
+              :content="getChainStepMeta(step.type)!.description"
+              placement="top"
+              effect="dark"
+            >
+              <span class="card-info-icon" title="步骤说明">ⓘ</span>
+            </el-tooltip>
             <button type="button" class="card-delete-btn" title="删除步骤" @click="removeStep(i)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -545,6 +873,10 @@ function previewStep(step: SelectorChain): string {
           </div>
 
           <div class="card-body">
+            <div v-if="stepWarnings.has(i)" class="card-step-warning">⚠ {{ stepWarnings.get(i) }}</div>
+            <div v-if="getChainStepMeta(step.type)?.description" class="card-step-hint">
+              {{ getChainStepMeta(step.type)!.description }}
+            </div>
             <template v-if="step.type === 'select'">
               <div class="card-field-row">
                 <el-select
@@ -569,20 +901,35 @@ function previewStep(step: SelectorChain): string {
                     />
                   </el-select>
                 </template>
-                <el-input
+                <el-select
                   v-else-if="getExtractorType(step) === 'attribute' || getExtractorType(step) === 'relation'"
                   :model-value="getExtractorKey(step) ?? ''"
-                  placeholder="键名"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入键名"
                   @update:model-value="(v: string) => updateExtractorKey(i, v)"
-                />
-                <el-input
+                >
+                  <el-option
+                    v-for="opt in COMMON_EXTRACTOR_KEYS"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+                <el-select
                   v-else-if="getExtractorType(step) === 'field'"
                   :model-value="getExtractorPath(step) ?? ''"
-                  placeholder="字段路径"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入字段路径"
                   @update:model-value="(v: string) => updateExtractorPath(i, v)"
-                />
+                >
+                  <el-option v-for="opt in COMMON_FIELD_PATHS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
                 <el-input
                   v-else-if="getExtractorType(step) === 'dynamic'"
                   :model-value="getExtractorDynamicArg(step) ?? ''"
@@ -634,20 +981,35 @@ function previewStep(step: SelectorChain): string {
                     />
                   </el-select>
                 </template>
-                <el-input
+                <el-select
                   v-else-if="getExtractorType(step) === 'attribute' || getExtractorType(step) === 'relation'"
                   :model-value="getExtractorKey(step) ?? ''"
-                  placeholder="键名"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入键名"
                   @update:model-value="(v: string) => updateExtractorKey(i, v)"
-                />
-                <el-input
+                >
+                  <el-option
+                    v-for="opt in COMMON_EXTRACTOR_KEYS"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+                <el-select
                   v-else-if="getExtractorType(step) === 'field'"
                   :model-value="getExtractorPath(step) ?? ''"
-                  placeholder="字段路径"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入字段路径"
                   @update:model-value="(v: string) => updateExtractorPath(i, v)"
-                />
+                >
+                  <el-option v-for="opt in COMMON_FIELD_PATHS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
                 <el-input
                   v-else-if="getExtractorType(step) === 'dynamic'"
                   :model-value="getExtractorDynamicArg(step) ?? ''"
@@ -713,7 +1075,16 @@ function previewStep(step: SelectorChain): string {
             </template>
           </div>
 
-          <div class="card-preview">{{ previewStep(step) }}</div>
+          <div class="card-preview">
+            {{ previewStep(step) }}
+            <span
+              v-if="getChainStepMeta(step.type)?.outputState"
+              class="card-state-tag"
+              :class="[`state-${getChainStepMeta(step.type)!.outputState}`, { 'state-dimmed': stepWarnings.has(i) }]"
+            >
+              → {{ getPipelineStateLabel(getChainStepMeta(step.type)!.outputState!) }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -829,9 +1200,18 @@ function previewStep(step: SelectorChain): string {
                   :key="t"
                   :label="CHAIN_STEP_TYPES.find(s => s.value === t)?.label ?? t"
                   :value="t"
+                  :title="CHAIN_STEP_TYPES.find(s => s.value === t)?.description ?? t"
                 />
               </el-option-group>
             </el-select>
+            <el-tooltip
+              v-if="getChainStepMeta(step.type)?.description"
+              :content="getChainStepMeta(step.type)!.description"
+              placement="top"
+              effect="dark"
+            >
+              <span class="card-info-icon" title="步骤说明">ⓘ</span>
+            </el-tooltip>
             <button type="button" class="card-delete-btn" title="删除步骤" @click="removeStep(i)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -841,6 +1221,10 @@ function previewStep(step: SelectorChain): string {
           </div>
 
           <div class="card-body">
+            <div v-if="stepWarnings.has(i)" class="card-step-warning">⚠ {{ stepWarnings.get(i) }}</div>
+            <div v-if="getChainStepMeta(step.type)?.description" class="card-step-hint">
+              {{ getChainStepMeta(step.type)!.description }}
+            </div>
             <template v-if="step.type === 'select'">
               <div class="card-field-row">
                 <el-select
@@ -865,20 +1249,35 @@ function previewStep(step: SelectorChain): string {
                     />
                   </el-select>
                 </template>
-                <el-input
+                <el-select
                   v-else-if="getExtractorType(step) === 'attribute' || getExtractorType(step) === 'relation'"
                   :model-value="getExtractorKey(step) ?? ''"
-                  placeholder="键名"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入键名"
                   @update:model-value="(v: string) => updateExtractorKey(i, v)"
-                />
-                <el-input
+                >
+                  <el-option
+                    v-for="opt in COMMON_EXTRACTOR_KEYS"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+                <el-select
                   v-else-if="getExtractorType(step) === 'field'"
                   :model-value="getExtractorPath(step) ?? ''"
-                  placeholder="字段路径"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入字段路径"
                   @update:model-value="(v: string) => updateExtractorPath(i, v)"
-                />
+                >
+                  <el-option v-for="opt in COMMON_FIELD_PATHS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
                 <el-input
                   v-else-if="getExtractorType(step) === 'dynamic'"
                   :model-value="getExtractorDynamicArg(step) ?? ''"
@@ -930,20 +1329,35 @@ function previewStep(step: SelectorChain): string {
                     />
                   </el-select>
                 </template>
-                <el-input
+                <el-select
                   v-else-if="getExtractorType(step) === 'attribute' || getExtractorType(step) === 'relation'"
                   :model-value="getExtractorKey(step) ?? ''"
-                  placeholder="键名"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入键名"
                   @update:model-value="(v: string) => updateExtractorKey(i, v)"
-                />
-                <el-input
+                >
+                  <el-option
+                    v-for="opt in COMMON_EXTRACTOR_KEYS"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+                <el-select
                   v-else-if="getExtractorType(step) === 'field'"
                   :model-value="getExtractorPath(step) ?? ''"
-                  placeholder="字段路径"
-                  class="card-field-input"
+                  class="card-field-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入字段路径"
                   @update:model-value="(v: string) => updateExtractorPath(i, v)"
-                />
+                >
+                  <el-option v-for="opt in COMMON_FIELD_PATHS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
                 <el-input
                   v-else-if="getExtractorType(step) === 'dynamic'"
                   :model-value="getExtractorDynamicArg(step) ?? ''"
@@ -1009,7 +1423,16 @@ function previewStep(step: SelectorChain): string {
             </template>
           </div>
 
-          <div class="card-preview">{{ previewStep(step) }}</div>
+          <div class="card-preview">
+            {{ previewStep(step) }}
+            <span
+              v-if="getChainStepMeta(step.type)?.outputState"
+              class="card-state-tag"
+              :class="[`state-${getChainStepMeta(step.type)!.outputState}`, { 'state-dimmed': stepWarnings.has(i) }]"
+            >
+              → {{ getPipelineStateLabel(getChainStepMeta(step.type)!.outputState!) }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1312,5 +1735,97 @@ function previewStep(step: SelectorChain): string {
   color: var(--ae-text-muted);
   font-weight: 500;
   text-transform: uppercase;
+}
+
+/* Step info icon (ⓘ tooltip trigger) */
+.card-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  color: var(--ae-text-muted);
+  cursor: help;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition:
+    opacity 0.12s ease,
+    color 0.12s ease;
+  user-select: none;
+  margin-left: 1px;
+}
+
+.card-info-icon:hover {
+  opacity: 1;
+  color: var(--ae-accent, #409eff);
+}
+
+/* Step description hint shown in card body */
+.card-step-hint {
+  padding: 3px 6px;
+  margin-bottom: 5px;
+  font-size: var(--ae-font-xs, 10px);
+  color: var(--ae-text-muted);
+  background: var(--ae-bg-overlay, rgba(255, 255, 255, 0.02));
+  border-radius: var(--ae-radius-sm, 4px);
+  line-height: 1.4;
+  border-left: 2px solid var(--ae-border-subtle);
+}
+
+/* Step compatibility warning banner */
+.card-step-warning {
+  padding: 3px 6px;
+  margin-bottom: 5px;
+  font-size: var(--ae-font-xs, 10px);
+  color: #e6a23c;
+  background: rgba(230, 162, 60, 0.08);
+  border-radius: var(--ae-radius-sm, 4px);
+  line-height: 1.4;
+  border-left: 2px solid #e6a23c;
+}
+
+/* Pipeline state tag shown in card preview */
+.card-state-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-style: normal;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+
+.state-entityIds {
+  background: rgba(64, 158, 255, 0.12);
+  color: #409eff;
+}
+
+.state-numeric {
+  background: rgba(103, 194, 58, 0.12);
+  color: #67c23a;
+}
+
+.state-context {
+  background: rgba(230, 162, 60, 0.12);
+  color: #e6a23c;
+}
+
+.state-mixed {
+  background: rgba(144, 147, 153, 0.12);
+  color: #909399;
+}
+
+.state-unknown {
+  background: rgba(144, 147, 153, 0.08);
+  color: #909399;
+}
+
+/* Dimmed state tag when step has a compatibility warning */
+.state-dimmed {
+  opacity: 0.45;
+  text-decoration: line-through;
 }
 </style>

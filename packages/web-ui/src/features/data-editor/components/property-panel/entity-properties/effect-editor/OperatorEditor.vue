@@ -241,6 +241,10 @@ function goBack() {
 
 const model = computed(() => props.modelValue as unknown as OperatorDSLView)
 
+function fieldHint(fieldName: string): string | undefined {
+  return typing.getOperatorFieldHint(selectedType.value, fieldName)
+}
+
 const cleanStageOptions = [
   { value: 'all', label: '全部' },
   { value: 'positive', label: '有利' },
@@ -375,7 +379,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 1: targetValue -->
           <template v-if="TARGET_VALUE_OPS.has(selectedType)">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -384,7 +391,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">值</label>
+              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
+                <label class="op-field-label">值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">值</label>
               <slot
                 name="value"
                 :modelValue="model.value"
@@ -397,7 +407,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 2: targetOnly -->
           <template v-else-if="TARGET_ONLY_OPS.has(selectedType)">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -410,7 +423,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: targetValueExtras — addMark -->
           <template v-else-if="selectedType === 'addMark'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -419,7 +435,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">标记</label>
+              <el-tooltip v-if="fieldHint('mark')" :content="fieldHint('mark')" placement="top" effect="dark">
+                <label class="op-field-label">标记</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">标记</label>
               <slot
                 name="value"
                 :modelValue="model.mark"
@@ -428,7 +447,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">持续回合</label>
+              <el-tooltip v-if="fieldHint('duration')" :content="fieldHint('duration')" placement="top" effect="dark">
+                <label class="op-field-label">持续回合</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">持续回合</label>
               <slot
                 name="value"
                 :modelValue="model.duration"
@@ -437,7 +459,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">堆叠数</label>
+              <el-tooltip v-if="fieldHint('stack')" :content="fieldHint('stack')" placement="top" effect="dark">
+                <label class="op-field-label">堆叠数</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">堆叠数</label>
               <slot
                 name="value"
                 :modelValue="model.stack"
@@ -450,7 +475,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: statStageBuff -->
           <template v-else-if="selectedType === 'statStageBuff'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -459,7 +487,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">能力类型</label>
+              <el-tooltip v-if="fieldHint('statType')" :content="fieldHint('statType')" placement="top" effect="dark">
+                <label class="op-field-label">能力类型</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">能力类型</label>
               <el-select
                 :model-value="model.statType"
                 placeholder="选择能力类型"
@@ -471,7 +502,10 @@ const TARGET_ONLY_OPS = new Set([
               </el-select>
             </div>
             <div class="op-field">
-              <label class="op-field-label">值</label>
+              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
+                <label class="op-field-label">值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">值</label>
               <slot
                 name="value"
                 :modelValue="model.value"
@@ -493,7 +527,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: clearStatStage / reverseStatStage -->
           <template v-else-if="selectedType === 'clearStatStage' || selectedType === 'reverseStatStage'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -502,7 +539,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">能力类型</label>
+              <el-tooltip v-if="fieldHint('statType')" :content="fieldHint('statType')" placement="top" effect="dark">
+                <label class="op-field-label">能力类型</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">能力类型</label>
               <slot
                 name="value"
                 :modelValue="model.statType"
@@ -527,7 +567,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: transferStatStage -->
           <template v-else-if="selectedType === 'transferStatStage'">
             <div class="op-field">
-              <label class="op-field-label">来源</label>
+              <el-tooltip v-if="fieldHint('source')" :content="fieldHint('source')" placement="top" effect="dark">
+                <label class="op-field-label">来源</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">来源</label>
               <slot
                 name="target"
                 :modelValue="model.source"
@@ -536,7 +579,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -545,7 +591,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">能力类型</label>
+              <el-tooltip v-if="fieldHint('statType')" :content="fieldHint('statType')" placement="top" effect="dark">
+                <label class="op-field-label">能力类型</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">能力类型</label>
               <slot
                 name="value"
                 :modelValue="model.statType"
@@ -570,7 +619,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: modifyStackResult -->
           <template v-else-if="selectedType === 'modifyStackResult'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -579,7 +631,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">新堆叠数</label>
+              <el-tooltip v-if="fieldHint('newStacks')" :content="fieldHint('newStacks')" placement="top" effect="dark">
+                <label class="op-field-label">新堆叠数</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">新堆叠数</label>
               <slot
                 name="value"
                 :modelValue="model.newStacks"
@@ -588,7 +643,15 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">新持续回合</label>
+              <el-tooltip
+                v-if="fieldHint('newDuration')"
+                :content="fieldHint('newDuration')"
+                placement="top"
+                effect="dark"
+              >
+                <label class="op-field-label">新持续回合</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">新持续回合</label>
               <slot
                 name="value"
                 :modelValue="model.newDuration"
@@ -601,7 +664,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: setSkill -->
           <template v-else-if="selectedType === 'setSkill'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -610,7 +676,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">值</label>
+              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
+                <label class="op-field-label">值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">值</label>
               <slot
                 name="value"
                 :modelValue="model.value"
@@ -630,7 +699,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: setActualTarget -->
           <template v-else-if="selectedType === 'setActualTarget'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -639,7 +711,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">新目标</label>
+              <el-tooltip v-if="fieldHint('newTarget')" :content="fieldHint('newTarget')" placement="top" effect="dark">
+                <label class="op-field-label">新目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">新目标</label>
               <slot
                 name="value"
                 :modelValue="model.newTarget"
@@ -652,7 +727,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: addModified -->
           <template v-else-if="selectedType === 'addModified'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -661,7 +739,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">增量</label>
+              <el-tooltip v-if="fieldHint('delta')" :content="fieldHint('delta')" placement="top" effect="dark">
+                <label class="op-field-label">增量</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">增量</label>
               <slot
                 name="value"
                 :modelValue="model.delta"
@@ -670,7 +751,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">百分比</label>
+              <el-tooltip v-if="fieldHint('percent')" :content="fieldHint('percent')" placement="top" effect="dark">
+                <label class="op-field-label">百分比</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">百分比</label>
               <slot
                 name="value"
                 :modelValue="model.percent"
@@ -683,7 +767,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: addThreshold -->
           <template v-else-if="selectedType === 'addThreshold'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -692,7 +779,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">最小值</label>
+              <el-tooltip v-if="fieldHint('min')" :content="fieldHint('min')" placement="top" effect="dark">
+                <label class="op-field-label">最小值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">最小值</label>
               <slot
                 name="value"
                 :modelValue="model.min"
@@ -701,7 +791,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">最大值</label>
+              <el-tooltip v-if="fieldHint('max')" :content="fieldHint('max')" placement="top" effect="dark">
+                <label class="op-field-label">最大值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">最大值</label>
               <slot
                 name="value"
                 :modelValue="model.max"
@@ -714,7 +807,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: setConfig -->
           <template v-else-if="selectedType === 'setConfig'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -723,7 +819,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">键</label>
+              <el-tooltip v-if="fieldHint('key')" :content="fieldHint('key')" placement="top" effect="dark">
+                <label class="op-field-label">键</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">键</label>
               <slot
                 name="value"
                 :modelValue="model.key"
@@ -732,7 +831,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">值</label>
+              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
+                <label class="op-field-label">值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">值</label>
               <slot
                 name="value"
                 :modelValue="model.value"
@@ -745,7 +847,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: setIgnoreStageStrategy -->
           <template v-else-if="selectedType === 'setIgnoreStageStrategy'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -754,7 +859,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">值</label>
+              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
+                <label class="op-field-label">值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">值</label>
               <slot
                 name="value"
                 :modelValue="model.value"
@@ -774,7 +882,10 @@ const TARGET_ONLY_OPS = new Set([
             "
           >
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -783,7 +894,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">优先级</label>
+              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
+                <label class="op-field-label">优先级</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">优先级</label>
               <el-input-number
                 :model-value="Number(model.priority ?? 0)"
                 :min="-128"
@@ -797,7 +911,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: transform / transformWithPreservation -->
           <template v-else-if="selectedType === 'transform' || selectedType === 'transformWithPreservation'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -806,7 +923,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">新形态</label>
+              <el-tooltip v-if="fieldHint('newBase')" :content="fieldHint('newBase')" placement="top" effect="dark">
+                <label class="op-field-label">新形态</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">新形态</label>
               <slot
                 name="value"
                 :modelValue="model.newBase"
@@ -844,7 +964,10 @@ const TARGET_ONLY_OPS = new Set([
               </el-select>
             </div>
             <div class="op-field">
-              <label class="op-field-label">优先级</label>
+              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
+                <label class="op-field-label">优先级</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">优先级</label>
               <slot
                 name="value"
                 :modelValue="model.priority"
@@ -857,7 +980,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: addTemporaryEffect -->
           <template v-else-if="selectedType === 'addTemporaryEffect'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -866,7 +992,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">效果</label>
+              <el-tooltip v-if="fieldHint('effect')" :content="fieldHint('effect')" placement="top" effect="dark">
+                <label class="op-field-label">效果</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">效果</label>
               <slot
                 name="value"
                 :modelValue="model.effect"
@@ -879,7 +1008,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: registerConfig / registerTaggedConfig -->
           <template v-else-if="selectedType === 'registerConfig' || selectedType === 'registerTaggedConfig'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -888,7 +1020,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">配置键</label>
+              <el-tooltip v-if="fieldHint('configKey')" :content="fieldHint('configKey')" placement="top" effect="dark">
+                <label class="op-field-label">配置键</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">配置键</label>
               <slot
                 name="value"
                 :modelValue="model.configKey"
@@ -897,7 +1032,15 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">初始值</label>
+              <el-tooltip
+                v-if="fieldHint('initialValue')"
+                :content="fieldHint('initialValue')"
+                placement="top"
+                effect="dark"
+              >
+                <label class="op-field-label">初始值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">初始值</label>
               <slot
                 name="value"
                 :modelValue="model.initialValue"
@@ -906,7 +1049,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div v-if="selectedType === 'registerTaggedConfig'" class="op-field">
-              <label class="op-field-label">标签</label>
+              <el-tooltip v-if="fieldHint('tags')" :content="fieldHint('tags')" placement="top" effect="dark">
+                <label class="op-field-label">标签</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">标签</label>
               <slot
                 name="value"
                 :modelValue="model.tags"
@@ -919,7 +1065,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: overrideMarkConfig -->
           <template v-else-if="selectedType === 'overrideMarkConfig'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -1026,7 +1175,10 @@ const TARGET_ONLY_OPS = new Set([
             "
           >
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -1083,7 +1235,10 @@ const TARGET_ONLY_OPS = new Set([
               </el-select>
             </div>
             <div class="op-field">
-              <label class="op-field-label">值</label>
+              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
+                <label class="op-field-label">值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">值</label>
               <slot
                 name="value"
                 :modelValue="model.value ?? model.maxValue ?? model.minValue"
@@ -1109,7 +1264,10 @@ const TARGET_ONLY_OPS = new Set([
             </div>
             <template v-if="selectedType === 'addClampModifier' || selectedType === 'addSkillClampModifier'">
               <div class="op-field">
-                <label class="op-field-label">最小值</label>
+                <el-tooltip v-if="fieldHint('minValue')" :content="fieldHint('minValue')" placement="top" effect="dark">
+                  <label class="op-field-label">最小值</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">最小值</label>
                 <slot
                   name="value"
                   :modelValue="model.minValue"
@@ -1118,7 +1276,10 @@ const TARGET_ONLY_OPS = new Set([
                 />
               </div>
               <div class="op-field">
-                <label class="op-field-label">最大值</label>
+                <el-tooltip v-if="fieldHint('maxValue')" :content="fieldHint('maxValue')" placement="top" effect="dark">
+                  <label class="op-field-label">最大值</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">最大值</label>
                 <slot
                   name="value"
                   :modelValue="model.maxValue"
@@ -1128,7 +1289,10 @@ const TARGET_ONLY_OPS = new Set([
               </div>
             </template>
             <div class="op-field">
-              <label class="op-field-label">优先级</label>
+              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
+                <label class="op-field-label">优先级</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">优先级</label>
               <slot
                 name="value"
                 :modelValue="model.priority"
@@ -1138,7 +1302,15 @@ const TARGET_ONLY_OPS = new Set([
             </div>
             <template v-if="selectedType === 'addPhaseTypeConfigModifier'">
               <div class="op-field">
-                <label class="op-field-label">阶段类型</label>
+                <el-tooltip
+                  v-if="fieldHint('phaseType')"
+                  :content="fieldHint('phaseType')"
+                  placement="top"
+                  effect="dark"
+                >
+                  <label class="op-field-label">阶段类型</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">阶段类型</label>
                 <slot
                   name="value"
                   :modelValue="model.phaseType"
@@ -1158,7 +1330,10 @@ const TARGET_ONLY_OPS = new Set([
               "
             >
               <div class="op-field">
-                <label class="op-field-label">作用域</label>
+                <el-tooltip v-if="fieldHint('scope')" :content="fieldHint('scope')" placement="top" effect="dark">
+                  <label class="op-field-label">作用域</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">作用域</label>
                 <slot
                   name="value"
                   :modelValue="model.scope"
@@ -1167,7 +1342,10 @@ const TARGET_ONLY_OPS = new Set([
                 />
               </div>
               <div class="op-field">
-                <label class="op-field-label">阶段ID</label>
+                <el-tooltip v-if="fieldHint('phaseId')" :content="fieldHint('phaseId')" placement="top" effect="dark">
+                  <label class="op-field-label">阶段ID</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">阶段ID</label>
                 <slot
                   name="value"
                   :modelValue="model.phaseId"
@@ -1191,7 +1369,10 @@ const TARGET_ONLY_OPS = new Set([
             "
           >
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -1233,7 +1414,15 @@ const TARGET_ONLY_OPS = new Set([
               </el-select>
             </div>
             <div class="op-field">
-              <label class="op-field-label">观测值</label>
+              <el-tooltip
+                v-if="fieldHint('observableValue')"
+                :content="fieldHint('observableValue')"
+                placement="top"
+                effect="dark"
+              >
+                <label class="op-field-label">观测值</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">观测值</label>
               <slot
                 name="target"
                 :modelValue="model.observableValue"
@@ -1242,7 +1431,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">优先级</label>
+              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
+                <label class="op-field-label">优先级</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">优先级</label>
               <slot
                 name="value"
                 :modelValue="model.priority"
@@ -1252,7 +1444,15 @@ const TARGET_ONLY_OPS = new Set([
             </div>
             <template v-if="selectedType === 'addDynamicPhaseTypeConfigModifier'">
               <div class="op-field">
-                <label class="op-field-label">阶段类型</label>
+                <el-tooltip
+                  v-if="fieldHint('phaseType')"
+                  :content="fieldHint('phaseType')"
+                  placement="top"
+                  effect="dark"
+                >
+                  <label class="op-field-label">阶段类型</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">阶段类型</label>
                 <slot
                   name="value"
                   :modelValue="model.phaseType"
@@ -1271,7 +1471,10 @@ const TARGET_ONLY_OPS = new Set([
               "
             >
               <div class="op-field">
-                <label class="op-field-label">作用域</label>
+                <el-tooltip v-if="fieldHint('scope')" :content="fieldHint('scope')" placement="top" effect="dark">
+                  <label class="op-field-label">作用域</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">作用域</label>
                 <slot
                   name="value"
                   :modelValue="model.scope"
@@ -1280,7 +1483,10 @@ const TARGET_ONLY_OPS = new Set([
                 />
               </div>
               <div class="op-field">
-                <label class="op-field-label">阶段ID</label>
+                <el-tooltip v-if="fieldHint('phaseId')" :content="fieldHint('phaseId')" placement="top" effect="dark">
+                  <label class="op-field-label">阶段ID</label>
+                </el-tooltip>
+                <label v-else class="op-field-label">阶段ID</label>
                 <slot
                   name="value"
                   :modelValue="model.phaseId"
@@ -1294,7 +1500,10 @@ const TARGET_ONLY_OPS = new Set([
           <!-- Pattern 3: transferMark -->
           <template v-else-if="selectedType === 'transferMark'">
             <div class="op-field">
-              <label class="op-field-label">目标</label>
+              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
+                <label class="op-field-label">目标</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">目标</label>
               <slot
                 name="target"
                 :modelValue="model.target"
@@ -1303,7 +1512,10 @@ const TARGET_ONLY_OPS = new Set([
               />
             </div>
             <div class="op-field">
-              <label class="op-field-label">标记</label>
+              <el-tooltip v-if="fieldHint('mark')" :content="fieldHint('mark')" placement="top" effect="dark">
+                <label class="op-field-label">标记</label>
+              </el-tooltip>
+              <label v-else class="op-field-label">标记</label>
               <slot
                 name="value"
                 :modelValue="model.mark"
