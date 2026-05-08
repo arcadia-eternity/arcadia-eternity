@@ -2,6 +2,7 @@ import { computed, type Ref } from 'vue'
 import { getEffectDslManifest, getEffectDslNodeTyping, type EffectDslNodeKind } from '@arcadia-eternity/schema'
 import type { EffectDslFieldTypingRule, EffectDslStateConstraint } from '@arcadia-eternity/schema'
 import { BASE_SELECTOR_KEYS, BASE_EXTRACTOR_KEYS, COMPARE_OPERATORS } from '@arcadia-eternity/schema'
+import type { CompileState } from '@arcadia-eternity/battle'
 
 export type SelectorOption = {
   value: string
@@ -196,7 +197,47 @@ export function resolveValueTypeOptions(fieldTyping: EffectDslFieldTypingRule | 
 
 export function resolveEvaluatorOptions(fieldTyping?: EffectDslFieldTypingRule | undefined): string[] {
   const manifest = getEffectDslManifest()
-  return Object.keys(manifest.evaluator).filter(k => manifest.evaluator[k] !== undefined)
+  const all = Object.keys(manifest.evaluator).filter(k => manifest.evaluator[k] !== undefined)
+  if (!fieldTyping) return all
+
+  const allowed = new Set<string>()
+  for (const constraint of fieldTyping.allow) {
+    if (constraint.kind === 'scalar') {
+      allowed.add('compare').add('same').add('notSame')
+    }
+    if (constraint.kind === 'id' || constraint.kind === 'owner') {
+      allowed.add('exist').add('notExist')
+    }
+    if (constraint.kind === 'object') {
+      allowed.add('compare').add('same').add('notSame')
+    }
+  }
+  if (allowed.size === 0) return all
+  return all.filter(k => allowed.has(k))
+}
+
+export function compileStatesToFieldTyping(states: readonly CompileState[]): EffectDslFieldTypingRule {
+  const allow: EffectDslStateConstraint[] = []
+  for (const state of states) {
+    switch (state.kind) {
+      case 'id':
+        allow.push({ kind: 'id', targets: [state.target] })
+        break
+      case 'owner':
+        allow.push({ kind: 'owner', owners: [state.owner] })
+        break
+      case 'scalar':
+        allow.push({ kind: 'scalar', valueTypes: [state.valueType] })
+        break
+      case 'object':
+        allow.push({ kind: 'object', classes: [state.objectClass] })
+        break
+      case 'propertyRef':
+        allow.push({ kind: 'propertyRef' })
+        break
+    }
+  }
+  return { allow }
 }
 
 export function resolveConditionOptions(fieldTyping?: EffectDslFieldTypingRule | undefined): string[] {

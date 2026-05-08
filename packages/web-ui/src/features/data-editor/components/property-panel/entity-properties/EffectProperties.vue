@@ -81,7 +81,7 @@ watch(
 function applyTypingConstraints(
   field: unknown,
   opType: string | undefined,
-): { selectorFilter?: string[]; valueFilter?: string[] } {
+): { selectorFilter?: string[]; valueFilter?: string[]; expectedScalarType?: 'number' | 'string' | 'boolean' } {
   const fieldName = typeof field === 'string' ? field : undefined
   if (!fieldName || !opType) return {}
 
@@ -91,15 +91,41 @@ function applyTypingConstraints(
   const selOpts = selRule ? typing.resolveSelectorOptions(selRule) : undefined
   const valOpts = valRule ? typing.resolveValueTypeOptions(valRule).map(o => o.value) : undefined
 
+  let expectedScalarType: 'number' | 'string' | 'boolean' | undefined
+  if (valRule) {
+    for (const c of valRule.allow) {
+      if (c.kind === 'scalar' && c.valueTypes?.length === 1) {
+        const vt = c.valueTypes[0]
+        if (vt === 'number' || vt === 'string' || vt === 'boolean') expectedScalarType = vt
+      }
+    }
+  }
+
   return {
     selectorFilter: selOpts?.map(o => o.value),
     valueFilter: valOpts,
+    expectedScalarType,
   }
 }
 
 function getOperatorTypeFromModel(opModel: unknown): string | undefined {
   if (!opModel || typeof opModel !== 'object') return undefined
   return (opModel as Record<string, unknown>).type as string | undefined
+}
+
+function getEvaluatorTypeFromModel(evModel: unknown): string | undefined {
+  if (!evModel || typeof evModel !== 'object') return undefined
+  return (evModel as Record<string, unknown>).type as string | undefined
+}
+
+function applyEvaluatorTypingConstraints(field: unknown, evType: string | undefined): { valueFilter?: string[] } {
+  const fieldName = typeof field === 'string' ? field : undefined
+  if (!fieldName || !evType) return {}
+
+  const valRule = typing.getFieldTyping('evaluator', evType, fieldName, 'valueFields')
+  const valOpts = valRule ? typing.resolveValueTypeOptions(valRule).map(o => o.value) : undefined
+
+  return { valueFilter: valOpts }
 }
 
 function castValue(v: unknown): Value {
@@ -146,8 +172,13 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                 >
                   <template #evaluator="{ modelValue: ev, update: eu }">
                     <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
-                      <template #value="{ modelValue: evv, update: evu }">
-                        <ValueEditor :model-value="evv" @update:model-value="evu"
+                      <template #value="{ modelValue: evv, update: evu, field }">
+                        <ValueEditor
+                          :model-value="evv"
+                          :allowed-types="
+                            applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).valueFilter
+                          "
+                          @update:model-value="evu"
                           ><template #selector="{ modelValue: dsv, update: dsu }"
                             ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
                               ><template #value="{ modelValue: dcv, update: dcu }"
@@ -188,8 +219,13 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                       </template>
                       <template #condition="{ modelValue: ccv2, update: ccu2 }">
                         <EvaluatorEditor :model-value="ccv2 as EvaluatorDSL" @update:model-value="ccu2">
-                          <template #value="{ modelValue: evv2, update: evu2 }">
-                            <ValueEditor :model-value="evv2" @update:model-value="evu2"
+                          <template #value="{ modelValue: evv2, update: evu2, field }">
+                            <ValueEditor
+                              :model-value="evv2"
+                              :allowed-types="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ccv2)).valueFilter
+                              "
+                              @update:model-value="evu2"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
                                 ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
                                   ><template #value="{ modelValue: dcv, update: dcu }"
@@ -231,11 +267,22 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                   @update:model-value="vu"
                 >
                   <template #selector="{ modelValue: dsv, update: dsu }">
-                    <SelectorBuilder :model-value="dsv" @update:model-value="dsu">
+                    <SelectorBuilder
+                      :model-value="dsv"
+                      :expected-value-type="
+                        applyTypingConstraints(field, getOperatorTypeFromModel(modelValue)).expectedScalarType
+                      "
+                      @update:model-value="dsu"
+                    >
                       <template #evaluator="{ modelValue: dev, update: deu }">
                         <EvaluatorEditor :model-value="dev as EvaluatorDSL" @update:model-value="deu">
-                          <template #value="{ modelValue: devv, update: devu }">
-                            <ValueEditor :model-value="devv" @update:model-value="devu"
+                          <template #value="{ modelValue: devv, update: devu, field }">
+                            <ValueEditor
+                              :model-value="devv"
+                              :allowed-types="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(dev)).valueFilter
+                              "
+                              @update:model-value="devu"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
                                 ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
                                   ><template #value="{ modelValue: dcv, update: dcu }"
@@ -266,8 +313,13 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                     <SelectorBuilder :model-value="sv" @update:model-value="su">
                       <template #evaluator="{ modelValue: ev, update: eu }">
                         <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
-                          <template #value="{ modelValue: evv, update: evu }">
-                            <ValueEditor :model-value="evv" @update:model-value="evu"
+                          <template #value="{ modelValue: evv, update: evu, field }">
+                            <ValueEditor
+                              :model-value="evv"
+                              :allowed-types="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).valueFilter
+                              "
+                              @update:model-value="evu"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
                                 ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
                                   ><template #value="{ modelValue: dcv, update: dcu }"
@@ -312,8 +364,13 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                     <SelectorBuilder :model-value="tv2" @update:model-value="tu2">
                       <template #evaluator="{ modelValue: ev, update: eu }">
                         <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
-                          <template #value="{ modelValue: evv, update: evu }">
-                            <ValueEditor :model-value="evv" @update:model-value="evu"
+                          <template #value="{ modelValue: evv, update: evu, field }">
+                            <ValueEditor
+                              :model-value="evv"
+                              :allowed-types="
+                                applyEvaluatorTypingConstraints(field, getEvaluatorTypeFromModel(ev)).valueFilter
+                              "
+                              @update:model-value="evu"
                               ><template #selector="{ modelValue: dsv, update: dsu }"
                                 ><SelectorBuilder :model-value="dsv" @update:model-value="dsu"
                                   ><template #value="{ modelValue: dcv, update: dcu }"

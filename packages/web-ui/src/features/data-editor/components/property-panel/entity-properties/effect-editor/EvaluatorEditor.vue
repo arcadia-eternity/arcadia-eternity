@@ -3,20 +3,13 @@ import { computed, ref } from 'vue'
 import type { EvaluatorDSL, EvaluatorDSLView, Value } from '@arcadia-eternity/schema'
 import { useEffectTyping } from './composables/useEffectTyping'
 
+const { resolveEvaluatorOptions } = useEffectTyping()
+
+const evaluatorOptions = computed(() => resolveEvaluatorOptions())
+
 const props = defineProps<{
   modelValue: EvaluatorDSL
 }>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: EvaluatorDSL]
-}>()
-
-defineSlots<{
-  value(props: { modelValue: Value; update: (v: Value) => void }): unknown
-}>()
-
-const { resolveEvaluatorOptions } = useEffectTyping()
-const evaluatorOptions = computed(() => resolveEvaluatorOptions())
 
 type EvaluatorCategory = 'compare' | 'same' | 'notSame' | 'value' | 'children' | 'singleChild' | 'input' | 'leaf'
 
@@ -209,17 +202,28 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
           >
             <el-option v-for="opt in compareOperatorOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
-          <slot name="value" :model-value="e.value as Value" :update="v => updateField('value', v as Value)" />
+          <slot
+            name="value"
+            :model-value="e.value as Value"
+            :field="'value'"
+            :update="v => updateField('value', v as Value)"
+          />
         </template>
 
         <template v-else-if="category === 'same' || category === 'notSame'">
-          <slot name="value" :model-value="e.value as Value" :update="v => updateField('value', v as Value)" />
+          <slot
+            name="value"
+            :model-value="e.value as Value"
+            :field="'value'"
+            :update="v => updateField('value', v as Value)"
+          />
         </template>
 
         <template v-else-if="category === 'value'">
           <slot
             name="value"
             :model-value="(e.percent ?? e.value) as unknown as Value"
+            :field="e.type === 'probability' ? 'percent' : 'value'"
             :update="v => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
           />
         </template>

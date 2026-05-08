@@ -36,6 +36,7 @@
     "electron:pack:publish": "electron-builder --publish always"
   },
   "dependencies": {
+    "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/data-repository": "workspace:^",

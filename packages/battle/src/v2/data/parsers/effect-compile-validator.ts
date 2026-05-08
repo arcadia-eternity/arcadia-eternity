@@ -625,7 +625,7 @@ function dedupeStates(states: CompileState[]): CompileState[] {
   return out
 }
 
-function baseSelectorStates(base: string, at: string): CompileState[] {
+export function baseSelectorStates(base: string, at: string): CompileState[] {
   const runtimeStates = getCompileTypingContext().baseSelectorStateMap.get(base)
   if (runtimeStates && runtimeStates.length > 0) {
     return runtimeStates.map(state => ({ ...state }))
@@ -906,6 +906,105 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
   return states
 }
 
+export type ResolveChainStepResult = { ok: true; states: CompileState[] } | { ok: false; error: string }
+
+export function resolveChainStep(states: CompileState[], step: unknown, at: string): ResolveChainStepResult {
+  try {
+    if (!isRecord(step) || typeof step.type !== 'string') {
+      return { ok: false, error: `链步骤格式无效: ${String(step)}` }
+    }
+
+    switch (step.type) {
+      case 'select': {
+        const extractorPath = normalizeExtractorPath(step.arg)
+        if (!extractorPath || extractorPath.length === 0) {
+          return { ok: false, error: `select 缺少有效的提取参数` }
+        }
+        const next = states.flatMap(state => resolvePathFromState(state, extractorPath, `${at}/arg`))
+        const deduped = dedupeStates(next)
+        if (deduped.length === 0) {
+          return { ok: false, error: `select '${extractorPath}' 在当前状态下无法解析` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'selectPath': {
+        const path = step.arg
+        if (typeof path !== 'string' || path.length === 0) {
+          return { ok: false, error: `selectPath 需要非空字符串参数` }
+        }
+        const next = states.flatMap(state => resolvePathFromState(state, path, `${at}/arg`))
+        const deduped = dedupeStates(next)
+        if (deduped.length === 0) {
+          return { ok: false, error: `selectPath '${path}' 在当前状态下无法解析` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'selectProp': {
+        const key = step.arg
+        if (typeof key !== 'string' || key.length === 0) {
+          return { ok: false, error: `selectProp 需要非空字符串参数` }
+        }
+        for (const state of states) {
+          if (state.kind === 'scalar' || state.kind === 'propertyRef') {
+            return { ok: false, error: `selectProp 无法应用于 ${formatState(state)}` }
+          }
+        }
+        return { ok: true, states: [{ kind: 'propertyRef' }] }
+      }
+
+      case 'selectAttribute$': {
+        const key = step.arg
+        if (typeof key !== 'string' || key.length === 0) {
+          return { ok: false, error: `selectAttribute$ 需要非空字符串参数` }
+        }
+        const next = states.flatMap(state => resolvePathFromState(state, key, `${at}/arg`))
+        const deduped = dedupeStates(next)
+        if (deduped.length === 0) {
+          return { ok: false, error: `selectAttribute$ '${key}' 在当前状态下无法解析` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'when': {
+        const trueStates = inferStatesFromValue(step.trueValue, `${at}/trueValue`)
+        const falseStates = 'falseValue' in step ? inferStatesFromValue(step.falseValue, `${at}/falseValue`) : []
+        const deduped = dedupeStates([...trueStates, ...falseStates])
+        if (deduped.length === 0) {
+          return { ok: false, error: `when 无法推断有效状态` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'sum':
+      case 'avg':
+      case 'add':
+      case 'multiply':
+      case 'divide':
+      case 'sampleBetween':
+      case 'clampMax':
+      case 'clampMin':
+        return { ok: true, states: [{ kind: 'scalar', valueType: 'number' }] }
+
+      case 'selectObservable':
+      case 'configGet':
+        return { ok: true, states: [{ kind: 'scalar', valueType: 'unknown' }] }
+
+      case 'where':
+      case 'whereAttr':
+      case 'and':
+      case 'or':
+        return { ok: true, states }
+
+      default:
+        return { ok: true, states }
+    }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 function inferStatesFromValue(value: unknown, at: string): CompileState[] {
   if (value === null || value === undefined) return [{ kind: 'scalar', valueType: 'unknown' }]
   if (typeof value === 'string') return [{ kind: 'scalar', valueType: 'string' }]
@@ -1165,6 +1264,51 @@ function validateEffectCompileTypingRaw(raw: Record<string, unknown>): void {
   }
   if ('apply' in raw) {
     walkNode(raw.apply, '/apply')
+  }
+}
+
+export type SelectorValidator = {
+  getBaseStates: (base: string) => CompileState[]
+  resolveStep: (states: CompileState[], step: unknown, at: string) => ResolveChainStepResult
+  getValidKeys: (states: CompileState[]) => Set<string>
+}
+
+export function createSelectorValidator(environment: EffectCompileTypingEnvironment): SelectorValidator {
+  const context = createCompileTypingContext(environment)
+  return {
+    getBaseStates: (base: string) => withCompileTypingContext(context, () => baseSelectorStates(base, '/base')),
+    resolveStep: (states: CompileState[], step: unknown, at: string) =>
+      withCompileTypingContext(context, () => resolveChainStep(states, step, at)),
+    getValidKeys: (states: CompileState[]) =>
+      withCompileTypingContext(context, () => {
+        if (states.length === 0) return new Set<string>()
+        const keys = new Set<string>()
+
+        const candidates = new Set<string>()
+        for (const state of states) {
+          let owner: CompileOwner
+          if (state.kind === 'id') owner = state.target
+          else if (state.kind === 'owner') owner = state.owner
+          else continue
+
+          const attrs = context.attributeKeysByOwner.get(owner)
+          if (attrs) for (const k of attrs) candidates.add(k)
+          const fields = context.fieldPathsByOwner.get(owner)
+          if (fields) for (const k of fields) if (!k.includes('.')) candidates.add(k)
+          const rels = context.relationByOwner.get(owner)
+          if (rels) for (const k of rels.keys()) candidates.add(k)
+        }
+
+        for (const key of candidates) {
+          try {
+            const result = resolveChainStep(states, { type: 'select', arg: key }, '/test')
+            if (result.ok) keys.add(key)
+          } catch {
+            // skip
+          }
+        }
+        return keys
+      }),
   }
 }
 

@@ -2,20 +2,29 @@
 import { computed } from 'vue'
 import { BASE_EXTRACTOR_KEYS } from '@arcadia-eternity/schema'
 import type { BaseSelectorKey, ExtractorDSL, SelectorChain, SelectorDSL, Value } from '@arcadia-eternity/schema'
+import {
+  createSelectorValidator,
+  seer2EffectCompileTypingEnvironment,
+  type CompileState,
+} from '@arcadia-eternity/battle'
 import { useEffectTyping } from './composables/useEffectTyping'
 
 const { resolveSelectorOptions } = useEffectTyping()
+
+const selectorValidator = createSelectorValidator(seer2EffectCompileTypingEnvironment)
 
 const props = withDefaults(
   defineProps<{
     modelValue: SelectorDSL
     allowedBases?: string[]
     label?: string
+    expectedValueType?: 'number' | 'string' | 'boolean'
   }>(),
   {
     modelValue: undefined,
     label: undefined,
     allowedBases: undefined,
+    expectedValueType: undefined,
   },
 )
 
@@ -37,11 +46,7 @@ interface ChainStepMeta {
   label: string
   group: string
   description: string
-  inputState?: PipelineState // expected input state
-  outputState?: PipelineState // produced output state
 }
-
-type PipelineState = 'entityIds' | 'numeric' | 'mixed' | 'context' | 'unknown'
 
 const CHAIN_STEP_TYPES: readonly ChainStepMeta[] = [
   {
@@ -49,59 +54,48 @@ const CHAIN_STEP_TYPES: readonly ChainStepMeta[] = [
     label: '筛选',
     group: 'extract',
     description: '从每个实体中提取指定属性（如当前生命值、怒气等）。输入为实体列表，输出为属性值列表。',
-    inputState: 'entityIds',
-    outputState: 'numeric',
   },
   {
     value: 'selectPath',
     label: '路径选择',
     group: 'extract',
     description: '通过 JSON 路径从对象中提取嵌套值。输入为对象列表，输出为路径对应的值列表。',
-    outputState: 'numeric',
   },
   {
     value: 'selectProp',
     label: '属性选择',
     group: 'extract',
     description: '通过对象属性名从每个实体中提取属性值。输入为对象列表，输出为属性值列表。',
-    outputState: 'numeric',
   },
   {
     value: 'selectObservable',
     label: '可观察选择',
     group: 'extract',
     description: '从每个实体中提取可观察的运行时动态值。输入为上下文对象，输出为对应值列表。',
-    outputState: 'numeric',
   },
   {
     value: 'selectAttribute$',
     label: '动态属性',
     group: 'extract',
     description: '从每个实体中提取动态属性（基于运行时状态计算）。输入为实体列表，输出为动态属性值列表。',
-    outputState: 'numeric',
   },
   {
     value: 'configGet',
     label: '配置获取',
     group: 'extract',
     description: '从每个实体的配置存储中按 key 获取值。输入为含配置的对象，输出为配置值列表。',
-    outputState: 'numeric',
   },
   {
     value: 'where',
     label: '条件过滤',
     group: 'filter',
     description: '按条件过滤实体列表。保留满足条件的实体，输出仍为实体列表。',
-    inputState: 'entityIds',
-    outputState: 'entityIds',
   },
   {
     value: 'whereAttr',
     label: '属性过滤',
     group: 'filter',
     description: '先提取属性值再按条件过滤实体。适用于需要通过属性值比较来筛选的场景。',
-    inputState: 'entityIds',
-    outputState: 'entityIds',
   },
   {
     value: 'flat',
@@ -114,40 +108,30 @@ const CHAIN_STEP_TYPES: readonly ChainStepMeta[] = [
     label: '求和',
     group: 'math',
     description: '对数组中的所有数值求和，输出单个数值。',
-    inputState: 'numeric',
-    outputState: 'numeric',
   },
   {
     value: 'avg',
     label: '平均',
     group: 'math',
     description: '计算数组的平均值，输出单个数值。',
-    inputState: 'numeric',
-    outputState: 'numeric',
   },
   {
     value: 'add',
     label: '加法',
     group: 'math',
     description: '将数组中的每个数值加上指定值。',
-    inputState: 'numeric',
-    outputState: 'numeric',
   },
   {
     value: 'multiply',
     label: '乘法',
     group: 'math',
     description: '将数组中的每个数值乘以指定值。',
-    inputState: 'numeric',
-    outputState: 'numeric',
   },
   {
     value: 'divide',
     label: '除法',
     group: 'math',
     description: '将数组中的每个数值除以指定值。',
-    inputState: 'numeric',
-    outputState: 'numeric',
   },
   {
     value: 'shuffled',
@@ -172,16 +156,12 @@ const CHAIN_STEP_TYPES: readonly ChainStepMeta[] = [
     label: '交集',
     group: 'set',
     description: '计算当前实体列表与另一个选择器结果的交集，输出共同的实体。',
-    inputState: 'entityIds',
-    outputState: 'entityIds',
   },
   {
     value: 'or',
     label: '并集',
     group: 'set',
     description: '计算当前实体列表与另一个选择器结果的并集，输出去重后的实体。',
-    inputState: 'entityIds',
-    outputState: 'entityIds',
   },
   {
     value: 'randomPick',
@@ -206,16 +186,12 @@ const CHAIN_STEP_TYPES: readonly ChainStepMeta[] = [
     label: '上限',
     group: 'limit',
     description: '将每个值限制在最大上限以内，超过上限的改为上限值。',
-    inputState: 'numeric',
-    outputState: 'numeric',
   },
   {
     value: 'clampMin',
     label: '下限',
     group: 'limit',
     description: '将每个值限制在最小下限以上，低于下限的改为下限值。',
-    inputState: 'numeric',
-    outputState: 'numeric',
   },
   {
     value: 'when',
@@ -229,83 +205,18 @@ function getChainStepMeta(type: string): ChainStepMeta | undefined {
   return CHAIN_STEP_TYPES.find(t => t.value === type)
 }
 
-/**
- * Returns the entity state produced by a base selector.
- */
-function baseSelectorOutputState(base: BaseSelectorKey): PipelineState {
-  const entityIdBases = new Set([
-    'self',
-    'opponent',
-    'target',
-    'selfTeam',
-    'opponentTeam',
-    'mark',
-    'selfMarks',
-    'opponentMarks',
-    'dataMarks',
-    'skill',
-    'selfSkills',
-    'opponentSkills',
-    'selfAvailableSkills',
-    'opponentAvailableSkills',
-    'selfPlayer',
-    'opponentPlayer',
-    'battle',
-  ])
-  if (entityIdBases.has(base)) return 'entityIds'
-  const contextBases = new Set([
-    'useSkillContext',
-    'damageContext',
-    'healContext',
-    'rageContext',
-    'addMarkContext',
-    'switchPetContext',
-    'turnContext',
-    'stackContext',
-    'consumeStackContext',
-    'effectContext',
-    'currentPhase',
-    'allPhases',
-  ])
-  if (contextBases.has(base)) return 'context'
-  return 'unknown'
-}
-
-/**
- * Check if a chain step is compatible with the current pipeline state.
- * Returns null if compatible, or a warning message if likely incompatible.
- */
-function checkStepCompatibility(stepMeta: ChainStepMeta | undefined, currentState: PipelineState): string | null {
-  if (!stepMeta?.inputState) return null
-  if (currentState === 'unknown') return null
-  if (stepMeta.inputState === currentState) return null
-  if (stepMeta.inputState === 'entityIds' && currentState === 'context') {
-    return '该步骤期望输入为实体 ID 列表，当前状态为上下文对象，可能不兼容'
-  }
-  if (stepMeta.inputState === 'numeric' && currentState === 'entityIds') {
-    return '该步骤期望输入为数值，当前状态为实体 ID 列表，请先使用"筛选"步骤提取数值'
-  }
-  if (stepMeta.inputState === 'numeric' && currentState === 'context') {
-    return '该步骤期望输入为数值，当前状态为上下文对象，可能不兼容'
-  }
-  if (stepMeta.inputState === 'entityIds' && currentState === 'numeric') {
-    return '该步骤期望输入为实体 ID 列表，当前状态为数值，类型不兼容'
-  }
-  return null
-}
-
-function getPipelineStateLabel(state: PipelineState): string {
-  switch (state) {
-    case 'entityIds':
-      return '实体 ID 列表'
-    case 'numeric':
-      return '数值'
-    case 'mixed':
-      return '混合'
-    case 'context':
-      return '上下文对象'
-    case 'unknown':
-      return '未知'
+function formatCompileState(state: CompileState): string {
+  switch (state.kind) {
+    case 'id':
+      return state.target
+    case 'owner':
+      return state.owner
+    case 'scalar':
+      return state.valueType
+    case 'object':
+      return state.objectClass
+    case 'propertyRef':
+      return '属性引用'
   }
 }
 
@@ -336,6 +247,21 @@ const VALUE_SLOT_TYPES = new Set([
 const RECURSIVE_TYPES = new Set(['and', 'or'])
 
 const BASE_EXTRACTOR_OPTIONS = BASE_EXTRACTOR_KEYS.map(k => ({ value: k, label: k }))
+
+function getValidKeysForStep(stepIndex: number): Set<string> {
+  const prevStates = selectorStates.value.get(stepIndex - 1)
+  if (!prevStates || prevStates.length === 0) return new Set()
+  return selectorValidator.getValidKeys(prevStates)
+}
+
+function filterExtractorOptions(
+  stepIndex: number,
+  options: { value: string; label: string }[],
+): { value: string; label: string }[] {
+  const validKeys = getValidKeysForStep(stepIndex)
+  if (validKeys.size === 0) return options
+  return options.filter(o => validKeys.has(o.value))
+}
 
 // Common known keys for extractor autocomplete (attribute / relation / field / dynamic)
 const COMMON_EXTRACTOR_KEYS = [
@@ -395,6 +321,33 @@ const allSelectorOptions = computed(() => {
 })
 
 /** Computed step-level warnings for compatibility issues. */
+const selectorStates = computed((): Map<number, CompileState[]> => {
+  const states = new Map<number, CompileState[]>()
+  if (!isChain.value && !isSelectorValue.value) return states
+  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
+  const chain = val.chain ?? []
+
+  const base = val.base ?? 'self'
+  let current: CompileState[]
+  try {
+    current = selectorValidator.getBaseStates(base)
+  } catch {
+    return states
+  }
+  states.set(-1, current)
+
+  for (let i = 0; i < chain.length; i++) {
+    const result = selectorValidator.resolveStep(current, chain[i], `/chain/${i}`)
+    if (!result.ok) {
+      states.set(i, [])
+      break
+    }
+    current = result.states
+    states.set(i, current)
+  }
+  return states
+})
+
 const stepWarnings = computed((): Map<number, string> => {
   const warnings = new Map<number, string>()
   if (!isChain.value && !isSelectorValue.value) return warnings
@@ -402,17 +355,61 @@ const stepWarnings = computed((): Map<number, string> => {
   const chain = val.chain ?? []
   if (chain.length === 0) return warnings
 
-  let currentState: PipelineState = isChain.value ? baseSelectorOutputState(val.base ?? 'self') : 'unknown'
+  let current: CompileState[]
+  try {
+    current = selectorValidator.getBaseStates(val.base ?? 'self')
+  } catch {
+    return warnings
+  }
 
   for (let i = 0; i < chain.length; i++) {
-    const meta = getChainStepMeta(chain[i].type)
-    const warning = checkStepCompatibility(meta, currentState)
-    if (warning) {
-      warnings.set(i, warning)
+    const result = selectorValidator.resolveStep(current, chain[i], `/chain/${i}`)
+    if (!result.ok) {
+      warnings.set(i, result.error)
+      break
     }
-    currentState = meta?.outputState ?? 'unknown'
+    current = result.states
   }
   return warnings
+})
+
+const typeMismatchWarning = computed((): string | null => {
+  if (!props.expectedValueType) return null
+  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
+  if (!isChain.value && !isSelectorValue.value) return null
+  const chain = val.chain ?? []
+
+  let current: CompileState[]
+  try {
+    current = selectorValidator.getBaseStates(val.base ?? 'self')
+  } catch {
+    return null
+  }
+
+  for (let i = 0; i < chain.length; i++) {
+    const result = selectorValidator.resolveStep(current, chain[i], `/chain/${i}`)
+    if (!result.ok) return null
+    current = result.states
+  }
+
+  if (current.length === 0) return null
+  const hasWrongType = current.some(s => {
+    if (s.kind === 'scalar') return s.valueType !== props.expectedValueType
+    return s.kind !== 'propertyRef'
+  })
+  if (!hasWrongType) return null
+
+  const expected =
+    props.expectedValueType === 'number' ? '数值' : props.expectedValueType === 'string' ? '字符串' : '布尔'
+  const actual = current
+    .map(s => {
+      if (s.kind === 'scalar') return s.valueType
+      if (s.kind === 'id') return s.target
+      if (s.kind === 'owner') return s.owner
+      return s.kind
+    })
+    .join(', ')
+  return `期望输出类型为 ${expected}，但当前管道输出为 ${actual}`
 })
 
 const isBareString = computed(() => typeof props.modelValue === 'string')
@@ -759,6 +756,7 @@ function previewStep(step: SelectorChain): string {
     if (typeof s.arg === 'object' && s.arg.type === 'dynamic') {
       return `${typeLabel}: ${String((s.arg as { arg?: string }).arg || s.arg.type)}`
     }
+    // @ts-expect-error never
     return `${typeLabel}: ${s.arg.type}`
   }
   if (step.type === 'where') return `${typeLabel}: …`
@@ -909,7 +907,7 @@ function previewStep(step: SelectorChain): string {
                     @update:model-value="(v: string) => updateExtractorBaseArg(i, v)"
                   >
                     <el-option
-                      v-for="bk in BASE_EXTRACTOR_OPTIONS"
+                      v-for="bk in filterExtractorOptions(i, BASE_EXTRACTOR_OPTIONS)"
                       :key="bk.value"
                       :label="bk.label"
                       :value="bk.value"
@@ -989,7 +987,7 @@ function previewStep(step: SelectorChain): string {
                     @update:model-value="(v: string) => updateExtractorBaseArg(i, v)"
                   >
                     <el-option
-                      v-for="bk in BASE_EXTRACTOR_OPTIONS"
+                      v-for="bk in filterExtractorOptions(i, BASE_EXTRACTOR_OPTIONS)"
                       :key="bk.value"
                       :label="bk.label"
                       :value="bk.value"
@@ -1093,15 +1091,17 @@ function previewStep(step: SelectorChain): string {
           <div class="card-preview">
             {{ previewStep(step) }}
             <span
-              v-if="getChainStepMeta(step.type)?.outputState"
+              v-if="selectorStates.has(i) && selectorStates.get(i)!.length > 0"
               class="card-state-tag"
-              :class="[`state-${getChainStepMeta(step.type)!.outputState}`, { 'state-dimmed': stepWarnings.has(i) }]"
+              :class="[`state-${selectorStates.get(i)![0].kind}`, { 'state-dimmed': stepWarnings.has(i) }]"
             >
-              → {{ getPipelineStateLabel(getChainStepMeta(step.type)!.outputState!) }}
+              → {{ selectorStates.get(i)!.map(formatCompileState).join(', ') }}
             </span>
           </div>
         </div>
       </div>
+
+      <div v-if="typeMismatchWarning" class="card-step-warning">⚠ {{ typeMismatchWarning }}</div>
 
       <button type="button" class="pipeline-add-btn" @click="addStep">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1257,7 +1257,7 @@ function previewStep(step: SelectorChain): string {
                     @update:model-value="(v: string) => updateExtractorBaseArg(i, v)"
                   >
                     <el-option
-                      v-for="bk in BASE_EXTRACTOR_OPTIONS"
+                      v-for="bk in filterExtractorOptions(i, BASE_EXTRACTOR_OPTIONS)"
                       :key="bk.value"
                       :label="bk.label"
                       :value="bk.value"
@@ -1337,7 +1337,7 @@ function previewStep(step: SelectorChain): string {
                     @update:model-value="(v: string) => updateExtractorBaseArg(i, v)"
                   >
                     <el-option
-                      v-for="bk in BASE_EXTRACTOR_OPTIONS"
+                      v-for="bk in filterExtractorOptions(i, BASE_EXTRACTOR_OPTIONS)"
                       :key="bk.value"
                       :label="bk.label"
                       :value="bk.value"
@@ -1441,15 +1441,17 @@ function previewStep(step: SelectorChain): string {
           <div class="card-preview">
             {{ previewStep(step) }}
             <span
-              v-if="getChainStepMeta(step.type)?.outputState"
+              v-if="selectorStates.has(i) && selectorStates.get(i)!.length > 0"
               class="card-state-tag"
-              :class="[`state-${getChainStepMeta(step.type)!.outputState}`, { 'state-dimmed': stepWarnings.has(i) }]"
+              :class="[`state-${selectorStates.get(i)![0].kind}`, { 'state-dimmed': stepWarnings.has(i) }]"
             >
-              → {{ getPipelineStateLabel(getChainStepMeta(step.type)!.outputState!) }}
+              → {{ selectorStates.get(i)!.map(formatCompileState).join(', ') }}
             </span>
           </div>
         </div>
       </div>
+
+      <div v-if="typeMismatchWarning" class="card-step-warning">⚠ {{ typeMismatchWarning }}</div>
 
       <button type="button" class="pipeline-add-btn" @click="addStep">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1813,28 +1815,28 @@ function previewStep(step: SelectorChain): string {
   line-height: 1.5;
 }
 
-.state-entityIds {
+.state-id {
   background: rgba(64, 158, 255, 0.12);
   color: #409eff;
 }
 
-.state-numeric {
-  background: rgba(103, 194, 58, 0.12);
-  color: #67c23a;
-}
-
-.state-context {
+.state-owner {
   background: rgba(230, 162, 60, 0.12);
   color: #e6a23c;
 }
 
-.state-mixed {
+.state-scalar {
+  background: rgba(103, 194, 58, 0.12);
+  color: #67c23a;
+}
+
+.state-object {
   background: rgba(144, 147, 153, 0.12);
   color: #909399;
 }
 
-.state-unknown {
-  background: rgba(144, 147, 153, 0.08);
+.state-propertyRef {
+  background: rgba(144, 147, 153, 0.12);
   color: #909399;
 }
 

@@ -3,8 +3,13 @@ export { parseEffect, createEffectParser, type EffectParserEnvironment } from '.
 export {
   createEffectCompileTypingValidator,
   validateEffectCompileTyping,
+  baseSelectorStates,
+  resolveChainStep,
+  createSelectorValidator,
   createPathObjectState,
   createScalarValueState,
+  type SelectorValidator,
+  type ResolveChainStepResult,
   type CompileOwner,
   type CompileState,
   type CompileValueState,

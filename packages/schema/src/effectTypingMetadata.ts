@@ -111,6 +111,21 @@ export const effectDslTypingMetadata = {
         percent: NUMERIC,
       },
     },
+    compare: {
+      valueFields: {
+        value: ANY_SELECTOR_RESULT,
+      },
+    },
+    same: {
+      valueFields: {
+        value: ANY_SELECTOR_RESULT,
+      },
+    },
+    notSame: {
+      valueFields: {
+        value: ANY_SELECTOR_RESULT,
+      },
+    },
   },
   operator: {
     dealDamage: {

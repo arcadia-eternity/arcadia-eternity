@@ -32,7 +32,7 @@ catalogs:
       version: 4.8.3
     typescript:
       specifier: 6.0.3
-      version: 5.9.3
+      version: 6.0.3
     vitest:
       specifier: 4.1.5
       version: 4.1.5
@@ -623,6 +623,9 @@ importers:
 
   packages/web-ui:
     dependencies:
+      '@arcadia-eternity/battle':
+        specifier: workspace:^
+        version: link:../battle
       '@arcadia-eternity/client':
         specifier: workspace:^
         version: link:../client
@@ -667,7 +670,7 @@ importers:
         version: 2.2.0(vue@3.5.30(typescript@5.9.3))
       '@ruffle-rs/ruffle':
         specifier: 0.2.0-nightly.2026.3.15
-        version: 0.2.0-nightly.2026.3.15
+        version: link:dist/ruffle
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -873,6 +876,8 @@ importers:
       wait-on:
         specifier: ^9.0.4
         version: 9.0.4
+
+  packages/web-ui/dist/ruffle: {}
 
   packs/base: {}
 
@@ -2235,9 +2240,6 @@ packages:
     resolution: {integrity: sha512-hPt/bgL5cE+Qp+/TPHBqptcAgPzgj46mPcg/16zNUmbQk0j+mOEQV/+Lqu8QRtDV3Ek95Q6FeFITpuhl6OTsAA==}
     cpu: [x64]
     os: [win32]
-
-  '@ruffle-rs/ruffle@0.2.0-nightly.2026.3.15':
-    resolution: {integrity: sha512-lAWfPyhr3cMNSUEJmffJJbbHFsyB9Gi8tz84qwWQbxmnpKWS6Xqz/gTc9bvl5mj1MrXBUAJJXnI0j36EWRJ8ww==}
 
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
@@ -8730,8 +8732,6 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.60.3':
     optional: true
-
-  '@ruffle-rs/ruffle@0.2.0-nightly.2026.3.15': {}
 
   '@scarf/scarf@1.4.0': {}
 
