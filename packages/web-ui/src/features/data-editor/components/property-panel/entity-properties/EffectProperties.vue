@@ -88,6 +88,8 @@ function applyTypingConstraints(
   valueFilter?: string[]
   expectedScalarType?: 'number' | 'string' | 'boolean'
   stringEnumOptions?: import('@arcadia-eternity/schema').StringEnumOption[]
+  fieldRule?: import('@arcadia-eternity/schema').EffectDslFieldTypingRule
+  valueFieldRule?: import('@arcadia-eternity/schema').EffectDslFieldTypingRule
 } {
   const fieldName = typeof field === 'string' ? field : undefined
   if (!fieldName || !opType) return {}
@@ -115,6 +117,8 @@ function applyTypingConstraints(
     valueFilter: valOpts,
     expectedScalarType,
     stringEnumOptions: stringEnumOptions as import('@arcadia-eternity/schema').StringEnumOption[] | undefined,
+    fieldRule: selRule,
+    valueFieldRule: valRule,
   }
 }
 
@@ -188,6 +192,7 @@ function resolveEvaluatorTyping(
                   :allowed-bases="
                     applyTypingConstraints(targetField, getOperatorTypeFromModel(modelValue)).selectorFilter
                   "
+                  :field-rule="applyTypingConstraints(targetField, getOperatorTypeFromModel(modelValue)).fieldRule"
                   @update:model-value="tu"
                 >
                   <template #evaluator="{ modelValue: ev, update: eu }">
@@ -254,6 +259,9 @@ function resolveEvaluatorTyping(
                       :expected-value-type="
                         applyTypingConstraints(valueField, getOperatorTypeFromModel(modelValue)).expectedScalarType
                       "
+                      :field-rule="
+                        applyTypingConstraints(valueField, getOperatorTypeFromModel(modelValue)).valueFieldRule
+                      "
                       @update:model-value="dsu"
                     >
                       <template #evaluator="{ modelValue: dev, update: deu }">
@@ -306,7 +314,12 @@ function resolveEvaluatorTyping(
               <template #operator="{ modelValue: ov, update: ou }">
                 <OperatorEditor :model-value="ov" @update:model-value="ou">
                   <template #target="{ modelValue: tv2, update: tu2, field: targetField2 }">
-                    <SelectorEditor :model-value="tv2" @update:model-value="tu2">
+                    <SelectorEditor
+                      :model-value="tv2"
+                      :allowed-bases="applyTypingConstraints(targetField2, getOperatorTypeFromModel(ov)).selectorFilter"
+                      :field-rule="applyTypingConstraints(targetField2, getOperatorTypeFromModel(ov)).fieldRule"
+                      @update:model-value="tu2"
+                    >
                       <template #evaluator="{ modelValue: ev, update: eu }">
                         <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                           <template #value="{ modelValue: evv, update: evu, field }">

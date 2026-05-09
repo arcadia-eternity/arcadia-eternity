@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { ConditionDSL, EvaluatorDSL, Value } from '@arcadia-eternity/schema'
+import { computed } from 'vue'
+import type { ConditionDSL, EffectDslFieldTypingRule, EvaluatorDSL, Value } from '@arcadia-eternity/schema'
 import ConditionTreeEditor from './ConditionTreeEditor.vue'
 import SelectorEditor from './SelectorEditor.vue'
 import EvaluatorEditor from './EvaluatorEditor.vue'
@@ -29,6 +30,25 @@ const emit = defineEmits<{
 }>()
 
 const typing = useEffectTyping()
+
+function getConditionType(): string | undefined {
+  if (props.modelValue && typeof props.modelValue === 'object' && 'type' in props.modelValue) {
+    return (props.modelValue as Record<string, unknown>).type as string | undefined
+  }
+  return undefined
+}
+
+const conditionSelectorFieldRule = computed((): EffectDslFieldTypingRule | undefined => {
+  const condType = getConditionType()
+  if (!condType) return undefined
+  // Resolve the first selector field's rule for this condition type.
+  // Currently only `evaluate` condition has selectorFields (target).
+  const nodeTyping = typing.getNodeTyping('condition', condType)
+  if (!nodeTyping?.selectorFields) return undefined
+  const firstField = Object.keys(nodeTyping.selectorFields)[0]
+  if (!firstField) return undefined
+  return nodeTyping.selectorFields[firstField]
+})
 
 function getEvaluatorType(evModel: unknown): string | undefined {
   if (evModel && typeof evModel === 'object' && 'type' in evModel) {
@@ -67,7 +87,7 @@ function resolveEvaluatorValueTyping(
 <template>
   <ConditionTreeEditor :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
     <template #selector="{ modelValue: sv, update: su }">
-      <SelectorEditor :model-value="sv" @update:model-value="su">
+      <SelectorEditor :model-value="sv" :field-rule="conditionSelectorFieldRule" @update:model-value="su">
         <template #evaluator="{ modelValue: ev, update: eu }">
           <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
             <template #value="{ modelValue: evv, update: evu, field }">
