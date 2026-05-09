@@ -257,7 +257,7 @@ function emitSelectorUpdate(selector: SelectorDSL) {
 }
 
 const condition = computed(() => props.modelValue)
-const c = computed(() => (condition.value ?? {}) as unknown as ConditionDSLView)
+const c = computed(() => (condition.value ?? {}) as ConditionDSLView)
 const category = computed(() => (condition.value ? categorizeCondition(condition.value.type) : null))
 </script>
 

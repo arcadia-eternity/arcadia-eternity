@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Value, ValueView, ConditionDSL, SelectorDSL, SelectorChain } from '@arcadia-eternity/schema'
+import type { Value, ValueView, ConditionDSL, SelectorDSL, SelectorChain, OperatorDSL } from '@arcadia-eternity/schema'
 import type { StringEnumOption } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 import { VALUE_TYPE_BUTTONS } from './constants'
@@ -67,9 +67,9 @@ const isBarePrimitive = computed(() => {
 })
 
 const typedValue = computed(() => {
-  const v = props.modelValue as Record<string, unknown>
-  if (!v || typeof v !== 'object' || !v.type) return null
-  return v as unknown as ValueView
+  const v = props.modelValue
+  if (!v || typeof v !== 'object' || !('type' in v)) return null
+  return v as ValueView
 })
 
 const safeString = computed(() => {
@@ -152,11 +152,11 @@ function switchType(typeKey: string) {
     'entity:baseSkill': { type: 'entity:baseSkill', value: '' },
     'entity:species': { type: 'entity:species', value: '' },
     'entity:effect': { type: 'entity:effect', value: '' },
-    dynamic: { type: 'dynamic', selector: '' } as unknown as Value,
-    selectorValue: { type: 'selectorValue', value: 0 } as unknown as Value,
-    conditional: { type: 'conditional', condition: '', trueValue: 0, falseValue: 0 } as unknown as Value,
-    array: [] as unknown as Value,
-    operator: { type: 'operator' } as unknown as Value,
+    dynamic: { type: 'dynamic', selector: 'self' as SelectorDSL },
+    selectorValue: { type: 'selectorValue', value: 0 as Value },
+    conditional: { type: 'conditional', condition: '' as ConditionDSL, trueValue: 0 as Value, falseValue: 0 as Value },
+    array: [] as Value[],
+    operator: { type: 'operator' } as OperatorDSL,
   }
   emit('update:modelValue', defaults[typeKey] ?? 0)
 }
@@ -197,7 +197,7 @@ function updateArrayItem(index: number, value: Value) {
       <template v-if="currentType === 'raw:number'">
         <div class="editor-row">
           <el-input-number
-            :model-value="isBarePrimitive ? (modelValue as unknown as number) : safeNumber"
+            :model-value="isBarePrimitive ? (modelValue as number) : safeNumber"
             @update:model-value="
               (v: number | undefined) =>
                 emitRawNumber(
@@ -246,7 +246,7 @@ function updateArrayItem(index: number, value: Value) {
         <div class="editor-row">
           <template v-if="props.stringEnumOptions && props.stringEnumOptions.length > 0">
             <el-select
-              :model-value="isBarePrimitive ? (modelValue as unknown as string) : safeString"
+              :model-value="isBarePrimitive ? (modelValue as string) : safeString"
               filterable
               placeholder="选择..."
               class="enum-select"
@@ -273,7 +273,7 @@ function updateArrayItem(index: number, value: Value) {
           </template>
           <template v-else>
             <el-input
-              :model-value="isBarePrimitive ? (modelValue as unknown as string) : safeString"
+              :model-value="isBarePrimitive ? (modelValue as string) : safeString"
               @update:model-value="
                 (v: string) =>
                   emitRawString(
@@ -324,7 +324,7 @@ function updateArrayItem(index: number, value: Value) {
           <div class="switch-row">
             <span class="switch-label">{{ (isBarePrimitive ? modelValue : safeBoolean) ? '是' : '否' }}</span>
             <el-switch
-              :model-value="isBarePrimitive ? (modelValue as unknown as boolean) : safeBoolean"
+              :model-value="isBarePrimitive ? (modelValue as boolean) : safeBoolean"
               @update:model-value="
                 (v: string | number | boolean) =>
                   emitRawBoolean(

@@ -152,7 +152,7 @@ function changeType() {
 }
 
 const evaluator = computed(() => props.modelValue)
-const e = computed(() => (evaluator.value ?? {}) as unknown as EvaluatorDSLView)
+const e = computed(() => (evaluator.value ?? {}) as EvaluatorDSLView)
 const category = computed(() => categorizeEvaluator(evaluator.value.type))
 </script>
 
@@ -220,7 +220,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
         <template v-else-if="category === 'value'">
           <slot
             name="value"
-            :model-value="(e.percent ?? e.value) as unknown as Value"
+            :model-value="e.percent ?? e.value"
             :field="e.type === 'probability' ? 'percent' : 'value'"
             :update="(v: unknown) => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
           />
@@ -228,7 +228,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
 
         <template v-else-if="category === 'input'">
           <el-input
-            :model-value="e.tag as unknown as string"
+            :model-value="e.tag"
             size="small"
             class="tag-input"
             placeholder="标签名"

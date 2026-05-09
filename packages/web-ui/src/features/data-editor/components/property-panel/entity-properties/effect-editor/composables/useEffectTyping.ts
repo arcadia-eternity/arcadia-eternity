@@ -256,7 +256,7 @@ export function resolveStringEnumOptions(
   if (!fieldTyping) return undefined
   for (const constraint of fieldTyping.allow) {
     if (constraint.kind === 'stringEnum') {
-      return constraint.values as unknown as StringEnumOption[]
+      return [...constraint.values]
     }
   }
   return undefined

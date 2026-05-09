@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { BaseSelectorKey, ExtractorDSL, SelectorChain, SelectorDSL } from '@arcadia-eternity/schema'
+import type {
+  BaseSelectorKey,
+  ConditionDSL,
+  EvaluatorDSL,
+  ExtractorDSL,
+  SelectorChain,
+  SelectorDSL,
+  Value,
+} from '@arcadia-eternity/schema'
 import {
   createSelectorValidator,
   seer2EffectCompileTypingEnvironment,
@@ -30,11 +38,11 @@ const props = withDefaults(
 
 defineSlots<{
   default(props: { modelValue: SelectorDSL; update: (v: SelectorDSL) => void }): unknown
-  evaluator(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
-  value(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
-  condition(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
-  trueValue(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
-  falseValue(props: { modelValue: unknown; update: (v: unknown) => void }): unknown
+  evaluator(props: { modelValue: EvaluatorDSL; update: (v: EvaluatorDSL) => void }): unknown
+  value(props: { modelValue: Value; update: (v: Value) => void }): unknown
+  condition(props: { modelValue: ConditionDSL; update: (v: ConditionDSL) => void }): unknown
+  trueValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
+  falseValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
 }>()
 
 const emit = defineEmits<{

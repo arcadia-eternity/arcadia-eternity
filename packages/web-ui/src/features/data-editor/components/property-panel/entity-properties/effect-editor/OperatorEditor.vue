@@ -239,7 +239,7 @@ function goBack() {
   emit('update:modelValue', {} as OperatorDSL)
 }
 
-const model = computed(() => props.modelValue as unknown as OperatorDSLView)
+const model = computed(() => props.modelValue as OperatorDSLView)
 
 const currentLayout = computed(() => getLayoutForType(selectedType.value))
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { OperatorDSL, EvaluatorDSL, ConditionDSL, Value } from '@arcadia-eternity/schema'
+import type { OperatorDSL, EvaluatorDSL, ConditionDSL } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 import EffectHeader from './effect-editor/EffectHeader.vue'
 import SelectorBuilder from './effect-editor/SelectorBuilder.vue'
@@ -148,12 +148,8 @@ function applyEvaluatorTypingConstraints(
   }
 }
 
-function castValue(v: unknown): Value {
-  return v as unknown as Value
-}
-
-function castEvaluator(v: unknown): EvaluatorDSL {
-  return v as unknown as EvaluatorDSL
+function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
+  return v as EvaluatorDSL
 }
 </script>
 
@@ -240,7 +236,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                           <template #selector="{ modelValue: csv, update: csu }">
                             <SelectorBuilder :model-value="csv" @update:model-value="csu">
                               <template #value="{ modelValue: cvv, update: cvu }">
-                                <ValueEditor :model-value="castValue(cvv)" @update:model-value="cvu" />
+                                <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                               </template>
                             </SelectorBuilder>
                           </template>
@@ -255,7 +251,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                           <template #selector="{ modelValue: csv, update: csu }">
                             <SelectorBuilder :model-value="csv" @update:model-value="csu">
                               <template #value="{ modelValue: cvv, update: cvu }">
-                                <ValueEditor :model-value="castValue(cvv)" @update:model-value="cvu" />
+                                <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                               </template>
                             </SelectorBuilder>
                           </template>
@@ -409,7 +405,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                           ><template #selector="{ modelValue: csv, update: csu }"
                             ><SelectorBuilder :model-value="csv" @update:model-value="csu"
                               ><template #value="{ modelValue: cvv, update: cvu }"
-                                ><ValueEditor :model-value="castValue(cvv)" @update:model-value="cvu" /></template
+                                ><ValueEditor :model-value="cvv" @update:model-value="cvu" /></template
                               ><template #evaluator="{ modelValue: ev, update: eu }"
                                 ><EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu"
                                   ><template #value="{ modelValue: evv, update: evu }"
@@ -419,7 +415,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                                         evu
                                       " /></template></EvaluatorEditor></template></SelectorBuilder></template
                           ><template #value="{ modelValue: cvv2, update: cvu2 }"
-                            ><ValueEditor :model-value="castValue(cvv2)" @update:model-value="cvu2" /></template
+                            ><ValueEditor :model-value="cvv2" @update:model-value="cvu2" /></template
                           ><template #condition="{ modelValue: cv3, update: cu3 }"
                             ><EvaluatorEditor :model-value="castEvaluator(cv3)" @update:model-value="cu3"
                               ><template #value="{ modelValue: vv5, update: vu5 }"
@@ -462,7 +458,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                       <template #selector="{ modelValue: csv, update: csu }">
                         <SelectorBuilder :model-value="csv" @update:model-value="csu">
                           <template #value="{ modelValue: cvv, update: cvu }">
-                            <ValueEditor :model-value="castValue(cvv)" @update:model-value="cvu" />
+                            <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                           </template>
                         </SelectorBuilder>
                       </template>
@@ -473,7 +469,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
             </SelectorBuilder>
           </template>
           <template #value="{ modelValue: vv, update: vu }">
-            <ValueEditor :model-value="castValue(vv)" @update:model-value="vu">
+            <ValueEditor :model-value="vv" @update:model-value="vu">
               <template #selector="{ modelValue: dsv, update: dsu }">
                 <SelectorBuilder :model-value="dsv" @update:model-value="dsu">
                   <template #evaluator="{ modelValue: dev, update: deu }">
@@ -493,7 +489,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
                   <template #selector="{ modelValue: csv, update: csu }">
                     <SelectorBuilder :model-value="csv" @update:model-value="csu">
                       <template #value="{ modelValue: cvv, update: cvu }">
-                        <ValueEditor :model-value="castValue(cvv)" @update:model-value="cvu" />
+                        <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                       </template>
                     </SelectorBuilder>
                   </template>

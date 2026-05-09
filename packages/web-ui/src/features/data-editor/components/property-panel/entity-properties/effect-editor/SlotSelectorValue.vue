@@ -4,7 +4,7 @@ import SelectorBuilder from './SelectorBuilder.vue'
 import ValueEditor from './ValueEditor.vue'
 
 const props = defineProps<{
-  modelValue: unknown
+  modelValue: Value
   expectedValueType?: 'number' | 'string' | 'boolean'
   allowedTypes?: string[]
   stringEnumOptions?: StringEnumOption[]
@@ -13,15 +13,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: Value]
 }>()
-
-function castValue(v: unknown): Value {
-  return v as unknown as Value
-}
 </script>
 
 <template>
   <ValueEditor
-    :model-value="castValue(modelValue)"
+    :model-value="props.modelValue"
     :allowed-types="props.allowedTypes"
     :string-enum-options="props.stringEnumOptions"
     @update:model-value="emit('update:modelValue', $event)"
@@ -29,7 +25,7 @@ function castValue(v: unknown): Value {
     <template #selector="{ modelValue: dsv, update: dsu }">
       <SelectorBuilder :model-value="dsv" :expected-value-type="props.expectedValueType" @update:model-value="dsu">
         <template #value="{ modelValue: dcv, update: dcu }">
-          <ValueEditor :model-value="castValue(dcv)" @update:model-value="dcu" />
+          <ValueEditor :model-value="dcv" @update:model-value="dcu" />
         </template>
       </SelectorBuilder>
     </template>

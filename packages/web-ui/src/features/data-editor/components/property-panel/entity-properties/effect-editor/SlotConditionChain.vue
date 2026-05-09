@@ -13,12 +13,12 @@ const emit = defineEmits<{
   'update:modelValue': [value: ConditionDSL | undefined]
 }>()
 
-function castEvaluator(v: unknown): EvaluatorDSL {
-  return v as unknown as EvaluatorDSL
+function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
+  return v as EvaluatorDSL
 }
 
-function castValue(v: unknown): Value {
-  return v as unknown as Value
+function castValue(v: Value): Value {
+  return v
 }
 </script>
 
