@@ -20,3 +20,17 @@ export type {
   InlineComponentType,
   SpecialLayout,
 } from './operatorFieldConfig'
+
+export {
+  CHAIN_STEP_TYPES,
+  EXTRACTOR_TYPES,
+  NO_PARAM_TYPES,
+  TEXT_INPUT_TYPES,
+  VALUE_SLOT_TYPES,
+  RECURSIVE_TYPES,
+  BASE_EXTRACTOR_OPTIONS,
+  COMMON_EXTRACTOR_KEYS,
+  COMMON_FIELD_PATHS,
+  getChainStepMeta,
+} from './selectorConstants'
+export type { ChainStepMeta } from './selectorConstants'

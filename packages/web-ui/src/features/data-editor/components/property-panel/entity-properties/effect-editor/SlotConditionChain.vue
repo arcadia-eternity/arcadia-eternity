@@ -14,6 +14,10 @@ const emit = defineEmits<{
 }>()
 
 function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
+  if (typeof v === 'object' && v !== null && 'type' in v) {
+    return v as EvaluatorDSL
+  }
+  console.warn('castEvaluator: unexpected value type, falling back to cast', v)
   return v as EvaluatorDSL
 }
 

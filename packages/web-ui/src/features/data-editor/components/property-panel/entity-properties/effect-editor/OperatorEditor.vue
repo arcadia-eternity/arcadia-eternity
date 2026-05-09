@@ -29,87 +29,6 @@ const selectedType = computed(() => (props.modelValue.type as string) ?? '')
 
 const validTypes = computed(() => typing.operatorTypes.value)
 
-const typeLabelMap: Record<string, string> = {
-  dealDamage: '造成伤害',
-  heal: '治疗',
-  executeKill: '处决',
-  addMark: '添加标记',
-  destroyMark: '销毁标记',
-  transferMark: '转移标记',
-  addStacks: '增加堆叠',
-  consumeStacks: '消耗堆叠',
-  modifyStackResult: '修改堆叠结果',
-  setMarkDuration: '设置标记持续',
-  setMarkStack: '设置标记堆叠数',
-  setMarkMaxStack: '设置标记最大堆叠',
-  setMarkPersistent: '设置标记常驻',
-  setMarkStackable: '设置标记可堆叠',
-  setMarkStackStrategy: '设置堆叠策略',
-  setMarkDestroyable: '设置标记可销毁',
-  setMarkIsShield: '设置标记为护盾',
-  setMarkKeepOnSwitchOut: '下场保留标记',
-  setMarkTransferOnSwitch: '换宠转移标记',
-  setMarkInheritOnFaint: '濒死继承标记',
-  setStatLevelMarkLevel: '能力等级标记',
-  overrideMarkConfig: '覆盖标记配置',
-  addAttributeModifier: '属性修正',
-  addDynamicAttributeModifier: '动态属性修正',
-  addClampMaxModifier: '上限修正',
-  addClampMinModifier: '下限修正',
-  addClampModifier: '区间修正',
-  addSkillAttributeModifier: '技能属性修正',
-  addDynamicSkillAttributeModifier: '动态技能属性修正',
-  addSkillClampMaxModifier: '技能上限修正',
-  addSkillClampMinModifier: '技能下限修正',
-  addSkillClampModifier: '技能区间修正',
-  addConfigModifier: '配置修正',
-  addDynamicConfigModifier: '动态配置修正',
-  addTaggedConfigModifier: '标签配置修正',
-  addPhaseConfigModifier: '阶段配置修正',
-  addPhaseDynamicConfigModifier: '动态阶段配置修正',
-  addPhaseTypeConfigModifier: '阶段类型配置修正',
-  addDynamicPhaseTypeConfigModifier: '动态阶段类型配置修正',
-  registerConfig: '注册配置',
-  registerTaggedConfig: '注册标签配置',
-  setConfig: '设置配置',
-  statStageBuff: '能力升降',
-  clearStatStage: '清除能力等级',
-  reverseStatStage: '反转能力等级',
-  transferStatStage: '转移能力等级',
-  setSureHit: '必中',
-  setSureCrit: '必暴',
-  setSureMiss: '必失',
-  setSureNoCrit: '必不暴',
-  setIgnoreShield: '无视护盾',
-  amplifyPower: '威力增幅',
-  addPower: '威力增加',
-  addCritRate: '暴击率增加',
-  addAccuracy: '命中率增加',
-  addRage: '怒气增加',
-  setRage: '怒气设置',
-  setMultihit: '多段攻击',
-  addMultihitResult: '多段结果',
-  stun: '眩晕',
-  setSkill: '设置技能',
-  setActualTarget: '实际目标',
-  disableContext: '禁用上下文',
-  transform: '变身',
-  transformWithPreservation: '保留变身',
-  removeTransformation: '解除变身',
-  executeActions: '执行操作',
-  addTemporaryEffect: '临时效果',
-  addValue: '增加值',
-  setValue: '设置值',
-  toggle: '切换',
-  setIgnoreStageStrategy: '忽略能力等级策略',
-  setAccuracy: '设置命中',
-  addModified: '伤害修正',
-  addThreshold: '伤害阈值',
-  preventDamage: '防止伤害',
-  conditional: '条件分支',
-  modifyStat: '修改属性',
-}
-
 const searchQuery = ref('')
 const activeCategory = ref('伤害/治疗')
 
@@ -246,7 +165,7 @@ const model = computed(() => props.modelValue as OperatorDSLView)
 const currentLayout = computed(() => getLayoutForType(selectedType.value))
 
 function typeLabel(type: string): string {
-  return typeLabelMap[type] ?? OPERATOR_TYPE_LABELS[type] ?? type
+  return OPERATOR_TYPE_LABELS[type] ?? type
 }
 
 function fieldHint(fieldName: string): string | undefined {

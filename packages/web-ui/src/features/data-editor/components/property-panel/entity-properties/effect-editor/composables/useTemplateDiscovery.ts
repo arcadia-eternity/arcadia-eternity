@@ -2,6 +2,10 @@ import { ref, computed, type Ref } from 'vue'
 import type { Effect } from '@arcadia-eternity/schema'
 import { OPERATOR_TYPE_LABELS } from '../constants'
 
+// TODO: This composable is prepared for future template discovery UI.
+// Currently not imported by any component — will be wired into the
+// effect editor template picker when that feature is built.
+
 export interface DiscoveredTemplate {
   id: string
   category: 'apply' | 'condition' | 'evaluator'
