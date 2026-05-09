@@ -293,21 +293,6 @@ function renderOperatorFieldWithConfig(field: OperatorFieldDef, modelData: Recor
   )
 }
 
-function renderOperatorFieldWithConfig(field: OperatorFieldDef, modelData: Record<string, unknown>) {
-  const config = (modelData.config ?? {}) as Record<string, unknown>
-  return h(
-    OperatorFieldRenderer,
-    {
-      key: field.key,
-      field,
-      model: config,
-      'field-hint': fieldHint,
-      'onUpdate:field': (fieldName: string, value: unknown) => updateField('config', { ...config, [fieldName]: value }),
-    },
-    parentSlots,
-  )
-}
-
 // ── Component wrappers (defineComponent for template recognition) ──────────
 // Plain functions as components can have edge cases with Vue 3's template compiler
 // and reactivity tracking. Use defineComponent with render functions instead.
