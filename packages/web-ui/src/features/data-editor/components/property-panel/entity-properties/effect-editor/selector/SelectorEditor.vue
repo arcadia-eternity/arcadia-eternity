@@ -19,7 +19,7 @@ import {
   formatConstraint,
   type CompileState,
 } from '@arcadia-eternity/battle'
-import { useEffectTyping } from './composables/useEffectTyping'
+import { useEffectTyping } from '../composables/useEffectTyping'
 import {
   CHAIN_STEP_TYPES,
   NO_PARAM_TYPES,
@@ -27,7 +27,7 @@ import {
   VALUE_SLOT_TYPES,
   RECURSIVE_TYPES,
   getChainStepMeta,
-} from './constants/selectorConstants'
+} from '../constants/selectorConstants'
 import StepBodyContent from './StepBodyContent.vue'
 
 defineOptions({ name: 'SelectorEditor' })

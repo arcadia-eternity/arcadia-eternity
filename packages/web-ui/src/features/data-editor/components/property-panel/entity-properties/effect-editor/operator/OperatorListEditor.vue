@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { OperatorDSL } from '@arcadia-eternity/schema'
-import { OPERATOR_TYPE_LABELS } from './constants'
+import { OPERATOR_TYPE_LABELS } from '../constants'
 
 const props = defineProps<{
   modelValue: OperatorDSL | OperatorDSL[]

@@ -2,14 +2,14 @@
 import { computed } from 'vue'
 import type { ConditionDSL, EffectDslFieldTypingRule, EvaluatorDSL, Value } from '@arcadia-eternity/schema'
 import ConditionTreeEditor from './ConditionTreeEditor.vue'
-import SelectorEditor from './SelectorEditor.vue'
-import EvaluatorEditor from './EvaluatorEditor.vue'
-import SlotSelectorValue from './SlotSelectorValue.vue'
+import SelectorEditor from '../selector/SelectorEditor.vue'
+import EvaluatorEditor from '../evaluator/EvaluatorEditor.vue'
+import SlotSelectorValue from '../value/SlotSelectorValue.vue'
 import {
   useEffectTyping,
   resolveStringEnumOptions,
   resolveEvaluatorValueTyping as resolveTyping,
-} from './composables/useEffectTyping'
+} from '../composables/useEffectTyping'
 
 const props = withDefaults(
   defineProps<{

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Value, StringEnumOption } from '@arcadia-eternity/schema'
-import SelectorEditor from './SelectorEditor.vue'
+import SelectorEditor from '../selector/SelectorEditor.vue'
 import ValueEditor from './ValueEditor.vue'
 
 const props = defineProps<{

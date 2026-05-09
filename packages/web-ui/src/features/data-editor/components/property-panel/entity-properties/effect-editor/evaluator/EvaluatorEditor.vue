@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { EvaluatorDSL, EvaluatorDSLView, Value } from '@arcadia-eternity/schema'
-import { useEffectTyping } from './composables/useEffectTyping'
-import { CATEGORY_TAG_COLORS } from './constants'
+import { useEffectTyping } from '../composables/useEffectTyping'
+import { CATEGORY_TAG_COLORS } from '../constants'
 
 const { resolveEvaluatorOptions } = useEffectTyping()
 

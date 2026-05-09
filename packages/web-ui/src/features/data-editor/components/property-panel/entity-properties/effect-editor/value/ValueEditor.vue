@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { Value, ValueView, ConditionDSL, SelectorDSL, SelectorChain, OperatorDSL } from '@arcadia-eternity/schema'
 import type { StringEnumOption } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
-import { VALUE_TYPE_BUTTONS } from './constants'
+import { VALUE_TYPE_BUTTONS } from '../constants'
 
 const props = withDefaults(
   defineProps<{

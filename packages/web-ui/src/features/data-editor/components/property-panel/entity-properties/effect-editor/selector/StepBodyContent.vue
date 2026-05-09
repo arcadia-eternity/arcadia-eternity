@@ -10,7 +10,7 @@ import {
   BASE_EXTRACTOR_OPTIONS,
   COMMON_EXTRACTOR_KEYS,
   COMMON_FIELD_PATHS,
-} from './constants/selectorConstants'
+} from '../constants/selectorConstants'
 
 function getExtractorType(step: SelectorChain): string {
   const extractor: ExtractorDSL | undefined =

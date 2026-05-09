@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { OperatorFieldDef } from './constants/operatorFieldConfig'
+import type { OperatorFieldDef } from '../constants/operatorFieldConfig'
 
 const props = defineProps<{
   field: OperatorFieldDef

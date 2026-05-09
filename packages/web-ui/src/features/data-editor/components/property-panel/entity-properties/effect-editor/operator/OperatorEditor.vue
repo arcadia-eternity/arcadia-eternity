@@ -2,9 +2,9 @@
 import { computed, defineComponent, h, onBeforeUpdate, ref, useSlots } from 'vue'
 import type { PropType } from 'vue'
 import type { OperatorDSL, OperatorDSLView } from '@arcadia-eternity/schema'
-import type { OperatorFieldDef } from './constants/operatorFieldConfig'
-import { useEffectTyping } from './composables/useEffectTyping'
-import { getLayoutForType, OPERATOR_TYPE_LABELS } from './constants'
+import type { OperatorFieldDef } from '../constants/operatorFieldConfig'
+import { useEffectTyping } from '../composables/useEffectTyping'
+import { getLayoutForType, OPERATOR_TYPE_LABELS } from '../constants'
 import OperatorFieldRenderer from './OperatorFieldRenderer.vue'
 
 const props = defineProps<{

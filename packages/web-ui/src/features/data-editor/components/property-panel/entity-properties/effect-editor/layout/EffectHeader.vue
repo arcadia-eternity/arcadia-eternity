@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { TRIGGER_LABELS } from './constants'
+import { TRIGGER_LABELS } from '../constants'
 
 defineProps<{
   id: string
