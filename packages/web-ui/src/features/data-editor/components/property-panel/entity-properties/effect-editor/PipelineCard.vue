@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
-import { ElInput, ElOption, ElSelect } from 'element-plus'
+import { ElAutocomplete, ElOption, ElSelect } from 'element-plus'
 import type {
   ExtractorDSL,
   SelectorChain,
@@ -59,6 +59,48 @@ const filteredBaseOptions = computed(() => {
   if (props.validExtractorKeys.size === 0) return BASE_EXTRACTOR_OPTIONS
   return BASE_EXTRACTOR_OPTIONS.filter(o => props.validExtractorKeys.has(o.value))
 })
+
+const dynamicExtractorOptions = computed(() => {
+  const seen = new Set<string>()
+  const results: { value: string; label: string }[] = []
+
+  // No state info available: show all options as fallback
+  if (props.validExtractorKeys.size === 0) {
+    const allSources = [...COMMON_FIELD_PATHS, ...COMMON_EXTRACTOR_KEYS, ...BASE_EXTRACTOR_OPTIONS]
+    for (const opt of allSources) {
+      if (!seen.has(opt.value)) {
+        seen.add(opt.value)
+        results.push({ value: opt.value, label: opt.label })
+      }
+    }
+  } else {
+    // Build suggestions from valid keys, enriched with multi-level paths from COMMON_FIELD_PATHS
+    for (const key of props.validExtractorKeys) {
+      // Include the single-level key itself
+      if (!seen.has(key)) {
+        seen.add(key)
+        results.push({ value: key, label: key })
+      }
+      // Include multi-level paths where this key is a prefix
+      for (const path of COMMON_FIELD_PATHS) {
+        if (path.value === key || path.value.startsWith(key + '.')) {
+          if (!seen.has(path.value)) {
+            seen.add(path.value)
+            results.push({ value: path.value, label: path.label })
+          }
+        }
+      }
+    }
+  }
+
+  return results.sort((a, b) => a.label.localeCompare(b.label))
+})
+
+function fetchDynamicSuggestions(queryString: string, cb: (results: { value: string }[]) => void) {
+  const q = queryString.toLowerCase()
+  const results = dynamicExtractorOptions.value.filter(o => o.value.toLowerCase().includes(q))
+  cb(results)
+}
 
 // ── Utility functions ──
 
@@ -191,6 +233,7 @@ const StepBody = defineComponent({
             {
               modelValue: extractorType,
               class: 'card-field-select',
+              filterable: true,
               'onUpdate:modelValue': (v: string) => props.onUpdateExtractorType(idx, v),
             },
             EXTRACTOR_TYPES.map(et => h(ElOption, { key: et.value, label: et.label, value: et.value })),
@@ -244,11 +287,13 @@ const StepBody = defineComponent({
           )
         } else if (extractorType === 'dynamic') {
           fieldRowChildren.push(
-            h(ElInput, {
+            h(ElAutocomplete, {
               modelValue: getExtractorDynamicArg(step) ?? '',
-              placeholder: '动态参数',
-              class: 'card-field-input',
-              'onUpdate:modelValue': (v: string) => props.onUpdateExtractorDynamicArg(idx, v),
+              class: 'card-field-select',
+              placeholder: '输入动态参数',
+              fetchSuggestions: fetchDynamicSuggestions,
+              triggerOnFocus: true,
+              'onUpdate:modelValue': (v: string | number) => props.onUpdateExtractorDynamicArg(idx, String(v)),
             }),
           )
         }
@@ -263,11 +308,13 @@ const StepBody = defineComponent({
         step.type === 'selectObservable' ||
         step.type === 'selectAttribute$'
       ) {
-        return h(ElInput, {
+        return h(ElAutocomplete, {
           modelValue: step.arg,
+          class: 'card-field-select',
           placeholder: '输入参数',
-          class: 'card-field-input',
-          'onUpdate:modelValue': (v: string) => props.onUpdateStepArgText(idx, v),
+          fetchSuggestions: fetchDynamicSuggestions,
+          triggerOnFocus: true,
+          'onUpdate:modelValue': (v: string | number) => props.onUpdateStepArgText(idx, String(v)),
         })
       }
 
@@ -285,6 +332,7 @@ const StepBody = defineComponent({
             {
               modelValue: extractorType,
               class: 'card-field-select',
+              filterable: true,
               'onUpdate:modelValue': (v: string) => props.onUpdateExtractorType(idx, v),
             },
             EXTRACTOR_TYPES.map(et => h(ElOption, { key: et.value, label: et.label, value: et.value })),
@@ -338,11 +386,13 @@ const StepBody = defineComponent({
           )
         } else if (extractorType === 'dynamic') {
           fieldRowChildren.push(
-            h(ElInput, {
+            h(ElAutocomplete, {
               modelValue: getExtractorDynamicArg(step) ?? '',
-              placeholder: '动态参数',
-              class: 'card-field-input',
-              'onUpdate:modelValue': (v: string) => props.onUpdateExtractorDynamicArg(idx, v),
+              class: 'card-field-select',
+              placeholder: '输入动态参数',
+              fetchSuggestions: fetchDynamicSuggestions,
+              triggerOnFocus: true,
+              'onUpdate:modelValue': (v: string | number) => props.onUpdateExtractorDynamicArg(idx, String(v)),
             }),
           )
         }
