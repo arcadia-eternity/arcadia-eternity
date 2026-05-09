@@ -154,9 +154,14 @@ function switchType(typeKey: string) {
     'entity:effect': { type: 'entity:effect', value: '' },
     dynamic: { type: 'dynamic', selector: 'self' as SelectorDSL },
     selectorValue: { type: 'selectorValue', value: 0 as Value },
-    conditional: { type: 'conditional', condition: '' as ConditionDSL, trueValue: 0 as Value, falseValue: 0 as Value },
+    conditional: {
+      type: 'conditional',
+      condition: { type: 'petIsActive' } as ConditionDSL,
+      trueValue: 0 as Value,
+      falseValue: 0 as Value,
+    },
     array: [] as Value[],
-    operator: { type: 'operator' } as OperatorDSL,
+    operator: { type: 'TODO' } as OperatorDSL,
   }
   emit('update:modelValue', defaults[typeKey] ?? 0)
 }

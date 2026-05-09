@@ -767,7 +767,7 @@ function updateExtractorDynamicArg(index: number, val: string) {
         <span class="conditional-label">条件</span>
         <slot
           name="condition"
-          :model-value="(modelValue as { condition: unknown }).condition"
+          :model-value="(modelValue as { condition: unknown }).condition as ConditionDSL"
           :update="
             (v: unknown) => emitValue({ ...(modelValue as Record<string, unknown>), condition: v } as SelectorDSL)
           "
@@ -801,7 +801,7 @@ function updateExtractorDynamicArg(index: number, val: string) {
           <span class="selector-value-label">值</span>
           <slot
             name="value"
-            :model-value="(modelValue as { value: unknown }).value"
+            :model-value="(modelValue as { value: unknown }).value as Value"
             :update="(v: unknown) => emitValue({ ...(modelValue as Record<string, unknown>), value: v } as SelectorDSL)"
           />
         </div>

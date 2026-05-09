@@ -470,7 +470,7 @@ function previewStep(step: SelectorChain): string {
     <template v-else-if="step.type === 'where'">
       <slot
         name="evaluator"
-        :model-value="(step as { arg: unknown }).arg"
+        :model-value="(step as { arg: unknown }).arg as EvaluatorDSL"
         :update="(v: unknown) => onUpdateStepArg(index, v)"
       />
     </template>
@@ -529,7 +529,7 @@ function previewStep(step: SelectorChain): string {
       <div class="card-field-row card-field-indent">
         <slot
           name="evaluator"
-          :model-value="(step as { evaluator: unknown }).evaluator"
+          :model-value="(step as { evaluator: unknown }).evaluator as EvaluatorDSL"
           :update="(v: unknown) => onUpdateStepEvaluator(index, v)"
         />
       </div>
@@ -554,7 +554,7 @@ function previewStep(step: SelectorChain): string {
     <template v-else-if="VALUE_SLOT_TYPES.has(step.type)">
       <slot
         name="value"
-        :model-value="(step as { arg: unknown }).arg"
+        :model-value="(step as { arg: unknown }).arg as Value"
         :update="(v: unknown) => onUpdateStepArg(index, v)"
       />
     </template>
@@ -564,19 +564,19 @@ function previewStep(step: SelectorChain): string {
         <div class="card-when-label">条件</div>
         <slot
           name="condition"
-          :model-value="(step as { condition: unknown }).condition"
+          :model-value="(step as { condition: unknown }).condition as ConditionDSL"
           :update="(v: unknown) => onUpdateStepCondition(index, v)"
         />
         <div class="card-when-label">为真时</div>
         <slot
           name="trueValue"
-          :model-value="(step as { trueValue: unknown }).trueValue"
+          :model-value="(step as { trueValue: unknown }).trueValue as Value"
           :update="(v: unknown) => onUpdateStepTrueValue(index, v)"
         />
         <div class="card-when-label">为假时</div>
         <slot
           name="falseValue"
-          :model-value="(step as { falseValue: unknown }).falseValue"
+          :model-value="(step as { falseValue: unknown }).falseValue as Value"
           :update="(v: unknown) => onUpdateStepFalseValue(index, v)"
         />
       </div>
