@@ -262,6 +262,31 @@ export function resolveStringEnumOptions(
   return undefined
 }
 
+export function resolveEvaluatorValueTyping(
+  evType: string,
+  field: string,
+  operatorStringEnumOptions?: StringEnumOption[],
+): {
+  valueFilter?: string[]
+  stringEnumOptions?: StringEnumOption[]
+} {
+  const manifest = getEffectDslManifest()
+  const nodeTyping = getEffectDslNodeTyping('evaluator', evType)
+  if (!nodeTyping) return {}
+
+  const valRule = (nodeTyping.valueFields as Record<string, EffectDslFieldTypingRule> | undefined)?.[field]
+  const valOpts = valRule ? resolveValueTypeOptions(valRule).map(o => o.value) : undefined
+
+  const evStringEnum = resolveStringEnumOptions(valRule)
+  const stringEnumOptions =
+    operatorStringEnumOptions && operatorStringEnumOptions.length > 0 ? operatorStringEnumOptions : evStringEnum
+
+  return {
+    valueFilter: valOpts,
+    stringEnumOptions: stringEnumOptions as StringEnumOption[] | undefined,
+  }
+}
+
 /**
  * Returns a human-readable hint explaining WHY a field has its typing constraint,
  * based on the engine's runtime behavior.

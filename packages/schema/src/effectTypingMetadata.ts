@@ -121,6 +121,38 @@ const ENUM_StatTypeWithoutHp = mapEnumOptions<typeof StatTypeWithoutHp>({
   [StatTypeWithoutHp.spe]: '速度',
 })
 
+// ── All string enums union (deduplicated by value) ──────────────────
+// Used by evaluators (anyOf/compare/same/notSame) as a baseline
+// dropdown when no operator context is available to determine the
+// more specific enum to show.
+const ALL_STRING_ENUMS: readonly StringEnumOption[] = (() => {
+  const seen = new Map<string, StringEnumOption>()
+  const registries: { name: string; values: readonly StringEnumOption[] }[] = [
+    { name: 'ModifierType', values: ENUM_ModifierType },
+    { name: 'StatType', values: ENUM_StatType },
+    { name: 'CleanStageStrategy', values: ENUM_CleanStageStrategy },
+    { name: 'TransformType', values: ENUM_TransformType },
+    { name: 'PermanentStrategy', values: ENUM_PermanentStrategy },
+    { name: 'IgnoreStageStrategy', values: ENUM_IgnoreStageStrategy },
+    { name: 'ContinuousUseSkillStrategy', values: ENUM_ContinuousUseSkillStrategy },
+    { name: 'SetStageStrategy', values: ENUM_SetStageStrategy },
+    { name: 'StackStrategy', values: ENUM_StackStrategy },
+    { name: 'StatTypeWithoutHp', values: ENUM_StatTypeWithoutHp },
+  ]
+  for (const { name, values } of registries) {
+    for (const opt of values) {
+      if (!seen.has(opt.value)) {
+        seen.set(opt.value, {
+          value: opt.value,
+          label: opt.label,
+          description: `来源: ${name}`,
+        })
+      }
+    }
+  }
+  return [...seen.values()]
+})()
+
 // ── Constraint helpers ──────────────────────────────────────────────
 
 const STRING_ENUM = (values: readonly StringEnumOption[]) =>
@@ -243,19 +275,30 @@ export const effectDslTypingMetadata = {
         percent: NUMERIC,
       },
     },
+    anyOf: {
+      valueFields: {
+        value: STRING_ENUM(ALL_STRING_ENUMS),
+      },
+    },
     compare: {
       valueFields: {
-        value: ANY_SELECTOR_RESULT,
+        value: {
+          allow: [...ANY_SELECTOR_RESULT.allow, { kind: 'stringEnum' as const, values: ALL_STRING_ENUMS }],
+        },
       },
     },
     same: {
       valueFields: {
-        value: ANY_SELECTOR_RESULT,
+        value: {
+          allow: [...ANY_SELECTOR_RESULT.allow, { kind: 'stringEnum' as const, values: ALL_STRING_ENUMS }],
+        },
       },
     },
     notSame: {
       valueFields: {
-        value: ANY_SELECTOR_RESULT,
+        value: {
+          allow: [...ANY_SELECTOR_RESULT.allow, { kind: 'stringEnum' as const, values: ALL_STRING_ENUMS }],
+        },
       },
     },
   },
