@@ -1274,6 +1274,7 @@ export type SelectorValidator = {
   resolveStep: (states: CompileState[], step: unknown, at: string) => ResolveChainStepResult
   getValidKeys: (states: CompileState[]) => Set<string>
   validateAgainstRule: (states: CompileState[], rule: EffectDslFieldTypingRule) => ValidateAgainstRuleResult
+  inferValueStates: (value: unknown) => CompileState[]
 }
 
 export function createSelectorValidator(environment: EffectCompileTypingEnvironment): SelectorValidator {
@@ -1319,6 +1320,14 @@ export function createSelectorValidator(environment: EffectCompileTypingEnvironm
           return { ok: true as const }
         } catch (e) {
           return { ok: false as const, error: e instanceof Error ? e.message : String(e) }
+        }
+      }),
+    inferValueStates: (value: unknown) =>
+      withCompileTypingContext(context, () => {
+        try {
+          return inferStatesFromValue(value, '/value')
+        } catch {
+          return [{ kind: 'scalar' as const, valueType: 'unknown' as const }]
         }
       }),
   }

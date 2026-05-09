@@ -161,10 +161,10 @@ const pipelineTypeWarning = computed((): string | null => {
   const hasExpectedValue = !!props.expectedValueType
   if (!hasFieldRule && !hasExpectedValue) return null
 
-  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
+  // conditional: two divergent branches, skip
+  if (isConditional.value) return null
 
-  // selectorValue / conditional: skip (can't compute initial states without inferStatesFromValue)
-  if (isSelectorValue.value || isConditional.value) return null
+  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
 
   // Get final pipeline states
   let states: CompileState[]
@@ -181,6 +181,19 @@ const pipelineTypeWarning = computed((): string | null => {
     } catch {
       return null
     }
+    for (let i = 0; i < chain.length; i++) {
+      const result = selectorValidator.resolveStep(states, chain[i], `/chain/${i}`)
+      if (!result.ok) return null
+      states = result.states
+    }
+  } else if (isSelectorValue.value) {
+    const sv = props.modelValue as { type: 'selectorValue'; value: unknown; chain?: SelectorChain[] }
+    try {
+      states = selectorValidator.inferValueStates(sv)
+    } catch {
+      return null
+    }
+    const chain = sv.chain ?? []
     for (let i = 0; i < chain.length; i++) {
       const result = selectorValidator.resolveStep(states, chain[i], `/chain/${i}`)
       if (!result.ok) return null
