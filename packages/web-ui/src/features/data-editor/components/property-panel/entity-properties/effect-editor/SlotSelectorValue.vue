@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Value, StringEnumOption } from '@arcadia-eternity/schema'
-import SelectorBuilder from './SelectorBuilder.vue'
+import SelectorEditor from './SelectorEditor.vue'
 import ValueEditor from './ValueEditor.vue'
 
 const props = defineProps<{
@@ -23,11 +23,11 @@ const emit = defineEmits<{
     @update:model-value="emit('update:modelValue', $event)"
   >
     <template #selector="{ modelValue: dsv, update: dsu }">
-      <SelectorBuilder :model-value="dsv" :expected-value-type="props.expectedValueType" @update:model-value="dsu">
+      <SelectorEditor :model-value="dsv" :expected-value-type="props.expectedValueType" @update:model-value="dsu">
         <template #value="{ modelValue: dcv, update: dcu }">
           <ValueEditor :model-value="dcv" @update:model-value="dcu" />
         </template>
-      </SelectorBuilder>
+      </SelectorEditor>
     </template>
     <template #condition="condProps">
       <slot name="condition" v-bind="condProps" />

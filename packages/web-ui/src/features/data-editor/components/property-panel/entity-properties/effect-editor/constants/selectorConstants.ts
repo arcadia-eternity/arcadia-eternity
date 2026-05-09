@@ -1,6 +1,6 @@
 import { BASE_EXTRACTOR_KEYS } from '@arcadia-eternity/schema'
 
-// ── Chain step metadata (shared between SelectorBuilder and PipelineCard) ──
+// ── Chain step metadata (shared across SelectorEditor) ──
 
 export interface ChainStepMeta {
   value: string

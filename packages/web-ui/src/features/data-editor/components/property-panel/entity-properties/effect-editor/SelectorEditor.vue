@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ElOption, ElSelect } from 'element-plus'
 import type {
   BaseSelectorKey,
   ConditionDSL,
@@ -15,8 +16,17 @@ import {
   type CompileState,
 } from '@arcadia-eternity/battle'
 import { useEffectTyping } from './composables/useEffectTyping'
-import { CHAIN_STEP_TYPES, VALUE_SLOT_TYPES, RECURSIVE_TYPES, getChainStepMeta } from './constants/selectorConstants'
-import PipelineCard from './PipelineCard.vue'
+import {
+  CHAIN_STEP_TYPES,
+  NO_PARAM_TYPES,
+  TEXT_INPUT_TYPES,
+  VALUE_SLOT_TYPES,
+  RECURSIVE_TYPES,
+  getChainStepMeta,
+} from './constants/selectorConstants'
+import StepBodyContent from './StepBodyContent.vue'
+
+defineOptions({ name: 'SelectorEditor' })
 
 const { resolveSelectorOptions } = useEffectTyping()
 
@@ -45,6 +55,29 @@ defineSlots<{
   trueValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
   falseValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
 }>()
+
+const GROUP_LABEL_MAP: Record<string, string> = {
+  extract: '提取',
+  filter: '过滤',
+  transform: '变换',
+  math: '运算',
+  set: '集合',
+  random: '随机',
+  limit: '限制',
+  flow: '流程',
+}
+
+const stepGroups = computed(() => {
+  const map = new Map<string, { label: string; value: string; description: string }[]>()
+  for (const meta of CHAIN_STEP_TYPES) {
+    if (!map.has(meta.group)) map.set(meta.group, [])
+    map.get(meta.group)!.push({ label: meta.label, value: meta.value, description: meta.description })
+  }
+  return Array.from(map.entries()).map(([group, types]) => ({
+    label: GROUP_LABEL_MAP[group] ?? group,
+    types,
+  }))
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: SelectorDSL]
@@ -417,6 +450,52 @@ function updateExtractorDynamicArg(index: number, val: string) {
   }
   updateStep(index, step as SelectorChain)
 }
+
+function formatCompileState(state: CompileState): string {
+  switch (state.kind) {
+    case 'id':
+      return state.target
+    case 'owner':
+      return state.owner
+    case 'scalar':
+      return state.valueType
+    case 'object':
+      return state.objectClass
+    case 'propertyRef':
+      return '属性引用'
+  }
+}
+
+function previewStep(step: SelectorChain): string {
+  const typeLabel = CHAIN_STEP_TYPES.find(t => t.value === step.type)?.label ?? step.type
+  if (NO_PARAM_TYPES.has(step.type)) return typeLabel
+  if (TEXT_INPUT_TYPES.has(step.type)) {
+    return `${typeLabel}: ${(step as { arg: string }).arg || '…'}`
+  }
+  if (step.type === 'select') {
+    const s = step as { arg: ExtractorDSL }
+    if (typeof s.arg === 'string') return `${typeLabel}: ${s.arg}`
+    if (typeof s.arg === 'object' && s.arg.type === 'base' && 'arg' in s.arg) {
+      return `${typeLabel}: ${(s.arg as { arg: string }).arg}`
+    }
+    if (typeof s.arg === 'object' && (s.arg.type === 'attribute' || s.arg.type === 'relation')) {
+      return `${typeLabel}: ${String((s.arg as { key?: string }).key || s.arg.type)}`
+    }
+    if (typeof s.arg === 'object' && s.arg.type === 'field') {
+      return `${typeLabel}: ${String((s.arg as { path?: string }).path || s.arg.type)}`
+    }
+    if (typeof s.arg === 'object' && s.arg.type === 'dynamic') {
+      return `${typeLabel}: ${String((s.arg as { arg?: string }).arg || s.arg.type)}`
+    }
+    return `${typeLabel}: ${(s.arg as Record<string, unknown>).type}`
+  }
+  if (step.type === 'where') return `${typeLabel}: …`
+  if (step.type === 'whereAttr') return `${typeLabel}: …`
+  if (RECURSIVE_TYPES.has(step.type)) return typeLabel
+  if (VALUE_SLOT_TYPES.has(step.type)) return `${typeLabel}: …`
+  if (step.type === 'when') return `${typeLabel}: …`
+  return typeLabel
+}
 </script>
 
 <template>
@@ -494,29 +573,13 @@ function updateExtractorDynamicArg(index: number, val: string) {
               class="card-type-select"
               @update:model-value="(v: string) => onStepTypeChange(i, v)"
             >
-              <el-option-group
-                v-for="group in [
-                  {
-                    label: '提取',
-                    types: ['select', 'selectPath', 'selectProp', 'selectObservable', 'selectAttribute$', 'configGet'],
-                  },
-                  { label: '过滤', types: ['where', 'whereAttr'] },
-                  { label: '变换', types: ['flat', 'shuffled', 'asStatLevelMark', 'sampleBetween'] },
-                  { label: '运算', types: ['sum', 'avg', 'add', 'multiply', 'divide'] },
-                  { label: '集合', types: ['and', 'or'] },
-                  { label: '随机', types: ['randomPick', 'randomSample'] },
-                  { label: '限制', types: ['limit', 'clampMax', 'clampMin'] },
-                  { label: '流程', types: ['when'] },
-                ]"
-                :key="group.label"
-                :label="group.label"
-              >
+              <el-option-group v-for="group in stepGroups" :key="group.label" :label="group.label">
                 <el-option
                   v-for="t in group.types"
-                  :key="t"
-                  :label="CHAIN_STEP_TYPES.find(s => s.value === t)?.label ?? t"
-                  :value="t"
-                  :title="CHAIN_STEP_TYPES.find(s => s.value === t)?.description ?? t"
+                  :key="t.value"
+                  :label="t.label"
+                  :value="t.value"
+                  :title="t.description"
                 />
               </el-option-group>
             </el-select>
@@ -536,41 +599,56 @@ function updateExtractorDynamicArg(index: number, val: string) {
             </button>
           </div>
 
-          <PipelineCard
-            :step="step"
-            :index="i"
-            :step-warnings="stepWarnings"
-            :selector-states="selectorStates"
-            :valid-extractor-keys="getValidKeysForStep(i)"
-            :on-update-extractor-type="updateExtractorType"
-            :on-update-extractor-base-arg="updateExtractorBaseArg"
-            :on-update-extractor-key="updateExtractorKey"
-            :on-update-extractor-path="updateExtractorPath"
-            :on-update-extractor-dynamic-arg="updateExtractorDynamicArg"
-            :on-update-step-arg-text="updateStepArgText"
-            :on-update-step-evaluator="updateStepEvaluator"
-            :on-update-step-arg="updateStepArg"
-            :on-update-step-key="updateStepKey"
-            :on-update-step-condition="updateStepCondition"
-            :on-update-step-true-value="updateStepTrueValue"
-            :on-update-step-false-value="updateStepFalseValue"
-          >
-            <template #evaluator="{ modelValue, update }">
-              <slot name="evaluator" :model-value="modelValue" :update="update" />
-            </template>
-            <template #value="{ modelValue, update }">
-              <slot name="value" :model-value="modelValue" :update="update" />
-            </template>
-            <template #condition="{ modelValue, update }">
-              <slot name="condition" :model-value="modelValue" :update="update" />
-            </template>
-            <template #trueValue="{ modelValue, update }">
-              <slot name="trueValue" :model-value="modelValue" :update="update" />
-            </template>
-            <template #falseValue="{ modelValue, update }">
-              <slot name="falseValue" :model-value="modelValue" :update="update" />
-            </template>
-          </PipelineCard>
+          <div class="card-body">
+            <div v-if="stepWarnings.has(i)" class="card-step-warning">⚠ {{ stepWarnings.get(i) }}</div>
+            <div v-if="getChainStepMeta(step.type)?.description" class="card-step-hint">
+              {{ getChainStepMeta(step.type)!.description }}
+            </div>
+            <StepBodyContent
+              :step="step"
+              :index="i"
+              :valid-extractor-keys="getValidKeysForStep(i)"
+              :on-update-extractor-type="updateExtractorType"
+              :on-update-extractor-base-arg="updateExtractorBaseArg"
+              :on-update-extractor-key="updateExtractorKey"
+              :on-update-extractor-path="updateExtractorPath"
+              :on-update-extractor-dynamic-arg="updateExtractorDynamicArg"
+              :on-update-step-arg-text="updateStepArgText"
+              :on-update-step-evaluator="updateStepEvaluator"
+              :on-update-step-arg="updateStepArg"
+              :on-update-step-key="updateStepKey"
+              :on-update-step-condition="updateStepCondition"
+              :on-update-step-true-value="updateStepTrueValue"
+              :on-update-step-false-value="updateStepFalseValue"
+            >
+              <template #evaluator="{ modelValue, update }">
+                <slot name="evaluator" :model-value="modelValue" :update="update" />
+              </template>
+              <template #value="{ modelValue, update }">
+                <slot name="value" :model-value="modelValue" :update="update" />
+              </template>
+              <template #condition="{ modelValue, update }">
+                <slot name="condition" :model-value="modelValue" :update="update" />
+              </template>
+              <template #trueValue="{ modelValue, update }">
+                <slot name="trueValue" :model-value="modelValue" :update="update" />
+              </template>
+              <template #falseValue="{ modelValue, update }">
+                <slot name="falseValue" :model-value="modelValue" :update="update" />
+              </template>
+            </StepBodyContent>
+          </div>
+
+          <div class="card-preview">
+            {{ previewStep(step) }}
+            <span
+              v-if="selectorStates.has(i) && selectorStates.get(i)!.length > 0"
+              class="card-state-tag"
+              :class="[`state-${selectorStates.get(i)![0].kind}`, { 'state-dimmed': stepWarnings.has(i) }]"
+            >
+              → {{ selectorStates.get(i)!.map(formatCompileState).join(', ') }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -598,7 +676,7 @@ function updateExtractorDynamicArg(index: number, val: string) {
       </div>
       <div class="conditional-row">
         <span class="conditional-label">为真</span>
-        <SelectorBuilder
+        <SelectorEditor
           :model-value="(modelValue as { trueSelector: SelectorDSL }).trueSelector"
           @update:model-value="
             (v: SelectorDSL) =>
@@ -608,7 +686,7 @@ function updateExtractorDynamicArg(index: number, val: string) {
       </div>
       <div class="conditional-row">
         <span class="conditional-label">为假</span>
-        <SelectorBuilder
+        <SelectorEditor
           :model-value="(modelValue as { falseSelector?: SelectorDSL }).falseSelector ?? 'self'"
           @update:model-value="
             (v: SelectorDSL) =>
@@ -666,29 +744,13 @@ function updateExtractorDynamicArg(index: number, val: string) {
               class="card-type-select"
               @update:model-value="(v: string) => onStepTypeChange(i, v)"
             >
-              <el-option-group
-                v-for="group in [
-                  {
-                    label: '提取',
-                    types: ['select', 'selectPath', 'selectProp', 'selectObservable', 'selectAttribute$', 'configGet'],
-                  },
-                  { label: '过滤', types: ['where', 'whereAttr'] },
-                  { label: '变换', types: ['flat', 'shuffled', 'asStatLevelMark', 'sampleBetween'] },
-                  { label: '运算', types: ['sum', 'avg', 'add', 'multiply', 'divide'] },
-                  { label: '集合', types: ['and', 'or'] },
-                  { label: '随机', types: ['randomPick', 'randomSample'] },
-                  { label: '限制', types: ['limit', 'clampMax', 'clampMin'] },
-                  { label: '流程', types: ['when'] },
-                ]"
-                :key="group.label"
-                :label="group.label"
-              >
+              <el-option-group v-for="group in stepGroups" :key="group.label" :label="group.label">
                 <el-option
                   v-for="t in group.types"
-                  :key="t"
-                  :label="CHAIN_STEP_TYPES.find(s => s.value === t)?.label ?? t"
-                  :value="t"
-                  :title="CHAIN_STEP_TYPES.find(s => s.value === t)?.description ?? t"
+                  :key="t.value"
+                  :label="t.label"
+                  :value="t.value"
+                  :title="t.description"
                 />
               </el-option-group>
             </el-select>
@@ -708,41 +770,56 @@ function updateExtractorDynamicArg(index: number, val: string) {
             </button>
           </div>
 
-          <PipelineCard
-            :step="step"
-            :index="i"
-            :step-warnings="stepWarnings"
-            :selector-states="selectorStates"
-            :valid-extractor-keys="getValidKeysForStep(i)"
-            :on-update-extractor-type="updateExtractorType"
-            :on-update-extractor-base-arg="updateExtractorBaseArg"
-            :on-update-extractor-key="updateExtractorKey"
-            :on-update-extractor-path="updateExtractorPath"
-            :on-update-extractor-dynamic-arg="updateExtractorDynamicArg"
-            :on-update-step-arg-text="updateStepArgText"
-            :on-update-step-evaluator="updateStepEvaluator"
-            :on-update-step-arg="updateStepArg"
-            :on-update-step-key="updateStepKey"
-            :on-update-step-condition="updateStepCondition"
-            :on-update-step-true-value="updateStepTrueValue"
-            :on-update-step-false-value="updateStepFalseValue"
-          >
-            <template #evaluator="{ modelValue, update }">
-              <slot name="evaluator" :model-value="modelValue" :update="update" />
-            </template>
-            <template #value="{ modelValue, update }">
-              <slot name="value" :model-value="modelValue" :update="update" />
-            </template>
-            <template #condition="{ modelValue, update }">
-              <slot name="condition" :model-value="modelValue" :update="update" />
-            </template>
-            <template #trueValue="{ modelValue, update }">
-              <slot name="trueValue" :model-value="modelValue" :update="update" />
-            </template>
-            <template #falseValue="{ modelValue, update }">
-              <slot name="falseValue" :model-value="modelValue" :update="update" />
-            </template>
-          </PipelineCard>
+          <div class="card-body">
+            <div v-if="stepWarnings.has(i)" class="card-step-warning">⚠ {{ stepWarnings.get(i) }}</div>
+            <div v-if="getChainStepMeta(step.type)?.description" class="card-step-hint">
+              {{ getChainStepMeta(step.type)!.description }}
+            </div>
+            <StepBodyContent
+              :step="step"
+              :index="i"
+              :valid-extractor-keys="getValidKeysForStep(i)"
+              :on-update-extractor-type="updateExtractorType"
+              :on-update-extractor-base-arg="updateExtractorBaseArg"
+              :on-update-extractor-key="updateExtractorKey"
+              :on-update-extractor-path="updateExtractorPath"
+              :on-update-extractor-dynamic-arg="updateExtractorDynamicArg"
+              :on-update-step-arg-text="updateStepArgText"
+              :on-update-step-evaluator="updateStepEvaluator"
+              :on-update-step-arg="updateStepArg"
+              :on-update-step-key="updateStepKey"
+              :on-update-step-condition="updateStepCondition"
+              :on-update-step-true-value="updateStepTrueValue"
+              :on-update-step-false-value="updateStepFalseValue"
+            >
+              <template #evaluator="{ modelValue, update }">
+                <slot name="evaluator" :model-value="modelValue" :update="update" />
+              </template>
+              <template #value="{ modelValue, update }">
+                <slot name="value" :model-value="modelValue" :update="update" />
+              </template>
+              <template #condition="{ modelValue, update }">
+                <slot name="condition" :model-value="modelValue" :update="update" />
+              </template>
+              <template #trueValue="{ modelValue, update }">
+                <slot name="trueValue" :model-value="modelValue" :update="update" />
+              </template>
+              <template #falseValue="{ modelValue, update }">
+                <slot name="falseValue" :model-value="modelValue" :update="update" />
+              </template>
+            </StepBodyContent>
+          </div>
+
+          <div class="card-preview">
+            {{ previewStep(step) }}
+            <span
+              v-if="selectorStates.has(i) && selectorStates.get(i)!.length > 0"
+              class="card-state-tag"
+              :class="[`state-${selectorStates.get(i)![0].kind}`, { 'state-dimmed': stepWarnings.has(i) }]"
+            >
+              → {{ selectorStates.get(i)!.map(formatCompileState).join(', ') }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -965,10 +1042,6 @@ function updateExtractorDynamicArg(index: number, val: string) {
   .card-field-select {
     flex: 1;
     min-width: 0;
-  }
-
-  .card-field-input {
-    flex: 1;
   }
 
   .card-preview {

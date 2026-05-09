@@ -1,8 +1,8 @@
 import { ref, type Ref } from 'vue'
 import { Value } from '@sinclair/typebox/value'
 import { effectDSLSchema, getEffectDslNodeTyping } from '@arcadia-eternity/schema'
-import type { EffectDSL, OperatorDSL, ConditionDSL, Value as DSLValue, SelectorDSL } from '@arcadia-eternity/schema'
 import type { EffectDslNodeTypingRule } from '@arcadia-eternity/schema'
+import { resolveSelectorOptions } from './useEffectTyping'
 
 export type ValidationLevel = 'L1' | 'L2' | 'L3'
 
@@ -213,31 +213,7 @@ function validateFieldsAgainstTyping(
 }
 
 function resolveValidSelectors(fieldRule: unknown): string[] {
-  const rule = fieldRule as {
-    allow?: readonly { kind: string; targets?: readonly string[]; owners?: readonly string[] }[]
-  }
-  if (!rule.allow) return []
-
-  const selectors = new Set<string>()
-  const targetMap: Record<string, string[]> = {
-    pet: ['self', 'opponent', 'target'],
-    mark: ['selfMarks', 'opponentMarks', 'mark'],
-    skill: ['selfSkills', 'opponentSkills', 'skill'],
-  }
-
-  for (const constraint of rule.allow) {
-    if (constraint.kind === 'id' && constraint.targets) {
-      for (const target of constraint.targets) {
-        const mapped = targetMap[target]
-        if (mapped) mapped.forEach(s => selectors.add(s))
-      }
-    }
-    if (constraint.kind === 'owner' && constraint.owners) {
-      constraint.owners.forEach(o => selectors.add(o))
-    }
-  }
-
-  return [...selectors]
+  return resolveSelectorOptions(fieldRule as Parameters<typeof resolveSelectorOptions>[0]).map(o => o.value)
 }
 
 function validateReferences(draft: Record<string, unknown>, gameData: GameDataRefs): ValidationResult[] {

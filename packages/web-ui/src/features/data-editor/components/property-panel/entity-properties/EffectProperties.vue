@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { OperatorDSL, EvaluatorDSL, ConditionDSL } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 import EffectHeader from './effect-editor/EffectHeader.vue'
-import SelectorBuilder from './effect-editor/SelectorBuilder.vue'
+import SelectorEditor from './effect-editor/SelectorEditor.vue'
 import ValueEditor from './effect-editor/ValueEditor.vue'
 import ConditionTreeEditor from './effect-editor/ConditionTreeEditor.vue'
 import EvaluatorEditor from './effect-editor/EvaluatorEditor.vue'
@@ -185,7 +185,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
           <template #operator="{ modelValue, update }">
             <OperatorEditor :model-value="modelValue ?? ({ type: 'TODO' } as OperatorDSL)" @update:model-value="update">
               <template #target="{ modelValue: tv, update: tu, field }">
-                <SelectorBuilder
+                <SelectorEditor
                   :model-value="tv"
                   :allowed-bases="applyTypingConstraints(field, getOperatorTypeFromModel(modelValue)).selectorFilter"
                   @update:model-value="tu"
@@ -238,11 +238,11 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                       <template #condition="{ modelValue: ccv, onUpdate: ccu }">
                         <SlotConditionChain :model-value="ccv" @update:model-value="v => ccu(v as ConditionDSL)">
                           <template #selector="{ modelValue: csv, update: csu }">
-                            <SelectorBuilder :model-value="csv" @update:model-value="csu">
+                            <SelectorEditor :model-value="csv" @update:model-value="csu">
                               <template #value="{ modelValue: cvv, update: cvu }">
                                 <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                               </template>
-                            </SelectorBuilder>
+                            </SelectorEditor>
                           </template>
                         </SlotConditionChain>
                       </template>
@@ -253,17 +253,17 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                       <template #condition="{ modelValue: ccv, onUpdate: ccu }">
                         <SlotConditionChain :model-value="ccv" @update:model-value="v => ccu(v as ConditionDSL)">
                           <template #selector="{ modelValue: csv, update: csu }">
-                            <SelectorBuilder :model-value="csv" @update:model-value="csu">
+                            <SelectorEditor :model-value="csv" @update:model-value="csu">
                               <template #value="{ modelValue: cvv, update: cvu }">
                                 <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                               </template>
-                            </SelectorBuilder>
+                            </SelectorEditor>
                           </template>
                         </SlotConditionChain>
                       </template>
                     </SlotSelectorValue>
                   </template>
-                </SelectorBuilder>
+                </SelectorEditor>
               </template>
               <template #value="{ modelValue: vv, update: vu, field }">
                 <ValueEditor
@@ -275,7 +275,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                   @update:model-value="vu"
                 >
                   <template #selector="{ modelValue: dsv, update: dsu }">
-                    <SelectorBuilder
+                    <SelectorEditor
                       :model-value="dsv"
                       :expected-value-type="
                         applyTypingConstraints(field, getOperatorTypeFromModel(modelValue)).expectedScalarType
@@ -301,12 +301,12 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                       <template #value="{ modelValue: dcv, update: dcu }">
                         <SlotSelectorValue :model-value="dcv" @update:model-value="dcu" />
                       </template>
-                    </SelectorBuilder>
+                    </SelectorEditor>
                   </template>
                   <template #condition="{ modelValue: ccv, onUpdate: ccu }">
                     <ConditionTreeEditor :model-value="ccv" @update:model-value="v => ccu(v as ConditionDSL)">
                       <template #selector="{ modelValue: csv, update: csu }">
-                        <SelectorBuilder :model-value="csv" @update:model-value="csu">
+                        <SelectorEditor :model-value="csv" @update:model-value="csu">
                           <template #evaluator="{ modelValue: ev, update: eu }">
                             <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                               <template #value="{ modelValue: evv, update: evu, field }">
@@ -327,7 +327,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                           <template #value="{ modelValue: cvv, update: cvu }">
                             <SlotSelectorValue :model-value="cvv" @update:model-value="cvu" />
                           </template>
-                        </SelectorBuilder>
+                        </SelectorEditor>
                       </template>
                       <template #value="{ modelValue: cvv2, update: cvu2 }">
                         <SlotSelectorValue :model-value="cvv2" @update:model-value="cvu2" />
@@ -346,7 +346,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
               <template #condition="{ modelValue: cv, update: cu }">
                 <ConditionTreeEditor :model-value="cv" @update:model-value="cu">
                   <template #selector="{ modelValue: sv, update: su }">
-                    <SelectorBuilder :model-value="sv" @update:model-value="su">
+                    <SelectorEditor :model-value="sv" @update:model-value="su">
                       <template #evaluator="{ modelValue: ev, update: eu }">
                         <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                           <template #value="{ modelValue: evv, update: evu, field }">
@@ -366,7 +366,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                       <template #value="{ modelValue: cv2, update: cu2 }">
                         <SlotSelectorValue :model-value="cv2" @update:model-value="cu2" />
                       </template>
-                    </SelectorBuilder>
+                    </SelectorEditor>
                   </template>
                   <template #condition="{ modelValue: cv2, update: cu2 }">
                     <EvaluatorEditor :model-value="castEvaluator(cv2)" @update:model-value="cu2">
@@ -380,7 +380,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
               <template #operator="{ modelValue: ov, update: ou }">
                 <OperatorEditor :model-value="ov" @update:model-value="ou">
                   <template #target="{ modelValue: tv2, update: tu2 }">
-                    <SelectorBuilder :model-value="tv2" @update:model-value="tu2">
+                    <SelectorEditor :model-value="tv2" @update:model-value="tu2">
                       <template #evaluator="{ modelValue: ev, update: eu }">
                         <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                           <template #value="{ modelValue: evv, update: evu, field }">
@@ -400,14 +400,14 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                       <template #value="{ modelValue: cv2, update: cu2 }">
                         <SlotSelectorValue :model-value="cv2" @update:model-value="cu2" />
                       </template>
-                    </SelectorBuilder>
+                    </SelectorEditor>
                   </template>
                   <template #value="{ modelValue: vv4, update: vu4 }">
                     <SlotSelectorValue :model-value="vv4" @update:model-value="vu4">
                       <template #condition="{ modelValue: ccv, onUpdate: ccu }">
                         <ConditionTreeEditor :model-value="ccv" @update:model-value="v => ccu(v as ConditionDSL)"
                           ><template #selector="{ modelValue: csv, update: csu }"
-                            ><SelectorBuilder :model-value="csv" @update:model-value="csu"
+                            ><SelectorEditor :model-value="csv" @update:model-value="csu"
                               ><template #value="{ modelValue: cvv, update: cvu }"
                                 ><ValueEditor :model-value="cvv" @update:model-value="cvu" /></template
                               ><template #evaluator="{ modelValue: ev, update: eu }"
@@ -417,7 +417,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                                       :model-value="evv"
                                       @update:model-value="
                                         evu
-                                      " /></template></EvaluatorEditor></template></SelectorBuilder></template
+                                      " /></template></EvaluatorEditor></template></SelectorEditor></template
                           ><template #value="{ modelValue: cvv2, update: cvu2 }"
                             ><ValueEditor :model-value="cvv2" @update:model-value="cvu2" /></template
                           ><template #condition="{ modelValue: cv3, update: cu3 }"
@@ -447,7 +447,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
           @update:model-value="v => updateField('condition', v)"
         >
           <template #selector="{ modelValue: sv, update: su }">
-            <SelectorBuilder :model-value="sv" @update:model-value="su">
+            <SelectorEditor :model-value="sv" @update:model-value="su">
               <template #evaluator="{ modelValue: ev, update: eu }">
                 <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
                   <template #value="{ modelValue: evv, update: evu }">
@@ -460,22 +460,22 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                   <template #condition="{ modelValue: ccv, onUpdate: ccu }">
                     <SlotConditionChain :model-value="ccv" @update:model-value="v => ccu(v as ConditionDSL)">
                       <template #selector="{ modelValue: csv, update: csu }">
-                        <SelectorBuilder :model-value="csv" @update:model-value="csu">
+                        <SelectorEditor :model-value="csv" @update:model-value="csu">
                           <template #value="{ modelValue: cvv, update: cvu }">
                             <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                           </template>
-                        </SelectorBuilder>
+                        </SelectorEditor>
                       </template>
                     </SlotConditionChain>
                   </template>
                 </SlotSelectorValue>
               </template>
-            </SelectorBuilder>
+            </SelectorEditor>
           </template>
           <template #value="{ modelValue: vv, update: vu }">
             <ValueEditor :model-value="vv" @update:model-value="vu">
               <template #selector="{ modelValue: dsv, update: dsu }">
-                <SelectorBuilder :model-value="dsv" @update:model-value="dsu">
+                <SelectorEditor :model-value="dsv" @update:model-value="dsu">
                   <template #evaluator="{ modelValue: dev, update: deu }">
                     <EvaluatorEditor :model-value="dev as EvaluatorDSL" @update:model-value="deu">
                       <template #value="{ modelValue: devv, update: devu }">
@@ -486,16 +486,16 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
                   <template #value="{ modelValue: dcv, update: dcu }">
                     <SlotSelectorValue :model-value="dcv" @update:model-value="dcu" />
                   </template>
-                </SelectorBuilder>
+                </SelectorEditor>
               </template>
               <template #condition="{ modelValue: ccv, onUpdate: ccu }">
                 <SlotConditionChain :model-value="ccv" @update:model-value="v => ccu(v as ConditionDSL)">
                   <template #selector="{ modelValue: csv, update: csu }">
-                    <SelectorBuilder :model-value="csv" @update:model-value="csu">
+                    <SelectorEditor :model-value="csv" @update:model-value="csu">
                       <template #value="{ modelValue: cvv, update: cvu }">
                         <ValueEditor :model-value="cvv" @update:model-value="cvu" />
                       </template>
-                    </SelectorBuilder>
+                    </SelectorEditor>
                   </template>
                 </SlotConditionChain>
               </template>

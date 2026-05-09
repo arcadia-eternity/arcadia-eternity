@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ConditionDSL, EvaluatorDSL, Value } from '@arcadia-eternity/schema'
 import ConditionTreeEditor from './ConditionTreeEditor.vue'
-import SelectorBuilder from './SelectorBuilder.vue'
+import SelectorEditor from './SelectorEditor.vue'
 import EvaluatorEditor from './EvaluatorEditor.vue'
 import SlotSelectorValue from './SlotSelectorValue.vue'
 
@@ -30,7 +30,7 @@ function castValue(v: Value): Value {
   <ConditionTreeEditor :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
     <template #selector="{ modelValue: sv, update: su }">
       <slot name="selector" :model-value="sv" :update="su">
-        <SelectorBuilder :model-value="sv" @update:model-value="su" />
+        <SelectorEditor :model-value="sv" @update:model-value="su" />
       </slot>
     </template>
 
