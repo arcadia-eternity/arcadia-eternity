@@ -380,6 +380,7 @@ function previewStep(step: SelectorChain): string {
     if (typeof s.arg === 'object' && s.arg.type === 'dynamic') {
       return `${typeLabel}: ${String((s.arg as { arg?: string }).arg || s.arg.type)}`
     }
+    // @ts-expect-error never
     return `${typeLabel}: ${s.arg.type}`
   }
   if (step.type === 'where') return `${typeLabel}: …`

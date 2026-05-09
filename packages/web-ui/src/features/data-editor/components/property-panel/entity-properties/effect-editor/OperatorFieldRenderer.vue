@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { OperatorFieldDef, OptionDef } from './constants/operatorFieldConfig'
+import type { OperatorFieldDef } from './constants/operatorFieldConfig'
 
 const props = defineProps<{
   field: OperatorFieldDef
@@ -31,22 +31,20 @@ const slotProps = computed(() => ({
 
 const componentKey = computed(() => props.field.componentModelBind ?? props.field.key)
 
-const componentModelValue = computed(() => {
-  if (props.field.component === 'el-switch') {
-    return !!props.model[componentKey.value]
-  }
-  if (props.field.component === 'el-input-number') {
-    return Number(props.model[componentKey.value] ?? 0)
-  }
-  return props.model[componentKey.value]
-})
+const selectValue = computed(
+  () => props.model[componentKey.value] as string | number | boolean | Record<string, unknown> | undefined,
+)
+const switchValue = computed(() => !!props.model[componentKey.value])
+const inputNumberValue = computed(() => Number(props.model[componentKey.value] ?? 0))
 
-function onComponentUpdate(v: unknown) {
-  if (props.field.component === 'el-input-number') {
-    emit('update:field', componentKey.value, (v as number | undefined) ?? 0)
-  } else {
-    emit('update:field', componentKey.value, v)
-  }
+function onSelectUpdate(v: unknown) {
+  emit('update:field', componentKey.value, v)
+}
+function onSwitchUpdate(v: unknown) {
+  emit('update:field', componentKey.value, v)
+}
+function onInputNumberUpdate(v: number | undefined) {
+  emit('update:field', componentKey.value, v ?? 0)
 }
 
 const componentPlaceholder = computed(() => {
@@ -75,33 +73,28 @@ const componentPlaceholder = computed(() => {
     <!-- el-select -->
     <el-select
       v-else-if="field.component === 'el-select'"
-      :model-value="componentModelValue"
+      :model-value="selectValue"
       :placeholder="componentPlaceholder"
       clearable
       class="w-full"
-      @update:model-value="onComponentUpdate"
+      @update:model-value="onSelectUpdate"
     >
-      <el-option
-        v-for="opt in field.componentOptions as OptionDef[]"
-        :key="opt.value"
-        :label="opt.label"
-        :value="opt.value"
-      />
+      <el-option v-for="opt in field.componentOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
     </el-select>
 
     <!-- el-switch -->
     <el-switch
       v-else-if="field.component === 'el-switch'"
-      :model-value="componentModelValue"
-      @update:model-value="onComponentUpdate"
+      :model-value="switchValue"
+      @update:model-value="onSwitchUpdate"
     />
 
     <!-- el-input-number -->
     <el-input-number
       v-else-if="field.component === 'el-input-number'"
-      :model-value="componentModelValue"
+      :model-value="inputNumberValue"
       v-bind="field.componentProps ?? {}"
-      @update:model-value="onComponentUpdate"
+      @update:model-value="onInputNumberUpdate"
     />
   </div>
 </template>
