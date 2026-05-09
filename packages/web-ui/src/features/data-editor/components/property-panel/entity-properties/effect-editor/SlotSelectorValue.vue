@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Value, StringEnumOption, EffectDslFieldTypingRule } from '@arcadia-eternity/schema'
+import type { Value, StringEnumOption } from '@arcadia-eternity/schema'
 import SelectorEditor from './SelectorEditor.vue'
 import ValueEditor from './ValueEditor.vue'
 
@@ -8,7 +8,6 @@ const props = defineProps<{
   expectedValueType?: 'number' | 'string' | 'boolean'
   allowedTypes?: string[]
   stringEnumOptions?: StringEnumOption[]
-  fieldRule?: EffectDslFieldTypingRule
 }>()
 
 const emit = defineEmits<{
@@ -24,12 +23,7 @@ const emit = defineEmits<{
     @update:model-value="emit('update:modelValue', $event)"
   >
     <template #selector="{ modelValue: dsv, update: dsu }">
-      <SelectorEditor
-        :model-value="dsv"
-        :expected-value-type="props.expectedValueType"
-        :field-rule="props.fieldRule"
-        @update:model-value="dsu"
-      >
+      <SelectorEditor :model-value="dsv" :expected-value-type="props.expectedValueType" @update:model-value="dsu">
         <template #value="{ modelValue: dcv, update: dcu }">
           <ValueEditor :model-value="dcv" @update:model-value="dcu" />
         </template>

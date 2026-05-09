@@ -1066,7 +1066,7 @@ function inferStatesFromValue(value: unknown, at: string): CompileState[] {
   return [{ kind: 'object', objectClass: 'json:record' }]
 }
 
-function formatState(state: CompileState): string {
+export function formatState(state: CompileState): string {
   if (state.kind === 'id') return `id(${state.target})`
   if (state.kind === 'owner') return `owner(${state.owner})`
   if (state.kind === 'scalar') return `scalar(${state.valueType})`
@@ -1074,7 +1074,7 @@ function formatState(state: CompileState): string {
   return 'propertyRef'
 }
 
-function formatConstraint(constraint: EffectDslStateConstraint): string {
+export function formatConstraint(constraint: EffectDslStateConstraint): string {
   if (constraint.kind === 'id') {
     return constraint.targets && constraint.targets.length > 0 ? `id(${constraint.targets.join('|')})` : 'id(*)'
   }
@@ -1092,7 +1092,7 @@ function formatConstraint(constraint: EffectDslStateConstraint): string {
   return 'propertyRef'
 }
 
-function stateMatchesConstraint(state: CompileState, constraint: EffectDslStateConstraint): boolean {
+export function stateMatchesConstraint(state: CompileState, constraint: EffectDslStateConstraint): boolean {
   if (state.kind !== constraint.kind) return false
   if (state.kind === 'id' && constraint.kind === 'id') {
     if (!constraint.targets || constraint.targets.length === 0) return true
@@ -1267,10 +1267,13 @@ function validateEffectCompileTypingRaw(raw: Record<string, unknown>): void {
   }
 }
 
+export type ValidateAgainstRuleResult = { ok: true } | { ok: false; error: string }
+
 export type SelectorValidator = {
   getBaseStates: (base: string) => CompileState[]
   resolveStep: (states: CompileState[], step: unknown, at: string) => ResolveChainStepResult
   getValidKeys: (states: CompileState[]) => Set<string>
+  validateAgainstRule: (states: CompileState[], rule: EffectDslFieldTypingRule) => ValidateAgainstRuleResult
 }
 
 export function createSelectorValidator(environment: EffectCompileTypingEnvironment): SelectorValidator {
@@ -1308,6 +1311,15 @@ export function createSelectorValidator(environment: EffectCompileTypingEnvironm
           }
         }
         return keys
+      }),
+    validateAgainstRule: (states: CompileState[], rule: EffectDslFieldTypingRule) =>
+      withCompileTypingContext(context, () => {
+        try {
+          assertStatesMatchRule(states, rule, '/rule')
+          return { ok: true as const }
+        } catch (e) {
+          return { ok: false as const, error: e instanceof Error ? e.message : String(e) }
+        }
       }),
   }
 }

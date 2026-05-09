@@ -5,7 +5,6 @@ import type {
   BaseSelectorKey,
   ConditionDSL,
   EffectDslFieldTypingRule,
-  EffectDslStateConstraint,
   EvaluatorDSL,
   ExtractorDSL,
   SelectorChain,
@@ -15,6 +14,9 @@ import type {
 import {
   createSelectorValidator,
   seer2EffectCompileTypingEnvironment,
+  stateMatchesConstraint,
+  formatState as formatCompileStateVerbose,
+  formatConstraint,
   type CompileState,
 } from '@arcadia-eternity/battle'
 import { useEffectTyping } from './composables/useEffectTyping'
@@ -154,35 +156,55 @@ const stepWarnings = computed((): Map<number, string> => {
   return warnings
 })
 
-const typeMismatchWarning = computed((): string | null => {
-  if (!props.expectedValueType) return null
-  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
-  if (!isChain.value && !isSelectorValue.value) return null
-  const chain = val.chain ?? []
+const pipelineTypeWarning = computed((): string | null => {
+  const hasFieldRule = props.fieldRule?.allow && props.fieldRule.allow.length > 0
+  const hasExpectedValue = !!props.expectedValueType
+  if (!hasFieldRule && !hasExpectedValue) return null
 
-  let current: CompileState[]
-  try {
-    current = selectorValidator.getBaseStates(val.base ?? 'self')
-  } catch {
+  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
+
+  // selectorValue / conditional: skip (can't compute initial states without inferStatesFromValue)
+  if (isSelectorValue.value || isConditional.value) return null
+
+  // Get final pipeline states
+  let states: CompileState[]
+  if (isBareString.value) {
+    try {
+      states = selectorValidator.getBaseStates(val.base ?? (props.modelValue as BaseSelectorKey))
+    } catch {
+      return null
+    }
+  } else if (isChain.value) {
+    const chain = val.chain ?? []
+    try {
+      states = selectorValidator.getBaseStates(val.base ?? 'self')
+    } catch {
+      return null
+    }
+    for (let i = 0; i < chain.length; i++) {
+      const result = selectorValidator.resolveStep(states, chain[i], `/chain/${i}`)
+      if (!result.ok) return null
+      states = result.states
+    }
+  } else {
     return null
   }
 
-  for (let i = 0; i < chain.length; i++) {
-    const result = selectorValidator.resolveStep(current, chain[i], `/chain/${i}`)
-    if (!result.ok) return null
-    current = result.states
+  if (states.length === 0) return null
+
+  // Validate against fieldRule (full constraint matching)
+  if (hasFieldRule) {
+    const hasMatch = states.some(s => props.fieldRule!.allow.some(c => stateMatchesConstraint(s, c)))
+    if (!hasMatch) {
+      const expected = props.fieldRule!.allow.map(formatConstraint).join(' | ')
+      const actual = states.map(formatCompileStateVerbose).join(', ')
+      return `选择器类型不匹配：期望 ${expected}，当前管道输出 ${actual}`
+    }
+    return null
   }
 
-  if (current.length === 0) return null
-  const hasWrongType = current.some(s => {
-    if (s.kind === 'scalar') return s.valueType !== props.expectedValueType
-    return s.kind !== 'propertyRef'
-  })
-  if (!hasWrongType) return null
-
-  const expected =
-    props.expectedValueType === 'number' ? '数值' : props.expectedValueType === 'string' ? '字符串' : '布尔'
-  const actual = current
+  // Fallback: validate against expectedValueType (scalar-only)
+  const actual = states
     .map(s => {
       if (s.kind === 'scalar') return s.valueType
       if (s.kind === 'id') return s.target
@@ -190,99 +212,16 @@ const typeMismatchWarning = computed((): string | null => {
       return s.kind
     })
     .join(', ')
+  const expected =
+    props.expectedValueType === 'number' ? '数值' : props.expectedValueType === 'string' ? '字符串' : '布尔'
+
+  const hasWrongType = states.some(s => {
+    if (s.kind === 'scalar') return s.valueType !== props.expectedValueType
+    return s.kind !== 'propertyRef'
+  })
+  if (!hasWrongType) return null
+
   return `期望输出类型为 ${expected}，但当前管道输出为 ${actual}`
-})
-
-function stateMatchesConstraint(state: CompileState, constraint: EffectDslStateConstraint): boolean {
-  if (state.kind !== constraint.kind) return false
-  if (state.kind === 'id' && constraint.kind === 'id') {
-    if (!constraint.targets || constraint.targets.length === 0) return true
-    return (constraint.targets as readonly string[]).includes(state.target)
-  }
-  if (state.kind === 'owner' && constraint.kind === 'owner') {
-    if (!constraint.owners || constraint.owners.length === 0) return true
-    return (constraint.owners as readonly string[]).includes(state.owner)
-  }
-  if (state.kind === 'scalar' && constraint.kind === 'scalar') {
-    if (!constraint.valueTypes || constraint.valueTypes.length === 0) return true
-    return (constraint.valueTypes as readonly string[]).includes(state.valueType)
-  }
-  if (state.kind === 'object' && constraint.kind === 'object') {
-    if (!constraint.classes || constraint.classes.length === 0) return true
-    return (constraint.classes as readonly string[]).includes(state.objectClass)
-  }
-  return true
-}
-
-function formatConstraint(constraint: EffectDslStateConstraint): string {
-  if (constraint.kind === 'id') {
-    return constraint.targets && constraint.targets.length > 0 ? `id(${constraint.targets.join('|')})` : 'id(*)'
-  }
-  if (constraint.kind === 'owner') {
-    return constraint.owners && constraint.owners.length > 0 ? `owner(${constraint.owners.join('|')})` : 'owner(*)'
-  }
-  if (constraint.kind === 'scalar') {
-    return constraint.valueTypes && constraint.valueTypes.length > 0
-      ? `scalar(${constraint.valueTypes.join('|')})`
-      : 'scalar(*)'
-  }
-  if (constraint.kind === 'object') {
-    return constraint.classes && constraint.classes.length > 0 ? `object(${constraint.classes.join('|')})` : 'object(*)'
-  }
-  return 'propertyRef'
-}
-
-const fieldRuleMismatchWarning = computed((): string | null => {
-  if (!props.fieldRule?.allow || props.fieldRule.allow.length === 0) return null
-  const val = props.modelValue as { chain?: SelectorChain[]; base?: BaseSelectorKey }
-
-  // selectorValue has no base selector; initial states come from the value field.
-  // inferStatesFromValue is not available via the public SelectorValidator API,
-  // so we skip field rule validation for selectorValue mode.
-  if (isSelectorValue.value) return null
-
-  if (!isChain.value) {
-    // Conditional selector: two divergent branches, skip for now.
-    if (isConditional.value) return null
-    // Bare string selector: validate base states directly against field rule
-    if (isBareString.value) {
-      let baseStates: CompileState[]
-      try {
-        baseStates = selectorValidator.getBaseStates(val.base ?? (props.modelValue as BaseSelectorKey))
-      } catch {
-        return null
-      }
-      const hasMatch = baseStates.some(state => props.fieldRule!.allow.some(c => stateMatchesConstraint(state, c)))
-      if (hasMatch) return null
-      const expected = props.fieldRule.allow.map(formatConstraint).join(' | ')
-      const actual = baseStates.map(formatState).join(', ')
-      return `选择器类型不匹配：期望 ${expected}，当前选择器输出 ${actual}`
-    }
-    return null
-  }
-
-  const chain = val.chain ?? []
-
-  let current: CompileState[]
-  try {
-    current = selectorValidator.getBaseStates(val.base ?? 'self')
-  } catch {
-    return null
-  }
-
-  for (let i = 0; i < chain.length; i++) {
-    const result = selectorValidator.resolveStep(current, chain[i], `/chain/${i}`)
-    if (!result.ok) return null
-    current = result.states
-  }
-
-  if (current.length === 0) return null
-  const hasMatch = current.some(state => props.fieldRule!.allow.some(c => stateMatchesConstraint(state, c)))
-  if (hasMatch) return null
-
-  const expected = props.fieldRule.allow.map(formatConstraint).join(' | ')
-  const actual = current.map(formatState).join(', ')
-  return `选择器类型不匹配：期望 ${expected}，当前管道输出 ${actual}`
 })
 
 const isBareString = computed(() => typeof props.modelValue === 'string')
@@ -562,14 +501,6 @@ function formatCompileState(state: CompileState): string {
   }
 }
 
-function formatState(state: CompileState): string {
-  if (state.kind === 'id') return `id(${state.target})`
-  if (state.kind === 'owner') return `owner(${state.owner})`
-  if (state.kind === 'scalar') return `scalar(${state.valueType})`
-  if (state.kind === 'object') return `object(${state.objectClass})`
-  return 'propertyRef'
-}
-
 function previewStep(step: SelectorChain): string {
   const typeLabel = CHAIN_STEP_TYPES.find(t => t.value === step.type)?.label ?? step.type
   if (NO_PARAM_TYPES.has(step.type)) return typeLabel
@@ -615,7 +546,7 @@ function previewStep(step: SelectorChain): string {
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      <div v-if="fieldRuleMismatchWarning" class="card-step-warning">⚠ {{ fieldRuleMismatchWarning }}</div>
+      <div v-if="pipelineTypeWarning" class="card-step-warning">⚠ {{ pipelineTypeWarning }}</div>
     </div>
 
     <div v-else-if="isChain" class="selector-pipeline">
@@ -757,8 +688,7 @@ function previewStep(step: SelectorChain): string {
         </div>
       </div>
 
-      <div v-if="typeMismatchWarning" class="card-step-warning">⚠ {{ typeMismatchWarning }}</div>
-      <div v-if="fieldRuleMismatchWarning" class="card-step-warning">⚠ {{ fieldRuleMismatchWarning }}</div>
+      <div v-if="pipelineTypeWarning" class="card-step-warning">⚠ {{ pipelineTypeWarning }}</div>
 
       <button type="button" class="pipeline-add-btn" @click="addStep">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -931,8 +861,7 @@ function previewStep(step: SelectorChain): string {
         </div>
       </div>
 
-      <div v-if="typeMismatchWarning" class="card-step-warning">⚠ {{ typeMismatchWarning }}</div>
-      <div v-if="fieldRuleMismatchWarning" class="card-step-warning">⚠ {{ fieldRuleMismatchWarning }}</div>
+      <div v-if="pipelineTypeWarning" class="card-step-warning">⚠ {{ pipelineTypeWarning }}</div>
 
       <button type="button" class="pipeline-add-btn" @click="addStep">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
