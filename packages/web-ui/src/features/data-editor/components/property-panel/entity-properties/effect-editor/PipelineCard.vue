@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h, useSlots } from 'vue'
 import { BASE_EXTRACTOR_KEYS } from '@arcadia-eternity/schema'
 import type {
   ExtractorDSL,
@@ -39,6 +39,8 @@ defineSlots<{
   trueValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
   falseValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
 }>()
+
+const slots = useSlots()
 
 // ── Constants (duplicated from SelectorBuilder.vue) ──
 
@@ -397,203 +399,279 @@ function previewStep(step: SelectorChain): string {
   if (step.type === 'when') return `${typeLabel}: …`
   return typeLabel
 }
+
+// ── Render function ──
+// Vue 3.4+ hoists render() from <script setup> as the component's render function when <template> is absent.
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function render() {
+  const step = props.step
+  const idx = props.index
+  const bodyChildren: ReturnType<typeof h>[] = []
+
+  // Warning
+  if (props.stepWarnings.has(idx)) {
+    bodyChildren.push(h('div', { class: 'card-step-warning' }, `⚠ ${props.stepWarnings.get(idx)}`))
+  }
+
+  // Hint
+  const meta = getChainStepMeta(step.type)
+  if (meta?.description) {
+    bodyChildren.push(h('div', { class: 'card-step-hint' }, meta.description))
+  }
+
+  // ── Step-type-specific controls ──
+
+  if (step.type === 'select') {
+    // ── select ──
+    const extractorType = getExtractorType(step)
+    const fieldRowChildren: ReturnType<typeof h>[] = [
+      h(
+        'el-select',
+        {
+          modelValue: extractorType,
+          class: 'card-field-select',
+          'onUpdate:modelValue': (v: string) => props.onUpdateExtractorType(idx, v),
+        },
+        EXTRACTOR_TYPES.map(et => h('el-option', { key: et.value, label: et.label, value: et.value })),
+      ),
+    ]
+
+    if (extractorType === 'base') {
+      fieldRowChildren.push(
+        h(
+          'el-select',
+          {
+            modelValue: getExtractorArg(step) ?? '',
+            class: 'card-field-select',
+            filterable: true,
+            'onUpdate:modelValue': (v: string) => props.onUpdateExtractorBaseArg(idx, v),
+          },
+          filteredBaseOptions.value.map(bk => h('el-option', { key: bk.value, label: bk.label, value: bk.value })),
+        ),
+      )
+    } else if (extractorType === 'attribute' || extractorType === 'relation') {
+      fieldRowChildren.push(
+        h(
+          'el-select',
+          {
+            modelValue: getExtractorKey(step) ?? '',
+            class: 'card-field-select',
+            filterable: true,
+            allowCreate: true,
+            defaultFirstOption: true,
+            placeholder: '选择或输入键名',
+            'onUpdate:modelValue': (v: string) => props.onUpdateExtractorKey(idx, v),
+          },
+          COMMON_EXTRACTOR_KEYS.map(opt => h('el-option', { key: opt.value, label: opt.label, value: opt.value })),
+        ),
+      )
+    } else if (extractorType === 'field') {
+      fieldRowChildren.push(
+        h(
+          'el-select',
+          {
+            modelValue: getExtractorPath(step) ?? '',
+            class: 'card-field-select',
+            filterable: true,
+            allowCreate: true,
+            defaultFirstOption: true,
+            placeholder: '选择或输入字段路径',
+            'onUpdate:modelValue': (v: string) => props.onUpdateExtractorPath(idx, v),
+          },
+          COMMON_FIELD_PATHS.map(opt => h('el-option', { key: opt.value, label: opt.label, value: opt.value })),
+        ),
+      )
+    } else if (extractorType === 'dynamic') {
+      fieldRowChildren.push(
+        h('el-input', {
+          modelValue: getExtractorDynamicArg(step) ?? '',
+          placeholder: '动态参数',
+          class: 'card-field-input',
+          'onUpdate:modelValue': (v: string) => props.onUpdateExtractorDynamicArg(idx, v),
+        }),
+      )
+    }
+
+    bodyChildren.push(h('div', { class: 'card-field-row' }, fieldRowChildren))
+  } else if (
+    step.type === 'selectPath' ||
+    step.type === 'selectProp' ||
+    step.type === 'selectObservable' ||
+    step.type === 'selectAttribute$'
+  ) {
+    // ── TEXT_INPUT_TYPES ──
+    bodyChildren.push(
+      h('el-input', {
+        modelValue: (step as { arg: string }).arg,
+        placeholder: '输入参数',
+        class: 'card-field-input',
+        'onUpdate:modelValue': (v: string) => props.onUpdateStepArgText(idx, v),
+      }),
+    )
+  } else if (step.type === 'where') {
+    // ── where ──
+    bodyChildren.push(
+      slots.evaluator?.({
+        modelValue: step.arg,
+        update: (v: EvaluatorDSL) => props.onUpdateStepArg(idx, v),
+      }),
+    )
+  } else if (step.type === 'whereAttr') {
+    // ── whereAttr ──
+    const extractorType = getExtractorType(step)
+    const fieldRowChildren: ReturnType<typeof h>[] = [
+      h(
+        'el-select',
+        {
+          modelValue: extractorType,
+          class: 'card-field-select',
+          'onUpdate:modelValue': (v: string) => props.onUpdateExtractorType(idx, v),
+        },
+        EXTRACTOR_TYPES.map(et => h('el-option', { key: et.value, label: et.label, value: et.value })),
+      ),
+    ]
+
+    if (extractorType === 'base') {
+      fieldRowChildren.push(
+        h(
+          'el-select',
+          {
+            modelValue: getExtractorArg(step) ?? '',
+            class: 'card-field-select',
+            filterable: true,
+            'onUpdate:modelValue': (v: string) => props.onUpdateExtractorBaseArg(idx, v),
+          },
+          filteredBaseOptions.value.map(bk => h('el-option', { key: bk.value, label: bk.label, value: bk.value })),
+        ),
+      )
+    } else if (extractorType === 'attribute' || extractorType === 'relation') {
+      fieldRowChildren.push(
+        h(
+          'el-select',
+          {
+            modelValue: getExtractorKey(step) ?? '',
+            class: 'card-field-select',
+            filterable: true,
+            allowCreate: true,
+            defaultFirstOption: true,
+            placeholder: '选择或输入键名',
+            'onUpdate:modelValue': (v: string) => props.onUpdateExtractorKey(idx, v),
+          },
+          COMMON_EXTRACTOR_KEYS.map(opt => h('el-option', { key: opt.value, label: opt.label, value: opt.value })),
+        ),
+      )
+    } else if (extractorType === 'field') {
+      fieldRowChildren.push(
+        h(
+          'el-select',
+          {
+            modelValue: getExtractorPath(step) ?? '',
+            class: 'card-field-select',
+            filterable: true,
+            allowCreate: true,
+            defaultFirstOption: true,
+            placeholder: '选择或输入字段路径',
+            'onUpdate:modelValue': (v: string) => props.onUpdateExtractorPath(idx, v),
+          },
+          COMMON_FIELD_PATHS.map(opt => h('el-option', { key: opt.value, label: opt.label, value: opt.value })),
+        ),
+      )
+    } else if (extractorType === 'dynamic') {
+      fieldRowChildren.push(
+        h('el-input', {
+          modelValue: getExtractorDynamicArg(step) ?? '',
+          placeholder: '动态参数',
+          class: 'card-field-input',
+          'onUpdate:modelValue': (v: string) => props.onUpdateExtractorDynamicArg(idx, v),
+        }),
+      )
+    }
+
+    bodyChildren.push(
+      h('div', { class: 'card-field-row' }, fieldRowChildren),
+      h('div', { class: 'card-field-row card-field-indent' }, [
+        slots.evaluator?.({
+          modelValue: step.evaluator,
+          update: (v: EvaluatorDSL) => props.onUpdateStepEvaluator(idx, v),
+        }),
+      ]),
+    )
+  } else if (step.type === 'and' || step.type === 'or') {
+    // ── RECURSIVE_TYPES ──
+    bodyChildren.push(
+      h(SelectorBuilder, {
+        modelValue: step.arg,
+        class: 'card-recursive-builder',
+        'onUpdate:modelValue': (v: SelectorDSL) => props.onUpdateStepArg(idx, v),
+      }),
+    )
+  } else if (step.type === 'configGet') {
+    // ── configGet (handled before VALUE_SLOT_TYPES, uses step.key) ──
+    bodyChildren.push(
+      slots.value?.({
+        modelValue: step.key,
+        update: (v: Value) => props.onUpdateStepKey(idx, v),
+      }),
+    )
+  } else if (
+    step.type === 'randomPick' ||
+    step.type === 'randomSample' ||
+    step.type === 'limit' ||
+    step.type === 'clampMax' ||
+    step.type === 'clampMin' ||
+    step.type === 'add' ||
+    step.type === 'multiply' ||
+    step.type === 'divide'
+  ) {
+    // ── VALUE_SLOT_TYPES (excluding configGet) ──
+    bodyChildren.push(
+      slots.value?.({
+        modelValue: step.arg,
+        update: (v: Value) => props.onUpdateStepArg(idx, v),
+      }),
+    )
+  } else if (step.type === 'when') {
+    // ── when ──
+    const whenChildren: ReturnType<typeof h>[] = [
+      h('div', { class: 'card-when-label' }, '条件'),
+      slots.condition?.({
+        modelValue: step.condition,
+        update: (v: ConditionDSL) => props.onUpdateStepCondition(idx, v),
+      }),
+      h('div', { class: 'card-when-label' }, '为真时'),
+      slots.trueValue?.({
+        modelValue: step.trueValue,
+        update: (v: Value) => props.onUpdateStepTrueValue(idx, v),
+      }),
+      h('div', { class: 'card-when-label' }, '为假时'),
+      slots.falseValue?.({
+        modelValue: step.falseValue!,
+        update: (v: Value) => props.onUpdateStepFalseValue(idx, v),
+      }),
+    ]
+    bodyChildren.push(h('div', { class: 'card-when-grid' }, whenChildren))
+  }
+
+  // ── Preview bar ──
+  const previewChildren: ReturnType<typeof h>[] = [previewStep(step)]
+
+  const stateEntry = props.selectorStates.get(idx)
+  if (stateEntry && stateEntry.length > 0) {
+    previewChildren.push(
+      h(
+        'span',
+        {
+          class: ['card-state-tag', `state-${stateEntry[0].kind}`, { 'state-dimmed': props.stepWarnings.has(idx) }],
+        },
+        `→ ${stateEntry.map(formatCompileState).join(', ')}`,
+      ),
+    )
+  }
+
+  return [h('div', { class: 'card-body' }, bodyChildren), h('div', { class: 'card-preview' }, previewChildren)]
+}
 </script>
-
-<template>
-  <div class="card-body">
-    <div v-if="stepWarnings.has(index)" class="card-step-warning">⚠ {{ stepWarnings.get(index) }}</div>
-    <div v-if="getChainStepMeta(step.type)?.description" class="card-step-hint">
-      {{ getChainStepMeta(step.type)!.description }}
-    </div>
-    <template v-if="step.type === 'select'">
-      <div class="card-field-row">
-        <el-select
-          :model-value="getExtractorType(step)"
-          class="card-field-select"
-          @update:model-value="(v: string) => onUpdateExtractorType(index, v)"
-        >
-          <el-option v-for="et in EXTRACTOR_TYPES" :key="et.value" :label="et.label" :value="et.value" />
-        </el-select>
-        <template v-if="getExtractorType(step) === 'base'">
-          <el-select
-            :model-value="getExtractorArg(step) ?? ''"
-            class="card-field-select"
-            filterable
-            @update:model-value="(v: string) => onUpdateExtractorBaseArg(index, v)"
-          >
-            <el-option v-for="bk in filteredBaseOptions" :key="bk.value" :label="bk.label" :value="bk.value" />
-          </el-select>
-        </template>
-        <el-select
-          v-else-if="getExtractorType(step) === 'attribute' || getExtractorType(step) === 'relation'"
-          :model-value="getExtractorKey(step) ?? ''"
-          class="card-field-select"
-          filterable
-          allow-create
-          default-first-option
-          placeholder="选择或输入键名"
-          @update:model-value="(v: string) => onUpdateExtractorKey(index, v)"
-        >
-          <el-option v-for="opt in COMMON_EXTRACTOR_KEYS" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-select
-          v-else-if="getExtractorType(step) === 'field'"
-          :model-value="getExtractorPath(step) ?? ''"
-          class="card-field-select"
-          filterable
-          allow-create
-          default-first-option
-          placeholder="选择或输入字段路径"
-          @update:model-value="(v: string) => onUpdateExtractorPath(index, v)"
-        >
-          <el-option v-for="opt in COMMON_FIELD_PATHS" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-input
-          v-else-if="getExtractorType(step) === 'dynamic'"
-          :model-value="getExtractorDynamicArg(step) ?? ''"
-          placeholder="动态参数"
-          class="card-field-input"
-          @update:model-value="(v: string) => onUpdateExtractorDynamicArg(index, v)"
-        />
-      </div>
-    </template>
-
-    <template v-else-if="TEXT_INPUT_TYPES.has(step.type)">
-      <el-input
-        :model-value="(step as { arg: string }).arg"
-        placeholder="输入参数"
-        class="card-field-input"
-        @update:model-value="(v: string) => onUpdateStepArgText(index, v)"
-      />
-    </template>
-
-    <template v-else-if="step.type === 'where'">
-      <slot
-        name="evaluator"
-        :model-value="(step as { arg: unknown }).arg as EvaluatorDSL"
-        :update="(v: unknown) => onUpdateStepArg(index, v)"
-      />
-    </template>
-
-    <template v-else-if="step.type === 'whereAttr'">
-      <div class="card-field-row">
-        <el-select
-          :model-value="getExtractorType(step)"
-          class="card-field-select"
-          @update:model-value="(v: string) => onUpdateExtractorType(index, v)"
-        >
-          <el-option v-for="et in EXTRACTOR_TYPES" :key="et.value" :label="et.label" :value="et.value" />
-        </el-select>
-        <template v-if="getExtractorType(step) === 'base'">
-          <el-select
-            :model-value="getExtractorArg(step) ?? ''"
-            class="card-field-select"
-            filterable
-            @update:model-value="(v: string) => onUpdateExtractorBaseArg(index, v)"
-          >
-            <el-option v-for="bk in filteredBaseOptions" :key="bk.value" :label="bk.label" :value="bk.value" />
-          </el-select>
-        </template>
-        <el-select
-          v-else-if="getExtractorType(step) === 'attribute' || getExtractorType(step) === 'relation'"
-          :model-value="getExtractorKey(step) ?? ''"
-          class="card-field-select"
-          filterable
-          allow-create
-          default-first-option
-          placeholder="选择或输入键名"
-          @update:model-value="(v: string) => onUpdateExtractorKey(index, v)"
-        >
-          <el-option v-for="opt in COMMON_EXTRACTOR_KEYS" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-select
-          v-else-if="getExtractorType(step) === 'field'"
-          :model-value="getExtractorPath(step) ?? ''"
-          class="card-field-select"
-          filterable
-          allow-create
-          default-first-option
-          placeholder="选择或输入字段路径"
-          @update:model-value="(v: string) => onUpdateExtractorPath(index, v)"
-        >
-          <el-option v-for="opt in COMMON_FIELD_PATHS" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-input
-          v-else-if="getExtractorType(step) === 'dynamic'"
-          :model-value="getExtractorDynamicArg(step) ?? ''"
-          placeholder="动态参数"
-          class="card-field-input"
-          @update:model-value="(v: string) => onUpdateExtractorDynamicArg(index, v)"
-        />
-      </div>
-      <div class="card-field-row card-field-indent">
-        <slot
-          name="evaluator"
-          :model-value="(step as { evaluator: unknown }).evaluator as EvaluatorDSL"
-          :update="(v: unknown) => onUpdateStepEvaluator(index, v)"
-        />
-      </div>
-    </template>
-
-    <template v-else-if="RECURSIVE_TYPES.has(step.type)">
-      <SelectorBuilder
-        :model-value="(step as { arg: SelectorDSL }).arg"
-        class="card-recursive-builder"
-        @update:model-value="(v: SelectorDSL) => onUpdateStepArg(index, v)"
-      />
-    </template>
-
-    <template v-else-if="step.type === 'configGet'">
-      <slot
-        name="value"
-        :model-value="(step as { key: unknown }).key as Value"
-        :update="(v: unknown) => onUpdateStepKey(index, v)"
-      />
-    </template>
-
-    <template v-else-if="VALUE_SLOT_TYPES.has(step.type)">
-      <slot
-        name="value"
-        :model-value="(step as { arg: unknown }).arg as Value"
-        :update="(v: unknown) => onUpdateStepArg(index, v)"
-      />
-    </template>
-
-    <template v-else-if="step.type === 'when'">
-      <div class="card-when-grid">
-        <div class="card-when-label">条件</div>
-        <slot
-          name="condition"
-          :model-value="(step as { condition: unknown }).condition as ConditionDSL"
-          :update="(v: unknown) => onUpdateStepCondition(index, v)"
-        />
-        <div class="card-when-label">为真时</div>
-        <slot
-          name="trueValue"
-          :model-value="(step as { trueValue: unknown }).trueValue as Value"
-          :update="(v: unknown) => onUpdateStepTrueValue(index, v)"
-        />
-        <div class="card-when-label">为假时</div>
-        <slot
-          name="falseValue"
-          :model-value="(step as { falseValue: unknown }).falseValue as Value"
-          :update="(v: unknown) => onUpdateStepFalseValue(index, v)"
-        />
-      </div>
-    </template>
-  </div>
-
-  <div class="card-preview">
-    {{ previewStep(step) }}
-    <span
-      v-if="selectorStates.has(index) && selectorStates.get(index)!.length > 0"
-      class="card-state-tag"
-      :class="[`state-${selectorStates.get(index)![0].kind}`, { 'state-dimmed': stepWarnings.has(index) }]"
-    >
-      → {{ selectorStates.get(index)!.map(formatCompileState).join(', ') }}
-    </span>
-  </div>
-</template>
 
 <style scoped>
 .card-body {
