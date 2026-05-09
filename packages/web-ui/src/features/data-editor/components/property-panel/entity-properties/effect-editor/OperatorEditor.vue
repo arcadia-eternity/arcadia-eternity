@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineComponent, h, ref, useSlots } from 'vue'
+import { computed, defineComponent, h, onBeforeUpdate, ref, useSlots } from 'vue'
 import type { PropType } from 'vue'
 import type { OperatorDSL, OperatorDSLView } from '@arcadia-eternity/schema'
 import type { OperatorFieldDef } from './constants/operatorFieldConfig'
@@ -254,10 +254,15 @@ function fieldHint(fieldName: string): string | undefined {
 }
 
 // ─── Render-function slot forwarding ──────────────────────────────────────
-// Use h() + useSlots() for slot pass-through instead of template v-for+#slotName
-// which can have edge cases with slot props reactivity in Vue 3 template compiler.
+// useSlots() is NOT reactive per Vue 3 docs: the returned object's properties
+// don't trigger re-renders when the parent updates slot content. Use a ref
+// refreshed in onBeforeUpdate to ensure ForwardingFieldRenderer sees fresh slots.
+// Pattern from: https://github.com/vuestorefront/storefront-ui (useSlotsRef)
 
-const parentSlots = useSlots()
+const parentSlots = ref(useSlots())
+onBeforeUpdate(() => {
+  parentSlots.value = useSlots()
+})
 
 function renderOperatorField(field: OperatorFieldDef, modelData: Record<string, unknown>) {
   return h(
@@ -269,7 +274,22 @@ function renderOperatorField(field: OperatorFieldDef, modelData: Record<string, 
       'field-hint': fieldHint,
       'onUpdate:field': (fieldName: string, value: unknown) => updateField(fieldName, value),
     },
-    parentSlots,
+    parentSlots.value,
+  )
+}
+
+function renderOperatorFieldWithConfig(field: OperatorFieldDef, modelData: Record<string, unknown>) {
+  const config = (modelData.config ?? {}) as Record<string, unknown>
+  return h(
+    OperatorFieldRenderer,
+    {
+      key: field.key,
+      field,
+      model: config,
+      'field-hint': fieldHint,
+      'onUpdate:field': (fieldName: string, value: unknown) => updateField('config', { ...config, [fieldName]: value }),
+    },
+    parentSlots.value,
   )
 }
 
