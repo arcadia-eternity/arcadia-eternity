@@ -4,6 +4,7 @@ import {
   type ExtractorFieldMeta,
   type ExtractorRegistry,
   type ExtractorValueType,
+  type StringEnumOption,
 } from '@arcadia-eternity/schema'
 import { PetSchema } from '../schemas/pet.schema.js'
 import { SkillSchema } from '../schemas/skill.schema.js'
@@ -31,6 +32,7 @@ type JsonSchemaNode = {
   items?: unknown
   anyOf?: unknown[]
   oneOf?: unknown[]
+  const?: unknown
 }
 
 function asNode(value: unknown): JsonSchemaNode | undefined {
@@ -58,6 +60,20 @@ function inferValueType(schema: unknown): ExtractorValueType {
   return 'unknown'
 }
 
+function extractStringEnumOptions(schema: unknown): StringEnumOption[] | undefined {
+  const node = asNode(schema)
+  if (!node?.anyOf || !Array.isArray(node.anyOf) || node.anyOf.length === 0) return undefined
+
+  const options: StringEnumOption[] = []
+  for (const variant of node.anyOf) {
+    const v = asNode(variant)
+    if (!v || v.type !== 'string' || typeof v.const !== 'string') return undefined
+    options.push({ value: v.const, label: v.const })
+  }
+
+  return options.length > 0 ? options : undefined
+}
+
 function collectFieldMeta(owner: EntityKind, schema: unknown, prefix = '', depth = 0): ExtractorFieldMeta[] {
   if (depth > 4) return []
   const node = asNode(schema)
@@ -73,6 +89,7 @@ function collectFieldMeta(owner: EntityKind, schema: unknown, prefix = '', depth
       owners: [owner],
       valueType: inferValueType(child),
       readonly: true,
+      enumOptions: extractStringEnumOptions(child),
     })
     const childNode = asNode(child)
     if (childNode?.type === 'object' && childNode.properties) {

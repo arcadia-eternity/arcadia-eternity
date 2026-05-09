@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { EvaluatorDSL, EvaluatorDSLView, Value } from '@arcadia-eternity/schema'
+import type { EvaluatorDSL, EvaluatorDSLView, Value, EffectDslFieldTypingRule } from '@arcadia-eternity/schema'
 import { useEffectTyping } from '../composables/useEffectTyping'
 import { CATEGORY_TAG_COLORS } from '../constants'
 
 const { resolveEvaluatorOptions } = useEffectTyping()
 
-const evaluatorOptions = computed(() => resolveEvaluatorOptions())
-
 const props = defineProps<{
   modelValue: EvaluatorDSL
+  fieldRule?: EffectDslFieldTypingRule
 }>()
+
+const evaluatorOptions = computed(() => resolveEvaluatorOptions(props.fieldRule))
 
 const emit = defineEmits<{
   'update:modelValue': [value: EvaluatorDSL]

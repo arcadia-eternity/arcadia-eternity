@@ -67,6 +67,7 @@ function castEvaluator(v: ConditionDSL | EvaluatorDSL): EvaluatorDSL {
 function resolveEvaluatorValueTyping(
   evModel: ConditionDSL | EvaluatorDSL,
   evField: string | undefined,
+  selectorFieldRule?: EffectDslFieldTypingRule,
 ): {
   valueFilter?: string[]
   stringEnumOptions?: import('@arcadia-eternity/schema').StringEnumOption[]
@@ -80,7 +81,13 @@ function resolveEvaluatorValueTyping(
     operatorStringEnumOptions = resolveStringEnumOptions(opRule)
   }
 
-  return resolveTyping(evType, evField, operatorStringEnumOptions)
+  // Selector-derived enum options override operator-derived ones
+  const selectorStringEnumOptions = resolveStringEnumOptions(selectorFieldRule)
+  const effectiveStringEnumOptions = selectorStringEnumOptions?.length
+    ? selectorStringEnumOptions
+    : operatorStringEnumOptions
+
+  return resolveTyping(evType, evField, effectiveStringEnumOptions, selectorFieldRule)
 }
 </script>
 
@@ -88,13 +95,13 @@ function resolveEvaluatorValueTyping(
   <ConditionTreeEditor :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
     <template #selector="{ modelValue: sv, update: su }">
       <SelectorEditor :model-value="sv" :field-rule="conditionSelectorFieldRule" @update:model-value="su">
-        <template #evaluator="{ modelValue: ev, update: eu }">
-          <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
+        <template #evaluator="{ modelValue: ev, update: eu, fieldRule }">
+          <EvaluatorEditor :model-value="ev as EvaluatorDSL" :field-rule="fieldRule" @update:model-value="eu">
             <template #value="{ modelValue: evv, update: evu, field }">
               <SlotSelectorValue
                 :model-value="evv"
-                :allowed-types="resolveEvaluatorValueTyping(ev, field).valueFilter"
-                :string-enum-options="resolveEvaluatorValueTyping(ev, field).stringEnumOptions"
+                :allowed-types="resolveEvaluatorValueTyping(ev, field, fieldRule).valueFilter"
+                :string-enum-options="resolveEvaluatorValueTyping(ev, field, fieldRule).stringEnumOptions"
                 @update:model-value="v => evu(v as Value)"
               />
             </template>
@@ -121,12 +128,16 @@ function resolveEvaluatorValueTyping(
     </template>
 
     <template #condition="{ modelValue: cv, update: cu }">
-      <EvaluatorEditor :model-value="castEvaluator(cv)" @update:model-value="cu">
+      <EvaluatorEditor
+        :model-value="castEvaluator(cv)"
+        :field-rule="conditionSelectorFieldRule"
+        @update:model-value="cu"
+      >
         <template #value="{ modelValue: evv, update: evu, field }">
           <SlotSelectorValue
             :model-value="evv"
-            :allowed-types="resolveEvaluatorValueTyping(cv, field).valueFilter"
-            :string-enum-options="resolveEvaluatorValueTyping(cv, field).stringEnumOptions"
+            :allowed-types="resolveEvaluatorValueTyping(cv, field, conditionSelectorFieldRule).valueFilter"
+            :string-enum-options="resolveEvaluatorValueTyping(cv, field, conditionSelectorFieldRule).stringEnumOptions"
             @update:model-value="v => evu(v as Value)"
           />
         </template>

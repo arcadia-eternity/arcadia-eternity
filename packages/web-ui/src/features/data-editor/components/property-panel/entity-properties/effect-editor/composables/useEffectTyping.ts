@@ -209,12 +209,20 @@ export function resolveEvaluatorOptions(fieldTyping?: EffectDslFieldTypingRule |
   for (const constraint of fieldTyping.allow) {
     if (constraint.kind === 'scalar') {
       allowed.add('compare').add('same').add('notSame')
+      // contain only makes sense for string-like scalars
+      const types = constraint.valueTypes
+      if (!types || types.length === 0 || types.includes('string')) {
+        allowed.add('contain')
+      }
     }
     if (constraint.kind === 'id' || constraint.kind === 'owner') {
-      allowed.add('exist').add('notExist')
+      allowed.add('exist').add('same').add('notSame').add('anyOf')
     }
     if (constraint.kind === 'object') {
       allowed.add('compare').add('same').add('notSame')
+    }
+    if (constraint.kind === 'stringEnum') {
+      allowed.add('compare').add('same').add('notSame').add('contain').add('anyOf')
     }
   }
   if (allowed.size === 0) return all
@@ -233,6 +241,9 @@ export function compileStatesToFieldTyping(states: readonly CompileState[]): Eff
         break
       case 'scalar':
         allow.push({ kind: 'scalar', valueTypes: [state.valueType] })
+        if (state.stringEnumOptions && state.stringEnumOptions.length > 0) {
+          allow.push({ kind: 'stringEnum', values: state.stringEnumOptions })
+        }
         break
       case 'object':
         allow.push({ kind: 'object', classes: [state.objectClass] })
@@ -262,10 +273,42 @@ export function resolveStringEnumOptions(
   return undefined
 }
 
+function resolveValueFilterFromFieldRule(fieldRule: EffectDslFieldTypingRule | undefined): string[] | undefined {
+  if (!fieldRule) return undefined
+  const allowed = new Set<string>()
+  for (const constraint of fieldRule.allow) {
+    if (constraint.kind === 'scalar') {
+      const types = constraint.valueTypes
+      if (!types || types.includes('number')) allowed.add('raw:number')
+      if (!types || types.includes('string')) allowed.add('raw:string')
+      if (!types || types.includes('boolean')) allowed.add('raw:boolean')
+      allowed.add('dynamic')
+    }
+    if (constraint.kind === 'id') {
+      const targets = constraint.targets
+      if (!targets || targets.includes('pet')) allowed.add('entity:species')
+      if (!targets || targets.includes('skill')) allowed.add('entity:baseSkill')
+      if (!targets || targets.includes('mark')) allowed.add('entity:baseMark')
+      if (!targets || targets.includes('baseSkill')) allowed.add('entity:baseSkill')
+      if (!targets || targets.includes('baseMark')) allowed.add('entity:baseMark')
+      if (!targets || targets.includes('effectDef')) allowed.add('entity:effect')
+      allowed.add('dynamic')
+    }
+    if (constraint.kind === 'owner') {
+      allowed.add('dynamic')
+    }
+    if (constraint.kind === 'stringEnum') {
+      allowed.add('raw:string').add('dynamic')
+    }
+  }
+  return allowed.size > 0 ? [...allowed] : undefined
+}
+
 export function resolveEvaluatorValueTyping(
   evType: string,
   field: string,
   operatorStringEnumOptions?: StringEnumOption[],
+  selectorFieldRule?: EffectDslFieldTypingRule,
 ): {
   valueFilter?: string[]
   stringEnumOptions?: StringEnumOption[]
@@ -281,8 +324,11 @@ export function resolveEvaluatorValueTyping(
   const stringEnumOptions =
     operatorStringEnumOptions && operatorStringEnumOptions.length > 0 ? operatorStringEnumOptions : evStringEnum
 
+  // Derive value filter from selector output type when evaluator value field has no specific typing
+  const effectiveValueFilter = valOpts ?? resolveValueFilterFromFieldRule(selectorFieldRule)
+
   return {
-    valueFilter: valOpts,
+    valueFilter: effectiveValueFilter,
     stringEnumOptions: stringEnumOptions as StringEnumOption[] | undefined,
   }
 }

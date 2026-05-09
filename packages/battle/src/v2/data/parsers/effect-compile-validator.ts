@@ -7,6 +7,7 @@ import {
   type EffectDslFieldTypingRule,
   type EffectDslStateConstraint,
   type ExtractorValueType,
+  type StringEnumOption,
 } from '@arcadia-eternity/schema'
 import type { TSchema } from '@sinclair/typebox'
 export type CompileOwner = string
@@ -23,7 +24,7 @@ export type CompileObjectClass =
   | 'json:record'
 
 export type CompileValueState =
-  | { kind: 'scalar'; valueType: CompileScalarType }
+  | { kind: 'scalar'; valueType: CompileScalarType; stringEnumOptions?: readonly StringEnumOption[] }
   | { kind: 'object'; objectClass: CompileObjectClass; owner?: CompileOwner; path?: string }
 
 export type CompileState =
@@ -60,11 +61,13 @@ export type EffectCompileExtractorRegistry = {
     key: string
     owners: readonly string[]
     valueType: ExtractorValueType
+    enumOptions?: readonly StringEnumOption[]
   }>
   fields: Array<{
     path: string
     owners: readonly string[]
     valueType: ExtractorValueType
+    enumOptions?: readonly StringEnumOption[]
   }>
   relations: Array<{
     key: string
@@ -155,8 +158,15 @@ export function createPathObjectState(owner: CompileOwner, path: string): Compil
   }
 }
 
-export function createScalarValueState(valueType: CompileScalarType): CompileValueState {
-  return { kind: 'scalar', valueType }
+export function createScalarValueState(
+  valueType: CompileScalarType,
+  stringEnumOptions?: readonly StringEnumOption[],
+): CompileValueState {
+  const state: CompileValueState & { kind: 'scalar' } = { kind: 'scalar', valueType }
+  if (stringEnumOptions && stringEnumOptions.length > 0) {
+    state.stringEnumOptions = stringEnumOptions
+  }
+  return state
 }
 
 function createCompileTypingContext(environment: EffectCompileTypingEnvironment): CompileTypingContext {
@@ -173,7 +183,7 @@ function createCompileTypingContext(environment: EffectCompileTypingEnvironment)
         attributeTypesByOwner,
         owner as CompileOwner,
         attr.key,
-        stateFromExtractorValueType(attr.valueType, owner as CompileOwner, attr.key),
+        stateFromExtractorValueType(attr.valueType, owner as CompileOwner, attr.key, attr.enumOptions),
       )
     }
   }
@@ -197,7 +207,7 @@ function createCompileTypingContext(environment: EffectCompileTypingEnvironment)
         fieldTypesByOwner,
         owner as CompileOwner,
         field.path,
-        stateFromExtractorValueType(field.valueType, owner as CompileOwner, field.path),
+        stateFromExtractorValueType(field.valueType, owner as CompileOwner, field.path, field.enumOptions),
       )
     }
   }
@@ -232,6 +242,23 @@ function createCompileTypingContext(environment: EffectCompileTypingEnvironment)
         key,
         states.map(state => ({ ...state })),
       )
+    }
+  }
+
+  // Merge enumOptions from schema-derived field types into matching attribute types.
+  // System-declared attributes (pet/skill/mark/player systems) have priority for valueType
+  // but schema-derived fields carry stringEnumOptions (e.g. Category, DamageType enums).
+  for (const [owner, attrMap] of attributeTypesByOwner) {
+    const fieldMap = fieldTypesByOwner.get(owner)
+    if (!fieldMap) continue
+    for (const [key, attrState] of attrMap) {
+      if (attrState.kind !== 'scalar' || attrState.stringEnumOptions) continue
+      const fieldState = fieldMap.get(key)
+      if (fieldState?.kind === 'scalar' && fieldState.stringEnumOptions && fieldState.stringEnumOptions.length > 0) {
+        // Merge enum options into attribute state: keep the attribute's valueType but adopt field's enum options
+        ;(attrState as { stringEnumOptions?: readonly StringEnumOption[] }).stringEnumOptions =
+          fieldState.stringEnumOptions
+      }
     }
   }
 
@@ -279,20 +306,21 @@ function stateFromExtractorValueType(
   valueType: ExtractorValueType,
   owner: CompileOwner,
   path: string,
+  enumOptions?: readonly StringEnumOption[],
 ): CompileValueState {
   switch (valueType) {
     case 'number':
-      return { kind: 'scalar', valueType: 'number' }
+      return createScalarValueState('number')
     case 'string':
     case 'id':
-      return { kind: 'scalar', valueType: 'string' }
+      return createScalarValueState('string', enumOptions)
     case 'boolean':
-      return { kind: 'scalar', valueType: 'boolean' }
+      return createScalarValueState('boolean')
     case 'id[]':
     case 'object':
       return createPathObjectState(owner, path)
     default:
-      return { kind: 'scalar', valueType: 'unknown' }
+      return createScalarValueState('unknown')
   }
 }
 
@@ -332,12 +360,27 @@ type SchemaFieldMeta = {
 function inferValueStateFromSchema(owner: CompileOwner, path: string, schema: unknown): CompileValueState {
   const node = asNode(schema)
   const type = typeof node?.type === 'string' ? node.type : undefined
-  if (type === 'number' || type === 'integer') return { kind: 'scalar', valueType: 'number' }
-  if (type === 'string') return { kind: 'scalar', valueType: 'string' }
-  if (type === 'boolean') return { kind: 'scalar', valueType: 'boolean' }
+  if (type === 'number' || type === 'integer') return createScalarValueState('number')
+  if (type === 'string') return createScalarValueState('string')
+  if (type === 'boolean') return createScalarValueState('boolean')
   if (type === 'array' || type === 'object') return createPathObjectState(owner, path)
   const variants = [...(node?.anyOf ?? []), ...(node?.oneOf ?? [])]
   if (variants.length > 0) {
+    // Detect string enum: all variants are string literals with const values
+    const enumOptions: StringEnumOption[] = []
+    let isStringEnum = true
+    for (const variant of variants) {
+      const v = asNode(variant)
+      if (!v || v.type !== 'string' || typeof v.const !== 'string') {
+        isStringEnum = false
+        break
+      }
+      enumOptions.push({ value: v.const, label: v.const })
+    }
+    if (isStringEnum) {
+      return createScalarValueState('string', enumOptions)
+    }
+
     const inferred = variants.map(variant => inferValueStateFromSchema(owner, path, variant))
     const first = inferred[0]
     if (first) {
@@ -349,7 +392,7 @@ function inferValueStateFromSchema(owner: CompileOwner, path: string, schema: un
       }
     }
   }
-  return { kind: 'scalar', valueType: 'unknown' }
+  return createScalarValueState('unknown')
 }
 
 function collectSchemaFields(

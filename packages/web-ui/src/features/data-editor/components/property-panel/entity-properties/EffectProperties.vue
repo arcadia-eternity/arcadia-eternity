@@ -148,6 +148,7 @@ function resolveEvaluatorTyping(
   evModel: unknown,
   fieldName: string | undefined,
   operatorStringEnumOptions?: import('@arcadia-eternity/schema').StringEnumOption[],
+  selectorFieldRule?: import('@arcadia-eternity/schema').EffectDslFieldTypingRule,
 ): {
   valueFilter?: string[]
   stringEnumOptions?: import('@arcadia-eternity/schema').StringEnumOption[]
@@ -155,7 +156,7 @@ function resolveEvaluatorTyping(
   if (!fieldName) return {}
   const evType = getEvaluatorTypeFromModel(evModel)
   if (!evType) return {}
-  return resolveEvaluatorValueTyping(evType, fieldName, operatorStringEnumOptions)
+  return resolveEvaluatorValueTyping(evType, fieldName, operatorStringEnumOptions, selectorFieldRule)
 }
 </script>
 
@@ -195,8 +196,8 @@ function resolveEvaluatorTyping(
                   :field-rule="applyTypingConstraints(targetField, getOperatorTypeFromModel(modelValue)).fieldRule"
                   @update:model-value="tu"
                 >
-                  <template #evaluator="{ modelValue: ev, update: eu }">
-                    <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
+                  <template #evaluator="{ modelValue: ev, update: eu, fieldRule }">
+                    <EvaluatorEditor :model-value="ev as EvaluatorDSL" :field-rule="fieldRule" @update:model-value="eu">
                       <template #value="{ modelValue: evv, update: evu, field }">
                         <SlotSelectorValue
                           :model-value="evv"
@@ -204,14 +205,18 @@ function resolveEvaluatorTyping(
                             resolveEvaluatorTyping(
                               ev,
                               field,
-                              resolveOperatorStringEnum(modelValue, targetField, 'selectorFields'),
+                              resolveStringEnumOptions(fieldRule) ??
+                                resolveOperatorStringEnum(modelValue, targetField, 'selectorFields'),
+                              fieldRule,
                             ).valueFilter
                           "
                           :string-enum-options="
                             resolveEvaluatorTyping(
                               ev,
                               field,
-                              resolveOperatorStringEnum(modelValue, targetField, 'selectorFields'),
+                              resolveStringEnumOptions(fieldRule) ??
+                                resolveOperatorStringEnum(modelValue, targetField, 'selectorFields'),
+                              fieldRule,
                             ).stringEnumOptions
                           "
                           @update:model-value="evu"
@@ -264,8 +269,12 @@ function resolveEvaluatorTyping(
                       "
                       @update:model-value="dsu"
                     >
-                      <template #evaluator="{ modelValue: dev, update: deu }">
-                        <EvaluatorEditor :model-value="dev as EvaluatorDSL" @update:model-value="deu">
+                      <template #evaluator="{ modelValue: dev, update: deu, fieldRule }">
+                        <EvaluatorEditor
+                          :model-value="dev as EvaluatorDSL"
+                          :field-rule="fieldRule"
+                          @update:model-value="deu"
+                        >
                           <template #value="{ modelValue: devv, update: devu, field: evField }">
                             <SlotSelectorValue
                               :model-value="devv"
@@ -273,14 +282,18 @@ function resolveEvaluatorTyping(
                                 resolveEvaluatorTyping(
                                   dev,
                                   evField,
-                                  resolveOperatorStringEnum(modelValue, valueField, 'valueFields'),
+                                  resolveStringEnumOptions(fieldRule) ??
+                                    resolveOperatorStringEnum(modelValue, valueField, 'valueFields'),
+                                  fieldRule,
                                 ).valueFilter
                               "
                               :string-enum-options="
                                 resolveEvaluatorTyping(
                                   dev,
                                   evField,
-                                  resolveOperatorStringEnum(modelValue, valueField, 'valueFields'),
+                                  resolveStringEnumOptions(fieldRule) ??
+                                    resolveOperatorStringEnum(modelValue, valueField, 'valueFields'),
+                                  fieldRule,
                                 ).stringEnumOptions
                               "
                               @update:model-value="devu"
@@ -320,8 +333,12 @@ function resolveEvaluatorTyping(
                       :field-rule="applyTypingConstraints(targetField2, getOperatorTypeFromModel(ov)).fieldRule"
                       @update:model-value="tu2"
                     >
-                      <template #evaluator="{ modelValue: ev, update: eu }">
-                        <EvaluatorEditor :model-value="ev as EvaluatorDSL" @update:model-value="eu">
+                      <template #evaluator="{ modelValue: ev, update: eu, fieldRule }">
+                        <EvaluatorEditor
+                          :model-value="ev as EvaluatorDSL"
+                          :field-rule="fieldRule"
+                          @update:model-value="eu"
+                        >
                           <template #value="{ modelValue: evv, update: evu, field }">
                             <SlotSelectorValue
                               :model-value="evv"
@@ -329,14 +346,18 @@ function resolveEvaluatorTyping(
                                 resolveEvaluatorTyping(
                                   ev,
                                   field,
-                                  resolveOperatorStringEnum(ov, targetField2, 'selectorFields'),
+                                  resolveStringEnumOptions(fieldRule) ??
+                                    resolveOperatorStringEnum(ov, targetField2, 'selectorFields'),
+                                  fieldRule,
                                 ).valueFilter
                               "
                               :string-enum-options="
                                 resolveEvaluatorTyping(
                                   ev,
                                   field,
-                                  resolveOperatorStringEnum(ov, targetField2, 'selectorFields'),
+                                  resolveStringEnumOptions(fieldRule) ??
+                                    resolveOperatorStringEnum(ov, targetField2, 'selectorFields'),
+                                  fieldRule,
                                 ).stringEnumOptions
                               "
                               @update:model-value="evu"

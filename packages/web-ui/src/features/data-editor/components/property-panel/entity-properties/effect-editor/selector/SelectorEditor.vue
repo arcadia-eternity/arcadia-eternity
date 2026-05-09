@@ -19,7 +19,7 @@ import {
   formatConstraint,
   type CompileState,
 } from '@arcadia-eternity/battle'
-import { useEffectTyping } from '../composables/useEffectTyping'
+import { useEffectTyping, compileStatesToFieldTyping } from '../composables/useEffectTyping'
 import {
   CHAIN_STEP_TYPES,
   NO_PARAM_TYPES,
@@ -55,7 +55,11 @@ const props = withDefaults(
 
 defineSlots<{
   default(props: { modelValue: SelectorDSL; update: (v: SelectorDSL) => void }): unknown
-  evaluator(props: { modelValue: EvaluatorDSL; update: (v: EvaluatorDSL) => void }): unknown
+  evaluator(props: {
+    modelValue: EvaluatorDSL
+    update: (v: EvaluatorDSL) => void
+    fieldRule?: EffectDslFieldTypingRule
+  }): unknown
   value(props: { modelValue: Value; update: (v: Value) => void }): unknown
   condition(props: { modelValue: ConditionDSL; update: (v: ConditionDSL) => void }): unknown
   trueValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
@@ -129,6 +133,48 @@ const selectorStates = computed((): Map<number, CompileState[]> => {
     states.set(i, current)
   }
   return states
+})
+
+/** Per-step evaluator field rules derived from pipeline states before the evaluator step. */
+const evaluatorFieldRules = computed((): Map<number, EffectDslFieldTypingRule | undefined> => {
+  const rules = new Map<number, EffectDslFieldTypingRule | undefined>()
+  if (!isChain.value && !isSelectorValue.value) return rules
+  const val = props.modelValue as { chain?: SelectorChain[] }
+  const chain = val.chain ?? []
+  for (let i = 0; i < chain.length; i++) {
+    const step = chain[i]
+
+    if (step.type === 'where') {
+      const prevStates = selectorStates.value.get(i - 1)
+      if (prevStates && prevStates.length > 0) {
+        rules.set(i, compileStatesToFieldTyping(prevStates))
+      }
+      continue
+    }
+
+    if (step.type === 'whereAttr') {
+      const prevStates = selectorStates.value.get(i - 1)
+      if (!prevStates || prevStates.length === 0) continue
+      const extractor = (step as { extractor: unknown }).extractor
+      if (!extractor) {
+        rules.set(i, compileStatesToFieldTyping(prevStates))
+        continue
+      }
+      // Simulate a select step to resolve the extractor's output type
+      try {
+        const result = selectorValidator.resolveStep(prevStates, { type: 'select', arg: extractor }, `/eval-type/${i}`)
+        if (result.ok && result.states.length > 0) {
+          rules.set(i, compileStatesToFieldTyping(result.states))
+        } else {
+          rules.set(i, compileStatesToFieldTyping(prevStates))
+        }
+      } catch {
+        rules.set(i, compileStatesToFieldTyping(prevStates))
+      }
+      continue
+    }
+  }
+  return rules
 })
 
 const stepWarnings = computed((): Map<number, string> => {
@@ -657,6 +703,7 @@ function previewStep(step: SelectorChain): string {
               :step="step"
               :index="i"
               :valid-extractor-keys="getValidKeysForStep(i)"
+              :evaluator-field-rule="evaluatorFieldRules.get(i)"
               :on-update-extractor-type="updateExtractorType"
               :on-update-extractor-base-arg="updateExtractorBaseArg"
               :on-update-extractor-key="updateExtractorKey"
@@ -670,8 +717,8 @@ function previewStep(step: SelectorChain): string {
               :on-update-step-true-value="updateStepTrueValue"
               :on-update-step-false-value="updateStepFalseValue"
             >
-              <template #evaluator="{ modelValue, update }">
-                <slot name="evaluator" :model-value="modelValue" :update="update" />
+              <template #evaluator="{ modelValue, update, fieldRule }">
+                <slot name="evaluator" :model-value="modelValue" :update="update" :field-rule="fieldRule" />
               </template>
               <template #value="{ modelValue, update }">
                 <slot name="value" :model-value="modelValue" :update="update" />
@@ -830,6 +877,7 @@ function previewStep(step: SelectorChain): string {
               :step="step"
               :index="i"
               :valid-extractor-keys="getValidKeysForStep(i)"
+              :evaluator-field-rule="evaluatorFieldRules.get(i)"
               :on-update-extractor-type="updateExtractorType"
               :on-update-extractor-base-arg="updateExtractorBaseArg"
               :on-update-extractor-key="updateExtractorKey"
@@ -843,8 +891,8 @@ function previewStep(step: SelectorChain): string {
               :on-update-step-true-value="updateStepTrueValue"
               :on-update-step-false-value="updateStepFalseValue"
             >
-              <template #evaluator="{ modelValue, update }">
-                <slot name="evaluator" :model-value="modelValue" :update="update" />
+              <template #evaluator="{ modelValue, update, fieldRule }">
+                <slot name="evaluator" :model-value="modelValue" :update="update" :field-rule="fieldRule" />
               </template>
               <template #value="{ modelValue, update }">
                 <slot name="value" :model-value="modelValue" :update="update" />

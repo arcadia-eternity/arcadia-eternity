@@ -90,6 +90,7 @@ export default defineComponent({
     onUpdateStepCondition: { type: Function as PropType<(index: number, value: unknown) => void>, required: true },
     onUpdateStepTrueValue: { type: Function as PropType<(index: number, value: unknown) => void>, required: true },
     onUpdateStepFalseValue: { type: Function as PropType<(index: number, value: unknown) => void>, required: true },
+    evaluatorFieldRule: { type: Object, required: false, default: undefined },
   },
   setup(props, { slots }) {
     const filteredBaseOptions = computed(() => {
@@ -225,6 +226,7 @@ export default defineComponent({
         return slots.evaluator?.({
           modelValue: (step as { arg: unknown }).arg,
           update: (v: unknown) => props.onUpdateStepArg(idx, v),
+          fieldRule: props.evaluatorFieldRule,
         })
       }
 
@@ -303,7 +305,11 @@ export default defineComponent({
         return [
           h('div', { class: 'card-field-row' }, children),
           h('div', { class: 'card-field-row card-field-indent' }, [
-            slots.evaluator?.({ modelValue: s.evaluator, update: (v: unknown) => props.onUpdateStepEvaluator(idx, v) }),
+            slots.evaluator?.({
+              modelValue: s.evaluator,
+              update: (v: unknown) => props.onUpdateStepEvaluator(idx, v),
+              fieldRule: props.evaluatorFieldRule,
+            }),
           ]),
         ]
       }

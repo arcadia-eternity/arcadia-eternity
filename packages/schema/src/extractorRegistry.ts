@@ -36,6 +36,13 @@ export const ExtractorValueTypeSchema = StringEnum([
 
 export type ExtractorValueType = Static<typeof ExtractorValueTypeSchema>
 
+/** Schema for enum option metadata carried by extractor entries representing string enums. */
+export const StringEnumOptionSchema = Type.Object({
+  value: Type.String(),
+  label: Type.String(),
+  description: Type.Optional(Type.String()),
+})
+
 export const ExtractorAttributeMetaSchema = Type.Object(
   {
     kind: Type.Literal('attribute'),
@@ -44,6 +51,7 @@ export const ExtractorAttributeMetaSchema = Type.Object(
     valueType: ExtractorValueTypeSchema,
     modifiable: Type.Boolean(),
     tags: Type.Optional(Type.Array(Type.String())),
+    enumOptions: Type.Optional(Type.Array(StringEnumOptionSchema)),
   },
   { additionalProperties: false },
 )
@@ -56,6 +64,7 @@ export const ExtractorFieldMetaSchema = Type.Object(
     valueType: ExtractorValueTypeSchema,
     readonly: Type.Optional(Type.Boolean()),
     tags: Type.Optional(Type.Array(Type.String())),
+    enumOptions: Type.Optional(Type.Array(StringEnumOptionSchema)),
   },
   { additionalProperties: false },
 )
