@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, defineComponent, h, ref, useSlots } from 'vue'
+import type { PropType, VNode } from 'vue'
 import type { OperatorDSL, OperatorDSLView } from '@arcadia-eternity/schema'
+import type { OperatorFieldDef } from './constants/operatorFieldConfig'
 import { useEffectTyping } from './composables/useEffectTyping'
 import { getLayoutForType, OPERATOR_TYPE_LABELS } from './constants'
 import OperatorFieldRenderer from './OperatorFieldRenderer.vue'
@@ -243,11 +245,6 @@ const model = computed(() => props.modelValue as OperatorDSLView)
 
 const currentLayout = computed(() => getLayoutForType(selectedType.value))
 
-const configModel = computed(() => {
-  const raw = props.modelValue as Record<string, unknown>
-  return (raw.config ?? {}) as Record<string, unknown>
-})
-
 function typeLabel(type: string): string {
   return typeLabelMap[type] ?? OPERATOR_TYPE_LABELS[type] ?? type
 }
@@ -255,6 +252,76 @@ function typeLabel(type: string): string {
 function fieldHint(fieldName: string): string | undefined {
   return typing.getOperatorFieldHint(selectedType.value, fieldName)
 }
+
+// ─── Render-function slot forwarding ──────────────────────────────────────
+// Use h() + useSlots() for slot pass-through instead of template v-for+#slotName
+// which can have edge cases with slot props reactivity in Vue 3 template compiler.
+
+const parentSlots = useSlots()
+
+function buildForwardedSlots(): Record<string, (slotProps: Record<string, unknown>) => VNode[]> {
+  const result: Record<string, (slotProps: Record<string, unknown>) => VNode[]> = {}
+  for (const name of ['target', 'value', 'condition', 'operator'] as const) {
+    const slotFn = parentSlots[name]
+    if (slotFn) {
+      result[name] = (slotProps: Record<string, unknown>) => slotFn(slotProps)
+    }
+  }
+  return result
+}
+
+function renderOperatorField(field: OperatorFieldDef, modelData: Record<string, unknown>) {
+  return h(
+    OperatorFieldRenderer,
+    {
+      key: field.key,
+      field,
+      model: modelData,
+      'field-hint': fieldHint,
+      'onUpdate:field': (fieldName: string, value: unknown) => updateField(fieldName, value),
+    },
+    buildForwardedSlots(),
+  )
+}
+
+function renderOperatorFieldWithConfig(field: OperatorFieldDef, modelData: Record<string, unknown>) {
+  const config = (modelData.config ?? {}) as Record<string, unknown>
+  return h(
+    OperatorFieldRenderer,
+    {
+      key: field.key,
+      field,
+      model: config,
+      'field-hint': fieldHint,
+      'onUpdate:field': (fieldName: string, value: unknown) => updateField('config', { ...config, [fieldName]: value }),
+    },
+    buildForwardedSlots(),
+  )
+}
+
+// ── Component wrappers (defineComponent for template recognition) ──────────
+// Plain functions as components can have edge cases with Vue 3's template compiler
+// and reactivity tracking. Use defineComponent with render functions instead.
+
+const ForwardingFieldRenderer = defineComponent({
+  props: {
+    field: { type: Object as PropType<OperatorFieldDef>, required: true },
+    model: { type: Object as PropType<Record<string, unknown>>, required: true },
+  },
+  setup(props) {
+    return () => renderOperatorField(props.field, props.model)
+  },
+})
+
+const ForwardingConfigFieldRenderer = defineComponent({
+  props: {
+    field: { type: Object as PropType<OperatorFieldDef>, required: true },
+    model: { type: Object as PropType<Record<string, unknown>>, required: true },
+  },
+  setup(props) {
+    return () => renderOperatorFieldWithConfig(props.field, props.model)
+  },
+})
 </script>
 
 <template>
@@ -309,106 +376,42 @@ function fieldHint(fieldName: string): string | undefined {
           <template v-if="currentLayout">
             <!-- Standard layout: no specialLayout -->
             <template v-if="!currentLayout.specialLayout">
-              <OperatorFieldRenderer
+              <ForwardingFieldRenderer
                 v-for="field in currentLayout.fields"
                 :key="field.key"
                 :field="field"
                 :model="model"
-                :field-hint="fieldHint"
-                @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
-              >
-                <template
-                  v-for="slotName in ['target', 'value', 'condition', 'operator']"
-                  :key="slotName"
-                  #[slotName]="slotProps"
-                >
-                  <slot :name="slotName" v-bind="slotProps" />
-                </template>
-              </OperatorFieldRenderer>
+              />
             </template>
 
             <!-- Special: markConfigInline (overrideMarkConfig) -->
             <template v-else-if="currentLayout.specialLayout === 'markConfigInline'">
-              <OperatorFieldRenderer
+              <ForwardingFieldRenderer
                 v-for="field in currentLayout.fields"
                 :key="field.key"
                 :field="field"
                 :model="model"
-                :field-hint="fieldHint"
-                @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
-              >
-                <template
-                  v-for="slotName in ['target', 'value', 'condition', 'operator']"
-                  :key="slotName"
-                  #[slotName]="slotProps"
-                >
-                  <slot :name="slotName" v-bind="slotProps" />
-                </template>
-              </OperatorFieldRenderer>
+              />
               <div class="op-mark-config-inline">
-                <OperatorFieldRenderer
+                <ForwardingConfigFieldRenderer
                   v-for="field in currentLayout.markConfigSubFields"
                   :key="field.key"
                   :field="field"
-                  :model="configModel"
-                  :field-hint="fieldHint"
-                  @update:field="
-                    (fieldName: string, value: unknown) =>
-                      updateField('config', { ...(model.config ?? {}), [fieldName]: value })
-                  "
+                  :model="model"
                 />
               </div>
             </template>
 
             <!-- Special: conditional -->
             <template v-else-if="currentLayout.specialLayout === 'conditional'">
-              <OperatorFieldRenderer
-                :field="currentLayout.fields[0]"
-                :model="model"
-                :field-hint="fieldHint"
-                @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
-              >
-                <template
-                  v-for="slotName in ['target', 'value', 'condition', 'operator']"
-                  :key="slotName"
-                  #[slotName]="slotProps"
-                >
-                  <slot :name="slotName" v-bind="slotProps" />
-                </template>
-              </OperatorFieldRenderer>
+              <ForwardingFieldRenderer :field="currentLayout.fields[0]" :model="model" />
               <div class="op-conditional-branch">
                 <div class="op-branch-label true">true</div>
-                <OperatorFieldRenderer
-                  :field="currentLayout.fields[1]"
-                  :model="model"
-                  :field-hint="fieldHint"
-                  @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
-                >
-                  <template
-                    v-for="slotName in ['target', 'value', 'condition', 'operator']"
-                    :key="slotName"
-                    #[slotName]="slotProps"
-                  >
-                    <slot :name="slotName" v-bind="slotProps" />
-                  </template>
-                </OperatorFieldRenderer>
+                <ForwardingFieldRenderer :field="currentLayout.fields[1]" :model="model" />
               </div>
               <div class="op-conditional-branch">
                 <div class="op-branch-label false">false</div>
-                <OperatorFieldRenderer
-                  :field="currentLayout.fields[2]"
-                  :model="model"
-                  :field-hint="fieldHint"
-                  @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
-                >
-                  <template
-                    v-for="slotName in ['target', 'value', 'condition', 'operator']"
-                    :key="slotName"
-                    #[slotName]="slotProps"
-                  >
-                    <slot :name="slotName" v-bind="slotProps" />
-                  </template>
-                </OperatorFieldRenderer>
+                <ForwardingFieldRenderer :field="currentLayout.fields[2]" :model="model" />
               </div>
             </template>
           </template>
