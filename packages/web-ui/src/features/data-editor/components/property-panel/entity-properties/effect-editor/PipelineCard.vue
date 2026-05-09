@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, h, useSlots } from 'vue'
+import { computed, h } from 'vue'
+import type { FunctionalComponent } from 'vue'
 import { BASE_EXTRACTOR_KEYS } from '@arcadia-eternity/schema'
 import type {
   ExtractorDSL,
@@ -39,8 +40,6 @@ defineSlots<{
   trueValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
   falseValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
 }>()
-
-const slots = useSlots()
 
 // ── Constants (duplicated from SelectorBuilder.vue) ──
 
@@ -400,30 +399,14 @@ function previewStep(step: SelectorChain): string {
   return typeLabel
 }
 
-// ── Render function ──
-// Vue 3.4+ hoists render() from <script setup> as the component's render function when <template> is absent.
+// ── Step body renderer (functional component for type-safe discriminated union) ──
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function render() {
-  const step = props.step
-  const idx = props.index
-  const bodyChildren: ReturnType<typeof h>[] = []
+const renderStepBody: FunctionalComponent<{ step: SelectorChain; index: number }> = (compProps, ctx) => {
+  const { step, index: idx } = compProps
+  const { slots } = ctx
 
-  // Warning
-  if (props.stepWarnings.has(idx)) {
-    bodyChildren.push(h('div', { class: 'card-step-warning' }, `⚠ ${props.stepWarnings.get(idx)}`))
-  }
-
-  // Hint
-  const meta = getChainStepMeta(step.type)
-  if (meta?.description) {
-    bodyChildren.push(h('div', { class: 'card-step-hint' }, meta.description))
-  }
-
-  // ── Step-type-specific controls ──
-
+  // --- select ---
   if (step.type === 'select') {
-    // ── select ──
     const extractorType = getExtractorType(step)
     const fieldRowChildren: ReturnType<typeof h>[] = [
       h(
@@ -493,32 +476,31 @@ function render() {
       )
     }
 
-    bodyChildren.push(h('div', { class: 'card-field-row' }, fieldRowChildren))
-  } else if (
+    return h('div', { class: 'card-field-row' }, fieldRowChildren)
+  }
+
+  // --- TEXT_INPUT_TYPES ---
+  if (
     step.type === 'selectPath' ||
     step.type === 'selectProp' ||
     step.type === 'selectObservable' ||
     step.type === 'selectAttribute$'
   ) {
-    // ── TEXT_INPUT_TYPES ──
-    bodyChildren.push(
-      h('el-input', {
-        modelValue: (step as { arg: string }).arg,
-        placeholder: '输入参数',
-        class: 'card-field-input',
-        'onUpdate:modelValue': (v: string) => props.onUpdateStepArgText(idx, v),
-      }),
-    )
-  } else if (step.type === 'where') {
-    // ── where ──
-    bodyChildren.push(
-      slots.evaluator?.({
-        modelValue: step.arg,
-        update: (v: EvaluatorDSL) => props.onUpdateStepArg(idx, v),
-      }),
-    )
-  } else if (step.type === 'whereAttr') {
-    // ── whereAttr ──
+    return h('el-input', {
+      modelValue: step.arg,
+      placeholder: '输入参数',
+      class: 'card-field-input',
+      'onUpdate:modelValue': (v: string) => props.onUpdateStepArgText(idx, v),
+    })
+  }
+
+  // --- where ---
+  if (step.type === 'where') {
+    return slots.evaluator?.({ modelValue: step.arg, update: (v: unknown) => props.onUpdateStepArg(idx, v) })
+  }
+
+  // --- whereAttr ---
+  if (step.type === 'whereAttr') {
     const extractorType = getExtractorType(step)
     const fieldRowChildren: ReturnType<typeof h>[] = [
       h(
@@ -588,33 +570,30 @@ function render() {
       )
     }
 
-    bodyChildren.push(
+    return [
       h('div', { class: 'card-field-row' }, fieldRowChildren),
       h('div', { class: 'card-field-row card-field-indent' }, [
-        slots.evaluator?.({
-          modelValue: step.evaluator,
-          update: (v: EvaluatorDSL) => props.onUpdateStepEvaluator(idx, v),
-        }),
+        slots.evaluator?.({ modelValue: step.evaluator, update: (v: unknown) => props.onUpdateStepEvaluator(idx, v) }),
       ]),
-    )
-  } else if (step.type === 'and' || step.type === 'or') {
-    // ── RECURSIVE_TYPES ──
-    bodyChildren.push(
-      h(SelectorBuilder, {
-        modelValue: step.arg,
-        class: 'card-recursive-builder',
-        'onUpdate:modelValue': (v: SelectorDSL) => props.onUpdateStepArg(idx, v),
-      }),
-    )
-  } else if (step.type === 'configGet') {
-    // ── configGet (handled before VALUE_SLOT_TYPES, uses step.key) ──
-    bodyChildren.push(
-      slots.value?.({
-        modelValue: step.key,
-        update: (v: Value) => props.onUpdateStepKey(idx, v),
-      }),
-    )
-  } else if (
+    ]
+  }
+
+  // --- RECURSIVE_TYPES (and / or) ---
+  if (step.type === 'and' || step.type === 'or') {
+    return h(SelectorBuilder, {
+      modelValue: step.arg,
+      class: 'card-recursive-builder',
+      'onUpdate:modelValue': (v: SelectorDSL) => props.onUpdateStepArg(idx, v),
+    })
+  }
+
+  // --- configGet ---
+  if (step.type === 'configGet') {
+    return slots.value?.({ modelValue: step.key, update: (v: unknown) => props.onUpdateStepKey(idx, v) })
+  }
+
+  // --- VALUE_SLOT_TYPES (except configGet which is handled above) ---
+  if (
     step.type === 'randomPick' ||
     step.type === 'randomSample' ||
     step.type === 'limit' ||
@@ -624,54 +603,45 @@ function render() {
     step.type === 'multiply' ||
     step.type === 'divide'
   ) {
-    // ── VALUE_SLOT_TYPES (excluding configGet) ──
-    bodyChildren.push(
-      slots.value?.({
-        modelValue: step.arg,
-        update: (v: Value) => props.onUpdateStepArg(idx, v),
-      }),
-    )
-  } else if (step.type === 'when') {
-    // ── when ──
-    const whenChildren: ReturnType<typeof h>[] = [
+    return slots.value?.({ modelValue: step.arg, update: (v: unknown) => props.onUpdateStepArg(idx, v) })
+  }
+
+  // --- when ---
+  if (step.type === 'when') {
+    return h('div', { class: 'card-when-grid' }, [
       h('div', { class: 'card-when-label' }, '条件'),
-      slots.condition?.({
-        modelValue: step.condition,
-        update: (v: ConditionDSL) => props.onUpdateStepCondition(idx, v),
-      }),
+      slots.condition?.({ modelValue: step.condition, update: (v: unknown) => props.onUpdateStepCondition(idx, v) }),
       h('div', { class: 'card-when-label' }, '为真时'),
-      slots.trueValue?.({
-        modelValue: step.trueValue,
-        update: (v: Value) => props.onUpdateStepTrueValue(idx, v),
-      }),
+      slots.trueValue?.({ modelValue: step.trueValue, update: (v: unknown) => props.onUpdateStepTrueValue(idx, v) }),
       h('div', { class: 'card-when-label' }, '为假时'),
-      slots.falseValue?.({
-        modelValue: step.falseValue!,
-        update: (v: Value) => props.onUpdateStepFalseValue(idx, v),
-      }),
-    ]
-    bodyChildren.push(h('div', { class: 'card-when-grid' }, whenChildren))
+      slots.falseValue?.({ modelValue: step.falseValue, update: (v: unknown) => props.onUpdateStepFalseValue(idx, v) }),
+    ])
   }
 
-  // ── Preview bar ──
-  const previewChildren: ReturnType<typeof h>[] = [previewStep(step)]
-
-  const stateEntry = props.selectorStates.get(idx)
-  if (stateEntry && stateEntry.length > 0) {
-    previewChildren.push(
-      h(
-        'span',
-        {
-          class: ['card-state-tag', `state-${stateEntry[0].kind}`, { 'state-dimmed': props.stepWarnings.has(idx) }],
-        },
-        `→ ${stateEntry.map(formatCompileState).join(', ')}`,
-      ),
-    )
-  }
-
-  return [h('div', { class: 'card-body' }, bodyChildren), h('div', { class: 'card-preview' }, previewChildren)]
+  return null
 }
 </script>
+
+<template>
+  <div class="card-body">
+    <div v-if="stepWarnings.has(index)" class="card-step-warning">⚠ {{ stepWarnings.get(index) }}</div>
+    <div v-if="getChainStepMeta(step.type)?.description" class="card-step-hint">
+      {{ getChainStepMeta(step.type)!.description }}
+    </div>
+    <component :is="renderStepBody" :step="step" :index="index" />
+  </div>
+
+  <div class="card-preview">
+    {{ previewStep(step) }}
+    <span
+      v-if="selectorStates.has(index) && selectorStates.get(index)!.length > 0"
+      class="card-state-tag"
+      :class="[`state-${selectorStates.get(index)![0].kind}`, { 'state-dimmed': stepWarnings.has(index) }]"
+    >
+      → {{ selectorStates.get(index)!.map(formatCompileState).join(', ') }}
+    </span>
+  </div>
+</template>
 
 <style scoped>
 .card-body {
