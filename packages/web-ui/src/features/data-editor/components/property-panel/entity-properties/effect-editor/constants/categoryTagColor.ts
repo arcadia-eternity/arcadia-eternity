@@ -1,0 +1,15 @@
+export const CATEGORY_TAG_COLORS: Record<string, string> = {
+  leaf: 'var(--ae-accent-primary-subtle)',
+  evaluate: 'var(--ae-info-subtle)',
+  value: 'var(--ae-warning-subtle)',
+  continuousUseSkill: 'var(--ae-warning-subtle)',
+  skillSequence: 'var(--ae-warning-subtle)',
+  statStageChange: 'var(--ae-success-subtle)',
+  probability: 'var(--ae-error-subtle)',
+  children: 'var(--ae-accent-primary-subtle)',
+  singleChild: 'var(--ae-accent-primary-subtle)',
+  compare: 'var(--ae-info-subtle)',
+  same: 'var(--ae-info-subtle)',
+  notSame: 'var(--ae-error-subtle)',
+  input: 'var(--ae-success-subtle)',
+}

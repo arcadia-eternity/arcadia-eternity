@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import type { OperatorDSL, OperatorDSLView } from '@arcadia-eternity/schema'
 import { useEffectTyping } from './composables/useEffectTyping'
+import { getLayoutForType, OPERATOR_TYPE_LABELS } from './constants'
+import OperatorFieldRenderer from './OperatorFieldRenderer.vue'
 
 const props = defineProps<{
   modelValue: OperatorDSL
@@ -224,9 +226,7 @@ const filteredCategories = computed(() => {
   return categories
     .map(c => ({
       ...c,
-      operators: c.operators.filter(
-        op => op.toLowerCase().includes(q) || (typeLabelMap[op] ?? op).toLowerCase().includes(q),
-      ),
+      operators: c.operators.filter(op => op.toLowerCase().includes(q) || typeLabel(op).toLowerCase().includes(q)),
     }))
     .filter(c => c.operators.length > 0)
 })
@@ -241,90 +241,20 @@ function goBack() {
 
 const model = computed(() => props.modelValue as unknown as OperatorDSLView)
 
+const currentLayout = computed(() => getLayoutForType(selectedType.value))
+
+const configModel = computed(() => {
+  const raw = props.modelValue as Record<string, unknown>
+  return (raw.config ?? {}) as Record<string, unknown>
+})
+
+function typeLabel(type: string): string {
+  return typeLabelMap[type] ?? OPERATOR_TYPE_LABELS[type] ?? type
+}
+
 function fieldHint(fieldName: string): string | undefined {
   return typing.getOperatorFieldHint(selectedType.value, fieldName)
 }
-
-const cleanStageOptions = [
-  { value: 'all', label: '全部' },
-  { value: 'positive', label: '有利' },
-  { value: 'negative', label: '负面' },
-  { value: 'reverse', label: '反转' },
-]
-
-const transformTypeOptions = [
-  { value: 'temporary', label: '临时' },
-  { value: 'permanent', label: '永久' },
-]
-
-const permanentStrategyOptions = [
-  { value: 'preserve_temporary', label: '保留临时效果' },
-  { value: 'clear_temporary', label: '清除临时效果' },
-]
-
-const statTypeOptions = [
-  { value: 'atk', label: '攻击' },
-  { value: 'def', label: '防御' },
-  { value: 'spa', label: '特攻' },
-  { value: 'spd', label: '特防' },
-  { value: 'speed', label: '速度' },
-  { value: 'hp', label: '体力' },
-  { value: 'recoverHp', label: '恢复体力' },
-  { value: 'hitRate', label: '命中率' },
-  { value: 'critRate', label: '暴击率' },
-  { value: 'damageReduce', label: '减伤' },
-  { value: 'damageBoost', label: '增伤' },
-  { value: 'healBoost', label: '治疗加成' },
-]
-
-const modifierTypeOptions = [
-  { value: 'add', label: '加' },
-  { value: 'multiply', label: '乘' },
-  { value: 'replace', label: '替换' },
-  { value: 'set', label: '设' },
-]
-
-const TARGET_VALUE_OPS = new Set([
-  'dealDamage',
-  'heal',
-  'addPower',
-  'addCritRate',
-  'addAccuracy',
-  'amplifyPower',
-  'addRage',
-  'setRage',
-  'addStacks',
-  'consumeStacks',
-  'setMultihit',
-  'addMultihitResult',
-  'addValue',
-  'setValue',
-  'setAccuracy',
-  'setMarkDuration',
-  'setMarkStack',
-  'setMarkMaxStack',
-  'setMarkPersistent',
-  'setMarkStackable',
-  'setMarkStackStrategy',
-  'setMarkDestroyable',
-  'setMarkIsShield',
-  'setMarkKeepOnSwitchOut',
-  'setMarkTransferOnSwitch',
-  'setMarkInheritOnFaint',
-  'setStatLevelMarkLevel',
-])
-
-const TARGET_ONLY_OPS = new Set([
-  'stun',
-  'executeKill',
-  'preventDamage',
-  'destroyMark',
-  'setIgnoreShield',
-  'disableContext',
-  'removeTransformation',
-  'executeActions',
-  'toggle',
-])
 </script>
 
 <template>
@@ -358,7 +288,7 @@ const TARGET_ONLY_OPS = new Set([
                   :disabled="!validTypes.includes(op)"
                   @click="selectType(op)"
                 >
-                  {{ typeLabelMap[op] ?? op }}
+                  {{ typeLabel(op) }}
                 </button>
               </div>
             </div>
@@ -371,1158 +301,116 @@ const TARGET_ONLY_OPS = new Set([
     <template v-else>
       <div class="op-form">
         <div class="op-form-header">
-          <span class="op-type-badge">{{ typeLabelMap[selectedType] ?? selectedType }}</span>
+          <span class="op-type-badge">{{ typeLabel(selectedType) }}</span>
           <button class="op-back-btn" @click="goBack">← 更换类型</button>
         </div>
 
         <div class="op-form-fields">
-          <!-- Pattern 1: targetValue -->
-          <template v-if="TARGET_VALUE_OPS.has(selectedType)">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
-                <label class="op-field-label">值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">值</label>
-              <slot
-                name="value"
-                :modelValue="model.value"
-                :field="'value'"
-                :update="(v: unknown) => updateField('value', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 2: targetOnly -->
-          <template v-else-if="TARGET_ONLY_OPS.has(selectedType)">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: targetValueExtras — addMark -->
-          <template v-else-if="selectedType === 'addMark'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('mark')" :content="fieldHint('mark')" placement="top" effect="dark">
-                <label class="op-field-label">标记</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">标记</label>
-              <slot
-                name="value"
-                :modelValue="model.mark"
-                :field="'mark'"
-                :update="(v: unknown) => updateField('mark', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('duration')" :content="fieldHint('duration')" placement="top" effect="dark">
-                <label class="op-field-label">持续回合</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">持续回合</label>
-              <slot
-                name="value"
-                :modelValue="model.duration"
-                :field="'duration'"
-                :update="(v: unknown) => updateField('duration', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('stack')" :content="fieldHint('stack')" placement="top" effect="dark">
-                <label class="op-field-label">堆叠数</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">堆叠数</label>
-              <slot
-                name="value"
-                :modelValue="model.stack"
-                :field="'stack'"
-                :update="(v: unknown) => updateField('stack', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: statStageBuff -->
-          <template v-else-if="selectedType === 'statStageBuff'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('statType')" :content="fieldHint('statType')" placement="top" effect="dark">
-                <label class="op-field-label">能力类型</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">能力类型</label>
-              <el-select
-                :model-value="model.statType"
-                placeholder="选择能力类型"
-                clearable
-                class="w-full"
-                @update:model-value="(v: string) => updateField('statType', v)"
+          <template v-if="currentLayout">
+            <!-- Standard layout: no specialLayout -->
+            <template v-if="!currentLayout.specialLayout">
+              <OperatorFieldRenderer
+                v-for="field in currentLayout.fields"
+                :key="field.key"
+                :field="field"
+                :model="model"
+                :field-hint="fieldHint"
+                @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
               >
-                <el-option v-for="opt in statTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
-                <label class="op-field-label">值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">值</label>
-              <slot
-                name="value"
-                :modelValue="model.value"
-                :field="'value'"
-                :update="(v: unknown) => updateField('value', v)"
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">策略</label>
-              <slot
-                name="value"
-                :modelValue="model.strategy"
-                :field="'strategy'"
-                :update="(v: unknown) => updateField('strategy', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: clearStatStage / reverseStatStage -->
-          <template v-else-if="selectedType === 'clearStatStage' || selectedType === 'reverseStatStage'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('statType')" :content="fieldHint('statType')" placement="top" effect="dark">
-                <label class="op-field-label">能力类型</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">能力类型</label>
-              <slot
-                name="value"
-                :modelValue="model.statType"
-                :field="'statType'"
-                :update="(v: unknown) => updateField('statType', v)"
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">清除策略</label>
-              <el-select
-                :model-value="model.cleanStageStrategy"
-                placeholder="选择策略"
-                clearable
-                class="w-full"
-                @update:model-value="(v: string) => updateField('cleanStageStrategy', v)"
-              >
-                <el-option v-for="opt in cleanStageOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </div>
-          </template>
-
-          <!-- Pattern 3: transferStatStage -->
-          <template v-else-if="selectedType === 'transferStatStage'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('source')" :content="fieldHint('source')" placement="top" effect="dark">
-                <label class="op-field-label">来源</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">来源</label>
-              <slot
-                name="target"
-                :modelValue="model.source"
-                :field="'source'"
-                :update="(v: unknown) => updateField('source', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('statType')" :content="fieldHint('statType')" placement="top" effect="dark">
-                <label class="op-field-label">能力类型</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">能力类型</label>
-              <slot
-                name="value"
-                :modelValue="model.statType"
-                :field="'statType'"
-                :update="(v: unknown) => updateField('statType', v)"
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">清除策略</label>
-              <el-select
-                :model-value="model.cleanStageStrategy"
-                placeholder="选择策略"
-                clearable
-                class="w-full"
-                @update:model-value="(v: string) => updateField('cleanStageStrategy', v)"
-              >
-                <el-option v-for="opt in cleanStageOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </div>
-          </template>
-
-          <!-- Pattern 3: modifyStackResult -->
-          <template v-else-if="selectedType === 'modifyStackResult'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('newStacks')" :content="fieldHint('newStacks')" placement="top" effect="dark">
-                <label class="op-field-label">新堆叠数</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">新堆叠数</label>
-              <slot
-                name="value"
-                :modelValue="model.newStacks"
-                :field="'newStacks'"
-                :update="(v: unknown) => updateField('newStacks', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip
-                v-if="fieldHint('newDuration')"
-                :content="fieldHint('newDuration')"
-                placement="top"
-                effect="dark"
-              >
-                <label class="op-field-label">新持续回合</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">新持续回合</label>
-              <slot
-                name="value"
-                :modelValue="model.newDuration"
-                :field="'newDuration'"
-                :update="(v: unknown) => updateField('newDuration', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: setSkill -->
-          <template v-else-if="selectedType === 'setSkill'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
-                <label class="op-field-label">值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">值</label>
-              <slot
-                name="value"
-                :modelValue="model.value"
-                :field="'value'"
-                :update="(v: unknown) => updateField('value', v)"
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">更新配置</label>
-              <el-switch
-                :model-value="!!model.updateConfig"
-                @update:model-value="(v: string | number | boolean) => updateField('updateConfig', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: setActualTarget -->
-          <template v-else-if="selectedType === 'setActualTarget'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('newTarget')" :content="fieldHint('newTarget')" placement="top" effect="dark">
-                <label class="op-field-label">新目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">新目标</label>
-              <slot
-                name="value"
-                :modelValue="model.newTarget"
-                :field="'newTarget'"
-                :update="(v: unknown) => updateField('newTarget', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: addModified -->
-          <template v-else-if="selectedType === 'addModified'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('delta')" :content="fieldHint('delta')" placement="top" effect="dark">
-                <label class="op-field-label">增量</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">增量</label>
-              <slot
-                name="value"
-                :modelValue="model.delta"
-                :field="'delta'"
-                :update="(v: unknown) => updateField('delta', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('percent')" :content="fieldHint('percent')" placement="top" effect="dark">
-                <label class="op-field-label">百分比</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">百分比</label>
-              <slot
-                name="value"
-                :modelValue="model.percent"
-                :field="'percent'"
-                :update="(v: unknown) => updateField('percent', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: addThreshold -->
-          <template v-else-if="selectedType === 'addThreshold'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('min')" :content="fieldHint('min')" placement="top" effect="dark">
-                <label class="op-field-label">最小值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">最小值</label>
-              <slot
-                name="value"
-                :modelValue="model.min"
-                :field="'min'"
-                :update="(v: unknown) => updateField('min', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('max')" :content="fieldHint('max')" placement="top" effect="dark">
-                <label class="op-field-label">最大值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">最大值</label>
-              <slot
-                name="value"
-                :modelValue="model.max"
-                :field="'max'"
-                :update="(v: unknown) => updateField('max', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: setConfig -->
-          <template v-else-if="selectedType === 'setConfig'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('key')" :content="fieldHint('key')" placement="top" effect="dark">
-                <label class="op-field-label">键</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">键</label>
-              <slot
-                name="value"
-                :modelValue="model.key"
-                :field="'key'"
-                :update="(v: unknown) => updateField('key', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
-                <label class="op-field-label">值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">值</label>
-              <slot
-                name="value"
-                :modelValue="model.value"
-                :field="'value'"
-                :update="(v: unknown) => updateField('value', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: setIgnoreStageStrategy -->
-          <template v-else-if="selectedType === 'setIgnoreStageStrategy'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
-                <label class="op-field-label">值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">值</label>
-              <slot
-                name="value"
-                :modelValue="model.value"
-                :field="'value'"
-                :update="(v: unknown) => updateField('value', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: setSureHit / setSureCrit / setSureMiss / setSureNoCrit -->
-          <template
-            v-else-if="
-              selectedType === 'setSureHit' ||
-              selectedType === 'setSureCrit' ||
-              selectedType === 'setSureMiss' ||
-              selectedType === 'setSureNoCrit'
-            "
-          >
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
-                <label class="op-field-label">优先级</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">优先级</label>
-              <el-input-number
-                :model-value="Number(model.priority ?? 0)"
-                :min="-128"
-                :max="127"
-                controls-position="right"
-                @update:model-value="(v: number | undefined) => updateField('priority', v ?? 0)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: transform / transformWithPreservation -->
-          <template v-else-if="selectedType === 'transform' || selectedType === 'transformWithPreservation'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('newBase')" :content="fieldHint('newBase')" placement="top" effect="dark">
-                <label class="op-field-label">新形态</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">新形态</label>
-              <slot
-                name="value"
-                :modelValue="model.newBase"
-                :field="'newBase'"
-                :update="(v: unknown) => updateField('newBase', v)"
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">变身类型</label>
-              <el-select
-                :model-value="model.transformType"
-                placeholder="选择类型"
-                clearable
-                class="w-full"
-                @update:model-value="(v: string) => updateField('transformType', v)"
-              >
-                <el-option v-for="opt in transformTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">永久策略</label>
-              <el-select
-                :model-value="model.permanentStrategy"
-                placeholder="选择策略"
-                clearable
-                class="w-full"
-                @update:model-value="(v: string) => updateField('permanentStrategy', v)"
-              >
-                <el-option
-                  v-for="opt in permanentStrategyOptions"
-                  :key="opt.value"
-                  :label="opt.label"
-                  :value="opt.value"
-                />
-              </el-select>
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
-                <label class="op-field-label">优先级</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">优先级</label>
-              <slot
-                name="value"
-                :modelValue="model.priority"
-                :field="'priority'"
-                :update="(v: unknown) => updateField('priority', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: addTemporaryEffect -->
-          <template v-else-if="selectedType === 'addTemporaryEffect'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('effect')" :content="fieldHint('effect')" placement="top" effect="dark">
-                <label class="op-field-label">效果</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">效果</label>
-              <slot
-                name="value"
-                :modelValue="model.effect"
-                :field="'effect'"
-                :update="(v: unknown) => updateField('effect', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: registerConfig / registerTaggedConfig -->
-          <template v-else-if="selectedType === 'registerConfig' || selectedType === 'registerTaggedConfig'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('configKey')" :content="fieldHint('configKey')" placement="top" effect="dark">
-                <label class="op-field-label">配置键</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">配置键</label>
-              <slot
-                name="value"
-                :modelValue="model.configKey"
-                :field="'configKey'"
-                :update="(v: unknown) => updateField('configKey', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip
-                v-if="fieldHint('initialValue')"
-                :content="fieldHint('initialValue')"
-                placement="top"
-                effect="dark"
-              >
-                <label class="op-field-label">初始值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">初始值</label>
-              <slot
-                name="value"
-                :modelValue="model.initialValue"
-                :field="'initialValue'"
-                :update="(v: unknown) => updateField('initialValue', v)"
-              />
-            </div>
-            <div v-if="selectedType === 'registerTaggedConfig'" class="op-field">
-              <el-tooltip v-if="fieldHint('tags')" :content="fieldHint('tags')" placement="top" effect="dark">
-                <label class="op-field-label">标签</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">标签</label>
-              <slot
-                name="value"
-                :modelValue="model.tags"
-                :field="'tags'"
-                :update="(v: unknown) => updateField('tags', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 3: overrideMarkConfig -->
-          <template v-else-if="selectedType === 'overrideMarkConfig'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-mark-config-inline">
-              <div class="op-field">
-                <label class="op-field-label">持续回合</label>
-                <el-input-number
-                  :model-value="(model.config as Record<string, any>)?.duration"
-                  :min="0"
-                  controls-position="right"
-                  @update:model-value="
-                    (v: number | undefined) =>
-                      updateField('config', { ...((model.config as Record<string, any>) ?? {}), duration: v })
-                  "
-                />
-              </div>
-              <div class="op-field">
-                <label class="op-field-label">最大堆叠</label>
-                <el-input-number
-                  :model-value="(model.config as Record<string, any>)?.maxStacks"
-                  :min="0"
-                  :max="999"
-                  controls-position="right"
-                  @update:model-value="
-                    (v: number | undefined) =>
-                      updateField('config', { ...((model.config as Record<string, any>) ?? {}), maxStacks: v })
-                  "
-                />
-              </div>
-              <div class="op-field">
-                <label class="op-field-label">可堆叠</label>
-                <el-switch
-                  :model-value="!!(model.config as Record<string, any>)?.stackable"
-                  @update:model-value="
-                    (v: string | number | boolean) =>
-                      updateField('config', { ...((model.config as Record<string, any>) ?? {}), stackable: v })
-                  "
-                />
-              </div>
-              <div class="op-field">
-                <label class="op-field-label">护盾</label>
-                <el-switch
-                  :model-value="!!(model.config as Record<string, any>)?.isShield"
-                  @update:model-value="
-                    (v: string | number | boolean) =>
-                      updateField('config', { ...((model.config as Record<string, any>) ?? {}), isShield: v })
-                  "
-                />
-              </div>
-            </div>
-          </template>
-
-          <!-- Pattern 4: conditional -->
-          <template v-else-if="selectedType === 'conditional'">
-            <div class="op-field">
-              <label class="op-field-label">条件</label>
-              <slot
-                name="condition"
-                :modelValue="model.condition"
-                :update="(v: unknown) => updateField('condition', v)"
-              />
-            </div>
-            <div class="op-conditional-branch">
-              <div class="op-branch-label true">true</div>
-              <slot
-                name="operator"
-                :modelValue="model.trueOperator"
-                :field="'trueOperator'"
-                :update="(v: unknown) => updateField('trueOperator', v)"
-              />
-            </div>
-            <div class="op-conditional-branch">
-              <div class="op-branch-label false">false</div>
-              <slot
-                name="operator"
-                :modelValue="model.falseOperator"
-                :field="'falseOperator'"
-                :update="(v: unknown) => updateField('falseOperator', v)"
-              />
-            </div>
-          </template>
-
-          <!-- Pattern 5: modifiers (static value) -->
-          <template
-            v-else-if="
-              [
-                'addAttributeModifier',
-                'addClampMaxModifier',
-                'addClampMinModifier',
-                'addClampModifier',
-                'addSkillAttributeModifier',
-                'addSkillClampMaxModifier',
-                'addSkillClampMinModifier',
-                'addSkillClampModifier',
-                'addConfigModifier',
-                'addTaggedConfigModifier',
-                'addPhaseConfigModifier',
-                'addPhaseTypeConfigModifier',
-              ].includes(selectedType)
-            "
-          >
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">{{
-                ['addAttributeModifier', 'addClampMaxModifier', 'addClampMinModifier', 'addClampModifier'].includes(
-                  selectedType,
-                )
-                  ? '属性'
-                  : [
-                        'addSkillAttributeModifier',
-                        'addSkillClampMaxModifier',
-                        'addSkillClampMinModifier',
-                        'addSkillClampModifier',
-                      ].includes(selectedType)
-                    ? '技能属性'
-                    : ['addTaggedConfigModifier'].includes(selectedType)
-                      ? '标签'
-                      : '配置键'
-              }}</label>
-              <slot
-                name="value"
-                :modelValue="model.stat ?? model.attribute ?? model.configKey ?? model.tag"
-                :field="selectedType === 'addTaggedConfigModifier' ? 'tag' : 'stat'"
-                :update="
-                  (v: unknown) =>
-                    updateField(
-                      selectedType === 'addTaggedConfigModifier'
-                        ? 'tag'
-                        : selectedType.includes('Config')
-                          ? 'configKey'
-                          : selectedType.includes('Skill')
-                            ? 'attribute'
-                            : 'stat',
-                      v,
-                    )
-                "
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">修正类型</label>
-              <el-select
-                :model-value="model.modifierType"
-                placeholder="选择修正类型"
-                clearable
-                class="w-full"
-                @update:model-value="(v: string) => updateField('modifierType', v)"
-              >
-                <el-option v-for="opt in modifierTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('value')" :content="fieldHint('value')" placement="top" effect="dark">
-                <label class="op-field-label">值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">值</label>
-              <slot
-                name="value"
-                :modelValue="model.value ?? model.maxValue ?? model.minValue"
-                :field="
-                  selectedType === 'addClampMaxModifier' || selectedType === 'addSkillClampMaxModifier'
-                    ? 'maxValue'
-                    : selectedType === 'addClampMinModifier' || selectedType === 'addSkillClampMinModifier'
-                      ? 'minValue'
-                      : 'value'
-                "
-                :update="
-                  (v: unknown) =>
-                    updateField(
-                      selectedType === 'addClampMaxModifier' || selectedType === 'addSkillClampMaxModifier'
-                        ? 'maxValue'
-                        : selectedType === 'addClampMinModifier' || selectedType === 'addSkillClampMinModifier'
-                          ? 'minValue'
-                          : 'value',
-                      v,
-                    )
-                "
-              />
-            </div>
-            <template v-if="selectedType === 'addClampModifier' || selectedType === 'addSkillClampModifier'">
-              <div class="op-field">
-                <el-tooltip v-if="fieldHint('minValue')" :content="fieldHint('minValue')" placement="top" effect="dark">
-                  <label class="op-field-label">最小值</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">最小值</label>
-                <slot
-                  name="value"
-                  :modelValue="model.minValue"
-                  :field="'minValue'"
-                  :update="(v: unknown) => updateField('minValue', v)"
-                />
-              </div>
-              <div class="op-field">
-                <el-tooltip v-if="fieldHint('maxValue')" :content="fieldHint('maxValue')" placement="top" effect="dark">
-                  <label class="op-field-label">最大值</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">最大值</label>
-                <slot
-                  name="value"
-                  :modelValue="model.maxValue"
-                  :field="'maxValue'"
-                  :update="(v: unknown) => updateField('maxValue', v)"
-                />
-              </div>
-            </template>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
-                <label class="op-field-label">优先级</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">优先级</label>
-              <slot
-                name="value"
-                :modelValue="model.priority"
-                :field="'priority'"
-                :update="(v: unknown) => updateField('priority', v)"
-              />
-            </div>
-            <template v-if="selectedType === 'addPhaseTypeConfigModifier'">
-              <div class="op-field">
-                <el-tooltip
-                  v-if="fieldHint('phaseType')"
-                  :content="fieldHint('phaseType')"
-                  placement="top"
-                  effect="dark"
+                <template
+                  v-for="slotName in ['target', 'value', 'condition', 'operator']"
+                  :key="slotName"
+                  #[slotName]="slotProps"
                 >
-                  <label class="op-field-label">阶段类型</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">阶段类型</label>
-                <slot
-                  name="value"
-                  :modelValue="model.phaseType"
-                  :field="'phaseType'"
-                  :update="(v: unknown) => updateField('phaseType', v)"
-                />
-              </div>
+                  <slot :name="slotName" v-bind="slotProps" />
+                </template>
+              </OperatorFieldRenderer>
             </template>
-            <template
-              v-if="
-                [
-                  'addAttributeModifier',
-                  'addClampModifier',
-                  'addPhaseTypeConfigModifier',
-                  'addPhaseConfigModifier',
-                ].includes(selectedType)
-              "
-            >
-              <div class="op-field">
-                <el-tooltip v-if="fieldHint('scope')" :content="fieldHint('scope')" placement="top" effect="dark">
-                  <label class="op-field-label">作用域</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">作用域</label>
-                <slot
-                  name="value"
-                  :modelValue="model.scope"
-                  :field="'scope'"
-                  :update="(v: unknown) => updateField('scope', v)"
-                />
-              </div>
-              <div class="op-field">
-                <el-tooltip v-if="fieldHint('phaseId')" :content="fieldHint('phaseId')" placement="top" effect="dark">
-                  <label class="op-field-label">阶段ID</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">阶段ID</label>
-                <slot
-                  name="value"
-                  :modelValue="model.phaseId"
-                  :field="'phaseId'"
-                  :update="(v: unknown) => updateField('phaseId', v)"
-                />
-              </div>
-            </template>
-          </template>
 
-          <!-- Pattern 5: dynamic modifiers (observableValue) -->
-          <template
-            v-else-if="
-              [
-                'addDynamicAttributeModifier',
-                'addDynamicSkillAttributeModifier',
-                'addDynamicConfigModifier',
-                'addPhaseDynamicConfigModifier',
-                'addDynamicPhaseTypeConfigModifier',
-              ].includes(selectedType)
-            "
-          >
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">{{ selectedType.includes('Skill') ? '技能属性' : '配置键' }}</label>
-              <slot
-                name="value"
-                :modelValue="model.stat ?? model.attribute ?? model.configKey"
-                :field="
-                  selectedType.includes('Config') ? 'configKey' : selectedType.includes('Skill') ? 'attribute' : 'stat'
-                "
-                :update="
-                  (v: unknown) =>
-                    updateField(
-                      selectedType.includes('Config')
-                        ? 'configKey'
-                        : selectedType.includes('Skill')
-                          ? 'attribute'
-                          : 'stat',
-                      v,
-                    )
-                "
-              />
-            </div>
-            <div class="op-field">
-              <label class="op-field-label">修正类型</label>
-              <el-select
-                :model-value="model.modifierType"
-                placeholder="选择修正类型"
-                clearable
-                class="w-full"
-                @update:model-value="(v: string) => updateField('modifierType', v)"
+            <!-- Special: markConfigInline (overrideMarkConfig) -->
+            <template v-else-if="currentLayout.specialLayout === 'markConfigInline'">
+              <OperatorFieldRenderer
+                v-for="field in currentLayout.fields"
+                :key="field.key"
+                :field="field"
+                :model="model"
+                :field-hint="fieldHint"
+                @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
               >
-                <el-option v-for="opt in modifierTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </div>
-            <div class="op-field">
-              <el-tooltip
-                v-if="fieldHint('observableValue')"
-                :content="fieldHint('observableValue')"
-                placement="top"
-                effect="dark"
-              >
-                <label class="op-field-label">观测值</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">观测值</label>
-              <slot
-                name="target"
-                :modelValue="model.observableValue"
-                :field="'observableValue'"
-                :update="(v: unknown) => updateField('observableValue', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('priority')" :content="fieldHint('priority')" placement="top" effect="dark">
-                <label class="op-field-label">优先级</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">优先级</label>
-              <slot
-                name="value"
-                :modelValue="model.priority"
-                :field="'priority'"
-                :update="(v: unknown) => updateField('priority', v)"
-              />
-            </div>
-            <template v-if="selectedType === 'addDynamicPhaseTypeConfigModifier'">
-              <div class="op-field">
-                <el-tooltip
-                  v-if="fieldHint('phaseType')"
-                  :content="fieldHint('phaseType')"
-                  placement="top"
-                  effect="dark"
+                <template
+                  v-for="slotName in ['target', 'value', 'condition', 'operator']"
+                  :key="slotName"
+                  #[slotName]="slotProps"
                 >
-                  <label class="op-field-label">阶段类型</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">阶段类型</label>
-                <slot
-                  name="value"
-                  :modelValue="model.phaseType"
-                  :field="'phaseType'"
-                  :update="(v: unknown) => updateField('phaseType', v)"
+                  <slot :name="slotName" v-bind="slotProps" />
+                </template>
+              </OperatorFieldRenderer>
+              <div class="op-mark-config-inline">
+                <OperatorFieldRenderer
+                  v-for="field in currentLayout.markConfigSubFields"
+                  :key="field.key"
+                  :field="field"
+                  :model="configModel"
+                  :field-hint="fieldHint"
+                  @update:field="
+                    (fieldName: string, value: unknown) =>
+                      updateField('config', { ...(model.config ?? {}), [fieldName]: value })
+                  "
                 />
               </div>
             </template>
-            <template
-              v-if="
-                [
-                  'addDynamicAttributeModifier',
-                  'addDynamicPhaseTypeConfigModifier',
-                  'addPhaseDynamicConfigModifier',
-                ].includes(selectedType)
-              "
-            >
-              <div class="op-field">
-                <el-tooltip v-if="fieldHint('scope')" :content="fieldHint('scope')" placement="top" effect="dark">
-                  <label class="op-field-label">作用域</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">作用域</label>
-                <slot
-                  name="value"
-                  :modelValue="model.scope"
-                  :field="'scope'"
-                  :update="(v: unknown) => updateField('scope', v)"
-                />
-              </div>
-              <div class="op-field">
-                <el-tooltip v-if="fieldHint('phaseId')" :content="fieldHint('phaseId')" placement="top" effect="dark">
-                  <label class="op-field-label">阶段ID</label>
-                </el-tooltip>
-                <label v-else class="op-field-label">阶段ID</label>
-                <slot
-                  name="value"
-                  :modelValue="model.phaseId"
-                  :field="'phaseId'"
-                  :update="(v: unknown) => updateField('phaseId', v)"
-                />
-              </div>
-            </template>
-          </template>
 
-          <!-- Pattern 3: transferMark -->
-          <template v-else-if="selectedType === 'transferMark'">
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('target')" :content="fieldHint('target')" placement="top" effect="dark">
-                <label class="op-field-label">目标</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">目标</label>
-              <slot
-                name="target"
-                :modelValue="model.target"
-                :field="'target'"
-                :update="(v: unknown) => updateField('target', v)"
-              />
-            </div>
-            <div class="op-field">
-              <el-tooltip v-if="fieldHint('mark')" :content="fieldHint('mark')" placement="top" effect="dark">
-                <label class="op-field-label">标记</label>
-              </el-tooltip>
-              <label v-else class="op-field-label">标记</label>
-              <slot
-                name="value"
-                :modelValue="model.mark"
-                :field="'mark'"
-                :update="(v: unknown) => updateField('mark', v)"
-              />
-            </div>
+            <!-- Special: conditional -->
+            <template v-else-if="currentLayout.specialLayout === 'conditional'">
+              <OperatorFieldRenderer
+                :field="currentLayout.fields[0]"
+                :model="model"
+                :field-hint="fieldHint"
+                @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
+              >
+                <template
+                  v-for="slotName in ['target', 'value', 'condition', 'operator']"
+                  :key="slotName"
+                  #[slotName]="slotProps"
+                >
+                  <slot :name="slotName" v-bind="slotProps" />
+                </template>
+              </OperatorFieldRenderer>
+              <div class="op-conditional-branch">
+                <div class="op-branch-label true">true</div>
+                <OperatorFieldRenderer
+                  :field="currentLayout.fields[1]"
+                  :model="model"
+                  :field-hint="fieldHint"
+                  @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
+                >
+                  <template
+                    v-for="slotName in ['target', 'value', 'condition', 'operator']"
+                    :key="slotName"
+                    #[slotName]="slotProps"
+                  >
+                    <slot :name="slotName" v-bind="slotProps" />
+                  </template>
+                </OperatorFieldRenderer>
+              </div>
+              <div class="op-conditional-branch">
+                <div class="op-branch-label false">false</div>
+                <OperatorFieldRenderer
+                  :field="currentLayout.fields[2]"
+                  :model="model"
+                  :field-hint="fieldHint"
+                  @update:field="(fieldName: string, value: unknown) => updateField(fieldName, value)"
+                >
+                  <template
+                    v-for="slotName in ['target', 'value', 'condition', 'operator']"
+                    :key="slotName"
+                    #[slotName]="slotProps"
+                  >
+                    <slot :name="slotName" v-bind="slotProps" />
+                  </template>
+                </OperatorFieldRenderer>
+              </div>
+            </template>
           </template>
 
           <!-- Fallback for any unknown type -->

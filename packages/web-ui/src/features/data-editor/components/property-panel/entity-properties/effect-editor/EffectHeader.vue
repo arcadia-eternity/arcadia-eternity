@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { EffectTrigger } from '@arcadia-eternity/const'
+import { TRIGGER_LABELS } from './constants'
 
 defineProps<{
   id: string
@@ -13,38 +14,9 @@ const emit = defineEmits<{
 }>()
 
 const allTriggers = Object.values(EffectTrigger)
-const triggerDisplayMap: Record<string, string> = {
-  BeforeUseSkillCheck: '使用技能前检查',
-  AfterUseSkillCheck: '使用技能后检查',
-  BeforeHit: '命中前',
-  OnHit: '命中时',
-  AfterHit: '命中后',
-  OnDamage: '造成伤害时',
-  OnBeforeCalculateDamage: '计算伤害前',
-  OnAfterCalculateDamage: '计算伤害后',
-  OnBeforeDealDamage: '造成伤害前',
-  OnBeHit: '被命中时',
-  OnBeDamage: '受到伤害时',
-  OnKill: '击杀时',
-  OnBeKill: '被击杀时',
-  OnFaint: '濒死时',
-  OnSwitchIn: '上场时',
-  OnSwitchOut: '下场时',
-  OnBattleStart: '战斗开始时',
-  OnTurnStart: '回合开始时',
-  OnTurnEnd: '回合结束时',
-  OnMarkCreated: '标记创建时',
-  OnMarkRemoved: '标记移除时',
-  OnStack: '堆叠时',
-  OnStackBefore: '堆叠前',
-  OnUseSkill: '使用技能时',
-  OnBeforeUseSkill: '使用技能前',
-  OnAfterUseSkill: '使用技能后',
-  OnPropertyChange: '属性变化时',
-}
 
 function getDisplayLabel(trigger: string): string {
-  return triggerDisplayMap[trigger] ?? trigger
+  return TRIGGER_LABELS[trigger] ?? trigger
 }
 </script>
 

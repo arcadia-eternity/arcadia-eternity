@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { ConditionDSL, ConditionDSLView, EvaluatorDSL, SelectorDSL, Value } from '@arcadia-eternity/schema'
 import type { ContinuousUseSkillStrategy } from '@arcadia-eternity/const'
 import { useEffectTyping } from './composables/useEffectTyping'
+import { CATEGORY_TAG_COLORS } from './constants'
 
 const props = withDefaults(
   defineProps<{
@@ -44,25 +45,26 @@ type ConditionCategory =
   | 'children'
   | 'singleChild'
 
+const leaves = new Set([
+  'petIsActive',
+  'checkSelf',
+  'selfUseSkill',
+  'opponentUseSkill',
+  'selfBeDamaged',
+  'opponentBeDamaged',
+  'selfAddMark',
+  'opponentAddMark',
+  'selfBeAddMark',
+  'opponentBeAddMark',
+  'selfBeHeal',
+  'selfSwitchIn',
+  'selfSwitchOut',
+  'selfBeSkillTarget',
+  'isFirstSkillUsedThisTurn',
+  'isLastSkillUsedThisTurn',
+])
+
 function categorizeCondition(type: string): ConditionCategory {
-  const leaves = new Set([
-    'petIsActive',
-    'checkSelf',
-    'selfUseSkill',
-    'opponentUseSkill',
-    'selfBeDamaged',
-    'opponentBeDamaged',
-    'selfAddMark',
-    'opponentAddMark',
-    'selfBeAddMark',
-    'opponentBeAddMark',
-    'selfBeHeal',
-    'selfSwitchIn',
-    'selfSwitchOut',
-    'selfBeSkillTarget',
-    'isFirstSkillUsedThisTurn',
-    'isLastSkillUsedThisTurn',
-  ])
   if (leaves.has(type)) return 'leaf'
   if (type === 'evaluate') return 'evaluate'
   if (type === 'selfHasMark' || type === 'opponentHasMark') return 'value'
@@ -126,18 +128,6 @@ const statCheckOptions = [
   { value: 'down', label: '下降' },
   { value: 'all', label: '任意' },
 ]
-
-const categoryTagColor: Record<ConditionCategory, string> = {
-  leaf: 'var(--ae-accent-primary-subtle)',
-  evaluate: 'var(--ae-info-subtle)',
-  value: 'var(--ae-warning-subtle)',
-  continuousUseSkill: 'var(--ae-warning-subtle)',
-  skillSequence: 'var(--ae-warning-subtle)',
-  statStageChange: 'var(--ae-success-subtle)',
-  probability: 'var(--ae-error-subtle)',
-  children: 'var(--ae-accent-primary-subtle)',
-  singleChild: 'var(--ae-accent-primary-subtle)',
-}
 
 function emitUpdate(val: ConditionDSL | undefined) {
   emit('update:modelValue', val)
@@ -296,7 +286,7 @@ const category = computed(() => (condition.value ? categorizeCondition(condition
     <template v-else>
       <div class="condition-row">
         <div class="condition-header">
-          <span class="condition-type-tag" :style="{ backgroundColor: categoryTagColor[category!] }">
+          <span class="condition-type-tag" :style="{ backgroundColor: CATEGORY_TAG_COLORS[category!] }">
             {{ conditionTypeLabel[c.type as string] || (c.type as string) }}
           </span>
 

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { Value, ValueView, ConditionDSL, SelectorDSL, SelectorChain } from '@arcadia-eternity/schema'
 import type { StringEnumOption } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
+import { VALUE_TYPE_BUTTONS } from './constants'
 
 const props = withDefaults(
   defineProps<{
@@ -28,21 +29,6 @@ defineSlots<{
 
 const gameData = useGameDataStore()
 
-const TYPE_BUTTONS = [
-  { key: 'raw:number', label: '数值', icon: '🔢' },
-  { key: 'raw:string', label: '文本', icon: '📝' },
-  { key: 'raw:boolean', label: '布尔', icon: '✓' },
-  { key: 'entity:baseMark', label: '标记', icon: '🏷️' },
-  { key: 'entity:baseSkill', label: '技能', icon: '⚔️' },
-  { key: 'entity:species', label: '物种', icon: '🧬' },
-  { key: 'entity:effect', label: '效果', icon: '✨' },
-  { key: 'dynamic', label: '动态值', icon: '🔄' },
-  { key: 'selectorValue', label: '管道值', icon: '⛓️' },
-  { key: 'conditional', label: '条件值', icon: '🔀' },
-  { key: 'array', label: '数组', icon: '📋' },
-  { key: 'operator', label: '操作符', icon: '⚙️' },
-] as const
-
 function inferType(value: Value): string {
   if (value === null || value === undefined) return 'raw:number'
   if (typeof value === 'number') return 'raw:number'
@@ -61,9 +47,9 @@ function inferType(value: Value): string {
 const currentType = computed(() => inferType(props.modelValue))
 
 const filteredTypes = computed(() => {
-  if (!props.allowedTypes || props.allowedTypes.length === 0) return TYPE_BUTTONS
+  if (!props.allowedTypes || props.allowedTypes.length === 0) return VALUE_TYPE_BUTTONS
   const allowed = new Set(props.allowedTypes)
-  return TYPE_BUTTONS.filter(b => allowed.has(b.key))
+  return VALUE_TYPE_BUTTONS.filter(b => allowed.has(b.key))
 })
 
 const isObjectValue = computed(() => {

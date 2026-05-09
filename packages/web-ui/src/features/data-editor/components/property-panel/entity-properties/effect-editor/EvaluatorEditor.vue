@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import type { EvaluatorDSL, EvaluatorDSLView, Value } from '@arcadia-eternity/schema'
 import { useEffectTyping } from './composables/useEffectTyping'
+import { CATEGORY_TAG_COLORS } from './constants'
 
 const { resolveEvaluatorOptions } = useEffectTyping()
 
@@ -66,17 +67,6 @@ const compareOperatorOptions = [
   { value: '<=', label: '<=' },
   { value: '==', label: '==' },
 ]
-
-const categoryTagColor: Record<EvaluatorCategory, string> = {
-  compare: 'var(--ae-info-subtle)',
-  same: 'var(--ae-info-subtle)',
-  notSame: 'var(--ae-error-subtle)',
-  value: 'var(--ae-warning-subtle)',
-  children: 'var(--ae-accent-primary-subtle)',
-  singleChild: 'var(--ae-accent-primary-subtle)',
-  input: 'var(--ae-success-subtle)',
-  leaf: 'var(--ae-text-disabled)',
-}
 
 function emitUpdate(val: EvaluatorDSL) {
   emit('update:modelValue', val)
@@ -170,7 +160,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
   <div class="evaluator-node">
     <div class="evaluator-simple" v-if="category !== 'children' && category !== 'singleChild'">
       <div class="evaluator-header">
-        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
+        <span class="evaluator-type-tag" :style="{ backgroundColor: CATEGORY_TAG_COLORS[category] }">
           {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
@@ -254,7 +244,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
 
     <div v-if="category === 'children'" class="evaluator-compound">
       <div class="evaluator-header">
-        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
+        <span class="evaluator-type-tag" :style="{ backgroundColor: CATEGORY_TAG_COLORS[category] }">
           {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 
@@ -310,7 +300,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
 
     <div v-if="category === 'singleChild'" class="evaluator-compound">
       <div class="evaluator-header">
-        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
+        <span class="evaluator-type-tag" :style="{ backgroundColor: CATEGORY_TAG_COLORS[category] }">
           {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
         </span>
 

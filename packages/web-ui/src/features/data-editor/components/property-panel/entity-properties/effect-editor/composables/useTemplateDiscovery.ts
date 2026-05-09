@@ -1,5 +1,6 @@
 import { ref, computed, type Ref } from 'vue'
 import type { Effect } from '@arcadia-eternity/schema'
+import { OPERATOR_TYPE_LABELS } from '../constants'
 
 export interface DiscoveredTemplate {
   id: string
@@ -35,22 +36,7 @@ function summarizeDefinition(def: unknown): string {
   const record = def as Record<string, unknown>
   const type = record.type as string | undefined
   if (!type) return '无类型'
-  const typeMap: Record<string, string> = {
-    statStageBuff: '能力阶段变化',
-    dealDamage: '造成伤害',
-    heal: '治疗',
-    addMark: '添加标记',
-    conditional: '条件操作符',
-    addAttributeModifier: '属性修改',
-    evaluate: '求值条件',
-    every: '全部满足',
-    some: '任一满足',
-    selfUseSkill: '自身使用技能',
-    probability: '概率条件',
-    compare: '比较',
-    same: '相等判断',
-  }
-  return typeMap[type] ?? type
+  return OPERATOR_TYPE_LABELS[type] ?? type
 }
 
 function discoverLocalTemplates(effects: Effect[]): DiscoveredTemplate[] {
