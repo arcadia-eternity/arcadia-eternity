@@ -11,7 +11,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: unknown]
+  'update:modelValue': [value: Value]
 }>()
 
 function castValue(v: unknown): Value {

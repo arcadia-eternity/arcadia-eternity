@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConditionDSL, EvaluatorDSL } from '@arcadia-eternity/schema'
+import type { ConditionDSL, EvaluatorDSL, Value } from '@arcadia-eternity/schema'
 import ConditionTreeEditor from './ConditionTreeEditor.vue'
 import SelectorBuilder from './SelectorBuilder.vue'
 import EvaluatorEditor from './EvaluatorEditor.vue'
@@ -16,6 +16,10 @@ const emit = defineEmits<{
 function castEvaluator(v: unknown): EvaluatorDSL {
   return v as unknown as EvaluatorDSL
 }
+
+function castValue(v: unknown): Value {
+  return v as unknown as Value
+}
 </script>
 
 <template>
@@ -28,7 +32,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
 
     <template #value="{ modelValue: vv, update: vu }">
       <slot name="value" :model-value="vv" :update="vu">
-        <SlotSelectorValue :model-value="vv" @update:model-value="vu" />
+        <SlotSelectorValue :model-value="vv" @update:model-value="v => vu(castValue(v))" />
       </slot>
     </template>
 
@@ -36,7 +40,7 @@ function castEvaluator(v: unknown): EvaluatorDSL {
       <slot name="condition" :model-value="cv" :update="cu">
         <EvaluatorEditor :model-value="castEvaluator(cv)" @update:model-value="cu">
           <template #value="{ modelValue: vv, update: vu }">
-            <SlotSelectorValue :model-value="vv" @update:model-value="vu" />
+            <SlotSelectorValue :model-value="vv" @update:model-value="v => vu(castValue(v))" />
           </template>
         </EvaluatorEditor>
       </slot>
