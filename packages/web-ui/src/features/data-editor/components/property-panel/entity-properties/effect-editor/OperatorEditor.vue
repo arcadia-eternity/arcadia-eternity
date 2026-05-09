@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, ref, useSlots } from 'vue'
-import type { PropType, VNode } from 'vue'
+import type { PropType } from 'vue'
 import type { OperatorDSL, OperatorDSLView } from '@arcadia-eternity/schema'
 import type { OperatorFieldDef } from './constants/operatorFieldConfig'
 import { useEffectTyping } from './composables/useEffectTyping'
@@ -259,17 +259,6 @@ function fieldHint(fieldName: string): string | undefined {
 
 const parentSlots = useSlots()
 
-function buildForwardedSlots(): Record<string, (slotProps: Record<string, unknown>) => VNode[]> {
-  const result: Record<string, (slotProps: Record<string, unknown>) => VNode[]> = {}
-  for (const name of ['target', 'value', 'condition', 'operator'] as const) {
-    const slotFn = parentSlots[name]
-    if (slotFn) {
-      result[name] = (slotProps: Record<string, unknown>) => slotFn(slotProps)
-    }
-  }
-  return result
-}
-
 function renderOperatorField(field: OperatorFieldDef, modelData: Record<string, unknown>) {
   return h(
     OperatorFieldRenderer,
@@ -280,7 +269,7 @@ function renderOperatorField(field: OperatorFieldDef, modelData: Record<string, 
       'field-hint': fieldHint,
       'onUpdate:field': (fieldName: string, value: unknown) => updateField(fieldName, value),
     },
-    buildForwardedSlots(),
+    parentSlots,
   )
 }
 
@@ -295,7 +284,7 @@ function renderOperatorFieldWithConfig(field: OperatorFieldDef, modelData: Recor
       'field-hint': fieldHint,
       'onUpdate:field': (fieldName: string, value: unknown) => updateField('config', { ...config, [fieldName]: value }),
     },
-    buildForwardedSlots(),
+    parentSlots,
   )
 }
 
