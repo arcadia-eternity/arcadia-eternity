@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import DslNode from '../../DslNode.vue'
 import type { Value, SelectorDSL, ConditionDSL, SelectorChain, OperatorDSL, ValueView } from '@arcadia-eternity/schema'
 import type { StringEnumOption } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
