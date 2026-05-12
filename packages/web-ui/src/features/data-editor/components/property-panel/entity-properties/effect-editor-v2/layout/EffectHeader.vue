@@ -4,18 +4,18 @@ import { TRIGGER_LABELS } from '../constants'
 
 defineProps<{
   id: string
-  modelValue: string | string[]
+  modelValue: EffectTrigger | EffectTrigger[]
   priority: number
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string | string[]]
+  'update:modelValue': [value: EffectTrigger | EffectTrigger[]]
   'update:priority': [value: number]
 }>()
 
 const allTriggers = Object.values(EffectTrigger)
 
-function getDisplayLabel(trigger: string): string {
+function getDisplayLabel(trigger: EffectTrigger): string {
   return TRIGGER_LABELS[trigger] ?? trigger
 }
 </script>
@@ -35,7 +35,7 @@ function getDisplayLabel(trigger: string): string {
           filterable
           placeholder="选择触发器..."
           class="trigger-select"
-          @update:model-value="(v: string[]) => emit('update:modelValue', v)"
+          @update:model-value="(v: EffectTrigger[]) => emit('update:modelValue', v)"
         >
           <el-option v-for="trigger in allTriggers" :key="trigger" :label="getDisplayLabel(trigger)" :value="trigger" />
         </el-select>

@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ElOption, ElSelect } from 'element-plus'
+import { ElOption, ElOptionGroup, ElSelect, ElTooltip } from 'element-plus'
 import type {
+  BaseExtractorKey,
   BaseSelectorKey,
   ConditionDSL,
   EffectDslFieldTypingRule,
   EvaluatorDSL,
-  ExtractorDSL,
+  ExtractorKind,
   SelectorChain,
+  SelectorChainView,
   SelectorDSL,
+  SelectorValue,
   Value,
 } from '@arcadia-eternity/schema'
 import {
@@ -19,7 +22,7 @@ import {
   formatConstraint,
   type CompileState,
 } from '@arcadia-eternity/battle'
-import { useEffectTyping, compileStatesToFieldTyping } from '../composables/useEffectTyping'
+import { useNodeTyping, compileStatesToFieldTyping } from '../../composables/useNodeTyping'
 import {
   CHAIN_STEP_TYPES,
   NO_PARAM_TYPES,
@@ -27,12 +30,13 @@ import {
   VALUE_SLOT_TYPES,
   RECURSIVE_TYPES,
   getChainStepMeta,
-} from '../constants/selectorConstants'
+} from '../../constants/selectorConstants'
+import DslNode from '../../DslNode.vue'
 import StepBodyContent from './StepBodyContent.vue'
 
 defineOptions({ name: 'SelectorEditor' })
 
-const { resolveSelectorOptions } = useEffectTyping()
+const { resolveSelectorOptions } = useNodeTyping()
 
 const selectorValidator = createSelectorValidator(seer2EffectCompileTypingEnvironment)
 
@@ -53,17 +57,8 @@ const props = withDefaults(
   },
 )
 
-defineSlots<{
-  default(props: { modelValue: SelectorDSL; update: (v: SelectorDSL) => void }): unknown
-  evaluator(props: {
-    modelValue: EvaluatorDSL
-    update: (v: EvaluatorDSL) => void
-    fieldRule?: EffectDslFieldTypingRule
-  }): unknown
-  value(props: { modelValue: Value; update: (v: Value) => void }): unknown
-  condition(props: { modelValue: ConditionDSL; update: (v: ConditionDSL) => void }): unknown
-  trueValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
-  falseValue(props: { modelValue: Value; update: (v: Value) => void }): unknown
+const emit = defineEmits<{
+  'update:modelValue': [value: SelectorDSL]
 }>()
 
 const GROUP_LABEL_MAP: Record<string, string> = {
@@ -81,17 +76,13 @@ const stepGroups = computed(() => {
   const map = new Map<string, { label: string; value: string; description: string }[]>()
   for (const meta of CHAIN_STEP_TYPES) {
     if (!map.has(meta.group)) map.set(meta.group, [])
-    map.get(meta.group)!.push({ label: meta.label, value: meta.value, description: meta.description })
+    map.get(meta.group)!.push({ label: meta.label, value: meta.type, description: meta.description })
   }
   return Array.from(map.entries()).map(([group, types]) => ({
     label: GROUP_LABEL_MAP[group] ?? group,
     types,
   }))
 })
-
-const emit = defineEmits<{
-  'update:modelValue': [value: SelectorDSL]
-}>()
 
 function getValidKeysForStep(stepIndex: number): Set<string> {
   const prevStates = selectorStates.value.get(stepIndex - 1)
@@ -107,7 +98,7 @@ const allSelectorOptions = computed(() => {
   return opts
 })
 
-/** Computed step-level warnings for compatibility issues. */
+/** Computed step-level compile states for pipeline validation. */
 const selectorStates = computed((): Map<number, CompileState[]> => {
   const states = new Map<number, CompileState[]>()
   if (!isChain.value && !isSelectorValue.value) return states
@@ -302,7 +293,7 @@ const isSelectorValue = computed(
     typeof props.modelValue === 'object' &&
     props.modelValue !== null &&
     'type' in props.modelValue &&
-    (props.modelValue as Record<string, unknown>).type === 'selectorValue',
+    (props.modelValue as { type: unknown }).type === 'selectorValue',
 )
 
 function ensureChainSelector(): { base: BaseSelectorKey; chain: SelectorChain[] } {
@@ -314,31 +305,34 @@ function ensureChainSelector(): { base: BaseSelectorKey; chain: SelectorChain[] 
   return { base, chain: [] }
 }
 
-function makeStep(type: string): SelectorChain {
+function makeStep(type: SelectorChain['type']): SelectorChain {
   if (type === 'select') {
-    return { type: 'select', arg: 'currentHp' } as SelectorChain
+    return { type: 'select', arg: 'currentHp' }
   }
   if (type === 'selectPath' || type === 'selectProp' || type === 'selectObservable' || type === 'selectAttribute$') {
-    return { type: type as SelectorChain['type'], arg: '' } as SelectorChain
+    return { type, arg: '' }
   }
   if (type === 'configGet') {
-    return { type: 'configGet', key: { type: 'raw:string', value: '' } } as SelectorChain
+    return { type: 'configGet', key: { type: 'raw:string', value: '' } }
   }
   if (type === 'where') {
-    return { type: 'where', arg: { type: 'exist' } } as SelectorChain
+    return { type: 'where', arg: { type: 'exist' } }
   }
   if (type === 'whereAttr') {
     return {
       type: 'whereAttr',
-      extractor: 'currentHp' as ExtractorDSL,
+      extractor: 'currentHp',
       evaluator: { type: 'exist' },
-    } as SelectorChain
+    }
   }
   if (RECURSIVE_TYPES.has(type)) {
-    return { type: type as SelectorChain['type'], arg: 'self' } as SelectorChain
+    return { type: type as 'and' | 'or', arg: 'self' }
   }
   if (VALUE_SLOT_TYPES.has(type)) {
-    return { type: type as SelectorChain['type'], arg: { type: 'raw:number', value: 0 } } as SelectorChain
+    return {
+      type: type as 'randomPick' | 'randomSample' | 'limit' | 'clampMax' | 'clampMin' | 'add' | 'multiply' | 'divide',
+      arg: { type: 'raw:number', value: 0 },
+    }
   }
   if (type === 'when') {
     return {
@@ -346,9 +340,10 @@ function makeStep(type: string): SelectorChain {
       condition: { type: 'petIsActive' },
       trueValue: { type: 'raw:number', value: 0 },
       falseValue: { type: 'raw:number', value: 0 },
-    } as SelectorChain
+    }
   }
-  return { type: type as SelectorChain['type'] } as SelectorChain
+  // NO_PARAM_TYPES
+  return { type: type as 'flat' | 'sum' | 'avg' | 'shuffled' | 'asStatLevelMark' | 'sampleBetween' }
 }
 
 function emitValue(v: SelectorDSL) {
@@ -380,6 +375,23 @@ function collapseToString() {
       emitValue(cs.base)
     }
   }
+}
+
+// ── Typed accessors for conditional / selectorValue modes ─────────────────────
+
+function conditionalFields(): { condition: ConditionDSL; trueSelector: SelectorDSL; falseSelector?: SelectorDSL } {
+  const m = props.modelValue as { condition: ConditionDSL; trueSelector: SelectorDSL; falseSelector?: SelectorDSL }
+  return m
+}
+
+function emitConditionalUpdate(field: 'condition' | 'trueSelector' | 'falseSelector', value: unknown) {
+  const cf = conditionalFields()
+  emitValue({
+    condition: cf.condition,
+    trueSelector: cf.trueSelector,
+    falseSelector: cf.falseSelector,
+    [field]: value,
+  } as SelectorDSL)
 }
 
 function addStep() {
@@ -416,7 +428,7 @@ function moveStepDown(index: number) {
   emitValue({ base: cs.base, chain: swapped })
 }
 
-function onStepTypeChange(index: number, newType: string) {
+function onStepTypeChange(index: number, newType: SelectorChain['type']) {
   const cs = ensureChainSelector()
   const chain = [...cs.chain]
   chain[index] = makeStep(newType)
@@ -430,119 +442,122 @@ function updateStep(index: number, updated: SelectorChain) {
   emitValue({ base: cs.base, chain })
 }
 
-function updateStepArg(index: number, arg: unknown) {
+function updateStepArg(index: number, arg: SelectorChainView['arg']) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.arg = arg
-  updateStep(index, step as SelectorChain)
+  const step = cs.chain[index] as SelectorChainView
+  updateStep(index, { ...step, arg } as SelectorChain)
 }
 
-function updateStepKey(index: number, key: unknown) {
+function updateStepKey(index: number, key: SelectorChainView['key']) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.key = key
-  updateStep(index, step as SelectorChain)
+  const step = cs.chain[index] as SelectorChainView
+  updateStep(index, { ...step, key } as SelectorChain)
 }
 
-function updateStepEvaluator(index: number, evaluator: unknown) {
+function updateStepEvaluator(index: number, evaluator: EvaluatorDSL) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.evaluator = evaluator
-  updateStep(index, step as SelectorChain)
+  const step = cs.chain[index] as SelectorChainView
+  updateStep(index, { ...step, evaluator } as SelectorChain)
 }
 
-function updateStepCondition(index: number, condition: unknown) {
+function updateStepCondition(index: number, condition: ConditionDSL) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.condition = condition
-  updateStep(index, step as SelectorChain)
+  const step = cs.chain[index] as SelectorChainView
+  updateStep(index, { ...step, condition } as SelectorChain)
 }
 
-function updateStepTrueValue(index: number, value: unknown) {
+function updateStepTrueValue(index: number, value: Value) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.trueValue = value
-  updateStep(index, step as SelectorChain)
+  const step = cs.chain[index] as SelectorChainView
+  updateStep(index, { ...step, trueValue: value } as SelectorChain)
 }
 
-function updateStepFalseValue(index: number, value: unknown) {
+function updateStepFalseValue(index: number, value?: Value) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.falseValue = value
-  updateStep(index, step as SelectorChain)
+  const step = cs.chain[index] as SelectorChainView
+  updateStep(index, { ...step, falseValue: value } as SelectorChain)
 }
 
 function updateStepArgText(index: number, value: string) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.arg = value
-  updateStep(index, step as SelectorChain)
+  const step = cs.chain[index] as SelectorChainView
+  updateStep(index, { ...step, arg: value } as SelectorChain)
 }
 
-function updateExtractorType(index: number, extractorType: string) {
+function updateExtractorType(index: number, extractorType: ExtractorKind) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  const stepType = cs.chain[index].type
+  const prev = cs.chain[index]
+  const stepType = prev.type
 
   if (stepType === 'select') {
     if (extractorType === 'base') {
-      step.arg = 'currentHp'
-    } else if (extractorType === 'attribute' || extractorType === 'relation') {
-      step.arg = { type: extractorType, key: '' }
+      updateStep(index, { type: 'select', arg: 'currentHp' })
+    } else if (extractorType === 'attribute') {
+      updateStep(index, { type: 'select', arg: { type: 'attribute', key: '' } })
+    } else if (extractorType === 'relation') {
+      updateStep(index, { type: 'select', arg: { type: 'relation', key: '' } })
     } else if (extractorType === 'field') {
-      step.arg = { type: 'field', path: '' }
-    } else if (extractorType === 'dynamic') {
-      step.arg = { type: 'dynamic', arg: '' }
+      updateStep(index, { type: 'select', arg: { type: 'field', path: '' } })
+    } else {
+      updateStep(index, { type: 'select', arg: { type: 'dynamic', arg: '' } })
     }
   } else if (stepType === 'whereAttr') {
+    const evaluator = prev.type === 'whereAttr' ? prev.evaluator : { type: 'exist' as const }
     if (extractorType === 'base') {
-      step.extractor = 'currentHp'
-    } else if (extractorType === 'attribute' || extractorType === 'relation') {
-      step.extractor = { type: extractorType, key: '' }
+      updateStep(index, { type: 'whereAttr', extractor: 'currentHp', evaluator })
+    } else if (extractorType === 'attribute') {
+      updateStep(index, { type: 'whereAttr', extractor: { type: 'attribute', key: '' }, evaluator })
+    } else if (extractorType === 'relation') {
+      updateStep(index, { type: 'whereAttr', extractor: { type: 'relation', key: '' }, evaluator })
     } else if (extractorType === 'field') {
-      step.extractor = { type: 'field', path: '' }
-    } else if (extractorType === 'dynamic') {
-      step.extractor = { type: 'dynamic', arg: '' }
+      updateStep(index, { type: 'whereAttr', extractor: { type: 'field', path: '' }, evaluator })
+    } else {
+      updateStep(index, { type: 'whereAttr', extractor: { type: 'dynamic', arg: '' }, evaluator })
     }
   }
-  updateStep(index, step as SelectorChain)
 }
 
 function updateExtractorBaseArg(index: number, val: string) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  step.arg = val
-  updateStep(index, step as SelectorChain)
+  const prev = cs.chain[index]
+  if (prev.type === 'select') {
+    updateStep(index, { type: 'select', arg: val as BaseExtractorKey })
+  } else if (prev.type === 'whereAttr') {
+    updateStep(index, { type: 'whereAttr', extractor: val as BaseExtractorKey, evaluator: prev.evaluator })
+  }
 }
 
 function updateExtractorKey(index: number, key: string) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  const arg = step.arg as Record<string, unknown> | undefined
-  if (arg && typeof arg === 'object') {
-    step.arg = { ...arg, key }
+  const prev = cs.chain[index]
+  if (prev.type !== 'select') return
+  const arg = prev.arg
+  if (typeof arg !== 'object' || Array.isArray(arg)) return
+  if (arg.type === 'attribute' || arg.type === 'relation') {
+    updateStep(index, { type: 'select', arg: { type: arg.type, key } })
   }
-  updateStep(index, step as SelectorChain)
 }
 
 function updateExtractorPath(index: number, path: string) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  const arg = step.arg as Record<string, unknown> | undefined
-  if (arg && typeof arg === 'object') {
-    step.arg = { ...arg, path }
+  const prev = cs.chain[index]
+  if (prev.type !== 'select') return
+  const arg = prev.arg
+  if (typeof arg !== 'object' || Array.isArray(arg)) return
+  if (arg.type === 'field') {
+    updateStep(index, { type: 'select', arg: { type: 'field', path } })
   }
-  updateStep(index, step as SelectorChain)
 }
 
 function updateExtractorDynamicArg(index: number, val: string) {
   const cs = ensureChainSelector()
-  const step = { ...cs.chain[index] } as Record<string, unknown>
-  const arg = step.arg as Record<string, unknown> | undefined
-  if (arg && typeof arg === 'object') {
-    step.arg = { ...arg, arg: val }
+  const prev = cs.chain[index]
+  if (prev.type !== 'select') return
+  const arg = prev.arg
+  if (typeof arg !== 'object' || Array.isArray(arg)) return
+  if (arg.type === 'dynamic') {
+    updateStep(index, { type: 'select', arg: { type: 'dynamic', arg: val } })
   }
-  updateStep(index, step as SelectorChain)
 }
 
 function formatCompileState(state: CompileState): string {
@@ -561,27 +576,28 @@ function formatCompileState(state: CompileState): string {
 }
 
 function previewStep(step: SelectorChain): string {
-  const typeLabel = CHAIN_STEP_TYPES.find(t => t.value === step.type)?.label ?? step.type
+  const typeLabel = CHAIN_STEP_TYPES.find(t => t.type === step.type)?.label ?? step.type
   if (NO_PARAM_TYPES.has(step.type)) return typeLabel
+  const view = step as SelectorChainView
   if (TEXT_INPUT_TYPES.has(step.type)) {
-    return `${typeLabel}: ${(step as { arg: string }).arg || '…'}`
+    return `${typeLabel}: ${typeof view.arg === 'string' ? view.arg : '…'}`
   }
   if (step.type === 'select') {
-    const s = step as { arg: ExtractorDSL }
-    if (typeof s.arg === 'string') return `${typeLabel}: ${s.arg}`
-    if (typeof s.arg === 'object' && s.arg.type === 'base' && 'arg' in s.arg) {
-      return `${typeLabel}: ${(s.arg as { arg: string }).arg}`
+    const arg = (step as Extract<SelectorChain, { type: 'select' }>).arg
+    if (typeof arg === 'string') return `${typeLabel}: ${arg}`
+    if (typeof arg === 'object' && arg.type === 'base' && 'arg' in arg) {
+      return `${typeLabel}: ${(arg as { arg: string }).arg}`
     }
-    if (typeof s.arg === 'object' && (s.arg.type === 'attribute' || s.arg.type === 'relation')) {
-      return `${typeLabel}: ${String((s.arg as { key?: string }).key || s.arg.type)}`
+    if (typeof arg === 'object' && (arg.type === 'attribute' || arg.type === 'relation')) {
+      return `${typeLabel}: ${String((arg as { key?: string }).key || arg.type)}`
     }
-    if (typeof s.arg === 'object' && s.arg.type === 'field') {
-      return `${typeLabel}: ${String((s.arg as { path?: string }).path || s.arg.type)}`
+    if (typeof arg === 'object' && arg.type === 'field') {
+      return `${typeLabel}: ${String((arg as { path?: string }).path || arg.type)}`
     }
-    if (typeof s.arg === 'object' && s.arg.type === 'dynamic') {
-      return `${typeLabel}: ${String((s.arg as { arg?: string }).arg || s.arg.type)}`
+    if (typeof arg === 'object' && arg.type === 'dynamic') {
+      return `${typeLabel}: ${String((arg as { arg?: string }).arg || arg.type)}`
     }
-    return `${typeLabel}: ${(s.arg as Record<string, unknown>).type}`
+    return `${typeLabel}: ${(arg as { type: string }).type}`
   }
   if (step.type === 'where') return `${typeLabel}: …`
   if (step.type === 'whereAttr') return `${typeLabel}: …`
@@ -666,7 +682,7 @@ function previewStep(step: SelectorChain): string {
             <el-select
               :model-value="step.type"
               class="card-type-select"
-              @update:model-value="(v: string) => onStepTypeChange(i, v)"
+              @update:model-value="(v: string | number | boolean) => onStepTypeChange(i, v as SelectorChain['type'])"
             >
               <el-option-group v-for="group in stepGroups" :key="group.label" :label="group.label">
                 <el-option
@@ -704,35 +720,19 @@ function previewStep(step: SelectorChain): string {
               :index="i"
               :valid-extractor-keys="getValidKeysForStep(i)"
               :evaluator-field-rule="evaluatorFieldRules.get(i)"
-              :on-update-extractor-type="updateExtractorType"
-              :on-update-extractor-base-arg="updateExtractorBaseArg"
-              :on-update-extractor-key="updateExtractorKey"
-              :on-update-extractor-path="updateExtractorPath"
-              :on-update-extractor-dynamic-arg="updateExtractorDynamicArg"
-              :on-update-step-arg-text="updateStepArgText"
-              :on-update-step-evaluator="updateStepEvaluator"
-              :on-update-step-arg="updateStepArg"
-              :on-update-step-key="updateStepKey"
-              :on-update-step-condition="updateStepCondition"
-              :on-update-step-true-value="updateStepTrueValue"
-              :on-update-step-false-value="updateStepFalseValue"
-            >
-              <template #evaluator="{ modelValue, update, fieldRule }">
-                <slot name="evaluator" :model-value="modelValue" :update="update" :field-rule="fieldRule" />
-              </template>
-              <template #value="{ modelValue, update }">
-                <slot name="value" :model-value="modelValue" :update="update" />
-              </template>
-              <template #condition="{ modelValue, update }">
-                <slot name="condition" :model-value="modelValue" :update="update" />
-              </template>
-              <template #trueValue="{ modelValue, update }">
-                <slot name="trueValue" :model-value="modelValue" :update="update" />
-              </template>
-              <template #falseValue="{ modelValue, update }">
-                <slot name="falseValue" :model-value="modelValue" :update="update" />
-              </template>
-            </StepBodyContent>
+              @update:extractor-type="updateExtractorType"
+              @update:extractor-base-arg="updateExtractorBaseArg"
+              @update:extractor-key="updateExtractorKey"
+              @update:extractor-path="updateExtractorPath"
+              @update:extractor-dynamic-arg="updateExtractorDynamicArg"
+              @update:step-arg-text="updateStepArgText"
+              @update:step-evaluator="updateStepEvaluator"
+              @update:step-arg="updateStepArg"
+              @update:step-key="updateStepKey"
+              @update:step-condition="updateStepCondition"
+              @update:step-true-value="updateStepTrueValue"
+              @update:step-false-value="updateStepFalseValue"
+            />
           </div>
 
           <div class="card-preview">
@@ -762,12 +762,10 @@ function previewStep(step: SelectorChain): string {
     <div v-else-if="isConditional" class="selector-conditional">
       <div class="conditional-row">
         <span class="conditional-label">条件</span>
-        <slot
-          name="condition"
-          :model-value="(modelValue as { condition: unknown }).condition as ConditionDSL"
-          :update="
-            (v: unknown) => emitValue({ ...(modelValue as Record<string, unknown>), condition: v } as SelectorDSL)
-          "
+        <DslNode
+          kind="condition"
+          :model-value="conditionalFields().condition"
+          @update:model-value="(v: unknown) => emitConditionalUpdate('condition', v)"
         />
       </div>
       <div class="conditional-row">
@@ -775,10 +773,7 @@ function previewStep(step: SelectorChain): string {
         <SelectorEditor
           :model-value="(modelValue as { trueSelector: SelectorDSL }).trueSelector"
           :field-rule="props.fieldRule"
-          @update:model-value="
-            (v: SelectorDSL) =>
-              emitValue({ ...(modelValue as Record<string, unknown>), trueSelector: v } as SelectorDSL)
-          "
+          @update:model-value="(v: SelectorDSL) => emitConditionalUpdate('trueSelector', v)"
         />
       </div>
       <div class="conditional-row">
@@ -786,10 +781,7 @@ function previewStep(step: SelectorChain): string {
         <SelectorEditor
           :model-value="(modelValue as { falseSelector?: SelectorDSL }).falseSelector ?? 'self'"
           :field-rule="props.fieldRule"
-          @update:model-value="
-            (v: SelectorDSL) =>
-              emitValue({ ...(modelValue as Record<string, unknown>), falseSelector: v } as SelectorDSL)
-          "
+          @update:model-value="(v: SelectorDSL) => emitConditionalUpdate('falseSelector', v)"
         />
       </div>
     </div>
@@ -798,10 +790,12 @@ function previewStep(step: SelectorChain): string {
       <div class="pipeline-base">
         <div class="pipeline-base-row">
           <span class="selector-value-label">值</span>
-          <slot
-            name="value"
-            :model-value="(modelValue as { value: unknown }).value as Value"
-            :update="(v: unknown) => emitValue({ ...(modelValue as Record<string, unknown>), value: v } as SelectorDSL)"
+          <DslNode
+            kind="value"
+            :model-value="(modelValue as SelectorValue).value"
+            @update:model-value="
+              (v: unknown) => emitValue({ ...(modelValue as SelectorValue), value: v as Value } as SelectorDSL)
+            "
           />
         </div>
       </div>
@@ -840,7 +834,7 @@ function previewStep(step: SelectorChain): string {
             <el-select
               :model-value="step.type"
               class="card-type-select"
-              @update:model-value="(v: string) => onStepTypeChange(i, v)"
+              @update:model-value="(v: string | number | boolean) => onStepTypeChange(i, v as SelectorChain['type'])"
             >
               <el-option-group v-for="group in stepGroups" :key="group.label" :label="group.label">
                 <el-option
@@ -878,35 +872,19 @@ function previewStep(step: SelectorChain): string {
               :index="i"
               :valid-extractor-keys="getValidKeysForStep(i)"
               :evaluator-field-rule="evaluatorFieldRules.get(i)"
-              :on-update-extractor-type="updateExtractorType"
-              :on-update-extractor-base-arg="updateExtractorBaseArg"
-              :on-update-extractor-key="updateExtractorKey"
-              :on-update-extractor-path="updateExtractorPath"
-              :on-update-extractor-dynamic-arg="updateExtractorDynamicArg"
-              :on-update-step-arg-text="updateStepArgText"
-              :on-update-step-evaluator="updateStepEvaluator"
-              :on-update-step-arg="updateStepArg"
-              :on-update-step-key="updateStepKey"
-              :on-update-step-condition="updateStepCondition"
-              :on-update-step-true-value="updateStepTrueValue"
-              :on-update-step-false-value="updateStepFalseValue"
-            >
-              <template #evaluator="{ modelValue, update, fieldRule }">
-                <slot name="evaluator" :model-value="modelValue" :update="update" :field-rule="fieldRule" />
-              </template>
-              <template #value="{ modelValue, update }">
-                <slot name="value" :model-value="modelValue" :update="update" />
-              </template>
-              <template #condition="{ modelValue, update }">
-                <slot name="condition" :model-value="modelValue" :update="update" />
-              </template>
-              <template #trueValue="{ modelValue, update }">
-                <slot name="trueValue" :model-value="modelValue" :update="update" />
-              </template>
-              <template #falseValue="{ modelValue, update }">
-                <slot name="falseValue" :model-value="modelValue" :update="update" />
-              </template>
-            </StepBodyContent>
+              @update:extractor-type="updateExtractorType"
+              @update:extractor-base-arg="updateExtractorBaseArg"
+              @update:extractor-key="updateExtractorKey"
+              @update:extractor-path="updateExtractorPath"
+              @update:extractor-dynamic-arg="updateExtractorDynamicArg"
+              @update:step-arg-text="updateStepArgText"
+              @update:step-evaluator="updateStepEvaluator"
+              @update:step-arg="updateStepArg"
+              @update:step-key="updateStepKey"
+              @update:step-condition="updateStepCondition"
+              @update:step-true-value="updateStepTrueValue"
+              @update:step-false-value="updateStepFalseValue"
+            />
           </div>
 
           <div class="card-preview">

@@ -2,7 +2,7 @@ import { ref, type Ref } from 'vue'
 import { Value } from '@sinclair/typebox/value'
 import { effectDSLSchema, getEffectDslNodeTyping } from '@arcadia-eternity/schema'
 import type { EffectDslNodeTypingRule } from '@arcadia-eternity/schema'
-import { resolveSelectorOptions } from './useEffectTyping'
+import { resolveSelectorOptions } from './useNodeTyping'
 
 export type ValidationLevel = 'L1' | 'L2' | 'L3'
 

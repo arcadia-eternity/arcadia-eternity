@@ -1,4 +1,6 @@
-export const OPERATOR_TYPE_LABELS: Record<string, string> = {
+import type { OperatorDSL } from '@arcadia-eternity/schema'
+
+export const OPERATOR_TYPE_LABELS: Partial<Record<OperatorDSL['type'], string>> = {
   dealDamage: '造成伤害',
   heal: '治疗',
   executeKill: '处决',

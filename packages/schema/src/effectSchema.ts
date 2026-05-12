@@ -9,6 +9,7 @@ import { MarkConfigSchema } from './mark'
 import { StringEnum } from './utils'
 import { BASE_EXTRACTOR_KEYS, BASE_SELECTOR_KEYS, COMPARE_OPERATORS } from './effectPrimitives'
 import { effectDslTypingMetadata } from './effectTypingMetadata'
+import type { SelectorChain } from './effectDsl'
 
 // --- Base enums ---
 export const baseSelectorSchema = StringEnum([...BASE_SELECTOR_KEYS])
@@ -123,6 +124,8 @@ export const extractorSchema = Type.Union([
   baseExtractorSchema,
 ])
 
+export type ExtractorKind = 'base' | 'attribute' | 'relation' | 'field' | 'dynamic'
+
 // --- Evaluator DSL schema ---
 export const evaluatorDSLSchema = Type.Union([
   Type.Object({
@@ -183,6 +186,175 @@ export const selectorChainSchema = Type.Union([
     falseValue: Type.Optional(Type.Any()),
   }),
 ])
+
+// ── Selector chain metadata (label/group/description/argKind) ──
+// Derived from SelectorChain type in effectDsl.ts. One entry per variant.
+
+export type SelectorChainArgKind =
+  | 'none'
+  | 'text'
+  | 'extractor'
+  | 'value'
+  | 'selector'
+  | 'evaluator'
+  | 'evaluatorExtractor'
+  | 'configKey'
+  | 'when'
+
+export interface SelectorChainStepMeta {
+  type: SelectorChain['type']
+  label: string
+  group: string
+  description: string
+  argKind: SelectorChainArgKind
+}
+
+export const SELECTOR_CHAIN_STEP_META: readonly SelectorChainStepMeta[] = [
+  {
+    type: 'select',
+    label: '筛选',
+    group: 'extract',
+    description: '从每个实体中提取指定属性（如当前生命值、怒气等）',
+    argKind: 'extractor',
+  },
+  {
+    type: 'selectPath',
+    label: '路径选择',
+    group: 'extract',
+    description: '通过 JSON 路径从对象中提取嵌套值',
+    argKind: 'text',
+  },
+  {
+    type: 'selectProp',
+    label: '属性选择',
+    group: 'extract',
+    description: '通过对象属性名从每个实体中提取属性值',
+    argKind: 'text',
+  },
+  {
+    type: 'selectObservable',
+    label: '可观察选择',
+    group: 'extract',
+    description: '从每个实体中提取可观察的运行时动态值',
+    argKind: 'text',
+  },
+  {
+    type: 'selectAttribute$',
+    label: '动态属性',
+    group: 'extract',
+    description: '从每个实体中提取动态属性（基于运行时状态计算）',
+    argKind: 'text',
+  },
+  {
+    type: 'configGet',
+    label: '配置获取',
+    group: 'extract',
+    description: '从每个实体的配置存储中按 key 获取值',
+    argKind: 'configKey',
+  },
+  {
+    type: 'where',
+    label: '条件过滤',
+    group: 'filter',
+    description: '按条件过滤实体列表，保留满足条件的实体',
+    argKind: 'evaluator',
+  },
+  {
+    type: 'whereAttr',
+    label: '属性过滤',
+    group: 'filter',
+    description: '先提取属性值再按条件过滤实体',
+    argKind: 'evaluatorExtractor',
+  },
+  { type: 'flat', label: '展平', group: 'transform', description: '将嵌套数组展平为一维数组', argKind: 'none' },
+  { type: 'sum', label: '求和', group: 'math', description: '对数组中的所有数值求和，输出单个数值', argKind: 'none' },
+  { type: 'avg', label: '平均', group: 'math', description: '计算数组的平均值，输出单个数值', argKind: 'none' },
+  { type: 'add', label: '加法', group: 'math', description: '将数组中的每个数值加上指定值', argKind: 'value' },
+  { type: 'multiply', label: '乘法', group: 'math', description: '将数组中的每个数值乘以指定值', argKind: 'value' },
+  { type: 'divide', label: '除法', group: 'math', description: '将数组中的每个数值除以指定值', argKind: 'value' },
+  { type: 'shuffled', label: '乱序', group: 'transform', description: '随机打乱数组顺序', argKind: 'none' },
+  {
+    type: 'asStatLevelMark',
+    label: '等级标记',
+    group: 'transform',
+    description: '将实体标记转换为统计等级标记对象进行计数',
+    argKind: 'none',
+  },
+  {
+    type: 'sampleBetween',
+    label: '区间采样',
+    group: 'transform',
+    description: '在数组相邻元素之间进行插值采样',
+    argKind: 'none',
+  },
+  {
+    type: 'and',
+    label: '交集',
+    group: 'set',
+    description: '计算当前实体列表与另一个选择器结果的交集',
+    argKind: 'selector',
+  },
+  {
+    type: 'or',
+    label: '并集',
+    group: 'set',
+    description: '计算当前实体列表与另一个选择器结果的并集',
+    argKind: 'selector',
+  },
+  {
+    type: 'randomPick',
+    label: '随机选取',
+    group: 'random',
+    description: '从数组中随机选取指定数量的元素',
+    argKind: 'value',
+  },
+  {
+    type: 'randomSample',
+    label: '随机采样',
+    group: 'random',
+    description: '从数组中随机采样指定比例的元素',
+    argKind: 'value',
+  },
+  {
+    type: 'limit',
+    label: '限制数量',
+    group: 'limit',
+    description: '限制数组长度为指定值，超过则截断前 N 个',
+    argKind: 'value',
+  },
+  { type: 'clampMax', label: '上限', group: 'limit', description: '将每个值限制在最大上限以内', argKind: 'value' },
+  { type: 'clampMin', label: '下限', group: 'limit', description: '将每个值限制在最小下限以上', argKind: 'value' },
+  {
+    type: 'when',
+    label: '条件分支',
+    group: 'flow',
+    description: '根据条件选择不同的值输出，类似 if/else 逻辑',
+    argKind: 'when',
+  },
+]
+
+/** All valid SelectorChain type values, derived from TypeBox schema. */
+export const SELECTOR_CHAIN_TYPES = SELECTOR_CHAIN_STEP_META.map(m => m.type)
+
+/** Precomputed classification Sets, derived from argKind. */
+export const NO_PARAM_CHAIN_TYPES = new Set(SELECTOR_CHAIN_STEP_META.filter(m => m.argKind === 'none').map(m => m.type))
+export const TEXT_INPUT_CHAIN_TYPES = new Set(
+  SELECTOR_CHAIN_STEP_META.filter(m => m.argKind === 'text').map(m => m.type),
+)
+export const VALUE_SLOT_CHAIN_TYPES = new Set(
+  SELECTOR_CHAIN_STEP_META.filter(m => m.argKind === 'value').map(m => m.type),
+)
+export const SELECTOR_SLOT_CHAIN_TYPES = new Set(
+  SELECTOR_CHAIN_STEP_META.filter(m => m.argKind === 'selector').map(m => m.type),
+)
+export const EVALUATOR_CHAIN_TYPES = new Set(
+  SELECTOR_CHAIN_STEP_META.filter(m => m.argKind === 'evaluator').map(m => m.type),
+)
+
+/** Lookup metadata for a chain step type. */
+export function getChainStepMeta(type: string): SelectorChainStepMeta | undefined {
+  return SELECTOR_CHAIN_STEP_META.find(m => m.type === type)
+}
 
 // --- Selector DSL schema ---
 export const selectorDSLSchema = Type.Union([
