@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import DslNode from '../../DslNode.vue'
-import type { Value, SelectorDSL, ConditionDSL, SelectorChain, OperatorDSL, ValueView } from '@arcadia-eternity/schema'
+import type {
+  Value,
+  SelectorDSL,
+  ConditionDSL,
+  SelectorChain,
+  OperatorDSL,
+  ValueView,
+  EffectDslFieldTypingRule,
+} from '@arcadia-eternity/schema'
 import type { StringEnumOption } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 
@@ -10,6 +18,7 @@ const props = defineProps<{
   label?: string
   allowedTypes?: string[]
   stringEnumOptions?: StringEnumOption[]
+  fieldRule?: EffectDslFieldTypingRule
   depth?: number
   maxDepth?: number
 }>()
@@ -304,6 +313,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
         <DslNode
           kind="selector"
           :model-value="typedValue?.selector"
+          :field-rule="fieldRule"
           :depth="nextDepth"
           :max-depth="maxDepth"
           @update:model-value="
@@ -318,6 +328,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
           <DslNode
             kind="value"
             :model-value="typedValue?.value ?? 0"
+            :field-rule="fieldRule"
             :depth="nextDepth"
             :max-depth="maxDepth"
             @update:model-value="
@@ -332,6 +343,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
           <DslNode
             kind="selector"
             :model-value="{ base: 'self', chain: typedValue?.chain ?? [] }"
+            :field-rule="fieldRule"
             :depth="nextDepth"
             :max-depth="maxDepth"
             @update:model-value="
@@ -374,6 +386,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
             <DslNode
               kind="value"
               :model-value="(typedValue?.trueValue as Value) ?? 0"
+              :field-rule="fieldRule"
               :depth="nextDepth"
               :max-depth="maxDepth"
               @update:model-value="
@@ -392,6 +405,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
             <DslNode
               kind="value"
               :model-value="typedValue?.falseValue ?? 0"
+              :field-rule="fieldRule"
               :depth="nextDepth"
               :max-depth="maxDepth"
               @update:model-value="
@@ -416,6 +430,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
             <DslNode
               kind="value"
               :model-value="item"
+              :field-rule="fieldRule"
               :depth="nextDepth"
               :max-depth="maxDepth"
               class="array-value-editor"

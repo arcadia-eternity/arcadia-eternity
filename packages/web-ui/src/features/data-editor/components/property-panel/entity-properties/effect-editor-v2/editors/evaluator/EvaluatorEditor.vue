@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { EvaluatorDSL, EvaluatorDSLView, EffectDslFieldTypingRule } from '@arcadia-eternity/schema'
+import type {
+  EvaluatorDSL,
+  EvaluatorDSLView,
+  EffectDslFieldTypingRule,
+  EffectDslStateConstraint,
+} from '@arcadia-eternity/schema'
 import DslNode from '../../DslNode.vue'
 import { useNodeTyping } from '../../composables/useNodeTyping'
 import { CATEGORY_TAG_COLORS } from '../../constants'
@@ -83,9 +88,36 @@ const category = computed(() => categorizeEvaluator(evType.value))
 
 const evaluatorOptions = computed(() => typing.resolveEvaluatorOptions(props.fieldRule))
 
+// ── Value Rule Narrowing ──────────────────────────────────────────────────────
+// For same/notSame/compare evaluators: pipeline narrows manifest — overlapping
+// constraint kinds use the pipeline's narrower version (with specific targets/valueTypes).
+// For probability/contain: pipeline is irrelevant — use manifest only.
+
+function narrowValueRule(
+  manifestRule: EffectDslFieldTypingRule,
+  pipelineRule: EffectDslFieldTypingRule,
+): EffectDslFieldTypingRule {
+  const pipelineKinds = new Set(pipelineRule.allow.map(c => c.kind))
+  const manifestOnly: EffectDslStateConstraint[] = manifestRule.allow.filter(c => !pipelineKinds.has(c.kind))
+  return { allow: [...pipelineRule.allow, ...manifestOnly] }
+}
+
 // ── Field rule resolvers for child DslNodes ──────────────────────────────────
 
-const valFieldRule = computed(() => typing.getFieldTyping('evaluator', evType.value, 'value', 'valueFields'))
+const valFieldRule = computed(() => {
+  const manifestRule = typing.getFieldTyping('evaluator', evType.value, 'value', 'valueFields')
+  if (!props.fieldRule) return manifestRule
+  if (!manifestRule) return props.fieldRule
+
+  // For same/notSame/compare: narrow manifest with pipeline constraints
+  const narrowingCategories = new Set(['same', 'notSame', 'compare'])
+  if (narrowingCategories.has(category.value)) {
+    return narrowValueRule(manifestRule, props.fieldRule)
+  }
+
+  // For probability/contain/anyOf/exist: value type is independent of pipeline
+  return manifestRule
+})
 
 const percentFieldRule = computed(() => typing.getFieldTyping('evaluator', evType.value, 'percent', 'valueFields'))
 

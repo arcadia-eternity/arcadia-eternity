@@ -147,36 +147,60 @@ export function resolveValueTypeOptions(fieldTyping?: EffectDslFieldTypingRule):
   const allowed = new Set<string>()
 
   for (const constraint of fieldTyping.allow) {
-    if (constraint.kind === 'scalar' && constraint.valueTypes) {
-      for (const vt of constraint.valueTypes) {
-        if (vt === 'number') {
-          allowed.add('raw:number')
-          allowed.add('dynamic')
+    if (constraint.kind === 'scalar') {
+      if (constraint.valueTypes && constraint.valueTypes.length > 0) {
+        for (const vt of constraint.valueTypes) {
+          if (vt === 'number') {
+            allowed.add('raw:number')
+            allowed.add('dynamic')
+            allowed.add('selectorValue')
+          }
+          if (vt === 'string') {
+            allowed.add('raw:string')
+            allowed.add('entity:baseMark')
+            allowed.add('entity:baseSkill')
+            allowed.add('entity:species')
+            allowed.add('entity:effect')
+            allowed.add('dynamic')
+            allowed.add('selectorValue')
+          }
+          if (vt === 'boolean') {
+            allowed.add('raw:boolean')
+            allowed.add('dynamic')
+            allowed.add('selectorValue')
+          }
         }
-        if (vt === 'string') {
-          allowed.add('raw:string')
-          allowed.add('entity:baseMark')
-          allowed.add('entity:baseSkill')
-          allowed.add('entity:species')
-          allowed.add('entity:effect')
-          allowed.add('dynamic')
-        }
-        if (vt === 'boolean') {
-          allowed.add('raw:boolean')
-          allowed.add('dynamic')
-        }
+      } else {
+        allowed.add('raw:number')
+        allowed.add('raw:string')
+        allowed.add('raw:boolean')
+        allowed.add('dynamic')
+        allowed.add('selectorValue')
       }
     }
     if (constraint.kind === 'id') {
-      if (constraint.targets?.includes('baseMark')) allowed.add('entity:baseMark')
-      if (constraint.targets?.includes('baseSkill')) allowed.add('entity:baseSkill')
-      if (constraint.targets?.includes('skill')) allowed.add('entity:baseSkill')
-      if (constraint.targets?.includes('mark')) allowed.add('entity:baseMark')
-      if (constraint.targets?.includes('pet')) allowed.add('entity:species')
-      if (constraint.targets?.includes('effectDef')) {
+      if (constraint.targets && constraint.targets.length > 0) {
+        if (constraint.targets.includes('baseMark')) allowed.add('entity:baseMark')
+        if (constraint.targets.includes('baseSkill')) allowed.add('entity:baseSkill')
+        if (constraint.targets.includes('skill')) allowed.add('entity:baseSkill')
+        if (constraint.targets.includes('mark')) allowed.add('entity:baseMark')
+        if (constraint.targets.includes('pet')) allowed.add('entity:species')
+        if (constraint.targets.includes('effectDef')) {
+          allowed.add('entity:effect')
+          allowed.add('operator')
+        }
+      } else {
+        allowed.add('entity:baseMark')
+        allowed.add('entity:baseSkill')
+        allowed.add('entity:species')
         allowed.add('entity:effect')
-        allowed.add('operator')
       }
+      allowed.add('dynamic')
+      allowed.add('selectorValue')
+    }
+    if (constraint.kind === 'owner') {
+      allowed.add('dynamic')
+      allowed.add('selectorValue')
     }
     if (constraint.kind === 'object') {
       for (const cls of constraint.classes ?? []) {
@@ -184,10 +208,18 @@ export function resolveValueTypeOptions(fieldTyping?: EffectDslFieldTypingRule):
         if (cls === 'json:array') allowed.add('array')
         if (cls === 'json:stringArray') allowed.add('raw:string')
       }
+      allowed.add('dynamic')
+      allowed.add('selectorValue')
     }
     if (constraint.kind === 'propertyRef') {
       allowed.add('raw:string')
       allowed.add('dynamic')
+      allowed.add('selectorValue')
+    }
+    if (constraint.kind === 'stringEnum') {
+      allowed.add('raw:string')
+      allowed.add('dynamic')
+      allowed.add('selectorValue')
     }
   }
 

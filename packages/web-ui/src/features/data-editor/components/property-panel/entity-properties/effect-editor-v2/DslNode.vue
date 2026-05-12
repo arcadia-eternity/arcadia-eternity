@@ -124,6 +124,7 @@ function emitUpdate(v: unknown) {
         :model-value="modelValue as Value"
         :allowed-types="typing.resolveValueTypeOptions(fieldRule).map(o => o.value)"
         :string-enum-options="typing.resolveStringEnumOptions(fieldRule)"
+        :field-rule="fieldRule"
         :depth="depth"
         :max-depth="maxDepth"
         @update:model-value="emitUpdate"
