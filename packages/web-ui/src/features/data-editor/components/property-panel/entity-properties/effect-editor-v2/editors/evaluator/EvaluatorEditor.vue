@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type {
-  EvaluatorDSL,
-  EvaluatorDSLView,
-  EffectDslFieldTypingRule,
-  EffectDslStateConstraint,
-} from '@arcadia-eternity/schema'
+import type { EvaluatorDSL, EvaluatorDSLView, EffectDslFieldTypingRule } from '@arcadia-eternity/schema'
 import DslNode from '../../DslNode.vue'
 import { useNodeTyping } from '../../composables/useNodeTyping'
 import { CATEGORY_TAG_COLORS } from '../../constants'
@@ -88,34 +83,33 @@ const category = computed(() => categorizeEvaluator(evType.value))
 
 const evaluatorOptions = computed(() => typing.resolveEvaluatorOptions(props.fieldRule))
 
-// ── Value Rule Narrowing ──────────────────────────────────────────────────────
-// For same/notSame/compare evaluators: pipeline narrows manifest — overlapping
-// constraint kinds use the pipeline's narrower version (with specific targets/valueTypes).
-// For probability/contain: pipeline is irrelevant — use manifest only.
-
-function narrowValueRule(
-  manifestRule: EffectDslFieldTypingRule,
-  pipelineRule: EffectDslFieldTypingRule,
-): EffectDslFieldTypingRule {
-  const pipelineKinds = new Set(pipelineRule.allow.map(c => c.kind))
-  const manifestOnly: EffectDslStateConstraint[] = manifestRule.allow.filter(c => !pipelineKinds.has(c.kind))
-  return { allow: [...pipelineRule.allow, ...manifestOnly] }
-}
-
 // ── Field rule resolvers for child DslNodes ──────────────────────────────────
+// For same/notSame/compare evaluators: the value MUST match what the pipeline
+// selector outputs. Use ONLY pipeline constraints.
+// BUT: when fieldRule is structural (from manifest field typing, e.g.
+// DSL_EVALUATOR_OBJECT {kind:'object',classes:['dsl:evaluator']}), fall back
+// to manifest — it's not a pipeline type, it's just saying "this field holds
+// an evaluator node". Structural rules are all object-kind with dsl: classes.
+// For probability/contain/anyOf/exist: value type is independent of pipeline.
+
+function isStructuralRule(rule: EffectDslFieldTypingRule): boolean {
+  return (
+    rule.allow.length > 0 &&
+    rule.allow.every(c => c.kind === 'object' && (c.classes?.some(cls => cls.startsWith('dsl:')) ?? false))
+  )
+}
 
 const valFieldRule = computed(() => {
   const manifestRule = typing.getFieldTyping('evaluator', evType.value, 'value', 'valueFields')
   if (!props.fieldRule) return manifestRule
   if (!manifestRule) return props.fieldRule
+  if (isStructuralRule(props.fieldRule)) return manifestRule
 
-  // For same/notSame/compare: narrow manifest with pipeline constraints
   const narrowingCategories = new Set(['same', 'notSame', 'compare'])
   if (narrowingCategories.has(category.value)) {
-    return narrowValueRule(manifestRule, props.fieldRule)
+    return props.fieldRule
   }
 
-  // For probability/contain/anyOf/exist: value type is independent of pipeline
   return manifestRule
 })
 
