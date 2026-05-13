@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { ConditionDSL, ConditionDSLView, EffectDslFieldTypingRule } from '@arcadia-eternity/schema'
+import type {
+  BaseSelectorKey,
+  ConditionDSL,
+  ConditionDSLView,
+  EffectDslFieldTypingRule,
+  SelectorChain,
+} from '@arcadia-eternity/schema'
 import { getEffectDslManifest } from '@arcadia-eternity/schema'
+import { createSelectorValidator, seer2EffectCompileTypingEnvironment } from '@arcadia-eternity/battle'
+import type { CompileState } from '@arcadia-eternity/battle'
 import DslNode from '../../DslNode.vue'
-import { useNodeTyping } from '../../composables/useNodeTyping'
+import { useNodeTyping, compileStatesToFieldTyping } from '../../composables/useNodeTyping'
 
 defineOptions({ name: 'ConditionEditor' })
 
@@ -28,6 +36,9 @@ const manifest = getEffectDslManifest()
 
 // ── Composable ─────────────────────────────────────────────────────────────────
 const typing = useNodeTyping()
+
+// ── Selector validator (for resolve target selector pipeline type) ─────────────
+const selectorValidator = createSelectorValidator(seer2EffectCompileTypingEnvironment)
 
 // ── Field configuration type ───────────────────────────────────────────────────
 interface FieldConfig {
@@ -219,6 +230,35 @@ const hasCondition = computed(() => props.modelValue !== undefined && props.mode
 const fieldConfigs = computed(() => {
   if (!condType.value) return []
   return getConditionFieldConfigs(condType.value)
+})
+
+/** For evaluate conditions: resolve the target selector's pipeline output type.
+ *  This is passed to the evaluator so it can narrow value type options and
+ *  show type mismatch warnings for dynamic values' inner selectors. */
+const evaluateTargetFieldRule = computed((): EffectDslFieldTypingRule | undefined => {
+  if (condType.value !== 'evaluate') return undefined
+  try {
+    const target = cond.value.target
+    if (!target) return undefined
+    let states: CompileState[]
+    if (typeof target === 'string') {
+      states = selectorValidator.getBaseStates(target)
+    } else if ('base' in target) {
+      const cs = target as { base: BaseSelectorKey; chain?: SelectorChain[] }
+      states = selectorValidator.getBaseStates(cs.base)
+      for (const step of cs.chain ?? []) {
+        const result = selectorValidator.resolveStep(states, step, '/evaluate-target')
+        if (!result.ok) return undefined
+        states = result.states
+      }
+    } else {
+      return undefined
+    }
+    if (states.length > 0) return compileStatesToFieldTyping(states)
+  } catch {
+    /* ignore resolution errors */
+  }
+  return undefined
 })
 
 const conditionOptions = computed(() => typing.resolveConditionOptions(props.fieldRule))
@@ -489,7 +529,7 @@ const sourceOptions = [
             <DslNode
               :kind="field.kind"
               :model-value="cond[field.key as keyof ConditionDSLView]"
-              :field-rule="field.rule"
+              :field-rule="field.key === 'evaluator' ? (evaluateTargetFieldRule ?? field.rule) : field.rule"
               :field-name="field.key"
               :depth="nextDepth"
               :max-depth="maxDepth"
