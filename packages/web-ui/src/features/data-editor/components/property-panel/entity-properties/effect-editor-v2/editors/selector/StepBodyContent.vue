@@ -70,8 +70,9 @@ function getExtractorType(step: SelectorChain): string {
 
 function getExtractorArg(step: SelectorChain): string | undefined {
   const extractor = extractExtractor(step)
-  if (!extractor || typeof extractor === 'string') return undefined
-  // Narrowed: extractor is object ExtractorDSL
+  if (!extractor) return undefined
+  if (typeof extractor === 'string') return extractor
+  // Narrowed: extractor is object ExtractorDSL (type='base' with arg, or type='attribute'/'relation'/'field'/'dynamic')
   if (extractor.type === 'base' && 'arg' in extractor) return (extractor as { arg: string }).arg
   return undefined
 }
