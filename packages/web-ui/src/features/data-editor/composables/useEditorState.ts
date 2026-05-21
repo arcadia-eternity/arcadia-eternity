@@ -25,6 +25,7 @@ export interface EditorState {
   // File management
   availableDataFiles: string[]
   selectedDataFile: string | null
+  createTargetFile: string | null // null = use default (first file)
   recordSourceFiles: Record<string, string> // recordId → sourceFile
 }
 
@@ -44,6 +45,7 @@ export function provideEditorState(): EditorState {
     isDirty: false,
     availableDataFiles: [],
     selectedDataFile: null,
+    createTargetFile: null,
     recordSourceFiles: {},
   })
 

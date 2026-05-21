@@ -126,8 +126,8 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         targetDataset = resolved.dataset
         existingIndex = resolved.index
       } else {
-        // If editorState.selectedDataFile is set (e.g. by doCreate with targetFile), use it
-        const preferredFile = editorState.selectedDataFile
+        // If editorState.createTargetFile is set (e.g. by doCreate with targetFile), use it
+        const preferredFile = editorState.createTargetFile
         const dataFiles = (manifest.data as Record<string, string[]>)?.[kind] ?? []
         const firstFile = preferredFile ?? dataFiles[0] ?? cfg.dataFile
         if (!firstFile) {
@@ -190,13 +190,13 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
 
     // If targetFile specified, set it on editorState for doSave's fallback to use
     if (options?.targetFile) {
-      editorState.selectedDataFile = options.targetFile
+      editorState.createTargetFile = options.targetFile
     }
 
     // Auto-save to store + YAML
     await doSave()
 
-    const savedFile = editorState.selectedDataFile
+    const savedFile = editorState.createTargetFile
     if (savedFile) {
       editorState.recordSourceFiles[newId] = savedFile
     }

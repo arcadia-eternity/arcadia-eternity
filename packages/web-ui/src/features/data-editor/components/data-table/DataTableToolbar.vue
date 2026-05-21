@@ -160,6 +160,15 @@ const currentLabel = computed(() => entityLabels[props.entityType])
 
     <!-- Right: Action buttons -->
     <div class="toolbar-section toolbar-section--actions">
+      <!-- Target file selector (next to 新增 button) -->
+      <div class="toolbar-target-group">
+        <span class="toolbar-target-label">存至</span>
+        <ElSelect v-model="editorState.createTargetFile" size="small" class="toolbar-target-select" placeholder="默认">
+          <ElOption label="(默认)" :value="null" />
+          <ElOption v-for="f in editorState.availableDataFiles" :key="f" :label="f" :value="f" />
+        </ElSelect>
+      </div>
+
       <!-- 新增 button -->
       <ElButton
         size="small"
@@ -356,6 +365,45 @@ const currentLabel = computed(() => entityLabels[props.entityType])
 }
 
 /* ── Action buttons ── */
+.toolbar-target-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: var(--ae-space-1);
+}
+
+.toolbar-target-label {
+  font-size: var(--ae-font-xs);
+  color: var(--ae-text-muted);
+  white-space: nowrap;
+}
+
+.toolbar-target-select {
+  width: 140px;
+}
+
+.toolbar-target-select :deep(.el-input__wrapper) {
+  background: var(--ae-bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--ae-border-subtle) inset !important;
+  border-radius: var(--ae-radius-sm) !important;
+  height: 28px !important;
+  font-size: var(--ae-font-sm);
+  transition: box-shadow 0.15s ease;
+}
+
+.toolbar-target-select :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--ae-border-default) inset !important;
+}
+
+.toolbar-target-select :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--ae-accent-primary) inset !important;
+}
+
+.toolbar-target-select :deep(.el-input__inner) {
+  font-size: var(--ae-font-sm);
+  color: var(--ae-text-primary);
+}
+
 .toolbar-action-btn {
   height: 28px !important;
   padding: 0 var(--ae-space-2) !important;
