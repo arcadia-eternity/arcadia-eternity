@@ -5,15 +5,25 @@
  * Toolbar above the data table providing:
  *   - Search input (syncs with editorState.searchQuery)
  *   - Record count + selection count
- *   - [新增] button (placeholder — Phase 4)
- *   - [批量操作] dropdown (placeholder — Phase 4)
- *   - [文件管理] dropdown (placeholder — Phase 4)
+ *   - [新增] Create new record
+ *   - [删除] Delete selected record
+ *   - [批量操作] Batch delete/export dropdown
+ *   - [文件管理] File import/export dropdown
  *
  * Uses the `useEditorState()` composable for search state.
  */
-import { computed } from 'vue'
-import { Search, Plus } from '@element-plus/icons-vue'
-import { ElInput, ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon, ElTooltip } from 'element-plus'
+import { computed, inject } from 'vue'
+import { Delete, Search, Plus } from '@element-plus/icons-vue'
+import {
+  ElInput,
+  ElButton,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
+  ElIcon,
+  ElMessage,
+  ElMessageBox,
+} from 'element-plus'
 import { useEditorState, type EntityType } from '../../composables/useEditorState'
 
 // ── Props ──
@@ -22,11 +32,48 @@ const props = defineProps<{
   entityType: EntityType
   recordCount: number
   selectedCount: number
+  selectedIds?: string[]
 }>()
+
+const selectedIds = computed(() => props.selectedIds ?? [])
 
 // ── Editor state ──
 
 const editorState = useEditorState()
+
+// ── Editor operations (provided by DataEditorPage) ──
+
+const createRecord = inject('editor:createRecord', (() => {
+  console.warn('[DataTableToolbar] editor:createRecord not provided')
+}) as unknown as () => Promise<void>) as () => Promise<void>
+
+const deleteRecord = inject('editor:deleteRecord', (() => {
+  console.warn('[DataTableToolbar] editor:deleteRecord not provided')
+}) as unknown as () => Promise<void>) as () => Promise<void>
+
+const batchDeleteRecords = inject('editor:batchDeleteRecords', (() => {
+  console.warn('[DataTableToolbar] editor:batchDeleteRecords not provided')
+}) as unknown as (ids: string[]) => Promise<void>) as (ids: string[]) => Promise<void>
+
+// ── File operations (provided by DataEditorPage) ──
+const createDataFile = inject<(kind: string, name: string) => Promise<void>>('file:createDataFile', async () => {})
+
+async function handleNewFile() {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入新文件名（例如 my_effects.yaml）', '新建数据文件', {
+      confirmButtonText: '创建',
+      cancelButtonText: '取消',
+      inputPattern: /^[a-zA-Z0-9][a-zA-Z0-9_-]*\.yaml$/,
+      inputErrorMessage: '格式：字母开头，.yaml 结尾',
+    })
+    if (value) {
+      await createDataFile(props.entityType, value)
+      ElMessage.success(`文件 ${value} 已创建`)
+    }
+  } catch {
+    // cancelled
+  }
+}
 
 // ── Search binding ──
 
@@ -75,28 +122,44 @@ const currentLabel = computed(() => entityLabels[props.entityType])
 
     <!-- Right: Action buttons -->
     <div class="toolbar-section toolbar-section--actions">
-      <!-- 新增 button (placeholder) -->
-      <ElTooltip content="新增记录 (Phase 4)" placement="bottom" :show-after="400">
-        <ElButton size="small" type="primary" class="toolbar-action-btn" disabled>
-          <template #icon>
-            <ElIcon :size="14"><Plus /></ElIcon>
-          </template>
-          新增
-        </ElButton>
-      </ElTooltip>
+      <!-- 新增 button -->
+      <ElButton
+        size="small"
+        type="primary"
+        class="toolbar-action-btn"
+        :disabled="!editorState.selectedEntityType"
+        @click="createRecord"
+      >
+        <template #icon>
+          <ElIcon :size="14"><Plus /></ElIcon>
+        </template>
+        新增
+      </ElButton>
 
-      <!-- 批量操作 dropdown (placeholder) -->
-      <ElDropdown trigger="click" placement="bottom-end" disabled>
-        <ElButton size="small" class="toolbar-action-btn" disabled>
+      <!-- 删除 button -->
+      <ElButton
+        size="small"
+        type="danger"
+        class="toolbar-action-btn"
+        :disabled="!editorState.selectedRecordId"
+        @click="deleteRecord"
+      >
+        <template #icon>
+          <ElIcon :size="14"><Delete /></ElIcon>
+        </template>
+        删除
+      </ElButton>
+
+      <!-- 批量操作 dropdown -->
+      <ElDropdown trigger="click" placement="bottom-end" :disabled="selectedCount === 0">
+        <ElButton size="small" class="toolbar-action-btn" :disabled="selectedCount === 0">
           批量操作
           <span class="toolbar-chevron">&#9662;</span>
         </ElButton>
 
         <template #dropdown>
           <ElDropdownMenu>
-            <ElDropdownItem disabled>
-              <span class="text-[var(--ae-text-muted)] text-xs">批量删除 (即将推出)</span>
-            </ElDropdownItem>
+            <ElDropdownItem @click="batchDeleteRecords(selectedIds)"> 批量删除 </ElDropdownItem>
             <ElDropdownItem disabled>
               <span class="text-[var(--ae-text-muted)] text-xs">批量导出 (即将推出)</span>
             </ElDropdownItem>
@@ -104,15 +167,16 @@ const currentLabel = computed(() => entityLabels[props.entityType])
         </template>
       </ElDropdown>
 
-      <!-- 文件管理 dropdown (placeholder) -->
-      <ElDropdown trigger="click" placement="bottom-end" disabled>
-        <ElButton size="small" class="toolbar-action-btn" disabled>
+      <!-- 文件管理 dropdown -->
+      <ElDropdown trigger="click" placement="bottom-end">
+        <ElButton size="small" class="toolbar-action-btn">
           文件管理
           <span class="toolbar-chevron">&#9662;</span>
         </ElButton>
 
         <template #dropdown>
           <ElDropdownMenu>
+            <ElDropdownItem @click="handleNewFile"> 新建文件 </ElDropdownItem>
             <ElDropdownItem disabled>
               <span class="text-[var(--ae-text-muted)] text-xs">导入文件 (即将推出)</span>
             </ElDropdownItem>
