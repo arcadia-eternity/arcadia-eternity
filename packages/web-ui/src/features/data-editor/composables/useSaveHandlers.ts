@@ -110,7 +110,12 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
             window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath: path })
         : (folder: string, path: string) => readWorkspacePackFile({ folderName: folder, relativePath: path })
 
-      const resolved = await resolveTargetFile({ manifest, kind, packFolder, isBase: !!isBase, readFile }, id)
+      const sourceFile = editorState.recordSourceFiles?.[id]
+      const resolved = await resolveTargetFile(
+        { manifest, kind, packFolder, isBase: !!isBase, readFile },
+        id,
+        sourceFile,
+      )
 
       let targetFile: string
       let targetDataset: YamlAnchoredDataset
@@ -121,8 +126,10 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         targetDataset = resolved.dataset
         existingIndex = resolved.index
       } else {
+        // If editorState.selectedDataFile is set (e.g. by doCreate with targetFile), use it
+        const preferredFile = editorState.selectedDataFile
         const dataFiles = (manifest.data as Record<string, string[]>)?.[kind] ?? []
-        const firstFile = dataFiles[0] ?? cfg.dataFile
+        const firstFile = preferredFile ?? dataFiles[0] ?? cfg.dataFile
         if (!firstFile) {
           console.warn('[DataEditor] Save skipped: no data files found for', kind)
           editorState.isDirty = false
@@ -162,7 +169,7 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
     }
   }
 
-  async function doCreate() {
+  async function doCreate(options?: { targetFile?: string }) {
     const kind = editorState.selectedEntityType
     if (!kind) {
       ElMessage.warning('请先选择实体类型')
@@ -181,8 +188,18 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
     editorState.selectedRecordId = newId
     editorState.isDirty = true
 
+    // If targetFile specified, set it on editorState for doSave's fallback to use
+    if (options?.targetFile) {
+      editorState.selectedDataFile = options.targetFile
+    }
+
     // Auto-save to store + YAML
     await doSave()
+
+    const savedFile = editorState.selectedDataFile
+    if (savedFile) {
+      editorState.recordSourceFiles[newId] = savedFile
+    }
 
     // Re-affirm selection after save (reloadDataFromDisk may have cleared it on desktop)
     editorState.selectedRecordId = newId
