@@ -229,23 +229,50 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
       }
 
-      const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
-      const { content } = isBase
-        ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
-        : await readWorkspacePackFile({ folderName: packFolder, relativePath })
-      const dataset = parseYamlAnchoredDataset(content)
-      const index = dataset.rows.findIndex(r => r.id === id)
-      if (index < 0) {
+      const manifestData = (manifest.data as Record<string, string[]>) ?? {}
+      const dataFiles = manifestData[kind] ?? (cfg.dataFile ? [cfg.dataFile] : [])
+
+      if (dataFiles.length === 0) {
+        ElMessage.error('未找到数据文件')
+        return
+      }
+
+      let targetFile: string | null = null
+      let targetDataset: YamlAnchoredDataset | null = null
+      let targetIndex = -1
+
+      for (const fileRef of dataFiles) {
+        const relativePath = resolveManifestDataPath(manifest, fileRef)
+        const { content } = isBase
+          ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
+          : await readWorkspacePackFile({ folderName: packFolder, relativePath })
+
+        const dataset = parseYamlAnchoredDataset(content)
+        const idx = dataset.rows.findIndex(r => r.id === id)
+
+        if (idx >= 0) {
+          targetFile = relativePath
+          targetDataset = dataset
+          targetIndex = idx
+          break
+        }
+      }
+
+      if (targetIndex < 0) {
         ElMessage.error('记录未找到')
         return
       }
 
-      deleteYamlAnchoredRecord(dataset, index)
-      const yamlText = stringifyYamlAnchoredDataset(dataset)
+      deleteYamlAnchoredRecord(targetDataset!, targetIndex)
+      const yamlText = stringifyYamlAnchoredDataset(targetDataset!)
       if (isBase) {
-        await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
+        await window.arcadiaDesktop!.writeBasePackFile({
+          folderName: 'base',
+          relativePath: targetFile!,
+          content: yamlText,
+        })
       } else {
-        await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+        await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile!, content: yamlText })
       }
 
       // Remove from in-memory store
@@ -259,7 +286,7 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
       editorState.selectedRecordId = null
       draftRef.value = {}
       editorState.isDirty = false
-      console.log('[DataEditor] Deleted', id, 'from', isBase ? 'base/' : packFolder + '/', relativePath)
+      console.log('[DataEditor] Deleted', id, 'from', isBase ? 'base/' : packFolder + '/', targetFile)
       ElMessage.success('已删除')
       await reloadDataFromDisk(gameDataStore)
     } catch (err) {
@@ -302,32 +329,51 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
       }
 
-      const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
-      const { content } = isBase
-        ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
-        : await readWorkspacePackFile({ folderName: packFolder, relativePath })
-      const dataset = parseYamlAnchoredDataset(content)
+      const manifestData = (manifest.data as Record<string, string[]>) ?? {}
+      const dataFiles = manifestData[kind] ?? (cfg.dataFile ? [cfg.dataFile] : [])
 
-      // Collect indices, sort descending to avoid shift
-      const idSet = new Set(ids)
-      const indices = dataset.rows
-        .map((r, i) => (idSet.has(r.id) ? i : -1))
-        .filter(i => i >= 0)
-        .sort((a, b) => b - a) // descending
-
-      if (indices.length === 0) {
-        ElMessage.error('未找到匹配的记录')
+      if (dataFiles.length === 0) {
+        ElMessage.error('未找到数据文件')
         return
       }
 
-      for (const idx of indices) {
-        deleteYamlAnchoredRecord(dataset, idx)
+      let targetFile: string | null = null
+      let targetDataset: YamlAnchoredDataset | null = null
+      const idSet = new Set(ids)
+
+      for (const fileRef of dataFiles) {
+        const relativePath = resolveManifestDataPath(manifest, fileRef)
+        const { content } = isBase
+          ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
+          : await readWorkspacePackFile({ folderName: packFolder, relativePath })
+
+        const dataset = parseYamlAnchoredDataset(content)
+        const indices = dataset.rows
+          .map((r, i) => (idSet.has(r.id) ? i : -1))
+          .filter(i => i >= 0)
+          .sort((a, b) => b - a)
+
+        if (indices.length > 0) {
+          targetFile = relativePath
+          targetDataset = dataset
+
+          for (const idx of indices) {
+            deleteYamlAnchoredRecord(dataset, idx)
+          }
+
+          const yamlText = stringifyYamlAnchoredDataset(dataset)
+          if (isBase) {
+            await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
+          } else {
+            await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+          }
+          break
+        }
       }
-      const yamlText = stringifyYamlAnchoredDataset(dataset)
-      if (isBase) {
-        await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
-      } else {
-        await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+
+      if (!targetDataset) {
+        ElMessage.error('未找到匹配的记录')
+        return
       }
 
       // Remove from in-memory store
@@ -348,12 +394,12 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
 
       console.log(
         '[DataEditor] Batch deleted',
-        indices.length,
+        ids.length,
         'records from',
         isBase ? 'base/' : packFolder + '/',
-        relativePath,
+        targetFile,
       )
-      ElMessage.success(`已删除 ${indices.length} 条记录`)
+      ElMessage.success(`已删除 ${ids.length} 条记录`)
       await reloadDataFromDisk(gameDataStore)
     } catch (err) {
       console.error('[DataEditor] Batch delete failed:', err)
