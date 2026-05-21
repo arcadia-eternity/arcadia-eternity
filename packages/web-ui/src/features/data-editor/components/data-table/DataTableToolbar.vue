@@ -57,6 +57,10 @@ const batchDeleteRecords = inject('editor:batchDeleteRecords', (() => {
 
 // ── File operations (provided by DataEditorPage) ──
 const createDataFile = inject<(kind: string, name: string) => Promise<void>>('file:createDataFile', async () => {})
+const deleteDataFile = inject<(path: string, options?: { force?: boolean }) => Promise<void>>(
+  'file:deleteDataFile',
+  async () => {},
+)
 
 async function handleNewFile() {
   try {
@@ -72,6 +76,24 @@ async function handleNewFile() {
     }
   } catch {
     // cancelled
+  }
+}
+
+async function handleDeleteFile() {
+  try {
+    const { value: fileName } = await ElMessageBox.prompt('请输入要删除的文件名', '删除数据文件', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+    })
+    if (!fileName) return
+    await ElMessageBox.confirm(`确认删除 "${fileName}"？此操作不可逆。`, '确认删除', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+    })
+    await deleteDataFile(fileName as string)
+    ElMessage.success(`文件 ${fileName} 已删除`)
+  } catch {
+    // cancelled or error handled by deleteDataFile
   }
 }
 
@@ -177,6 +199,7 @@ const currentLabel = computed(() => entityLabels[props.entityType])
         <template #dropdown>
           <ElDropdownMenu>
             <ElDropdownItem @click="handleNewFile"> 新建文件 </ElDropdownItem>
+            <ElDropdownItem @click="handleDeleteFile"> 删除文件 </ElDropdownItem>
             <ElDropdownItem disabled>
               <span class="text-[var(--ae-text-muted)] text-xs">导入文件 (即将推出)</span>
             </ElDropdownItem>
