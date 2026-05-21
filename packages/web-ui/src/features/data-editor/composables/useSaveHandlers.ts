@@ -11,6 +11,7 @@ import {
   upsertYamlAnchoredRecord,
   deleteYamlAnchoredRecord,
   stringifyYamlAnchoredDataset,
+  type YamlAnchoredDataset,
 } from '../schemas/yamlAnchoredRecords'
 
 type StoreLike = Record<string, { byId: Record<string, unknown>; allIds: string[] }>
@@ -103,42 +104,61 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         manifest = result.manifest
       }
 
-      const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
-      const { content } = isBase
-        ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
-        : await readWorkspacePackFile({ folderName: packFolder, relativePath })
+      const manifestData = (manifest.data as Record<string, string[]>) ?? {}
+      const dataFiles = manifestData[kind] ?? (cfg.dataFile ? [cfg.dataFile] : [])
 
-      const dataset = parseYamlAnchoredDataset(content)
-
-      console.log('[DataEditor:debug] id lookup:', {
-        searchId: id,
-        rowCount: dataset.rows.length,
-        firstFewIds: dataset.rows.slice(0, 3).map(r => r.id),
-        existingIndex: dataset.rows.findIndex(row => row.id === id),
-      })
-      const existingIndex = dataset.rows.findIndex(row => row.id === id)
-      if (existingIndex < 0) {
-        console.warn('[DataEditor:debug] Record NOT FOUND in YAML, will APPEND instead of replace:', {
-          id,
-          rowCount: dataset.rows.length,
-        })
+      if (dataFiles.length === 0) {
+        console.warn('[DataEditor] Save skipped: no data files found for', kind)
+        editorState.isDirty = false
+        return
       }
+
+      let targetFile: string | null = null
+      let targetDataset: YamlAnchoredDataset | null = null
+      let existingIndex = -1
+
+      for (const fileRef of dataFiles) {
+        const relativePath = resolveManifestDataPath(manifest, fileRef)
+        const { content } = isBase
+          ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
+          : await readWorkspacePackFile({ folderName: packFolder, relativePath })
+
+        const dataset = parseYamlAnchoredDataset(content)
+        const idx = dataset.rows.findIndex(row => row.id === id)
+
+        if (idx >= 0) {
+          targetFile = relativePath
+          targetDataset = dataset
+          existingIndex = idx
+          break
+        }
+
+        if (!targetDataset) {
+          targetFile = relativePath
+          targetDataset = dataset
+        }
+      }
+
       upsertYamlAnchoredRecord({
-        dataset,
+        dataset: targetDataset!,
         schema: cfg.schema,
         draft: clone,
         targetIndex: existingIndex >= 0 ? existingIndex : undefined,
       })
 
-      const yamlText = stringifyYamlAnchoredDataset(dataset)
+      const yamlText = stringifyYamlAnchoredDataset(targetDataset!)
       if (isBase) {
-        await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
+        await window.arcadiaDesktop!.writeBasePackFile({
+          folderName: 'base',
+          relativePath: targetFile!,
+          content: yamlText,
+        })
       } else {
-        await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+        await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile!, content: yamlText })
       }
 
       editorState.isDirty = false
-      console.log('[DataEditor] Saved', id, 'to', isBase ? 'base/' : packFolder + '/', relativePath)
+      console.log('[DataEditor] Saved', id, 'to', isBase ? 'base/' : packFolder + '/', targetFile)
       ElMessage.success('已保存')
       await reloadDataFromDisk(gameDataStore)
     } catch (err) {
