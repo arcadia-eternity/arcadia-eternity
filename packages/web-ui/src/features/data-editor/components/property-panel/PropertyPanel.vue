@@ -84,6 +84,11 @@ const recordDisplayName = computed(() => {
   if (!currentRecord.value || !currentEntityConfig.value) return null
   return translateEntityName(state.selectedRecordId!, currentEntityConfig.value)
 })
+
+const sourceFileLabel = computed(() => {
+  if (!state.selectedRecordId) return null
+  return state.recordSourceFiles?.[state.selectedRecordId] ?? null
+})
 </script>
 
 <template>
@@ -93,6 +98,9 @@ const recordDisplayName = computed(() => {
         {{ config.entities[state.selectedEntityType ?? '']?.label ?? state.selectedEntityType ?? '属性' }}
         <template v-if="recordDisplayName"> · {{ recordDisplayName }}</template>
         编辑器
+        <span v-if="sourceFileLabel" class="text-[10px] text-[var(--ae-text-muted)] ml-2">
+          来源: {{ sourceFileLabel }}
+        </span>
       </span>
     </div>
 
