@@ -89,3 +89,90 @@ describe('effect YAML round-trip (parse → upsert → stringify → re-parse)',
     expect(stringified).toContain('&condition_probability_5_percent_template')
   })
 })
+
+describe('debug: findIndex diagnosis', () => {
+  it('findIndex works for effect records parsed from real YAML', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    console.log(`[DEBUG] Total rows: ${dataset.rows.length}`)
+    console.log(`[DEBUG] First 20 row IDs:`)
+    for (let i = 0; i < Math.min(20, dataset.rows.length); i++) {
+      console.log(`  [${i}] id="${dataset.rows[i].id}"`)
+    }
+
+    const testIds = [
+      'effect_skill_reduce_stat_5_percent',
+      'effect_skill_reduce_opponent_def_1_stage_5_percent',
+      'effect_skill_reduce_opponent_spd_1_stage_15_percent',
+    ]
+
+    for (const testId of testIds) {
+      const index = dataset.rows.findIndex(row => row.id === testId)
+      console.log(`[DEBUG] findIndex("${testId}") = ${index}`)
+      expect(index).toBeGreaterThanOrEqual(0)
+    }
+
+    // Check for any rows with empty ID
+    const emptyIdRows = dataset.rows.filter(r => !r.id || r.id.trim() === '')
+    console.log(`[DEBUG] Rows with empty ID: ${emptyIdRows.length}`)
+    if (emptyIdRows.length > 0) {
+      console.log(`[DEBUG]   indices: ${emptyIdRows.map(r => r.index).join(', ')}`)
+      console.log(`[DEBUG]   values: ${JSON.stringify(emptyIdRows.slice(0, 3).map(r => r.value))}`)
+    }
+
+    // Check for duplicate IDs
+    const idCounts = new Map<string, number[]>()
+    for (const row of dataset.rows) {
+      if (!idCounts.has(row.id)) idCounts.set(row.id, [])
+      idCounts.get(row.id)!.push(row.index)
+    }
+    const dups = [...idCounts.entries()].filter(([, indices]) => indices.length > 1)
+    console.log(`[DEBUG] Duplicate IDs: ${dups.length}`)
+    for (const [id, indices] of dups.slice(0, 10)) {
+      console.log(`  "${id}" at indices ${indices.join(', ')}`)
+    }
+  })
+
+  it(
+    'upsertYamlAnchoredRecord with findIndex-based targetIndex replaces at correct position',
+    { timeout: 30000 },
+    () => {
+      const dataset = freshDataset()
+      const recordId = 'effect_skill_reduce_opponent_def_1_stage_5_percent'
+      const existingIndex = dataset.rows.findIndex(row => row.id === recordId)
+
+      expect(existingIndex).toBeGreaterThanOrEqual(0)
+      const expectedIndex = existingIndex
+
+      const record = dataset.rows[existingIndex]
+      const draft = structuredClone(record.value) as Record<string, unknown>
+
+      // Modify a field
+      draft.priority = 999
+
+      const result = upsertYamlAnchoredRecord({
+        dataset,
+        schema: effectDSLSchema,
+        draft,
+        targetIndex: existingIndex,
+      })
+
+      expect(result.index).toBe(expectedIndex)
+
+      // Verify the position hasn't changed
+      const stringified = stringifyYamlAnchoredDataset(dataset)
+      const reparsed = parseYamlAnchoredDataset(stringified)
+
+      // The record should still be at the same index
+      const reparsedRow = reparsed.rows[expectedIndex]
+      expect(reparsedRow.id).toBe(recordId)
+      expect(reparsedRow.value.priority).toBe(999)
+
+      // Verify no duplicate was created
+      const allMatchCount = reparsed.rows.filter(r => r.id === recordId).length
+      expect(allMatchCount).toBe(1)
+
+      // Verify the total count didn't increase
+      expect(reparsed.rows.length).toBe(dataset.rows.length)
+    },
+  )
+})

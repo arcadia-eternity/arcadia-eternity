@@ -1,0 +1,39 @@
+{
+  "active_plan": "/Users/yuuinih/GitHub/test_battle/.sisyphus/plans/data-editor-file-management.md",
+  "started_at": "2026-05-21T14:30:34.554Z",
+  "session_ids": ["ses_1b5acbd99ffelqghFzTRV6TFnZ"],
+  "session_origins": {
+    "ses_1b5acbd99ffelqghFzTRV6TFnZ": "direct"
+  },
+  "plan_name": "data-editor-file-management",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "修复 findFileKind + 去重 reloadDataFromDisk",
+      "session_id": "ses_1b50d92afffemX6vEl4wyVSht4",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-05-21T14:32:36.024Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "save/delete 使用 sourceFile 元数据消除线性扫描",
+      "session_id": "ses_1b5044786ffeLaLZydZnsVKNo3",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-21T14:44:12.406Z"
+    },
+    "todo:11": {
+      "task_key": "todo:11",
+      "task_label": "11",
+      "task_title": "EditorWorkspace 文件过滤",
+      "session_id": "ses_1b4bf9253ffePjApmhnG59OltX",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-05-21T15:57:33.963Z"
+    }
+  }
+}
