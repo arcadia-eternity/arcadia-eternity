@@ -23,6 +23,8 @@ import {
   ElIcon,
   ElMessage,
   ElMessageBox,
+  ElSelect,
+  ElOption,
 } from 'element-plus'
 import { useEditorState, type EntityType } from '../../composables/useEditorState'
 
@@ -139,6 +141,20 @@ const currentLabel = computed(() => entityLabels[props.entityType])
       />
     </div>
 
+    <!-- File selector -->
+    <div class="toolbar-section toolbar-section--file">
+      <ElSelect
+        v-model="editorState.selectedDataFile"
+        placeholder="文件"
+        size="small"
+        clearable
+        class="toolbar-file-select"
+      >
+        <ElOption label="(全部文件)" :value="null" />
+        <ElOption v-for="f in editorState.availableDataFiles" :key="f" :label="f" :value="f" />
+      </ElSelect>
+    </div>
+
     <!-- Spacer -->
     <div class="flex-1" />
 
@@ -248,6 +264,10 @@ const currentLabel = computed(() => entityLabels[props.entityType])
   max-width: 280px;
 }
 
+.toolbar-section--file {
+  flex: 0 0 auto;
+}
+
 .toolbar-section--actions {
   display: flex;
   align-items: center;
@@ -310,6 +330,29 @@ const currentLabel = computed(() => entityLabels[props.entityType])
 .toolbar-search :deep(.el-input__inner::placeholder) {
   color: var(--ae-text-muted);
   font-size: var(--ae-font-sm);
+}
+
+/* ── File select override ── */
+.toolbar-file-select :deep(.el-input__wrapper) {
+  background: var(--ae-bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--ae-border-subtle) inset !important;
+  border-radius: var(--ae-radius-sm) !important;
+  height: 28px !important;
+  font-size: var(--ae-font-sm);
+  transition: box-shadow 0.15s ease;
+}
+
+.toolbar-file-select :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--ae-border-default) inset !important;
+}
+
+.toolbar-file-select :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--ae-accent-primary) inset !important;
+}
+
+.toolbar-file-select :deep(.el-input__inner) {
+  font-size: var(--ae-font-sm);
+  color: var(--ae-text-primary);
 }
 
 /* ── Action buttons ── */

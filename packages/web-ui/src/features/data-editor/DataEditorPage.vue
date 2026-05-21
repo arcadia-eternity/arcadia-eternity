@@ -37,6 +37,11 @@ provideGameConfig({
 })
 
 // ── External data ──
+type GameDataStoreLike = {
+  loaded: boolean
+  getRecordSourceFile: (kind: string, recordId: string) => string | null
+} & Record<string, { allIds?: string[] } | undefined>
+
 const gameDataStore = useGameDataStore()
 
 // ── Undo/redo for the currently selected record draft ──
@@ -109,6 +114,24 @@ watch(
   },
 )
 
+// Re-sync recordSourceFiles when gameData reloads
+watch(
+  () => gameDataStore.loaded,
+  loaded => {
+    if (!loaded) return
+    for (const kind of ['species', 'skills', 'marks', 'effects']) {
+      const slice = (gameDataStore as GameDataStoreLike)[kind]
+      if (!slice?.allIds) continue
+      for (const id of slice.allIds) {
+        const sourceFile = (gameDataStore as GameDataStoreLike).getRecordSourceFile(kind, id)
+        if (sourceFile) {
+          editorState.recordSourceFiles[id] = sourceFile
+        }
+      }
+    }
+  },
+)
+
 // ── Keyboard shortcuts ──
 useEditorKeyboard({
   onSave() {
@@ -136,6 +159,18 @@ onMounted(async () => {
 
     // 2b. Reload from disk via IPC to bypass HTTP/Vite caches
     await reloadDataFromDisk()
+
+    // 2c. Sync recordSourceFiles from gameData store
+    for (const kind of ['species', 'skills', 'marks', 'effects']) {
+      const slice = (gameDataStore as GameDataStoreLike)[kind]
+      if (!slice?.allIds) continue
+      for (const id of slice.allIds) {
+        const sourceFile = (gameDataStore as GameDataStoreLike).getRecordSourceFile(kind, id)
+        if (sourceFile) {
+          editorState.recordSourceFiles[id] = sourceFile
+        }
+      }
+    }
 
     // 3. Populate availableDataFiles from manifest
     await loadAvailableDataFiles(editorState.selectedEntityType)
