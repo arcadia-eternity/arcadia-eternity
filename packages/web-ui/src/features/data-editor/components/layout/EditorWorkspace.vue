@@ -26,7 +26,10 @@ const records = computed(() => {
   const sourceMap = editorState.recordSourceFiles ?? {}
   return all.filter(r => {
     const id = (r as Record<string, unknown>).id as string
-    return sourceMap[id] === filter
+    const source = sourceMap[id]
+    if (!source) return false
+    const sourceFile = source.split('/').pop() ?? ''
+    return sourceFile === filter || source === filter
   })
 })
 

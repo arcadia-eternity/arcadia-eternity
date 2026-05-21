@@ -130,6 +130,7 @@ watch(
       }
     }
   },
+  { immediate: true },
 )
 
 // ── Keyboard shortcuts ──
