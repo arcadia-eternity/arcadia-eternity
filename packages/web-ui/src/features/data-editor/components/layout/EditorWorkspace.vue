@@ -20,7 +20,14 @@ const records = computed(() => {
   const type = editorState.selectedEntityType
   if (!type) return []
   const slice = (gameData as unknown as Record<string, { allIds?: string[]; byId?: Record<string, unknown> }>)[type]
-  return slice?.allIds?.map((id: string) => slice.byId?.[id]) ?? []
+  const all = slice?.allIds?.map((id: string) => slice.byId?.[id]) ?? []
+  const filter = editorState.selectedDataFile
+  if (!filter) return all
+  const sourceMap = editorState.recordSourceFiles ?? {}
+  return all.filter(r => {
+    const id = (r as Record<string, unknown>).id as string
+    return sourceMap[id] === filter
+  })
 })
 
 // Panel width percentages (left + right must = 100)
