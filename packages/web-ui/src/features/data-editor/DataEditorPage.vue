@@ -9,11 +9,12 @@
  * State management: provideEditorState() provides centralized reactive
  * state via Vue's Provide/Inject — no Pinia for editor state.
  */
-import { onMounted, provide, ref, watch } from 'vue'
+import { computed, onMounted, provide, ref, watch } from 'vue'
 import { provideEditorState } from './composables/useEditorState'
 import { useEditorKeyboard } from './composables/useEditorKeyboard'
 import { useEditorUndo } from './composables/useEditorUndo'
 import { useSaveHandlers, reloadDataFromDisk } from './composables/useSaveHandlers'
+import { useDataFileManager } from './composables/useDataFileManager'
 import { useGameDataStore } from '@/stores/gameData'
 import { provideGameConfig } from './game-config'
 import { baseEntities } from './game-config/base'
@@ -62,6 +63,14 @@ provide('editor:startBattle', () => {
 provide('editor:createRecord', doCreate)
 provide('editor:deleteRecord', doDelete)
 provide('editor:batchDeleteRecords', doBatchDelete)
+
+// ── File management ──
+const currentPackFolder = computed(() => editorState.packFilters.enabledPacks[0] || 'base')
+const { createDataFile, deleteDataFile, renameDataFile, moveRecords } = useDataFileManager(currentPackFolder)
+provide('file:createDataFile', createDataFile)
+provide('file:deleteDataFile', deleteDataFile)
+provide('file:renameDataFile', renameDataFile)
+provide('file:moveRecords', moveRecords)
 
 const packs = ref<WorkspacePackSummary[]>([])
 const isLoading = ref(true)
