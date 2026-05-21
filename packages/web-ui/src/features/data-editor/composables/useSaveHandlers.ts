@@ -110,7 +110,19 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
 
       const dataset = parseYamlAnchoredDataset(content)
 
+      console.log('[DataEditor:debug] id lookup:', {
+        searchId: id,
+        rowCount: dataset.rows.length,
+        firstFewIds: dataset.rows.slice(0, 3).map(r => r.id),
+        existingIndex: dataset.rows.findIndex(row => row.id === id),
+      })
       const existingIndex = dataset.rows.findIndex(row => row.id === id)
+      if (existingIndex < 0) {
+        console.warn('[DataEditor:debug] Record NOT FOUND in YAML, will APPEND instead of replace:', {
+          id,
+          rowCount: dataset.rows.length,
+        })
+      }
       upsertYamlAnchoredRecord({
         dataset,
         schema: cfg.schema,
