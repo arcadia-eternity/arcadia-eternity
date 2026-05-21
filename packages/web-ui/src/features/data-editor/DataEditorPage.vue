@@ -69,10 +69,16 @@ provide('editor:canRedo', () => canRedo.value)
 async function doSave() {
   const kind = editorState.selectedEntityType
   const id = editorState.selectedRecordId
-  if (!kind || !id) return
+  if (!kind || !id) {
+    console.warn('[DataEditor] Save skipped: no entity type or record selected')
+    return
+  }
 
   const draft = draftRef.value
-  if (!draft || (Object.keys(draft).length === 0 && !(id in draft))) return
+  if (!draft || (Object.keys(draft).length === 0 && !(id in draft))) {
+    console.warn('[DataEditor] Save skipped: empty draft')
+    return
+  }
 
   const clone = JSON.parse(JSON.stringify(draft))
 
@@ -90,8 +96,9 @@ async function doSave() {
     const isBase = packFolder === 'base' && window.arcadiaDesktop?.readBasePackFile
 
     const cfg = seer2Config.entities[kind] ?? baseEntities.effects
-    if (!cfg || kind === 'effects') {
+    if (!cfg) {
       editorState.isDirty = false
+      console.warn('[DataEditor] Save skipped: no entity config for', kind)
       return
     }
 
@@ -130,6 +137,7 @@ async function doSave() {
     }
 
     editorState.isDirty = false
+    console.log('[DataEditor] Saved', id, 'to', isBase ? 'base/' : packFolder + '/', relativePath)
     ElMessage.success('已保存')
     await reloadDataFromDisk()
   } catch (err) {
@@ -184,13 +192,26 @@ async function doDelete() {
   }
 
   const packFolder = editorState.packFilters.enabledPacks[0] || 'base'
+  const isBase = packFolder === 'base' && window.arcadiaDesktop?.readBasePackFile
   const cfg = seer2Config.entities[kind] ?? baseEntities.effects
 
   try {
     // Read YAML file
-    const manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
+    let manifest: Record<string, unknown>
+    if (isBase) {
+      const { content: raw } = await window.arcadiaDesktop!.readBasePackFile({
+        folderName: 'base',
+        relativePath: 'pack.json',
+      })
+      manifest = JSON.parse(raw)
+    } else {
+      manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
+    }
+
     const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
-    const { content } = await readWorkspacePackFile({ folderName: packFolder, relativePath })
+    const { content } = isBase
+      ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
+      : await readWorkspacePackFile({ folderName: packFolder, relativePath })
     const dataset = parseYamlAnchoredDataset(content)
     const index = dataset.rows.findIndex(r => r.id === id)
     if (index < 0) {
@@ -200,7 +221,11 @@ async function doDelete() {
 
     deleteYamlAnchoredRecord(dataset, index)
     const yamlText = stringifyYamlAnchoredDataset(dataset)
-    await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+    if (isBase) {
+      await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
+    } else {
+      await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+    }
 
     // Remove from in-memory store
     const store = gameDataStore as unknown as Record<string, { byId: Record<string, unknown>; allIds: string[] }>
@@ -213,6 +238,7 @@ async function doDelete() {
     editorState.selectedRecordId = null
     draftRef.value = {}
     editorState.isDirty = false
+    console.log('[DataEditor] Deleted', id, 'from', isBase ? 'base/' : packFolder + '/', relativePath)
     ElMessage.success('已删除')
     await reloadDataFromDisk()
   } catch (err) {
@@ -239,13 +265,26 @@ async function doBatchDelete(ids: string[]) {
   }
 
   const packFolder = editorState.packFilters.enabledPacks[0] || 'base'
+  const isBase = packFolder === 'base' && window.arcadiaDesktop?.readBasePackFile
   const cfg = seer2Config.entities[kind] ?? baseEntities.effects
 
   try {
     // Read YAML file
-    const manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
+    let manifest: Record<string, unknown>
+    if (isBase) {
+      const { content: raw } = await window.arcadiaDesktop!.readBasePackFile({
+        folderName: 'base',
+        relativePath: 'pack.json',
+      })
+      manifest = JSON.parse(raw)
+    } else {
+      manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
+    }
+
     const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
-    const { content } = await readWorkspacePackFile({ folderName: packFolder, relativePath })
+    const { content } = isBase
+      ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
+      : await readWorkspacePackFile({ folderName: packFolder, relativePath })
     const dataset = parseYamlAnchoredDataset(content)
 
     // Collect indices, sort descending to avoid shift
@@ -264,7 +303,11 @@ async function doBatchDelete(ids: string[]) {
       deleteYamlAnchoredRecord(dataset, idx)
     }
     const yamlText = stringifyYamlAnchoredDataset(dataset)
-    await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+    if (isBase) {
+      await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
+    } else {
+      await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+    }
 
     // Remove from in-memory store
     const store = gameDataStore as unknown as Record<string, { byId: Record<string, unknown>; allIds: string[] }>
@@ -282,6 +325,13 @@ async function doBatchDelete(ids: string[]) {
       editorState.isDirty = false
     }
 
+    console.log(
+      '[DataEditor] Batch deleted',
+      indices.length,
+      'records from',
+      isBase ? 'base/' : packFolder + '/',
+      relativePath,
+    )
     ElMessage.success(`已删除 ${indices.length} 条记录`)
     await reloadDataFromDisk()
   } catch (err) {
