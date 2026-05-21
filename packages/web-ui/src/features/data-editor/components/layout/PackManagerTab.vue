@@ -36,7 +36,7 @@ async function refresh() {
     packs.value = result
 
     // Sync enabled packs into editor state
-    editorState.packFilters.enabledPacks = result.filter(p => p.enabled).map(p => p.id || p.folderName)
+    editorState.packFilters.enabledPacks = result.filter(p => p.enabled).map(p => p.folderName)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载数据包失败'
     packs.value = []
@@ -57,7 +57,7 @@ async function togglePack(pack: WorkspacePackSummary) {
     pack.enabled = newEnabled
 
     // Update editor state
-    editorState.packFilters.enabledPacks = packs.value.filter(p => p.enabled).map(p => p.id || p.folderName)
+    editorState.packFilters.enabledPacks = packs.value.filter(p => p.enabled).map(p => p.folderName)
   } catch (e) {
     // Revert on failure
     pack.enabled = !newEnabled

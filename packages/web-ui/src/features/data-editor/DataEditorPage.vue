@@ -10,7 +10,7 @@
  * state via Vue's Provide/Inject — no Pinia for editor state.
  */
 import { onMounted, provide, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 import { provideEditorState } from './composables/useEditorState'
 import { useEditorKeyboard } from './composables/useEditorKeyboard'
@@ -30,6 +30,7 @@ import { resolveManifestDataPath } from './utils/packHelpers'
 import {
   parseYamlAnchoredDataset,
   upsertYamlAnchoredRecord,
+  deleteYamlAnchoredRecord,
   stringifyYamlAnchoredDataset,
 } from './schemas/yamlAnchoredRecords'
 
@@ -56,9 +57,10 @@ const draftRef = ref<Record<string, unknown>>({})
 const { undo, redo, canUndo, canRedo } = useEditorUndo(draftRef)
 
 provide('editor:draft', draftRef)
-provide('editor:registerDraft', (data: Record<string, unknown>) => {
+function registerDraft(data: Record<string, unknown>) {
   Object.assign(draftRef.value, data)
-})
+}
+provide('editor:registerDraft', registerDraft)
 provide('editor:undo', () => undo())
 provide('editor:redo', () => redo())
 provide('editor:canUndo', () => canUndo.value)
@@ -136,11 +138,166 @@ async function doSave() {
   }
 }
 
+async function doCreate() {
+  const kind = editorState.selectedEntityType
+  if (!kind) {
+    ElMessage.warning('请先选择实体类型')
+    return
+  }
+
+  const cfg = seer2Config.entities[kind] ?? baseEntities.effects
+  const draft = cfg.createDraft()
+  const newId = `new_${kind}_${Date.now()}`
+  draft.id = newId
+
+  // Register draft so doSave can pick it up
+  registerDraft(draft)
+
+  // Set selection BEFORE save so doSave picks up the record ID
+  editorState.selectedRecordId = newId
+  editorState.isDirty = true
+
+  // Auto-save to store + YAML
+  await doSave()
+
+  // Re-affirm selection after save (reloadDataFromDisk may have cleared it on desktop)
+  editorState.selectedRecordId = newId
+  ElMessage.success('已创建新记录')
+}
+
+async function doDelete() {
+  const kind = editorState.selectedEntityType
+  const id = editorState.selectedRecordId
+  if (!kind || !id) {
+    ElMessage.warning('没有选中的记录')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认删除 "${id}"？此操作不可撤销。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  const packFolder = editorState.packFilters.enabledPacks[0] || 'base'
+  const cfg = seer2Config.entities[kind] ?? baseEntities.effects
+
+  try {
+    // Read YAML file
+    const manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
+    const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
+    const { content } = await readWorkspacePackFile({ folderName: packFolder, relativePath })
+    const dataset = parseYamlAnchoredDataset(content)
+    const index = dataset.rows.findIndex(r => r.id === id)
+    if (index < 0) {
+      ElMessage.error('记录未找到')
+      return
+    }
+
+    deleteYamlAnchoredRecord(dataset, index)
+    const yamlText = stringifyYamlAnchoredDataset(dataset)
+    await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+
+    // Remove from in-memory store
+    const store = gameDataStore as unknown as Record<string, { byId: Record<string, unknown>; allIds: string[] }>
+    if (store[kind]) {
+      delete store[kind].byId[id]
+      store[kind].allIds = store[kind].allIds.filter(i => i !== id)
+    }
+
+    // Clear selection
+    editorState.selectedRecordId = null
+    draftRef.value = {}
+    editorState.isDirty = false
+    ElMessage.success('已删除')
+    await reloadDataFromDisk()
+  } catch (err) {
+    console.error('[DataEditor] Delete failed:', err)
+    ElMessage.error('删除失败: ' + (err instanceof Error ? err.message : String(err)))
+  }
+}
+
+async function doBatchDelete(ids: string[]) {
+  const kind = editorState.selectedEntityType
+  if (!kind || ids.length === 0) {
+    ElMessage.warning('没有选中的记录')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认删除 ${ids.length} 条记录？此操作不可撤销。`, '批量删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  const packFolder = editorState.packFilters.enabledPacks[0] || 'base'
+  const cfg = seer2Config.entities[kind] ?? baseEntities.effects
+
+  try {
+    // Read YAML file
+    const manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
+    const relativePath = resolveManifestDataPath(manifest, cfg.dataFile)
+    const { content } = await readWorkspacePackFile({ folderName: packFolder, relativePath })
+    const dataset = parseYamlAnchoredDataset(content)
+
+    // Collect indices, sort descending to avoid shift
+    const idSet = new Set(ids)
+    const indices = dataset.rows
+      .map((r, i) => (idSet.has(r.id) ? i : -1))
+      .filter(i => i >= 0)
+      .sort((a, b) => b - a) // descending
+
+    if (indices.length === 0) {
+      ElMessage.error('未找到匹配的记录')
+      return
+    }
+
+    for (const idx of indices) {
+      deleteYamlAnchoredRecord(dataset, idx)
+    }
+    const yamlText = stringifyYamlAnchoredDataset(dataset)
+    await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
+
+    // Remove from in-memory store
+    const store = gameDataStore as unknown as Record<string, { byId: Record<string, unknown>; allIds: string[] }>
+    if (store[kind]) {
+      for (const id of ids) {
+        delete store[kind].byId[id]
+      }
+      store[kind].allIds = store[kind].allIds.filter(i => !idSet.has(i))
+    }
+
+    // Clear selection if selected record was deleted
+    if (editorState.selectedRecordId && idSet.has(editorState.selectedRecordId)) {
+      editorState.selectedRecordId = null
+      draftRef.value = {}
+      editorState.isDirty = false
+    }
+
+    ElMessage.success(`已删除 ${indices.length} 条记录`)
+    await reloadDataFromDisk()
+  } catch (err) {
+    console.error('[DataEditor] Batch delete failed:', err)
+    ElMessage.error('批量删除失败: ' + (err instanceof Error ? err.message : String(err)))
+  }
+}
+
 provide('editor:save', doSave)
 provide('editor:startBattle', () => {
   console.log('[DataEditor] Battle triggered - opening battle controller')
   // BattleBottomDrawer handles visibility internally
 })
+provide('editor:createRecord', doCreate)
+provide('editor:deleteRecord', doDelete)
+provide('editor:batchDeleteRecords', doBatchDelete)
 
 const packs = ref<WorkspacePackSummary[]>([])
 const isLoading = ref(true)
@@ -194,6 +351,7 @@ onMounted(async () => {
 
     // 1. Load workspace pack list (for pack selector in AppBar)
     packs.value = await listWorkspacePacks()
+    editorState.packFilters.enabledPacks = packs.value.filter(p => p.enabled).map(p => p.folderName)
 
     // 2. Initialize the game data store (species, skills, marks, effects)
     await gameDataStore.initialize()
