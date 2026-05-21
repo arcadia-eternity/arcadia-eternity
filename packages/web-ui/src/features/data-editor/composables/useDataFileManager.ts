@@ -241,8 +241,9 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
   }
 
   function findFileKind(manifest: Record<string, unknown>, normalizedPath: string): EntityType | null {
-    for (const kind of ['species', 'skills', 'marks'] as EntityType[]) {
-      const paths = getDataKindArray(manifest, kind)
+    const data = manifest.data && typeof manifest.data === 'object' ? (manifest.data as Record<string, unknown>) : {}
+    for (const kind of Object.keys(data)) {
+      const paths = toStringArray(data[kind])
       if (paths.some(p => normalizePath(p) === normalizedPath)) {
         return kind
       }
@@ -264,10 +265,11 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
   }
 
   function inferKindFromPath(normalizedPath: string): EntityType | null {
-    const lower = normalizedPath.toLowerCase()
-    if (lower.includes('species')) return 'species'
-    if (lower.includes('mark')) return 'marks'
-    if (lower.includes('skill')) return 'skills'
+    const filename = normalizedPath.split('/').pop()?.toLowerCase() ?? ''
+    if (filename.startsWith('species')) return 'species'
+    if (filename.startsWith('mark')) return 'marks'
+    if (filename.startsWith('skill')) return 'skills'
+    if (filename.startsWith('effect')) return 'effects'
     return null
   }
 

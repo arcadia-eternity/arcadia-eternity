@@ -6,6 +6,7 @@ import { seer2Config } from '../game-config/seer2'
 import { baseEntities } from '../game-config/base'
 import { readWorkspacePackFile, writeWorkspacePackFile, readWorkspacePackManifest } from '@/services/packWorkspace'
 import { resolveManifestDataPath } from '../utils/packHelpers'
+import { resolveTargetFile, resolveTargetFileBatch } from '../utils/fileResolver'
 import {
   parseYamlAnchoredDataset,
   upsertYamlAnchoredRecord,
@@ -22,7 +23,7 @@ export interface UseSaveHandlersOptions {
   gameDataStore: unknown
 }
 
-async function reloadDataFromDisk(gameDataStore: unknown) {
+export async function reloadDataFromDisk(gameDataStore: unknown) {
   if (!isDesktop || !window.arcadiaDesktop?.readAllBasePackData) return
 
   try {
@@ -104,39 +105,33 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         manifest = result.manifest
       }
 
-      const manifestData = (manifest.data as Record<string, string[]>) ?? {}
-      const dataFiles = manifestData[kind] ?? (cfg.dataFile ? [cfg.dataFile] : [])
+      const readFile = isBase
+        ? (folder: string, path: string) =>
+            window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath: path })
+        : (folder: string, path: string) => readWorkspacePackFile({ folderName: folder, relativePath: path })
 
-      if (dataFiles.length === 0) {
-        console.warn('[DataEditor] Save skipped: no data files found for', kind)
-        editorState.isDirty = false
-        return
-      }
+      const resolved = await resolveTargetFile({ manifest, kind, packFolder, isBase: !!isBase, readFile }, id)
 
-      let targetFile: string | null = null
-      let targetDataset: YamlAnchoredDataset | null = null
-      let existingIndex = -1
+      let targetFile: string
+      let targetDataset: YamlAnchoredDataset
+      let existingIndex: number
 
-      for (const fileRef of dataFiles) {
-        const relativePath = resolveManifestDataPath(manifest, fileRef)
-        const { content } = isBase
-          ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
-          : await readWorkspacePackFile({ folderName: packFolder, relativePath })
-
-        const dataset = parseYamlAnchoredDataset(content)
-        const idx = dataset.rows.findIndex(row => row.id === id)
-
-        if (idx >= 0) {
-          targetFile = relativePath
-          targetDataset = dataset
-          existingIndex = idx
-          break
+      if (resolved) {
+        targetFile = resolved.relativePath
+        targetDataset = resolved.dataset
+        existingIndex = resolved.index
+      } else {
+        const dataFiles = (manifest.data as Record<string, string[]>)?.[kind] ?? []
+        const firstFile = dataFiles[0] ?? cfg.dataFile
+        if (!firstFile) {
+          console.warn('[DataEditor] Save skipped: no data files found for', kind)
+          editorState.isDirty = false
+          return
         }
-
-        if (!targetDataset) {
-          targetFile = relativePath
-          targetDataset = dataset
-        }
+        targetFile = resolveManifestDataPath(manifest, firstFile)
+        const { content } = await readFile(packFolder, targetFile)
+        targetDataset = parseYamlAnchoredDataset(content)
+        existingIndex = -1
       }
 
       upsertYamlAnchoredRecord({
@@ -229,50 +224,30 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
       }
 
-      const manifestData = (manifest.data as Record<string, string[]>) ?? {}
-      const dataFiles = manifestData[kind] ?? (cfg.dataFile ? [cfg.dataFile] : [])
+      const readFile = isBase
+        ? (folder: string, path: string) =>
+            window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath: path })
+        : (folder: string, path: string) => readWorkspacePackFile({ folderName: folder, relativePath: path })
 
-      if (dataFiles.length === 0) {
-        ElMessage.error('未找到数据文件')
-        return
-      }
+      const resolved = await resolveTargetFile({ manifest, kind, packFolder, isBase: !!isBase, readFile }, id)
 
-      let targetFile: string | null = null
-      let targetDataset: YamlAnchoredDataset | null = null
-      let targetIndex = -1
-
-      for (const fileRef of dataFiles) {
-        const relativePath = resolveManifestDataPath(manifest, fileRef)
-        const { content } = isBase
-          ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
-          : await readWorkspacePackFile({ folderName: packFolder, relativePath })
-
-        const dataset = parseYamlAnchoredDataset(content)
-        const idx = dataset.rows.findIndex(r => r.id === id)
-
-        if (idx >= 0) {
-          targetFile = relativePath
-          targetDataset = dataset
-          targetIndex = idx
-          break
-        }
-      }
-
-      if (targetIndex < 0) {
+      if (!resolved) {
         ElMessage.error('记录未找到')
         return
       }
 
-      deleteYamlAnchoredRecord(targetDataset!, targetIndex)
-      const yamlText = stringifyYamlAnchoredDataset(targetDataset!)
+      const { relativePath: targetFile, dataset: targetDataset, index: targetIndex } = resolved
+
+      deleteYamlAnchoredRecord(targetDataset, targetIndex)
+      const yamlText = stringifyYamlAnchoredDataset(targetDataset)
       if (isBase) {
         await window.arcadiaDesktop!.writeBasePackFile({
           folderName: 'base',
-          relativePath: targetFile!,
+          relativePath: targetFile,
           content: yamlText,
         })
       } else {
-        await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile!, content: yamlText })
+        await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile, content: yamlText })
       }
 
       // Remove from in-memory store
@@ -329,51 +304,34 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         manifest = (await readWorkspacePackManifest({ folderName: packFolder })).manifest
       }
 
-      const manifestData = (manifest.data as Record<string, string[]>) ?? {}
-      const dataFiles = manifestData[kind] ?? (cfg.dataFile ? [cfg.dataFile] : [])
-
-      if (dataFiles.length === 0) {
-        ElMessage.error('未找到数据文件')
-        return
-      }
-
-      let targetFile: string | null = null
-      let targetDataset: YamlAnchoredDataset | null = null
       const idSet = new Set(ids)
+      const readFile = isBase
+        ? (folder: string, path: string) =>
+            window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath: path })
+        : (folder: string, path: string) => readWorkspacePackFile({ folderName: folder, relativePath: path })
 
-      for (const fileRef of dataFiles) {
-        const relativePath = resolveManifestDataPath(manifest, fileRef)
-        const { content } = isBase
-          ? await window.arcadiaDesktop!.readBasePackFile({ folderName: 'base', relativePath })
-          : await readWorkspacePackFile({ folderName: packFolder, relativePath })
+      const resolved = await resolveTargetFileBatch({ manifest, kind, packFolder, isBase: !!isBase, readFile }, idSet)
 
-        const dataset = parseYamlAnchoredDataset(content)
-        const indices = dataset.rows
-          .map((r, i) => (idSet.has(r.id) ? i : -1))
-          .filter(i => i >= 0)
-          .sort((a, b) => b - a)
-
-        if (indices.length > 0) {
-          targetFile = relativePath
-          targetDataset = dataset
-
-          for (const idx of indices) {
-            deleteYamlAnchoredRecord(dataset, idx)
-          }
-
-          const yamlText = stringifyYamlAnchoredDataset(dataset)
-          if (isBase) {
-            await window.arcadiaDesktop!.writeBasePackFile({ folderName: 'base', relativePath, content: yamlText })
-          } else {
-            await writeWorkspacePackFile({ folderName: packFolder, relativePath, content: yamlText })
-          }
-          break
-        }
-      }
-
-      if (!targetDataset) {
+      if (!resolved) {
         ElMessage.error('未找到匹配的记录')
         return
+      }
+
+      const { relativePath: targetFile, dataset: targetDataset, indices } = resolved
+
+      for (const idx of indices) {
+        deleteYamlAnchoredRecord(targetDataset, idx)
+      }
+
+      const yamlText = stringifyYamlAnchoredDataset(targetDataset)
+      if (isBase) {
+        await window.arcadiaDesktop!.writeBasePackFile({
+          folderName: 'base',
+          relativePath: targetFile,
+          content: yamlText,
+        })
+      } else {
+        await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile, content: yamlText })
       }
 
       // Remove from in-memory store

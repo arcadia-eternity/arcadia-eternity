@@ -71,7 +71,9 @@ beforeEach(async () => {
 
   mockReadBasePackFile.mockImplementation(({ relativePath }: { relativePath: string }) => {
     if (relativePath === 'pack.json') {
-      return Promise.resolve({ content: '{"paths":{"dataDir":"."}}' })
+      return Promise.resolve({
+        content: '{"paths":{"dataDir":"."},"data":{"effects":["effect_skill.yaml"],"species":["species.yaml"]}}',
+      })
     }
     return Promise.resolve({ content: EFFECT_YAML })
   })

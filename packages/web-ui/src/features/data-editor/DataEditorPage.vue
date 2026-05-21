@@ -9,17 +9,16 @@
  * State management: provideEditorState() provides centralized reactive
  * state via Vue's Provide/Inject — no Pinia for editor state.
  */
-import { onMounted, provide, ref } from 'vue'
-import { isDesktop } from '@/utils/env'
+import { onMounted, provide, ref, watch } from 'vue'
 import { provideEditorState } from './composables/useEditorState'
 import { useEditorKeyboard } from './composables/useEditorKeyboard'
 import { useEditorUndo } from './composables/useEditorUndo'
-import { useSaveHandlers } from './composables/useSaveHandlers'
+import { useSaveHandlers, reloadDataFromDisk } from './composables/useSaveHandlers'
 import { useGameDataStore } from '@/stores/gameData'
 import { provideGameConfig } from './game-config'
 import { baseEntities } from './game-config/base'
 import { seer2Config } from './game-config/seer2'
-import { listWorkspacePacks, type WorkspacePackSummary } from '@/services/packWorkspace'
+import { listWorkspacePacks, readWorkspacePackManifest, type WorkspacePackSummary } from '@/services/packWorkspace'
 
 import EditorAppBar from './components/layout/EditorAppBar.vue'
 import EntitySidebar from './components/layout/EntitySidebar.vue'
@@ -68,6 +67,39 @@ const packs = ref<WorkspacePackSummary[]>([])
 const isLoading = ref(true)
 const loadError = ref<string | null>(null)
 
+async function loadAvailableDataFiles(entityType: string | null) {
+  if (!entityType) {
+    editorState.availableDataFiles = []
+    return
+  }
+  try {
+    const packFolder = editorState.packFilters.enabledPacks[0] || 'base'
+    let manifest: Record<string, unknown>
+    if (window.arcadiaDesktop?.readBasePackFile && packFolder === 'base') {
+      const { content: raw } = await window.arcadiaDesktop.readBasePackFile({
+        folderName: 'base',
+        relativePath: 'pack.json',
+      })
+      manifest = JSON.parse(raw)
+    } else {
+      const result = await readWorkspacePackManifest({ folderName: packFolder })
+      manifest = result.manifest
+    }
+    const data = (manifest.data as Record<string, unknown>) ?? {}
+    editorState.availableDataFiles = Array.isArray(data[entityType]) ? (data[entityType] as string[]) : []
+    editorState.selectedDataFile = null
+  } catch (e) {
+    console.warn('[DataEditor] Failed to load file list:', e)
+  }
+}
+
+watch(
+  () => editorState.selectedEntityType,
+  newType => {
+    loadAvailableDataFiles(newType)
+  },
+)
+
 // ── Keyboard shortcuts ──
 useEditorKeyboard({
   onSave() {
@@ -80,34 +112,6 @@ useEditorKeyboard({
     if (canRedo.value) redo()
   },
 })
-
-// ── Reload data from disk via IPC (bypasses HTTP cache) ──
-async function reloadDataFromDisk() {
-  if (!isDesktop || !window.arcadiaDesktop?.readAllBasePackData) return
-
-  try {
-    const data = await window.arcadiaDesktop.readAllBasePackData()
-    const store = gameDataStore as unknown as Record<string, { byId: Record<string, unknown>; allIds: string[] }>
-
-    for (const kind of ['species', 'skills', 'marks', 'effects']) {
-      const records = data[kind]
-      if (!Array.isArray(records) || !store[kind]) continue
-
-      const byId: Record<string, unknown> = {}
-      const allIds: string[] = []
-      for (const record of records) {
-        const id = String((record as Record<string, unknown>).id ?? '')
-        if (!id) continue
-        byId[id] = record
-        allIds.push(id)
-      }
-      store[kind].byId = byId
-      store[kind].allIds = allIds
-    }
-  } catch (e) {
-    console.error('[DataEditor] Failed to reload data from disk:', e)
-  }
-}
 
 // ── Initialization ──
 onMounted(async () => {
@@ -123,6 +127,9 @@ onMounted(async () => {
 
     // 2b. Reload from disk via IPC to bypass HTTP/Vite caches
     await reloadDataFromDisk()
+
+    // 3. Populate availableDataFiles from manifest
+    await loadAvailableDataFiles(editorState.selectedEntityType)
 
     loadError.value = null
   } catch (error) {

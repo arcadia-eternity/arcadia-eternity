@@ -73,6 +73,7 @@ interface WorkspaceGameDataLayer {
   skills: Record<string, SkillSchemaType>
   marks: Record<string, MarkSchemaType>
   effects: Record<string, Effect>
+  sourceFiles: Record<string, Record<string, string>>
 }
 
 interface WorkspaceRuntimeState {
@@ -158,6 +159,18 @@ export const useGameDataStore = defineStore('gameData', {
     getSkill: state => (id: string) => state.skills.byId[id],
     getMark: state => (id: string) => state.marks.byId[id],
     getEffect: state => (id: string) => state.effects.byId[id],
+    getRecordSourceFile:
+      state =>
+      (kind: string, recordId: string): string | null => {
+        const layerOrder = state.workspaceRuntime.order
+        for (let i = layerOrder.length - 1; i >= 0; i--) {
+          const layer = state.workspaceRuntime.layers[layerOrder[i]]
+          if (layer?.sourceFiles?.[kind]?.[recordId]) {
+            return layer.sourceFiles[kind][recordId]
+          }
+        }
+        return null
+      },
   },
 
   actions: {
@@ -304,6 +317,38 @@ export const useGameDataStore = defineStore('gameData', {
       })
       const learnableSkillsMap = await loadLearnableSkillsMap(packRef, result.pack)
 
+      // Build sourceFile mapping: kind → recordId → relativePath
+      const sourceFiles: Record<string, Record<string, string>> = {}
+      if (result.pack) {
+        const kinds = ['species', 'skills', 'marks', 'effects'] as const
+        const manifestUrl = toAbsoluteHttpUrl(packRef)
+        const dataRoot = resolveDirectoryUrl(result.pack.paths?.dataDir ?? '.', manifestUrl)
+        const dataDir = result.pack.paths?.dataDir
+
+        for (const kind of kinds) {
+          const kindSourceMap: Record<string, string> = {}
+          const filePaths = result.pack.data[kind] as string[] | undefined
+          if (Array.isArray(filePaths)) {
+            for (const fileRef of filePaths) {
+              const fileUrl = new URL(fileRef, dataRoot).toString()
+              const relativePath = dataDir && dataDir !== '.' ? `${dataDir}/${fileRef}` : fileRef
+              try {
+                const records = await fetchArray(fileUrl)
+                for (const record of records) {
+                  const id = String(record?.id ?? '').trim()
+                  if (id) {
+                    kindSourceMap[id] = relativePath
+                  }
+                }
+              } catch (e) {
+                console.warn(`[gameData] Failed to build source map for ${kind}/${fileRef}:`, e)
+              }
+            }
+          }
+          sourceFiles[kind] = kindSourceMap
+        }
+      }
+
       const rawSpecies = Array.from(result.repository.allSpecies()).map(species => {
         const learnableSkills = learnableSkillsMap.get(species.id)
         if (!learnableSkills) {
@@ -318,6 +363,7 @@ export const useGameDataStore = defineStore('gameData', {
         skills: this.normalizeData(Array.from(result.repository.allSkills()).map(skillToSchema)).byId,
         marks: this.normalizeData(Array.from(result.repository.allMarks()).map(markToSchema)).byId,
         effects: this.normalizeData(Array.from(result.repository.allEffects()).map(effectToSchema)).byId,
+        sourceFiles,
       }
     },
 
@@ -364,6 +410,12 @@ export const useGameDataStore = defineStore('gameData', {
       const skillsById: Record<string, SkillSchemaType> = {}
       const marksById: Record<string, MarkSchemaType> = {}
       const effectsById: Record<string, Effect> = {}
+      const mergedSourceFiles: Record<string, Record<string, string>> = {
+        species: {},
+        skills: {},
+        marks: {},
+        effects: {},
+      }
 
       for (const folderName of this.workspaceRuntime.order) {
         const layer = this.workspaceRuntime.layers[folderName]
@@ -372,6 +424,9 @@ export const useGameDataStore = defineStore('gameData', {
         Object.assign(skillsById, layer.skills)
         Object.assign(marksById, layer.marks)
         Object.assign(effectsById, layer.effects)
+        for (const kind of ['species', 'skills', 'marks', 'effects']) {
+          Object.assign(mergedSourceFiles[kind], layer.sourceFiles?.[kind])
+        }
       }
 
       this.species = this.normalizeRecordData(speciesById)
