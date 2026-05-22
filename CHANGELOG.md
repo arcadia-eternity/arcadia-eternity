@@ -1,5 +1,76 @@
 # Changelog
 
+## [3.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.8...arcadia-eternity-v3.3.0) (2026-05-22)
+
+
+### ✨ Features
+
+* add inferValueStates to SelectorValidator, enable selectorValue type checking ([8209fbb](https://github.com/arcadia-eternity/arcadia-eternity/commit/8209fbbf3bddeedc074652b2bc839e6b3f890f83))
+* **effect-editor:** implement optional value support with YAML serialization filtering ([faded89](https://github.com/arcadia-eternity/arcadia-eternity/commit/faded89c46c3495d4b9650636935131005e545fb))
+* **effect-editor:** pass nullable/clearable to optional operator fields ([ac74126](https://github.com/arcadia-eternity/arcadia-eternity/commit/ac741261345098278c2ec3994b3cf2d6258dcd60))
+* **schema:** add requiredFields to effect typing metadata ([e7c735c](https://github.com/arcadia-eternity/arcadia-eternity/commit/e7c735c84318f767ce0109f124b914aa9fb3d8de))
+* **web-ui:** add debounce and throttle to data editor undo/redo ([624ffbc](https://github.com/arcadia-eternity/arcadia-eternity/commit/624ffbc455bd1797d79b53a163056869cb159c9a))
+* **web-ui:** add enum dropdown/autocomplete for evaluator values with context-aware ConditionNode ([719aff3](https://github.com/arcadia-eternity/arcadia-eternity/commit/719aff3e884ddbd0eab8ee15e3e243d56f9c31d2))
+* **web-ui:** add evaluator/operator type constraints and context-aware extractor autocomplete ([a4782c2](https://github.com/arcadia-eternity/arcadia-eternity/commit/a4782c2609712f559d1b51fd169a068e5ebb94f9))
+* **web-ui:** add extractor autocomplete with multi-level path suggestions in selector pipeline ([fda2eed](https://github.com/arcadia-eternity/arcadia-eternity/commit/fda2eed9c27bd832a959c6db1f7707b4ae2272ad))
+* **web-ui:** add fieldRule type-matching validation for selector pipeline output ([52cd883](https://github.com/arcadia-eternity/arcadia-eternity/commit/52cd883028fbbdb7edbeebe978cb6fc754ae094a))
+* **web-ui:** add selector type hints and tighten operator constraints ([0af75ad](https://github.com/arcadia-eternity/arcadia-eternity/commit/0af75ad1069b26f05ad50357bda7b4ad6fada9ad))
+* **web-ui:** add string enum constraint system for effect editor value fields ([b8fe412](https://github.com/arcadia-eternity/arcadia-eternity/commit/b8fe412f0ba0047fea2f394a23e15d54f6890a75))
+* **web-ui:** wire stringEnumOptions through evaluator value slots ([d119fd1](https://github.com/arcadia-eternity/arcadia-eternity/commit/d119fd1d42180da90dce376db94565d2ca7d5dc9))
+
+
+### 🐛 Bug Fixes
+
+* add delete file button to file management dropdown ([284c288](https://github.com/arcadia-eternity/arcadia-eternity/commit/284c288cc14579f35e229197a088a530db709387))
+* **battle:** fire OnStack and OnBeforeConsumeStack triggers missing after refactor ([22826bf](https://github.com/arcadia-eternity/arcadia-eternity/commit/22826bfeb40731943bfa01d342c0fd9825944fbe))
+* **battle:** singlify extractor attributes to system files and fix arg rendering for object-form extractors ([515c0d7](https://github.com/arcadia-eternity/arcadia-eternity/commit/515c0d7e24e5becc28643f2644f57aab57b5ca33))
+* **battle:** tighten enum value types from [string,...string[]] to concrete enum arrays ([9914c61](https://github.com/arcadia-eternity/arcadia-eternity/commit/9914c619646a9777c8dd3c290f181f8d46058243))
+* **data-editor:** multi-file search for doDelete and doBatchDelete ([474c54d](https://github.com/arcadia-eternity/arcadia-eternity/commit/474c54d534a99b46b3a06b0a485c5508ded6e216))
+* **data-editor:** search all effect files when saving (not just effect_skill.yaml) ([5aeadac](https://github.com/arcadia-eternity/arcadia-eternity/commit/5aeadac7a18a86c7b7b3aaa3f27cc6b407e2e732))
+* **data-editor:** task 4 - add logging, remove effects skip, isBase for delete ([318c0d1](https://github.com/arcadia-eternity/arcadia-eternity/commit/318c0d1e13cfb3d40e1981f73b2c0d16a6f9987c))
+* **data-editor:** wave 1 - pack ID folder fix, enabledPacks init, effect YAML test ([ea2a893](https://github.com/arcadia-eternity/arcadia-eternity/commit/ea2a893ec451ab0cce911e8850d06ea198a14226))
+* **effect-editor:** add clear button to all DslNode kinds for unified optional support ([7079d84](https://github.com/arcadia-eternity/arcadia-eternity/commit/7079d84624229eef6e1b5a4491aa87884a9bce65))
+* **effect-editor:** ensure recursive optional value fields work ([e23c6a8](https://github.com/arcadia-eternity/arcadia-eternity/commit/e23c6a82bf14236e03cdd0dc36bb24e8d6dfe54c))
+* **effect-editor:** fix conditional operator condition kind and falseOperator nullable ([939ddd4](https://github.com/arcadia-eternity/arcadia-eternity/commit/939ddd46433b23640cf1e375f35e600bbe28d18e))
+* **effect-editor:** handle undefined modelValue in ValueEditor ([af9cff8](https://github.com/arcadia-eternity/arcadia-eternity/commit/af9cff8d5df8af902d7f470ac3b370aa2d695722))
+* file filter basename comparison + immediate watch on recordSourceFiles sync ([b49d21a](https://github.com/arcadia-eternity/arcadia-eternity/commit/b49d21a6d8db0ca3eeffdd899ec163e98f73b857))
+* read manifest's data[kind] file list, iterate all files searching for the record, upsert in the correct file. ([5aeadac](https://github.com/arcadia-eternity/arcadia-eternity/commit/5aeadac7a18a86c7b7b3aaa3f27cc6b407e2e732))
+* **schema:** allow scalar(undefined) for conditional falseOperator constraint ([fd81897](https://github.com/arcadia-eternity/arcadia-eternity/commit/fd81897dc4d4d00ae91d96024dbc9a3ee2b78545))
+* source file editable + separate create target from filter ([09c8163](https://github.com/arcadia-eternity/arcadia-eternity/commit/09c81638c14fb73a6c354d0f81cbb6e5ae1c60de))
+* Support string-enum metadata and field typing ([63c385f](https://github.com/arcadia-eternity/arcadia-eternity/commit/63c385f3fd5f654816a8c01c24bbd1f54e0d43cc))
+* sync recordSourceFiles on load + add file selector dropdown ([468cd65](https://github.com/arcadia-eternity/arcadia-eternity/commit/468cd65b5ed7de648b00f93071542e318f3e48fc))
+* **web-ui:** add #condition slots to all ValueEditors and fix [object Object] fallback ([7c9a223](https://github.com/arcadia-eternity/arcadia-eternity/commit/7c9a22359b897d27dba05b5f80b573d070b9db0c))
+* **web-ui:** add missing DslNode import in ValueEditor.vue ([7d0dae7](https://github.com/arcadia-eternity/arcadia-eternity/commit/7d0dae7a494db7c36f27b773545a9c6728d51fed))
+* **web-ui:** animation state machine with recovery, and DamageType enum case fix ([230fc9e](https://github.com/arcadia-eternity/arcadia-eternity/commit/230fc9e402f336bdd0e7799c04db85d86061b497))
+* **web-ui:** detect structural fieldRules to avoid wrong evaluator type warnings ([90aa1ef](https://github.com/arcadia-eternity/arcadia-eternity/commit/90aa1efa613268d9b28825079bf97751f1ad8471))
+* **web-ui:** evaluator now correctly narrows value types via pipeline fieldRule ([37498c2](https://github.com/arcadia-eternity/arcadia-eternity/commit/37498c2a8839f50c06b368cd4989b749d678260c))
+* **web-ui:** fix OperatorEditor slot forwarding — use h()+useSlots() with reactive model prop ([8bc0ba4](https://github.com/arcadia-eternity/arcadia-eternity/commit/8bc0ba45521247a71844039d06470bd84d291039))
+* **web-ui:** fix Volar type errors in OperatorFieldRenderer and PipelineCard ([4d50dc1](https://github.com/arcadia-eternity/arcadia-eternity/commit/4d50dc15f069a5471fb1cd0f058d7d888ab2de2e))
+* **web-ui:** make slot forwarding reactive with ref+onBeforeUpdate ([13bdccd](https://github.com/arcadia-eternity/arcadia-eternity/commit/13bdccd99cd93b6718486697a72b1189bdc90df6))
+* **web-ui:** narrow slot prop casts in PipelineCard/SelectorBuilder, fix ValueEditor defaults ([7858541](https://github.com/arcadia-eternity/arcadia-eternity/commit/7858541b933b266249218009a1852bc011c33d63))
+* **web-ui:** narrow SlotSelectorValue emit type to Value, fix SlotConditionChain handler contravariance ([1b37707](https://github.com/arcadia-eternity/arcadia-eternity/commit/1b3770702e81a438917a8dba7f4a6e33ef3b1fb9))
+* **web-ui:** pass parentSlots directly — remove buildForwardedSlots wrapper ([fe18df4](https://github.com/arcadia-eternity/arcadia-eternity/commit/fe18df4dd06bbe4da3259866e5edd84ef5c12cbc))
+* **web-ui:** propagate target selector pipeline type to evaluate evaluator ([25ab54b](https://github.com/arcadia-eternity/arcadia-eternity/commit/25ab54b7bd45fe9115da594dfcf8deea57f124e8))
+* **web-ui:** remove duplicate renderOperatorFieldWithConfig ([c117cc8](https://github.com/arcadia-eternity/arcadia-eternity/commit/c117cc8321ea49844f8420aaab39190d1f699d5c))
+* **web-ui:** resolve Element Plus components in PipelineCard h() — import ElSelect/ElOption/ElInput instead of string tags ([041e035](https://github.com/arcadia-eternity/arcadia-eternity/commit/041e03526a837f01684ad644360b3ebd2dfb503f))
+* **web-ui:** restore defineEmits/defineSlots in EvaluatorEditor and fix vue-tsc errors ([504f22d](https://github.com/arcadia-eternity/arcadia-eternity/commit/504f22df98a0acfb20bb41282e3dd064605acf45))
+* **web-ui:** show bare-string extractor value in select step input ([9a6f79a](https://github.com/arcadia-eternity/arcadia-eternity/commit/9a6f79a9838ec617df6b3a26986f20b2114773b8))
+* **web-ui:** use camelCase fieldHint prop in h() calls, not kebab-case ([9083c79](https://github.com/arcadia-eternity/arcadia-eternity/commit/9083c79c53d2ced5dcba1c4709e36cebb5ce28d0))
+
+
+### ♻️ Code Refactoring
+
+* **effect-editor:** use discriminated union for DslNode kind/modelValue type safety ([17cc3c7](https://github.com/arcadia-eternity/arcadia-eternity/commit/17cc3c7c6673dec50b7cc86a49d94c203916367c))
+* unify selector type warnings, eliminate code duplication ([b3161c3](https://github.com/arcadia-eternity/arcadia-eternity/commit/b3161c36ebf1c6dd3af5ba888741656f41fa0300))
+* **web-ui:** consolidate SelectorBuilder and PipelineCard into SelectorEditor + StepBodyContent ([269a73d](https://github.com/arcadia-eternity/arcadia-eternity/commit/269a73d5be08dc2f85dd150ac78adb3297980b72))
+* **web-ui:** convert PipelineCard template to h() render function ([b07b855](https://github.com/arcadia-eternity/arcadia-eternity/commit/b07b8550dd38cf2c73f74ba4dbf56acba6f0209a))
+* **web-ui:** eliminate ~600 lines of effect-editor code duplication ([c651c82](https://github.com/arcadia-eternity/arcadia-eternity/commit/c651c828a71d00f65d8c5988c44cc2f16ef1e542))
+* **web-ui:** eliminate hardcoded configs, hard branches, and duplicate code in entity-properties ([ea56ddb](https://github.com/arcadia-eternity/arcadia-eternity/commit/ea56ddb74246d7f453b86fe8974aebaa758fec04))
+* **web-ui:** extract PipelineCard step-body to functional component with h() ([2f63117](https://github.com/arcadia-eternity/arcadia-eternity/commit/2f631173b2739178c3ee146edcd0f46daadee6a7))
+* **web-ui:** migrate useEffectValidation to v2, delete old effect-editor/ ([db92b60](https://github.com/arcadia-eternity/arcadia-eternity/commit/db92b609688086f6bbb581dd64c4a4f8ea90c1a9))
+* **web-ui:** organize effect-editor components into domain-based subdirectories ([d8563b3](https://github.com/arcadia-eternity/arcadia-eternity/commit/d8563b3b211d4c613a8017059cf2ccc2be63c8a5))
+* **web-ui:** remove as-unknown casts, use proper types instead ([77dcd51](https://github.com/arcadia-eternity/arcadia-eternity/commit/77dcd51dea00eedea0a19bdbd872e570837d6696))
+
 ## [3.2.8](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.7...arcadia-eternity-v3.2.8) (2026-05-05)
 
 
