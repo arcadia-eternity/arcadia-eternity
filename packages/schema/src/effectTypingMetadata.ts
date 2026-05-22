@@ -245,16 +245,19 @@ export const effectDslTypingMetadata = {
       valueFields: {
         evaluator: DSL_EVALUATOR_OBJECT,
       },
+      requiredFields: ['target', 'evaluator'],
     },
     selfHasMark: {
       valueFields: {
         baseId: BASE_MARK_REF,
       },
+      requiredFields: ['baseId'],
     },
     opponentHasMark: {
       valueFields: {
         baseId: BASE_MARK_REF,
       },
+      requiredFields: ['baseId'],
     },
     continuousUseSkill: {
       valueFields: {
@@ -274,11 +277,13 @@ export const effectDslTypingMetadata = {
       valueFields: {
         percent: NUMERIC,
       },
+      requiredFields: ['percent'],
     },
     anyOf: {
       valueFields: {
         value: STRING_ENUM(ALL_STRING_ENUMS),
       },
+      requiredFields: ['value'],
     },
     compare: {
       valueFields: {
@@ -286,6 +291,7 @@ export const effectDslTypingMetadata = {
           allow: [...ANY_SELECTOR_RESULT.allow, { kind: 'stringEnum' as const, values: ALL_STRING_ENUMS }],
         },
       },
+      requiredFields: ['value'],
     },
     same: {
       valueFields: {
@@ -293,6 +299,7 @@ export const effectDslTypingMetadata = {
           allow: [...ANY_SELECTOR_RESULT.allow, { kind: 'stringEnum' as const, values: ALL_STRING_ENUMS }],
         },
       },
+      requiredFields: ['value'],
     },
     notSame: {
       valueFields: {
@@ -300,19 +307,23 @@ export const effectDslTypingMetadata = {
           allow: [...ANY_SELECTOR_RESULT.allow, { kind: 'stringEnum' as const, values: ALL_STRING_ENUMS }],
         },
       },
+      requiredFields: ['value'],
     },
   },
   operator: {
     dealDamage: {
       selectorFields: { target: PET_ID },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     heal: {
       selectorFields: { target: PET_ID },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     executeKill: {
       selectorFields: { target: PET_ID },
+      requiredFields: ['target'],
     },
     addMark: {
       selectorFields: {
@@ -325,14 +336,17 @@ export const effectDslTypingMetadata = {
         duration: NUMERIC,
         stack: NUMERIC,
       },
+      requiredFields: ['target', 'mark'],
     },
     addStacks: {
       selectorFields: { target: MARK_ID },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     consumeStacks: {
       selectorFields: { target: MARK_ID },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     modifyStackResult: {
       selectorFields: {
@@ -342,14 +356,17 @@ export const effectDslTypingMetadata = {
         newStacks: NUMERIC,
         newDuration: NUMERIC,
       },
+      requiredFields: ['target'],
     },
     addRage: {
       selectorFields: { target: ANY_ID },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     setRage: {
       selectorFields: { target: ANY_ID },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     modifyStat: {
       selectorFields: { target: PET_ID },
@@ -358,6 +375,7 @@ export const effectDslTypingMetadata = {
         delta: NUMERIC,
         percent: NUMERIC,
       },
+      requiredFields: ['target', 'statType'],
     },
     statStageBuff: {
       selectorFields: { target: PET_ID },
@@ -366,6 +384,7 @@ export const effectDslTypingMetadata = {
         value: NUMERIC,
         strategy: STRING_ENUM(ENUM_SetStageStrategy),
       },
+      requiredFields: ['target', 'statType', 'value'],
     },
     clearStatStage: {
       selectorFields: { target: PET_ID },
@@ -373,6 +392,7 @@ export const effectDslTypingMetadata = {
         statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
         cleanStageStrategy: STRING_ENUM(ENUM_CleanStageStrategy),
       },
+      requiredFields: ['target'],
     },
     reverseStatStage: {
       selectorFields: { target: PET_ID },
@@ -380,6 +400,7 @@ export const effectDslTypingMetadata = {
         statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
         cleanStageStrategy: STRING_ENUM(ENUM_CleanStageStrategy),
       },
+      requiredFields: ['target'],
     },
     transferStatStage: {
       selectorFields: {
@@ -390,6 +411,7 @@ export const effectDslTypingMetadata = {
         statType: STRING_ENUM(ENUM_StatTypeWithoutHp),
         cleanStageStrategy: STRING_ENUM(ENUM_CleanStageStrategy),
       },
+      requiredFields: ['source', 'target'],
     },
     transferMark: {
       selectorFields: {
@@ -398,11 +420,13 @@ export const effectDslTypingMetadata = {
       valueFields: {
         mark: MARK_ID,
       },
+      requiredFields: ['target', 'mark'],
     },
     destroyMark: {
       selectorFields: {
         target: MARK_ID,
       },
+      requiredFields: ['target'],
     },
     setSkill: {
       selectorFields: {
@@ -416,6 +440,7 @@ export const effectDslTypingMetadata = {
           ],
         },
       },
+      requiredFields: ['target', 'value'],
     },
     setActualTarget: {
       selectorFields: {
@@ -424,6 +449,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         newTarget: PET_ID,
       },
+      requiredFields: ['target', 'newTarget'],
     },
     amplifyPower: {
       selectorFields: {
@@ -432,6 +458,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: NUMERIC,
       },
+      requiredFields: ['target', 'value'],
     },
     addPower: {
       selectorFields: {
@@ -440,6 +467,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: NUMERIC,
       },
+      requiredFields: ['target', 'value'],
     },
     addCritRate: {
       selectorFields: {
@@ -448,6 +476,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: NUMERIC,
       },
+      requiredFields: ['target', 'value'],
     },
     addMultihitResult: {
       selectorFields: {
@@ -456,6 +485,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: NUMERIC,
       },
+      requiredFields: ['target', 'value'],
     },
     setMultihit: {
       selectorFields: {
@@ -464,6 +494,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: NUMERIC,
       },
+      requiredFields: ['target', 'value'],
     },
     addModified: {
       selectorFields: {
@@ -473,6 +504,7 @@ export const effectDslTypingMetadata = {
         percent: NUMERIC,
         delta: NUMERIC,
       },
+      requiredFields: ['target', 'delta', 'percent'],
     },
     addThreshold: {
       selectorFields: {
@@ -482,6 +514,7 @@ export const effectDslTypingMetadata = {
         min: NUMERIC,
         max: NUMERIC,
       },
+      requiredFields: ['target'],
     },
     overrideMarkConfig: {
       selectorFields: {
@@ -490,6 +523,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         config: JSON_RECORD_OBJECT,
       },
+      requiredFields: ['target', 'config'],
     },
     addAccuracy: {
       selectorFields: {
@@ -498,6 +532,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: NUMERIC,
       },
+      requiredFields: ['target', 'value'],
     },
     setAccuracy: {
       selectorFields: {
@@ -506,6 +541,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: NUMERIC,
       },
+      requiredFields: ['target', 'value'],
     },
     setIgnoreStageStrategy: {
       selectorFields: {
@@ -514,6 +550,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         value: STRING_ENUM(ENUM_IgnoreStageStrategy),
       },
+      requiredFields: ['target', 'value'],
     },
     setSureHit: {
       selectorFields: {
@@ -522,6 +559,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'priority'],
     },
     setSureCrit: {
       selectorFields: {
@@ -530,6 +568,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'priority'],
     },
     setSureMiss: {
       selectorFields: {
@@ -538,6 +577,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'priority'],
     },
     setSureNoCrit: {
       selectorFields: {
@@ -546,98 +586,115 @@ export const effectDslTypingMetadata = {
       valueFields: {
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'priority'],
     },
     setIgnoreShield: {
       selectorFields: {
         target: USE_SKILL_CONTEXT_OWNER,
       },
+      requiredFields: ['target'],
     },
     stun: {
       selectorFields: {
         target: CONTEXT_OWNER,
       },
+      requiredFields: ['target'],
     },
     preventDamage: {
       selectorFields: {
         target: CONTEXT_OWNER,
       },
+      requiredFields: ['target'],
     },
     disableContext: {
       selectorFields: {
         target: CONTEXT_OWNER,
       },
+      requiredFields: ['target'],
     },
     setMarkDuration: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     setMarkStack: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     setMarkMaxStack: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     setMarkPersistent: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: BOOLEAN },
+      requiredFields: ['target', 'value'],
     },
     setMarkStackable: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: BOOLEAN },
+      requiredFields: ['target', 'value'],
     },
     setMarkStackStrategy: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: STRING_ENUM(ENUM_StackStrategy) },
+      requiredFields: ['target', 'value'],
     },
     setMarkDestroyable: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: BOOLEAN },
+      requiredFields: ['target', 'value'],
     },
     setMarkIsShield: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: BOOLEAN },
+      requiredFields: ['target', 'value'],
     },
     setMarkKeepOnSwitchOut: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: BOOLEAN },
+      requiredFields: ['target', 'value'],
     },
     setMarkTransferOnSwitch: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: BOOLEAN },
+      requiredFields: ['target', 'value'],
     },
     setMarkInheritOnFaint: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: BOOLEAN },
+      requiredFields: ['target', 'value'],
     },
     setStatLevelMarkLevel: {
       selectorFields: {
         target: ADD_MARK_CONTEXT_OWNER,
       },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     addAttributeModifier: {
       selectorFields: { target: ANY_ID },
@@ -650,6 +707,7 @@ export const effectDslTypingMetadata = {
         scope: STRINGY,
         phaseId: STRINGY,
       },
+      requiredFields: ['target', 'stat', 'modifierType', 'value'],
     },
     addDynamicAttributeModifier: {
       selectorFields: {
@@ -664,6 +722,7 @@ export const effectDslTypingMetadata = {
         scope: STRINGY,
         phaseId: STRINGY,
       },
+      requiredFields: ['target', 'observableValue', 'stat', 'modifierType'],
     },
     addClampMaxModifier: {
       selectorFields: { target: ANY_ID },
@@ -672,6 +731,7 @@ export const effectDslTypingMetadata = {
         maxValue: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'stat', 'maxValue'],
     },
     addClampMinModifier: {
       selectorFields: { target: ANY_ID },
@@ -680,6 +740,7 @@ export const effectDslTypingMetadata = {
         minValue: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'stat', 'minValue'],
     },
     addClampModifier: {
       selectorFields: { target: ANY_ID },
@@ -692,6 +753,7 @@ export const effectDslTypingMetadata = {
         scope: STRINGY,
         phaseId: STRINGY,
       },
+      requiredFields: ['target', 'stat'],
     },
     addSkillAttributeModifier: {
       selectorFields: { target: SKILL_ID },
@@ -704,6 +766,7 @@ export const effectDslTypingMetadata = {
         scope: STRINGY,
         phaseId: STRINGY,
       },
+      requiredFields: ['target', 'attribute', 'modifierType', 'value'],
     },
     addDynamicSkillAttributeModifier: {
       selectorFields: {
@@ -715,6 +778,7 @@ export const effectDslTypingMetadata = {
         modifierType: STRING_ENUM(ENUM_ModifierType),
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'observableValue', 'attribute', 'modifierType'],
     },
     addSkillClampMaxModifier: {
       selectorFields: { target: SKILL_ID },
@@ -723,6 +787,7 @@ export const effectDslTypingMetadata = {
         maxValue: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'attribute', 'maxValue'],
     },
     addSkillClampMinModifier: {
       selectorFields: { target: SKILL_ID },
@@ -731,6 +796,7 @@ export const effectDslTypingMetadata = {
         minValue: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'attribute', 'minValue'],
     },
     addSkillClampModifier: {
       selectorFields: { target: SKILL_ID },
@@ -740,18 +806,21 @@ export const effectDslTypingMetadata = {
         maxValue: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'attribute', 'minValue', 'maxValue'],
     },
     setConfig: {
       selectorFields: { target: ANY_ID },
       valueFields: {
         key: STRINGY,
       },
+      requiredFields: ['target', 'key'],
     },
     registerConfig: {
       selectorFields: { target: ANY_ID },
       valueFields: {
         configKey: STRINGY,
       },
+      requiredFields: ['target', 'configKey'],
     },
     registerTaggedConfig: {
       selectorFields: { target: ANY_ID },
@@ -759,6 +828,7 @@ export const effectDslTypingMetadata = {
         configKey: STRINGY,
         tags: STRING_OR_STRING_ARRAY,
       },
+      requiredFields: ['target', 'configKey', 'tags'],
     },
     addConfigModifier: {
       selectorFields: { target: ANY_ID },
@@ -768,6 +838,7 @@ export const effectDslTypingMetadata = {
         value: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'configKey', 'modifierType', 'value'],
     },
     addDynamicConfigModifier: {
       selectorFields: {
@@ -779,6 +850,7 @@ export const effectDslTypingMetadata = {
         modifierType: STRING_ENUM(ENUM_ModifierType),
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'observableValue', 'configKey', 'modifierType'],
     },
     addTaggedConfigModifier: {
       selectorFields: { target: ANY_ID },
@@ -788,6 +860,7 @@ export const effectDslTypingMetadata = {
         value: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'tag', 'modifierType', 'value'],
     },
     addPhaseConfigModifier: {
       selectorFields: { target: ANY_ID },
@@ -797,6 +870,7 @@ export const effectDslTypingMetadata = {
         value: NUMERIC,
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'configKey', 'modifierType', 'value'],
     },
     addPhaseDynamicConfigModifier: {
       selectorFields: {
@@ -808,6 +882,7 @@ export const effectDslTypingMetadata = {
         modifierType: STRING_ENUM(ENUM_ModifierType),
         priority: NUMERIC,
       },
+      requiredFields: ['target', 'observableValue', 'configKey', 'modifierType'],
     },
     addPhaseTypeConfigModifier: {
       selectorFields: { target: ANY_ID },
@@ -820,6 +895,7 @@ export const effectDslTypingMetadata = {
         priority: NUMERIC,
         phaseId: STRINGY,
       },
+      requiredFields: ['target', 'configKey', 'modifierType', 'value', 'phaseType'],
     },
     addDynamicPhaseTypeConfigModifier: {
       selectorFields: {
@@ -834,6 +910,7 @@ export const effectDslTypingMetadata = {
         priority: NUMERIC,
         phaseId: STRINGY,
       },
+      requiredFields: ['target', 'observableValue', 'configKey', 'modifierType', 'phaseType'],
     },
     transform: {
       selectorFields: { target: ANY_ID },
@@ -843,6 +920,7 @@ export const effectDslTypingMetadata = {
         transformType: STRING_ENUM(ENUM_TransformType),
         permanentStrategy: STRING_ENUM(ENUM_PermanentStrategy),
       },
+      requiredFields: ['target', 'newBase'],
     },
     transformWithPreservation: {
       selectorFields: { target: ANY_ID },
@@ -852,28 +930,35 @@ export const effectDslTypingMetadata = {
         transformType: STRING_ENUM(ENUM_TransformType),
         permanentStrategy: STRING_ENUM(ENUM_PermanentStrategy),
       },
+      requiredFields: ['target', 'newBase'],
     },
     removeTransformation: {
       selectorFields: { target: ANY_ID },
+      requiredFields: ['target'],
     },
     executeActions: {
       selectorFields: { target: DSL_OPERATOR_OBJECT },
+      requiredFields: ['target'],
     },
     addTemporaryEffect: {
       selectorFields: { target: ANY_ID },
       valueFields: {
         effect: EFFECT_DEF_ID_OR_OBJECT,
       },
+      requiredFields: ['target', 'effect'],
     },
     setValue: {
       selectorFields: { target: PROPERTY_REF },
+      requiredFields: ['target'],
     },
     addValue: {
       selectorFields: { target: PROPERTY_REF },
       valueFields: { value: NUMERIC },
+      requiredFields: ['target', 'value'],
     },
     toggle: {
       selectorFields: { target: PROPERTY_REF },
+      requiredFields: ['target'],
     },
   },
 } as const satisfies EffectDslTypingContract

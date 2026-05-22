@@ -35,6 +35,7 @@ export type EffectDslFieldTypingRule<TOwner extends string = string> = {
 export type EffectDslNodeTypingRule<TOwner extends string = string> = {
   selectorFields?: Readonly<Record<string, EffectDslFieldTypingRule<TOwner>>>
   valueFields?: Readonly<Record<string, EffectDslFieldTypingRule<TOwner>>>
+  requiredFields?: readonly string[]
 }
 
 type ConditionType = ConditionDSL extends { type: infer T extends string } ? T : never
