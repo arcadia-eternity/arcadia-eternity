@@ -331,6 +331,8 @@ function updateConfigField(fieldName: keyof NonNullable<MarkSchemaType['config']
                   :model-value="opField(fk(field.key))"
                   :label="undefined"
                   :field-rule="getFieldTyping(field)"
+                  :nullable="field.optional"
+                  :clearable="field.optional"
                   @update:model-value="(v: unknown) => updateField(fk(field.key), v)"
                 />
                 <span v-if="fieldHint(field.key)" class="op-field-hint">{{ fieldHint(field.key) }}</span>
