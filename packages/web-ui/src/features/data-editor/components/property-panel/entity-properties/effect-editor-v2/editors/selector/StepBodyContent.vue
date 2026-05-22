@@ -346,6 +346,8 @@ const extractorType = computed(() => getExtractorType(props.step))
         <DslNode
           kind="value"
           :model-value="step.falseValue"
+          :nullable="true"
+          :clearable="true"
           @update:model-value="(v: unknown) => emit('update:stepFalseValue', idx, v as Value | undefined)"
         />
       </div>

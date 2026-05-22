@@ -411,6 +411,8 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
               kind="value"
               :model-value="typedValue?.falseValue ?? 0"
               :field-rule="fieldRule"
+              :nullable="true"
+              :clearable="true"
               :depth="nextDepth"
               :max-depth="maxDepth"
               @update:model-value="

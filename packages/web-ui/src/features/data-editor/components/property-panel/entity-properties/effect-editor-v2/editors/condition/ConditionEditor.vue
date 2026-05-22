@@ -45,6 +45,7 @@ interface FieldConfig {
   key: keyof ConditionDSLView
   kind: 'selector' | 'value' | 'evaluator'
   rule: EffectDslFieldTypingRule
+  optional: boolean
 }
 
 // ── Field labels ───────────────────────────────────────────────────────────────
@@ -78,14 +79,20 @@ function getConditionFieldConfigs(type: keyof typeof manifest.condition): FieldC
 
   if (nodeTyping.selectorFields) {
     for (const [key, rule] of Object.entries(nodeTyping.selectorFields)) {
-      fields.push({ key: key as keyof ConditionDSLView, kind: 'selector', rule })
+      const optional = nodeTyping?.requiredFields
+        ? !(nodeTyping.requiredFields as readonly string[]).includes(key)
+        : false
+      fields.push({ key: key as keyof ConditionDSLView, kind: 'selector', rule, optional })
     }
   }
 
   if (nodeTyping.valueFields) {
     for (const [key, rule] of Object.entries(nodeTyping.valueFields)) {
       const kind = EVALUATOR_FIELD_KEYS.has(key) ? 'evaluator' : 'value'
-      fields.push({ key: key as keyof ConditionDSLView, kind, rule })
+      const optional = nodeTyping?.requiredFields
+        ? !(nodeTyping.requiredFields as readonly string[]).includes(key)
+        : false
+      fields.push({ key: key as keyof ConditionDSLView, kind, rule, optional })
     }
   }
 
@@ -531,6 +538,8 @@ const sourceOptions = [
               :model-value="cond[field.key as keyof ConditionDSLView]"
               :field-rule="field.key === 'evaluator' ? (evaluateTargetFieldRule ?? field.rule) : field.rule"
               :field-name="field.key"
+              :nullable="field.optional"
+              :clearable="field.optional"
               :depth="nextDepth"
               :max-depth="maxDepth"
               @update:model-value="(v: unknown) => updateField(field.key, v)"
@@ -584,6 +593,8 @@ const sourceOptions = [
                 :model-value="cond[field.key as keyof ConditionDSLView]"
                 :field-rule="field.rule"
                 :field-name="field.key"
+                :nullable="field.optional"
+                :clearable="field.optional"
                 :depth="nextDepth"
                 :max-depth="maxDepth"
                 @update:model-value="(v: unknown) => updateField(field.key, v)"
@@ -611,6 +622,8 @@ const sourceOptions = [
                 :model-value="cond[field.key as keyof ConditionDSLView]"
                 :field-rule="field.rule"
                 :field-name="field.key"
+                :nullable="field.optional"
+                :clearable="field.optional"
                 :depth="nextDepth"
                 :max-depth="maxDepth"
                 @update:model-value="(v: unknown) => updateField(field.key, v)"
