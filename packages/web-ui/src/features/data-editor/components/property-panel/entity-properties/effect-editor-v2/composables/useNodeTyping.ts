@@ -11,7 +11,7 @@ import {
   type BaseSelectorKey,
   type ConditionDSL,
 } from '@arcadia-eternity/schema'
-import type { CompileState } from '@arcadia-eternity/battle'
+import { defaultBaseSelectorStates, stateMatchesConstraint, type CompileState } from '@arcadia-eternity/battle'
 
 export type SelectorOption = {
   value: BaseSelectorKey
@@ -27,6 +27,12 @@ export type ValueTypeOption = {
 }
 
 const manifest = getEffectDslManifest()
+
+const BATTLE_SELECTORS: SelectorOption[] = [
+  { value: 'battle', label: '战斗', group: 'battle' },
+  { value: 'currentPhase', label: '当前阶段', group: 'battle' },
+  { value: 'allPhases', label: '所有阶段', group: 'battle' },
+]
 
 const TARGET_TO_SELECTORS: Record<string, SelectorOption[]> = {
   pet: [
@@ -65,6 +71,7 @@ const TARGET_TO_SELECTORS: Record<string, SelectorOption[]> = {
     { value: 'selfPlayer', label: '己方', group: 'pet' },
     { value: 'opponentPlayer', label: '对方', group: 'pet' },
   ],
+  battle: BATTLE_SELECTORS,
 }
 
 const OWNER_TO_SELECTORS: Record<string, SelectorOption> = {
@@ -79,12 +86,6 @@ const OWNER_TO_SELECTORS: Record<string, SelectorOption> = {
   consumeStackContext: { value: 'consumeStackContext', label: '消耗堆叠上下文', group: 'context' },
   effectContext: { value: 'effectContext', label: '效果上下文', group: 'context' },
 }
-
-const BATTLE_SELECTORS: SelectorOption[] = [
-  { value: 'battle', label: '战斗', group: 'battle' },
-  { value: 'currentPhase', label: '当前阶段', group: 'battle' },
-  { value: 'allPhases', label: '所有阶段', group: 'battle' },
-]
 
 const ALL_SELECTOR_OPTIONS: SelectorOption[] = BASE_SELECTOR_KEYS.map(key => {
   const known = Object.values(OWNER_TO_SELECTORS).find(s => s.value === key)
@@ -116,29 +117,22 @@ export const VALUE_TYPE_OPTIONS: ValueTypeOption[] = [
 export function resolveSelectorOptions(fieldTyping?: EffectDslFieldTypingRule): SelectorOption[] {
   if (!fieldTyping) return ALL_SELECTOR_OPTIONS
 
-  const options = new Map<string, SelectorOption>()
-
   for (const constraint of fieldTyping.allow) {
-    if (constraint.kind === 'id' && constraint.targets) {
-      for (const target of constraint.targets) {
-        const mapped = TARGET_TO_SELECTORS[target]
-        if (mapped) {
-          for (const opt of mapped) options.set(opt.value, opt)
-        }
-      }
-    }
-    if (constraint.kind === 'owner' && constraint.owners) {
-      for (const owner of constraint.owners) {
-        const opt = OWNER_TO_SELECTORS[owner]
-        if (opt) options.set(opt.value, opt)
-      }
-    }
-    if (constraint.kind === 'scalar') {
-      return ALL_SELECTOR_OPTIONS
+    if (constraint.kind === 'scalar') return ALL_SELECTOR_OPTIONS
+  }
+
+  const options: SelectorOption[] = []
+  for (const selector of ALL_SELECTOR_OPTIONS) {
+    const states = defaultBaseSelectorStates(selector.value)
+    const matches = states.some(state =>
+      fieldTyping.allow.some(constraint => stateMatchesConstraint(state, constraint)),
+    )
+    if (matches) {
+      options.push(selector)
     }
   }
 
-  return options.size > 0 ? [...options.values()] : ALL_SELECTOR_OPTIONS
+  return options.length > 0 ? options : ALL_SELECTOR_OPTIONS
 }
 
 export function resolveValueTypeOptions(fieldTyping?: EffectDslFieldTypingRule): ValueTypeOption[] {

@@ -2,22 +2,17 @@
 // Parse raw YAML effect data → engine EffectDef.
 
 import type { EffectDef } from '@arcadia-eternity/engine'
-import { conditionDSLSchema, operatorDSLSchema } from '@arcadia-eternity/schema'
+import { effectDSLSchema } from '@arcadia-eternity/schema'
 import { Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { createEffectCompileTypingValidator, type EffectCompileTypingEnvironment } from './effect-compile-validator.js'
 import { seer2EffectCompileTypingEnvironment } from './effect-compile-environment.js'
 import { assertRegisteredEffectTrigger } from './trigger-registry.js'
 
-const effectCompileSchema = Type.Object({
-  id: Type.String(),
-  trigger: Type.Union([Type.String(), Type.Array(Type.String())]),
-  priority: Type.Number(),
-  apply: Type.Union([operatorDSLSchema, Type.Array(operatorDSLSchema)]),
-  condition: Type.Optional(conditionDSLSchema),
-  consumesStacks: Type.Optional(Type.Number()),
-  tags: Type.Optional(Type.Array(Type.String(), { default: [] })),
-})
+const effectCompileSchema = Type.Composite([
+  Type.Omit(effectDSLSchema, ['trigger']),
+  Type.Object({ trigger: Type.Union([Type.String(), Type.Array(Type.String())]) }),
+])
 
 const defaultCompileTypingValidator = createEffectCompileTypingValidator(seer2EffectCompileTypingEnvironment)
 

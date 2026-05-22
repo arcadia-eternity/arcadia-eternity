@@ -3,6 +3,8 @@ export { parseEffect, createEffectParser, type EffectParserEnvironment } from '.
 export {
   createEffectCompileTypingValidator,
   validateEffectCompileTyping,
+  validateEffect,
+  defaultBaseSelectorStates,
   baseSelectorStates,
   resolveChainStep,
   createSelectorValidator,
@@ -22,6 +24,8 @@ export {
   type EffectCompileFieldSeed,
   type EffectCompileRelationSeed,
   type EffectCompileTypingEnvironment,
+  type EffectValidationResult,
+  type EffectValidationReferences,
 } from './effect-compile-validator.js'
 export {
   createSeer2EffectCompileTypingEnvironment,

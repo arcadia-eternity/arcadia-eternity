@@ -4,11 +4,13 @@ import {
   evaluatorDSLSchema,
   operatorDSLSchema,
   extractDslTypingMetadata,
+  effectDSLSchema,
   type EffectDslFieldTypingRule,
   type EffectDslStateConstraint,
   type ExtractorValueType,
   type StringEnumOption,
 } from '@arcadia-eternity/schema'
+import { Value } from '@sinclair/typebox/value'
 import type { TSchema } from '@sinclair/typebox'
 export type CompileOwner = string
 export type CompileScalarType = 'number' | 'string' | 'boolean' | 'unknown'
@@ -668,11 +670,7 @@ function dedupeStates(states: CompileState[]): CompileState[] {
   return out
 }
 
-export function baseSelectorStates(base: string, at: string): CompileState[] {
-  const runtimeStates = getCompileTypingContext().baseSelectorStateMap.get(base)
-  if (runtimeStates && runtimeStates.length > 0) {
-    return runtimeStates.map(state => ({ ...state }))
-  }
+export function defaultBaseSelectorStates(base: string): CompileState[] {
   switch (base) {
     case 'self':
     case 'opponent':
@@ -721,8 +719,20 @@ export function baseSelectorStates(base: string, at: string): CompileState[] {
     case 'allPhases':
       return [{ kind: 'owner', owner: 'unknown' }]
     default:
-      throw new Error(`selector typing failed at ${at}: unknown base selector '${base}'`)
+      return []
   }
+}
+
+export function baseSelectorStates(base: string, at: string): CompileState[] {
+  const runtimeStates = getCompileTypingContext().baseSelectorStateMap.get(base)
+  if (runtimeStates && runtimeStates.length > 0) {
+    return runtimeStates.map(state => ({ ...state }))
+  }
+  const states = defaultBaseSelectorStates(base)
+  if (states.length === 0) {
+    throw new Error(`selector typing failed at ${at}: unknown base selector '${base}'`)
+  }
+  return states
 }
 
 function isSelectorRecord(value: unknown): boolean {
@@ -1432,4 +1442,114 @@ export function validateEffectCompileTyping(
 ): void {
   const validate = createEffectCompileTypingValidator(environment)
   validate(raw)
+}
+
+export type EffectValidationLevel = 'error' | 'warning'
+
+export interface EffectValidationResult {
+  level: EffectValidationLevel
+  path: string
+  message: string
+  category?: 'schema' | 'typing' | 'reference'
+}
+
+export interface EffectValidationReferences {
+  readonly marks: ReadonlySet<string>
+  readonly skills: ReadonlySet<string>
+  readonly species: ReadonlySet<string>
+  readonly effects: ReadonlySet<string>
+}
+
+function checkEntityReferences(
+  obj: unknown,
+  refs: EffectValidationReferences,
+  path: string,
+  results: EffectValidationResult[],
+): void {
+  if (!obj || typeof obj !== 'object') return
+  if (Array.isArray(obj)) {
+    obj.forEach((item, i) => checkEntityReferences(item, refs, `${path}[${i}]`, results))
+    return
+  }
+  const record = obj as Record<string, unknown>
+
+  if (record.type === 'entity:baseMark' && typeof record.value === 'string') {
+    if (!refs.marks.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的标记 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+  if (record.type === 'entity:baseSkill' && typeof record.value === 'string') {
+    if (!refs.skills.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的技能 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+  if (record.type === 'entity:species' && typeof record.value === 'string') {
+    if (!refs.species.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的物种 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+  if (record.type === 'entity:effect' && typeof record.value === 'string') {
+    if (!refs.effects.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的效果 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+
+  for (const [key, val] of Object.entries(record)) {
+    if (typeof val === 'object' && val !== null) {
+      checkEntityReferences(val, refs, `${path}.${key}`, results)
+    }
+  }
+}
+
+/**
+ * Unified effect validation covering structure, typing, and references.
+ * Used by both the CLI/server and the web editor.
+ */
+export function validateEffect(
+  raw: Record<string, unknown>,
+  environment: EffectCompileTypingEnvironment,
+  references?: EffectValidationReferences,
+): EffectValidationResult[] {
+  const results: EffectValidationResult[] = []
+
+  try {
+    if (!Value.Check(effectDSLSchema, raw)) {
+      for (const err of [...Value.Errors(effectDSLSchema, raw)].slice(0, 20)) {
+        results.push({
+          level: 'error',
+          path: String(err.path).replace(/^\//, '').replace(/\//g, '.'),
+          message: err.message,
+          category: 'schema',
+        })
+      }
+    }
+  } catch (e) {
+    results.push({
+      level: 'error',
+      path: '',
+      message: `Schema validation error: ${e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown schema error'}`,
+      category: 'schema',
+    })
+  }
+
+  // Layer 2 — compile typing (single error; full collection needs walker refactor)
+  try {
+    validateEffectCompileTyping(raw, environment)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown typing error'
+    const atMatch = msg.match(/selector typing failed at (\/?\S+?)[\s:]/)
+    results.push({
+      level: 'warning',
+      path: atMatch ? atMatch[1] : '',
+      message: atMatch ? msg.slice(msg.indexOf(atMatch[1]) + atMatch[1].length).replace(/^[\s:]+/, '') : msg,
+      category: 'typing',
+    })
+  }
+
+  if (references) {
+    if ('apply' in raw) checkEntityReferences(raw.apply, references, 'apply', results)
+    if ('condition' in raw) checkEntityReferences(raw.condition, references, 'condition', results)
+  }
+
+  return results
 }
