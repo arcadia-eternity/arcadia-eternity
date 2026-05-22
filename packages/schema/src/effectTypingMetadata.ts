@@ -9,6 +9,7 @@ import {
   SetStageStrategy,
   StackStrategy,
   StatType,
+  StatTypeOnlyBattle,
   StatTypeWithoutHp,
   TransformType,
 } from '@arcadia-eternity/const'
@@ -40,14 +41,35 @@ const ENUM_ConfigModType = mapEnumOptions<typeof ConfigModType>({
   [ConfigModType.prepend]: '前置',
 })
 
-const ENUM_StatType = mapEnumOptions<typeof StatType>({
-  [StatType.atk]: '攻击',
-  [StatType.def]: '防御',
-  [StatType.spa]: '特攻',
-  [StatType.spd]: '特防',
-  [StatType.spe]: '速度',
-  [StatType.hp]: '体力',
-})
+const ENUM_StatType: readonly StringEnumOption[] = [
+  ...mapEnumOptions<typeof StatType>({
+    [StatType.atk]: '攻击',
+    [StatType.def]: '防御',
+    [StatType.spa]: '特攻',
+    [StatType.spd]: '特防',
+    [StatType.spe]: '速度',
+    [StatType.hp]: '体力',
+  }),
+  ...mapEnumOptions<typeof StatTypeOnlyBattle>({
+    [StatTypeOnlyBattle.maxHp]: '最大体力',
+    [StatTypeOnlyBattle.accuracy]: '命中',
+    [StatTypeOnlyBattle.evasion]: '回避',
+    [StatTypeOnlyBattle.critRate]: '暴击率',
+    [StatTypeOnlyBattle.ragePerTurn]: '每回合怒气',
+    [StatTypeOnlyBattle.weight]: '体重',
+    [StatTypeOnlyBattle.height]: '身高',
+  }),
+]
+
+const ENUM_SkillAttr: readonly StringEnumOption[] = [
+  { value: 'power', label: '威力' },
+  { value: 'accuracy', label: '命中' },
+  { value: 'rage', label: '怒气' },
+  { value: 'priority', label: '先制度' },
+  { value: 'category', label: '类别' },
+  { value: 'element', label: '元素' },
+  { value: 'target', label: '目标' },
+]
 
 const ENUM_CleanStageStrategy = mapEnumOptions<typeof CleanStageStrategy>({
   [CleanStageStrategy.all]: '全部',
@@ -120,6 +142,7 @@ const ALL_STRING_ENUMS: readonly StringEnumOption[] = (() => {
     { name: 'SetStageStrategy', values: ENUM_SetStageStrategy },
     { name: 'StackStrategy', values: ENUM_StackStrategy },
     { name: 'StatTypeWithoutHp', values: ENUM_StatTypeWithoutHp },
+    { name: 'SkillAttr', values: ENUM_SkillAttr },
   ]
   for (const { name, values } of registries) {
     for (const opt of values) {
@@ -748,7 +771,7 @@ export const effectDslTypingMetadata = {
     addSkillAttributeModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRING_ENUM(ENUM_StatType),
+        attribute: STRING_ENUM(ENUM_SkillAttr),
         modifierType: STRING_ENUM(ENUM_AttrModType),
         value: NUMERIC,
         priority: NUMERIC,
@@ -764,7 +787,7 @@ export const effectDslTypingMetadata = {
         observableValue: NUMERIC,
       },
       valueFields: {
-        attribute: STRING_ENUM(ENUM_StatType),
+        attribute: STRING_ENUM(ENUM_SkillAttr),
         modifierType: STRING_ENUM(ENUM_AttrModType),
         priority: NUMERIC,
       },
@@ -773,7 +796,7 @@ export const effectDslTypingMetadata = {
     addSkillClampMaxModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRING_ENUM(ENUM_StatType),
+        attribute: STRING_ENUM(ENUM_SkillAttr),
         maxValue: NUMERIC,
         priority: NUMERIC,
       },
@@ -782,7 +805,7 @@ export const effectDslTypingMetadata = {
     addSkillClampMinModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRING_ENUM(ENUM_StatType),
+        attribute: STRING_ENUM(ENUM_SkillAttr),
         minValue: NUMERIC,
         priority: NUMERIC,
       },
@@ -791,7 +814,7 @@ export const effectDslTypingMetadata = {
     addSkillClampModifier: {
       selectorFields: { target: SKILL_ID },
       valueFields: {
-        attribute: STRING_ENUM(ENUM_StatType),
+        attribute: STRING_ENUM(ENUM_SkillAttr),
         minValue: NUMERIC,
         maxValue: NUMERIC,
         priority: NUMERIC,

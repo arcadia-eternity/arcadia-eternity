@@ -954,7 +954,7 @@ export type ResolveChainStepResult = { ok: true; states: CompileState[] } | { ok
 export function resolveChainStep(states: CompileState[], step: unknown, at: string): ResolveChainStepResult {
   try {
     if (!isRecord(step) || typeof step.type !== 'string') {
-      return { ok: false, error: `链步骤格式无效: ${String(step)}` }
+      return { ok: false, error: `链步骤格式无效` }
     }
 
     switch (step.type) {
@@ -1044,7 +1044,7 @@ export function resolveChainStep(states: CompileState[], step: unknown, at: stri
         return { ok: true, states }
     }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    return { ok: false, error: e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error' }
   }
 }
 
@@ -1171,6 +1171,35 @@ function assertStatesMatchRule(states: CompileState[], rule: EffectDslFieldTypin
   }
 }
 
+function getStringEnumValues(rule: EffectDslFieldTypingRule): readonly StringEnumOption[] | undefined {
+  for (const constraint of rule.allow ?? []) {
+    if (constraint.kind === 'stringEnum' && constraint.values) {
+      return constraint.values
+    }
+  }
+  return undefined
+}
+
+function assertStringEnumValue(rawValue: unknown, rule: EffectDslFieldTypingRule, at: string): void {
+  const stringEnum = getStringEnumValues(rule)
+  if (!stringEnum) return
+
+  let value: string | undefined
+  if (typeof rawValue === 'string') {
+    value = rawValue
+  } else if (isRecord(rawValue) && rawValue.type === 'raw:string' && typeof rawValue.value === 'string') {
+    value = rawValue.value
+  }
+  if (value === undefined) return
+
+  const allowed = stringEnum.map(v => v.value)
+  if (!allowed.includes(value)) {
+    throw new Error(
+      `selector typing failed at ${at}: string value '${value}' is not in allowed enum [${allowed.join(', ')}]`,
+    )
+  }
+}
+
 function applyNodeTypingRules(
   at: string,
   node: Record<string, unknown> & { type: string },
@@ -1181,6 +1210,7 @@ function applyNodeTypingRules(
 
   for (const [field, rule] of Object.entries(rules.selectorFields ?? {})) {
     if (!(field in node)) continue
+    if (node[field] === undefined || node[field] === null) continue
     const states = validateSelectorNode(node[field], `${at}/${field}`)
     assertStatesMatchRule(states, rule, `${at}/${field}`)
     checked.add(field)
@@ -1188,6 +1218,7 @@ function applyNodeTypingRules(
 
   for (const [field, rule] of Object.entries(rules.valueFields ?? {})) {
     if (!(field in node)) continue
+    if (node[field] === undefined || node[field] === null) continue
     const states = inferStatesFromValue(node[field], `${at}/${field}`)
     assertStatesMatchRule(states, rule, `${at}/${field}`)
     checked.add(field)
@@ -1228,9 +1259,14 @@ function validateOperatorNode(operator: unknown, at: string): void {
     return
   }
   const node = operator as Record<string, unknown> & { type: string }
-  const checked = applyNodeTypingRules(at, node, getCompileTypingContext().operatorTypingRules[node.type])
+  const rules = getCompileTypingContext().operatorTypingRules[node.type]
+  const checked = applyNodeTypingRules(at, node, rules)
   for (const [key, value] of Object.entries(node)) {
-    if (checked.has(key)) continue
+    if (checked.has(key)) {
+      const fieldRule = rules?.valueFields?.[key]
+      if (fieldRule) assertStringEnumValue(value, fieldRule, `${at}/${key}`)
+      continue
+    }
     walkNode(value, `${at}/${key}`)
   }
 }
@@ -1362,7 +1398,10 @@ export function createSelectorValidator(environment: EffectCompileTypingEnvironm
           assertStatesMatchRule(states, rule, '/rule')
           return { ok: true as const }
         } catch (e) {
-          return { ok: false as const, error: e instanceof Error ? e.message : String(e) }
+          return {
+            ok: false as const,
+            error: e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error',
+          }
         }
       }),
     inferValueStates: (value: unknown) =>
