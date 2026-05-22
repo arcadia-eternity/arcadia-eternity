@@ -90,6 +90,144 @@ describe('effect YAML round-trip (parse → upsert → stringify → re-parse)',
   })
 })
 
+describe('optional field roundtrip (addMark duration/stack, modifyStat delta/percent)', () => {
+  it('addMark without duration/stack: fields stay undefined after roundtrip', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    const recordId = 'effect_skill_add_mark_opponent_yishang'
+    const recordIndex = dataset.rows.findIndex(row => row.id === recordId)
+    expect(recordIndex).toBeGreaterThanOrEqual(0)
+
+    const originalRow = dataset.rows[recordIndex]
+    const apply = originalRow.value.apply as Record<string, unknown>
+    expect(apply.type).toBe('addMark')
+    expect(apply.duration).toBeUndefined()
+    expect(apply.stack).toBeUndefined()
+
+    const { stringified, reparsedRow } = upsertAndReparse(dataset, recordIndex)
+
+    const reparsedApply = reparsedRow.value.apply as Record<string, unknown>
+    expect(reparsedApply.duration).toBeUndefined()
+    expect(reparsedApply.stack).toBeUndefined()
+
+    const recordSection = stringified.split(`id: ${recordId}`)[1]?.split('\n- id:')[0] ?? ''
+    expect(recordSection).not.toMatch(/^\s+duration:/m)
+    expect(recordSection).not.toMatch(/^\s+stack:/m)
+  })
+
+  it('addMark with explicit duration=-1: preserved after roundtrip', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    const baseRecordId = 'effect_skill_add_mark_opponent_yishang'
+    const recordIndex = dataset.rows.findIndex(row => row.id === baseRecordId)
+    expect(recordIndex).toBeGreaterThanOrEqual(0)
+
+    const record = dataset.rows[recordIndex]
+    const draft = structuredClone(record.value) as Record<string, unknown>
+
+    const apply = draft.apply as Record<string, unknown>
+    apply.duration = -1
+
+    upsertYamlAnchoredRecord({
+      dataset,
+      schema: effectDSLSchema,
+      draft,
+      targetIndex: recordIndex,
+    })
+
+    const stringified = stringifyYamlAnchoredDataset(dataset)
+    const reparsed = parseYamlAnchoredDataset(stringified)
+    const reparsedRow = reparsed.rows[recordIndex]
+
+    const reparsedApply = reparsedRow.value.apply as Record<string, unknown>
+    expect(reparsedApply.duration).toBe(-1)
+  })
+
+  it('addMark clear cycle: set duration → save → clear → save → duration undefined', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    const baseRecordId = 'effect_skill_add_mark_opponent_yishang'
+    const recordIndex = dataset.rows.findIndex(row => row.id === baseRecordId)
+    expect(recordIndex).toBeGreaterThanOrEqual(0)
+
+    const record = dataset.rows[recordIndex]
+    const draft1 = structuredClone(record.value) as Record<string, unknown>
+    const apply1 = draft1.apply as Record<string, unknown>
+    apply1.duration = 3
+
+    upsertYamlAnchoredRecord({
+      dataset,
+      schema: effectDSLSchema,
+      draft: draft1,
+      targetIndex: recordIndex,
+    })
+
+    const stringified1 = stringifyYamlAnchoredDataset(dataset)
+    const reparsed1 = parseYamlAnchoredDataset(stringified1)
+    const applyAfterSet = reparsed1.rows[recordIndex].value.apply as Record<string, unknown>
+    expect(applyAfterSet.duration).toBe(3)
+
+    const draft2 = structuredClone(reparsed1.rows[recordIndex].value) as Record<string, unknown>
+    const apply2 = draft2.apply as Record<string, unknown>
+    delete apply2.duration
+
+    const dataset2 = parseYamlAnchoredDataset(stringified1)
+    upsertYamlAnchoredRecord({
+      dataset: dataset2,
+      schema: effectDSLSchema,
+      draft: draft2,
+      targetIndex: recordIndex,
+    })
+
+    const stringified2 = stringifyYamlAnchoredDataset(dataset2)
+    const reparsed2 = parseYamlAnchoredDataset(stringified2)
+    const applyAfterClear = reparsed2.rows[recordIndex].value.apply as Record<string, unknown>
+
+    expect(applyAfterClear.duration).toBeUndefined()
+
+    const recordSection = stringified2.split(`id: ${baseRecordId}`)[1]?.split('\n- id:')[0] ?? ''
+    expect(recordSection).not.toMatch(/^\s+duration:/m)
+  })
+
+  it('modifyStat without delta/percent: no delta:0 leak in YAML', { timeout: 30000 }, () => {
+    const syntheticYaml = `
+- id: test_modifyStat_no_delta
+  trigger: OnHit
+  priority: 0
+  apply:
+    type: modifyStat
+    target: self
+    statType: atk
+`.trim()
+
+    const dataset = parseYamlAnchoredDataset(syntheticYaml)
+    expect(dataset.rows.length).toBe(1)
+
+    const originalRow = dataset.rows[0]
+    const originalApply = originalRow.value.apply as Record<string, unknown>
+    expect(originalApply.type).toBe('modifyStat')
+    expect(originalApply.delta).toBeUndefined()
+    expect(originalApply.percent).toBeUndefined()
+
+    const draft = structuredClone(originalRow.value)
+    upsertYamlAnchoredRecord({
+      dataset,
+      schema: effectDSLSchema,
+      draft,
+      targetIndex: 0,
+    })
+
+    const stringified = stringifyYamlAnchoredDataset(dataset)
+    const reparsed = parseYamlAnchoredDataset(stringified)
+    const reparsedApply = reparsed.rows[0].value.apply as Record<string, unknown>
+
+    expect(reparsedApply.delta).toBeUndefined()
+    expect(reparsedApply.percent).toBeUndefined()
+
+    expect(stringified).not.toMatch(/^\s+delta:/m)
+    expect(stringified).not.toMatch(/^\s+percent:/m)
+    expect(stringified).not.toContain('delta: 0')
+    expect(stringified).not.toContain('percent: 0')
+  })
+})
+
 describe('debug: findIndex diagnosis', () => {
   it('findIndex works for effect records parsed from real YAML', { timeout: 30000 }, () => {
     const dataset = freshDataset()
@@ -175,4 +313,122 @@ describe('debug: findIndex diagnosis', () => {
       expect(reparsed.rows.length).toBe(dataset.rows.length)
     },
   )
+})
+
+describe('optional fields round-trip (synthetic records)', () => {
+  function extractRecordYaml(fullYaml: string, recordId: string): string {
+    const section = fullYaml.substring(fullYaml.indexOf(recordId))
+    const nextIdx = section.indexOf('\n- id:')
+    return nextIdx > 0 ? section.substring(0, nextIdx) : section
+  }
+
+  it('modifyStat without delta/percent preserves through roundtrip', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    const baseRecord = dataset.rows[7]
+    const draft = structuredClone(baseRecord.value)
+    draft.id = 'test_optional_modifystat_no_delta'
+    draft.apply = {
+      type: 'modifyStat',
+      target: 'opponent',
+      statType: { type: 'raw:number', value: 1 },
+    }
+    delete draft.condition
+
+    const { index } = upsertYamlAnchoredRecord({ dataset, schema: effectDSLSchema, draft })
+    const stringified = stringifyYamlAnchoredDataset(dataset)
+    const reparsed = parseYamlAnchoredDataset(stringified)
+    const apply = reparsed.rows[index].value.apply as Record<string, unknown>
+    const yamlBlock = extractRecordYaml(stringified, 'test_optional_modifystat_no_delta')
+
+    expect(yamlBlock).not.toMatch(/^\s+delta:/m)
+    expect(yamlBlock).not.toMatch(/^\s+percent:/m)
+    expect(apply.type).toBe('modifyStat')
+    expect(apply.delta).toBeUndefined()
+    expect(apply.percent).toBeUndefined()
+  })
+
+  it('addMark with explicit duration=-1 preserves through roundtrip', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    const baseRecord = dataset.rows[7]
+    const draft = structuredClone(baseRecord.value)
+    draft.id = 'test_optional_addmark_dur_neg1'
+    draft.apply = {
+      type: 'addMark',
+      target: 'opponent',
+      mark: { type: 'entity:baseMark', value: 'mark_test_optional' },
+      duration: -1,
+    }
+
+    const { index } = upsertYamlAnchoredRecord({ dataset, schema: effectDSLSchema, draft })
+    const stringified = stringifyYamlAnchoredDataset(dataset)
+    const reparsed = parseYamlAnchoredDataset(stringified)
+    const apply = reparsed.rows[index].value.apply as Record<string, unknown>
+    const yamlBlock = extractRecordYaml(stringified, 'test_optional_addmark_dur_neg1')
+
+    expect(apply.type).toBe('addMark')
+    expect(apply.duration).toBe(-1)
+    expect(yamlBlock).toContain('duration: -1')
+  })
+
+  it('modifyStat without delta/percent preserves through roundtrip', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    const baseRecord = dataset.rows[7]
+    const draft = structuredClone(baseRecord.value)
+    draft.id = 'test_optional_modifystat_no_delta'
+    draft.apply = {
+      type: 'modifyStat',
+      target: 'opponent',
+      statType: { type: 'raw:number', value: 1 },
+    }
+    delete draft.condition
+
+    const { index } = upsertYamlAnchoredRecord({ dataset, schema: effectDSLSchema, draft })
+    const stringified = stringifyYamlAnchoredDataset(dataset)
+    const reparsed = parseYamlAnchoredDataset(stringified)
+    const apply = reparsed.rows[index].value.apply as Record<string, unknown>
+    const yamlBlock = extractRecordYaml(stringified, 'test_optional_modifystat_no_delta')
+
+    expect(yamlBlock).not.toMatch(/^\s+delta:/m)
+    expect(yamlBlock).not.toMatch(/^\s+percent:/m)
+    expect(apply.type).toBe('modifyStat')
+    expect(apply.delta).toBeUndefined()
+    expect(apply.percent).toBeUndefined()
+  })
+
+  it('clear cycle: set then clear optional field', { timeout: 30000 }, () => {
+    const dataset = freshDataset()
+    const baseRecord = dataset.rows[7]
+    const draft = structuredClone(baseRecord.value)
+    draft.id = 'test_optional_clear_cycle'
+    draft.apply = {
+      type: 'addMark',
+      target: 'opponent',
+      mark: { type: 'entity:baseMark', value: 'mark_test_clear' },
+      duration: 3,
+    }
+
+    const { index } = upsertYamlAnchoredRecord({ dataset, schema: effectDSLSchema, draft })
+
+    const firstYaml = stringifyYamlAnchoredDataset(dataset)
+    const firstReparse = parseYamlAnchoredDataset(firstYaml)
+    expect((firstReparse.rows[index].value.apply as Record<string, unknown>).duration).toBe(3)
+
+    const clearDraft = structuredClone(firstReparse.rows[index].value)
+    ;(clearDraft.apply as Record<string, unknown>).duration = undefined
+
+    upsertYamlAnchoredRecord({
+      dataset: firstReparse,
+      schema: effectDSLSchema,
+      draft: clearDraft,
+      targetIndex: index,
+    })
+
+    const clearedYaml = stringifyYamlAnchoredDataset(firstReparse)
+    const clearedReparse = parseYamlAnchoredDataset(clearedYaml)
+    const clearedApply = clearedReparse.rows[index].value.apply as Record<string, unknown>
+    const yamlBlock = extractRecordYaml(clearedYaml, 'test_optional_clear_cycle')
+
+    expect(clearedApply.duration).toBeUndefined()
+    expect(yamlBlock).not.toMatch(/^\s+duration:/m)
+  })
 })
