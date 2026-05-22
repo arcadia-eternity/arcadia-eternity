@@ -280,7 +280,7 @@ function updateConfigField(fieldName: keyof NonNullable<MarkSchemaType['config']
             <div class="op-conditional-branch">
               <div class="op-branch-label true">true</div>
               <DslNode
-                kind="evaluator"
+                kind="condition"
                 :model-value="opField('condition')"
                 @update:model-value="(v: unknown) => updateField('condition', v)"
               />
@@ -297,6 +297,8 @@ function updateConfigField(fieldName: keyof NonNullable<MarkSchemaType['config']
               <DslNode
                 kind="operator"
                 :model-value="opField('falseOperator')"
+                :nullable="true"
+                :clearable="true"
                 @update:model-value="(v: unknown) => updateField('falseOperator', v)"
               />
             </div>

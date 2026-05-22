@@ -343,6 +343,14 @@ export const effectDslTypingMetadata = {
       valueFields: { value: NUMERIC },
       requiredFields: ['target', 'value'],
     },
+    conditional: {
+      valueFields: {
+        condition: { allow: [{ kind: 'object', classes: ['dsl:condition'] }] },
+        trueOperator: { allow: [{ kind: 'object', classes: ['dsl:operator'] }] },
+        falseOperator: { allow: [{ kind: 'object', classes: ['dsl:operator'] }] },
+      },
+      requiredFields: ['condition', 'trueOperator'],
+    },
     consumeStacks: {
       selectorFields: { target: MARK_ID },
       valueFields: { value: NUMERIC },
