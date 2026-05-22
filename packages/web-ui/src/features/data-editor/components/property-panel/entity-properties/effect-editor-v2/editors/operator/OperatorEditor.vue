@@ -177,7 +177,7 @@ function typeLabel(type: OperatorDSL['type']): string {
 }
 
 function selectType(type: OperatorDSL['type']) {
-  updateField('type', type)
+  emit('update:modelValue', { type } as OperatorDSL)
 }
 
 function goBack() {

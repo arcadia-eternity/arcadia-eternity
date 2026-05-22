@@ -5,6 +5,7 @@ export interface FieldConfig {
   key: keyof OperatorDSLView
   label: string
   kind: 'selector' | 'value' | 'condition' | 'evaluator' | 'operator' | 'inline'
+  optional?: boolean // true if the field is NOT in requiredFields
   component?: 'el-select' | 'el-switch' | 'el-input-number'
   componentOptions?: readonly { value: string; label: string }[]
   componentProps?: Record<string, unknown>
@@ -275,30 +276,32 @@ export function getFieldConfig(opType: OperatorDSL['type'], fieldName: string): 
   const fk = fieldName as OpField
   const inlineKey = `${opType}@${fieldName}`
   const inline = INLINE_FIELDS[inlineKey]
-  if (inline) return inline
 
   const manifest = getEffectDslManifest()
   const nodeTyping = manifest.operator[opType]
   const label = FIELD_LABELS[fk] ?? fieldName
+  const optional = nodeTyping?.requiredFields ? !nodeTyping.requiredFields.includes(fieldName) : false
+
+  if (inline) return { ...inline, optional }
 
   if (nodeTyping?.selectorFields?.[fieldName]) {
-    return { key: fk, label, kind: 'selector' }
+    return { key: fk, label, kind: 'selector', optional }
   }
   if (nodeTyping?.valueFields?.[fieldName]) {
-    return { key: fk, label, kind: 'value' }
+    return { key: fk, label, kind: 'value', optional }
   }
 
   if (EVALUATOR_FIELDS.has(fieldName)) {
-    return { key: fk, label, kind: 'evaluator' }
+    return { key: fk, label, kind: 'evaluator', optional }
   }
   if (fieldName === 'trueOperator' || fieldName === 'falseOperator') {
-    return { key: fk, label, kind: 'operator' }
+    return { key: fk, label, kind: 'operator', optional }
   }
   if (fieldName === 'condition' && opType === 'conditional') {
-    return { key: fk, label, kind: 'evaluator' }
+    return { key: fk, label, kind: 'evaluator', optional }
   }
 
-  return { key: fk, label, kind: 'value' }
+  return { key: fk, label, kind: 'value', optional }
 }
 
 /**

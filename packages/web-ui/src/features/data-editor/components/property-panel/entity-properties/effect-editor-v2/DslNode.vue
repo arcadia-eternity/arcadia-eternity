@@ -26,10 +26,19 @@ const props = withDefaults(
     fieldName?: string
     fieldRule?: EffectDslFieldTypingRule
     nullable?: boolean
+    clearable?: boolean
     maxDepth?: number
     depth?: number
   }>(),
-  { label: undefined, fieldName: undefined, fieldRule: undefined, nullable: false, maxDepth: 6, depth: 0 },
+  {
+    label: undefined,
+    fieldName: undefined,
+    fieldRule: undefined,
+    nullable: false,
+    clearable: false,
+    maxDepth: 6,
+    depth: 0,
+  },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>()
@@ -41,6 +50,10 @@ const depthExceeded = computed(() => (props.depth ?? 0) >= (props.maxDepth ?? 6)
 
 function emitUpdate(v: unknown) {
   emit('update:modelValue', v)
+}
+
+function clearValue() {
+  emit('update:modelValue', undefined)
 }
 </script>
 
@@ -58,17 +71,15 @@ function emitUpdate(v: unknown) {
 
     <!-- Nullable placeholder -->
     <template v-else-if="!hasValue && nullable">
-      <button class="dsl-add-btn" @click="emitUpdate({ type: kind === 'condition' ? 'petIsActive' : 'exist' })">
+      <!-- Optional value: show "未设置" with add button -->
+      <div v-if="kind === 'value'" class="dsl-optional-placeholder">
+        <span class="dsl-optional-text">未设置</span>
+        <button class="dsl-optional-add-btn" @click="emitUpdate({ type: 'raw:number', value: 0 })">添加</button>
+      </div>
+      <!-- Other kinds: keep existing add button -->
+      <button v-else class="dsl-add-btn" @click="emitUpdate({ type: kind === 'condition' ? 'petIsActive' : 'exist' })">
         + 添加{{
-          kind === 'operator'
-            ? '操作符'
-            : kind === 'evaluator'
-              ? '求值器'
-              : kind === 'condition'
-                ? '条件'
-                : kind === 'value'
-                  ? '值'
-                  : '选择器'
+          kind === 'operator' ? '操作符' : kind === 'evaluator' ? '求值器' : kind === 'condition' ? '条件' : '选择器'
         }}
       </button>
     </template>
@@ -120,15 +131,18 @@ function emitUpdate(v: unknown) {
 
     <!-- Value dispatch -->
     <template v-else-if="kind === 'value'">
-      <ValueEditor
-        :model-value="modelValue as Value"
-        :allowed-types="typing.resolveValueTypeOptions(fieldRule).map(o => o.value)"
-        :string-enum-options="typing.resolveStringEnumOptions(fieldRule)"
-        :field-rule="fieldRule"
-        :depth="depth"
-        :max-depth="maxDepth"
-        @update:model-value="emitUpdate"
-      />
+      <div class="dsl-optional-value">
+        <ValueEditor
+          :model-value="modelValue as Value"
+          :allowed-types="typing.resolveValueTypeOptions(fieldRule).map(o => o.value)"
+          :string-enum-options="typing.resolveStringEnumOptions(fieldRule)"
+          :field-rule="fieldRule"
+          :depth="depth"
+          :max-depth="maxDepth"
+          @update:model-value="emitUpdate"
+        />
+        <button v-if="clearable" class="dsl-optional-clear" @click="clearValue" title="清除">✕</button>
+      </div>
     </template>
 
     <!-- Selector dispatch -->
@@ -230,5 +244,68 @@ function emitUpdate(v: unknown) {
 
 .dsl-missing-msg {
   color: var(--ae-text-muted);
+}
+
+.dsl-optional-placeholder {
+  display: flex;
+  align-items: center;
+  gap: var(--ae-space-2);
+  padding: 4px 12px;
+  font-size: var(--ae-font-xs);
+  color: var(--ae-text-muted);
+  background: var(--ae-bg-surface);
+  border: 1px dashed var(--ae-border-default);
+  border-radius: var(--ae-radius-sm);
+}
+
+.dsl-optional-text {
+  flex: 1;
+}
+
+.dsl-optional-add-btn {
+  padding: 1px 8px;
+  font-size: var(--ae-font-xs);
+  color: var(--ae-accent-primary);
+  background: var(--ae-accent-primary-subtle);
+  border: 1px solid var(--ae-accent-primary);
+  border-radius: var(--ae-radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.dsl-optional-add-btn:hover {
+  opacity: 0.85;
+}
+
+.dsl-optional-value {
+  position: relative;
+}
+
+.dsl-optional-clear {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--ae-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.dsl-optional-value:hover .dsl-optional-clear {
+  opacity: 1;
+}
+
+.dsl-optional-clear:hover {
+  color: var(--ae-error);
+  background: rgba(248, 113, 113, 0.1);
 }
 </style>
