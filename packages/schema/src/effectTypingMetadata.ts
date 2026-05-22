@@ -347,7 +347,7 @@ export const effectDslTypingMetadata = {
       valueFields: {
         condition: { allow: [{ kind: 'object', classes: ['dsl:condition'] }] },
         trueOperator: { allow: [{ kind: 'object', classes: ['dsl:operator'] }] },
-        falseOperator: { allow: [{ kind: 'object', classes: ['dsl:operator'] }] },
+        falseOperator: { allow: [{ kind: 'object', classes: ['dsl:operator'] }, { kind: 'scalar' }] },
       },
       requiredFields: ['condition', 'trueOperator'],
     },
