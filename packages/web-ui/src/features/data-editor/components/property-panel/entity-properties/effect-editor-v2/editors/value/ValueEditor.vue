@@ -27,10 +27,10 @@ const emit = defineEmits<{ 'update:modelValue': [value: Value] }>()
 
 const gameData = useGameDataStore()
 
-type InferredValueType = ValueView['type'] | 'array' | 'operator'
+type InferredValueType = ValueView['type'] | 'array' | 'operator' | null
 
 function inferType(value: Value): InferredValueType {
-  if (value === null || value === undefined) return 'raw:number'
+  if (value === null || value === undefined) return null
   if (typeof value === 'number') return 'raw:number'
   if (typeof value === 'boolean') return 'raw:boolean'
   if (Array.isArray(value)) return 'array'
@@ -217,6 +217,11 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
 
     <!-- Editor area -->
     <div class="editor-area">
+      <!-- null/undefined placeholder -->
+      <template v-if="currentType === null">
+        <div class="unsetValue">未设置</div>
+      </template>
+
       <!-- raw:number -->
       <template v-if="currentType === 'raw:number'">
         <el-input-number
@@ -527,6 +532,13 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
   display: flex;
   flex-direction: column;
   gap: var(--ae-space-2);
+}
+
+.unsetValue {
+  color: var(--ae-text-muted);
+  font-size: var(--ae-font-sm);
+  padding: var(--ae-space-2);
+  font-style: italic;
 }
 
 .enum-select {
