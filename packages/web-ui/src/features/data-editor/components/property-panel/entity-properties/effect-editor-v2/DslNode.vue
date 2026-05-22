@@ -103,31 +103,34 @@ function clearValue() {
     </div>
 
     <!-- Operator dispatch -->
-    <template v-else-if="kind === 'operator'">
+    <div v-else-if="kind === 'operator'" class="dsl-optional-value">
       <OperatorEditor :model-value="modelValue as OperatorDSL" :field-rule="fieldRule" @update:model-value="emitUpdate">
         <template v-for="(_, slot) in $slots" :key="slot" #[slot]="scope">
           <slot :name="slot" v-bind="scope" />
         </template>
       </OperatorEditor>
-    </template>
+      <button v-if="clearable" class="dsl-optional-clear" @click="clearValue" title="清除">✕</button>
+    </div>
 
     <!-- Evaluator dispatch -->
-    <template v-else-if="kind === 'evaluator'">
+    <div v-else-if="kind === 'evaluator'" class="dsl-optional-value">
       <EvaluatorEditor
         :model-value="modelValue as EvaluatorDSL"
         :field-rule="fieldRule"
         @update:model-value="emitUpdate"
       />
-    </template>
+      <button v-if="clearable" class="dsl-optional-clear" @click="clearValue" title="清除">✕</button>
+    </div>
 
     <!-- Condition dispatch -->
-    <template v-else-if="kind === 'condition'">
+    <div v-else-if="kind === 'condition'" class="dsl-optional-value">
       <ConditionEditor
         :model-value="modelValue as ConditionDSL | undefined"
         :field-rule="fieldRule"
         @update:model-value="emitUpdate"
       />
-    </template>
+      <button v-if="clearable" class="dsl-optional-clear" @click="clearValue" title="清除">✕</button>
+    </div>
 
     <!-- Value dispatch -->
     <template v-else-if="kind === 'value'">
@@ -146,14 +149,15 @@ function clearValue() {
     </template>
 
     <!-- Selector dispatch -->
-    <template v-else-if="kind === 'selector'">
+    <div v-else-if="kind === 'selector'" class="dsl-optional-value">
       <SelectorEditor
         :model-value="modelValue as SelectorDSL"
         :allowed-bases="fieldRule ? typing.resolveSelectorOptions(fieldRule).map(o => o.value) : undefined"
         :field-rule="fieldRule"
         @update:model-value="emitUpdate"
       />
-    </template>
+      <button v-if="clearable" class="dsl-optional-clear" @click="clearValue" title="清除">✕</button>
+    </div>
   </div>
 </template>
 
