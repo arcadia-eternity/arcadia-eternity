@@ -8,7 +8,7 @@ import EffectFooter from './effect-editor-v2/layout/EffectFooter.vue'
 import { useProvideDslContext } from './effect-editor-v2/composables/useDslContext'
 import { useEffectValidation } from './effect-editor-v2/composables/useEffectValidation'
 import type { ValidationResult } from './effect-editor-v2/composables/useEffectValidation'
-import type { OperatorDSL } from '@arcadia-eternity/schema'
+import type { ConditionDSL, OperatorDSL } from '@arcadia-eternity/schema'
 
 defineOptions({ name: 'EffectProperties' })
 
@@ -118,7 +118,7 @@ watch(
         </div>
         <DslNode
           kind="condition"
-          :model-value="getField('condition')"
+          :model-value="getField('condition') as ConditionDSL | undefined"
           nullable
           @update:model-value="(v: unknown) => updateField('condition', v)"
         />

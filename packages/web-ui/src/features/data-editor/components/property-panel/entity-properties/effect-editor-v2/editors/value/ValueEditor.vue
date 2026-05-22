@@ -317,7 +317,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
       <template v-else-if="currentType === 'dynamic'">
         <DslNode
           kind="selector"
-          :model-value="typedValue?.selector"
+          :model-value="typedValue?.selector as SelectorDSL | undefined"
           :field-rule="fieldRule"
           :depth="nextDepth"
           :max-depth="maxDepth"
@@ -332,7 +332,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
         <div class="selector-value-editor">
           <DslNode
             kind="value"
-            :model-value="typedValue?.value ?? 0"
+            :model-value="typedValue?.value as Value | undefined"
             :field-rule="fieldRule"
             :depth="nextDepth"
             :max-depth="maxDepth"
@@ -347,7 +347,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
           />
           <DslNode
             kind="selector"
-            :model-value="{ base: 'self', chain: typedValue?.chain ?? [] }"
+            :model-value="{ base: 'self', chain: typedValue?.chain ?? [] } as SelectorDSL"
             :field-rule="fieldRule"
             :depth="nextDepth"
             :max-depth="maxDepth"
@@ -372,7 +372,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
             <label class="conditional-label">条件</label>
             <DslNode
               kind="condition"
-              :model-value="typedValue?.condition"
+              :model-value="typedValue?.condition as ConditionDSL | undefined"
               :depth="nextDepth"
               :max-depth="maxDepth"
               @update:model-value="
@@ -409,7 +409,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
             <label class="conditional-label">假值</label>
             <DslNode
               kind="value"
-              :model-value="typedValue?.falseValue ?? 0"
+              :model-value="typedValue?.falseValue as Value | undefined"
               :field-rule="fieldRule"
               :nullable="true"
               :clearable="true"
@@ -453,7 +453,7 @@ const nextDepth = computed(() => (props.depth ?? 0) + 1)
       <template v-else-if="currentType === 'operator'">
         <DslNode
           kind="operator"
-          :model-value="modelValue"
+          :model-value="modelValue as any"
           :depth="nextDepth"
           :max-depth="maxDepth"
           @update:model-value="(v: unknown) => emit('update:modelValue', v as Value)"

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type {
-  EffectDslNodeKind,
   EffectDslFieldTypingRule,
   OperatorDSL,
   EvaluatorDSL,
@@ -18,28 +17,32 @@ import SelectorEditor from './editors/selector/SelectorEditor.vue'
 
 defineOptions({ name: 'DslNode' })
 
-const props = withDefaults(
-  defineProps<{
-    kind: EffectDslNodeKind | 'value' | 'selector'
-    modelValue: unknown
-    label?: string
-    fieldName?: string
-    fieldRule?: EffectDslFieldTypingRule
-    nullable?: boolean
-    clearable?: boolean
-    maxDepth?: number
-    depth?: number
-  }>(),
-  {
-    label: undefined,
-    fieldName: undefined,
-    fieldRule: undefined,
-    nullable: false,
-    clearable: false,
-    maxDepth: 6,
-    depth: 0,
-  },
-)
+type SharedDslNodeProps = {
+  label?: string
+  fieldName?: string
+  fieldRule?: EffectDslFieldTypingRule
+  nullable?: boolean
+  clearable?: boolean
+  maxDepth?: number
+  depth?: number
+}
+
+type DslNodeProps =
+  | ({ kind: 'operator'; modelValue: OperatorDSL } & SharedDslNodeProps)
+  | ({ kind: 'evaluator'; modelValue: EvaluatorDSL } & SharedDslNodeProps)
+  | ({ kind: 'condition'; modelValue: ConditionDSL | undefined } & SharedDslNodeProps)
+  | ({ kind: 'value'; modelValue: Value } & SharedDslNodeProps)
+  | ({ kind: 'selector'; modelValue: SelectorDSL } & SharedDslNodeProps)
+
+const props = withDefaults(defineProps<DslNodeProps>(), {
+  label: undefined,
+  fieldName: undefined,
+  fieldRule: undefined,
+  nullable: false,
+  clearable: false,
+  maxDepth: 6,
+  depth: 0,
+})
 
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>()
 
@@ -104,7 +107,7 @@ function clearValue() {
 
     <!-- Operator dispatch -->
     <div v-else-if="kind === 'operator'" class="dsl-optional-value">
-      <OperatorEditor :model-value="modelValue as OperatorDSL" :field-rule="fieldRule" @update:model-value="emitUpdate">
+      <OperatorEditor :model-value="modelValue" :field-rule="fieldRule" @update:model-value="emitUpdate">
         <template v-for="(_, slot) in $slots" :key="slot" #[slot]="scope">
           <slot :name="slot" v-bind="scope" />
         </template>
@@ -114,21 +117,13 @@ function clearValue() {
 
     <!-- Evaluator dispatch -->
     <div v-else-if="kind === 'evaluator'" class="dsl-optional-value">
-      <EvaluatorEditor
-        :model-value="modelValue as EvaluatorDSL"
-        :field-rule="fieldRule"
-        @update:model-value="emitUpdate"
-      />
+      <EvaluatorEditor :model-value="modelValue" :field-rule="fieldRule" @update:model-value="emitUpdate" />
       <button v-if="clearable" class="dsl-optional-clear" @click="clearValue" title="清除">✕</button>
     </div>
 
     <!-- Condition dispatch -->
     <div v-else-if="kind === 'condition'" class="dsl-optional-value">
-      <ConditionEditor
-        :model-value="modelValue as ConditionDSL | undefined"
-        :field-rule="fieldRule"
-        @update:model-value="emitUpdate"
-      />
+      <ConditionEditor :model-value="modelValue" :field-rule="fieldRule" @update:model-value="emitUpdate" />
       <button v-if="clearable" class="dsl-optional-clear" @click="clearValue" title="清除">✕</button>
     </div>
 
@@ -136,7 +131,7 @@ function clearValue() {
     <template v-else-if="kind === 'value'">
       <div class="dsl-optional-value">
         <ValueEditor
-          :model-value="modelValue as Value"
+          :model-value="modelValue"
           :allowed-types="typing.resolveValueTypeOptions(fieldRule).map(o => o.value)"
           :string-enum-options="typing.resolveStringEnumOptions(fieldRule)"
           :field-rule="fieldRule"
@@ -151,7 +146,7 @@ function clearValue() {
     <!-- Selector dispatch -->
     <div v-else-if="kind === 'selector'" class="dsl-optional-value">
       <SelectorEditor
-        :model-value="modelValue as SelectorDSL"
+        :model-value="modelValue"
         :allowed-bases="fieldRule ? typing.resolveSelectorOptions(fieldRule).map(o => o.value) : undefined"
         :field-rule="fieldRule"
         @update:model-value="emitUpdate"

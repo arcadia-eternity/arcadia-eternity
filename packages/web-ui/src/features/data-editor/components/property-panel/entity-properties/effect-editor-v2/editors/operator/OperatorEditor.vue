@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { OperatorDSL, OperatorDSLView, MarkSchemaType, EffectDslFieldTypingRule } from '@arcadia-eternity/schema'
+import type {
+  OperatorDSL,
+  OperatorDSLView,
+  MarkSchemaType,
+  EffectDslFieldTypingRule,
+  ConditionDSL,
+} from '@arcadia-eternity/schema'
 import DslNode from '../../DslNode.vue'
 import { useNodeTyping } from '../../composables/useNodeTyping'
 import { getOperatorFieldHint } from '../../composables/useOperatorFieldHint'
@@ -281,14 +287,14 @@ function updateConfigField(fieldName: keyof NonNullable<MarkSchemaType['config']
               <div class="op-branch-label true">true</div>
               <DslNode
                 kind="condition"
-                :model-value="opField('condition')"
+                :model-value="opField('condition') as ConditionDSL | undefined"
                 @update:model-value="(v: unknown) => updateField('condition', v)"
               />
             </div>
             <div class="op-conditional-branch">
               <DslNode
                 kind="operator"
-                :model-value="opField('trueOperator')"
+                :model-value="opField('trueOperator') as OperatorDSL | undefined"
                 @update:model-value="(v: unknown) => updateField('trueOperator', v)"
               />
             </div>
@@ -296,7 +302,7 @@ function updateConfigField(fieldName: keyof NonNullable<MarkSchemaType['config']
               <div class="op-branch-label false">false</div>
               <DslNode
                 kind="operator"
-                :model-value="opField('falseOperator')"
+                :model-value="opField('falseOperator') as OperatorDSL | undefined"
                 :nullable="true"
                 :clearable="true"
                 @update:model-value="(v: unknown) => updateField('falseOperator', v)"
@@ -330,7 +336,7 @@ function updateConfigField(fieldName: keyof NonNullable<MarkSchemaType['config']
               <div v-else class="op-dsl-field">
                 <DslNode
                   :kind="field.kind as 'selector' | 'value' | 'condition' | 'evaluator' | 'operator'"
-                  :model-value="opField(fk(field.key))"
+                  :model-value="opField(fk(field.key)) as any"
                   :label="undefined"
                   :field-rule="getFieldTyping(field)"
                   :nullable="field.optional"

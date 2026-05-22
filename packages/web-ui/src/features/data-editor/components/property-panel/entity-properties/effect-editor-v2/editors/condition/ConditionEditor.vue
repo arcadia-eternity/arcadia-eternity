@@ -6,6 +6,7 @@ import type {
   ConditionDSLView,
   EffectDslFieldTypingRule,
   SelectorChain,
+  Value,
 } from '@arcadia-eternity/schema'
 import { getEffectDslManifest } from '@arcadia-eternity/schema'
 import { createSelectorValidator, seer2EffectCompileTypingEnvironment } from '@arcadia-eternity/battle'
@@ -535,7 +536,7 @@ const sourceOptions = [
             <span class="field-label">{{ FIELD_LABELS[field.key] ?? field.key }}</span>
             <DslNode
               :kind="field.kind"
-              :model-value="cond[field.key as keyof ConditionDSLView]"
+              :model-value="cond[field.key as keyof ConditionDSLView] as any"
               :field-rule="field.key === 'evaluator' ? (evaluateTargetFieldRule ?? field.rule) : field.rule"
               :field-name="field.key"
               :nullable="field.optional"
@@ -590,7 +591,7 @@ const sourceOptions = [
               <span class="field-label">{{ FIELD_LABELS[field.key] ?? field.key }}</span>
               <DslNode
                 :kind="field.kind"
-                :model-value="cond[field.key as keyof ConditionDSLView]"
+                :model-value="cond[field.key as keyof ConditionDSLView] as any"
                 :field-rule="field.rule"
                 :field-name="field.key"
                 :nullable="field.optional"
@@ -608,7 +609,7 @@ const sourceOptions = [
               <span class="field-label">{{ FIELD_LABELS['sequence'] ?? 'sequence' }}</span>
               <DslNode
                 kind="value"
-                :model-value="cond.sequence"
+                :model-value="cond.sequence as Value | undefined"
                 field-name="sequence"
                 :depth="nextDepth"
                 :max-depth="maxDepth"
@@ -619,7 +620,7 @@ const sourceOptions = [
               <span class="field-label">{{ FIELD_LABELS[field.key] ?? field.key }}</span>
               <DslNode
                 :kind="field.kind"
-                :model-value="cond[field.key as keyof ConditionDSLView]"
+                :model-value="cond[field.key as keyof ConditionDSLView] as any"
                 :field-rule="field.rule"
                 :field-name="field.key"
                 :nullable="field.optional"
@@ -664,7 +665,7 @@ const sourceOptions = [
               <span class="field-label">{{ FIELD_LABELS['stat'] ?? 'stat' }}</span>
               <DslNode
                 kind="value"
-                :model-value="cond.stat"
+                :model-value="cond.stat as Value | undefined"
                 field-name="stat"
                 :depth="nextDepth"
                 :max-depth="maxDepth"
