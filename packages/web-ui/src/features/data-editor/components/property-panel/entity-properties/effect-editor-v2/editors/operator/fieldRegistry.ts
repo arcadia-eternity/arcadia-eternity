@@ -1,11 +1,24 @@
 import { getEffectDslManifest } from '@arcadia-eternity/schema'
 import type { OperatorDSL, OperatorDSLView } from '@arcadia-eternity/schema'
+import {
+  AttrModType,
+  CleanStageStrategy,
+  ConfigModType,
+  IgnoreStageStrategy,
+  PermanentStrategy,
+  SetStageStrategy,
+  StackStrategy,
+  StatType,
+  StatTypeOnlyBattle,
+  StatTypeWithoutHp,
+  TransformType,
+} from '@arcadia-eternity/const'
 
 export interface FieldConfig {
   key: keyof OperatorDSLView
   label: string
   kind: 'selector' | 'value' | 'condition' | 'evaluator' | 'operator' | 'inline'
-  optional?: boolean // true if the field is NOT in requiredFields
+  optional?: boolean
   component?: 'el-select' | 'el-switch' | 'el-input-number'
   componentOptions?: readonly { value: string; label: string }[]
   componentProps?: Record<string, unknown>
@@ -46,53 +59,114 @@ const FIELD_LABELS: Partial<Record<OpField, string>> = {
   newDuration: '新持续',
   newStacks: '新堆叠数',
   strategy: '策略',
+  phaseType: '阶段类型',
+  scope: '作用域',
+  phaseId: '阶段ID',
+  cleanStageStrategy: '清除策略',
+  transformType: '变身类型',
+  permanentStrategy: '永久化策略',
+  key: '键名',
+  updateConfig: '更新配置',
 }
 
-// ── Inline field configurations (fields that render el-select/switches, not DslNode) ──
-const MODIFIER_TYPE_OPTIONS = [
-  { value: 'add', label: '加' },
-  { value: 'multiply', label: '乘' },
-  { value: 'replace', label: '替换' },
-  { value: 'set', label: '设置' },
-]
+function toOptions<E extends string>(labels: Record<E, string>): { value: E; label: string }[] {
+  return (Object.entries(labels) as [E, string][]).map(([value, label]) => ({ value, label }))
+}
+
+const STAT_TYPE_LABELS: Record<StatType, string> = {
+  [StatType.atk]: '攻击',
+  [StatType.def]: '防御',
+  [StatType.spa]: '特攻',
+  [StatType.spd]: '特防',
+  [StatType.spe]: '速度',
+  [StatType.hp]: '体力',
+}
+
+const STAT_TYPE_WITHOUT_HP_LABELS: Record<StatTypeWithoutHp, string> = {
+  [StatTypeWithoutHp.atk]: '攻击',
+  [StatTypeWithoutHp.def]: '防御',
+  [StatTypeWithoutHp.spa]: '特攻',
+  [StatTypeWithoutHp.spd]: '特防',
+  [StatTypeWithoutHp.spe]: '速度',
+}
 
 const STAT_TYPE_OPTIONS = [
-  { value: 'hp', label: 'hp' },
-  { value: 'attack', label: 'attack' },
-  { value: 'defense', label: 'defense' },
-  { value: 'spAttack', label: 'spAttack' },
-  { value: 'spDefense', label: 'spDefense' },
-  { value: 'speed', label: 'speed' },
-]
+  ...toOptions(STAT_TYPE_LABELS),
+  ...toOptions({
+    [StatTypeOnlyBattle.maxHp]: '最大体力',
+    [StatTypeOnlyBattle.accuracy]: '命中',
+    [StatTypeOnlyBattle.evasion]: '回避',
+    [StatTypeOnlyBattle.critRate]: '暴击率',
+    [StatTypeOnlyBattle.ragePerTurn]: '每回合怒气',
+    [StatTypeOnlyBattle.weight]: '体重',
+    [StatTypeOnlyBattle.height]: '身高',
+  } satisfies Record<StatTypeOnlyBattle, string>),
+] as const
 
-const STAT_TYPE_WITHOUT_HP_OPTIONS = [
-  { value: 'attack', label: 'attack' },
-  { value: 'defense', label: 'defense' },
-  { value: 'spAttack', label: 'spAttack' },
-  { value: 'spDefense', label: 'spDefense' },
-  { value: 'speed', label: 'speed' },
-]
+const STAT_TYPE_WITHOUT_HP_OPTIONS = toOptions(STAT_TYPE_WITHOUT_HP_LABELS)
 
-const STACK_STRATEGY_OPTIONS = [
-  { value: 'add', label: 'add' },
-  { value: 'max', label: 'max' },
-  { value: 'replace', label: 'replace' },
-]
+const ATTR_MOD_TYPE_OPTIONS = toOptions({
+  [AttrModType.delta]: '加算',
+  [AttrModType.percent]: '乘算',
+  [AttrModType.override]: '覆写',
+  [AttrModType.clampMax]: '上限',
+  [AttrModType.clampMin]: '下限',
+  [AttrModType.clamp]: '钳制',
+} satisfies Record<AttrModType, string>)
 
-const CLEAN_STAGE_STRATEGY_OPTIONS = [
-  { value: 'all', label: 'all' },
-  { value: 'positive', label: 'positive' },
-  { value: 'negative', label: 'negative' },
-]
+const CONFIG_MOD_TYPE_OPTIONS = toOptions({
+  [ConfigModType.override]: '覆写',
+  [ConfigModType.delta]: '加算',
+  [ConfigModType.append]: '追加',
+  [ConfigModType.prepend]: '前置',
+} satisfies Record<ConfigModType, string>)
 
-// Map of `${operatorType}@${fieldName}` → inline FieldConfig
+const STACK_STRATEGY_OPTIONS = toOptions({
+  [StackStrategy.stack]: '叠加',
+  [StackStrategy.refresh]: '刷新',
+  [StackStrategy.extend]: '延长',
+  [StackStrategy.max]: '取最大',
+  [StackStrategy.replace]: '替换',
+  [StackStrategy.none]: '无',
+  [StackStrategy.remove]: '移除',
+} satisfies Record<StackStrategy, string>)
+
+const CLEAN_STAGE_STRATEGY_OPTIONS = toOptions({
+  [CleanStageStrategy.all]: '全部',
+  [CleanStageStrategy.positive]: '有利',
+  [CleanStageStrategy.negative]: '负面',
+  [CleanStageStrategy.reverse]: '反转',
+} satisfies Record<CleanStageStrategy, string>)
+
+const IGNORE_STAGE_STRATEGY_OPTIONS = toOptions({
+  [IgnoreStageStrategy.none]: '无',
+  [IgnoreStageStrategy.all]: '全部',
+  [IgnoreStageStrategy.positive]: '有利',
+  [IgnoreStageStrategy.negative]: '负面',
+} satisfies Record<IgnoreStageStrategy, string>)
+
+const TRANSFORM_TYPE_OPTIONS = toOptions({
+  [TransformType.temporary]: '临时',
+  [TransformType.permanent]: '永久',
+} satisfies Record<TransformType, string>)
+
+const PERMANENT_STRATEGY_OPTIONS = toOptions({
+  [PermanentStrategy.preserve_temporary]: '保留临时效果',
+  [PermanentStrategy.clear_temporary]: '清除临时效果',
+} satisfies Record<PermanentStrategy, string>)
+
+const SET_STAGE_STRATEGY_OPTIONS = toOptions({
+  [SetStageStrategy.add]: '累加',
+  [SetStageStrategy.set]: '强制设置',
+} satisfies Record<SetStageStrategy, string>)
+
 const INLINE_FIELDS: Record<string, FieldConfig> = {
   'addAttributeModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: ATTR_MOD_TYPE_OPTIONS,
   },
   'addAttributeModifier@stat': {
     key: 'stat',
@@ -106,7 +180,7 @@ const INLINE_FIELDS: Record<string, FieldConfig> = {
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: ATTR_MOD_TYPE_OPTIONS,
   },
   'addDynamicAttributeModifier@stat': {
     key: 'stat',
@@ -114,20 +188,6 @@ const INLINE_FIELDS: Record<string, FieldConfig> = {
     kind: 'inline',
     component: 'el-select',
     componentOptions: STAT_TYPE_OPTIONS,
-  },
-  'addSkillAttributeModifier@modifierType': {
-    key: 'modifierType',
-    label: '修正类型',
-    kind: 'inline',
-    component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
-  },
-  'addDynamicSkillAttributeModifier@modifierType': {
-    key: 'modifierType',
-    label: '修正类型',
-    kind: 'inline',
-    component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
   },
   'addClampMaxModifier@stat': {
     key: 'stat',
@@ -145,6 +205,35 @@ const INLINE_FIELDS: Record<string, FieldConfig> = {
   },
   'addClampModifier@stat': {
     key: 'stat',
+    label: '属性',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: STAT_TYPE_OPTIONS,
+  },
+
+  'addSkillAttributeModifier@modifierType': {
+    key: 'modifierType',
+    label: '修正类型',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: ATTR_MOD_TYPE_OPTIONS,
+  },
+  'addSkillAttributeModifier@attribute': {
+    key: 'attribute',
+    label: '属性',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: STAT_TYPE_OPTIONS,
+  },
+  'addDynamicSkillAttributeModifier@modifierType': {
+    key: 'modifierType',
+    label: '修正类型',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: ATTR_MOD_TYPE_OPTIONS,
+  },
+  'addDynamicSkillAttributeModifier@attribute': {
+    key: 'attribute',
     label: '属性',
     kind: 'inline',
     component: 'el-select',
@@ -171,7 +260,22 @@ const INLINE_FIELDS: Record<string, FieldConfig> = {
     component: 'el-select',
     componentOptions: STAT_TYPE_OPTIONS,
   },
+
   'statStageBuff@statType': {
+    key: 'statType',
+    label: '能力类型',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: STAT_TYPE_WITHOUT_HP_OPTIONS,
+  },
+  'statStageBuff@strategy': {
+    key: 'strategy',
+    label: '策略',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: SET_STAGE_STRATEGY_OPTIONS,
+  },
+  'modifyStat@statType': {
     key: 'statType',
     label: '能力类型',
     kind: 'inline',
@@ -185,12 +289,26 @@ const INLINE_FIELDS: Record<string, FieldConfig> = {
     component: 'el-select',
     componentOptions: STAT_TYPE_WITHOUT_HP_OPTIONS,
   },
+  'clearStatStage@cleanStageStrategy': {
+    key: 'cleanStageStrategy',
+    label: '清除策略',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: CLEAN_STAGE_STRATEGY_OPTIONS,
+  },
   'reverseStatStage@statType': {
     key: 'statType',
     label: '能力类型',
     kind: 'inline',
     component: 'el-select',
     componentOptions: STAT_TYPE_WITHOUT_HP_OPTIONS,
+  },
+  'reverseStatStage@cleanStageStrategy': {
+    key: 'cleanStageStrategy',
+    label: '清除策略',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: CLEAN_STAGE_STRATEGY_OPTIONS,
   },
   'transferStatStage@statType': {
     key: 'statType',
@@ -199,55 +317,64 @@ const INLINE_FIELDS: Record<string, FieldConfig> = {
     component: 'el-select',
     componentOptions: STAT_TYPE_WITHOUT_HP_OPTIONS,
   },
+  'transferStatStage@cleanStageStrategy': {
+    key: 'cleanStageStrategy',
+    label: '清除策略',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: CLEAN_STAGE_STRATEGY_OPTIONS,
+  },
+
   'addConfigModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: CONFIG_MOD_TYPE_OPTIONS,
   },
   'addDynamicConfigModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: CONFIG_MOD_TYPE_OPTIONS,
   },
   'addTaggedConfigModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: CONFIG_MOD_TYPE_OPTIONS,
   },
   'addPhaseConfigModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: CONFIG_MOD_TYPE_OPTIONS,
   },
   'addPhaseDynamicConfigModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: CONFIG_MOD_TYPE_OPTIONS,
   },
   'addPhaseTypeConfigModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: CONFIG_MOD_TYPE_OPTIONS,
   },
   'addDynamicPhaseTypeConfigModifier@modifierType': {
     key: 'modifierType',
     label: '修正类型',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: MODIFIER_TYPE_OPTIONS,
+    componentOptions: CONFIG_MOD_TYPE_OPTIONS,
   },
+
   'setMarkStackStrategy@value': {
     key: 'value',
     label: '策略',
@@ -260,18 +387,41 @@ const INLINE_FIELDS: Record<string, FieldConfig> = {
     label: '策略',
     kind: 'inline',
     component: 'el-select',
-    componentOptions: CLEAN_STAGE_STRATEGY_OPTIONS,
+    componentOptions: IGNORE_STAGE_STRATEGY_OPTIONS,
+  },
+
+  'transform@transformType': {
+    key: 'transformType',
+    label: '变身类型',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: TRANSFORM_TYPE_OPTIONS,
+  },
+  'transform@permanentStrategy': {
+    key: 'permanentStrategy',
+    label: '永久化策略',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: PERMANENT_STRATEGY_OPTIONS,
+  },
+  'transformWithPreservation@transformType': {
+    key: 'transformType',
+    label: '变身类型',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: TRANSFORM_TYPE_OPTIONS,
+  },
+  'transformWithPreservation@permanentStrategy': {
+    key: 'permanentStrategy',
+    label: '永久化策略',
+    kind: 'inline',
+    component: 'el-select',
+    componentOptions: PERMANENT_STRATEGY_OPTIONS,
   },
 }
 
-// Fields that should render DslNode kind='evaluator' instead of 'value'
 const EVALUATOR_FIELDS = new Set(['condition'])
 
-/**
- * Get the field configuration for a specific operator type and field name.
- * Auto-derives kind='selector' or kind='value' from the manifest.
- * Falls back to inline config if defined.
- */
 export function getFieldConfig(opType: OperatorDSL['type'], fieldName: string): FieldConfig {
   const fk = fieldName as OpField
   const inlineKey = `${opType}@${fieldName}`
@@ -304,24 +454,17 @@ export function getFieldConfig(opType: OperatorDSL['type'], fieldName: string): 
   return { key: fk, label, kind: 'value', optional }
 }
 
-/**
- * Get the ordered list of fields for an operator type.
- * Order: selectorFields first, then valueFields, from the manifest.
- * Falls back to all nodeTyping fields if manifest doesn't have the type.
- */
 export function getFieldList(opType: OperatorDSL['type']): FieldConfig[] {
   const fields: FieldConfig[] = []
   const manifest = getEffectDslManifest()
   const nodeTyping = manifest.operator[opType]
 
   if (nodeTyping) {
-    // Add selector fields first
     if (nodeTyping.selectorFields) {
       for (const fieldName of Object.keys(nodeTyping.selectorFields)) {
         fields.push(getFieldConfig(opType, fieldName))
       }
     }
-    // Then value fields
     if (nodeTyping.valueFields) {
       for (const fieldName of Object.keys(nodeTyping.valueFields)) {
         fields.push(getFieldConfig(opType, fieldName))
@@ -329,7 +472,6 @@ export function getFieldList(opType: OperatorDSL['type']): FieldConfig[] {
     }
   }
 
-  // If no fields from manifest, try to fish out any known fields from INLINE_FIELDS
   if (fields.length === 0) {
     const knownFields = new Set<string>()
     for (const key of Object.keys(INLINE_FIELDS)) {

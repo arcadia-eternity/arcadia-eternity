@@ -15,7 +15,15 @@ import {
   getConfigKeysByTag,
 } from '@arcadia-eternity/engine'
 import { applyTransformation, removeTransformation } from '@arcadia-eternity/plugin-transformation'
-import { DamageType, IgnoreStageStrategy } from '@arcadia-eternity/const'
+import {
+  DamageType,
+  IgnoreStageStrategy,
+  CleanStageStrategy,
+  TransformType,
+  PermanentStrategy,
+  AttrModType,
+  ConfigModType,
+} from '@arcadia-eternity/const'
 import { resolveSelector } from './selector.js'
 import { resolveValue } from './value.js'
 import { evaluateCondition } from './conditions.js'
@@ -46,10 +54,15 @@ function getDynamicSelectorFromValue(value: unknown): import('@arcadia-eternity/
 }
 
 function asConfigModifierType(value: unknown): ConfigModifierType {
-  if (value === 'override' || value === 'delta' || value === 'append' || value === 'prepend') {
+  if (
+    value === ConfigModType.override ||
+    value === ConfigModType.delta ||
+    value === ConfigModType.append ||
+    value === ConfigModType.prepend
+  ) {
     return value
   }
-  return 'override'
+  return ConfigModType.override
 }
 
 type TaggedConfigModifierTemplate = {
@@ -440,7 +453,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     case 'clearStatStage': {
       const targets = resolveSelector(ctx, op.target) as string[]
       const statType = op.statType ? resolveValue(ctx, op.statType) : undefined
-      const strategy = (op.cleanStageStrategy as string) ?? 'all'
+      const strategy = op.cleanStageStrategy ?? CleanStageStrategy.all
       if (targets.length === 0) break
 
       const { world, systems } = ctx
@@ -459,7 +472,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     case 'reverseStatStage': {
       const targets = resolveSelector(ctx, op.target) as string[]
       const statType = op.statType ? resolveValue(ctx, op.statType) : undefined
-      const strategy = (op.cleanStageStrategy as string) ?? 'all'
+      const strategy = (op.cleanStageStrategy as string) ?? CleanStageStrategy.all
       if (targets.length === 0) break
 
       const { world, systems } = ctx
@@ -479,7 +492,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const sources = resolveSelector(ctx, op.source) as string[]
       const targets = resolveSelector(ctx, op.target) as string[]
       const statType = op.statType ? resolveValue(ctx, op.statType) : undefined
-      const strategy = (op.cleanStageStrategy as string) ?? 'negative'
+      const strategy = (op.cleanStageStrategy as string) ?? CleanStageStrategy.negative
       if (sources.length === 0 || targets.length === 0) break
 
       const { world, systems } = ctx
@@ -947,7 +960,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
         if (delta !== undefined) {
           attrSystem.addModifier(world, targetId, stat, {
             id: `attrModDelta_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}`,
-            type: 'delta',
+            type: AttrModType.delta,
             value: { kind: 'static', value: delta },
             priority: 100,
             sourceId: ctx.fireCtx.sourceEntityId,
@@ -957,7 +970,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
         if (percent !== undefined) {
           attrSystem.addModifier(world, targetId, stat, {
             id: `attrModPercent_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}`,
-            type: 'percent',
+            type: AttrModType.percent,
             value: { kind: 'static', value: percent },
             priority: 100,
             sourceId: ctx.fireCtx.sourceEntityId,
@@ -971,7 +984,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     case 'addAttributeModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
       const stat = resolveValue(ctx, op.stat) as string
-      const modType = (op.modifierType as string) ?? 'delta'
+      const modType = (op.modifierType as string) ?? AttrModType.delta
       if (targets.length === 0 || !stat) break
 
       const { world, systems } = ctx
@@ -983,7 +996,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const targetId of targets) {
         attrSystem.addModifier(world, targetId, stat, {
           id: `attrMod_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}`,
-          type: modType === 'percent' ? 'percent' : 'delta',
+          type: modType === AttrModType.percent ? AttrModType.percent : AttrModType.delta,
           value: dynamicSelector
             ? {
                 kind: 'expr',
@@ -1014,7 +1027,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     case 'addDynamicAttributeModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
       const stat = resolveValue(ctx, op.stat) as string
-      const modType = (op.modifierType as string) ?? 'delta'
+      const modType = (op.modifierType as string) ?? AttrModType.delta
       if (targets.length === 0 || !stat) break
 
       const { world, systems } = ctx
@@ -1022,7 +1035,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const targetId of targets) {
         attrSystem.addModifier(world, targetId, stat, {
           id: `attrDynMod_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}`,
-          type: modType === 'percent' ? 'percent' : 'delta',
+          type: modType === AttrModType.percent ? AttrModType.percent : AttrModType.delta,
           value: {
             kind: 'expr',
             expr: {
@@ -1059,7 +1072,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const targetId of targets) {
         attrSystem.addModifier(world, targetId, stat, {
           id: `attrClampMax_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}`,
-          type: 'clampMax',
+          type: AttrModType.clampMax,
           value: { kind: 'static', value },
           priority: op.priority ? (resolveValue(ctx, op.priority) as number) : 500,
           sourceId: ctx.fireCtx.sourceEntityId,
@@ -1080,7 +1093,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const targetId of targets) {
         attrSystem.addModifier(world, targetId, stat, {
           id: `attrClampMin_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}`,
-          type: 'clampMin',
+          type: AttrModType.clampMin,
           value: { kind: 'static', value },
           priority: op.priority ? (resolveValue(ctx, op.priority) as number) : 500,
           sourceId: ctx.fireCtx.sourceEntityId,
@@ -1103,7 +1116,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
         if (min !== undefined) {
           attrSystem.addModifier(world, targetId, stat, {
             id: `attrClampMin_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}`,
-            type: 'clampMin',
+            type: AttrModType.clampMin,
             value: { kind: 'static', value: min },
             priority: op.priority ? (resolveValue(ctx, op.priority) as number) : 500,
             sourceId: ctx.fireCtx.sourceEntityId,
@@ -1113,7 +1126,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
         if (max !== undefined) {
           attrSystem.addModifier(world, targetId, stat, {
             id: `attrClampMax_${ctx.fireCtx.sourceEntityId}_${stat}_${Date.now()}_max`,
-            type: 'clampMax',
+            type: AttrModType.clampMax,
             value: { kind: 'static', value: max },
             priority: op.priority ? (resolveValue(ctx, op.priority) as number) : 500,
             sourceId: ctx.fireCtx.sourceEntityId,
@@ -1141,7 +1154,12 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const skillId of targets) {
         attrSystem.addModifier(world, skillId, attribute, {
           id: `skillMod_${ctx.fireCtx.sourceEntityId}_${attribute}_${Date.now()}`,
-          type: modType === 'percent' ? 'percent' : modType === 'override' ? 'override' : 'delta',
+          type:
+            modType === AttrModType.percent
+              ? AttrModType.percent
+              : modType === AttrModType.override
+                ? AttrModType.override
+                : AttrModType.delta,
           value: dynamicSelector
             ? {
                 kind: 'expr',
@@ -1182,7 +1200,12 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const skillId of targets) {
         attrSystem.addModifier(world, skillId, attribute, {
           id: `skillDynMod_${ctx.fireCtx.sourceEntityId}_${attribute}_${Date.now()}`,
-          type: modType === 'percent' ? 'percent' : modType === 'override' ? 'override' : 'delta',
+          type:
+            modType === AttrModType.percent
+              ? AttrModType.percent
+              : modType === AttrModType.override
+                ? AttrModType.override
+                : AttrModType.delta,
           value: {
             kind: 'expr',
             expr: {
@@ -1220,7 +1243,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const skillId of targets) {
         attrSystem.addModifier(world, skillId, attribute, {
           id: `skillClampMax_${ctx.fireCtx.sourceEntityId}_${attribute}_${Date.now()}`,
-          type: 'clampMax',
+          type: AttrModType.clampMax,
           value: { kind: 'static', value: maxValue },
           priority,
           sourceId: ctx.fireCtx.sourceEntityId,
@@ -1242,7 +1265,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const skillId of targets) {
         attrSystem.addModifier(world, skillId, attribute, {
           id: `skillClampMin_${ctx.fireCtx.sourceEntityId}_${attribute}_${Date.now()}`,
-          type: 'clampMin',
+          type: AttrModType.clampMin,
           value: { kind: 'static', value: minValue },
           priority,
           sourceId: ctx.fireCtx.sourceEntityId,
@@ -1266,7 +1289,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
         if (minValue !== undefined) {
           attrSystem.addModifier(world, skillId, attribute, {
             id: `skillClampMin_${ctx.fireCtx.sourceEntityId}_${attribute}_${Date.now()}`,
-            type: 'clampMin',
+            type: AttrModType.clampMin,
             value: { kind: 'static', value: minValue },
             priority,
             sourceId: ctx.fireCtx.sourceEntityId,
@@ -1276,7 +1299,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
         if (maxValue !== undefined) {
           attrSystem.addModifier(world, skillId, attribute, {
             id: `skillClampMax_${ctx.fireCtx.sourceEntityId}_${attribute}_${Date.now()}_max`,
-            type: 'clampMax',
+            type: AttrModType.clampMax,
             value: { kind: 'static', value: maxValue },
             priority,
             sourceId: ctx.fireCtx.sourceEntityId,
@@ -1493,15 +1516,15 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
           : isRecord(newBaseValue) && typeof newBaseValue.id === 'string'
             ? newBaseValue.id
             : undefined
-      const transformType = (resolveValue(ctx, op.transformType) as string) ?? 'temporary'
+      const transformType = (resolveValue(ctx, op.transformType) as string) ?? TransformType.temporary
       const priority = op.priority ? (resolveValue(ctx, op.priority) as number) : 0
       const effectHandlingSource = toRecord(op)?.effectHandlingStrategy as Value | undefined
       const effectHandlingStrategy =
         ((resolveValue(ctx, effectHandlingSource) as string) ?? 'preserve') === 'override' ? 'override' : 'preserve'
       const permanentStrategy =
         op.type === 'transformWithPreservation'
-          ? ('preserve_temporary' as const)
-          : ((resolveValue(ctx, op.permanentStrategy) as string) ?? 'clear_temporary')
+          ? (PermanentStrategy.preserve_temporary as const)
+          : ((resolveValue(ctx, op.permanentStrategy) as string) ?? PermanentStrategy.clear_temporary)
       if (targets.length === 0 || !newBaseId) break
 
       const { world, systems } = ctx
@@ -1516,12 +1539,15 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
           targetId,
           targetType,
           newBaseId,
-          transformType === 'permanent' ? 'permanent' : 'temporary',
+          transformType === TransformType.permanent ? TransformType.permanent : TransformType.temporary,
           transformStrategy,
           {
             priority,
             causedById: ctx.fireCtx.sourceEntityId,
-            permanentStrategy: permanentStrategy === 'preserve_temporary' ? 'preserve_temporary' : 'clear_temporary',
+            permanentStrategy:
+              permanentStrategy === PermanentStrategy.preserve_temporary
+                ? PermanentStrategy.preserve_temporary
+                : PermanentStrategy.clear_temporary,
             extra: { effectHandlingStrategy, originalBaseId },
           },
         )

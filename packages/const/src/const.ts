@@ -55,6 +55,32 @@ export enum DamageType {
   Effect = 'Effect',
 }
 
+export enum TransformType {
+  temporary = 'temporary',
+  permanent = 'permanent',
+}
+
+export enum PermanentStrategy {
+  preserve_temporary = 'preserve_temporary',
+  clear_temporary = 'clear_temporary',
+}
+
+export enum AttrModType {
+  percent = 'percent',
+  delta = 'delta',
+  override = 'override',
+  clampMax = 'clampMax',
+  clampMin = 'clampMin',
+  clamp = 'clamp',
+}
+
+export enum ConfigModType {
+  override = 'override',
+  delta = 'delta',
+  append = 'append',
+  prepend = 'prepend',
+}
+
 export type StatOutBattle = Record<StatType, number>
 
 export type StatTypeOnBattle = StatTypeWithoutHp | StatTypeOnlyBattle

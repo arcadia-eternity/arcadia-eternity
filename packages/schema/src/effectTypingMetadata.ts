@@ -1,16 +1,18 @@
 import type { EffectDslTypingContract, StringEnumOption } from './effectTypingContract'
 import {
+  AttrModType,
   CleanStageStrategy,
+  ConfigModType,
   ContinuousUseSkillStrategy,
   IgnoreStageStrategy,
+  PermanentStrategy,
   SetStageStrategy,
   StackStrategy,
+  StatType,
   StatTypeWithoutHp,
+  TransformType,
 } from '@arcadia-eternity/const'
 
-// Type-safe enum-to-options mapper.
-// Adding a new member to any source enum WITHOUT updating the
-// corresponding labels map = TypeScript compile error.  Exhaustive.
 function mapEnumOptions<TEnum extends Record<string, string>>(labels: {
   [K in TEnum[keyof TEnum]]: string | { label: string; description?: string }
 }): StringEnumOption[] {
@@ -22,50 +24,29 @@ function mapEnumOptions<TEnum extends Record<string, string>>(labels: {
   )
 }
 
-// Pseudo-enums (values not in @arcadia-eternity/const yet)
-const ModifierType = { add: 'add', multiply: 'multiply', replace: 'replace', set: 'set' } as const
-const TransformTypeValues = { temporary: 'temporary', permanent: 'permanent' } as const
-const PermanentStrategyValues = {
-  preserve_temporary: 'preserve_temporary',
-  clear_temporary: 'clear_temporary',
-} as const
-const StatKey = {
-  atk: 'atk',
-  def: 'def',
-  spa: 'spa',
-  spd: 'spd',
-  speed: 'speed',
-  hp: 'hp',
-  hitRate: 'hitRate',
-  critRate: 'critRate',
-  recoverHp: 'recoverHp',
-  damageReduce: 'damageReduce',
-  damageBoost: 'damageBoost',
-  healBoost: 'healBoost',
-} as const
-
-// ── Enum option registries (all type-safe) ──────────────────────────
-
-const ENUM_ModifierType = mapEnumOptions<typeof ModifierType>({
-  [ModifierType.add]: '加',
-  [ModifierType.multiply]: '乘',
-  [ModifierType.replace]: '替换',
-  [ModifierType.set]: '设',
+const ENUM_AttrModType = mapEnumOptions<typeof AttrModType>({
+  [AttrModType.percent]: '乘算',
+  [AttrModType.delta]: '加算',
+  [AttrModType.override]: '覆写',
+  [AttrModType.clampMax]: '上限',
+  [AttrModType.clampMin]: '下限',
+  [AttrModType.clamp]: '钳制',
 })
 
-const ENUM_StatType = mapEnumOptions<typeof StatKey>({
-  [StatKey.atk]: '攻击',
-  [StatKey.def]: '防御',
-  [StatKey.spa]: '特攻',
-  [StatKey.spd]: '特防',
-  [StatKey.speed]: '速度',
-  [StatKey.hp]: '体力',
-  [StatKey.hitRate]: '命中率',
-  [StatKey.critRate]: '暴击率',
-  [StatKey.recoverHp]: '恢复体力',
-  [StatKey.damageReduce]: '减伤',
-  [StatKey.damageBoost]: '增伤',
-  [StatKey.healBoost]: '治疗加成',
+const ENUM_ConfigModType = mapEnumOptions<typeof ConfigModType>({
+  [ConfigModType.override]: '覆写',
+  [ConfigModType.delta]: '加算',
+  [ConfigModType.append]: '追加',
+  [ConfigModType.prepend]: '前置',
+})
+
+const ENUM_StatType = mapEnumOptions<typeof StatType>({
+  [StatType.atk]: '攻击',
+  [StatType.def]: '防御',
+  [StatType.spa]: '特攻',
+  [StatType.spd]: '特防',
+  [StatType.spe]: '速度',
+  [StatType.hp]: '体力',
 })
 
 const ENUM_CleanStageStrategy = mapEnumOptions<typeof CleanStageStrategy>({
@@ -75,14 +56,14 @@ const ENUM_CleanStageStrategy = mapEnumOptions<typeof CleanStageStrategy>({
   [CleanStageStrategy.reverse]: '反转',
 })
 
-const ENUM_TransformType = mapEnumOptions<typeof TransformTypeValues>({
-  [TransformTypeValues.temporary]: '临时',
-  [TransformTypeValues.permanent]: '永久',
+const ENUM_TransformType = mapEnumOptions<typeof TransformType>({
+  [TransformType.temporary]: '临时',
+  [TransformType.permanent]: '永久',
 })
 
-const ENUM_PermanentStrategy = mapEnumOptions<typeof PermanentStrategyValues>({
-  [PermanentStrategyValues.preserve_temporary]: '保留临时效果',
-  [PermanentStrategyValues.clear_temporary]: '清除临时效果',
+const ENUM_PermanentStrategy = mapEnumOptions<typeof PermanentStrategy>({
+  [PermanentStrategy.preserve_temporary]: '保留临时效果',
+  [PermanentStrategy.clear_temporary]: '清除临时效果',
 })
 
 const ENUM_IgnoreStageStrategy = mapEnumOptions<typeof IgnoreStageStrategy>({
@@ -128,7 +109,8 @@ const ENUM_StatTypeWithoutHp = mapEnumOptions<typeof StatTypeWithoutHp>({
 const ALL_STRING_ENUMS: readonly StringEnumOption[] = (() => {
   const seen = new Map<string, StringEnumOption>()
   const registries: { name: string; values: readonly StringEnumOption[] }[] = [
-    { name: 'ModifierType', values: ENUM_ModifierType },
+    { name: 'AttrModType', values: ENUM_AttrModType },
+    { name: 'ConfigModType', values: ENUM_ConfigModType },
     { name: 'StatType', values: ENUM_StatType },
     { name: 'CleanStageStrategy', values: ENUM_CleanStageStrategy },
     { name: 'TransformType', values: ENUM_TransformType },
@@ -708,7 +690,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         stat: STRING_ENUM(ENUM_StatType),
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_AttrModType),
         value: NUMERIC,
         priority: NUMERIC,
         phaseType: STRINGY,
@@ -724,7 +706,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         stat: STRING_ENUM(ENUM_StatType),
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_AttrModType),
         priority: NUMERIC,
         phaseType: STRINGY,
         scope: STRINGY,
@@ -767,7 +749,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: SKILL_ID },
       valueFields: {
         attribute: STRING_ENUM(ENUM_StatType),
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_AttrModType),
         value: NUMERIC,
         priority: NUMERIC,
         phaseType: STRINGY,
@@ -783,7 +765,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         attribute: STRING_ENUM(ENUM_StatType),
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_AttrModType),
         priority: NUMERIC,
       },
       requiredFields: ['target', 'observableValue', 'attribute', 'modifierType'],
@@ -842,7 +824,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_ConfigModType),
         value: NUMERIC,
         priority: NUMERIC,
       },
@@ -855,7 +837,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_ConfigModType),
         priority: NUMERIC,
       },
       requiredFields: ['target', 'observableValue', 'configKey', 'modifierType'],
@@ -864,7 +846,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         tag: STRINGY,
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_ConfigModType),
         value: NUMERIC,
         priority: NUMERIC,
       },
@@ -874,7 +856,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_ConfigModType),
         value: NUMERIC,
         priority: NUMERIC,
       },
@@ -887,7 +869,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_ConfigModType),
         priority: NUMERIC,
       },
       requiredFields: ['target', 'observableValue', 'configKey', 'modifierType'],
@@ -896,7 +878,7 @@ export const effectDslTypingMetadata = {
       selectorFields: { target: ANY_ID },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_ConfigModType),
         value: NUMERIC,
         phaseType: STRINGY,
         scope: STRINGY,
@@ -912,7 +894,7 @@ export const effectDslTypingMetadata = {
       },
       valueFields: {
         configKey: STRINGY,
-        modifierType: STRING_ENUM(ENUM_ModifierType),
+        modifierType: STRING_ENUM(ENUM_ConfigModType),
         phaseType: STRINGY,
         scope: STRINGY,
         priority: NUMERIC,
