@@ -286,7 +286,9 @@ export const effectDslTypingMetadata = {
     },
     anyOf: {
       valueFields: {
-        value: STRING_ENUM(ALL_STRING_ENUMS),
+        value: {
+          allow: [...ANY_SELECTOR_RESULT.allow, { kind: 'stringEnum' as const, values: ALL_STRING_ENUMS }],
+        },
       },
       requiredFields: ['value'],
     },

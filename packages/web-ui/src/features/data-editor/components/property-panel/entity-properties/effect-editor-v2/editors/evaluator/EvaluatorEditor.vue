@@ -105,7 +105,7 @@ const valFieldRule = computed(() => {
   if (!manifestRule) return props.fieldRule
   if (isStructuralRule(props.fieldRule)) return manifestRule
 
-  const narrowingCategories = new Set(['same', 'notSame', 'compare'])
+  const narrowingCategories = new Set(['same', 'notSame', 'compare', 'anyOf'])
   if (narrowingCategories.has(category.value)) {
     return props.fieldRule
   }
