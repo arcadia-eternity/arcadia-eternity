@@ -21,14 +21,11 @@ export type PhaseState =
   | 'failed'
   | 'cancelled'
 
-/**
- * Serializable phase definition — pure data.
- */
-export interface PhaseDef {
+export interface PhaseDef<TData = unknown> {
   id: string
   type: string
   state: PhaseState
-  data: unknown
+  data: TData
   waitingFor?: {
     inputType: string
     playerId?: string
@@ -54,24 +51,17 @@ export interface PhaseExecutionEvent {
 
 export type PhaseExecutionObserver = (world: World, event: PhaseExecutionEvent) => void | Promise<void>
 
-/**
- * Game layers implement PhaseHandler for each phase type.
- */
 export interface PhaseHandler<
   TData = unknown,
   TState extends WorldState = WorldState,
   TSystems extends WorldSystems = WorldSystems,
   TPlugins extends WorldPlugins = WorldPlugins,
 > {
-  type: string
-  /** Create initial data for this phase */
-  initialize(world: World<TState, TSystems, TPlugins>, phase: PhaseDef): TData
-  /** Execute the phase logic */
-  execute(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): PhaseResult | Promise<PhaseResult>
-  /** Optional: resume from persisted waiting state */
-  resume?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): PhaseResult | Promise<PhaseResult>
-  /** Optional: cleanup when phase completes or is cancelled */
-  cleanup?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef): void
+  readonly type: string
+  initialize(world: World<TState, TSystems, TPlugins>, initData?: unknown): TData
+  execute(world: World<TState, TSystems, TPlugins>, phase: PhaseDef<TData>, bus: EventBus): PhaseResult | Promise<PhaseResult>
+  resume?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef<TData>, bus: EventBus): PhaseResult | Promise<PhaseResult>
+  cleanup?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef<TData>): void
 }
 
 // ---------------------------------------------------------------------------
@@ -83,32 +73,7 @@ export class PhaseManager<
   TSystems extends WorldSystems = WorldSystems,
   TPlugins extends WorldPlugins = WorldPlugins,
 > {
-  private handlers = new Map<string, PhaseHandler<unknown, TState, TSystems, TPlugins>>()
   private executionObservers = new Set<PhaseExecutionObserver>()
-
-  /**
-   * Register a phase handler for a given type.
-   */
-  register(handler: PhaseHandler<unknown, TState, TSystems, TPlugins>): void {
-    if (this.handlers.has(handler.type)) {
-      throw new Error(`PhaseHandler for type '${handler.type}' already registered`)
-    }
-    this.handlers.set(handler.type, handler)
-  }
-
-  /**
-   * Get a registered handler.
-   */
-  getHandler(type: string): PhaseHandler<unknown, TState, TSystems, TPlugins> | undefined {
-    return this.handlers.get(type)
-  }
-
-  /**
-   * Check if a handler is registered.
-   */
-  hasHandler(type: string): boolean {
-    return this.handlers.has(type)
-  }
 
   onExecutionEvent(observer: PhaseExecutionObserver): () => void {
     this.executionObservers.add(observer)
@@ -117,54 +82,36 @@ export class PhaseManager<
     }
   }
 
-  /**
-   * Create a new phase definition and push it onto the world's phase stack.
-   */
-  createPhase(world: World<TState, TSystems, TPlugins>, type: string, initData?: unknown): PhaseDef {
-    const handler = this.handlers.get(type)
-    if (!handler) {
-      throw new Error(`No PhaseHandler registered for type '${type}'`)
-    }
-
-    const phase: PhaseDef = {
-      id: generateId(type),
-      type,
+  createPhase<TData>(
+    _world: World<TState, TSystems, TPlugins>,
+    handler: PhaseHandler<TData, TState, TSystems, TPlugins>,
+    initData?: unknown,
+  ): PhaseDef<TData> {
+    const data = handler.initialize(_world, initData)
+    return {
+      id: generateId(handler.type),
+      type: handler.type,
       state: 'pending',
-      data: initData ?? null,
+      data,
     }
-
-    // Initialize phase data via handler
-    phase.state = 'initializing'
-    phase.data = handler.initialize(world, phase)
-    phase.state = 'pending'
-
-    return phase
   }
 
-  /**
-   * Execute a phase. Pushes it onto the stack, runs the handler,
-   * and pops it when done.
-   */
-  async execute(
+  async execute<TData>(
     world: World<TState, TSystems, TPlugins>,
-    phaseType: string,
+    handler: PhaseHandler<TData, TState, TSystems, TPlugins>,
     bus: EventBus,
     initData?: unknown,
   ): Promise<PhaseResult> {
-    const phase = this.createPhase(world, phaseType, initData)
-    return this.executePhase(world, phase, bus)
+    const phase = this.createPhase(world, handler, initData)
+    return this.executePhase(world, handler, phase, bus)
   }
 
-  /**
-   * Execute an already-created phase definition.
-   */
-  async executePhase(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
-    const handler = this.handlers.get(phase.type)
-    if (!handler) {
-      return { success: false, state: 'failed', error: `No handler for '${phase.type}'` }
-    }
-
-    // Push onto stack
+  async executePhase<TData>(
+    world: World<TState, TSystems, TPlugins>,
+    handler: PhaseHandler<TData, TState, TSystems, TPlugins>,
+    phase: PhaseDef<TData>,
+    bus: EventBus,
+  ): Promise<PhaseResult> {
     world.phaseStack.push(phase)
     phase.state = 'executing'
     await this.emitExecutionEvent(world, {
@@ -195,31 +142,25 @@ export class PhaseManager<
       })
       return { success: false, state: 'failed', error }
     } finally {
-      // Pop from stack
       const idx = world.phaseStack.lastIndexOf(phase)
       if (idx !== -1) {
         world.phaseStack.splice(idx, 1)
       }
-      // Cleanup
       handler.cleanup?.(world, phase)
     }
   }
 
-  /**
-   * Resume a phase that was in 'waiting' state (e.g. after deserialization).
-   */
-  async resumePhase(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async resumePhase<TData>(
+    world: World<TState, TSystems, TPlugins>,
+    handler: PhaseHandler<TData, TState, TSystems, TPlugins>,
+    phase: PhaseDef<TData>,
+    bus: EventBus,
+  ): Promise<PhaseResult> {
     if (phase.state !== 'waiting') {
       return { success: false, state: 'failed', error: `Cannot resume phase in state '${phase.state}'` }
     }
-
-    const handler = this.handlers.get(phase.type)
-    if (!handler) {
-      return { success: false, state: 'failed', error: `No handler for '${phase.type}'` }
-    }
-
     if (!handler.resume) {
-      return { success: false, state: 'failed', error: `Handler '${phase.type}' does not support resume` }
+      return { success: false, state: 'failed', error: `Handler '${handler.type}' does not support resume` }
     }
 
     world.phaseStack.push(phase)
@@ -260,18 +201,11 @@ export class PhaseManager<
     }
   }
 
-  /**
-   * Mark a phase as waiting for input.
-   */
   setWaiting(phase: PhaseDef, inputType: string, playerId?: string, timeout?: number): void {
     phase.state = 'waiting'
     phase.waitingFor = { inputType, playerId, timeout }
   }
 
-  /**
-   * Get the current active phase types from the world's phase stack.
-   * Useful for PhaseContext in attribute evaluation.
-   */
   getActivePhaseTypes(world: World<TState, TSystems, TPlugins>): Set<string> {
     const types = new Set<string>()
     for (const phase of world.phaseStack) {
@@ -282,12 +216,8 @@ export class PhaseManager<
     return types
   }
 
-  /**
-   * Get current phase IDs by type from the world's phase stack.
-   */
   getCurrentPhaseIds(world: World<TState, TSystems, TPlugins>): Map<string, string> {
     const ids = new Map<string, string>()
-    // Last one wins (most recent phase of each type)
     for (const phase of world.phaseStack) {
       if (phase.state === 'executing' || phase.state === 'waiting') {
         ids.set(phase.type, phase.id)
@@ -296,9 +226,6 @@ export class PhaseManager<
     return ids
   }
 
-  /**
-   * Build a PhaseContext for attribute evaluation from the current world state.
-   */
   buildPhaseContext(world: World<TState, TSystems, TPlugins>): import('./attribute.js').PhaseContext {
     return {
       activePhaseTypes: this.getActivePhaseTypes(world),
