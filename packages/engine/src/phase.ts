@@ -123,7 +123,9 @@ export class PhaseManager<
     try {
       const result = await handler.execute(world, phase, bus)
       phase.state = result.state
-      phase.data = result.data ?? phase.data
+      if (result.data !== undefined) {
+        phase.data = result.data as TData
+      }
       await this.emitExecutionEvent(world, {
         transition: 'commit',
         phase,
@@ -174,7 +176,9 @@ export class PhaseManager<
     try {
       const result = await handler.resume(world, phase, bus)
       phase.state = result.state
-      phase.data = result.data ?? phase.data
+      if (result.data !== undefined) {
+        phase.data = result.data as TData
+      }
       await this.emitExecutionEvent(world, {
         transition: 'commit',
         phase,
