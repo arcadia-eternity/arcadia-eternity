@@ -2,8 +2,9 @@
 // PlayerSystem — class that manages Player entities.
 
 import {
-  type World,
-  type AttributeSystem,
+  type WorldSystems,
+  type WorldPlugins,
+  System,
   createEntity,
   setComponent,
   getComponent,
@@ -14,6 +15,9 @@ import { MAX_RAGE } from '@arcadia-eternity/const'
 import type { PlayerData } from '../schemas/player.schema.js'
 import type { PetData } from '../schemas/pet.schema.js'
 import type { EntityAttributeDef } from './pet.system.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { PetAndPlayerAttributes, PlayerAttributeSystem } from '../types/battle-attributes.js'
 
 export const PLAYER = 'player' as const
 const PET = 'pet' as const
@@ -31,14 +35,16 @@ export const playerAttributes: EntityAttributeDef[] = [
 // PlayerSystem
 // ---------------------------------------------------------------------------
 
-export class PlayerSystem {
-  constructor(private attrSystem: AttributeSystem) {}
+export class PlayerSystem extends System<BattleState, WorldSystems, WorldPlugins, PetAndPlayerAttributes> {
+  constructor(attrSystem: PlayerAttributeSystem) {
+    super(attrSystem)
+  }
 
   // -----------------------------------------------------------------------
   // Creation
   // -----------------------------------------------------------------------
 
-  create(world: World, name: string, petIds: string[], idOverride?: string): PlayerData {
+  create(world: BattleWorld, name: string, petIds: string[], idOverride?: string): PlayerData {
     const id = idOverride ?? generateId('player')
 
     const player: PlayerData = {
@@ -71,21 +77,21 @@ export class PlayerSystem {
   // Rage operations
   // -----------------------------------------------------------------------
 
-  getRage(world: World, playerId: string): number {
-    return this.attrSystem.getValue(world, playerId, 'currentRage') as number
+  getRage(world: BattleWorld, playerId: string): number {
+    return this.attrSystem.getValue(world, playerId, 'currentRage')
   }
 
-  getMaxRage(world: World, playerId: string): number {
-    return this.attrSystem.getValue(world, playerId, 'maxRage') as number
+  getMaxRage(world: BattleWorld, playerId: string): number {
+    return this.attrSystem.getValue(world, playerId, 'maxRage')
   }
 
-  setRage(world: World, playerId: string, value: number): void {
+  setRage(world: BattleWorld, playerId: string, value: number): void {
     const maxRage = this.getMaxRage(world, playerId)
     const clamped = Math.max(0, Math.min(value, maxRage))
     this.attrSystem.setBaseValue(world, playerId, 'currentRage', clamped)
   }
 
-  addRage(world: World, playerId: string, delta: number): number {
+  addRage(world: BattleWorld, playerId: string, delta: number): number {
     const current = this.getRage(world, playerId)
     const maxRage = this.getMaxRage(world, playerId)
     const newValue = Math.max(0, Math.min(current + delta, maxRage))
@@ -98,45 +104,45 @@ export class PlayerSystem {
   // Active pet
   // -----------------------------------------------------------------------
 
-  getActivePet(world: World, playerId: string): PetData {
+  getActivePet(world: BattleWorld, playerId: string): PetData {
     const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
     return getComponentOrThrow(world, player.activePetId, PET) as PetData
   }
 
-  setActivePet(world: World, playerId: string, petId: string): void {
-    (getComponentOrThrow(world, playerId, PLAYER) as PlayerData).activePetId = petId
+  setActivePet(world: BattleWorld, playerId: string, petId: string): void {
+    ;(getComponentOrThrow(world, playerId, PLAYER) as PlayerData).activePetId = petId
   }
 
   // -----------------------------------------------------------------------
   // Team queries
   // -----------------------------------------------------------------------
 
-  getAlivePets(world: World, playerId: string): PetData[] {
+  getAlivePets(world: BattleWorld, playerId: string): PetData[] {
     const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
     return player.battleTeamPetIds
       .map(id => getComponentOrThrow(world, id, PET) as PetData)
-      .filter(pet => (this.attrSystem.getValue(world, pet.id, 'isAlive') as boolean | undefined) ?? false)
+      .filter(pet => this.attrSystem.getValue(world, pet.id, 'isAlive') ?? false)
   }
 
-  getAvailableSwitchPets(world: World, playerId: string): PetData[] {
+  getAvailableSwitchPets(world: BattleWorld, playerId: string): PetData[] {
     const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
     return player.battleTeamPetIds
       .filter(id => id !== player.activePetId)
       .map(id => getComponentOrThrow(world, id, PET) as PetData)
-      .filter(pet => (this.attrSystem.getValue(world, pet.id, 'isAlive') as boolean | undefined) ?? false)
+      .filter(pet => this.attrSystem.getValue(world, pet.id, 'isAlive') ?? false)
   }
 
-  applyTeamSelection(world: World, playerId: string, selectedPetIds: string[], starterPetId: string): void {
+  applyTeamSelection(world: BattleWorld, playerId: string, selectedPetIds: string[], starterPetId: string): void {
     const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
     player.battleTeamPetIds = [...selectedPetIds]
     player.activePetId = starterPetId
   }
 
-  get(world: World, playerId: string): PlayerData | undefined {
+  get(world: BattleWorld, playerId: string): PlayerData | undefined {
     return getComponent(world, playerId, PLAYER) as PlayerData | undefined
   }
 
-  getOrThrow(world: World, playerId: string): PlayerData {
+  getOrThrow(world: BattleWorld, playerId: string): PlayerData {
     return getComponentOrThrow(world, playerId, PLAYER) as PlayerData
   }
 }

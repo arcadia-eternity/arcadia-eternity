@@ -172,14 +172,14 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
   // Build engine subsystems
   const phaseManager = new PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>()
   const effectPipeline = new EffectPipeline<BattleState, BattleSystems>(seer2EffectInterpreter, {
-    beforeEffectExecute: (hookWorld, _effect, fireCtx) => {
+    beforeEffectExecute: (hookWorld: BattleWorld, _effect, fireCtx) => {
       const effectEntityId = fireCtx.effectEntityId
       if (typeof effectEntityId !== 'string') return true
       const mark = markSystem.get(hookWorld, effectEntityId)
       if (!mark) return true
       return markSystem.isActive(hookWorld, effectEntityId)
     },
-    afterEffectExecute: (hookWorld, effect, fireCtx) => {
+    afterEffectExecute: (hookWorld: BattleWorld, effect, fireCtx) => {
       if (!effect.consumesStacks || effect.consumesStacks <= 0) return
       const effectEntityId = fireCtx.effectEntityId
       if (typeof effectEntityId !== 'string') return

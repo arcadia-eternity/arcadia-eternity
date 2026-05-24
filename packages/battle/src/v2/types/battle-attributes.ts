@@ -3,7 +3,15 @@
 // Used as the TAttributes generic parameter on AttributeSystem for compile-time type narrowing.
 
 import type { Element, Gender, Nature, Category, AttackTargetOpinion } from '@arcadia-eternity/const'
+import type { AttributeSystem, WorldSystems, WorldPlugins, World } from '@arcadia-eternity/engine'
 import type { MarkConfigData } from '../schemas/mark.schema.js'
+import type { BattleState } from './battle-state.js'
+
+// ---------------------------------------------------------------------------
+// Convenience World type matching the per-entity AttributeSystem aliases
+// ---------------------------------------------------------------------------
+
+export type SystemWorld = World<BattleState, WorldSystems, WorldPlugins>
 
 // ---------------------------------------------------------------------------
 // Per-entity attribute maps
@@ -63,3 +71,17 @@ export interface PlayerAttributes {
 }
 
 export type BattleAttributes = PetAttributes & SkillAttributes & MarkAttributes & PlayerAttributes
+
+// Convenience union for systems that span entity types
+export type PetAndPlayerAttributes = PetAttributes & PlayerAttributes
+
+// ---------------------------------------------------------------------------
+// Per-entity typed AttributeSystem aliases.
+// TSystems uses WorldSystems (not BattleSystems) to avoid circular deps.
+// ---------------------------------------------------------------------------
+
+export type PetAttributeSystem = AttributeSystem<BattleState, WorldSystems, WorldPlugins, PetAttributes>
+export type SkillAttributeSystem = AttributeSystem<BattleState, WorldSystems, WorldPlugins, SkillAttributes>
+export type MarkAttributeSystem = AttributeSystem<BattleState, WorldSystems, WorldPlugins, MarkAttributes>
+export type PlayerAttributeSystem = AttributeSystem<BattleState, WorldSystems, WorldPlugins, PetAndPlayerAttributes>
+export type BattleAttributeSystem = AttributeSystem<BattleState, WorldSystems, WorldPlugins, BattleAttributes>

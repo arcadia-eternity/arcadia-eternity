@@ -2,8 +2,9 @@
 // PetSystem — class that manages Pet entities.
 
 import {
-  type World,
-  type AttributeSystem,
+  type WorldSystems,
+  type WorldPlugins,
+  System,
   createEntity,
   setComponent,
   getComponent,
@@ -20,6 +21,9 @@ import {
 } from '@arcadia-eternity/const'
 import type { PetData } from '../schemas/pet.schema.js'
 import type { SpeciesData } from '../schemas/species.schema.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { PetAttributes, PetAttributeSystem } from '../types/battle-attributes.js'
 
 export const PET = 'pet' as const
 
@@ -81,14 +85,16 @@ export interface CreatePetOptions {
 // PetSystem
 // ---------------------------------------------------------------------------
 
-export class PetSystem {
-  constructor(private attrSystem: AttributeSystem) {}
+export class PetSystem extends System<BattleState, WorldSystems, WorldPlugins, PetAttributes> {
+  constructor(attrSystem: PetAttributeSystem) {
+    super(attrSystem)
+  }
 
   // -----------------------------------------------------------------------
   // Creation
   // -----------------------------------------------------------------------
 
-  create(world: World, species: SpeciesData, options: CreatePetOptions): PetData {
+  create(world: BattleWorld, species: SpeciesData, options: CreatePetOptions): PetData {
     const id = generateId('pet')
 
     const pet: PetData = {
@@ -123,7 +129,7 @@ export class PetSystem {
 
     const baseStats = PetSystem.calculateBaseStats(pet, species)
     for (const [key, value] of Object.entries(baseStats)) {
-      this.attrSystem.registerAttribute(world, id, key, value)
+      this.attrSystem.registerAttribute(world, id, key as keyof PetAttributes, value)
     }
     this.attrSystem.registerAttribute(world, id, 'name', pet.name)
     this.attrSystem.registerAttribute(world, id, 'speciesId', pet.speciesId)
@@ -142,74 +148,74 @@ export class PetSystem {
   // Queries
   // -----------------------------------------------------------------------
 
-  get(world: World, petId: string): PetData | undefined {
+  get(world: BattleWorld, petId: string): PetData | undefined {
     return getComponent(world, petId, PET) as PetData | undefined
   }
 
-  getOrThrow(world: World, petId: string): PetData {
+  getOrThrow(world: BattleWorld, petId: string): PetData {
     return getComponentOrThrow(world, petId, PET) as PetData
   }
 
-  getStatValue(world: World, petId: string, stat: string): number {
-    const value = this.attrSystem.getValue(world, petId, stat)
+  getStatValue(world: BattleWorld, petId: string, stat: string): number {
+    const value = this.attrSystem.getValue(world, petId, stat as keyof PetAttributes)
     return typeof value === 'number' && Number.isFinite(value) ? value : 0
   }
 
-  getCurrentHp(world: World, petId: string): number {
-    return (this.attrSystem.getBaseValue(world, petId, 'currentHp') as number) ?? 0
+  getCurrentHp(world: BattleWorld, petId: string): number {
+    return this.attrSystem.getBaseValue(world, petId, 'currentHp') ?? 0
   }
 
-  setCurrentHp(world: World, petId: string, value: number): void {
+  setCurrentHp(world: BattleWorld, petId: string, value: number): void {
     const clamped = Math.max(0, value)
     this.attrSystem.setBaseValue(world, petId, 'currentHp', clamped)
     this.attrSystem.setBaseValue(world, petId, 'isAlive', clamped > 0)
   }
 
-  isAlive(world: World, petId: string): boolean {
-    return (this.attrSystem.getValue(world, petId, 'isAlive') as boolean | undefined) ?? false
+  isAlive(world: BattleWorld, petId: string): boolean {
+    return this.attrSystem.getValue(world, petId, 'isAlive') ?? false
   }
 
-  getOwner(world: World, petId: string): string {
+  getOwner(world: BattleWorld, petId: string): string {
     return this.getOrThrow(world, petId).ownerId
   }
 
-  getName(world: World, petId: string): string {
-    return this.attrSystem.getValue(world, petId, 'name') as string
+  getName(world: BattleWorld, petId: string): string {
+    return this.attrSystem.getValue(world, petId, 'name')
   }
 
-  getSpeciesId(world: World, petId: string): string {
-    return this.attrSystem.getValue(world, petId, 'speciesId') as string
+  getSpeciesId(world: BattleWorld, petId: string): string {
+    return this.attrSystem.getValue(world, petId, 'speciesId')
   }
 
-  getLevel(world: World, petId: string): number {
-    return this.attrSystem.getValue(world, petId, 'level') as number
+  getLevel(world: BattleWorld, petId: string): number {
+    return this.attrSystem.getValue(world, petId, 'level')
   }
 
-  getElement(world: World, petId: string): PetData['element'] {
-    return this.attrSystem.getValue(world, petId, 'element') as PetData['element']
+  getElement(world: BattleWorld, petId: string): PetData['element'] {
+    return this.attrSystem.getValue(world, petId, 'element')
   }
 
-  getGender(world: World, petId: string): PetData['gender'] {
-    return this.attrSystem.getValue(world, petId, 'gender') as PetData['gender']
+  getGender(world: BattleWorld, petId: string): PetData['gender'] {
+    return this.attrSystem.getValue(world, petId, 'gender')
   }
 
-  getNature(world: World, petId: string): PetData['nature'] {
-    return this.attrSystem.getValue(world, petId, 'nature') as PetData['nature']
+  getNature(world: BattleWorld, petId: string): PetData['nature'] {
+    return this.attrSystem.getValue(world, petId, 'nature')
   }
 
-  isAppeared(world: World, petId: string): boolean {
-    return this.attrSystem.getValue(world, petId, 'appeared') as boolean
+  isAppeared(world: BattleWorld, petId: string): boolean {
+    return this.attrSystem.getValue(world, petId, 'appeared')
   }
 
-  setAppeared(world: World, petId: string, appeared: boolean): void {
+  setAppeared(world: BattleWorld, petId: string, appeared: boolean): void {
     this.attrSystem.setBaseValue(world, petId, 'appeared', appeared)
   }
 
-  recalculateStats(world: World, petId: string, species: SpeciesData): void {
+  recalculateStats(world: BattleWorld, petId: string, species: SpeciesData): void {
     const pet = this.getOrThrow(world, petId)
     const newStats = PetSystem.calculateBaseStats(pet, species)
     for (const [key, value] of Object.entries(newStats)) {
-      this.attrSystem.setBaseValue(world, petId, key, value)
+      this.attrSystem.setBaseValue(world, petId, key as keyof PetAttributes, value)
     }
   }
 

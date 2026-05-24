@@ -2,8 +2,9 @@
 // SkillSystem — class that manages Skill entities.
 
 import {
-  type World,
-  type AttributeSystem,
+  type WorldSystems,
+  type WorldPlugins,
+  System,
   createEntity,
   setComponent,
   getComponent,
@@ -14,6 +15,9 @@ import { AttackTargetOpinion, IgnoreStageStrategy } from '@arcadia-eternity/cons
 import type { BaseSkillData, SkillData } from '../schemas/skill.schema.js'
 import type { UseSkillContextData } from '../schemas/context.schema.js'
 import type { EntityAttributeDef } from './pet.system.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { SkillAttributes, SkillAttributeSystem } from '../types/battle-attributes.js'
 
 export const SKILL = 'skill' as const
 
@@ -41,14 +45,16 @@ export const skillAttributes: EntityAttributeDef[] = [
 // SkillSystem
 // ---------------------------------------------------------------------------
 
-export class SkillSystem {
-  constructor(private attrSystem: AttributeSystem) {}
+export class SkillSystem extends System<BattleState, WorldSystems, WorldPlugins, SkillAttributes> {
+  constructor(attrSystem: SkillAttributeSystem) {
+    super(attrSystem)
+  }
 
   // -----------------------------------------------------------------------
   // Creation
   // -----------------------------------------------------------------------
 
-  createFromBase(world: World, baseSkill: BaseSkillData, ownerId?: string): SkillData {
+  createFromBase(world: BattleWorld, baseSkill: BaseSkillData, ownerId?: string): SkillData {
     const id = generateId('skill')
 
     const skill: SkillData = {
@@ -92,84 +98,84 @@ export class SkillSystem {
   // Queries
   // -----------------------------------------------------------------------
 
-  get(world: World, skillId: string): SkillData | undefined {
+  get(world: BattleWorld, skillId: string): SkillData | undefined {
     return getComponent(world, skillId, SKILL) as SkillData | undefined
   }
 
-  getOrThrow(world: World, skillId: string): SkillData {
+  getOrThrow(world: BattleWorld, skillId: string): SkillData {
     return getComponentOrThrow(world, skillId, SKILL) as SkillData
   }
 
-  getPower(world: World, skillId: string): number {
-    return (this.attrSystem.getValue(world, skillId, 'power') as number) ?? 0
+  getPower(world: BattleWorld, skillId: string): number {
+    return this.attrSystem.getValue(world, skillId, 'power') ?? 0
   }
 
-  getAccuracy(world: World, skillId: string): number {
-    return (this.attrSystem.getValue(world, skillId, 'accuracy') as number) ?? 100
+  getAccuracy(world: BattleWorld, skillId: string): number {
+    return this.attrSystem.getValue(world, skillId, 'accuracy') ?? 100
   }
 
-  getRage(world: World, skillId: string): number {
-    return (this.attrSystem.getValue(world, skillId, 'rage') as number) ?? 0
+  getRage(world: BattleWorld, skillId: string): number {
+    return this.attrSystem.getValue(world, skillId, 'rage') ?? 0
   }
 
-  getPriority(world: World, skillId: string): number {
-    return (this.attrSystem.getValue(world, skillId, 'priority') as number) ?? 0
+  getPriority(world: BattleWorld, skillId: string): number {
+    return this.attrSystem.getValue(world, skillId, 'priority') ?? 0
   }
 
-  getCategory(world: World, skillId: string): SkillData['category'] {
-    return this.attrSystem.getValue(world, skillId, 'category') as SkillData['category']
+  getCategory(world: BattleWorld, skillId: string): SkillData['category'] {
+    return this.attrSystem.getValue(world, skillId, 'category')
   }
 
-  getElement(world: World, skillId: string): SkillData['element'] {
-    return this.attrSystem.getValue(world, skillId, 'element') as SkillData['element']
+  getElement(world: BattleWorld, skillId: string): SkillData['element'] {
+    return this.attrSystem.getValue(world, skillId, 'element')
   }
 
-  getTarget(world: World, skillId: string): SkillData['target'] {
+  getTarget(world: BattleWorld, skillId: string): SkillData['target'] {
     const target = this.attrSystem.getValue(world, skillId, 'target')
     return target === AttackTargetOpinion.self ? AttackTargetOpinion.self : AttackTargetOpinion.opponent
   }
 
-  getMultihit(world: World, skillId: string): SkillData['multihit'] {
-    return this.attrSystem.getValue(world, skillId, 'multihit') as SkillData['multihit']
+  getMultihit(world: BattleWorld, skillId: string): SkillData['multihit'] {
+    return this.attrSystem.getValue(world, skillId, 'multihit')
   }
 
-  getSureHit(world: World, skillId: string): boolean {
-    return this.attrSystem.getValue(world, skillId, 'sureHit') as boolean
+  getSureHit(world: BattleWorld, skillId: string): boolean {
+    return this.attrSystem.getValue(world, skillId, 'sureHit')
   }
 
-  getSureCrit(world: World, skillId: string): boolean {
-    return this.attrSystem.getValue(world, skillId, 'sureCrit') as boolean
+  getSureCrit(world: BattleWorld, skillId: string): boolean {
+    return this.attrSystem.getValue(world, skillId, 'sureCrit')
   }
 
-  getIgnoreShield(world: World, skillId: string): boolean {
-    return this.attrSystem.getValue(world, skillId, 'ignoreShield') as boolean
+  getIgnoreShield(world: BattleWorld, skillId: string): boolean {
+    return this.attrSystem.getValue(world, skillId, 'ignoreShield')
   }
 
-  getIgnoreOpponentStageStrategy(world: World, skillId: string): BaseSkillData['ignoreOpponentStageStrategy'] {
+  getIgnoreOpponentStageStrategy(world: BattleWorld, skillId: string): BaseSkillData['ignoreOpponentStageStrategy'] {
     const skill = this.get(world, skillId)
     if (!skill) return IgnoreStageStrategy.none
     const base = getComponent(world, skill.baseSkillId, 'baseSkill') as BaseSkillData | undefined
     return base?.ignoreOpponentStageStrategy ?? IgnoreStageStrategy.none
   }
 
-  getTags(world: World, skillId: string): string[] {
-    return this.attrSystem.getValue(world, skillId, 'tags') as string[]
+  getTags(world: BattleWorld, skillId: string): string[] {
+    return this.attrSystem.getValue(world, skillId, 'tags')
   }
 
-  isAppeared(world: World, skillId: string): boolean {
-    return this.attrSystem.getValue(world, skillId, 'appeared') as boolean
+  isAppeared(world: BattleWorld, skillId: string): boolean {
+    return this.attrSystem.getValue(world, skillId, 'appeared')
   }
 
-  setAppeared(world: World, skillId: string, appeared: boolean): void {
+  setAppeared(world: BattleWorld, skillId: string, appeared: boolean): void {
     this.attrSystem.setBaseValue(world, skillId, 'appeared', appeared)
   }
 
-  setOwner(world: World, skillId: string, ownerId: string): void {
+  setOwner(world: BattleWorld, skillId: string, ownerId: string): void {
     this.getOrThrow(world, skillId).ownerId = ownerId
   }
 
   applyToUseSkillContext(
-    world: World,
+    world: BattleWorld,
     skillId: string,
     context: UseSkillContextData,
     options?: { getOpponentActivePetId?: (originPlayerId: string) => string | undefined },

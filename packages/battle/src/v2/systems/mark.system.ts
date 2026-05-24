@@ -2,8 +2,9 @@
 // MarkSystem — class that manages Mark entities.
 
 import {
-  type World,
-  type AttributeSystem,
+  type WorldSystems,
+  type WorldPlugins,
+  System,
   createEntity,
   setComponent,
   getComponent,
@@ -13,6 +14,9 @@ import {
 import type { BaseMarkData, MarkData, MarkConfigData } from '../schemas/mark.schema.js'
 import type { PetData } from '../schemas/pet.schema.js'
 import type { EntityAttributeDef } from './pet.system.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { MarkAttributes, MarkAttributeSystem } from '../types/battle-attributes.js'
 
 export const MARK = 'mark' as const
 const PET = 'pet' as const
@@ -34,15 +38,17 @@ export const markAttributes: EntityAttributeDef[] = [
 // MarkSystem
 // ---------------------------------------------------------------------------
 
-export class MarkSystem {
-  constructor(private attrSystem: AttributeSystem) {}
+export class MarkSystem extends System<BattleState, WorldSystems, WorldPlugins, MarkAttributes> {
+  constructor(attrSystem: MarkAttributeSystem) {
+    super(attrSystem)
+  }
 
   // -----------------------------------------------------------------------
   // Creation
   // -----------------------------------------------------------------------
 
   createFromBase(
-    world: World,
+    world: BattleWorld,
     baseMark: BaseMarkData,
     overrides?: {
       duration?: number
@@ -85,7 +91,7 @@ export class MarkSystem {
   // Attachment
   // -----------------------------------------------------------------------
 
-  attach(world: World, markId: string, ownerId: string, ownerType: 'pet' | 'battle'): void {
+  attach(world: BattleWorld, markId: string, ownerId: string, ownerType: 'pet' | 'battle'): void {
     const mark = this.getOrThrow(world, markId)
     mark.ownerId = ownerId
     mark.ownerType = ownerType
@@ -98,7 +104,7 @@ export class MarkSystem {
     }
   }
 
-  detach(world: World, markId: string): void {
+  detach(world: BattleWorld, markId: string): void {
     const mark = getComponent(world, markId, MARK) as MarkData | undefined
     if (!mark) return
 
@@ -114,7 +120,7 @@ export class MarkSystem {
     mark.ownerType = undefined
   }
 
-  destroy(world: World, markId: string): void {
+  destroy(world: BattleWorld, markId: string): void {
     this.detach(world, markId)
     removeEntity(world, markId)
   }
@@ -123,7 +129,7 @@ export class MarkSystem {
   // Stack operations
   // -----------------------------------------------------------------------
 
-  addStack(world: World, markId: string, amount: number): number {
+  addStack(world: BattleWorld, markId: string, amount: number): number {
     const config = this.getConfig(world, markId)
     const currentStack = this.getStack(world, markId)
     const newStack = Math.min(currentStack + amount, config.maxStacks)
@@ -132,7 +138,7 @@ export class MarkSystem {
     return actualAdded
   }
 
-  consumeStack(world: World, markId: string, amount: number): number {
+  consumeStack(world: BattleWorld, markId: string, amount: number): number {
     const config = this.getConfig(world, markId)
     const currentStack = this.getStack(world, markId)
     const actual = Math.min(amount, currentStack)
@@ -149,7 +155,7 @@ export class MarkSystem {
   // Duration
   // -----------------------------------------------------------------------
 
-  decrementDuration(world: World, markId: string): number {
+  decrementDuration(world: BattleWorld, markId: string): number {
     const config = this.getConfig(world, markId)
     // v1 semantics: persistent marks do not tick down.
     if (config.persistent) return this.getDuration(world, markId)
@@ -163,15 +169,15 @@ export class MarkSystem {
     return nextDuration
   }
 
-  setDuration(world: World, markId: string, duration: number): void {
+  setDuration(world: BattleWorld, markId: string, duration: number): void {
     this.attrSystem.setBaseValue(world, markId, 'duration', duration)
   }
 
-  setStack(world: World, markId: string, stack: number): void {
+  setStack(world: BattleWorld, markId: string, stack: number): void {
     this.attrSystem.setBaseValue(world, markId, 'stack', stack)
   }
 
-  setActive(world: World, markId: string, active: boolean): void {
+  setActive(world: BattleWorld, markId: string, active: boolean): void {
     this.attrSystem.setBaseValue(world, markId, 'isActive', active)
   }
 
@@ -179,29 +185,28 @@ export class MarkSystem {
   // Queries
   // -----------------------------------------------------------------------
 
-  getStack(world: World, markId: string): number {
-    return (this.attrSystem.getValue(world, markId, 'stack') as number) ?? 0
+  getStack(world: BattleWorld, markId: string): number {
+    return this.attrSystem.getValue(world, markId, 'stack') ?? 0
   }
 
-  getDuration(world: World, markId: string): number {
-    return (this.attrSystem.getValue(world, markId, 'duration') as number) ?? 0
+  getDuration(world: BattleWorld, markId: string): number {
+    return this.attrSystem.getValue(world, markId, 'duration') ?? 0
   }
 
-  isActive(world: World, markId: string): boolean {
-    return (this.attrSystem.getValue(world, markId, 'isActive') as boolean | undefined) ?? false
+  isActive(world: BattleWorld, markId: string): boolean {
+    return this.attrSystem.getValue(world, markId, 'isActive') ?? false
   }
 
-  getTags(world: World, markId: string): string[] {
+  getTags(world: BattleWorld, markId: string): string[] {
     const tags = this.attrSystem.getValue(world, markId, 'tags')
-    return Array.isArray(tags) ? (tags as string[]) : []
+    return Array.isArray(tags) ? tags : []
   }
 
-  getConfig(world: World, markId: string): MarkConfigData {
-    const config = this.attrSystem.getValue(world, markId, 'config')
-    return config as MarkConfigData
+  getConfig(world: BattleWorld, markId: string): MarkConfigData {
+    return this.attrSystem.getValue(world, markId, 'config')
   }
 
-  getMarksOnEntity(world: World, entityId: string): MarkData[] {
+  getMarksOnEntity(world: BattleWorld, entityId: string): MarkData[] {
     if (entityId === BATTLE_OWNER_ID) {
       return Object.keys(world.components.mark ?? {})
         .map(id => getComponent(world, id, MARK) as MarkData | undefined)
@@ -218,15 +223,15 @@ export class MarkSystem {
       .filter((m): m is MarkData => m !== undefined && this.isActive(world, m.id))
   }
 
-  findByBaseId(world: World, entityId: string, baseMarkId: string): MarkData | undefined {
+  findByBaseId(world: BattleWorld, entityId: string, baseMarkId: string): MarkData | undefined {
     return this.getMarksOnEntity(world, entityId).find(m => m.baseMarkId === baseMarkId)
   }
 
-  get(world: World, markId: string): MarkData | undefined {
+  get(world: BattleWorld, markId: string): MarkData | undefined {
     return getComponent(world, markId, MARK) as MarkData | undefined
   }
 
-  getOrThrow(world: World, markId: string): MarkData {
+  getOrThrow(world: BattleWorld, markId: string): MarkData {
     const mark = getComponent(world, markId, MARK) as MarkData | undefined
     if (!mark) throw new Error(`Mark '${markId}' not found`)
     return mark
@@ -235,14 +240,14 @@ export class MarkSystem {
   /**
    * Get all shield marks on an entity (marks with isShield=true).
    */
-  getShieldMarks(world: World, entityId: string): MarkData[] {
+  getShieldMarks(world: BattleWorld, entityId: string): MarkData[] {
     return this.getMarksOnEntity(world, entityId).filter(m => this.getConfig(world, m.id).isShield)
   }
 
   /**
    * Find all marks on an entity that belong to a given mutex group.
    */
-  findByMutexGroup(world: World, entityId: string, group: string): MarkData[] {
+  findByMutexGroup(world: BattleWorld, entityId: string, group: string): MarkData[] {
     return this.getMarksOnEntity(world, entityId).filter(m => this.getConfig(world, m.id).mutexGroup === group)
   }
 }

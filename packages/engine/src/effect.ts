@@ -36,9 +36,21 @@ export interface EffectInterpreter<
   executeOperator(world: World<TState, TSystems, TPlugins>, operator: unknown, context: unknown): Promise<void>
 }
 
-export interface EffectPipelineHooks {
-  beforeEffectExecute?: (world: World, effect: EffectDef, context: EffectFireContext) => boolean
-  afterEffectExecute?: (world: World, effect: EffectDef, context: EffectFireContext) => void | Promise<void>
+export interface EffectPipelineHooks<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
+  beforeEffectExecute?: (
+    world: World<TState, TSystems, TPlugins>,
+    effect: EffectDef,
+    context: EffectFireContext,
+  ) => boolean
+  afterEffectExecute?: (
+    world: World<TState, TSystems, TPlugins>,
+    effect: EffectDef,
+    context: EffectFireContext,
+  ) => void | Promise<void>
 }
 
 export interface EffectFireContext {
@@ -62,7 +74,7 @@ export class EffectPipeline<
 > {
   constructor(
     private interpreter: EffectInterpreter<TState, TSystems, TPlugins>,
-    private hooks: EffectPipelineHooks = {},
+    private hooks: EffectPipelineHooks<TState, TSystems, TPlugins> = {},
   ) {}
 
   setInterpreter(interpreter: EffectInterpreter<TState, TSystems, TPlugins>): void {
@@ -105,7 +117,12 @@ export class EffectPipeline<
    * Fire a trigger: collect matching effects, evaluate conditions, execute operators.
    * @param entityIds — entities to scan. If omitted, scans all entities with effects.
    */
-  async fire(world: World<TState, TSystems, TPlugins>, trigger: string, context: EffectFireContext, entityIds?: string[]): Promise<void> {
+  async fire(
+    world: World<TState, TSystems, TPlugins>,
+    trigger: string,
+    context: EffectFireContext,
+    entityIds?: string[],
+  ): Promise<void> {
     const ids = entityIds ?? queryByComponent<TState, TSystems, TPlugins>(world, EFFECTS)
 
     const candidates: { entityId: string; effect: EffectDef }[] = []
@@ -158,7 +175,12 @@ export class EffectPipeline<
   }
 
   /** Fire a trigger for a single entity. */
-  async fireForEntity(world: World<TState, TSystems, TPlugins>, entityId: string, trigger: string, context: EffectFireContext): Promise<void> {
+  async fireForEntity(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    trigger: string,
+    context: EffectFireContext,
+  ): Promise<void> {
     await this.fire(world, trigger, context, [entityId])
   }
 }

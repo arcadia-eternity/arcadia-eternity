@@ -32,6 +32,9 @@ export {
   queryByComponents,
 } from './world.js'
 
+// System base class
+export { System } from './system.js'
+
 // Attribute system
 export {
   ATTRIBUTE_STORE,

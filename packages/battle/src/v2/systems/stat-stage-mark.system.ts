@@ -1,8 +1,11 @@
-import type { World, AttributeSystem, ModifierDef } from '@arcadia-eternity/engine'
-import { createEntity, setComponent, getComponent } from '@arcadia-eternity/engine'
+import type { WorldSystems, WorldPlugins, ModifierDef } from '@arcadia-eternity/engine'
+import { System, createEntity, setComponent, getComponent } from '@arcadia-eternity/engine'
 import { StackStrategy } from '@arcadia-eternity/const'
 import type { BaseMarkData } from '../schemas/mark.schema.js'
 import type { MarkSystem } from './mark.system.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { PetAttributes, PetAttributeSystem } from '../types/battle-attributes.js'
 
 export type CleanStageStrategy = 'all' | 'positive' | 'negative'
 
@@ -43,15 +46,17 @@ function parseStatStageBaseMarkId(baseMarkId: string): { stat: string; direction
   return { stat: match[1], direction: match[2] as 'up' | 'down' }
 }
 
-export class StatStageMarkSystem {
+export class StatStageMarkSystem extends System<BattleState, WorldSystems, WorldPlugins, PetAttributes> {
   private static STAGE_MODIFIER_PREFIX = '__stage_'
 
   constructor(
-    private attrSystem: AttributeSystem,
+    attrSystem: PetAttributeSystem,
     private markSystem: MarkSystem,
-  ) {}
+  ) {
+    super(attrSystem)
+  }
 
-  getStage(world: World, entityId: string, stat: string): number {
+  getStage(world: BattleWorld, entityId: string, stat: string): number {
     const upMark = this.markSystem.findByBaseId(world, entityId, toUpBaseMarkId(stat))
     const downMark = this.markSystem.findByBaseId(world, entityId, toDownBaseMarkId(stat))
     const up = upMark ? this.markSystem.getStack(world, upMark.id) : 0
@@ -59,14 +64,14 @@ export class StatStageMarkSystem {
     return clampStage(up - down)
   }
 
-  applyStage(world: World, entityId: string, stat: string, delta: number): number {
+  applyStage(world: BattleWorld, entityId: string, stat: string, delta: number): number {
     const current = this.getStage(world, entityId, stat)
     const next = clampStage(current + delta)
     this.setStage(world, entityId, stat, next)
     return next - current
   }
 
-  setStage(world: World, entityId: string, stat: string, value: number): void {
+  setStage(world: BattleWorld, entityId: string, stat: string, value: number): void {
     const stage = clampStage(value)
     this.ensureBaseMarkEntity(world, toUpBaseMarkId(stat))
     this.ensureBaseMarkEntity(world, toDownBaseMarkId(stat))
@@ -88,7 +93,7 @@ export class StatStageMarkSystem {
     this.syncStageModifier(world, entityId, stat, stage)
   }
 
-  clearStages(world: World, entityId: string, strategy: CleanStageStrategy = 'all', stats?: string[]): void {
+  clearStages(world: BattleWorld, entityId: string, strategy: CleanStageStrategy = 'all', stats?: string[]): void {
     const targetStats = stats ?? this.getTrackedStats(world, entityId)
     for (const stat of targetStats) {
       const stage = this.getStage(world, entityId, stat)
@@ -100,7 +105,7 @@ export class StatStageMarkSystem {
     }
   }
 
-  reverseStages(world: World, entityId: string, strategy: CleanStageStrategy = 'all', stats?: string[]): void {
+  reverseStages(world: BattleWorld, entityId: string, strategy: CleanStageStrategy = 'all', stats?: string[]): void {
     const targetStats = stats ?? this.getTrackedStats(world, entityId)
     for (const stat of targetStats) {
       const stage = this.getStage(world, entityId, stat)
@@ -113,7 +118,7 @@ export class StatStageMarkSystem {
   }
 
   transferStages(
-    world: World,
+    world: BattleWorld,
     sourceEntityId: string,
     targetEntityId: string,
     strategy: CleanStageStrategy = 'negative',
@@ -135,7 +140,7 @@ export class StatStageMarkSystem {
     return moved
   }
 
-  getTrackedStats(world: World, entityId: string): string[] {
+  getTrackedStats(world: BattleWorld, entityId: string): string[] {
     const marks = this.markSystem.getMarksOnEntity(world, entityId)
     const stats = new Set<string>()
     for (const mark of marks) {
@@ -149,8 +154,8 @@ export class StatStageMarkSystem {
     return `${StatStageMarkSystem.STAGE_MODIFIER_PREFIX}${stat}`
   }
 
-  private syncStageModifier(world: World, entityId: string, stat: string, stage: number): void {
-    this.attrSystem.removeModifier(world, entityId, stat, this.stageModifierId(stat))
+  private syncStageModifier(world: BattleWorld, entityId: string, stat: string, stage: number): void {
+    this.attrSystem.removeModifier(world, entityId, stat as keyof PetAttributes, this.stageModifierId(stat))
     if (stage === 0) return
     const multiplier = STAGE_MULTIPLIER_TABLE[stage] ?? 1
     const percent = (multiplier - 1) * 100
@@ -162,10 +167,10 @@ export class StatStageMarkSystem {
       sourceId: `statStage:${entityId}`,
       durationType: 'binding',
     }
-    this.attrSystem.addModifier(world, entityId, stat, mod)
+    this.attrSystem.addModifier(world, entityId, stat as keyof PetAttributes, mod)
   }
 
-  private ensureBaseMarkEntity(world: World, baseMarkId: string): void {
+  private ensureBaseMarkEntity(world: BattleWorld, baseMarkId: string): void {
     if (getComponent(world, baseMarkId, 'baseMark') as BaseMarkData | undefined) return
     const baseMark: BaseMarkData = {
       type: 'baseMark',
@@ -190,7 +195,7 @@ export class StatStageMarkSystem {
   }
 
   private ensureMarkWithStack(
-    world: World,
+    world: BattleWorld,
     ownerId: string,
     baseMarkId: string,
     stack: number,
