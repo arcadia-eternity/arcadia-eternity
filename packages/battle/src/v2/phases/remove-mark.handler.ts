@@ -7,16 +7,17 @@ import type { RemoveMarkContextData } from '../schemas/context.schema.js'
 import type { BattleState } from '../types/battle-state.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface RemoveMarkPhaseData {
   context: RemoveMarkContextData
 }
 
 export type RemoveMarkHandlerData = RemoveMarkPhaseData
-export type RemoveMarkHandlerType = 'removeMark'
+export type RemoveMarkHandlerType = symbol
 
 export class RemoveMarkHandler implements PhaseHandler<RemoveMarkPhaseData, BattleState, BattleSystems> {
-  readonly type = 'removeMark'
+  readonly type = Phase.removeMark
 
   constructor(
     private markSystem: MarkSystem,

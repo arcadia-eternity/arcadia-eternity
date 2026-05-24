@@ -7,16 +7,17 @@ import type { HealContextData } from '../schemas/context.schema.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { BattleState } from '../types/battle-state.js'
 import type { BattleSystems } from '../types/battle-systems.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface HealPhaseData {
   context: HealContextData
 }
 
 export type HealHandlerData = HealPhaseData
-export type HealHandlerType = 'heal'
+export type HealHandlerType = symbol
 
 export class HealHandler implements PhaseHandler<HealPhaseData, BattleState, BattleSystems> {
-  readonly type = 'heal'
+  readonly type = Phase.heal
 
   constructor(
     private petSystem: PetSystem,

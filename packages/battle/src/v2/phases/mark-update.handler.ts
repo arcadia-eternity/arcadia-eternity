@@ -6,16 +6,17 @@ import type { MarkSystem } from '../systems/mark.system.js'
 import type { BattleState } from '../types/battle-state.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface MarkUpdatePhaseData {
   markId: string
 }
 
 export type MarkUpdateHandlerData = MarkUpdatePhaseData
-export type MarkUpdateHandlerType = 'markUpdate'
+export type MarkUpdateHandlerType = symbol
 
 export class MarkUpdateHandler implements PhaseHandler<MarkUpdatePhaseData, BattleState, BattleSystems> {
-  readonly type = 'markUpdate'
+  readonly type = Phase.markUpdate
 
   constructor(
     private markSystem: MarkSystem,

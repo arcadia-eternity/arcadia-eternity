@@ -5,6 +5,7 @@ import { createBattle } from '../game.js'
 import type { SpeciesData } from '../schemas/species.schema.js'
 import type { BaseSkillData } from '../schemas/skill.schema.js'
 import type { UseSkillContextData } from '../schemas/context.schema.js'
+import { Phase } from '../phase-symbols.js'
 
 function makeSpecies(id: string): SpeciesData {
   return {
@@ -141,7 +142,7 @@ describe('v2 skill defeat bookkeeping', () => {
       defeated: false,
     }
 
-    await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: ctx })
 
     expect(petSystem.isAlive(world, petB.id)).toBe(false)
     expect(world.state.lastKillerId).toBe(petA.id)

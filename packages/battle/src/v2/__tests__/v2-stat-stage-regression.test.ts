@@ -9,6 +9,7 @@ import {
   makeTeamConfig,
   makeUseSkillContextFromSkill,
 } from './helpers/regression-helpers.js'
+import { Phase } from '../phase-symbols.js'
 
 let repo: V2DataRepository
 
@@ -28,7 +29,7 @@ describe('v2 stat-stage regressions', () => {
     const { playerAId } = getBattlePlayerIds(world)
     const petA = playerSystem.getActivePet(world, playerAId)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'add',
       entityId: petA.id,
       stat: 'atk',
@@ -36,7 +37,7 @@ describe('v2 stat-stage regressions', () => {
     })
     expect(statStageSystem.getStage(world, petA.id, 'atk')).toBe(6)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'add',
       entityId: petA.id,
       stat: 'atk',
@@ -56,13 +57,13 @@ describe('v2 stat-stage regressions', () => {
     const { playerAId } = getBattlePlayerIds(world)
     const petA = playerSystem.getActivePet(world, playerAId)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'atk',
       value: -1,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'add',
       entityId: petA.id,
       stat: 'atk',
@@ -70,13 +71,13 @@ describe('v2 stat-stage regressions', () => {
     })
     expect(statStageSystem.getStage(world, petA.id, 'atk')).toBe(1)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'atk',
       value: 1,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'add',
       entityId: petA.id,
       stat: 'atk',
@@ -96,13 +97,13 @@ describe('v2 stat-stage regressions', () => {
     const { playerAId } = getBattlePlayerIds(world)
     const petA = playerSystem.getActivePet(world, playerAId)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'spa',
       value: -1,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'add',
       entityId: petA.id,
       stat: 'spa',
@@ -110,13 +111,13 @@ describe('v2 stat-stage regressions', () => {
     })
     expect(statStageSystem.getStage(world, petA.id, 'spa')).toBe(0)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'spa',
       value: 1,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'add',
       entityId: petA.id,
       stat: 'spa',
@@ -136,20 +137,20 @@ describe('v2 stat-stage regressions', () => {
     const { playerAId } = getBattlePlayerIds(world)
     const petA = playerSystem.getActivePet(world, playerAId)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'atk',
       value: 3,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'def',
       value: -2,
     })
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'clear',
       entityId: petA.id,
       stats: ['atk', 'def'],
@@ -158,7 +159,7 @@ describe('v2 stat-stage regressions', () => {
     expect(statStageSystem.getStage(world, petA.id, 'atk')).toBe(0)
     expect(statStageSystem.getStage(world, petA.id, 'def')).toBe(-2)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'clear',
       entityId: petA.id,
       stats: ['atk', 'def'],
@@ -179,20 +180,20 @@ describe('v2 stat-stage regressions', () => {
     const { playerAId } = getBattlePlayerIds(world)
     const petA = playerSystem.getActivePet(world, playerAId)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'atk',
       value: 2,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'def',
       value: -3,
     })
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'reverse',
       entityId: petA.id,
       stats: ['atk', 'def'],
@@ -201,7 +202,7 @@ describe('v2 stat-stage regressions', () => {
     expect(statStageSystem.getStage(world, petA.id, 'atk')).toBe(-2)
     expect(statStageSystem.getStage(world, petA.id, 'def')).toBe(-3)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'reverse',
       entityId: petA.id,
       stats: ['atk', 'def'],
@@ -210,7 +211,7 @@ describe('v2 stat-stage regressions', () => {
     expect(statStageSystem.getStage(world, petA.id, 'atk')).toBe(2)
     expect(statStageSystem.getStage(world, petA.id, 'def')).toBe(3)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'reverse',
       entityId: petA.id,
       stats: ['atk', 'def'],
@@ -232,20 +233,20 @@ describe('v2 stat-stage regressions', () => {
     const petA = playerSystem.getActivePet(world, playerAId)
     const petB = playerSystem.getActivePet(world, playerBId)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'atk',
       value: -3,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'def',
       value: 2,
     })
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'transfer',
       sourceEntityId: petA.id,
       targetEntityId: petB.id,
@@ -257,7 +258,7 @@ describe('v2 stat-stage regressions', () => {
     expect(statStageSystem.getStage(world, petB.id, 'atk')).toBe(-3)
     expect(statStageSystem.getStage(world, petB.id, 'def')).toBe(0)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'transfer',
       sourceEntityId: petA.id,
       targetEntityId: petB.id,
@@ -301,7 +302,7 @@ describe('v2 stat-stage regressions', () => {
       fallbackTargetId: petB.id,
       parentId: 'muddy-field-phase',
     })
-    await phaseManager.execute(world, 'skill', eventBus, { context: muddyCtx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: muddyCtx })
     expect(markSystem.findByBaseId(world, petA.id, 'mark_hunzhuoshuiyu')).toBeDefined()
 
     playerSystem.setRage(world, playerAId, 100)
@@ -313,10 +314,10 @@ describe('v2 stat-stage regressions', () => {
       fallbackTargetId: petB.id,
       parentId: 'double-debuff-phase',
     })
-    await phaseManager.execute(world, 'skill', eventBus, { context: debuffCtx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: debuffCtx })
     expect(statStageSystem.getStage(world, petB.id, 'spe')).toBe(-2)
 
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'reverse',
       entityId: petB.id,
       cleanStageStrategy: 'negative',

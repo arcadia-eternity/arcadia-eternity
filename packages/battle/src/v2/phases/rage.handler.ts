@@ -7,16 +7,17 @@ import type { RageContextData } from '../schemas/context.schema.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { BattleState } from '../types/battle-state.js'
 import type { BattleSystems } from '../types/battle-systems.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface RagePhaseData {
   context: RageContextData
 }
 
 export type RageHandlerData = RagePhaseData
-export type RageHandlerType = 'rage'
+export type RageHandlerType = symbol
 
 export class RageHandler implements PhaseHandler<RagePhaseData, BattleState, BattleSystems> {
-  readonly type = 'rage'
+  readonly type = Phase.rage
 
   constructor(
     private playerSystem: PlayerSystem,

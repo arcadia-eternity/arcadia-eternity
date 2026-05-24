@@ -7,6 +7,7 @@ import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface BattleStartData {
   playerAId: string
@@ -14,10 +15,10 @@ export interface BattleStartData {
 }
 
 export type BattleStartHandlerData = BattleStartData
-export type BattleStartHandlerType = 'battleStart'
+export type BattleStartHandlerType = symbol
 
 export class BattleStartHandler implements PhaseHandler<BattleStartData, BattleState, BattleSystems> {
-  readonly type = 'battleStart'
+  readonly type = Phase.battleStart
 
   constructor(
     private effectPipeline: EffectPipeline,

@@ -12,6 +12,7 @@ import {
   makeUseSkillContext,
   makeUseSkillContextFromSkill,
 } from './helpers/regression-helpers.js'
+import { Phase } from '../phase-symbols.js'
 
 let repo: V2DataRepository
 
@@ -28,7 +29,7 @@ function withTurnPhase(
 ): Promise<void> {
   const phase: PhaseDef = {
     id: phaseId,
-    type: 'turn',
+    type: Phase.turn,
     state: 'executing',
     data: {
       plannedSkillPetIds,
@@ -114,7 +115,7 @@ describe('v2 core effect regressions', () => {
     })
     expect(noWeatherCtx.power).toBe(basePower)
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -399,7 +400,7 @@ describe('v2 core effect regressions', () => {
       ctx.evasion = 0
 
       await withTurnPhase(world, phaseId, plannedSkillPetIds, executedSkillPetIds, async () => {
-        await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+        await phaseManager.execute(world, Phase.skill, eventBus, { context: ctx })
       })
 
       expect(ctx.hitResult).toBe(true)
@@ -435,13 +436,13 @@ describe('v2 core effect regressions', () => {
     )
 
     attrSystem.setBaseValue(world, petA.id, 'critRate', 0)
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petA.id,
       stat: 'spa',
       value: -6,
     })
-    await phaseManager.execute(world, 'statStage', eventBus, {
+    await phaseManager.execute(world, Phase.statStage, eventBus, {
       operation: 'set',
       entityId: petB.id,
       stat: 'spd',
@@ -464,7 +465,7 @@ describe('v2 core effect regressions', () => {
         fallbackTargetId: petB.id,
       })
       ctx.ignoreStageStrategy = strategy
-      await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+      await phaseManager.execute(world, Phase.skill, eventBus, { context: ctx })
       expect(ctx.hitResult).toBe(true)
       return maxHp - petSystem.getCurrentHp(world, petB.id)
     }
@@ -486,7 +487,7 @@ describe('v2 core effect regressions', () => {
     const petA = playerSystem.getActivePet(world, playerAId)
     const petB = playerSystem.getActivePet(world, playerBId)
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -504,7 +505,7 @@ describe('v2 core effect regressions', () => {
 
     petSystem.setCurrentHp(world, petB.id, maxHp)
     markSystem.setStack(world, shield.id, 100)
-    await phaseManager.execute(world, 'damage', eventBus, {
+    await phaseManager.execute(world, Phase.damage, eventBus, {
       context: {
         type: 'damage',
         parentId: 'shield-check-normal',
@@ -529,7 +530,7 @@ describe('v2 core effect regressions', () => {
 
     petSystem.setCurrentHp(world, petB.id, maxHp)
     markSystem.setStack(world, shield.id, 100)
-    await phaseManager.execute(world, 'damage', eventBus, {
+    await phaseManager.execute(world, Phase.damage, eventBus, {
       context: {
         type: 'damage',
         parentId: 'shield-check-ignore',

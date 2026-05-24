@@ -18,13 +18,14 @@ import type { PetSystem } from '../systems/pet.system.js'
 import type { SkillSystem } from '../systems/skill.system.js'
 import type { StatStageMarkSystem } from '../systems/stat-stage-mark.system.js'
 import type { UseSkillContextData, DamageContextData } from '../schemas/context.schema.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface SkillPhaseData {
   context: UseSkillContextData
 }
 
 export type SkillHandlerData = SkillPhaseData
-export type SkillHandlerType = 'skill'
+export type SkillHandlerType = symbol
 
 const STAGE_MULTIPLIER_TABLE: Record<number, number> = {
   [-6]: 2 / 8,
@@ -43,7 +44,7 @@ const STAGE_MULTIPLIER_TABLE: Record<number, number> = {
 }
 
 export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, BattleSystems> {
-  readonly type = 'skill'
+  readonly type = Phase.skill
   private readonly historyLimit = 10
 
   constructor(
@@ -166,7 +167,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
     })
 
     // Consume rage via rage phase
-    await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
+    await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.rage)!, bus, {
       context: {
         type: 'rage',
         parentId: phase.id,
@@ -324,7 +325,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
           damageContext: damageCtx,
         })
 
-        await this.phaseManager.execute(world, this.phaseManager.getHandler('damage')!, bus, { context: damageCtx })
+        await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.damage)!, bus, { context: damageCtx })
 
         // Rage from taking damage (49 * damage / maxHp)
         if (damageCtx.available && damageCtx.damageResult > 0) {
@@ -332,7 +333,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
           const gainedRage = Math.floor((damageCtx.damageResult * 49) / maxHp)
           if (gainedRage > 0) {
             const targetOwnerId = this.petSystem.getOwner(world, ctx.actualTargetId)
-            await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
+            await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.rage)!, bus, {
               context: {
                 type: 'rage',
                 parentId: phase.id,
@@ -359,7 +360,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
 
     // Hit reward rage (15 rage for attacker on hit, non-status only)
     if (ctx.hitResult && ctx.category !== Category.Status) {
-      await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
+      await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.rage)!, bus, {
         context: {
           type: 'rage',
           parentId: phase.id,

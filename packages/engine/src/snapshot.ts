@@ -11,12 +11,24 @@ import { createWorld } from './world.js'
 // Serializable representation
 // ---------------------------------------------------------------------------
 
+interface SerializedPhaseDef {
+  id: string
+  type: string
+  state: string
+  data: unknown
+  waitingFor?: {
+    inputType: string
+    playerId?: string
+    timeout?: number
+  }
+}
+
 interface SerializedWorld {
   entities: Record<string, { id: string; tags: string[] }>
   byTag: Record<string, string[]>
   components: World['components']
   configStore: World['configStore']
-  phaseStack: World['phaseStack']
+  phaseStack: SerializedPhaseDef[]
   eventLog: World['eventLog']
   state: World['state']
   plugins: World['plugins']
@@ -27,17 +39,21 @@ interface SerializedWorld {
 // Snapshot
 // ---------------------------------------------------------------------------
 
-export function createSnapshot<
-  TState extends WorldState,
-  TSystems extends WorldSystems,
-  TPlugins extends WorldPlugins,
->(world: World<TState, TSystems, TPlugins>): string {
+export function createSnapshot<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+): string {
   const serialized: SerializedWorld = {
     entities: serializeEntities(world.entities),
     byTag: serializeTagIndex(world.byTag),
     components: world.components,
     configStore: world.configStore,
-    phaseStack: world.phaseStack,
+    phaseStack: world.phaseStack.map(phase => ({
+      id: phase.id,
+      type: Symbol.keyFor(phase.type) ?? String(phase.type),
+      state: phase.state,
+      data: phase.data,
+      ...(phase.waitingFor ? { waitingFor: phase.waitingFor } : {}),
+    })),
     eventLog: world.eventLog,
     state: world.state,
     plugins: world.plugins,
@@ -46,11 +62,9 @@ export function createSnapshot<
   return JSON.stringify(serialized)
 }
 
-export function cloneWorld<
-  TState extends WorldState,
-  TSystems extends WorldSystems,
-  TPlugins extends WorldPlugins,
->(world: World<TState, TSystems, TPlugins>): World<TState, TSystems, TPlugins> {
+export function cloneWorld<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+): World<TState, TSystems, TPlugins> {
   return restoreWorld(createSnapshot(world)) as World<TState, TSystems, TPlugins>
 }
 
@@ -69,7 +83,13 @@ export function restoreWorld(json: string): World {
   world.byTag = deserializeTagIndex(parsed.byTag)
   world.components = parsed.components ?? {}
   world.configStore = parsed.configStore ?? world.configStore
-  world.phaseStack = parsed.phaseStack ?? []
+  world.phaseStack = (parsed.phaseStack ?? []).map(phase => ({
+    id: phase.id,
+    type: Symbol.for(phase.type),
+    state: phase.state,
+    data: phase.data,
+    ...(phase.waitingFor ? { waitingFor: phase.waitingFor } : {}),
+  })) as World['phaseStack']
   world.eventLog = parsed.eventLog ?? []
   world.state = parsed.state ?? {}
   world.plugins = parsed.plugins ?? {}

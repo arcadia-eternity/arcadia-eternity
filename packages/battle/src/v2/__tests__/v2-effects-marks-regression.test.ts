@@ -10,6 +10,7 @@ import {
   makeTeamConfig,
   makeUseSkillContextFromSkill,
 } from './helpers/regression-helpers.js'
+import { Phase } from '../phase-symbols.js'
 
 let repo: V2DataRepository
 
@@ -51,7 +52,7 @@ describe('v2 mark/stat effect regressions', () => {
       playerAId,
       playerBId,
     })
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -98,11 +99,11 @@ describe('v2 mark/stat effect regressions', () => {
       fallbackTargetId: petB.id,
       parentId: 'stage-skill-phase',
     })
-    await phaseManager.execute(world, 'skill', eventBus, { context: stageCtx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: stageCtx })
     expect(statStageSystem.getStage(world, petA.id, 'atk')).toBe(1)
     expect(petSystem.getStatValue(world, petA.id, 'atk')).toBeGreaterThan(beforeAtk)
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -119,7 +120,7 @@ describe('v2 mark/stat effect regressions', () => {
     const hpBeforeHeal = petSystem.getCurrentHp(world, petA.id)
     petSystem.setCurrentHp(world, petA.id, hpBeforeHeal - 100)
     const hpMissingState = petSystem.getCurrentHp(world, petA.id)
-    await phaseManager.execute(world, 'heal', eventBus, {
+    await phaseManager.execute(world, Phase.heal, eventBus, {
       context: {
         type: 'heal',
         parentId: 'sand-heal-phase',
@@ -149,7 +150,7 @@ describe('v2 mark/stat effect regressions', () => {
     petSystem.setCurrentHp(world, petA.id, 0)
     expect(petSystem.isAlive(world, petA.id)).toBe(false)
 
-    await phaseManager.execute(world, 'heal', eventBus, {
+    await phaseManager.execute(world, Phase.heal, eventBus, {
       context: {
         type: 'heal',
         parentId: 'heal-dead-target-phase',
@@ -198,7 +199,7 @@ describe('v2 mark/stat effect regressions', () => {
       fallbackTargetId: petB.id,
       parentId: 'guangyinghuanxiang-phase',
     })
-    await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: ctx })
 
     expect(ctx.hitResult).toBe(true)
     const qingtian = markSystem.findByBaseId(world, 'battle', 'mark_global_qingtian')
@@ -283,7 +284,7 @@ describe('v2 mark/stat effect regressions', () => {
       fallbackTargetId: petB.id,
       parentId: 'muddy-field-phase',
     })
-    await phaseManager.execute(world, 'skill', eventBus, { context: muddyCtx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: muddyCtx })
     expect(markSystem.findByBaseId(world, petA.id, 'mark_hunzhuoshuiyu')).toBeDefined()
 
     playerSystem.setRage(world, playerAId, 100)
@@ -297,7 +298,7 @@ describe('v2 mark/stat effect regressions', () => {
       fallbackTargetId: petB.id,
       parentId: 'double-debuff-phase',
     })
-    await phaseManager.execute(world, 'skill', eventBus, { context: debuffCtx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: debuffCtx })
 
     expect(debuffCtx.hitResult).toBe(true)
     expect(statStageSystem.getStage(world, petB.id, 'spe')).toBe(-2)
@@ -329,13 +330,13 @@ describe('v2 mark/stat effect regressions', () => {
       fallbackTargetId: petB.id,
       parentId: 'bumie-guard-phase',
     })
-    await phaseManager.execute(world, 'skill', eventBus, { context: useGuardCtx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: useGuardCtx })
 
     const busiMark = markSystem.findByBaseId(world, petA.id, 'mark_busi')
     expect(busiMark).toBeDefined()
 
     const hpBefore = petSystem.getCurrentHp(world, petA.id)
-    await phaseManager.execute(world, 'damage', eventBus, {
+    await phaseManager.execute(world, Phase.damage, eventBus, {
       context: {
         type: 'damage',
         parentId: 'lethal-hit-phase',
@@ -372,7 +373,7 @@ describe('v2 mark/stat effect regressions', () => {
     const petA = playerSystem.getActivePet(world, playerAId)
     const petB = playerSystem.getActivePet(world, playerBId)
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -421,7 +422,7 @@ describe('v2 mark/stat effect regressions', () => {
     const { playerAId } = getBattlePlayerIds(world)
     const petA = playerSystem.getActivePet(world, playerAId)
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -435,7 +436,7 @@ describe('v2 mark/stat effect regressions', () => {
     })
     expect(markSystem.findByBaseId(world, petA.id, 'mark_mianyibuliang')).toBeDefined()
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -449,7 +450,7 @@ describe('v2 mark/stat effect regressions', () => {
     })
     expect(markSystem.findByBaseId(world, petA.id, 'mark_shaoshang')).toBeUndefined()
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -475,7 +476,7 @@ describe('v2 mark/stat effect regressions', () => {
     const { playerAId } = getBattlePlayerIds(world)
     const petA = playerSystem.getActivePet(world, playerAId)
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -489,7 +490,7 @@ describe('v2 mark/stat effect regressions', () => {
     })
     expect(markSystem.findByBaseId(world, petA.id, 'mark_mianyiyichang')).toBeDefined()
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -503,7 +504,7 @@ describe('v2 mark/stat effect regressions', () => {
     })
     expect(markSystem.findByBaseId(world, petA.id, 'mark_meihuo')).toBeUndefined()
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',
@@ -537,7 +538,7 @@ describe('v2 mark/stat effect regressions', () => {
       )
 
       if (markBaseId) {
-        await phaseManager.execute(world, 'addMark', eventBus, {
+        await phaseManager.execute(world, Phase.addMark, eventBus, {
           context: {
             type: 'add-mark',
             parentId: 'test-phase',
@@ -614,7 +615,7 @@ describe('v2 mark/stat effect regressions', () => {
     })
     expect(withoutMarkCtx.power).toBe(basePower - 10)
 
-    await phaseManager.execute(world, 'addMark', eventBus, {
+    await phaseManager.execute(world, Phase.addMark, eventBus, {
       context: {
         type: 'add-mark',
         parentId: 'test-phase',

@@ -284,9 +284,10 @@ function isConfigModifierActive(mod: ConfigModifierDef, phaseCtx?: PhaseContext)
     return true
   }
   const spec = mod.phaseTypeSpec
-  if (!phaseCtx.activePhaseTypes.has(spec.phaseType)) return false
+  const phaseSym = Symbol.for(spec.phaseType)
+  if (!phaseCtx.activePhaseTypes.has(phaseSym)) return false
   if (spec.phaseId) {
-    const currentId = phaseCtx.currentPhaseIds.get(spec.phaseType)
+    const currentId = phaseCtx.currentPhaseIds.get(phaseSym)
     if (currentId !== spec.phaseId) return false
   }
   return true

@@ -11,6 +11,7 @@ import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { SelectionSystem } from '../systems/selection.system.js'
 import type { DecisionManager } from '../decision/manager.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface BattleSwitchPhaseData {
   selectionSystem: SelectionSystem
@@ -18,10 +19,10 @@ export interface BattleSwitchPhaseData {
 }
 
 export type BattleSwitchHandlerData = BattleSwitchPhaseData
-export type BattleSwitchHandlerType = 'battleSwitch'
+export type BattleSwitchHandlerType = symbol
 
 export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData, BattleState, BattleSystems> {
-  readonly type = 'battleSwitch'
+  readonly type = Phase.battleSwitch
 
   constructor(
     private playerSystem: PlayerSystem,
@@ -119,7 +120,7 @@ export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData, 
 
         if (sel.type === 'switch-pet') {
           const activePet = this.playerSystem.getActivePet(world, playerId)
-          await this.phaseManager.execute(world, this.phaseManager.getHandler('switch')!, bus, {
+          await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.switch)!, bus, {
             context: {
               type: 'switch-pet',
               parentId: phase.id,

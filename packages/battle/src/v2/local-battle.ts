@@ -116,7 +116,7 @@ export class LocalBattleSystemV2 implements IBattleSystem {
         const payload: BattlePhaseExecutionEvent = {
           transition: event.transition,
           phaseId: event.phase.id,
-          phaseType: event.phase.type,
+          phaseType: Symbol.keyFor(event.phase.type) ?? String(event.phase.type),
           phaseState: event.phase.state,
           stackDepth: event.stackDepth,
           timestamp: Date.now(),

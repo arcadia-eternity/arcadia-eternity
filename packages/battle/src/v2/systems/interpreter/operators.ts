@@ -31,6 +31,7 @@ import { evaluateCondition } from './conditions.js'
 import { isDamageContext, isRecord, isSelectorDsl, isUseSkillContext } from './type-guards.js'
 import { getOperatorHandler, registerOperatorHandler } from './operator-registry.js'
 import type { BattleWorld } from '../../types/battle-world.js'
+import { Phase } from '../../phase-symbols.js'
 
 /**
  * Get the current phase ID from the phase stack (for parentId).
@@ -268,7 +269,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, fireCtx, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, phaseManager.getHandler('damage')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.damage)!, eventBus, {
           context: {
             type: 'damage',
             parentId: getCurrentPhaseId(ctx),
@@ -300,7 +301,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, fireCtx, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, phaseManager.getHandler('heal')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.heal)!, eventBus, {
           context: {
             type: 'heal',
             parentId: getCurrentPhaseId(ctx),
@@ -343,7 +344,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const stack = op.stack !== undefined ? (resolveValue(ctx, op.stack) as number) : defaultStack
       const duration = op.duration !== undefined ? (resolveValue(ctx, op.duration) as number) : defaultDuration
       for (const targetId of targets) {
-        await phaseManager.execute(world, phaseManager.getHandler('addMark')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.addMark)!, eventBus, {
           context: {
             type: 'add-mark',
             parentId: getCurrentPhaseId(ctx),
@@ -383,7 +384,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { phaseManager, eventBus } = systems
 
       for (const markId of targets) {
-        await phaseManager.execute(world, phaseManager.getHandler('removeMark')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.removeMark)!, eventBus, {
           context: {
             type: 'remove-mark',
             parentId: getCurrentPhaseId(ctx),
@@ -442,7 +443,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
               : Math.abs(stage)
           finalDelta = (stage < 0 ? -1 : 1) * adjustedLevel
         }
-        await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.statStage)!, eventBus, {
           operation: 'add',
           entityId: targetId, // Fixed: use entityId not targetId
           stat,
@@ -461,7 +462,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.statStage)!, eventBus, {
           operation: 'clear',
           entityId: targetId,
           stats: statType ? (Array.isArray(statType) ? statType : [statType]) : undefined,
@@ -480,7 +481,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.statStage)!, eventBus, {
           operation: 'reverse',
           entityId: targetId,
           stats: statType ? (Array.isArray(statType) ? statType : [statType]) : undefined,
@@ -499,7 +500,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
       const { world, systems } = ctx
       const { phaseManager, eventBus } = systems
-      await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
+      await phaseManager.execute(world, phaseManager.getHandler(Phase.statStage)!, eventBus, {
         operation: 'transfer',
         entityId: sources[0],
         sourceEntityId: sources[0],
@@ -520,7 +521,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const targetId of targets) {
         const targetPlayerId = resolveTargetPlayerId(ctx, targetId)
         if (!targetPlayerId) continue
-        await phaseManager.execute(world, phaseManager.getHandler('rage')!, eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler(Phase.rage)!, eventBus, {
           context: {
             type: 'rage',
             parentId: getCurrentPhaseId(ctx),

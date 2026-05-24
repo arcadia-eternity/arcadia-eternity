@@ -9,6 +9,7 @@ import {
   getTestRepository,
   makeUseSkillContextFromSkill,
 } from './helpers/regression-helpers.js'
+import { Phase } from '../phase-symbols.js'
 
 let repo: V2DataRepository
 
@@ -66,7 +67,7 @@ describe('v2 multihit regressions', () => {
     ctx.petAccuracy = 100
     ctx.evasion = 0
 
-    await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: ctx })
 
     const damageEvents = world.eventLog.filter(e => e.type === 'damage')
     const yinbo = markSystem.findByBaseId(world, petB.id, 'mark_yinbo')
@@ -108,7 +109,7 @@ describe('v2 multihit regressions', () => {
     ctx.petAccuracy = 100
     ctx.evasion = 0
 
-    await phaseManager.execute(world, 'skill', eventBus, { context: ctx })
+    await phaseManager.execute(world, Phase.skill, eventBus, { context: ctx })
 
     const damageEvents = world.eventLog.filter(e => e.type === 'damage')
     const yinbo = markSystem.findByBaseId(world, petB.id, 'mark_yinbo')

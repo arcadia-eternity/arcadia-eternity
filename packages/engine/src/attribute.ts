@@ -79,8 +79,8 @@ export interface ExpressionResolver<
  * Phase context for modifier activation checks.
  */
 export interface PhaseContext {
-  activePhaseTypes: Set<string>
-  currentPhaseIds: Map<string, string>
+  activePhaseTypes: Set<symbol>
+  currentPhaseIds: Map<symbol, string>
 }
 
 export interface AttributeWriteGuardContext<
@@ -365,9 +365,10 @@ export class AttributeSystem<
   private isModifierActive(mod: ModifierDef, phaseCtx?: PhaseContext): boolean {
     if (mod.durationType !== 'phaseType' || !mod.phaseTypeSpec || !phaseCtx) return true
     const spec = mod.phaseTypeSpec
-    if (!phaseCtx.activePhaseTypes.has(spec.phaseType)) return false
+    const phaseSym = Symbol.for(spec.phaseType)
+    if (!phaseCtx.activePhaseTypes.has(phaseSym)) return false
     if (spec.phaseId) {
-      const currentId = phaseCtx.currentPhaseIds.get(spec.phaseType)
+      const currentId = phaseCtx.currentPhaseIds.get(phaseSym)
       if (currentId !== spec.phaseId) return false
     }
     return true

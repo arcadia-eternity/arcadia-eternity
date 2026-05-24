@@ -5,6 +5,7 @@ import type { StatStageMarkSystem, CleanStageStrategy } from '../systems/stat-st
 import type { BattleState } from '../types/battle-state.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
+import { Phase } from '../phase-symbols.js'
 
 export type StatStageOperation = 'add' | 'set' | 'clear' | 'reverse' | 'transfer'
 
@@ -21,10 +22,10 @@ export interface StatStagePhaseData {
 }
 
 export type StatStageHandlerData = StatStagePhaseData
-export type StatStageHandlerType = 'statStage'
+export type StatStageHandlerType = symbol
 
 export class StatStageHandler implements PhaseHandler<StatStagePhaseData, BattleState, BattleSystems> {
-  readonly type = 'statStage'
+  readonly type = Phase.statStage
 
   constructor(private statStageSystem: StatStageMarkSystem) {}
 

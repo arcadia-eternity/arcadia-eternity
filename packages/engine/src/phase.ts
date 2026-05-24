@@ -23,7 +23,7 @@ export type PhaseState =
 
 export interface PhaseDef<TData = unknown> {
   id: string
-  type: string
+  type: symbol
   state: PhaseState
   data: TData
   waitingFor?: {
@@ -57,7 +57,7 @@ export interface PhaseHandler<
   TSystems extends WorldSystems = WorldSystems,
   TPlugins extends WorldPlugins = WorldPlugins,
 > {
-  readonly type: string
+  readonly type: symbol
   initialize(world: World<TState, TSystems, TPlugins>, initData?: unknown): TData
   execute(
     world: World<TState, TSystems, TPlugins>,
@@ -80,19 +80,18 @@ export class PhaseManager<
   TState extends WorldState = WorldState,
   TSystems extends WorldSystems = WorldSystems,
   TPlugins extends WorldPlugins = WorldPlugins,
-  TRegistry extends Record<string, unknown> = Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  TRegistry extends Record<symbol, unknown> = Record<symbol, unknown>,
 > {
-  private handlers = new Map<string, PhaseHandler<unknown, TState, TSystems, TPlugins>>()
+  private handlers = new Map<symbol, PhaseHandler<unknown, TState, TSystems, TPlugins>>()
   private executionObservers = new Set<PhaseExecutionObserver>()
 
   register<THandler extends PhaseHandler<unknown, TState, TSystems, TPlugins>>(handler: THandler): void {
     this.handlers.set(handler.type, handler)
   }
 
-  getHandler<K extends keyof TRegistry & string>(
-    type: K,
-  ): PhaseHandler<TRegistry[K], TState, TSystems, TPlugins> | undefined {
-    return this.handlers.get(type) as PhaseHandler<TRegistry[K], TState, TSystems, TPlugins> | undefined
+  getHandler(type: symbol): PhaseHandler<unknown, TState, TSystems, TPlugins> | undefined {
+    return this.handlers.get(type)
   }
 
   onExecutionEvent(observer: PhaseExecutionObserver): () => void {
@@ -108,8 +107,9 @@ export class PhaseManager<
     initData?: unknown,
   ): PhaseDef<TData> {
     const data = handler.initialize(_world, initData)
+    const typeKey = Symbol.keyFor(handler.type) ?? 'unknown'
     return {
-      id: generateId(handler.type),
+      id: generateId(typeKey),
       type: handler.type,
       state: 'pending',
       data,
@@ -122,26 +122,26 @@ export class PhaseManager<
     bus: EventBus,
     initData?: unknown,
   ): Promise<PhaseResult>
-  async execute<_TData = unknown>(
+  async execute(
     world: World<TState, TSystems, TPlugins>,
-    type: string,
+    type: symbol,
     bus: EventBus,
     initData?: unknown,
   ): Promise<PhaseResult>
   async execute<TData>(
     world: World<TState, TSystems, TPlugins>,
-    handlerOrType: PhaseHandler<TData, TState, TSystems, TPlugins> | string,
+    handlerOrType: PhaseHandler<TData, TState, TSystems, TPlugins> | symbol,
     bus: EventBus,
     initData?: unknown,
   ): Promise<PhaseResult> {
-    const handler =
-      typeof handlerOrType === 'string'
-        ? (this.handlers.get(handlerOrType) as PhaseHandler<TData, TState, TSystems, TPlugins> | undefined)
-        : handlerOrType
-    if (!handler)
-      throw new Error(
-        `Unknown phase handler: ${typeof handlerOrType === 'string' ? handlerOrType : handlerOrType.type}`,
-      )
+    const handler = typeof handlerOrType === 'symbol' ? this.handlers.get(handlerOrType) : handlerOrType
+    if (!handler) {
+      const label =
+        typeof handlerOrType === 'symbol'
+          ? (Symbol.keyFor(handlerOrType) ?? String(handlerOrType))
+          : (handlerOrType.type.description ?? String(handlerOrType.type))
+      throw new Error(`Unknown phase handler: ${label}`)
+    }
     const phase = this.createPhase(world, handler, initData)
     return this.executePhase(world, handler, phase, bus)
   }
@@ -202,7 +202,8 @@ export class PhaseManager<
       return { success: false, state: 'failed', error: `Cannot resume phase in state '${phase.state}'` }
     }
     if (!handler.resume) {
-      return { success: false, state: 'failed', error: `Handler '${handler.type}' does not support resume` }
+      const label = Symbol.keyFor(handler.type) ?? String(handler.type)
+      return { success: false, state: 'failed', error: `Handler '${label}' does not support resume` }
     }
 
     world.phaseStack.push(phase)
@@ -250,8 +251,8 @@ export class PhaseManager<
     phase.waitingFor = { inputType, playerId, timeout }
   }
 
-  getActivePhaseTypes(world: World<TState, TSystems, TPlugins>): Set<string> {
-    const types = new Set<string>()
+  getActivePhaseTypes(world: World<TState, TSystems, TPlugins>): Set<symbol> {
+    const types = new Set<symbol>()
     for (const phase of world.phaseStack) {
       if (phase.state === 'executing' || phase.state === 'waiting') {
         types.add(phase.type)
@@ -260,8 +261,8 @@ export class PhaseManager<
     return types
   }
 
-  getCurrentPhaseIds(world: World<TState, TSystems, TPlugins>): Map<string, string> {
-    const ids = new Map<string, string>()
+  getCurrentPhaseIds(world: World<TState, TSystems, TPlugins>): Map<symbol, string> {
+    const ids = new Map<symbol, string>()
     for (const phase of world.phaseStack) {
       if (phase.state === 'executing' || phase.state === 'waiting') {
         ids.set(phase.type, phase.id)

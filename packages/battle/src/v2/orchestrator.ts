@@ -18,6 +18,7 @@ import type { SelectionSystem } from './systems/selection.system.js'
 import type { TimerSystem } from './systems/timer.system.js'
 import { worldToBattleState } from './systems/state-serializer.js'
 import { DecisionManager } from './decision/manager.js'
+import { Phase } from './phase-symbols.js'
 
 // ---------------------------------------------------------------------------
 // BattleOrchestrator
@@ -64,13 +65,13 @@ export class BattleOrchestrator {
       }
 
       // Phase 1: BattleStart
-      await this.pm.execute(this.world, this.pm.getHandler('battleStart')!, this.bus, { playerAId, playerBId })
+      await this.pm.execute(this.world, this.pm.getHandler(Phase.battleStart)!, this.bus, { playerAId, playerBId })
     }
 
     // Phase 2: Main loop
     while (this.running && !this.isBattleEnded()) {
       // BattleSwitch — handle forced/faint switches
-      await this.pm.execute(this.world, this.pm.getHandler('battleSwitch')!, this.bus, {
+      await this.pm.execute(this.world, this.pm.getHandler(Phase.battleSwitch)!, this.bus, {
         selectionSystem: this.selectionSystem,
         decisionManager: this.decisionManager,
       })
@@ -99,7 +100,7 @@ export class BattleOrchestrator {
 
       // Turn — execute the turn with collected selections
       this.world.state.currentPhase = 'execution'
-      await this.pm.execute(this.world, this.pm.getHandler('turn')!, this.bus, { selections })
+      await this.pm.execute(this.world, this.pm.getHandler(Phase.turn)!, this.bus, { selections })
 
       if (this.isBattleEnded()) break
     }

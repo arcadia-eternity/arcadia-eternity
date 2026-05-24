@@ -17,16 +17,17 @@ import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { MarkSystem } from '../systems/mark.system.js'
 import type { SwitchPetContextData } from '../schemas/context.schema.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface SwitchPhaseData {
   context: SwitchPetContextData
 }
 
 export type SwitchHandlerData = SwitchPhaseData
-export type SwitchHandlerType = 'switch'
+export type SwitchHandlerType = symbol
 
 export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState, BattleSystems> {
-  readonly type = 'switch'
+  readonly type = Phase.switch
 
   constructor(
     private playerSystem: PlayerSystem,
@@ -88,7 +89,7 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState,
         } else if (config.keepOnSwitchOut) {
           // Keep mark on old pet
         } else {
-          await this.phaseManager.execute(world, this.phaseManager.getHandler('removeMark')!, bus, {
+          await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.removeMark)!, bus, {
             context: {
               type: 'remove-mark',
               parentId: phase.id,
@@ -140,7 +141,7 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState,
     const currentRage = this.playerSystem.getRage(world, ctx.originPlayerId)
     const rageLoss = Math.floor(currentRage * 0.2)
     if (rageLoss > 0) {
-      await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
+      await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.rage)!, bus, {
         context: {
           type: 'rage',
           parentId: phase.id,

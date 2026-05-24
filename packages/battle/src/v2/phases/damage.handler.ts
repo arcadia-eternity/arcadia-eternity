@@ -9,16 +9,17 @@ import type { DamageContextData } from '../schemas/context.schema.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { BattleState } from '../types/battle-state.js'
 import type { BattleSystems } from '../types/battle-systems.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface DamagePhaseData {
   context: DamageContextData
 }
 
 export type DamageHandlerData = DamagePhaseData
-export type DamageHandlerType = 'damage'
+export type DamageHandlerType = symbol
 
 export class DamageHandler implements PhaseHandler<DamagePhaseData, BattleState, BattleSystems> {
-  readonly type = 'damage'
+  readonly type = Phase.damage
 
   constructor(
     private petSystem: PetSystem,

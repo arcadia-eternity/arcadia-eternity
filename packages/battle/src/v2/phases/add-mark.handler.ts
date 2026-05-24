@@ -19,6 +19,7 @@ import type { BattleWorld } from '../types/battle-world.js'
 import type { BattleState } from '../types/battle-state.js'
 import type { PhaseRegistry } from '../types/phase-registry.js'
 import type { BattleSystems } from '../types/battle-systems.js'
+import { Phase } from '../phase-symbols.js'
 
 const BASE_MARK = 'baseMark' as const
 
@@ -27,10 +28,10 @@ export interface AddMarkPhaseData {
 }
 
 export type AddMarkHandlerData = AddMarkPhaseData
-export type AddMarkHandlerType = 'addMark'
+export type AddMarkHandlerType = symbol
 
 export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleState, BattleSystems> {
-  readonly type = 'addMark'
+  readonly type = Phase.addMark
 
   constructor(
     private markSystem: MarkSystem,
@@ -67,7 +68,7 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleStat
       const existingMutex = this.markSystem.findByMutexGroup(world, ctx.targetId, mutexGroup)
       for (const mark of existingMutex) {
         if (mark.baseMarkId === ctx.baseMarkId) continue
-        await this.phaseManager.execute(world, this.phaseManager.getHandler('removeMark')!, bus, {
+        await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.removeMark)!, bus, {
           context: {
             type: 'remove-mark',
             parentId: phase.id,
@@ -111,7 +112,7 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleStat
           durationAfter = ctx.duration
           break
         case StackStrategy.remove:
-          await this.phaseManager.execute(world, this.phaseManager.getHandler('removeMark')!, bus, {
+          await this.phaseManager.execute(world, this.phaseManager.getHandler(Phase.removeMark)!, bus, {
             context: {
               type: 'remove-mark',
               parentId: phase.id,

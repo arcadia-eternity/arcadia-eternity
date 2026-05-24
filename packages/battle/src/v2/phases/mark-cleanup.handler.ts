@@ -6,16 +6,17 @@ import type { MarkSystem } from '../systems/mark.system.js'
 import type { BattleState } from '../types/battle-state.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
+import { Phase } from '../phase-symbols.js'
 
 export interface MarkCleanupPhaseData {
   removedMarkIds: string[]
 }
 
 export type MarkCleanupHandlerData = MarkCleanupPhaseData
-export type MarkCleanupHandlerType = 'markCleanup'
+export type MarkCleanupHandlerType = symbol
 
 export class MarkCleanupHandler implements PhaseHandler<MarkCleanupPhaseData, BattleState, BattleSystems> {
-  readonly type = 'markCleanup'
+  readonly type = Phase.markCleanup
 
   constructor(private markSystem: MarkSystem) {}
 
