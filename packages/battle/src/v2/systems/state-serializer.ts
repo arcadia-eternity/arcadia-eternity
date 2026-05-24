@@ -49,6 +49,7 @@ function toDisplayValue(value: AttributeValue): string | number | boolean {
   try {
     return JSON.stringify(value)
   } catch {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return String(value)
   }
 }

@@ -185,6 +185,7 @@ export class PhaseManager<
       return result
     } catch (err) {
       phase.state = 'failed'
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const error = err instanceof Error ? err.message : String(err)
       await this.emitExecutionEvent(world, {
         transition: 'fail',
@@ -241,6 +242,7 @@ export class PhaseManager<
       return result
     } catch (err) {
       phase.state = 'failed'
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const error = err instanceof Error ? err.message : String(err)
       await this.emitExecutionEvent(world, {
         transition: 'fail',

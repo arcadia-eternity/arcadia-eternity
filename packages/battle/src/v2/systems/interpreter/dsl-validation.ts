@@ -6,6 +6,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function formatInvalid(kind: 'condition' | 'operator', value: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   const hint = isObject(value) && typeof value.type === 'string' ? `type=${value.type}` : `value=${String(value)}`
   return `[effect-interpreter] Invalid ${kind} DSL (${hint})`
 }

@@ -641,6 +641,7 @@ function evaluateDefaultRegisteredCondition(
 
     default: {
       const conditionType = (cond as { type?: unknown }).type
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const typeText = typeof conditionType === 'string' ? conditionType : String(conditionType)
       throw new Error(`[effect-interpreter] Unsupported condition type: ${typeText}`)
     }

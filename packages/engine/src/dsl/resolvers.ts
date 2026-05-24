@@ -24,6 +24,16 @@ function toFiniteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function dedupKey(item: unknown): string {
+  if (typeof item === 'string') return item
+  if (typeof item === 'number' || typeof item === 'boolean') return String(item)
+  try {
+    return JSON.stringify(item)
+  } catch {
+    return ''
+  }
+}
+
 export function applyCommonSelectorChain<TValue, TSelector, TCondition, TEvaluator, TExtractor>(
   initial: unknown[],
   chain: CommonSelectorChainStep<TValue, TSelector, TCondition, TEvaluator, TExtractor>[],
@@ -72,8 +82,8 @@ export function applyCommonSelectorChain<TValue, TSelector, TCondition, TEvaluat
       }
       case 'and': {
         const other = hooks.resolveSelector(step.arg)
-        const set = new Set(other.map(item => String(item)))
-        current = current.filter(item => set.has(String(item)))
+        const set = new Set(other.map(item => dedupKey(item)))
+        current = current.filter(item => set.has(dedupKey(item)))
         break
       }
       case 'or': {
@@ -82,8 +92,8 @@ export function applyCommonSelectorChain<TValue, TSelector, TCondition, TEvaluat
           current = [...current, ...other]
           break
         }
-        const seen = new Set(current.map(item => String(item)))
-        const unique = other.filter(item => !seen.has(String(item)))
+        const seen = new Set(current.map(item => dedupKey(item)))
+        const unique = other.filter(item => !seen.has(dedupKey(item)))
         current = [...current, ...unique]
         break
       }

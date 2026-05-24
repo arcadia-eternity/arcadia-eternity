@@ -27,7 +27,6 @@ export interface Entity {
 
 /** Game-layer state stored in World.state. */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorldState {}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

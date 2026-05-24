@@ -34,6 +34,11 @@ type BufferedMessage = {
   data: Record<string, unknown>
 }
 
+function safeStr(v: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  return typeof v === 'string' ? v : String(v)
+}
+
 type PhaseMessageTransaction = {
   phaseId: string
   messages: BufferedMessage[]
@@ -204,7 +209,7 @@ export class MessageBridge {
     })
 
     this.on('battleEnd', data => {
-      const rawReason = String(data.reason ?? 'all_pet_fainted')
+      const rawReason = safeStr(data.reason ?? 'all_pet_fainted')
       const reason =
         rawReason === 'timeout' ? 'total_time_timeout' : rawReason === 'allFainted' ? 'all_pet_fainted' : rawReason
       this.emitMessage(BattleMessageType.BattleEnd, {
@@ -214,7 +219,7 @@ export class MessageBridge {
     })
 
     this.on('skillUse', data => {
-      const skillId = String(data.skillId)
+      const skillId = safeStr(data.skillId)
       const skill = this.systems.skillSystem.get(this.world, skillId)
       const target =
         typeof data.target === 'string' &&
@@ -237,7 +242,7 @@ export class MessageBridge {
         disabled: 'disabled',
         faint: 'faint',
       }
-      const rawReason = String(data.reason ?? '')
+      const rawReason = safeStr(data.reason ?? '')
       this.emitMessage(BattleMessageType.SkillUseFail, {
         user: data.petId,
         skill: data.skillId,
@@ -304,12 +309,12 @@ export class MessageBridge {
     })
 
     this.on('rageChange', data => {
-      const playerId = String(data.playerId)
+      const playerId = safeStr(data.playerId)
       const player = this.systems.playerSystem.get(this.world, playerId)
       const after =
         typeof data.newRage === 'number' ? data.newRage : this.systems.playerSystem.getRage(this.world, playerId)
       const before = typeof data.before === 'number' ? data.before : after
-      const reason = String(data.reason ?? 'effect')
+      const reason = safeStr(data.reason ?? 'effect')
       const rageReason = ['turn', 'damage', 'skill', 'skillHit', 'switch', 'effect'].includes(reason)
         ? reason
         : 'effect'
@@ -333,7 +338,7 @@ export class MessageBridge {
     })
 
     this.on('markAdd', data => {
-      const markId = String(data.markId)
+      const markId = safeStr(data.markId)
       const mark = this.systems.markSystem.get(this.world, markId)
       if (!mark) return
       this.emitMessage(BattleMessageType.MarkApply, {
@@ -344,7 +349,7 @@ export class MessageBridge {
     })
 
     this.on('markStack', data => {
-      const markId = String(data.markId)
+      const markId = safeStr(data.markId)
       const mark = this.systems.markSystem.get(this.world, markId)
       if (!mark) return
       this.emitMessage(BattleMessageType.MarkUpdate, {
@@ -354,7 +359,7 @@ export class MessageBridge {
     })
 
     this.on('markUpdate', data => {
-      const markId = String(data.markId)
+      const markId = safeStr(data.markId)
       const mark = this.systems.markSystem.get(this.world, markId)
       if (!mark) return
       this.emitMessage(BattleMessageType.MarkUpdate, {
@@ -365,7 +370,7 @@ export class MessageBridge {
 
     this.on('markRemove', data => {
       this.emitMessage(BattleMessageType.MarkDestroy, {
-        mark: String(data.markId),
+        mark: safeStr(data.markId),
         baseMarkId: data.baseMarkId,
         target: data.ownerId ?? 'battle',
       })
