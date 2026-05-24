@@ -38,8 +38,8 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleStat
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): AddMarkPhaseData {
-    return phase.data as AddMarkPhaseData
+  initialize(_world: BattleWorld, initData?: unknown): AddMarkPhaseData {
+    return (initData ?? {}) as AddMarkPhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

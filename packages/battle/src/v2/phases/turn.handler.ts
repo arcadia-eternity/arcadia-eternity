@@ -54,10 +54,10 @@ export class TurnHandler implements PhaseHandler<TurnData, BattleState, BattleSy
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(world: BattleWorld, phase: PhaseDef): TurnData {
+  initialize(world: BattleWorld, initData?: unknown): TurnData {
     const currentTurn = (world.state.currentTurn ?? 0) + 1
     world.state.currentTurn = currentTurn
-    const init = phase.data as Partial<TurnData> | undefined
+    const init = initData as Partial<TurnData> | undefined
     return {
       turnNumber: currentTurn,
       selections: init?.selections,

@@ -28,8 +28,8 @@ export class StatStageHandler implements PhaseHandler<StatStagePhaseData, Battle
 
   constructor(private statStageSystem: StatStageMarkSystem) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): StatStagePhaseData {
-    return phase.data as StatStagePhaseData
+  initialize(_world: BattleWorld, initData?: unknown): StatStagePhaseData {
+    return (initData ?? {}) as StatStagePhaseData
   }
 
   execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): PhaseResult {

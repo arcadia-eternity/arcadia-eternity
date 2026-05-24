@@ -25,8 +25,8 @@ export class BattleStartHandler implements PhaseHandler<BattleStartData, BattleS
     private petSystem: PetSystem,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): BattleStartData {
-    return (phase.data as BattleStartData) ?? { playerAId: '', playerBId: '' }
+  initialize(_world: BattleWorld, initData?: unknown): BattleStartData {
+    return (initData ?? { playerAId: '', playerBId: '' }) as BattleStartData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

@@ -23,8 +23,8 @@ export class RageHandler implements PhaseHandler<RagePhaseData, BattleState, Bat
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): RagePhaseData {
-    return phase.data as RagePhaseData
+  initialize(_world: BattleWorld, initData?: unknown): RagePhaseData {
+    return (initData ?? {}) as RagePhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

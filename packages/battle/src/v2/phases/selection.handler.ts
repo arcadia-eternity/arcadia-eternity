@@ -18,8 +18,8 @@ export type SelectionHandlerType = 'selection'
 export class SelectionHandler implements PhaseHandler<SelectionData, BattleState, BattleSystems> {
   readonly type = 'selection'
 
-  initialize(_world: BattleWorld, phase: PhaseDef): SelectionData {
-    const init = phase.data as Partial<SelectionData> | undefined
+  initialize(_world: BattleWorld, initData?: unknown): SelectionData {
+    const init = initData as Partial<SelectionData> | undefined
     return {
       playerIds: init?.playerIds ?? [],
       selections: {},

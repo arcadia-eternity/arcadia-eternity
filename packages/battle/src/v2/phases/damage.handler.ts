@@ -26,8 +26,8 @@ export class DamageHandler implements PhaseHandler<DamagePhaseData, BattleState,
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): DamagePhaseData {
-    return phase.data as DamagePhaseData
+  initialize(_world: BattleWorld, initData?: unknown): DamagePhaseData {
+    return (initData ?? {}) as DamagePhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

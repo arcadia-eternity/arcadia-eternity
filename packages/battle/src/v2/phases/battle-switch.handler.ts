@@ -29,8 +29,8 @@ export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData, 
     private phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): BattleSwitchPhaseData {
-    return phase.data as BattleSwitchPhaseData
+  initialize(_world: BattleWorld, initData?: unknown): BattleSwitchPhaseData {
+    return (initData ?? {}) as BattleSwitchPhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

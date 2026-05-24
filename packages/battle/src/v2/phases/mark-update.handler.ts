@@ -22,8 +22,8 @@ export class MarkUpdateHandler implements PhaseHandler<MarkUpdatePhaseData, Batt
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): MarkUpdatePhaseData {
-    return phase.data as MarkUpdatePhaseData
+  initialize(_world: BattleWorld, initData?: unknown): MarkUpdatePhaseData {
+    return (initData ?? {}) as MarkUpdatePhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

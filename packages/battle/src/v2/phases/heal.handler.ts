@@ -23,8 +23,8 @@ export class HealHandler implements PhaseHandler<HealPhaseData, BattleState, Bat
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): HealPhaseData {
-    return phase.data as HealPhaseData
+  initialize(_world: BattleWorld, initData?: unknown): HealPhaseData {
+    return (initData ?? {}) as HealPhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

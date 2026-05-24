@@ -121,7 +121,27 @@ export class PhaseManager<
     handler: PhaseHandler<TData, TState, TSystems, TPlugins>,
     bus: EventBus,
     initData?: unknown,
+  ): Promise<PhaseResult>
+  async execute<_TData = unknown>(
+    world: World<TState, TSystems, TPlugins>,
+    type: string,
+    bus: EventBus,
+    initData?: unknown,
+  ): Promise<PhaseResult>
+  async execute<TData>(
+    world: World<TState, TSystems, TPlugins>,
+    handlerOrType: PhaseHandler<TData, TState, TSystems, TPlugins> | string,
+    bus: EventBus,
+    initData?: unknown,
   ): Promise<PhaseResult> {
+    const handler =
+      typeof handlerOrType === 'string'
+        ? (this.handlers.get(handlerOrType) as PhaseHandler<TData, TState, TSystems, TPlugins> | undefined)
+        : handlerOrType
+    if (!handler)
+      throw new Error(
+        `Unknown phase handler: ${typeof handlerOrType === 'string' ? handlerOrType : handlerOrType.type}`,
+      )
     const phase = this.createPhase(world, handler, initData)
     return this.executePhase(world, handler, phase, bus)
   }

@@ -96,8 +96,8 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
     })
   }
 
-  initialize(_world: BattleWorld, phase: PhaseDef): SkillPhaseData {
-    return phase.data as SkillPhaseData
+  initialize(_world: BattleWorld, initData?: unknown): SkillPhaseData {
+    return (initData ?? {}) as SkillPhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

@@ -36,8 +36,8 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState,
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): SwitchPhaseData {
-    return phase.data as SwitchPhaseData
+  initialize(_world: BattleWorld, initData?: unknown): SwitchPhaseData {
+    return (initData ?? {}) as SwitchPhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {

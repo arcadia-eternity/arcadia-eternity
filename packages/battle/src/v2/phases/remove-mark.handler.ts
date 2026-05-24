@@ -23,8 +23,8 @@ export class RemoveMarkHandler implements PhaseHandler<RemoveMarkPhaseData, Batt
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: BattleWorld, phase: PhaseDef): RemoveMarkPhaseData {
-    return phase.data as RemoveMarkPhaseData
+  initialize(_world: BattleWorld, initData?: unknown): RemoveMarkPhaseData {
+    return (initData ?? {}) as RemoveMarkPhaseData
   }
 
   async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
