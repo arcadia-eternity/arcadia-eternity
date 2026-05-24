@@ -11,6 +11,9 @@ export interface MarkUpdatePhaseData {
   markId: string
 }
 
+export type MarkUpdateHandlerData = MarkUpdatePhaseData
+export type MarkUpdateHandlerType = 'markUpdate'
+
 export class MarkUpdateHandler implements PhaseHandler<MarkUpdatePhaseData, BattleState, BattleSystems> {
   readonly type = 'markUpdate'
 

@@ -14,6 +14,9 @@ export interface DamagePhaseData {
   context: DamageContextData
 }
 
+export type DamageHandlerData = DamagePhaseData
+export type DamageHandlerType = 'damage'
+
 export class DamageHandler implements PhaseHandler<DamagePhaseData, BattleState, BattleSystems> {
   readonly type = 'damage'
 

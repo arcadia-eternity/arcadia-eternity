@@ -26,6 +26,8 @@ import type {
   EntityModifierState,
   AttributeModifierInfo,
   ModifierInfo,
+  baseSkillId,
+  speciesId,
 } from '@arcadia-eternity/const'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from './player.system.js'
@@ -123,9 +125,7 @@ function serializePet(
     isUnknown: !shouldShowDetails,
     name: shouldShowDetails ? petSystem.getName(world, petEntityId) : '',
     id: asPetId(pet.id),
-    speciesID: shouldShowDetails
-      ? asSpeciesId(petSystem.getSpeciesId(world, petEntityId))
-      : ('' as speciesId),
+    speciesID: shouldShowDetails ? asSpeciesId(petSystem.getSpeciesId(world, petEntityId)) : ('' as speciesId),
     element: shouldShowDetails ? (petSystem.getElement(world, petEntityId) as Element) : Element.Normal,
     level: shouldShowDetails ? petSystem.getLevel(world, petEntityId) : 0,
     currentHp: shouldShowDetails ? petSystem.getCurrentHp(world, petEntityId) : 0,
@@ -251,7 +251,11 @@ function toModifierInfo(
   }
 }
 
-function serializeMark(world: BattleWorld, systems: Pick<StateSerializerSystems, 'markSystem'>, mark: MarkData): MarkMessage {
+function serializeMark(
+  world: BattleWorld,
+  systems: Pick<StateSerializerSystems, 'markSystem'>,
+  mark: MarkData,
+): MarkMessage {
   return {
     id: asMarkId(mark.id),
     baseId: asBaseMarkId(mark.baseMarkId),

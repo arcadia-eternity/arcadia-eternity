@@ -13,6 +13,9 @@ export interface BattleStartData {
   playerBId: string
 }
 
+export type BattleStartHandlerData = BattleStartData
+export type BattleStartHandlerType = 'battleStart'
+
 export class BattleStartHandler implements PhaseHandler<BattleStartData, BattleState, BattleSystems> {
   readonly type = 'battleStart'
 

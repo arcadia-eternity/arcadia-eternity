@@ -12,6 +12,9 @@ export interface HealPhaseData {
   context: HealContextData
 }
 
+export type HealHandlerData = HealPhaseData
+export type HealHandlerType = 'heal'
+
 export class HealHandler implements PhaseHandler<HealPhaseData, BattleState, BattleSystems> {
   readonly type = 'heal'
 

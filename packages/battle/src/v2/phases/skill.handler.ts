@@ -23,6 +23,9 @@ export interface SkillPhaseData {
   context: UseSkillContextData
 }
 
+export type SkillHandlerData = SkillPhaseData
+export type SkillHandlerType = 'skill'
+
 const STAGE_MULTIPLIER_TABLE: Record<number, number> = {
   [-6]: 2 / 8,
   [-5]: 2 / 7,

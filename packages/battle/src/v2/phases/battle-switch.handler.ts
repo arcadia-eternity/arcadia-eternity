@@ -17,6 +17,9 @@ export interface BattleSwitchPhaseData {
   decisionManager: DecisionManager
 }
 
+export type BattleSwitchHandlerData = BattleSwitchPhaseData
+export type BattleSwitchHandlerType = 'battleSwitch'
+
 export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData, BattleState, BattleSystems> {
   readonly type = 'battleSwitch'
 

@@ -12,6 +12,9 @@ export interface SelectionData {
   timeout?: number
 }
 
+export type SelectionHandlerData = SelectionData
+export type SelectionHandlerType = 'selection'
+
 export class SelectionHandler implements PhaseHandler<SelectionData, BattleState, BattleSystems> {
   readonly type = 'selection'
 

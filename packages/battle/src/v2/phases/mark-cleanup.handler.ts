@@ -11,6 +11,9 @@ export interface MarkCleanupPhaseData {
   removedMarkIds: string[]
 }
 
+export type MarkCleanupHandlerData = MarkCleanupPhaseData
+export type MarkCleanupHandlerType = 'markCleanup'
+
 export class MarkCleanupHandler implements PhaseHandler<MarkCleanupPhaseData, BattleState, BattleSystems> {
   readonly type = 'markCleanup'
 

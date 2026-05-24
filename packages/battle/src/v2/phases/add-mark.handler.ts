@@ -26,6 +26,9 @@ export interface AddMarkPhaseData {
   context: AddMarkContextData
 }
 
+export type AddMarkHandlerData = AddMarkPhaseData
+export type AddMarkHandlerType = 'addMark'
+
 export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleState, BattleSystems> {
   readonly type = 'addMark'
 

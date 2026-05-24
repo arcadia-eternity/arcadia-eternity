@@ -12,6 +12,9 @@ export interface RemoveMarkPhaseData {
   context: RemoveMarkContextData
 }
 
+export type RemoveMarkHandlerData = RemoveMarkPhaseData
+export type RemoveMarkHandlerType = 'removeMark'
+
 export class RemoveMarkHandler implements PhaseHandler<RemoveMarkPhaseData, BattleState, BattleSystems> {
   readonly type = 'removeMark'
 

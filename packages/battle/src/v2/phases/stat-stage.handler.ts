@@ -20,6 +20,9 @@ export interface StatStagePhaseData {
   targetEntityId?: string
 }
 
+export type StatStageHandlerData = StatStagePhaseData
+export type StatStageHandlerType = 'statStage'
+
 export class StatStageHandler implements PhaseHandler<StatStagePhaseData, BattleState, BattleSystems> {
   readonly type = 'statStage'
 

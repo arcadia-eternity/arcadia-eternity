@@ -22,6 +22,9 @@ export interface SwitchPhaseData {
   context: SwitchPetContextData
 }
 
+export type SwitchHandlerData = SwitchPhaseData
+export type SwitchHandlerType = 'switch'
+
 export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState, BattleSystems> {
   readonly type = 'switch'
 

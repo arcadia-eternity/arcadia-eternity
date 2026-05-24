@@ -31,6 +31,9 @@ export interface TurnData {
   executedSkillPetIds?: string[]
 }
 
+export type TurnHandlerData = TurnData
+export type TurnHandlerType = 'turn'
+
 interface QueuedAction {
   type: 'skill' | 'switch'
   playerId: string

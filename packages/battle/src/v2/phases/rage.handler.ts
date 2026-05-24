@@ -12,6 +12,9 @@ export interface RagePhaseData {
   context: RageContextData
 }
 
+export type RageHandlerData = RagePhaseData
+export type RageHandlerType = 'rage'
+
 export class RageHandler implements PhaseHandler<RagePhaseData, BattleState, BattleSystems> {
   readonly type = 'rage'
 
