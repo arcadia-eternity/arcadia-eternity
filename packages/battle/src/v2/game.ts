@@ -3,6 +3,7 @@
 
 import {
   createWorld,
+  type WorldPlugins,
   PhaseManager,
   EffectPipeline,
   EventBus,
@@ -39,6 +40,8 @@ import { registerSeer2Phases } from './phases/index.js'
 import type { BattleSystems } from './types/battle-systems.js'
 import type { BattleWorld } from './types/battle-world.js'
 import type { BattleState } from './types/battle-state.js'
+import type { BattleAttributes } from './types/battle-attributes.js'
+import type { PhaseRegistry } from './types/phase-registry.js'
 
 import { SpeciesSchema } from './schemas/species.schema.js'
 import { PetSchema } from './schemas/pet.schema.js'
@@ -105,13 +108,13 @@ export interface BattleConfig {
 
 export interface BattleInstance {
   world: BattleWorld
-  phaseManager: PhaseManager<BattleState, BattleSystems>
+  phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>
   effectPipeline: EffectPipeline<BattleState, BattleSystems>
   eventBus: EventBus
   schemaChecker: SchemaTypeChecker
   config: BattleConfig
   // Systems
-  attrSystem: AttributeSystem<BattleState, BattleSystems>
+  attrSystem: AttributeSystem<BattleState, BattleSystems, WorldPlugins, BattleAttributes>
   petSystem: PetSystem
   skillSystem: SkillSystem
   markSystem: MarkSystem
@@ -151,7 +154,7 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
   const world = createWorld<BattleState, BattleSystems>()
 
   // Build systems (dependency order: attrSystem first)
-  const attrSystem = new AttributeSystem<BattleState, BattleSystems>()
+  const attrSystem = new AttributeSystem<BattleState, BattleSystems, WorldPlugins, BattleAttributes>()
   const petSystem = new PetSystem(attrSystem)
   const skillSystem = new SkillSystem(attrSystem)
   const markSystem = new MarkSystem(attrSystem)
@@ -167,7 +170,7 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
   damageSystem.setFormula(createSeer2DamageFormula(petSystem))
 
   // Build engine subsystems
-  const phaseManager = new PhaseManager<BattleState, BattleSystems>()
+  const phaseManager = new PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>()
   const effectPipeline = new EffectPipeline<BattleState, BattleSystems>(seer2EffectInterpreter, {
     beforeEffectExecute: (hookWorld, _effect, fireCtx) => {
       const effectEntityId = fireCtx.effectEntityId

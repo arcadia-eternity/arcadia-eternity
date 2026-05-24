@@ -2,7 +2,7 @@
 // Seer2 ExpressionResolver — resolves DSL expressions inside modifiers.
 
 import {
-  type World,
+  type WorldPlugins,
   type ExpressionResolver,
   type AttributeSystem,
   evaluateNumericExpression,
@@ -10,6 +10,8 @@ import {
 } from '@arcadia-eternity/engine'
 import type { Value } from '@arcadia-eternity/schema'
 import type { BattleWorld } from '../types/battle-world.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
 import type { InterpreterContext, InterpreterFireContext } from './interpreter/context.js'
 import { resolveSelector } from './interpreter/selector.js'
 import { resolveValue } from './interpreter/value.js'
@@ -19,10 +21,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): ExpressionResolver {
-  const resolver: ExpressionResolver = {
-    evaluate(world: World, expr: unknown, computeStack: Set<string>): number {
-      const bw = world as unknown as BattleWorld
+export function createSeer2ExpressionResolver(
+  attrSystem: AttributeSystem,
+): ExpressionResolver<BattleState, BattleSystems, WorldPlugins> {
+  const resolver: ExpressionResolver<BattleState, BattleSystems, WorldPlugins> = {
+    evaluate(world: BattleWorld, expr: unknown, computeStack: Set<string>): number {
+      const bw = world as BattleWorld
       const battleSystems = bw.systems
       return evaluateNumericExpression(expr, {
         resolveRef: (entityId, attribute) => {

@@ -1,8 +1,16 @@
 // battle/src/v2/phases/switch.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type {
+  PhaseHandler,
+  PhaseDef,
+  PhaseResult,
+  PhaseManager,
+  EffectPipeline,
+  WorldPlugins,
+} from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { BattleState } from '../types/battle-state.js'
+import type { PhaseRegistry } from '../types/phase-registry.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
@@ -21,7 +29,7 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState,
     private playerSystem: PlayerSystem,
     private petSystem: PetSystem,
     private markSystem: MarkSystem,
-    private phaseManager: PhaseManager,
+    private phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>,
     private effectPipeline: EffectPipeline,
   ) {}
 
@@ -77,7 +85,7 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState,
         } else if (config.keepOnSwitchOut) {
           // Keep mark on old pet
         } else {
-          await this.phaseManager.execute(world, 'removeMark', bus, {
+          await this.phaseManager.execute(world, this.phaseManager.getHandler('removeMark')!, bus, {
             context: {
               type: 'remove-mark',
               parentId: phase.id,
@@ -129,7 +137,7 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState,
     const currentRage = this.playerSystem.getRage(world, ctx.originPlayerId)
     const rageLoss = Math.floor(currentRage * 0.2)
     if (rageLoss > 0) {
-      await this.phaseManager.execute(world, 'rage', bus, {
+      await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
         context: {
           type: 'rage',
           parentId: phase.id,

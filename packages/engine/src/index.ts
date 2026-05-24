@@ -46,6 +46,8 @@ export {
   type PhaseContext,
   type AttributeWriteGuardContext,
   type AttributeWriteGuard,
+  type AttributeBaseValueSetContext,
+  type AttributeBaseValueSetHook,
   AttributeSystem,
 } from './attribute.js'
 

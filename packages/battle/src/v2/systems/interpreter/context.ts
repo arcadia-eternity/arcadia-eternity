@@ -2,12 +2,12 @@
 // Interpreter context types for effect DSL execution.
 
 import type {
-  World,
   PhaseManager,
   EventBus,
   EffectFireContext,
   AttributeSystem,
   GameRng,
+  WorldPlugins,
 } from '@arcadia-eternity/engine'
 import type { EffectPipeline } from '@arcadia-eternity/engine'
 import type { TransformStrategy } from '@arcadia-eternity/plugin-transformation'
@@ -16,6 +16,10 @@ import type { SkillSystem } from '../skill.system.js'
 import type { MarkSystem } from '../mark.system.js'
 import type { PlayerSystem } from '../player.system.js'
 import type { StatStageMarkSystem } from '../stat-stage-mark.system.js'
+import type { BattleAttributes } from '../../types/battle-attributes.js'
+import type { BattleState } from '../../types/battle-state.js'
+import type { BattleWorld } from '../../types/battle-world.js'
+import type { PhaseRegistry } from '../../types/phase-registry.js'
 import type {
   UseSkillContextData,
   DamageContextData,
@@ -38,11 +42,11 @@ export interface BattleSystems {
   skillSystem: SkillSystem
   markSystem: MarkSystem
   playerSystem: PlayerSystem
-  phaseManager: PhaseManager
+  phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>
   eventBus: EventBus
   effectPipeline: EffectPipeline
   statStageSystem: StatStageMarkSystem
-  attrSystem: AttributeSystem
+  attrSystem: AttributeSystem<BattleState, BattleSystems, WorldPlugins, BattleAttributes>
   rng: GameRng
   transformStrategy?: TransformStrategy
 }
@@ -79,7 +83,7 @@ export interface InterpreterFireContext extends EffectFireContext {
  * Context passed to selector/condition/operator evaluation.
  */
 export interface InterpreterContext {
-  world: World
+  world: BattleWorld
   fireCtx: InterpreterFireContext
   systems: BattleSystems
 }

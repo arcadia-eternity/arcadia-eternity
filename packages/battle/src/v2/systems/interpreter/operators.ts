@@ -6,6 +6,7 @@ import type { InterpreterContext, InterpreterFireContext } from './context.js'
 import type { UseSkillContextData, DamageContextData, ConsumeStackContextData } from '../../schemas/context.schema.js'
 import type { BaseMarkData } from '../../schemas/mark.schema.js'
 import { getEffectDslManifest, type OperatorDSL, type Value } from '@arcadia-eternity/schema'
+import type { BattleAttributes } from '../../types/battle-attributes.js'
 import type { ConfigValue, ConfigModifierType, EffectDef, World } from '@arcadia-eternity/engine'
 import {
   getComponent,
@@ -137,14 +138,14 @@ function isExecutableOperator(value: unknown): value is ExecutableOperator {
   return true
 }
 
-type PropertyRef = { object: Record<string, unknown>; key: string }
+type PropertyRef = { object: Record<string, unknown>; key: keyof BattleAttributes }
 
 function asPropertyRef(value: unknown): PropertyRef | undefined {
   if (!isRecord(value)) return undefined
   const object = isRecord(value.object) ? value.object : undefined
   const key = typeof value.key === 'string' ? value.key : undefined
   if (!object || !key) return undefined
-  return { object, key }
+  return { object, key: key as keyof BattleAttributes }
 }
 
 function setPropertyValue(ctx: InterpreterContext, ref: PropertyRef, value: unknown): void {
@@ -267,7 +268,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, fireCtx, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, 'damage', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('damage')!, eventBus, {
           context: {
             type: 'damage',
             parentId: getCurrentPhaseId(ctx),
@@ -299,7 +300,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, fireCtx, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, 'heal', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('heal')!, eventBus, {
           context: {
             type: 'heal',
             parentId: getCurrentPhaseId(ctx),
@@ -342,7 +343,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const stack = op.stack !== undefined ? (resolveValue(ctx, op.stack) as number) : defaultStack
       const duration = op.duration !== undefined ? (resolveValue(ctx, op.duration) as number) : defaultDuration
       for (const targetId of targets) {
-        await phaseManager.execute(world, 'addMark', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('addMark')!, eventBus, {
           context: {
             type: 'add-mark',
             parentId: getCurrentPhaseId(ctx),
@@ -382,7 +383,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { phaseManager, eventBus } = systems
 
       for (const markId of targets) {
-        await phaseManager.execute(world, 'removeMark', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('removeMark')!, eventBus, {
           context: {
             type: 'remove-mark',
             parentId: getCurrentPhaseId(ctx),
@@ -396,7 +397,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'statStageBuff': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const stat = resolveValue(ctx, op.statType) as string
+      const stat = resolveValue(ctx, op.statType) as keyof BattleAttributes
       const stage = resolveValue(ctx, op.value) as number
       if (targets.length === 0 || !stat || typeof stage !== 'number') break
 
@@ -441,7 +442,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
               : Math.abs(stage)
           finalDelta = (stage < 0 ? -1 : 1) * adjustedLevel
         }
-        await phaseManager.execute(world, 'statStage', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
           operation: 'add',
           entityId: targetId, // Fixed: use entityId not targetId
           stat,
@@ -460,7 +461,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, 'statStage', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
           operation: 'clear',
           entityId: targetId,
           stats: statType ? (Array.isArray(statType) ? statType : [statType]) : undefined,
@@ -479,7 +480,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const { world, systems } = ctx
       const { phaseManager, eventBus } = systems
       for (const targetId of targets) {
-        await phaseManager.execute(world, 'statStage', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
           operation: 'reverse',
           entityId: targetId,
           stats: statType ? (Array.isArray(statType) ? statType : [statType]) : undefined,
@@ -498,7 +499,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
       const { world, systems } = ctx
       const { phaseManager, eventBus } = systems
-      await phaseManager.execute(world, 'statStage', eventBus, {
+      await phaseManager.execute(world, phaseManager.getHandler('statStage')!, eventBus, {
         operation: 'transfer',
         entityId: sources[0],
         sourceEntityId: sources[0],
@@ -519,7 +520,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       for (const targetId of targets) {
         const targetPlayerId = resolveTargetPlayerId(ctx, targetId)
         if (!targetPlayerId) continue
-        await phaseManager.execute(world, 'rage', eventBus, {
+        await phaseManager.execute(world, phaseManager.getHandler('rage')!, eventBus, {
           context: {
             type: 'rage',
             parentId: getCurrentPhaseId(ctx),
@@ -614,8 +615,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
           skillSystem.applyToUseSkillContext(world, newSkillId, context, {
             getOpponentActivePetId: originPlayerId => {
               const bw = world as BattleWorld
-              const rawOpponentId =
-                originPlayerId === bw.state.playerAId ? bw.state.playerBId : bw.state.playerAId
+              const rawOpponentId = originPlayerId === bw.state.playerAId ? bw.state.playerBId : bw.state.playerAId
               const opponentId = typeof rawOpponentId === 'string' ? rawOpponentId : undefined
               if (!opponentId) return undefined
               const opponentPet = playerSystem.getActivePet(world, opponentId)
@@ -951,7 +951,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'modifyStat': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const stat = resolveValue(ctx, op.statType) as string
+      const stat = resolveValue(ctx, op.statType) as keyof BattleAttributes
       const delta = op.delta !== undefined ? (resolveValue(ctx, op.delta) as number) : undefined
       const percent = op.percent !== undefined ? (resolveValue(ctx, op.percent) as number) : undefined
       if (targets.length === 0 || !stat || (delta === undefined && percent === undefined)) break
@@ -985,7 +985,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addAttributeModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const stat = resolveValue(ctx, op.stat) as string
+      const stat = resolveValue(ctx, op.stat) as keyof BattleAttributes
       const modType = (op.modifierType as string) ?? AttrModType.delta
       if (targets.length === 0 || !stat) break
 
@@ -1028,7 +1028,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addDynamicAttributeModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const stat = resolveValue(ctx, op.stat) as string
+      const stat = resolveValue(ctx, op.stat) as keyof BattleAttributes
       const modType = (op.modifierType as string) ?? AttrModType.delta
       if (targets.length === 0 || !stat) break
 
@@ -1065,7 +1065,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addClampMaxModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const stat = resolveValue(ctx, op.stat) as string
+      const stat = resolveValue(ctx, op.stat) as keyof BattleAttributes
       const value = resolveValue(ctx, op.maxValue) as number
       if (targets.length === 0 || !stat || value === undefined) break
 
@@ -1086,7 +1086,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addClampMinModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const stat = resolveValue(ctx, op.stat) as string
+      const stat = resolveValue(ctx, op.stat) as keyof BattleAttributes
       const value = resolveValue(ctx, op.minValue) as number
       if (targets.length === 0 || !stat || value === undefined) break
 
@@ -1107,7 +1107,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addClampModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const stat = resolveValue(ctx, op.stat) as string
+      const stat = resolveValue(ctx, op.stat) as keyof BattleAttributes
       const min = op.minValue !== undefined ? (resolveValue(ctx, op.minValue) as number) : undefined
       const max = op.maxValue !== undefined ? (resolveValue(ctx, op.maxValue) as number) : undefined
       if (targets.length === 0 || !stat) break
@@ -1142,7 +1142,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
     // Skill attribute modifiers (same pattern as pet attribute modifiers)
     case 'addSkillAttributeModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const attribute = resolveValue(ctx, op.attribute) as string
+      const attribute = resolveValue(ctx, op.attribute) as keyof BattleAttributes
       const modType = resolveValue(ctx, op.modifierType) as string
       const priority = op.priority ? (resolveValue(ctx, op.priority) as number) : 100
       if (targets.length === 0 || !attribute) break
@@ -1191,7 +1191,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addDynamicSkillAttributeModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const attribute = resolveValue(ctx, op.attribute) as string
+      const attribute = resolveValue(ctx, op.attribute) as keyof BattleAttributes
       const modType = resolveValue(ctx, op.modifierType) as string
       const priority = op.priority ? (resolveValue(ctx, op.priority) as number) : 100
       if (targets.length === 0 || !attribute) break
@@ -1235,7 +1235,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addSkillClampMaxModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const attribute = resolveValue(ctx, op.attribute) as string
+      const attribute = resolveValue(ctx, op.attribute) as keyof BattleAttributes
       const maxValue = resolveValue(ctx, op.maxValue) as number
       const priority = op.priority ? (resolveValue(ctx, op.priority) as number) : 500
       if (targets.length === 0 || !attribute || maxValue === undefined) break
@@ -1257,7 +1257,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addSkillClampMinModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const attribute = resolveValue(ctx, op.attribute) as string
+      const attribute = resolveValue(ctx, op.attribute) as keyof BattleAttributes
       const minValue = resolveValue(ctx, op.minValue) as number
       const priority = op.priority ? (resolveValue(ctx, op.priority) as number) : 500
       if (targets.length === 0 || !attribute || minValue === undefined) break
@@ -1279,7 +1279,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
     case 'addSkillClampModifier': {
       const targets = resolveSelector(ctx, op.target) as string[]
-      const attribute = resolveValue(ctx, op.attribute) as string
+      const attribute = resolveValue(ctx, op.attribute) as keyof BattleAttributes
       const minValue = resolveValue(ctx, op.minValue) as number
       const maxValue = resolveValue(ctx, op.maxValue) as number
       const priority = op.priority ? (resolveValue(ctx, op.priority) as number) : 500

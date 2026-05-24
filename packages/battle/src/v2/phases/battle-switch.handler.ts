@@ -1,9 +1,10 @@
 // battle/src/v2/phases/battle-switch.handler.ts
 // BattleSwitchHandler — handles forced switches (faint) and faint-reward switches.
 
-import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, WorldPlugins } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import type { BattleState } from '../types/battle-state.js'
+import type { PhaseRegistry } from '../types/phase-registry.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
@@ -22,7 +23,7 @@ export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData, 
   constructor(
     private playerSystem: PlayerSystem,
     private petSystem: PetSystem,
-    private phaseManager: PhaseManager,
+    private phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>,
   ) {}
 
   initialize(_world: BattleWorld, phase: PhaseDef): BattleSwitchPhaseData {
@@ -115,7 +116,7 @@ export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData, 
 
         if (sel.type === 'switch-pet') {
           const activePet = this.playerSystem.getActivePet(world, playerId)
-          await this.phaseManager.execute(world, 'switch', bus, {
+          await this.phaseManager.execute(world, this.phaseManager.getHandler('switch')!, bus, {
             context: {
               type: 'switch-pet',
               parentId: phase.id,

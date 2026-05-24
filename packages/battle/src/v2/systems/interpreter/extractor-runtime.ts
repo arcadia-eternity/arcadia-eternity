@@ -2,6 +2,8 @@ import type { World } from '@arcadia-eternity/engine'
 import { battleExtractorRegistry } from '../extractor-registry.js'
 import type { BattleSystems } from './context.js'
 import type { EntityKind } from '@arcadia-eternity/schema'
+import type { BattleWorld } from '../../types/battle-world.js'
+import type { BattleAttributes } from '../../types/battle-attributes.js'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -124,7 +126,7 @@ function resolveRelation(world: World, systems: BattleSystems, entity: unknown, 
 }
 
 export function resolveExtractorByKind(
-  world: World,
+  world: BattleWorld,
   systems: BattleSystems,
   entity: unknown,
   kind: 'attribute' | 'field' | 'relation',
@@ -136,7 +138,7 @@ export function resolveExtractorByKind(
 
   if (kind === 'attribute') {
     if (typeof entity === 'string') {
-      const value = systems.attrSystem.getValue(world, entity, key)
+      const value = systems.attrSystem.getValue(world, entity, key as keyof BattleAttributes)
       return value !== undefined ? [value] : []
     }
     const value = getByPath(entity, key)

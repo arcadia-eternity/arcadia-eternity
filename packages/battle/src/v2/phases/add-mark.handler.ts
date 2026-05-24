@@ -1,5 +1,12 @@
 // battle/src/v2/phases/add-mark.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type {
+  PhaseHandler,
+  PhaseDef,
+  PhaseResult,
+  PhaseManager,
+  EffectPipeline,
+  WorldPlugins,
+} from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { getComponent } from '@arcadia-eternity/engine'
 import { StackStrategy, EffectTrigger } from '@arcadia-eternity/const'
@@ -10,6 +17,7 @@ import type { BaseMarkData } from '../schemas/mark.schema.js'
 import type { V2DataRepository } from '../data/v2-data-repository.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { BattleState } from '../types/battle-state.js'
+import type { PhaseRegistry } from '../types/phase-registry.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 
 const BASE_MARK = 'baseMark' as const
@@ -23,7 +31,7 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleStat
 
   constructor(
     private markSystem: MarkSystem,
-    private phaseManager: PhaseManager,
+    private phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>,
     private effectPipeline: EffectPipeline,
   ) {}
 
@@ -56,7 +64,7 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleStat
       const existingMutex = this.markSystem.findByMutexGroup(world, ctx.targetId, mutexGroup)
       for (const mark of existingMutex) {
         if (mark.baseMarkId === ctx.baseMarkId) continue
-        await this.phaseManager.execute(world, 'removeMark', bus, {
+        await this.phaseManager.execute(world, this.phaseManager.getHandler('removeMark')!, bus, {
           context: {
             type: 'remove-mark',
             parentId: phase.id,
@@ -100,7 +108,7 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleStat
           durationAfter = ctx.duration
           break
         case StackStrategy.remove:
-          await this.phaseManager.execute(world, 'removeMark', bus, {
+          await this.phaseManager.execute(world, this.phaseManager.getHandler('removeMark')!, bus, {
             context: {
               type: 'remove-mark',
               parentId: phase.id,

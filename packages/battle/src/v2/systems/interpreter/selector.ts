@@ -3,6 +3,7 @@
 // Selectors return entity IDs (strings), not class instances.
 
 import type { InterpreterContext } from './context.js'
+import type { BattleAttributes } from '../../types/battle-attributes.js'
 import {
   BASE_SELECTOR_KEYS,
   selectorChainSchema,
@@ -560,7 +561,7 @@ function applyDefaultRegisteredChainStep(ctx: InterpreterContext, current: unkno
       const { attrSystem } = ctx.systems
       return current
         .map(item => {
-          if (typeof item === 'string') return attrSystem.getValue(ctx.world, item, key)
+          if (typeof item === 'string') return attrSystem.getValue(ctx.world, item, key as keyof BattleAttributes)
           if (typeof item === 'object' && item !== null) {
             const obj = item as Record<string, unknown>
             return obj[key]
@@ -602,9 +603,7 @@ function applyDefaultRegisteredChainStep(ctx: InterpreterContext, current: unkno
             if (skill) return { object: skill, key }
             const mark = ctx.systems.markSystem.get(bw, item) as unknown as Record<string, unknown> | undefined
             if (mark) return { object: mark, key }
-            const player = ctx.systems.playerSystem.get(bw, item) as unknown as
-              | Record<string, unknown>
-              | undefined
+            const player = ctx.systems.playerSystem.get(bw, item) as unknown as Record<string, unknown> | undefined
             if (player) return { object: player, key }
             return undefined
           }

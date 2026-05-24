@@ -7,36 +7,29 @@ import type {
   EventBus,
   GameRng,
   PhaseManager,
+  WorldPlugins,
   WorldSystems,
 } from '@arcadia-eternity/engine'
 import type { MarkSystem, PetSystem, PlayerSystem, SkillSystem, StatStageMarkSystem } from '../systems'
 import type { TransformStrategy } from '@arcadia-eternity/plugin-transformation'
 import type { BattleConfig } from '../game'
+import type { BattleAttributes } from './battle-attributes.js'
+import type { BattleState } from './battle-state.js'
+import type { PhaseRegistry } from './phase-registry.js'
 
 // ... rest of imports
 
-/**
- * All systems and runtime references for a battle.
- * Stored in world.systems (non-serializable).
- */
 export interface BattleSystems extends WorldSystems {
-  // Core systems
   petSystem: PetSystem
   skillSystem: SkillSystem
   markSystem: MarkSystem
   playerSystem: PlayerSystem
-  attrSystem: AttributeSystem
+  attrSystem: AttributeSystem<BattleState, BattleSystems, WorldPlugins, BattleAttributes>
   statStageSystem: StatStageMarkSystem
-
-  // Engine systems
-  phaseManager: PhaseManager
+  phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>
   eventBus: EventBus
   effectPipeline: EffectPipeline
-
-  // Runtime utilities
   rng: GameRng
   transformStrategy?: TransformStrategy
-
-  // Config (immutable)
   config: BattleConfig
 }

@@ -1,7 +1,7 @@
 // battle/src/v2/orchestrator.ts
 // BattleOrchestrator — drives the top-level battle loop.
 
-import type { EventBus, PhaseManager } from '@arcadia-eternity/engine'
+import type { EventBus, PhaseManager, WorldPlugins } from '@arcadia-eternity/engine'
 import type {
   PlayerSelection,
   TeamInfo,
@@ -11,6 +11,9 @@ import type {
 } from '@arcadia-eternity/const'
 import type { BattleInstance } from './game.js'
 import type { BattleWorld } from './types/battle-world.js'
+import type { BattleState } from './types/battle-state.js'
+import type { BattleSystems } from './types/battle-systems.js'
+import type { PhaseRegistry } from './types/phase-registry.js'
 import type { SelectionSystem } from './systems/selection.system.js'
 import type { TimerSystem } from './systems/timer.system.js'
 import { worldToBattleState } from './systems/state-serializer.js'
@@ -35,7 +38,7 @@ export class BattleOrchestrator {
   get world(): BattleWorld {
     return this.battle.world
   }
-  get pm(): PhaseManager {
+  get pm(): PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry> {
     return this.battle.phaseManager
   }
   get bus(): EventBus {
@@ -61,13 +64,13 @@ export class BattleOrchestrator {
       }
 
       // Phase 1: BattleStart
-      await this.pm.execute(this.world, 'battleStart', this.bus, { playerAId, playerBId })
+      await this.pm.execute(this.world, this.pm.getHandler('battleStart')!, this.bus, { playerAId, playerBId })
     }
 
     // Phase 2: Main loop
     while (this.running && !this.isBattleEnded()) {
       // BattleSwitch — handle forced/faint switches
-      await this.pm.execute(this.world, 'battleSwitch', this.bus, {
+      await this.pm.execute(this.world, this.pm.getHandler('battleSwitch')!, this.bus, {
         selectionSystem: this.selectionSystem,
         decisionManager: this.decisionManager,
       })
@@ -96,7 +99,7 @@ export class BattleOrchestrator {
 
       // Turn — execute the turn with collected selections
       this.world.state.currentPhase = 'execution'
-      await this.pm.execute(this.world, 'turn', this.bus, { selections })
+      await this.pm.execute(this.world, this.pm.getHandler('turn')!, this.bus, { selections })
 
       if (this.isBattleEnded()) break
     }

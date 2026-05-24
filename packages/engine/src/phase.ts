@@ -59,8 +59,16 @@ export interface PhaseHandler<
 > {
   readonly type: string
   initialize(world: World<TState, TSystems, TPlugins>, initData?: unknown): TData
-  execute(world: World<TState, TSystems, TPlugins>, phase: PhaseDef<TData>, bus: EventBus): PhaseResult | Promise<PhaseResult>
-  resume?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef<TData>, bus: EventBus): PhaseResult | Promise<PhaseResult>
+  execute(
+    world: World<TState, TSystems, TPlugins>,
+    phase: PhaseDef<TData>,
+    bus: EventBus,
+  ): PhaseResult | Promise<PhaseResult>
+  resume?(
+    world: World<TState, TSystems, TPlugins>,
+    phase: PhaseDef<TData>,
+    bus: EventBus,
+  ): PhaseResult | Promise<PhaseResult>
   cleanup?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef<TData>): void
 }
 
@@ -72,8 +80,20 @@ export class PhaseManager<
   TState extends WorldState = WorldState,
   TSystems extends WorldSystems = WorldSystems,
   TPlugins extends WorldPlugins = WorldPlugins,
+  TRegistry extends Record<string, unknown> = Record<string, unknown>,
 > {
+  private handlers = new Map<string, PhaseHandler<unknown, TState, TSystems, TPlugins>>()
   private executionObservers = new Set<PhaseExecutionObserver>()
+
+  register<THandler extends PhaseHandler<unknown, TState, TSystems, TPlugins>>(handler: THandler): void {
+    this.handlers.set(handler.type, handler)
+  }
+
+  getHandler<K extends keyof TRegistry & string>(
+    type: K,
+  ): PhaseHandler<TRegistry[K], TState, TSystems, TPlugins> | undefined {
+    return this.handlers.get(type) as PhaseHandler<TRegistry[K], TState, TSystems, TPlugins> | undefined
+  }
 
   onExecutionEvent(observer: PhaseExecutionObserver): () => void {
     this.executionObservers.add(observer)

@@ -1,8 +1,16 @@
 // battle/src/v2/phases/turn.handler.ts
 // TurnHandler — full turn execution logic ported from v1.
 
-import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type {
+  PhaseHandler,
+  PhaseDef,
+  PhaseResult,
+  PhaseManager,
+  EffectPipeline,
+  WorldPlugins,
+} from '@arcadia-eternity/engine'
 import type { BattleState } from '../types/battle-state.js'
+import type { PhaseRegistry } from '../types/phase-registry.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { EventBus } from '@arcadia-eternity/engine'
@@ -39,7 +47,7 @@ export class TurnHandler implements PhaseHandler<TurnData, BattleState, BattleSy
     private petSystem: PetSystem,
     private skillSystem: SkillSystem,
     private markSystem: MarkSystem,
-    private phaseManager: PhaseManager,
+    private phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>,
     private effectPipeline: EffectPipeline,
   ) {}
 
@@ -203,12 +211,12 @@ export class TurnHandler implements PhaseHandler<TurnData, BattleState, BattleSy
       if (action.type === 'skill') {
         if (!Array.isArray(data.executedSkillPetIds)) data.executedSkillPetIds = []
         data.executedSkillPetIds.push((action.data as UseSkillContextData).petId)
-        await this.phaseManager.execute(world, 'skill', bus, { context: action.data })
+        await this.phaseManager.execute(world, this.phaseManager.getHandler('skill')!, bus, { context: action.data })
       } else {
-        await this.phaseManager.execute(world, 'switch', bus, { context: action.data })
+        await this.phaseManager.execute(world, this.phaseManager.getHandler('switch')!, bus, { context: action.data })
       }
 
-      await this.phaseManager.execute(world, 'markCleanup', bus, {})
+      await this.phaseManager.execute(world, this.phaseManager.getHandler('markCleanup')!, bus, {})
     }
 
     await this.effectPipeline.fire(world, EffectTrigger.TurnEnd, {
@@ -222,7 +230,7 @@ export class TurnHandler implements PhaseHandler<TurnData, BattleState, BattleSy
       const activePet = this.playerSystem.getActivePet(world, playerId)
       if (!this.petSystem.isAlive(world, activePet.id)) continue
       const ragePerTurn = this.petSystem.getStatValue(world, activePet.id, 'ragePerTurn')
-      await this.phaseManager.execute(world, 'rage', bus, {
+      await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
         context: {
           type: 'rage',
           parentId: phase.id,
@@ -243,12 +251,12 @@ export class TurnHandler implements PhaseHandler<TurnData, BattleState, BattleSy
     for (const markId of markIds) {
       const mark = this.markSystem.get(world, markId)
       if (mark && this.markSystem.isActive(world, markId)) {
-        await this.phaseManager.execute(world, 'markUpdate', bus, { markId })
+        await this.phaseManager.execute(world, this.phaseManager.getHandler('markUpdate')!, bus, { markId })
       }
     }
 
     // Final mark cleanup
-    await this.phaseManager.execute(world, 'markCleanup', bus, {})
+    await this.phaseManager.execute(world, this.phaseManager.getHandler('markCleanup')!, bus, {})
 
     bus.emit(world, 'turnEnd', { turn: data.turnNumber })
 

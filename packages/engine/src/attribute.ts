@@ -53,11 +53,15 @@ export interface ModifierDef {
 
 /**
  * Per-entity attribute store — pure data component, serializable.
+ *
+ * @typeParam TAttributes - Map of attribute key → value type. Use to narrow
+ *   attribute types at compile time. Defaults to `Record<string, AttributeValue>`
+ *   for untyped usage.
  */
-export interface AttributeStore {
+export interface AttributeStore<TAttributes = Record<string, AttributeValue>> {
   objectId: string
-  bases: Record<string, AttributeValue>
-  modifiers: Record<string, ModifierDef[]>
+  bases: { [K in keyof TAttributes]?: TAttributes[K] }
+  modifiers: { [K in keyof TAttributes]?: ModifierDef[] }
 }
 
 /**
@@ -123,6 +127,7 @@ export class AttributeSystem<
   TState extends WorldState = WorldState,
   TSystems extends WorldSystems = WorldSystems,
   TPlugins extends WorldPlugins = WorldPlugins,
+  TAttributes = Record<string, AttributeValue>,
 > {
   private writeGuard?: AttributeWriteGuard<TState, TSystems, TPlugins>
   private baseValueSetHook?: AttributeBaseValueSetHook<TState, TSystems, TPlugins>
@@ -146,26 +151,26 @@ export class AttributeSystem<
   // -----------------------------------------------------------------------
 
   /** Create and attach an AttributeStore component to an entity. */
-  create(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore {
-    const store: AttributeStore = { objectId: entityId, bases: {}, modifiers: {} }
+  create(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore<TAttributes> {
+    const store: AttributeStore<TAttributes> = { objectId: entityId, bases: {}, modifiers: {} }
     setComponent(world, entityId, ATTRIBUTE_STORE, store)
     return store
   }
 
   /** Get the AttributeStore for an entity, or undefined. */
-  get(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore | undefined {
-    return getComponent<AttributeStore, TState, TSystems, TPlugins>(world, entityId, ATTRIBUTE_STORE)
+  get(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore<TAttributes> | undefined {
+    return getComponent<AttributeStore<TAttributes>, TState, TSystems, TPlugins>(world, entityId, ATTRIBUTE_STORE)
   }
 
   /** Get the AttributeStore for an entity, throw if missing. */
-  getOrThrow(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore {
+  getOrThrow(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore<TAttributes> {
     const store = this.get(world, entityId)
     if (!store) throw new Error(`No AttributeStore on entity '${entityId}'`)
     return store
   }
 
   /** Get or create an AttributeStore for an entity. */
-  getOrCreate(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore {
+  getOrCreate(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore<TAttributes> {
     return this.get(world, entityId) ?? this.create(world, entityId)
   }
 
@@ -178,25 +183,39 @@ export class AttributeSystem<
   // Attribute registration
   // -----------------------------------------------------------------------
 
-  registerAttribute(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, initial: AttributeValue): void {
+  registerAttribute<K extends keyof TAttributes>(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    key: K,
+    initial: TAttributes[K],
+  ): void {
     const store = this.getOrCreate(world, entityId)
     store.bases[key] = initial
     if (!store.modifiers[key]) store.modifiers[key] = []
   }
 
-  setBaseValue(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, value: AttributeValue): void {
-    this.ensureWriteAllowed(world, entityId, key, 'setBaseValue')
+  setBaseValue<K extends keyof TAttributes>(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    key: K,
+    value: TAttributes[K],
+  ): void {
+    this.ensureWriteAllowed(world, entityId, key as string, 'setBaseValue')
     const store = this.getOrThrow(world, entityId)
     if (!(key in store.bases)) {
-      throw new Error(`Attribute '${key}' is not registered on entity '${entityId}'`)
+      throw new Error(`Attribute '${String(key)}' is not registered on entity '${entityId}'`)
     }
     store.bases[key] = value
     if (this.baseValueSetHook) {
-      this.baseValueSetHook({ world, entityId, key, value })
+      this.baseValueSetHook({ world, entityId, key: key as string, value: value as AttributeValue })
     }
   }
 
-  getBaseValue(world: World<TState, TSystems, TPlugins>, entityId: string, key: string): AttributeValue | undefined {
+  getBaseValue<K extends keyof TAttributes>(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    key: K,
+  ): TAttributes[K] | undefined {
     return this.get(world, entityId)?.bases[key]
   }
 
@@ -204,17 +223,27 @@ export class AttributeSystem<
   // Modifier CRUD
   // -----------------------------------------------------------------------
 
-  addModifier(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, mod: ModifierDef): void {
-    this.ensureWriteAllowed(world, entityId, key, 'addModifier')
+  addModifier<K extends keyof TAttributes>(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    key: K,
+    mod: ModifierDef,
+  ): void {
+    this.ensureWriteAllowed(world, entityId, key as string, 'addModifier')
     const store = this.getOrThrow(world, entityId)
     if (!(key in store.bases)) {
-      throw new Error(`Attribute '${key}' is not registered on entity '${entityId}'`)
+      throw new Error(`Attribute '${String(key)}' is not registered on entity '${entityId}'`)
     }
     if (!store.modifiers[key]) store.modifiers[key] = []
     store.modifiers[key].push(mod)
   }
 
-  removeModifier(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, modId: string): boolean {
+  removeModifier<K extends keyof TAttributes>(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    key: K,
+    modId: string,
+  ): boolean {
     const store = this.get(world, entityId)
     if (!store) return false
     const mods = store.modifiers[key]
@@ -229,19 +258,31 @@ export class AttributeSystem<
     const store = this.get(world, entityId)
     if (!store) return 0
     let removed = 0
-    for (const key of Object.keys(store.modifiers)) {
-      const before = store.modifiers[key].length
-      store.modifiers[key] = store.modifiers[key].filter(m => m.sourceId !== sourceId)
-      removed += before - store.modifiers[key].length
+    // Mapped type prevents direct indexed assignment; cast to plain Record for mutation.
+    const mods = store.modifiers as Record<string, ModifierDef[] | undefined>
+    for (const key of Object.keys(mods)) {
+      const list = mods[key]
+      if (!list) continue
+      const before = list.length
+      mods[key] = list.filter(m => m.sourceId !== sourceId)
+      removed += before - (mods[key]?.length ?? 0)
     }
     return removed
   }
 
-  getModifiers(world: World<TState, TSystems, TPlugins>, entityId: string, key: string): ModifierDef[] {
+  getModifiers<K extends keyof TAttributes>(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    key: K,
+  ): ModifierDef[] {
     return this.get(world, entityId)?.modifiers[key] ?? []
   }
 
-  clearModifiers(world: World<TState, TSystems, TPlugins>, entityId: string, key: string): void {
+  clearModifiers<K extends keyof TAttributes>(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    key: K,
+  ): void {
     const store = this.get(world, entityId)
     if (store) store.modifiers[key] = []
   }
@@ -254,27 +295,31 @@ export class AttributeSystem<
    * Compute the effective value of an attribute, applying all active modifiers.
    * Pull-based: call whenever you need the current value.
    */
-  getValue(
+  getValue<K extends keyof TAttributes>(
     world: World<TState, TSystems, TPlugins>,
     entityId: string,
-    key: string,
+    key: K,
     phaseCtx?: PhaseContext,
     computeStack?: Set<string>,
-  ): AttributeValue {
+  ): TAttributes[K] {
     const store = this.get(world, entityId)
-    if (!store) return 0
-    return this.evaluate(world, store, key, phaseCtx, computeStack)
+    if (!store) return 0 as TAttributes[K]
+    return this.evaluate(world, store, key as string, phaseCtx, computeStack) as TAttributes[K]
   }
 
   /** Get all effective values for an entity. */
-  getAllValues(world: World<TState, TSystems, TPlugins>, entityId: string, phaseCtx?: PhaseContext): Record<string, AttributeValue> {
+  getAllValues(
+    world: World<TState, TSystems, TPlugins>,
+    entityId: string,
+    phaseCtx?: PhaseContext,
+  ): { [K in keyof TAttributes]: TAttributes[K] } {
     const store = this.get(world, entityId)
-    if (!store) return {}
+    if (!store) return {} as { [K in keyof TAttributes]: TAttributes[K] }
     const result: Record<string, AttributeValue> = {}
     for (const key of Object.keys(store.bases)) {
       result[key] = this.evaluate(world, store, key, phaseCtx)
     }
-    return result
+    return result as { [K in keyof TAttributes]: TAttributes[K] }
   }
 
   // -----------------------------------------------------------------------
@@ -283,23 +328,26 @@ export class AttributeSystem<
 
   private evaluate(
     world: World<TState, TSystems, TPlugins>,
-    store: AttributeStore,
+    store: AttributeStore<TAttributes>,
     key: string,
     phaseCtx?: PhaseContext,
     computeStack?: Set<string>,
   ): AttributeValue {
     const stack = computeStack ?? new Set<string>()
     const globalKey = `${store.objectId}.${key}`
+    // Narrow to unindexed records for internal string-key access.
+    const bases = store.bases as Record<string, AttributeValue | undefined>
+    const modifiers = store.modifiers as Record<string, ModifierDef[] | undefined>
 
-    if (stack.has(globalKey)) return store.bases[key] ?? 0
-    if (stack.size >= MAX_COMPUTE_DEPTH) return store.bases[key] ?? 0
+    if (stack.has(globalKey)) return bases[key] ?? 0
+    if (stack.size >= MAX_COMPUTE_DEPTH) return bases[key] ?? 0
 
     stack.add(globalKey)
     try {
-      const base = store.bases[key]
+      const base = bases[key]
       if (base === undefined) return 0
 
-      const mods = store.modifiers[key]
+      const mods = modifiers[key]
       if (!mods || mods.length === 0) return base
 
       const active = mods.filter(m => this.isModifierActive(m, phaseCtx)).sort((a, b) => b.priority - a.priority)
@@ -325,7 +373,11 @@ export class AttributeSystem<
     return true
   }
 
-  private resolveModifierValue(world: World<TState, TSystems, TPlugins>, mv: ModifierValue, computeStack: Set<string>): AttributeValue {
+  private resolveModifierValue(
+    world: World<TState, TSystems, TPlugins>,
+    mv: ModifierValue,
+    computeStack: Set<string>,
+  ): AttributeValue {
     if (mv.kind === 'static') return mv.value
     if (!this.resolver) throw new Error('ExpressionResolver required for expr modifier values')
     return this.resolver.evaluate(world, mv.expr, computeStack)

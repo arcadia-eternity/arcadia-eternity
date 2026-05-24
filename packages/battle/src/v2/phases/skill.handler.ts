@@ -1,8 +1,16 @@
 // battle/src/v2/phases/skill.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type {
+  PhaseHandler,
+  PhaseDef,
+  PhaseResult,
+  PhaseManager,
+  EffectPipeline,
+  WorldPlugins,
+} from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { Category, EffectTrigger, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import type { BattleState } from '../types/battle-state.js'
+import type { PhaseRegistry } from '../types/phase-registry.js'
 import type { BattleSystems } from '../types/battle-systems.js'
 import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
@@ -40,7 +48,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
     private petSystem: PetSystem,
     private skillSystem: SkillSystem,
     private statStageSystem: StatStageMarkSystem,
-    private phaseManager: PhaseManager,
+    private phaseManager: PhaseManager<BattleState, BattleSystems, WorldPlugins, PhaseRegistry>,
     private effectPipeline: EffectPipeline,
   ) {}
 
@@ -155,7 +163,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
     })
 
     // Consume rage via rage phase
-    await this.phaseManager.execute(world, 'rage', bus, {
+    await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
       context: {
         type: 'rage',
         parentId: phase.id,
@@ -313,7 +321,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
           damageContext: damageCtx,
         })
 
-        await this.phaseManager.execute(world, 'damage', bus, { context: damageCtx })
+        await this.phaseManager.execute(world, this.phaseManager.getHandler('damage')!, bus, { context: damageCtx })
 
         // Rage from taking damage (49 * damage / maxHp)
         if (damageCtx.available && damageCtx.damageResult > 0) {
@@ -321,7 +329,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
           const gainedRage = Math.floor((damageCtx.damageResult * 49) / maxHp)
           if (gainedRage > 0) {
             const targetOwnerId = this.petSystem.getOwner(world, ctx.actualTargetId)
-            await this.phaseManager.execute(world, 'rage', bus, {
+            await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
               context: {
                 type: 'rage',
                 parentId: phase.id,
@@ -348,7 +356,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, B
 
     // Hit reward rage (15 rage for attacker on hit, non-status only)
     if (ctx.hitResult && ctx.category !== Category.Status) {
-      await this.phaseManager.execute(world, 'rage', bus, {
+      await this.phaseManager.execute(world, this.phaseManager.getHandler('rage')!, bus, {
         context: {
           type: 'rage',
           parentId: phase.id,
