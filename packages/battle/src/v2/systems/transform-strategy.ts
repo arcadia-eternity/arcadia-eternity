@@ -1,13 +1,14 @@
 import type { World } from '@arcadia-eternity/engine'
 import type { TransformRecord, TransformStrategy } from '@arcadia-eternity/plugin-transformation'
 import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { V2DataRepository } from '../data/v2-data-repository.js'
 
-function getSystems(world: World): BattleSystems {
-  return world.systems as unknown as BattleSystems
+function getSystems(world: BattleWorld): BattleSystems {
+  return world.systems
 }
 
-function getRepository(world: World): V2DataRepository | undefined {
+function getRepository(world: BattleWorld): V2DataRepository | undefined {
   const repo = world.meta.dataRepository
   return repo as V2DataRepository | undefined
 }
@@ -25,7 +26,7 @@ function mergeEffectIds(previous: string[], incoming: string[], strategy: 'overr
   return [...merged.keys()]
 }
 
-function applySkillTransform(world: World, targetId: string, newBaseId: string, record: TransformRecord): void {
+function applySkillTransform(world: BattleWorld, targetId: string, newBaseId: string, record: TransformRecord): void {
   const systems = getSystems(world)
   const repo = getRepository(world)
   if (!repo) return
@@ -68,7 +69,7 @@ function applySkillTransform(world: World, targetId: string, newBaseId: string, 
   }
 }
 
-function applyMarkTransform(world: World, targetId: string, newBaseId: string, record: TransformRecord): void {
+function applyMarkTransform(world: BattleWorld, targetId: string, newBaseId: string, record: TransformRecord): void {
   const systems = getSystems(world)
   const repo = getRepository(world)
   if (!repo) return
@@ -106,7 +107,7 @@ function applyMarkTransform(world: World, targetId: string, newBaseId: string, r
   }
 }
 
-function applyPetTransform(world: World, targetId: string, newBaseId: string): void {
+function applyPetTransform(world: BattleWorld, targetId: string, newBaseId: string): void {
   const systems = getSystems(world)
   const repo = getRepository(world)
   if (!repo) return
@@ -136,20 +137,32 @@ export class V2TransformStrategy implements TransformStrategy {
   }
 
   performTransform(world: World, targetId: string, newBaseId: string, record: TransformRecord): void {
+    const bw = world as unknown as BattleWorld
     if (record.targetType === 'skill') {
-      applySkillTransform(world, targetId, newBaseId, record)
+      applySkillTransform(bw, targetId, newBaseId, record)
       return
     }
     if (record.targetType === 'mark') {
-      applyMarkTransform(world, targetId, newBaseId, record)
+      applyMarkTransform(bw, targetId, newBaseId, record)
       return
     }
     if (record.targetType === 'pet') {
-      applyPetTransform(world, targetId, newBaseId)
+      applyPetTransform(bw, targetId, newBaseId)
     }
   }
 
   restoreOriginal(world: World, targetId: string, originalBaseId: string, record: TransformRecord): void {
-    this.performTransform(world, targetId, originalBaseId, record)
+    const bw = world as unknown as BattleWorld
+    if (record.targetType === 'skill') {
+      applySkillTransform(bw, targetId, originalBaseId, record)
+      return
+    }
+    if (record.targetType === 'mark') {
+      applyMarkTransform(bw, targetId, originalBaseId, record)
+      return
+    }
+    if (record.targetType === 'pet') {
+      applyPetTransform(bw, targetId, originalBaseId)
+    }
   }
 }

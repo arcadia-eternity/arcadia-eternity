@@ -5,6 +5,7 @@ import { createBattleFromConfig } from '../data/battle-factory.js'
 import type { V2DataRepository } from '../data/v2-data-repository.js'
 import { resolveSelector } from '../systems/interpreter/selector.js'
 import type { InterpreterContext } from '../systems/interpreter/context.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import { getBattlePlayerIds, getTestRepository, makeTeamConfig } from './helpers/regression-helpers.js'
 
 let repo: V2DataRepository
@@ -16,7 +17,7 @@ beforeAll(async () => {
 function makeCtx(sourceEntityId: string, battle: ReturnType<typeof createBattleFromConfig>): InterpreterContext {
   return {
     world: battle.world,
-    systems: battle.world.systems as unknown as InterpreterContext['systems'],
+    systems: (battle.world as BattleWorld).systems,
     fireCtx: {
       trigger: 'selector-test',
       sourceEntityId,

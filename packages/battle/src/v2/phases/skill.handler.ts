@@ -1,8 +1,10 @@
 // battle/src/v2/phases/skill.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
-import { GameRng } from '@arcadia-eternity/engine'
 import { Category, EffectTrigger, IgnoreStageStrategy } from '@arcadia-eternity/const'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { SkillSystem } from '../systems/skill.system.js'
@@ -29,7 +31,7 @@ const STAGE_MULTIPLIER_TABLE: Record<number, number> = {
   [6]: 8 / 2,
 }
 
-export class SkillHandler implements PhaseHandler<SkillPhaseData> {
+export class SkillHandler implements PhaseHandler<SkillPhaseData, BattleState, BattleSystems> {
   readonly type = 'skill'
   private readonly historyLimit = 10
 
@@ -50,7 +52,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
   }
 
   private getStatValueWithStrategy(
-    world: World,
+    world: BattleWorld,
     petId: string,
     stat: 'atk' | 'def' | 'spa' | 'spd',
     strategy: UseSkillContextData['ignoreStageStrategy'],
@@ -63,7 +65,7 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
     return value / mult
   }
 
-  private async applyDefeatIfNeeded(world: World, bus: EventBus, ctx: UseSkillContextData): Promise<void> {
+  private async applyDefeatIfNeeded(world: BattleWorld, bus: EventBus, ctx: UseSkillContextData): Promise<void> {
     if (ctx.defeated) return
     if (!ctx.actualTargetId) return
     if (this.petSystem.isAlive(world, ctx.actualTargetId)) return
@@ -83,14 +85,14 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
     })
   }
 
-  initialize(_world: World, phase: PhaseDef): SkillPhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): SkillPhaseData {
     return phase.data as SkillPhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as SkillPhaseData
     const ctx = data.context
-    const rng = (world.systems as Record<string, unknown>).rng as GameRng
+    const rng = world.systems.rng
 
     await this.effectPipeline.fire(world, EffectTrigger.BeforeUseSkillCheck, {
       trigger: EffectTrigger.BeforeUseSkillCheck,

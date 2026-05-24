@@ -3,6 +3,7 @@
 // the interpreter modules (conditions, selectors, operators).
 
 import type { World, EffectInterpreter } from '@arcadia-eternity/engine'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { InterpreterContext, InterpreterFireContext } from './interpreter/context.js'
 import { evaluateCondition } from './interpreter/conditions.js'
 import { executeOperator } from './interpreter/operators.js'
@@ -29,7 +30,8 @@ function parseFireContext(raw: unknown): InterpreterFireContext {
 }
 
 function buildCtx(world: World, context: unknown): InterpreterContext {
-  const systems = world.systems as unknown as InterpreterContext['systems']
+  const bw = world as unknown as BattleWorld
+  const systems = bw.systems
   if (!systems) {
     throw new Error('[effect-interpreter] world.systems is missing')
   }

@@ -1,8 +1,10 @@
 // battle/src/v2/systems/message-bridge.ts
 // MessageBridge — maps v2 EventBus events to v1 BattleMessage format.
 
-import type { World, EventBus, GameEvent } from '@arcadia-eternity/engine'
+import type { EventBus, GameEvent } from '@arcadia-eternity/engine'
 import {
+  asMarkId,
+  asBaseMarkId,
   AttackTargetOpinion,
   BattleMessageType,
   type BattleMessage,
@@ -13,6 +15,7 @@ import {
 import { create as createDiffPatcher, type DiffPatcher } from 'jsondiffpatch'
 import { worldToBattleState, type StateSerializerSystems } from './state-serializer.js'
 import type { MarkData } from '../schemas/mark.schema.js'
+import type { BattleWorld } from '../types/battle-world.js'
 
 export interface MessageViewOptions {
   viewerId?: playerId
@@ -51,7 +54,7 @@ export class MessageBridge {
   private phaseTransactions: PhaseMessageTransaction[] = []
 
   constructor(
-    private world: World,
+    private world: BattleWorld,
     private bus: EventBus,
     private systems: StateSerializerSystems,
     private defaultShowHidden = false,
@@ -81,7 +84,7 @@ export class MessageBridge {
     }
   }
 
-  setWorld(world: World): void {
+  setWorld(world: BattleWorld): void {
     this.world = world
   }
 
@@ -141,13 +144,15 @@ export class MessageBridge {
       const stateDelta = this.diffPatcher.diff(baseState, newState)
       subscriber.lastState = newState
 
+      // Cast needed: object literal data is Record<string, unknown> while BattleMessage
+      // is a discriminated union — each variant expects specific BattleMessageData[T].
       const msg = {
         type,
         sequenceId: this.sequenceId,
         battleId: this.battleId,
         data,
         stateDelta: stateDelta ?? {},
-      } as unknown as BattleMessage
+      } as BattleMessage
       subscriber.callback(msg)
     }
   }
@@ -176,8 +181,8 @@ export class MessageBridge {
 
   private toMarkMessage(mark: MarkData): MarkMessage {
     return {
-      id: mark.id as MarkMessage['id'],
-      baseId: mark.baseMarkId as MarkMessage['baseId'],
+      id: asMarkId(mark.id),
+      baseId: asBaseMarkId(mark.baseMarkId),
       stack: this.systems.markSystem.getStack(this.world, mark.id),
       duration: this.systems.markSystem.getDuration(this.world, mark.id),
       isActive: this.systems.markSystem.isActive(this.world, mark.id),

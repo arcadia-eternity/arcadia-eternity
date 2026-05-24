@@ -2,10 +2,11 @@
 // End-to-end test: load real YAML data → createBattleFromConfig → run full battle.
 // Run with: npx tsx packages/battle/src/v2/__tests__/v2-e2e-yaml.ts
 
-import { BattleMessageType, BattleStatus, type BattleMessage, type playerId } from '@arcadia-eternity/const'
+import { BattleMessageType, BattleStatus, type BattleMessage, asPlayerId, Nature } from '@arcadia-eternity/const'
 import { loadV2GameDataFromPack } from '../data/v2-data-loader.js'
 import { createBattleFromConfig } from '../data/battle-factory.js'
 import { LocalBattleSystemV2 } from '../local-battle.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { TeamConfig } from '../data/team-config.js'
 
 const PACK_REF = 'builtin:base'
@@ -19,7 +20,7 @@ const teamA: TeamConfig = {
       level: 50,
       evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
       ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      nature: 'Hardy',
+      nature: Nature.Hardy,
       skills: ['skill_paida', 'skill_shuipao'],
     },
   ],
@@ -34,7 +35,7 @@ const teamB: TeamConfig = {
       level: 50,
       evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
       ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      nature: 'Hardy',
+      nature: Nature.Hardy,
       skills: ['skill_paida', 'skill_shuipao'],
     },
   ],
@@ -57,8 +58,9 @@ async function main() {
   // Step 2: Create battle from config
   console.log('\nCreating battle from team configs...')
   const battle = createBattleFromConfig(teamA, teamB, repository)
-  const { world } = battle
-  console.log(`PlayerA: ${world.state.playerAId as string}, PlayerB: ${world.state.playerBId as string}`)
+  const { world: _w } = battle
+  const world = _w as BattleWorld
+  console.log(`PlayerA: ${world.state.playerAId}, PlayerB: ${world.state.playerBId}`)
 
   // Step 3: Run battle
   const system = new LocalBattleSystemV2(battle)
@@ -81,8 +83,8 @@ async function main() {
     turn++
     console.log(`\n--- Turn ${turn} ---`)
 
-    const playerAId = world.state.playerAId as unknown as playerId
-    const playerBId = world.state.playerBId as unknown as playerId
+    const playerAId = asPlayerId(world.state.playerAId)
+    const playerBId = asPlayerId(world.state.playerBId)
 
     const selA = await system.getAvailableSelection(playerAId)
     const selB = await system.getAvailableSelection(playerBId)

@@ -1,7 +1,10 @@
 // battle/src/v2/phases/stat-stage.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import type { StatStageMarkSystem, CleanStageStrategy } from '../systems/stat-stage-mark.system.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 
 export type StatStageOperation = 'add' | 'set' | 'clear' | 'reverse' | 'transfer'
 
@@ -17,16 +20,16 @@ export interface StatStagePhaseData {
   targetEntityId?: string
 }
 
-export class StatStageHandler implements PhaseHandler<StatStagePhaseData> {
+export class StatStageHandler implements PhaseHandler<StatStagePhaseData, BattleState, BattleSystems> {
   readonly type = 'statStage'
 
   constructor(private statStageSystem: StatStageMarkSystem) {}
 
-  initialize(_world: World, phase: PhaseDef): StatStagePhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): StatStagePhaseData {
     return phase.data as StatStagePhaseData
   }
 
-  execute(world: World, phase: PhaseDef, bus: EventBus): PhaseResult {
+  execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): PhaseResult {
     const data = phase.data as StatStagePhaseData
     const operation = data.operation ?? 'add'
 
@@ -46,7 +49,7 @@ export class StatStageHandler implements PhaseHandler<StatStagePhaseData> {
     }
   }
 
-  private executeAdd(world: World, data: StatStagePhaseData, bus: EventBus): PhaseResult {
+  private executeAdd(world: BattleWorld, data: StatStagePhaseData, bus: EventBus): PhaseResult {
     if (!data.stat || data.delta === undefined) {
       return { success: false, state: 'completed', data }
     }
@@ -64,7 +67,7 @@ export class StatStageHandler implements PhaseHandler<StatStagePhaseData> {
     return { success: true, state: 'completed', data: { ...data, actualDelta } }
   }
 
-  private executeSet(world: World, data: StatStagePhaseData, bus: EventBus): PhaseResult {
+  private executeSet(world: BattleWorld, data: StatStagePhaseData, bus: EventBus): PhaseResult {
     if (!data.stat || data.value === undefined) {
       return { success: false, state: 'completed', data }
     }
@@ -82,7 +85,7 @@ export class StatStageHandler implements PhaseHandler<StatStagePhaseData> {
     return { success: true, state: 'completed', data }
   }
 
-  private executeClear(world: World, data: StatStagePhaseData, bus: EventBus): PhaseResult {
+  private executeClear(world: BattleWorld, data: StatStagePhaseData, bus: EventBus): PhaseResult {
     const strategy = data.cleanStageStrategy ?? 'all'
     const stats = data.stats ?? this.statStageSystem.getTrackedStats(world, data.entityId)
     this.statStageSystem.clearStages(world, data.entityId, strategy, stats)
@@ -96,7 +99,7 @@ export class StatStageHandler implements PhaseHandler<StatStagePhaseData> {
     return { success: true, state: 'completed', data }
   }
 
-  private executeReverse(world: World, data: StatStagePhaseData, bus: EventBus): PhaseResult {
+  private executeReverse(world: BattleWorld, data: StatStagePhaseData, bus: EventBus): PhaseResult {
     const strategy = data.cleanStageStrategy ?? 'all'
     const stats = data.stats ?? this.statStageSystem.getTrackedStats(world, data.entityId)
     this.statStageSystem.reverseStages(world, data.entityId, strategy, stats)
@@ -110,7 +113,7 @@ export class StatStageHandler implements PhaseHandler<StatStagePhaseData> {
     return { success: true, state: 'completed', data }
   }
 
-  private executeTransfer(world: World, data: StatStagePhaseData, bus: EventBus): PhaseResult {
+  private executeTransfer(world: BattleWorld, data: StatStagePhaseData, bus: EventBus): PhaseResult {
     if (!data.sourceEntityId || !data.targetEntityId) {
       return { success: false, state: 'completed', data }
     }

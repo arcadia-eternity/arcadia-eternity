@@ -27,6 +27,7 @@ import { MessageBridge } from './systems/message-bridge.js'
 import { worldToBattleState } from './systems/state-serializer.js'
 import type { MessageViewOptions } from './systems/message-bridge.js'
 import { TimerSystem } from './systems/timer.system.js'
+import type { BattleWorld } from './types/battle-world.js'
 
 type RuntimeSnapshotMeta = {
   rngState: RngState
@@ -128,7 +129,7 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     )
   }
 
-  get world() {
+  get world(): BattleWorld {
     return this.battle.world
   }
 
@@ -290,23 +291,23 @@ export class LocalBattleSystemV2 implements IBattleSystem {
     }
 
     const currentWorld = this.battle.world
-    const restoredWorld = restoreWorld(snapshot.payload)
-    const runtimeMeta = readRuntimeSnapshotMeta(restoredWorld.meta)
-    restoredWorld.systems = currentWorld.systems
-    restoredWorld.systems.rng = GameRng.fromState(runtimeMeta.rngState)
-    restoredWorld.meta = {
-      ...restoredWorld.meta,
+    const restored = restoreWorld(snapshot.payload) as BattleWorld
+    const runtimeMeta = readRuntimeSnapshotMeta(restored.meta)
+    restored.systems = currentWorld.systems
+    restored.systems.rng = GameRng.fromState(runtimeMeta.rngState)
+    restored.meta = {
+      ...restored.meta,
       strictExtractorTyping: true,
       dataRepository: currentWorld.meta.dataRepository,
     }
-    this.battle.world = restoredWorld
-    this.timerSystem.setWorld(restoredWorld)
+    this.battle.world = restored
+    this.timerSystem.setWorld(restored)
     this.timerSystem.setReconnectTimeoutHandler(async timedOutPlayerId =>
       this.handleReconnectGraceTimeout(timedOutPlayerId),
     )
     this.initializeTimerPlayers()
-    this.messageBridge.setWorld(restoredWorld)
-    this.resumeFromSnapshot = restoredWorld.state.status === 'active'
+    this.messageBridge.setWorld(restored)
+    this.resumeFromSnapshot = restored.state.status === 'active'
   }
 
   async cleanup(): Promise<void> {
@@ -326,7 +327,7 @@ export class LocalBattleSystemV2 implements IBattleSystem {
 
   private initializeTimerPlayers(): void {
     const playerIds: string[] = []
-    const state = this.battle.world.state as Record<string, unknown>
+    const state = this.battle.world.state
     const playerAId = state.playerAId
     const playerBId = state.playerBId
     if (typeof playerAId === 'string') playerIds.push(playerAId)
@@ -344,7 +345,7 @@ export class LocalBattleSystemV2 implements IBattleSystem {
       return '断线超时自动投降'
     }
 
-    const state = this.world.state as Record<string, unknown>
+    const state = this.world.state
     const playerAId = state.playerAId
     const playerBId = state.playerBId
     if (

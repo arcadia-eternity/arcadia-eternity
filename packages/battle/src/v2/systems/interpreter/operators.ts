@@ -29,6 +29,7 @@ import { resolveValue } from './value.js'
 import { evaluateCondition } from './conditions.js'
 import { isDamageContext, isRecord, isSelectorDsl, isUseSkillContext } from './type-guards.js'
 import { getOperatorHandler, registerOperatorHandler } from './operator-registry.js'
+import type { BattleWorld } from '../../types/battle-world.js'
 
 /**
  * Get the current phase ID from the phase stack (for parentId).
@@ -334,7 +335,7 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
 
       const { world, fireCtx, systems } = ctx
       const { phaseManager, eventBus } = systems
-      const baseMark = getComponent<BaseMarkData>(world, markBaseId, 'baseMark')
+      const baseMark = getComponent(world, markBaseId, 'baseMark') as BaseMarkData | undefined
       if (!baseMark) break
       const defaultStack = baseMark.config.maxStacks ?? 1
       const defaultDuration = baseMark.config.duration
@@ -612,8 +613,9 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
           const { skillSystem, playerSystem } = systems
           skillSystem.applyToUseSkillContext(world, newSkillId, context, {
             getOpponentActivePetId: originPlayerId => {
+              const bw = world as BattleWorld
               const rawOpponentId =
-                originPlayerId === world.state.playerAId ? world.state.playerBId : world.state.playerAId
+                originPlayerId === bw.state.playerAId ? bw.state.playerBId : bw.state.playerAId
               const opponentId = typeof rawOpponentId === 'string' ? rawOpponentId : undefined
               if (!opponentId) return undefined
               const opponentPet = playerSystem.getActivePet(world, opponentId)

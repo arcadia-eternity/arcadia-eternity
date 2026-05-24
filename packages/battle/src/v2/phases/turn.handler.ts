@@ -1,7 +1,10 @@
 // battle/src/v2/phases/turn.handler.ts
 // TurnHandler — full turn execution logic ported from v1.
 
-import type { PhaseHandler, PhaseDef, PhaseResult, World, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { Category, AttackTargetOpinion, EffectTrigger, DamageType, type PlayerSelection } from '@arcadia-eternity/const'
 import type { PlayerSystem } from '../systems/player.system.js'
@@ -28,7 +31,7 @@ interface QueuedAction {
   data: UseSkillContextData | SwitchPetContextData
 }
 
-export class TurnHandler implements PhaseHandler<TurnData> {
+export class TurnHandler implements PhaseHandler<TurnData, BattleState, BattleSystems> {
   readonly type = 'turn'
 
   constructor(
@@ -40,8 +43,8 @@ export class TurnHandler implements PhaseHandler<TurnData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(world: World, phase: PhaseDef): TurnData {
-    const currentTurn = ((world.state.currentTurn as number) ?? 0) + 1
+  initialize(world: BattleWorld, phase: PhaseDef): TurnData {
+    const currentTurn = (world.state.currentTurn ?? 0) + 1
     world.state.currentTurn = currentTurn
     const init = phase.data as Partial<TurnData> | undefined
     return {
@@ -52,14 +55,14 @@ export class TurnHandler implements PhaseHandler<TurnData> {
     }
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as TurnData
     const selections = data.selections ?? {}
 
     bus.emit(world, 'turnStart', { turn: data.turnNumber })
 
-    const playerAId = world.state.playerAId as string
-    const playerBId = world.state.playerBId as string
+    const playerAId = world.state.playerAId
+    const playerBId = world.state.playerBId
 
     await this.effectPipeline.fire(world, EffectTrigger.TurnStart, {
       trigger: EffectTrigger.TurnStart,

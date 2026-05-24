@@ -1,7 +1,7 @@
 // battle/src/v2/orchestrator.ts
 // BattleOrchestrator — drives the top-level battle loop.
 
-import type { World, EventBus, PhaseManager } from '@arcadia-eternity/engine'
+import type { EventBus, PhaseManager } from '@arcadia-eternity/engine'
 import type {
   PlayerSelection,
   TeamInfo,
@@ -10,6 +10,7 @@ import type {
   petId,
 } from '@arcadia-eternity/const'
 import type { BattleInstance } from './game.js'
+import type { BattleWorld } from './types/battle-world.js'
 import type { SelectionSystem } from './systems/selection.system.js'
 import type { TimerSystem } from './systems/timer.system.js'
 import { worldToBattleState } from './systems/state-serializer.js'
@@ -31,7 +32,7 @@ export class BattleOrchestrator {
     this.decisionManager = new DecisionManager(battle, selectionSystem, timerSystem)
   }
 
-  get world(): World {
+  get world(): BattleWorld {
     return this.battle.world
   }
   get pm(): PhaseManager {
@@ -49,8 +50,8 @@ export class BattleOrchestrator {
     if (this.running) return
     this.running = true
 
-    const playerAId = this.world.state.playerAId as string
-    const playerBId = this.world.state.playerBId as string
+    const playerAId = this.world.state.playerAId
+    const playerBId = this.world.state.playerBId
 
     if (!options?.resumeFromSnapshot) {
       await this.runTeamSelectionIfNeeded(playerAId, playerBId)
@@ -102,8 +103,8 @@ export class BattleOrchestrator {
 
     // Emit battle end
     if (this.running) {
-      const victor = this.world.state.victor as string | null
-      const reason = (this.world.state.endReason as string) ?? 'all_pet_fainted'
+      const victor = this.world.state.victor
+      const reason = this.world.state.endReason ?? 'allFainted'
       this.bus.emit(this.world, 'battleEnd', { winner: victor, reason })
       this.world.state.status = 'ended'
     }
@@ -122,21 +123,21 @@ export class BattleOrchestrator {
       return true
     }
 
-    const playerAId = this.world.state.playerAId as string
-    const playerBId = this.world.state.playerBId as string
+    const playerAId = this.world.state.playerAId
+    const playerBId = this.world.state.playerBId
 
     const aAlive = this.battle.playerSystem.getAlivePets(this.world, playerAId)
     const bAlive = this.battle.playerSystem.getAlivePets(this.world, playerBId)
 
     if (aAlive.length === 0) {
       this.world.state.victor = playerBId
-      this.world.state.endReason = 'all_pet_fainted'
+      this.world.state.endReason = 'allFainted'
       this.world.state.status = 'ended'
       return true
     }
     if (bAlive.length === 0) {
       this.world.state.victor = playerAId
-      this.world.state.endReason = 'all_pet_fainted'
+      this.world.state.endReason = 'allFainted'
       this.world.state.status = 'ended'
       return true
     }
@@ -149,8 +150,8 @@ export class BattleOrchestrator {
   // -----------------------------------------------------------------------
 
   handleSurrender(playerId: string, reason: 'surrender' | 'timeout' = 'surrender'): void {
-    const playerAId = this.world.state.playerAId as string
-    const playerBId = this.world.state.playerBId as string
+    const playerAId = this.world.state.playerAId
+    const playerBId = this.world.state.playerBId
     this.world.state.victor = playerId === playerAId ? playerBId : playerAId
     this.world.state.endReason = reason
     this.world.state.status = 'ended'

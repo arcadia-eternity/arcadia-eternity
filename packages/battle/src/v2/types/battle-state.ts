@@ -1,7 +1,11 @@
 // battle/src/v2/types/battle-state.ts
 // Battle state types for world.state
 
-export interface BattleState {
+import type { WorldState } from '@arcadia-eternity/engine'
+import type { PlayerSelection } from '@arcadia-eternity/const'
+
+export interface BattleState extends WorldState {
+  [key: string]: unknown
   // Player IDs
   playerAId: string
   playerBId: string
@@ -9,7 +13,7 @@ export interface BattleState {
   // Battle status
   status: 'pending' | 'active' | 'ended'
   currentTurn: number
-  currentPhase?: 'switch' | 'selection' | 'teamSelection' | 'turn'
+  currentPhase?: 'switch' | 'selection' | 'teamSelection' | 'turn' | 'execution'
 
   // End state
   victor?: string
@@ -26,13 +30,7 @@ export interface BattleState {
 
   // Config
   allowFaintSwitch: boolean
-}
-
-export interface PlayerSelection {
-  type: 'skill' | 'switch' | 'surrender'
-  skillIndex?: number
-  targetIndex?: number
-  switchToPetId?: string
+  customConfig?: Record<string, unknown>
 }
 
 export interface BattleStateInitOptions {

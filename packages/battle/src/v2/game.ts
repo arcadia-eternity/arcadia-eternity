@@ -2,7 +2,6 @@
 // Game entry point — assembles engine + plugins + systems into a Seer2 battle.
 
 import {
-  type World,
   createWorld,
   PhaseManager,
   EffectPipeline,
@@ -38,6 +37,8 @@ import {
 import { registerDefaultSelectorHandlers } from './systems/interpreter/selector.js'
 import { registerSeer2Phases } from './phases/index.js'
 import type { BattleSystems } from './types/battle-systems.js'
+import type { BattleWorld } from './types/battle-world.js'
+import type { BattleState } from './types/battle-state.js'
 
 import { SpeciesSchema } from './schemas/species.schema.js'
 import { PetSchema } from './schemas/pet.schema.js'
@@ -103,14 +104,14 @@ export interface BattleConfig {
 }
 
 export interface BattleInstance {
-  world: World
-  phaseManager: PhaseManager
-  effectPipeline: EffectPipeline
+  world: BattleWorld
+  phaseManager: PhaseManager<BattleState, BattleSystems>
+  effectPipeline: EffectPipeline<BattleState, BattleSystems>
   eventBus: EventBus
   schemaChecker: SchemaTypeChecker
   config: BattleConfig
   // Systems
-  attrSystem: AttributeSystem
+  attrSystem: AttributeSystem<BattleState, BattleSystems>
   petSystem: PetSystem
   skillSystem: SkillSystem
   markSystem: MarkSystem
@@ -147,10 +148,10 @@ function registerSchemas(checker: SchemaTypeChecker): void {
 // ---------------------------------------------------------------------------
 
 export function createBattle(config: BattleConfig = {}): BattleInstance {
-  const world = createWorld()
+  const world = createWorld<BattleState, BattleSystems>()
 
   // Build systems (dependency order: attrSystem first)
-  const attrSystem = new AttributeSystem()
+  const attrSystem = new AttributeSystem<BattleState, BattleSystems>()
   const petSystem = new PetSystem(attrSystem)
   const skillSystem = new SkillSystem(attrSystem)
   const markSystem = new MarkSystem(attrSystem)
@@ -166,8 +167,8 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
   damageSystem.setFormula(createSeer2DamageFormula(petSystem))
 
   // Build engine subsystems
-  const phaseManager = new PhaseManager()
-  const effectPipeline = new EffectPipeline(seer2EffectInterpreter, {
+  const phaseManager = new PhaseManager<BattleState, BattleSystems>()
+  const effectPipeline = new EffectPipeline<BattleState, BattleSystems>(seer2EffectInterpreter, {
     beforeEffectExecute: (hookWorld, _effect, fireCtx) => {
       const effectEntityId = fireCtx.effectEntityId
       if (typeof effectEntityId !== 'string') return true
@@ -218,7 +219,7 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
     config,
     transformStrategy: new V2TransformStrategy(),
   }
-  world.systems = systems as unknown as Record<string, unknown>
+  world.systems = systems
   registerDefaultConditionHandlers(world)
   registerDefaultSelectorHandlers(world)
   registerDefaultOperatorHandlers(world)

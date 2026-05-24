@@ -1,15 +1,18 @@
 // battle/src/v2/phases/rage.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { RageContextData } from '../schemas/context.schema.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
 
 export interface RagePhaseData {
   context: RageContextData
 }
 
-export class RageHandler implements PhaseHandler<RagePhaseData> {
+export class RageHandler implements PhaseHandler<RagePhaseData, BattleState, BattleSystems> {
   readonly type = 'rage'
 
   constructor(
@@ -17,11 +20,11 @@ export class RageHandler implements PhaseHandler<RagePhaseData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): RagePhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): RagePhaseData {
     return phase.data as RagePhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as RagePhaseData
     const ctx = data.context
 

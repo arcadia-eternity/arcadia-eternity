@@ -4,7 +4,7 @@
 // EffectDef[] is stored as a component on entities.
 // EffectPipeline is a class that operates on these components.
 
-import type { World } from './world.js'
+import type { World, WorldState, WorldSystems, WorldPlugins } from './world.js'
 import { getComponent, setComponent, queryByComponent } from './world.js'
 
 // ---------------------------------------------------------------------------
@@ -27,9 +27,13 @@ export interface EffectDef {
   tags?: string[]
 }
 
-export interface EffectInterpreter {
-  evaluateCondition(world: World, condition: unknown, context: unknown): boolean
-  executeOperator(world: World, operator: unknown, context: unknown): Promise<void>
+export interface EffectInterpreter<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
+  evaluateCondition(world: World<TState, TSystems, TPlugins>, condition: unknown, context: unknown): boolean
+  executeOperator(world: World<TState, TSystems, TPlugins>, operator: unknown, context: unknown): Promise<void>
 }
 
 export interface EffectPipelineHooks {
@@ -51,26 +55,30 @@ export interface EffectFireContext {
 // EffectPipeline
 // ---------------------------------------------------------------------------
 
-export class EffectPipeline {
+export class EffectPipeline<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
   constructor(
-    private interpreter: EffectInterpreter,
+    private interpreter: EffectInterpreter<TState, TSystems, TPlugins>,
     private hooks: EffectPipelineHooks = {},
   ) {}
 
-  setInterpreter(interpreter: EffectInterpreter): void {
+  setInterpreter(interpreter: EffectInterpreter<TState, TSystems, TPlugins>): void {
     this.interpreter = interpreter
   }
 
   /** Attach an effect to an entity (adds to its effects component). */
-  attachEffect(world: World, entityId: string, effect: EffectDef): void {
-    const effects = getComponent<EffectDef[]>(world, entityId, EFFECTS) ?? []
+  attachEffect(world: World<TState, TSystems, TPlugins>, entityId: string, effect: EffectDef): void {
+    const effects = getComponent<EffectDef[], TState, TSystems, TPlugins>(world, entityId, EFFECTS) ?? []
     effects.push(effect)
     setComponent(world, entityId, EFFECTS, effects)
   }
 
   /** Detach an effect from an entity by effect ID. */
-  detachEffect(world: World, entityId: string, effectId: string): boolean {
-    const effects = getComponent<EffectDef[]>(world, entityId, EFFECTS)
+  detachEffect(world: World<TState, TSystems, TPlugins>, entityId: string, effectId: string): boolean {
+    const effects = getComponent<EffectDef[], TState, TSystems, TPlugins>(world, entityId, EFFECTS)
     if (!effects) return false
     const idx = effects.findIndex(e => e.id === effectId)
     if (idx === -1) return false
@@ -79,17 +87,17 @@ export class EffectPipeline {
   }
 
   /** Detach all effects from an entity. */
-  detachAllEffects(world: World, entityId: string): void {
+  detachAllEffects(world: World<TState, TSystems, TPlugins>, entityId: string): void {
     setComponent(world, entityId, EFFECTS, [])
   }
 
   /** Get all effects on an entity. */
-  getEffects(world: World, entityId: string): EffectDef[] {
-    return getComponent<EffectDef[]>(world, entityId, EFFECTS) ?? []
+  getEffects(world: World<TState, TSystems, TPlugins>, entityId: string): EffectDef[] {
+    return getComponent<EffectDef[], TState, TSystems, TPlugins>(world, entityId, EFFECTS) ?? []
   }
 
   /** Get effects for a specific trigger on an entity. */
-  getEffectsForTrigger(world: World, entityId: string, trigger: string): EffectDef[] {
+  getEffectsForTrigger(world: World<TState, TSystems, TPlugins>, entityId: string, trigger: string): EffectDef[] {
     return this.getEffects(world, entityId).filter(e => e.triggers.includes(trigger))
   }
 
@@ -97,8 +105,8 @@ export class EffectPipeline {
    * Fire a trigger: collect matching effects, evaluate conditions, execute operators.
    * @param entityIds — entities to scan. If omitted, scans all entities with effects.
    */
-  async fire(world: World, trigger: string, context: EffectFireContext, entityIds?: string[]): Promise<void> {
-    const ids = entityIds ?? queryByComponent(world, EFFECTS)
+  async fire(world: World<TState, TSystems, TPlugins>, trigger: string, context: EffectFireContext, entityIds?: string[]): Promise<void> {
+    const ids = entityIds ?? queryByComponent<TState, TSystems, TPlugins>(world, EFFECTS)
 
     const candidates: { entityId: string; effect: EffectDef }[] = []
     for (const eid of ids) {
@@ -150,7 +158,7 @@ export class EffectPipeline {
   }
 
   /** Fire a trigger for a single entity. */
-  async fireForEntity(world: World, entityId: string, trigger: string, context: EffectFireContext): Promise<void> {
+  async fireForEntity(world: World<TState, TSystems, TPlugins>, entityId: string, trigger: string, context: EffectFireContext): Promise<void> {
     await this.fire(world, trigger, context, [entityId])
   }
 }

@@ -22,6 +22,21 @@ export interface Entity {
 }
 
 // ---------------------------------------------------------------------------
+// World type slots — marker interfaces that game layers implement
+// ---------------------------------------------------------------------------
+
+/** Game-layer state stored in World.state. */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorldState {}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorldSystems {}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorldPlugins {}
+
+// ---------------------------------------------------------------------------
 // Component storage
 // ---------------------------------------------------------------------------
 
@@ -40,7 +55,11 @@ export type ComponentStore = Record<string, Record<string, unknown>>
  * The World is the single source of truth.
  * Everything that matters for game state lives here as plain data.
  */
-export interface World {
+export interface World<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
   /** All entities keyed by id */
   entities: Record<string, Entity>
   /** Index: tag → set of entity ids (runtime, derived from entity tags) */
@@ -54,11 +73,11 @@ export interface World {
   /** Event log (append-only during a phase, flushed to listeners) */
   eventLog: GameEvent[]
   /** Game state (serializable, game-layer specific) */
-  state: Record<string, unknown>
+  state: TState
   /** System references (non-serializable, runtime only) */
-  systems: Record<string, unknown>
+  systems: TSystems
   /** Plugin private data (serializable, plugin-specific) */
-  plugins: Record<string, unknown>
+  plugins: TPlugins
   /** Arbitrary metadata (non-serializable, for debugging/profiling) */
   meta: Record<string, unknown>
 }
@@ -67,7 +86,11 @@ export interface World {
 // Factory
 // ---------------------------------------------------------------------------
 
-export function createWorld(): World {
+export function createWorld<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+>(): World<TState, TSystems, TPlugins> {
   return {
     entities: {},
     byTag: {},
@@ -75,9 +98,9 @@ export function createWorld(): World {
     configStore: createConfigStore(),
     phaseStack: [],
     eventLog: [],
-    state: {},
-    systems: {},
-    plugins: {},
+    state: {} as TState,
+    systems: {} as TSystems,
+    plugins: {} as TPlugins,
     meta: {},
   }
 }
@@ -86,7 +109,11 @@ export function createWorld(): World {
 // Entity CRUD
 // ---------------------------------------------------------------------------
 
-export function createEntity(world: World, id?: string, tags?: string[]): Entity {
+export function createEntity<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  id?: string,
+  tags?: string[],
+): Entity {
   const entityId = id ?? generateId()
   if (world.entities[entityId]) {
     throw new Error(`Entity with id '${entityId}' already exists`)
@@ -104,7 +131,10 @@ export function createEntity(world: World, id?: string, tags?: string[]): Entity
   return entity
 }
 
-export function removeEntity(world: World, id: string): void {
+export function removeEntity<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  id: string,
+): void {
   const entity = world.entities[id]
   if (!entity) return
 
@@ -122,15 +152,23 @@ export function removeEntity(world: World, id: string): void {
   delete world.entities[id]
 }
 
-export function getEntity(world: World, id: string): Entity | undefined {
+export function getEntity<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  id: string,
+): Entity | undefined {
   return world.entities[id]
 }
 
-export function hasEntity(world: World, id: string): boolean {
+export function hasEntity<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  id: string,
+): boolean {
   return id in world.entities
 }
 
-export function entityCount(world: World): number {
+export function entityCount<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+): number {
   return Object.keys(world.entities).length
 }
 
@@ -138,7 +176,11 @@ export function entityCount(world: World): number {
 // Tag operations
 // ---------------------------------------------------------------------------
 
-export function addTag(world: World, entityId: string, tag: string): void {
+export function addTag<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  entityId: string,
+  tag: string,
+): void {
   const entity = world.entities[entityId]
   if (!entity) return
   entity.tags.add(tag)
@@ -146,7 +188,11 @@ export function addTag(world: World, entityId: string, tag: string): void {
   world.byTag[tag].add(entityId)
 }
 
-export function removeTag(world: World, entityId: string, tag: string): void {
+export function removeTag<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  entityId: string,
+  tag: string,
+): void {
   const entity = world.entities[entityId]
   if (!entity) return
   entity.tags.delete(tag)
@@ -154,11 +200,18 @@ export function removeTag(world: World, entityId: string, tag: string): void {
   if (world.byTag[tag]?.size === 0) delete world.byTag[tag]
 }
 
-export function hasTag(world: World, entityId: string, tag: string): boolean {
+export function hasTag<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  entityId: string,
+  tag: string,
+): boolean {
   return world.entities[entityId]?.tags.has(tag) ?? false
 }
 
-export function queryByTag(world: World, tag: string): string[] {
+export function queryByTag<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  tag: string,
+): string[] {
   const ids = world.byTag[tag]
   if (!ids) return []
   return Array.from(ids)
@@ -167,7 +220,10 @@ export function queryByTag(world: World, tag: string): string[] {
 /**
  * Query entities that have ALL specified tags.
  */
-export function queryByTags(world: World, tags: string[]): string[] {
+export function queryByTags<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  tags: string[],
+): string[] {
   if (tags.length === 0) return Object.keys(world.entities)
   // Start with the smallest set for efficiency
   const sets = tags.map(t => world.byTag[t]).filter((s): s is Set<string> => s !== undefined)
@@ -190,61 +246,73 @@ export function queryByTags(world: World, tags: string[]): string[] {
 /**
  * Set a component on an entity. Creates the component store if needed.
  */
-export function setComponent<T>(world: World, entityId: string, componentType: string, data: T): void {
+export function setComponent<
+  T,
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>, entityId: string, componentType: string, data: T): void {
   if (!world.components[componentType]) {
     world.components[componentType] = {}
   }
   world.components[componentType][entityId] = data
 }
 
-/**
- * Get a component from an entity.
- */
-export function getComponent<T>(world: World, entityId: string, componentType: string): T | undefined {
+export function getComponent<
+  T,
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>, entityId: string, componentType: string): T | undefined {
   return world.components[componentType]?.[entityId] as T | undefined
 }
 
-/**
- * Get a component, throw if not found.
- */
-export function getComponentOrThrow<T>(world: World, entityId: string, componentType: string): T {
-  const data = world.components[componentType]?.[entityId]
-  if (data === undefined) {
+export function getComponentOrThrow<
+  T,
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>, entityId: string, componentType: string): T {
+  const component = getComponent(world, entityId, componentType)
+  if (component === undefined || component === null) {
     throw new Error(`Component '${componentType}' not found on entity '${entityId}'`)
   }
-  return data as T
+  return component as T
 }
 
-/**
- * Check if an entity has a specific component.
- */
-export function hasComponent(world: World, entityId: string, componentType: string): boolean {
-  return world.components[componentType]?.[entityId] !== undefined
+export function hasComponent<TState extends WorldState, TSystems extends WorldSystems, TPlugins extends WorldPlugins>(
+  world: World<TState, TSystems, TPlugins>,
+  entityId: string,
+  componentType: string,
+): boolean {
+  return entityId in (world.components[componentType] ?? {})
 }
 
-/**
- * Remove a component from an entity.
- */
-export function removeComponent(world: World, entityId: string, componentType: string): boolean {
+export function removeComponent<
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>, entityId: string, componentType: string): boolean {
   if (!world.components[componentType]) return false
-  const existed = entityId in world.components[componentType]
   delete world.components[componentType][entityId]
-  return existed
+  return true
 }
 
-/**
- * Get all entity IDs that have a specific component.
- */
-export function queryByComponent(world: World, componentType: string): string[] {
+export function queryByComponent<
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>, componentType: string): string[] {
   const store = world.components[componentType]
   if (!store) return []
   return Object.keys(store)
 }
 
-/**
- * Get all entity IDs that have ALL specified components.
- */
-export function queryByComponents(world: World, componentTypes: string[]): string[] {
+export function queryByComponents<
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>, componentTypes: string[]): string[] {
   if (componentTypes.length === 0) return Object.keys(world.entities)
 
   // Start with the smallest component store

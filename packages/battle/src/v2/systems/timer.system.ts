@@ -9,7 +9,8 @@ import {
   type TimerSnapshot,
   type playerId,
 } from '@arcadia-eternity/const'
-import { generateId, type World } from '@arcadia-eternity/engine'
+import { generateId } from '@arcadia-eternity/engine'
+import type { BattleWorld } from '../types/battle-world.js'
 
 type DecisionWindowPhase = 'selection' | 'switch' | 'teamSelection'
 type PauseReason = 'animation' | 'system'
@@ -75,7 +76,7 @@ interface PersistedReconnectWindowState {
 const TIMER_PERSIST_KEY = '__timer_v2'
 
 export class TimerSystem {
-  private world: World
+  private world: BattleWorld
   private config: TimerConfig
   private readonly playerStates = new Map<string, TimerPlayerRuntimeState>()
   private readonly animations = new Map<string, AnimationRuntimeState>()
@@ -86,7 +87,7 @@ export class TimerSystem {
   private reconnectTimeoutHandler?: ReconnectTimeoutHandler
   private readonly handlers = new Map<keyof Events, Set<(data: unknown) => void>>()
 
-  constructor(world: World, config?: Partial<TimerConfig>) {
+  constructor(world: BattleWorld, config?: Partial<TimerConfig>) {
     this.world = world
     const persisted = this.readPersistedState()
     this.config = {
@@ -120,7 +121,7 @@ export class TimerSystem {
     this.refreshTickingState()
   }
 
-  setWorld(world: World): void {
+  setWorld(world: BattleWorld): void {
     this.stopTicking()
     this.clearAnimations()
     this.activeWindow = null
@@ -826,7 +827,7 @@ export class TimerSystem {
       return
     }
     for (const handler of handlers) {
-      handler(data as unknown)
+      handler(data)
     }
   }
 
@@ -854,12 +855,12 @@ export class TimerSystem {
       players,
       reconnectWindows,
     }
-    const worldState = this.world.state as Record<string, unknown>
-    worldState[TIMER_PERSIST_KEY] = persisted as unknown
+    const worldState = this.world.state
+    worldState[TIMER_PERSIST_KEY] = persisted
   }
 
   private readPersistedState(): PersistedTimerState | null {
-    const worldState = this.world.state as Record<string, unknown>
+    const worldState = this.world.state
     const raw = worldState[TIMER_PERSIST_KEY]
     if (!raw || typeof raw !== 'object') {
       return null

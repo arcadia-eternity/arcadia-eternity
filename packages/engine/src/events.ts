@@ -2,7 +2,7 @@
 // Simple synchronous event system for message broadcasting.
 // Events are also logged to world.eventLog for replay / serialization.
 
-import type { World } from './world.js'
+import type { World, WorldState, WorldSystems, WorldPlugins } from './world.js'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,7 +27,11 @@ export class EventBus {
   /**
    * Emit an event. Synchronously calls all handlers and appends to world log.
    */
-  emit(world: World, type: string, data: Record<string, unknown> = {}): void {
+  emit<
+    TState extends WorldState = WorldState,
+    TSystems extends WorldSystems = WorldSystems,
+    TPlugins extends WorldPlugins = WorldPlugins,
+  >(world: World<TState, TSystems, TPlugins>, type: string, data: Record<string, unknown> = {}): void {
     const event: GameEvent = {
       type,
       data,

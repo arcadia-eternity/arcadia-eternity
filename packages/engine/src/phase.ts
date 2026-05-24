@@ -4,7 +4,7 @@
 // The engine defines the state machine and execution framework.
 // Game layers register PhaseHandlers for specific phase types.
 
-import type { World } from './world.js'
+import type { World, WorldState, WorldSystems, WorldPlugins } from './world.js'
 import type { EventBus } from './events.js'
 import { generateId } from './world.js'
 
@@ -57,30 +57,39 @@ export type PhaseExecutionObserver = (world: World, event: PhaseExecutionEvent) 
 /**
  * Game layers implement PhaseHandler for each phase type.
  */
-export interface PhaseHandler<TData = unknown> {
+export interface PhaseHandler<
+  TData = unknown,
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
   type: string
   /** Create initial data for this phase */
-  initialize(world: World, phase: PhaseDef): TData
+  initialize(world: World<TState, TSystems, TPlugins>, phase: PhaseDef): TData
   /** Execute the phase logic */
-  execute(world: World, phase: PhaseDef, bus: EventBus): PhaseResult | Promise<PhaseResult>
+  execute(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): PhaseResult | Promise<PhaseResult>
   /** Optional: resume from persisted waiting state */
-  resume?(world: World, phase: PhaseDef, bus: EventBus): PhaseResult | Promise<PhaseResult>
+  resume?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): PhaseResult | Promise<PhaseResult>
   /** Optional: cleanup when phase completes or is cancelled */
-  cleanup?(world: World, phase: PhaseDef): void
+  cleanup?(world: World<TState, TSystems, TPlugins>, phase: PhaseDef): void
 }
 
 // ---------------------------------------------------------------------------
 // PhaseManager
 // ---------------------------------------------------------------------------
 
-export class PhaseManager {
-  private handlers = new Map<string, PhaseHandler>()
+export class PhaseManager<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
+  private handlers = new Map<string, PhaseHandler<unknown, TState, TSystems, TPlugins>>()
   private executionObservers = new Set<PhaseExecutionObserver>()
 
   /**
    * Register a phase handler for a given type.
    */
-  register(handler: PhaseHandler): void {
+  register(handler: PhaseHandler<unknown, TState, TSystems, TPlugins>): void {
     if (this.handlers.has(handler.type)) {
       throw new Error(`PhaseHandler for type '${handler.type}' already registered`)
     }
@@ -90,7 +99,7 @@ export class PhaseManager {
   /**
    * Get a registered handler.
    */
-  getHandler(type: string): PhaseHandler | undefined {
+  getHandler(type: string): PhaseHandler<unknown, TState, TSystems, TPlugins> | undefined {
     return this.handlers.get(type)
   }
 
@@ -111,7 +120,7 @@ export class PhaseManager {
   /**
    * Create a new phase definition and push it onto the world's phase stack.
    */
-  createPhase(world: World, type: string, initData?: unknown): PhaseDef {
+  createPhase(world: World<TState, TSystems, TPlugins>, type: string, initData?: unknown): PhaseDef {
     const handler = this.handlers.get(type)
     if (!handler) {
       throw new Error(`No PhaseHandler registered for type '${type}'`)
@@ -136,7 +145,12 @@ export class PhaseManager {
    * Execute a phase. Pushes it onto the stack, runs the handler,
    * and pops it when done.
    */
-  async execute(world: World, phaseType: string, bus: EventBus, initData?: unknown): Promise<PhaseResult> {
+  async execute(
+    world: World<TState, TSystems, TPlugins>,
+    phaseType: string,
+    bus: EventBus,
+    initData?: unknown,
+  ): Promise<PhaseResult> {
     const phase = this.createPhase(world, phaseType, initData)
     return this.executePhase(world, phase, bus)
   }
@@ -144,7 +158,7 @@ export class PhaseManager {
   /**
    * Execute an already-created phase definition.
    */
-  async executePhase(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async executePhase(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const handler = this.handlers.get(phase.type)
     if (!handler) {
       return { success: false, state: 'failed', error: `No handler for '${phase.type}'` }
@@ -193,7 +207,7 @@ export class PhaseManager {
   /**
    * Resume a phase that was in 'waiting' state (e.g. after deserialization).
    */
-  async resumePhase(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async resumePhase(world: World<TState, TSystems, TPlugins>, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     if (phase.state !== 'waiting') {
       return { success: false, state: 'failed', error: `Cannot resume phase in state '${phase.state}'` }
     }
@@ -256,7 +270,7 @@ export class PhaseManager {
    * Get the current active phase types from the world's phase stack.
    * Useful for PhaseContext in attribute evaluation.
    */
-  getActivePhaseTypes(world: World): Set<string> {
+  getActivePhaseTypes(world: World<TState, TSystems, TPlugins>): Set<string> {
     const types = new Set<string>()
     for (const phase of world.phaseStack) {
       if (phase.state === 'executing' || phase.state === 'waiting') {
@@ -269,7 +283,7 @@ export class PhaseManager {
   /**
    * Get current phase IDs by type from the world's phase stack.
    */
-  getCurrentPhaseIds(world: World): Map<string, string> {
+  getCurrentPhaseIds(world: World<TState, TSystems, TPlugins>): Map<string, string> {
     const ids = new Map<string, string>()
     // Last one wins (most recent phase of each type)
     for (const phase of world.phaseStack) {
@@ -283,14 +297,17 @@ export class PhaseManager {
   /**
    * Build a PhaseContext for attribute evaluation from the current world state.
    */
-  buildPhaseContext(world: World): import('./attribute.js').PhaseContext {
+  buildPhaseContext(world: World<TState, TSystems, TPlugins>): import('./attribute.js').PhaseContext {
     return {
       activePhaseTypes: this.getActivePhaseTypes(world),
       currentPhaseIds: this.getCurrentPhaseIds(world),
     }
   }
 
-  private async emitExecutionEvent(world: World, event: PhaseExecutionEvent): Promise<void> {
+  private async emitExecutionEvent(
+    world: World<TState, TSystems, TPlugins>,
+    event: PhaseExecutionEvent,
+  ): Promise<void> {
     if (this.executionObservers.size === 0) return
     for (const observer of this.executionObservers) {
       try {

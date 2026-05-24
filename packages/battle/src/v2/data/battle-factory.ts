@@ -1,9 +1,10 @@
 // battle/src/v2/data/battle-factory.ts
 // Factory functions to create BattleInstance from TeamConfig + V2DataRepository.
 
-import { createEntity, setComponent, type World } from '@arcadia-eternity/engine'
+import { createEntity, setComponent } from '@arcadia-eternity/engine'
 import { createBattle, type BattleConfig, type BattleInstance } from '../game.js'
 import { createBattleState } from '../types/battle-state.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import { V2DataRepository } from './v2-data-repository.js'
 import type { TeamConfig } from './team-config.js'
 import { Nature, Gender } from '@arcadia-eternity/const'
@@ -169,7 +170,7 @@ export function createBattleFromConfig(
   const battleState = createBattleState(playerA.id, playerB.id, {
     allowFaintSwitch: battleConfig?.allowFaintSwitch,
   })
-  world.state = battleState as unknown as Record<string, unknown>
+  world.state = battleState
   if (battleConfig?.customConfig !== undefined) {
     world.state.customConfig = battleConfig.customConfig
   }
@@ -181,7 +182,7 @@ export function createBattleFromConfig(
  * Register all base data (species, skills, marks) as entities in the world.
  * This allows them to be looked up by ID during battle.
  */
-function registerBaseData(world: World, repo: V2DataRepository): void {
+function registerBaseData(world: BattleWorld, repo: V2DataRepository): void {
   // Register species
   for (const species of repo.allSpecies()) {
     createEntity(world, species.id, ['species'])

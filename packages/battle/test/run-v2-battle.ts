@@ -6,12 +6,12 @@ import {
   AttackTargetOpinion,
   IgnoreStageStrategy,
   BattleStatus,
-  type playerId,
+  asPlayerId,
 } from '@arcadia-eternity/const'
+import type { BattleWorld } from '../src/v2/types/battle-world.js'
 import { createEntity, setComponent } from '@arcadia-eternity/engine'
 import { createBattle } from '../src/v2/game.js'
 import { LocalBattleSystemV2 } from '../src/v2/local-battle.js'
-import { createBattleState } from '../src/v2/types/battle-state.js'
 import type { SpeciesData } from '../src/v2/schemas/species.schema.js'
 import type { BaseSkillData } from '../src/v2/schemas/skill.schema.js'
 
@@ -26,6 +26,7 @@ const speciesA: SpeciesData = {
   weightRange: [20, 40],
   abilityIds: [],
   emblemIds: [],
+  learnableSkills: [],
 }
 const speciesB: SpeciesData = {
   type: 'species',
@@ -38,6 +39,7 @@ const speciesB: SpeciesData = {
   weightRange: [20, 40],
   abilityIds: [],
   emblemIds: [],
+  learnableSkills: [],
 }
 const baseSkillA: BaseSkillData = {
   type: 'baseSkill',
@@ -151,10 +153,10 @@ petB.skillIds.push(skillB.id)
 const playerA = playerSystem.create(world, 'PlayerA', [petA.id])
 const playerB = playerSystem.create(world, 'PlayerB', [petB.id])
 
-const battleState = createBattleState(playerA.id, playerB.id)
-world.state = battleState as unknown as Record<string, unknown>
+(world as BattleWorld).state.playerAId = playerA.id
+(world as BattleWorld).state.playerBId = playerB.id
 
-console.log('Systems:', Object.keys(world.systems as any))
+console.log('Systems:', Object.keys((world as BattleWorld).systems))
 
 const system = new LocalBattleSystemV2(battle)
 let eventCount = 0
@@ -187,8 +189,8 @@ while (turn++ < 30) {
   if (cur.status === BattleStatus.Ended) break
   await new Promise(r => setTimeout(r, 50))
 
-  const selA = await system.getAvailableSelection(playerA.id as unknown as playerId)
-  const selB = await system.getAvailableSelection(playerB.id as unknown as playerId)
+  const selA = await system.getAvailableSelection(asPlayerId(playerA.id))
+  const selB = await system.getAvailableSelection(asPlayerId(playerB.id))
   const skillSelA = selA.find(s => s.type === 'use-skill')
   const skillSelB = selB.find(s => s.type === 'use-skill')
   if (skillSelA) await system.submitAction(skillSelA)
@@ -205,7 +207,7 @@ while (turn++ < 30) {
 
 const final = await system.getState()
 console.log('\nBattle ended! Status:', final.status)
-console.log('Victor:', (world.state as any).victor)
-console.log('End reason:', (world.state as any).endReason)
+console.log('Victor:', (world as BattleWorld).state.victor)
+console.log('End reason:', (world as BattleWorld).state.endReason)
 await system.cleanup()
 console.log('Done!')

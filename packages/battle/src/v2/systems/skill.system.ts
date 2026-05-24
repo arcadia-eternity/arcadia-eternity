@@ -93,11 +93,11 @@ export class SkillSystem {
   // -----------------------------------------------------------------------
 
   get(world: World, skillId: string): SkillData | undefined {
-    return getComponent<SkillData>(world, skillId, SKILL)
+    return getComponent(world, skillId, SKILL) as SkillData | undefined
   }
 
   getOrThrow(world: World, skillId: string): SkillData {
-    return getComponentOrThrow<SkillData>(world, skillId, SKILL)
+    return getComponentOrThrow(world, skillId, SKILL) as SkillData
   }
 
   getPower(world: World, skillId: string): number {
@@ -148,7 +148,7 @@ export class SkillSystem {
   getIgnoreOpponentStageStrategy(world: World, skillId: string): BaseSkillData['ignoreOpponentStageStrategy'] {
     const skill = this.get(world, skillId)
     if (!skill) return IgnoreStageStrategy.none
-    const base = getComponent<BaseSkillData>(world, skill.baseSkillId, 'baseSkill')
+    const base = getComponent(world, skill.baseSkillId, 'baseSkill') as BaseSkillData | undefined
     return base?.ignoreOpponentStageStrategy ?? IgnoreStageStrategy.none
   }
 

@@ -11,11 +11,13 @@ import {
   type BattleMessage,
   BattleMessageType,
   BattleStatus,
-  type playerId,
+  asPlayerId,
+  asSkillId,
 } from '@arcadia-eternity/const'
 import { createEntity, setComponent } from '@arcadia-eternity/engine'
 import { createBattle } from '../game.js'
 import { LocalBattleSystemV2 } from '../local-battle.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { SpeciesData } from '../schemas/species.schema.js'
 import type { BaseSkillData } from '../schemas/skill.schema.js'
 
@@ -35,6 +37,7 @@ function makeSpecies(overrides: Partial<SpeciesData> = {}): SpeciesData {
     weightRange: [20, 40],
     abilityIds: [],
     emblemIds: [],
+    learnableSkills: [],
     ...overrides,
   }
 }
@@ -67,7 +70,8 @@ function makeBaseSkill(overrides: Partial<BaseSkillData> = {}): BaseSkillData {
 
 function setupSimpleBattle() {
   const battle = createBattle()
-  const { world, petSystem, skillSystem, playerSystem } = battle
+  const { world: _w, petSystem, skillSystem, playerSystem } = battle
+  const world = _w as BattleWorld
 
   // Species
   const speciesA = makeSpecies({ id: 'species_a', element: Element.Fire })
@@ -164,13 +168,13 @@ describe('V2 Battle Integration', () => {
     expect(state.status).toBe(BattleStatus.OnBattle)
 
     // Get available selections for playerA
-    const selectionsA = await system.getAvailableSelection(playerA.id as unknown as playerId)
+    const selectionsA = await system.getAvailableSelection(asPlayerId(playerA.id))
     expect(selectionsA.length).toBeGreaterThan(0)
     const skillSelA = selectionsA.find(s => s.type === 'use-skill')
     expect(skillSelA).toBeDefined()
 
     // Get available selections for playerB
-    const selectionsB = await system.getAvailableSelection(playerB.id as unknown as playerId)
+    const selectionsB = await system.getAvailableSelection(asPlayerId(playerB.id))
     const skillSelB = selectionsB.find(s => s.type === 'use-skill')
     expect(skillSelB).toBeDefined()
 
@@ -193,8 +197,8 @@ describe('V2 Battle Integration', () => {
 
       await new Promise(r => setTimeout(r, 50))
 
-      const aSelections = await system.getAvailableSelection(playerA.id as unknown as playerId)
-      const bSelections = await system.getAvailableSelection(playerB.id as unknown as playerId)
+      const aSelections = await system.getAvailableSelection(asPlayerId(playerA.id))
+      const bSelections = await system.getAvailableSelection(asPlayerId(playerB.id))
 
       const aSkill = aSelections.find(s => s.type === 'use-skill')
       const bSkill = bSelections.find(s => s.type === 'use-skill')
@@ -245,13 +249,13 @@ describe('V2 Battle Integration', () => {
 
     // PlayerA surrenders, PlayerB uses skill
     await system.submitAction({
-      player: playerA.id as unknown as playerId,
+      player: asPlayerId(playerA.id),
       type: 'surrender',
     })
     await system.submitAction({
-      player: playerB.id as unknown as playerId,
+      player: asPlayerId(playerB.id),
       type: 'use-skill',
-      skill: skillA.id as unknown as string,
+      skill: asSkillId(skillA.id),
       target: AttackTargetOpinion.opponent,
     })
 

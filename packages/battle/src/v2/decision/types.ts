@@ -1,5 +1,5 @@
 import type { PlayerSelection } from '@arcadia-eternity/const'
-import type { World } from '@arcadia-eternity/engine'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { SelectionSystem } from '../systems/selection.system.js'
 
 export type DecisionPhase = 'teamSelection' | 'switch' | 'selection'
@@ -7,7 +7,7 @@ export type DecisionCapability = 'public' | 'privileged'
 export type AiStrategy = 'simple' | 'random'
 
 export interface DecisionContext {
-  world: World
+  world: BattleWorld
   playerId: string
   phase: DecisionPhase
   selectionSystem: SelectionSystem

@@ -24,6 +24,7 @@ import { resolveValue } from './value.js'
 import { isConditionDsl, isEvaluatorDsl, isExtractorDsl, isRecord } from './type-guards.js'
 import { resolveExtractorByKind } from './extractor-runtime.js'
 import { BATTLE_OWNER_ID } from '../mark.system.js'
+import type { BattleWorld } from '../../types/battle-world.js'
 import {
   getSelectorBaseHandler,
   getSelectorChainHandler,
@@ -103,10 +104,11 @@ function resolveDefaultRegisteredBaseSelector(ctx: InterpreterContext, key: stri
 
   // Helper: get opponent player ID
   const getOpponentPlayerId = (ownerId: string): string | undefined => {
-    const playerAId = world.state.playerAId
-    const playerBId = world.state.playerBId
+    const bw = world as BattleWorld
+    const playerAId = bw.state.playerAId
+    const playerBId = bw.state.playerBId
     if (!playerAId || !playerBId) return undefined
-    return ownerId === playerAId ? (playerBId as string) : (playerAId as string)
+    return ownerId === playerAId ? playerBId : playerAId
   }
 
   const getActivePetByPlayerId = (playerId: string): ReturnType<typeof petSystem.get> | undefined => {
@@ -593,13 +595,14 @@ function applyDefaultRegisteredChainStep(ctx: InterpreterContext, current: unkno
       return current
         .map(item => {
           if (typeof item === 'string') {
-            const pet = ctx.systems.petSystem.get(ctx.world, item) as unknown as Record<string, unknown> | undefined
+            const bw = ctx.world as BattleWorld
+            const pet = ctx.systems.petSystem.get(bw, item) as unknown as Record<string, unknown> | undefined
             if (pet) return { object: pet, key }
-            const skill = ctx.systems.skillSystem.get(ctx.world, item) as unknown as Record<string, unknown> | undefined
+            const skill = ctx.systems.skillSystem.get(bw, item) as unknown as Record<string, unknown> | undefined
             if (skill) return { object: skill, key }
-            const mark = ctx.systems.markSystem.get(ctx.world, item) as unknown as Record<string, unknown> | undefined
+            const mark = ctx.systems.markSystem.get(bw, item) as unknown as Record<string, unknown> | undefined
             if (mark) return { object: mark, key }
-            const player = ctx.systems.playerSystem.get(ctx.world, item) as unknown as
+            const player = ctx.systems.playerSystem.get(bw, item) as unknown as
               | Record<string, unknown>
               | undefined
             if (player) return { object: player, key }
@@ -738,7 +741,8 @@ function applyExtractor(ctx: InterpreterContext, entityId: unknown, extractor: u
   switch (extractorKey) {
     case 'currentTurn': {
       if (isStringEntity && entityId === BATTLE_OWNER_ID) {
-        const turn = world.state.currentTurn
+        const bw = world as BattleWorld
+        const turn = bw.state.currentTurn
         return turn !== undefined ? [turn] : []
       }
       if (!isStringEntity) {
@@ -879,10 +883,10 @@ function applyExtractor(ctx: InterpreterContext, entityId: unknown, extractor: u
       const skillData = skillSystem.get(world, entityId)
       if (skillData?.baseSkillId) return [skillData.baseSkillId]
 
-      const baseMark = getComponent<{ id?: string }>(world, entityId, 'baseMark')
+      const baseMark = getComponent(world, entityId, 'baseMark') as { id?: string } | undefined
       if (baseMark?.id) return [baseMark.id]
 
-      const baseSkill = getComponent<{ id?: string }>(world, entityId, 'baseSkill')
+      const baseSkill = getComponent(world, entityId, 'baseSkill') as { id?: string } | undefined
       if (baseSkill?.id) return [baseSkill.id]
 
       return []
@@ -898,10 +902,10 @@ function applyExtractor(ctx: InterpreterContext, entityId: unknown, extractor: u
       const skill = skillSystem.get(world, entityId)
       if (skill) return [skillSystem.getTags(world, entityId)]
 
-      const baseMark = getComponent<{ tags?: unknown }>(world, entityId, 'baseMark')
+      const baseMark = getComponent(world, entityId, 'baseMark') as { tags?: unknown } | undefined
       if (baseMark && Array.isArray(baseMark.tags)) return [baseMark.tags]
 
-      const baseSkill = getComponent<{ tags?: unknown }>(world, entityId, 'baseSkill')
+      const baseSkill = getComponent(world, entityId, 'baseSkill') as { tags?: unknown } | undefined
       if (baseSkill && Array.isArray(baseSkill.tags)) return [baseSkill.tags]
 
       return []

@@ -166,7 +166,7 @@ export class StatStageMarkSystem {
   }
 
   private ensureBaseMarkEntity(world: World, baseMarkId: string): void {
-    if (getComponent<BaseMarkData>(world, baseMarkId, 'baseMark')) return
+    if (getComponent(world, baseMarkId, 'baseMark') as BaseMarkData | undefined) return
     const baseMark: BaseMarkData = {
       type: 'baseMark',
       id: baseMarkId,
@@ -202,7 +202,7 @@ export class StatStageMarkSystem {
       this.markSystem.setStack(world, existingMarkId, stack)
       return
     }
-    const baseMark = getComponent<BaseMarkData>(world, baseMarkId, 'baseMark')
+    const baseMark = getComponent(world, baseMarkId, 'baseMark') as BaseMarkData | undefined
     if (!baseMark) return
     const created = this.markSystem.createFromBase(world, baseMark, { stack, duration: -1 })
     this.markSystem.attach(world, created.id, ownerId, 'pet')

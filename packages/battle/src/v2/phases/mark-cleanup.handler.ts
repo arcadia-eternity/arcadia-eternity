@@ -1,25 +1,28 @@
 // battle/src/v2/phases/mark-cleanup.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { queryByTag } from '@arcadia-eternity/engine'
 import type { MarkSystem } from '../systems/mark.system.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 
 export interface MarkCleanupPhaseData {
   removedMarkIds: string[]
 }
 
-export class MarkCleanupHandler implements PhaseHandler<MarkCleanupPhaseData> {
+export class MarkCleanupHandler implements PhaseHandler<MarkCleanupPhaseData, BattleState, BattleSystems> {
   readonly type = 'markCleanup'
 
   constructor(private markSystem: MarkSystem) {}
 
-  initialize(world: World, phase: PhaseDef): MarkCleanupPhaseData {
+  initialize(world: BattleWorld, phase: PhaseDef): MarkCleanupPhaseData {
     void world
     void phase
     return { removedMarkIds: [] }
   }
 
-  execute(world: World, phase: PhaseDef, bus: EventBus): PhaseResult {
+  execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): PhaseResult {
     const data = phase.data as MarkCleanupPhaseData
 
     const markIds = queryByTag(world, 'mark')

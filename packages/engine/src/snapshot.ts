@@ -4,7 +4,7 @@
 // World is plain data except for Set objects in byTag index,
 // which we convert to arrays for JSON serialization.
 
-import type { World } from './world.js'
+import type { World, WorldState, WorldSystems, WorldPlugins } from './world.js'
 import { createWorld } from './world.js'
 
 // ---------------------------------------------------------------------------
@@ -27,7 +27,11 @@ interface SerializedWorld {
 // Snapshot
 // ---------------------------------------------------------------------------
 
-export function createSnapshot(world: World): string {
+export function createSnapshot<
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>): string {
   const serialized: SerializedWorld = {
     entities: serializeEntities(world.entities),
     byTag: serializeTagIndex(world.byTag),
@@ -42,8 +46,12 @@ export function createSnapshot(world: World): string {
   return JSON.stringify(serialized)
 }
 
-export function cloneWorld(world: World): World {
-  return restoreWorld(createSnapshot(world))
+export function cloneWorld<
+  TState extends WorldState,
+  TSystems extends WorldSystems,
+  TPlugins extends WorldPlugins,
+>(world: World<TState, TSystems, TPlugins>): World<TState, TSystems, TPlugins> {
+  return restoreWorld(createSnapshot(world)) as World<TState, TSystems, TPlugins>
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +60,9 @@ export function cloneWorld(world: World): World {
 
 export function restoreWorld(json: string): World {
   const parsed: SerializedWorld = JSON.parse(json)
+  // Returns World<WorldState, WorldSystems, WorldPlugins> (default).
+  // Game layers must cast to their specific World type after restore:
+  //   restoreWorld(json) as World<BattleState, BattleSystems>
   const world = createWorld()
 
   world.entities = deserializeEntities(parsed.entities)

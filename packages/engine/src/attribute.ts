@@ -4,7 +4,7 @@
 // AttributeStore is a component (plain data, stored in world.components).
 // AttributeSystem is a class that operates on AttributeStore components.
 
-import type { World } from './world.js'
+import type { World, WorldState, WorldSystems, WorldPlugins } from './world.js'
 import { getComponent, setComponent, removeComponent } from './world.js'
 
 // ---------------------------------------------------------------------------
@@ -63,8 +63,12 @@ export interface AttributeStore {
 /**
  * Game layer implements this to resolve DSL expressions inside modifiers.
  */
-export interface ExpressionResolver {
-  evaluate(world: World, expr: unknown, computeStack: Set<string>): number
+export interface ExpressionResolver<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
+  evaluate(world: World<TState, TSystems, TPlugins>, expr: unknown, computeStack: Set<string>): number
 }
 
 /**
@@ -75,23 +79,39 @@ export interface PhaseContext {
   currentPhaseIds: Map<string, string>
 }
 
-export interface AttributeWriteGuardContext {
-  world: World
+export interface AttributeWriteGuardContext<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
+  world: World<TState, TSystems, TPlugins>
   entityId: string
   key: string
   operation: 'setBaseValue' | 'addModifier'
 }
 
-export type AttributeWriteGuard = (ctx: AttributeWriteGuardContext) => boolean
+export type AttributeWriteGuard<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> = (ctx: AttributeWriteGuardContext<TState, TSystems, TPlugins>) => boolean
 
-export interface AttributeBaseValueSetContext {
-  world: World
+export interface AttributeBaseValueSetContext<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
+  world: World<TState, TSystems, TPlugins>
   entityId: string
   key: string
   value: AttributeValue
 }
 
-export type AttributeBaseValueSetHook = (ctx: AttributeBaseValueSetContext) => void
+export type AttributeBaseValueSetHook<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> = (ctx: AttributeBaseValueSetContext<TState, TSystems, TPlugins>) => void
 
 // ---------------------------------------------------------------------------
 // AttributeSystem — class that operates on AttributeStore components
@@ -99,21 +119,25 @@ export type AttributeBaseValueSetHook = (ctx: AttributeBaseValueSetContext) => v
 
 const MAX_COMPUTE_DEPTH = 10
 
-export class AttributeSystem {
-  private writeGuard?: AttributeWriteGuard
-  private baseValueSetHook?: AttributeBaseValueSetHook
+export class AttributeSystem<
+  TState extends WorldState = WorldState,
+  TSystems extends WorldSystems = WorldSystems,
+  TPlugins extends WorldPlugins = WorldPlugins,
+> {
+  private writeGuard?: AttributeWriteGuard<TState, TSystems, TPlugins>
+  private baseValueSetHook?: AttributeBaseValueSetHook<TState, TSystems, TPlugins>
 
-  constructor(private resolver?: ExpressionResolver) {}
+  constructor(private resolver?: ExpressionResolver<TState, TSystems, TPlugins>) {}
 
-  setResolver(resolver: ExpressionResolver): void {
+  setResolver(resolver: ExpressionResolver<TState, TSystems, TPlugins>): void {
     this.resolver = resolver
   }
 
-  setWriteGuard(guard: AttributeWriteGuard | undefined): void {
+  setWriteGuard(guard: AttributeWriteGuard<TState, TSystems, TPlugins> | undefined): void {
     this.writeGuard = guard
   }
 
-  setBaseValueSetHook(hook: AttributeBaseValueSetHook | undefined): void {
+  setBaseValueSetHook(hook: AttributeBaseValueSetHook<TState, TSystems, TPlugins> | undefined): void {
     this.baseValueSetHook = hook
   }
 
@@ -122,31 +146,31 @@ export class AttributeSystem {
   // -----------------------------------------------------------------------
 
   /** Create and attach an AttributeStore component to an entity. */
-  create(world: World, entityId: string): AttributeStore {
+  create(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore {
     const store: AttributeStore = { objectId: entityId, bases: {}, modifiers: {} }
     setComponent(world, entityId, ATTRIBUTE_STORE, store)
     return store
   }
 
   /** Get the AttributeStore for an entity, or undefined. */
-  get(world: World, entityId: string): AttributeStore | undefined {
-    return getComponent<AttributeStore>(world, entityId, ATTRIBUTE_STORE)
+  get(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore | undefined {
+    return getComponent<AttributeStore, TState, TSystems, TPlugins>(world, entityId, ATTRIBUTE_STORE)
   }
 
   /** Get the AttributeStore for an entity, throw if missing. */
-  getOrThrow(world: World, entityId: string): AttributeStore {
+  getOrThrow(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore {
     const store = this.get(world, entityId)
     if (!store) throw new Error(`No AttributeStore on entity '${entityId}'`)
     return store
   }
 
   /** Get or create an AttributeStore for an entity. */
-  getOrCreate(world: World, entityId: string): AttributeStore {
+  getOrCreate(world: World<TState, TSystems, TPlugins>, entityId: string): AttributeStore {
     return this.get(world, entityId) ?? this.create(world, entityId)
   }
 
   /** Remove the AttributeStore component from an entity. */
-  remove(world: World, entityId: string): boolean {
+  remove(world: World<TState, TSystems, TPlugins>, entityId: string): boolean {
     return removeComponent(world, entityId, ATTRIBUTE_STORE)
   }
 
@@ -154,13 +178,13 @@ export class AttributeSystem {
   // Attribute registration
   // -----------------------------------------------------------------------
 
-  registerAttribute(world: World, entityId: string, key: string, initial: AttributeValue): void {
+  registerAttribute(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, initial: AttributeValue): void {
     const store = this.getOrCreate(world, entityId)
     store.bases[key] = initial
     if (!store.modifiers[key]) store.modifiers[key] = []
   }
 
-  setBaseValue(world: World, entityId: string, key: string, value: AttributeValue): void {
+  setBaseValue(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, value: AttributeValue): void {
     this.ensureWriteAllowed(world, entityId, key, 'setBaseValue')
     const store = this.getOrThrow(world, entityId)
     if (!(key in store.bases)) {
@@ -172,7 +196,7 @@ export class AttributeSystem {
     }
   }
 
-  getBaseValue(world: World, entityId: string, key: string): AttributeValue | undefined {
+  getBaseValue(world: World<TState, TSystems, TPlugins>, entityId: string, key: string): AttributeValue | undefined {
     return this.get(world, entityId)?.bases[key]
   }
 
@@ -180,7 +204,7 @@ export class AttributeSystem {
   // Modifier CRUD
   // -----------------------------------------------------------------------
 
-  addModifier(world: World, entityId: string, key: string, mod: ModifierDef): void {
+  addModifier(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, mod: ModifierDef): void {
     this.ensureWriteAllowed(world, entityId, key, 'addModifier')
     const store = this.getOrThrow(world, entityId)
     if (!(key in store.bases)) {
@@ -190,7 +214,7 @@ export class AttributeSystem {
     store.modifiers[key].push(mod)
   }
 
-  removeModifier(world: World, entityId: string, key: string, modId: string): boolean {
+  removeModifier(world: World<TState, TSystems, TPlugins>, entityId: string, key: string, modId: string): boolean {
     const store = this.get(world, entityId)
     if (!store) return false
     const mods = store.modifiers[key]
@@ -201,7 +225,7 @@ export class AttributeSystem {
     return true
   }
 
-  removeModifiersBySource(world: World, entityId: string, sourceId: string): number {
+  removeModifiersBySource(world: World<TState, TSystems, TPlugins>, entityId: string, sourceId: string): number {
     const store = this.get(world, entityId)
     if (!store) return 0
     let removed = 0
@@ -213,11 +237,11 @@ export class AttributeSystem {
     return removed
   }
 
-  getModifiers(world: World, entityId: string, key: string): ModifierDef[] {
+  getModifiers(world: World<TState, TSystems, TPlugins>, entityId: string, key: string): ModifierDef[] {
     return this.get(world, entityId)?.modifiers[key] ?? []
   }
 
-  clearModifiers(world: World, entityId: string, key: string): void {
+  clearModifiers(world: World<TState, TSystems, TPlugins>, entityId: string, key: string): void {
     const store = this.get(world, entityId)
     if (store) store.modifiers[key] = []
   }
@@ -231,7 +255,7 @@ export class AttributeSystem {
    * Pull-based: call whenever you need the current value.
    */
   getValue(
-    world: World,
+    world: World<TState, TSystems, TPlugins>,
     entityId: string,
     key: string,
     phaseCtx?: PhaseContext,
@@ -243,7 +267,7 @@ export class AttributeSystem {
   }
 
   /** Get all effective values for an entity. */
-  getAllValues(world: World, entityId: string, phaseCtx?: PhaseContext): Record<string, AttributeValue> {
+  getAllValues(world: World<TState, TSystems, TPlugins>, entityId: string, phaseCtx?: PhaseContext): Record<string, AttributeValue> {
     const store = this.get(world, entityId)
     if (!store) return {}
     const result: Record<string, AttributeValue> = {}
@@ -258,7 +282,7 @@ export class AttributeSystem {
   // -----------------------------------------------------------------------
 
   private evaluate(
-    world: World,
+    world: World<TState, TSystems, TPlugins>,
     store: AttributeStore,
     key: string,
     phaseCtx?: PhaseContext,
@@ -301,14 +325,14 @@ export class AttributeSystem {
     return true
   }
 
-  private resolveModifierValue(world: World, mv: ModifierValue, computeStack: Set<string>): AttributeValue {
+  private resolveModifierValue(world: World<TState, TSystems, TPlugins>, mv: ModifierValue, computeStack: Set<string>): AttributeValue {
     if (mv.kind === 'static') return mv.value
     if (!this.resolver) throw new Error('ExpressionResolver required for expr modifier values')
     return this.resolver.evaluate(world, mv.expr, computeStack)
   }
 
   private ensureWriteAllowed(
-    world: World,
+    world: World<TState, TSystems, TPlugins>,
     entityId: string,
     key: string,
     operation: 'setBaseValue' | 'addModifier',
@@ -322,7 +346,7 @@ export class AttributeSystem {
   private applyModifier(
     current: AttributeValue,
     mod: ModifierDef,
-    world: World,
+    world: World<TState, TSystems, TPlugins>,
     computeStack: Set<string>,
   ): AttributeValue {
     const modValue = this.resolveModifierValue(world, mod.value, computeStack)

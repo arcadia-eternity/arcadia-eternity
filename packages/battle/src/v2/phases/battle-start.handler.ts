@@ -1,7 +1,10 @@
 // battle/src/v2/phases/battle-start.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
 
@@ -10,7 +13,7 @@ export interface BattleStartData {
   playerBId: string
 }
 
-export class BattleStartHandler implements PhaseHandler<BattleStartData> {
+export class BattleStartHandler implements PhaseHandler<BattleStartData, BattleState, BattleSystems> {
   readonly type = 'battleStart'
 
   constructor(
@@ -19,11 +22,11 @@ export class BattleStartHandler implements PhaseHandler<BattleStartData> {
     private petSystem: PetSystem,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): BattleStartData {
+  initialize(_world: BattleWorld, phase: PhaseDef): BattleStartData {
     return (phase.data as BattleStartData) ?? { playerAId: '', playerBId: '' }
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as BattleStartData
 
     world.state.status = 'active'

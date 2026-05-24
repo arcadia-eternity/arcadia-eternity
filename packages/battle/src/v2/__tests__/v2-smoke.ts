@@ -10,12 +10,13 @@ import {
   BattleMessageType,
   BattleStatus,
   type BattleMessage,
-  type playerId,
+  asPlayerId,
 } from '@arcadia-eternity/const'
 import { createEntity, setComponent } from '@arcadia-eternity/engine'
 import { createBattle } from '../game.js'
 import { LocalBattleSystemV2 } from '../local-battle.js'
 import { createBattleState } from '../types/battle-state.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { SpeciesData } from '../schemas/species.schema.js'
 import type { BaseSkillData } from '../schemas/skill.schema.js'
 
@@ -31,6 +32,7 @@ function makeSpecies(overrides: Partial<SpeciesData> = {}): SpeciesData {
     weightRange: [20, 40],
     abilityIds: [],
     emblemIds: [],
+    learnableSkills: [],
     ...overrides,
   }
 }
@@ -61,7 +63,8 @@ async function main() {
   console.log('=== V2 Battle Smoke Test ===\n')
 
   const battle = createBattle()
-  const { world, petSystem, skillSystem, playerSystem } = battle
+  const { world: _w, petSystem, skillSystem, playerSystem } = battle
+  const world = _w as BattleWorld
 
   // Species
   const speciesA = makeSpecies({ id: 'species_a', element: Element.Fire })
@@ -109,7 +112,7 @@ async function main() {
   const playerA = playerSystem.create(world, 'PlayerA', [petA.id])
   const playerB = playerSystem.create(world, 'PlayerB', [petB.id])
 
-  world.state = createBattleState(playerA.id, playerB.id) as unknown as Record<string, unknown>
+  world.state = createBattleState(playerA.id, playerB.id)
   world.state.allowFaintSwitch = false
 
   console.log(`PetA HP: ${petA.currentHp}, PetB HP: ${petB.currentHp}`)
@@ -121,7 +124,7 @@ async function main() {
   const messages: BattleMessage[] = []
   system.BattleEvent(msg => {
     messages.push(msg)
-    console.log(`  [MSG] ${msg.type}`, JSON.stringify(msg as unknown as Record<string, unknown>).slice(0, 120))
+    console.log(`  [MSG] ${msg.type}`, JSON.stringify(msg).slice(0, 120))
   })
 
   // Start battle
@@ -143,8 +146,8 @@ async function main() {
     console.log(`\n--- Turn ${turn} ---`)
 
     // Get selections
-    const selA = await system.getAvailableSelection(playerA.id as unknown as playerId)
-    const selB = await system.getAvailableSelection(playerB.id as unknown as playerId)
+    const selA = await system.getAvailableSelection(asPlayerId(playerA.id))
+    const selB = await system.getAvailableSelection(asPlayerId(playerB.id))
 
     const skillSelA = selA.find(s => s.type === 'use-skill')
     const skillSelB = selB.find(s => s.type === 'use-skill')

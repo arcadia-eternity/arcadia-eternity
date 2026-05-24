@@ -14,6 +14,7 @@ import { resolveSelector } from './selector.js'
 import { resolveValue } from './value.js'
 import { isRecord } from './type-guards.js'
 import { getConditionHandler, registerConditionHandler } from './condition-registry.js'
+import type { BattleWorld } from '../../types/battle-world.js'
 
 /**
  * Find a context type by recursively searching world.phaseStack.
@@ -160,10 +161,11 @@ function pickSequenceSourcePetId(ctx: InterpreterContext, source: 'self' | 'oppo
 
   const sourcePlayerId = getSourceOwnerPlayerId(ctx)
   if (!sourcePlayerId) return undefined
-  const playerAId = ctx.world.state.playerAId
-  const playerBId = ctx.world.state.playerBId
+  const bw = ctx.world as BattleWorld
+  const playerAId = bw.state.playerAId
+  const playerBId = bw.state.playerBId
   if (!playerAId || !playerBId) return undefined
-  const opponentPlayerId = sourcePlayerId === playerAId ? (playerBId as string) : (playerAId as string)
+  const opponentPlayerId = sourcePlayerId === playerAId ? playerBId : playerAId
   return ctx.systems.playerSystem.getActivePet(ctx.world, opponentPlayerId)?.id
 }
 
@@ -538,11 +540,12 @@ function evaluateDefaultRegisteredCondition(
 
       const pet = petSystem.get(world, sourceOwnerPetId)
       if (pet?.ownerId) {
-        const playerAId = world.state.playerAId
-        const playerBId = world.state.playerBId
+        const bw = world as BattleWorld
+        const playerAId = bw.state.playerAId
+        const playerBId = bw.state.playerBId
         if (!playerAId || !playerBId) return false
 
-        const opponentId = pet.ownerId === playerAId ? (playerBId as string) : (playerAId as string)
+        const opponentId = pet.ownerId === playerAId ? playerBId : playerAId
         const opponentPet = playerSystem.getActivePet(world, opponentId)
         if (opponentPet) {
           const mark = markSystem.findByBaseId(world, opponentPet.id, baseId)

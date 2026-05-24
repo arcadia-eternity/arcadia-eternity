@@ -91,7 +91,7 @@ export class MarkSystem {
     mark.ownerType = ownerType
 
     if (ownerType === 'pet') {
-      const pet = getComponent<PetData>(world, ownerId, PET)
+      const pet = getComponent(world, ownerId, PET) as PetData | undefined
       if (pet && !pet.markIds.includes(markId)) {
         pet.markIds.push(markId)
       }
@@ -99,11 +99,11 @@ export class MarkSystem {
   }
 
   detach(world: World, markId: string): void {
-    const mark = getComponent<MarkData>(world, markId, MARK)
+    const mark = getComponent(world, markId, MARK) as MarkData | undefined
     if (!mark) return
 
     if (mark.ownerId && mark.ownerType === 'pet') {
-      const pet = getComponent<PetData>(world, mark.ownerId, PET)
+      const pet = getComponent(world, mark.ownerId, PET) as PetData | undefined
       if (pet) {
         const idx = pet.markIds.indexOf(markId)
         if (idx !== -1) pet.markIds.splice(idx, 1)
@@ -204,17 +204,17 @@ export class MarkSystem {
   getMarksOnEntity(world: World, entityId: string): MarkData[] {
     if (entityId === BATTLE_OWNER_ID) {
       return Object.keys(world.components.mark ?? {})
-        .map(id => getComponent<MarkData>(world, id, MARK))
+        .map(id => getComponent(world, id, MARK) as MarkData | undefined)
         .filter(
           (m): m is MarkData =>
             m !== undefined && m.ownerType === 'battle' && m.ownerId === BATTLE_OWNER_ID && this.isActive(world, m.id),
         )
     }
 
-    const pet = getComponent<PetData>(world, entityId, PET)
+    const pet = getComponent(world, entityId, PET) as PetData | undefined
     if (!pet) return []
     return pet.markIds
-      .map(id => getComponent<MarkData>(world, id, MARK))
+      .map(id => getComponent(world, id, MARK) as MarkData | undefined)
       .filter((m): m is MarkData => m !== undefined && this.isActive(world, m.id))
   }
 
@@ -223,11 +223,11 @@ export class MarkSystem {
   }
 
   get(world: World, markId: string): MarkData | undefined {
-    return getComponent<MarkData>(world, markId, MARK)
+    return getComponent(world, markId, MARK) as MarkData | undefined
   }
 
   getOrThrow(world: World, markId: string): MarkData {
-    const mark = getComponent<MarkData>(world, markId, MARK)
+    const mark = getComponent(world, markId, MARK) as MarkData | undefined
     if (!mark) throw new Error(`Mark '${markId}' not found`)
     return mark
   }

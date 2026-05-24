@@ -5,6 +5,9 @@
 export {
   type Entity,
   type ComponentStore,
+  type WorldState,
+  type WorldSystems,
+  type WorldPlugins,
   type World,
   createWorld,
   createEntity,

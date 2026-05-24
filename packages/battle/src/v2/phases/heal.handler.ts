@@ -1,15 +1,18 @@
 // battle/src/v2/phases/heal.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { HealContextData } from '../schemas/context.schema.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
 
 export interface HealPhaseData {
   context: HealContextData
 }
 
-export class HealHandler implements PhaseHandler<HealPhaseData> {
+export class HealHandler implements PhaseHandler<HealPhaseData, BattleState, BattleSystems> {
   readonly type = 'heal'
 
   constructor(
@@ -17,11 +20,11 @@ export class HealHandler implements PhaseHandler<HealPhaseData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): HealPhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): HealPhaseData {
     return phase.data as HealPhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as HealPhaseData
     const ctx = data.context
 

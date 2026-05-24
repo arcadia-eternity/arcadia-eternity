@@ -1,21 +1,25 @@
 // battle/src/v2/types/battle-systems.ts
 // System references for world.systems
 
-import type { GameRng } from '@arcadia-eternity/engine'
-import type { PetSystem } from '../systems/pet.system.js'
-import type { SkillSystem } from '../systems/skill.system.js'
-import type { MarkSystem } from '../systems/mark.system.js'
-import type { PlayerSystem } from '../systems/player.system.js'
-import type { PhaseManager, EventBus, AttributeSystem, EffectPipeline } from '@arcadia-eternity/engine'
+import type {
+  AttributeSystem,
+  EffectPipeline,
+  EventBus,
+  GameRng,
+  PhaseManager,
+  WorldSystems,
+} from '@arcadia-eternity/engine'
+import type { MarkSystem, PetSystem, PlayerSystem, SkillSystem, StatStageMarkSystem } from '../systems'
 import type { TransformStrategy } from '@arcadia-eternity/plugin-transformation'
-import type { BattleConfig } from '../game.js'
-import type { StatStageMarkSystem } from '../systems/stat-stage-mark.system.js'
+import type { BattleConfig } from '../game'
+
+// ... rest of imports
 
 /**
  * All systems and runtime references for a battle.
  * Stored in world.systems (non-serializable).
  */
-export interface BattleSystems {
+export interface BattleSystems extends WorldSystems {
   // Core systems
   petSystem: PetSystem
   skillSystem: SkillSystem

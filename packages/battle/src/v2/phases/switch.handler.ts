@@ -1,7 +1,10 @@
 // battle/src/v2/phases/switch.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { MarkSystem } from '../systems/mark.system.js'
@@ -11,7 +14,7 @@ export interface SwitchPhaseData {
   context: SwitchPetContextData
 }
 
-export class SwitchHandler implements PhaseHandler<SwitchPhaseData> {
+export class SwitchHandler implements PhaseHandler<SwitchPhaseData, BattleState, BattleSystems> {
   readonly type = 'switch'
 
   constructor(
@@ -22,11 +25,11 @@ export class SwitchHandler implements PhaseHandler<SwitchPhaseData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): SwitchPhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): SwitchPhaseData {
     return phase.data as SwitchPhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as SwitchPhaseData
     const ctx = data.context
 

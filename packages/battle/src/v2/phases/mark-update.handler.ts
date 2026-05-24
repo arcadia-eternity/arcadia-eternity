@@ -1,14 +1,17 @@
 // battle/src/v2/phases/mark-update.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { MarkSystem } from '../systems/mark.system.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 
 export interface MarkUpdatePhaseData {
   markId: string
 }
 
-export class MarkUpdateHandler implements PhaseHandler<MarkUpdatePhaseData> {
+export class MarkUpdateHandler implements PhaseHandler<MarkUpdatePhaseData, BattleState, BattleSystems> {
   readonly type = 'markUpdate'
 
   constructor(
@@ -16,11 +19,11 @@ export class MarkUpdateHandler implements PhaseHandler<MarkUpdatePhaseData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): MarkUpdatePhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): MarkUpdatePhaseData {
     return phase.data as MarkUpdatePhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as MarkUpdatePhaseData
     const mark = this.markSystem.get(world, data.markId)
 

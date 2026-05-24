@@ -60,7 +60,7 @@ export class PlayerSystem {
     this.attrSystem.registerAttribute(world, id, 'maxRage', MAX_RAGE)
 
     for (const petId of petIds) {
-      const pet = getComponentOrThrow<PetData>(world, petId, PET)
+      const pet = getComponentOrThrow(world, petId, PET) as PetData
       pet.ownerId = id
     }
 
@@ -99,12 +99,12 @@ export class PlayerSystem {
   // -----------------------------------------------------------------------
 
   getActivePet(world: World, playerId: string): PetData {
-    const player = getComponentOrThrow<PlayerData>(world, playerId, PLAYER)
-    return getComponentOrThrow<PetData>(world, player.activePetId, PET)
+    const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
+    return getComponentOrThrow(world, player.activePetId, PET) as PetData
   }
 
   setActivePet(world: World, playerId: string, petId: string): void {
-    getComponentOrThrow<PlayerData>(world, playerId, PLAYER).activePetId = petId
+    (getComponentOrThrow(world, playerId, PLAYER) as PlayerData).activePetId = petId
   }
 
   // -----------------------------------------------------------------------
@@ -112,31 +112,31 @@ export class PlayerSystem {
   // -----------------------------------------------------------------------
 
   getAlivePets(world: World, playerId: string): PetData[] {
-    const player = getComponentOrThrow<PlayerData>(world, playerId, PLAYER)
+    const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
     return player.battleTeamPetIds
-      .map(id => getComponentOrThrow<PetData>(world, id, PET))
+      .map(id => getComponentOrThrow(world, id, PET) as PetData)
       .filter(pet => (this.attrSystem.getValue(world, pet.id, 'isAlive') as boolean | undefined) ?? false)
   }
 
   getAvailableSwitchPets(world: World, playerId: string): PetData[] {
-    const player = getComponentOrThrow<PlayerData>(world, playerId, PLAYER)
+    const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
     return player.battleTeamPetIds
       .filter(id => id !== player.activePetId)
-      .map(id => getComponentOrThrow<PetData>(world, id, PET))
+      .map(id => getComponentOrThrow(world, id, PET) as PetData)
       .filter(pet => (this.attrSystem.getValue(world, pet.id, 'isAlive') as boolean | undefined) ?? false)
   }
 
   applyTeamSelection(world: World, playerId: string, selectedPetIds: string[], starterPetId: string): void {
-    const player = getComponentOrThrow<PlayerData>(world, playerId, PLAYER)
+    const player = getComponentOrThrow(world, playerId, PLAYER) as PlayerData
     player.battleTeamPetIds = [...selectedPetIds]
     player.activePetId = starterPetId
   }
 
   get(world: World, playerId: string): PlayerData | undefined {
-    return getComponent<PlayerData>(world, playerId, PLAYER)
+    return getComponent(world, playerId, PLAYER) as PlayerData | undefined
   }
 
   getOrThrow(world: World, playerId: string): PlayerData {
-    return getComponentOrThrow<PlayerData>(world, playerId, PLAYER)
+    return getComponentOrThrow(world, playerId, PLAYER) as PlayerData
   }
 }

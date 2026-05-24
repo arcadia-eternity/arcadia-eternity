@@ -143,11 +143,11 @@ export class PetSystem {
   // -----------------------------------------------------------------------
 
   get(world: World, petId: string): PetData | undefined {
-    return getComponent<PetData>(world, petId, PET)
+    return getComponent(world, petId, PET) as PetData | undefined
   }
 
   getOrThrow(world: World, petId: string): PetData {
-    return getComponentOrThrow<PetData>(world, petId, PET)
+    return getComponentOrThrow(world, petId, PET) as PetData
   }
 
   getStatValue(world: World, petId: string, stat: string): number {

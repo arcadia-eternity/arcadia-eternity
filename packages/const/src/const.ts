@@ -16,6 +16,17 @@ export type markId = Brand<string, 'markId'>
 export type effectId = Brand<string, 'effectId'>
 export type effectStateId = Brand<string, 'effectStateId'>
 
+export const asEntityId = (s: string): entityId => s as unknown as entityId
+export const asSpeciesId = (s: string): speciesId => s as unknown as speciesId
+export const asPetId = (s: string): petId => s as unknown as petId
+export const asBaseSkillId = (s: string): baseSkillId => s as unknown as baseSkillId
+export const asSkillId = (s: string): skillId => s as unknown as skillId
+export const asPlayerId = (s: string): playerId => s as unknown as playerId
+export const asBaseMarkId = (s: string): baseMarkId => s as unknown as baseMarkId
+export const asMarkId = (s: string): markId => s as unknown as markId
+export const asEffectId = (s: string): effectId => s as unknown as effectId
+export const asEffectStateId = (s: string): effectStateId => s as unknown as effectStateId
+
 export type Id = PrototypeId | InstanceId
 
 export type PrototypeId = speciesId | baseMarkId | baseSkillId | effectId

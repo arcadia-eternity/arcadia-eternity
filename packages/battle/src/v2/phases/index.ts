@@ -2,6 +2,8 @@
 // Seer2 Phase handler registration.
 
 import type { PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { MarkSystem } from '../systems/mark.system.js'
@@ -29,13 +31,13 @@ export interface Seer2Systems {
   markSystem: MarkSystem
   skillSystem: SkillSystem
   statStageSystem: StatStageMarkSystem
-  effectPipeline: EffectPipeline
+  effectPipeline: EffectPipeline<BattleState, BattleSystems>
 }
 
 /**
  * Register all Seer2 phase handlers with the engine's PhaseManager.
  */
-export function registerSeer2Phases(pm: PhaseManager, systems: Seer2Systems): void {
+export function registerSeer2Phases(pm: PhaseManager<BattleState, BattleSystems>, systems: Seer2Systems): void {
   const { petSystem, playerSystem, markSystem, skillSystem, statStageSystem, effectPipeline } = systems
 
   pm.register(new BattleStartHandler(effectPipeline, playerSystem, petSystem))

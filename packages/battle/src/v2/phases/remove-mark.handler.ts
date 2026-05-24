@@ -1,15 +1,18 @@
 // battle/src/v2/phases/remove-mark.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { MarkSystem } from '../systems/mark.system.js'
 import type { RemoveMarkContextData } from '../schemas/context.schema.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 
 export interface RemoveMarkPhaseData {
   context: RemoveMarkContextData
 }
 
-export class RemoveMarkHandler implements PhaseHandler<RemoveMarkPhaseData> {
+export class RemoveMarkHandler implements PhaseHandler<RemoveMarkPhaseData, BattleState, BattleSystems> {
   readonly type = 'removeMark'
 
   constructor(
@@ -17,11 +20,11 @@ export class RemoveMarkHandler implements PhaseHandler<RemoveMarkPhaseData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): RemoveMarkPhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): RemoveMarkPhaseData {
     return phase.data as RemoveMarkPhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as RemoveMarkPhaseData
     const ctx = data.context
 

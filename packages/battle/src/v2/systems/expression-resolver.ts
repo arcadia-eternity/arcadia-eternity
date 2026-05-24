@@ -9,6 +9,7 @@ import {
   toNumber,
 } from '@arcadia-eternity/engine'
 import type { Value } from '@arcadia-eternity/schema'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { InterpreterContext, InterpreterFireContext } from './interpreter/context.js'
 import { resolveSelector } from './interpreter/selector.js'
 import { resolveValue } from './interpreter/value.js'
@@ -21,9 +22,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): ExpressionResolver {
   const resolver: ExpressionResolver = {
     evaluate(world: World, expr: unknown, computeStack: Set<string>): number {
+      const bw = world as unknown as BattleWorld
+      const battleSystems = bw.systems
       return evaluateNumericExpression(expr, {
         resolveRef: (entityId, attribute) => {
-          return toNumber(attrSystem.getValue(world, entityId, attribute, undefined, computeStack))
+          return toNumber(attrSystem.getValue(bw, entityId, attribute, undefined, computeStack))
         },
         resolveSelector: selectorExpr => {
           if (!isSelectorDsl(selectorExpr)) return 0
@@ -50,10 +53,9 @@ export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): Expr
             effectEntityId: typeof rawFireCtx.effectEntityId === 'string' ? rawFireCtx.effectEntityId : undefined,
           }
 
-          const systems = world.systems as unknown as InterpreterContext['systems']
-          if (!systems) return 0
+          if (!battleSystems) return 0
 
-          const selectorCtx: InterpreterContext = { world, fireCtx, systems }
+          const selectorCtx: InterpreterContext = { world, fireCtx, systems: battleSystems }
           return toNumber(resolveSelector(selectorCtx, selectorExpr))
         },
         resolveValue: valueExpr => {
@@ -63,8 +65,7 @@ export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): Expr
 
           const node = isRecord(expr) ? expr : {}
           const rawFireCtx = isRecord(node.fireCtx) ? node.fireCtx : {}
-          const systems = world.systems as unknown as InterpreterContext['systems']
-          if (!systems) return 0
+          if (!battleSystems) return 0
 
           const valueCtx: InterpreterContext = {
             world,
@@ -74,7 +75,7 @@ export function createSeer2ExpressionResolver(attrSystem: AttributeSystem): Expr
               effectId: typeof rawFireCtx.effectId === 'string' ? rawFireCtx.effectId : undefined,
               effectEntityId: typeof rawFireCtx.effectEntityId === 'string' ? rawFireCtx.effectEntityId : undefined,
             },
-            systems,
+            systems: battleSystems,
           }
           return toNumber(resolveValue(valueCtx, valueExpr as Value | null | undefined))
         },

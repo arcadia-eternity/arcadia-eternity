@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { createBattle } from '../game.js'
 import { resolveExtractorByKind } from '../systems/interpreter/extractor-runtime.js'
+import type { BattleWorld } from '../types/battle-world.js'
 
 describe('v2 strict runtime', () => {
   test('strict extractor typing is always enabled', () => {
@@ -15,7 +16,7 @@ describe('v2 strict runtime', () => {
 
   test('undeclared attribute access throws immediately', () => {
     const battle = createBattle()
-    const systems = battle.world.systems as unknown as Parameters<typeof resolveExtractorByKind>[1]
+    const systems = (battle.world as BattleWorld).systems
 
     expect(() =>
       resolveExtractorByKind(battle.world, systems, { type: 'use-skill' }, 'attribute', 'unknownAttr'),

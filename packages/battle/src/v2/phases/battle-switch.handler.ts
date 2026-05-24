@@ -1,8 +1,11 @@
 // battle/src/v2/phases/battle-switch.handler.ts
 // BattleSwitchHandler — handles forced switches (faint) and faint-reward switches.
 
-import type { PhaseHandler, PhaseDef, PhaseResult, World, PhaseManager } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from '../systems/player.system.js'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { SelectionSystem } from '../systems/selection.system.js'
@@ -13,7 +16,7 @@ export interface BattleSwitchPhaseData {
   decisionManager: DecisionManager
 }
 
-export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData> {
+export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData, BattleState, BattleSystems> {
   readonly type = 'battleSwitch'
 
   constructor(
@@ -22,17 +25,17 @@ export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData> 
     private phaseManager: PhaseManager,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): BattleSwitchPhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): BattleSwitchPhaseData {
     return phase.data as BattleSwitchPhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as BattleSwitchPhaseData
     const selectionSystem = data.selectionSystem
     const decisionManager = data.decisionManager
 
-    const playerAId = world.state.playerAId as string
-    const playerBId = world.state.playerBId as string
+    const playerAId = world.state.playerAId
+    const playerBId = world.state.playerBId
     const allowFaintSwitch = world.state.allowFaintSwitch !== false
 
     // Loop until no more switches needed (cascade kills)
@@ -55,7 +58,7 @@ export class BattleSwitchHandler implements PhaseHandler<BattleSwitchPhaseData> 
       // Determine faint switch (kill reward)
       let faintSwitchPlayerId: string | undefined
       if (allowFaintSwitch && world.state.lastKillerId && forcedSwitchPlayerIds.length < 2) {
-        const killerPetId = world.state.lastKillerId as string
+        const killerPetId = world.state.lastKillerId
         const killerOwner = this.petSystem.getOwner(world, killerPetId)
         // Only grant faint switch if the killer's owner doesn't need a forced switch
         if (!forcedSwitchPlayerIds.includes(killerOwner)) {

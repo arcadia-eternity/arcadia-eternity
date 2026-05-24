@@ -1,5 +1,5 @@
 // battle/src/v2/phases/add-mark.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, PhaseManager, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { getComponent } from '@arcadia-eternity/engine'
 import { StackStrategy, EffectTrigger } from '@arcadia-eternity/const'
@@ -8,6 +8,9 @@ import { BATTLE_OWNER_ID } from '../systems/mark.system.js'
 import type { AddMarkContextData, StackContextData } from '../schemas/context.schema.js'
 import type { BaseMarkData } from '../schemas/mark.schema.js'
 import type { V2DataRepository } from '../data/v2-data-repository.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
 
 const BASE_MARK = 'baseMark' as const
 
@@ -15,7 +18,7 @@ export interface AddMarkPhaseData {
   context: AddMarkContextData
 }
 
-export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData> {
+export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData, BattleState, BattleSystems> {
   readonly type = 'addMark'
 
   constructor(
@@ -24,15 +27,15 @@ export class AddMarkHandler implements PhaseHandler<AddMarkPhaseData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): AddMarkPhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): AddMarkPhaseData {
     return phase.data as AddMarkPhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as AddMarkPhaseData
     const ctx = data.context
 
-    const baseMark = getComponent<BaseMarkData>(world, ctx.baseMarkId, BASE_MARK)
+    const baseMark = getComponent(world, ctx.baseMarkId, BASE_MARK) as BaseMarkData | undefined
     if (!baseMark) {
       return { success: false, state: 'failed', error: `BaseMark '${ctx.baseMarkId}' not found` }
     }

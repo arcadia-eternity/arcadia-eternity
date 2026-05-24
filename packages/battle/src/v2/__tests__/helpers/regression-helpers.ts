@@ -8,7 +8,7 @@ import {
   IgnoreStageStrategy,
   Nature,
   type BattleMessage,
-  type playerId,
+  asPlayerId,
 } from '@arcadia-eternity/const'
 import type { V2DataRepository } from '../../data/v2-data-repository.js'
 import { createBattleFromConfig } from '../../data/battle-factory.js'
@@ -219,8 +219,8 @@ export async function runAutoBattleWithSeed(
     if (state.status === BattleStatus.Ended) break
     turn++
 
-    const selA = await system.getAvailableSelection(playerAId as unknown as playerId)
-    const selB = await system.getAvailableSelection(playerBId as unknown as playerId)
+    const selA = await system.getAvailableSelection(asPlayerId(playerAId))
+    const selB = await system.getAvailableSelection(asPlayerId(playerBId))
     const actionA = selA.find(s => s.type === 'use-skill') ?? selA[0]
     const actionB = selB.find(s => s.type === 'use-skill') ?? selB[0]
     if (actionA) await system.submitAction(actionA)

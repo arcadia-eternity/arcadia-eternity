@@ -1,26 +1,33 @@
 // battle/src/v2/systems/state-serializer.ts
 // Converts World state to v1-compatible BattleState format.
 
-import type { World, AttributeSystem, ModifierDef, AttributeValue } from '@arcadia-eternity/engine'
-import { BattleStatus, BattlePhase, Element, Category, AttackTargetOpinion } from '@arcadia-eternity/const'
+import type { AttributeSystem, ModifierDef, AttributeValue } from '@arcadia-eternity/engine'
+import {
+  BattleStatus,
+  BattlePhase,
+  Element,
+  Category,
+  AttackTargetOpinion,
+  asPlayerId,
+  asPetId,
+  asSkillId,
+  asSpeciesId,
+  asBaseSkillId,
+  asMarkId,
+  asBaseMarkId,
+} from '@arcadia-eternity/const'
 import type {
   BattleState,
   PlayerMessage,
   PetMessage,
   MarkMessage,
   SkillMessage,
-  playerId,
-  petId,
-  speciesId,
-  skillId,
-  baseSkillId,
-  markId,
-  baseMarkId,
   MarkConfig,
   EntityModifierState,
   AttributeModifierInfo,
   ModifierInfo,
 } from '@arcadia-eternity/const'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from './player.system.js'
 import type { PetSystem } from './pet.system.js'
 import type { MarkSystem } from './mark.system.js'
@@ -47,18 +54,18 @@ function toDisplayValue(value: AttributeValue): string | number | boolean {
 }
 
 export function worldToBattleState(
-  world: World,
+  world: BattleWorld,
   systems: StateSerializerSystems,
   viewerId?: string,
   showHidden = false,
 ): BattleState {
   const { playerSystem, markSystem } = systems
-  const playerAId = world.state.playerAId as string
-  const playerBId = world.state.playerBId as string
+  const playerAId = world.state.playerAId
+  const playerBId = world.state.playerBId
 
-  const status = mapStatus(world.state.status as string | undefined)
-  const currentPhase = mapPhase(world.state.currentPhase as string | undefined)
-  const currentTurn = (world.state.currentTurn as number) ?? 0
+  const status = mapStatus(world.state.status)
+  const currentPhase = mapPhase(world.state.currentPhase)
+  const currentTurn = world.state.currentTurn ?? 0
 
   const battleMarks: MarkMessage[] = markSystem
     .getMarksOnEntity(world, BATTLE_OWNER_ID)
@@ -76,10 +83,10 @@ export function worldToBattleState(
 
     players.push({
       name: player.name,
-      id: pid as unknown as playerId,
+      id: asPlayerId(pid),
       rage: playerSystem.getRage(world, pid),
       maxRage: playerSystem.getMaxRage(world, pid),
-      activePet: player.activePetId as unknown as petId,
+      activePet: asPetId(player.activePetId),
       team,
       teamAlives: alivePets.length,
       modifierState: isViewer ? serializeModifierState(world, systems, pid) : undefined,
@@ -96,7 +103,7 @@ export function worldToBattleState(
 }
 
 function serializePet(
-  world: World,
+  world: BattleWorld,
   systems: StateSerializerSystems,
   petEntityId: string,
   isViewer: boolean,
@@ -114,9 +121,9 @@ function serializePet(
   const msg: PetMessage = {
     isUnknown: !shouldShowDetails,
     name: shouldShowDetails ? petSystem.getName(world, petEntityId) : '',
-    id: pet.id as unknown as petId,
+    id: asPetId(pet.id),
     speciesID: shouldShowDetails
-      ? (petSystem.getSpeciesId(world, petEntityId) as unknown as speciesId)
+      ? asSpeciesId(petSystem.getSpeciesId(world, petEntityId))
       : ('' as speciesId),
     element: shouldShowDetails ? (petSystem.getElement(world, petEntityId) as Element) : Element.Normal,
     level: shouldShowDetails ? petSystem.getLevel(world, petEntityId) : 0,
@@ -133,7 +140,7 @@ function serializePet(
       if (!skillVisible) {
         return {
           isUnknown: true,
-          id: sid as unknown as skillId,
+          id: asSkillId(sid),
           baseId: '' as baseSkillId,
           category: Category.Physical,
           element: Element.Normal,
@@ -149,8 +156,8 @@ function serializePet(
       }
       return {
         isUnknown: false,
-        id: sid as unknown as skillId,
-        baseId: skill.baseSkillId as unknown as baseSkillId,
+        id: asSkillId(sid),
+        baseId: asBaseSkillId(skill.baseSkillId),
         category: skillSystem.getCategory(world, sid) as Category,
         element: skillSystem.getElement(world, sid) as Element,
         power: skillSystem.getPower(world, sid),
@@ -187,7 +194,7 @@ function serializePet(
 }
 
 function serializeModifierState(
-  world: World,
+  world: BattleWorld,
   systems: Pick<StateSerializerSystems, 'petSystem' | 'markSystem' | 'skillSystem' | 'attrSystem'>,
   entityId: string,
 ): EntityModifierState {
@@ -220,7 +227,7 @@ function serializeModifierState(
 }
 
 function toModifierInfo(
-  world: World,
+  world: BattleWorld,
   systems: Pick<StateSerializerSystems, 'markSystem' | 'skillSystem'>,
   mod: ModifierDef,
 ): ModifierInfo {
@@ -243,10 +250,10 @@ function toModifierInfo(
   }
 }
 
-function serializeMark(world: World, systems: Pick<StateSerializerSystems, 'markSystem'>, mark: MarkData): MarkMessage {
+function serializeMark(world: BattleWorld, systems: Pick<StateSerializerSystems, 'markSystem'>, mark: MarkData): MarkMessage {
   return {
-    id: mark.id as unknown as markId,
-    baseId: mark.baseMarkId as unknown as baseMarkId,
+    id: asMarkId(mark.id),
+    baseId: asBaseMarkId(mark.baseMarkId),
     stack: systems.markSystem.getStack(world, mark.id),
     duration: systems.markSystem.getDuration(world, mark.id),
     isActive: systems.markSystem.isActive(world, mark.id),

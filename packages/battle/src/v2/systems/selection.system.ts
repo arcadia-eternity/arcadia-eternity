@@ -1,9 +1,9 @@
 // battle/src/v2/systems/selection.system.ts
 // SelectionSystem — manages player selections during battle.
 
-import type { World } from '@arcadia-eternity/engine'
-import type { PlayerSelection, UseSkillSelection, playerId, petId, skillId } from '@arcadia-eternity/const'
-import { AttackTargetOpinion } from '@arcadia-eternity/const'
+import { asPlayerId, asPetId, asSkillId, AttackTargetOpinion } from '@arcadia-eternity/const'
+import type { PlayerSelection, UseSkillSelection, petId } from '@arcadia-eternity/const'
+import type { BattleWorld } from '../types/battle-world.js'
 import type { PlayerSystem } from './player.system.js'
 import type { SkillSystem } from './skill.system.js'
 import type { PetSystem } from './pet.system.js'
@@ -27,7 +27,7 @@ export class SelectionSystem {
   // Selection storage (world.state.selections)
   // -----------------------------------------------------------------------
 
-  setSelection(world: World, pid: string, selection: PlayerSelection): boolean {
+  setSelection(world: BattleWorld, pid: string, selection: PlayerSelection): boolean {
     const selections = this.getSelections(world)
     selections[pid] = selection
     world.state.selections = selections
@@ -35,35 +35,35 @@ export class SelectionSystem {
     return true
   }
 
-  clearSelections(world: World): void {
+  clearSelections(world: BattleWorld): void {
     world.state.selections = {}
   }
 
-  getSelection(world: World, pid: string): PlayerSelection | null {
+  getSelection(world: BattleWorld, pid: string): PlayerSelection | null {
     const selections = this.getSelections(world)
-    return (selections[pid] as PlayerSelection) ?? null
+    return selections[pid] ?? null
   }
 
-  private getSelections(world: World): Record<string, PlayerSelection> {
+  private getSelections(world: BattleWorld): Record<string, PlayerSelection> {
     if (!world.state.selections) {
       world.state.selections = {}
     }
-    return world.state.selections as Record<string, PlayerSelection>
+    return world.state.selections
   }
 
   // -----------------------------------------------------------------------
   // Available selections (ported from v1 Player.getAvailableSelection)
   // -----------------------------------------------------------------------
 
-  getAvailableSelections(world: World, pid: string): PlayerSelection[] {
-    const phase = world.state.currentPhase as string | undefined
+  getAvailableSelections(world: BattleWorld, pid: string): PlayerSelection[] {
+    const phase = world.state.currentPhase
     const player = this.playerSystem.getOrThrow(world, pid)
     const selections: PlayerSelection[] = []
-    const pId = pid as unknown as playerId
+    const pId = asPlayerId(pid)
 
     if (phase === 'switch') {
       // Forced switch: only switch-pet and surrender
-      const isForcedSwitch = ((world.state.pendingForcedSwitchPlayerIds as string[]) ?? []).includes(pid)
+      const isForcedSwitch = (world.state.pendingForcedSwitchPlayerIds ?? []).includes(pid)
       const isFaintSwitch = world.state.pendingFaintSwitchPlayerId === pid
 
       if (isFaintSwitch && !isForcedSwitch) {
@@ -73,7 +73,7 @@ export class SelectionSystem {
 
       const switchPets = this.playerSystem.getAvailableSwitchPets(world, pid)
       for (const pet of switchPets) {
-        selections.push({ player: pId, type: 'switch-pet', pet: pet.id as unknown as petId })
+        selections.push({ player: pId, type: 'switch-pet', pet: asPetId(pet.id) })
       }
 
       selections.push({ player: pId, type: 'surrender' })
@@ -90,7 +90,7 @@ export class SelectionSystem {
         player: pId,
         type: 'team-selection',
         selectedPets: fullTeam as unknown as petId[],
-        starterPetId: fullTeam[0] as unknown as petId,
+        starterPetId: asPetId(fullTeam[0]),
       })
       selections.push({ player: pId, type: 'surrender' })
       return selections
@@ -111,7 +111,7 @@ export class SelectionSystem {
         availableSkills.push({
           player: pId,
           type: 'use-skill',
-          skill: sid as unknown as skillId,
+          skill: asSkillId(sid),
           target: normalizedTarget,
         })
       }
@@ -122,7 +122,7 @@ export class SelectionSystem {
     // Available switch pets
     const switchPets = this.playerSystem.getAvailableSwitchPets(world, pid)
     for (const pet of switchPets) {
-      selections.push({ player: pId, type: 'switch-pet', pet: pet.id as unknown as petId })
+      selections.push({ player: pId, type: 'switch-pet', pet: asPetId(pet.id) })
     }
 
     // If no skills available, allow do-nothing
@@ -138,7 +138,7 @@ export class SelectionSystem {
   // Async waiting (ported from v1 Battle.waitForBothPlayersReady)
   // -----------------------------------------------------------------------
 
-  waitForAllSelections(world: World, playerIds: string[]): Promise<Record<string, PlayerSelection>> {
+  waitForAllSelections(world: BattleWorld, playerIds: string[]): Promise<Record<string, PlayerSelection>> {
     // Check if all already selected
     const selections = this.getSelections(world)
     const allSelected = playerIds.every(id => id in selections)
@@ -174,10 +174,10 @@ export class SelectionSystem {
     this.waitReject = null
   }
 
-  private checkAndResolve(world: World): void {
+  private checkAndResolve(world: BattleWorld): void {
     if (!this.waitResolve) return
 
-    const playerIds = world.state.waitingPlayerIds as string[] | undefined
+    const playerIds = world.state.waitingPlayerIds
     if (!playerIds) return
 
     const selections = this.getSelections(world)

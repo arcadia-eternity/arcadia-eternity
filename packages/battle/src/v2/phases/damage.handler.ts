@@ -1,17 +1,20 @@
 // battle/src/v2/phases/damage.handler.ts
-import type { PhaseHandler, PhaseDef, PhaseResult, World, EffectPipeline } from '@arcadia-eternity/engine'
+import type { PhaseHandler, PhaseDef, PhaseResult, EffectPipeline } from '@arcadia-eternity/engine'
 import type { EventBus } from '@arcadia-eternity/engine'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import { updateDamageResult, type DamageContext } from '@arcadia-eternity/plugin-damage'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { MarkSystem } from '../systems/mark.system.js'
 import type { DamageContextData } from '../schemas/context.schema.js'
+import type { BattleWorld } from '../types/battle-world.js'
+import type { BattleState } from '../types/battle-state.js'
+import type { BattleSystems } from '../types/battle-systems.js'
 
 export interface DamagePhaseData {
   context: DamageContextData
 }
 
-export class DamageHandler implements PhaseHandler<DamagePhaseData> {
+export class DamageHandler implements PhaseHandler<DamagePhaseData, BattleState, BattleSystems> {
   readonly type = 'damage'
 
   constructor(
@@ -20,11 +23,11 @@ export class DamageHandler implements PhaseHandler<DamagePhaseData> {
     private effectPipeline: EffectPipeline,
   ) {}
 
-  initialize(_world: World, phase: PhaseDef): DamagePhaseData {
+  initialize(_world: BattleWorld, phase: PhaseDef): DamagePhaseData {
     return phase.data as DamagePhaseData
   }
 
-  async execute(world: World, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
+  async execute(world: BattleWorld, phase: PhaseDef, bus: EventBus): Promise<PhaseResult> {
     const data = phase.data as DamagePhaseData
     const ctx = data.context
 
