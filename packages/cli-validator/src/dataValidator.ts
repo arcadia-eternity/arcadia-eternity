@@ -70,7 +70,7 @@ export class CLIDataValidator {
       const validationError: ValidationError = {
         type: 'invalid_format',
         category: 'system',
-        message: `数据验证过程中发生错误: ${error instanceof Error ? error.message : error}`,
+        message: `数据验证过程中发生错误: ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`,
       }
 
       return {

@@ -57,9 +57,12 @@ async function parsePlayerFile(filePath: string, _options?: { validateData?: boo
     try {
       rawData = yaml.parse(content)
     } catch (yamlError) {
-      throw new Error(`YAML格式错误: ${yamlError instanceof Error ? yamlError.message : yamlError}`, {
-        cause: yamlError,
-      })
+      throw new Error(
+        `YAML格式错误: ${yamlError instanceof Error ? yamlError.message : typeof yamlError === 'string' ? yamlError : JSON.stringify(yamlError)}`,
+        {
+          cause: yamlError,
+        },
+      )
     }
 
     // 基本数据验证
@@ -108,7 +111,7 @@ async function parsePlayerFile(filePath: string, _options?: { validateData?: boo
     console.log(`[✅] 成功解析玩家: ${player.name} (${player.team.length} 只精灵)`)
     return player
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err)
+    const errorMessage = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)
     throw new Error(`无法解析玩家文件 ${filePath}: ${errorMessage}`, { cause: err })
   }
 }

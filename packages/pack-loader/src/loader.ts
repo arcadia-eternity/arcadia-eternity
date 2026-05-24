@@ -125,13 +125,13 @@ export class PackLoader {
                 const parsed = parse(rawItem)
                 register(parsed.id, parsed)
               } catch (error) {
-                const message = `${label} parse error (${resolved.manifest.id}:${file}): ${error instanceof Error ? error.message : String(error)}`
+                const message = `${label} parse error (${resolved.manifest.id}:${file}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`
                 errors.push(message)
                 if (!continueOnError) throw error
               }
             }
           } catch (error) {
-            const message = `${label} load error (${resolved.manifest.id}:${file}): ${error instanceof Error ? error.message : String(error)}`
+            const message = `${label} load error (${resolved.manifest.id}:${file}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`
             errors.push(message)
             if (!continueOnError) throw error
           }
@@ -216,7 +216,7 @@ export class PackLoader {
         manifest = JSON.parse(manifestRaw) as V2DataPackManifest
       } catch (error) {
         state.delete(manifestUrl)
-        const message = `pack manifest load error (${manifestUrl}): ${error instanceof Error ? error.message : String(error)}`
+        const message = `pack manifest load error (${manifestUrl}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`
         if (context?.optional || continueOnError) {
           errors.push(message)
           return
@@ -244,7 +244,7 @@ export class PackLoader {
           })
         } catch (error) {
           if (dep.optional || continueOnError) {
-            const message = `pack dependency warning (${manifest.id} -> ${dep.path}): ${error instanceof Error ? error.message : String(error)}`
+            const message = `pack dependency warning (${manifest.id} -> ${dep.path}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`
             errors.push(message)
             continue
           }
@@ -323,7 +323,7 @@ export class PackLoader {
         loaded.push({ manifest: normalized, url, raw: assetManifestRaw })
         visited.add(url)
       } catch (error) {
-        const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : String(error)}`
+        const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`
         if (!continueOnError) throw error
         errors.push(message)
       } finally {
@@ -438,7 +438,7 @@ export class PackLoader {
       return this.parseLockfile(raw, lockfileUrl)
     } catch (error) {
       if (this.isMissingHttpError(error)) return undefined
-      const message = `pack lockfile load error (${lockfileUrl}): ${error instanceof Error ? error.message : String(error)}`
+      const message = `pack lockfile load error (${lockfileUrl}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`
       if (!continueOnError) throw new Error(message, { cause: error })
       errors.push(message)
       return undefined
@@ -738,7 +738,7 @@ export class PackLoader {
           })
           visited.add(assetPath)
         } catch (error) {
-          const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : String(error)}`
+          const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`
           if (!continueOnError) throw error
           errors.push(message)
         } finally {

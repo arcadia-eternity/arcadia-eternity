@@ -127,7 +127,7 @@ export async function loadV2GameData(_dataDir: string, options: LoadOptions = {}
 
     return { repository, errors, pack, locales }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
+    const message = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)
     errors.push(`Fatal error loading data: ${message}`)
     if (!continueOnError) throw err
   }
@@ -173,13 +173,13 @@ async function loadRawArrayFiles<T>(
           const entity = parse(raw as Record<string, unknown>)
           register(entity)
         } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
+          const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)
           errors.push(`${basename(file)}: ${msg}`)
           if (!continueOnError) throw err
         }
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)
       errors.push(`${basename(file)}: Failed to load - ${msg}`)
       if (!continueOnError) throw err
     }
@@ -499,7 +499,7 @@ async function resolvePackLoadOrder(
     try {
       manifest = await loadPackManifest(packPath)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)
       if (optional) {
         errors.push(`Optional dependency skipped: ${packPath} (${msg})`)
         return
@@ -524,7 +524,7 @@ async function resolvePackLoadOrder(
         await visit(depPath, packPath, dep.id, dep.optional)
       } catch (err) {
         if (dep.optional || continueOnError) {
-          const msg = err instanceof Error ? err.message : String(err)
+          const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)
           errors.push(`Dependency load warning from '${manifest.id}' -> '${dep.path}': ${msg}`)
           continue
         }
@@ -611,7 +611,7 @@ async function loadLocales(
       const content = await readFile(file, 'utf-8')
       bundles[localeName][namespace] = YAML.parse(content, { merge: true })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)
       errors.push(`locale:${localeName}:${basename(file)}: Failed to load - ${msg}`)
       if (!continueOnError) throw err
     }

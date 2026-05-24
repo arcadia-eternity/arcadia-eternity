@@ -632,7 +632,8 @@ export class ClusterStateManager extends EventEmitter {
         await this.setRoomStateInternal(roomState)
         return // 成功则直接返回
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error))
+        lastError =
+          error instanceof Error ? error : new Error(typeof error === 'string' ? error : JSON.stringify(error))
         logger.warn(
           { error, roomId: roomState.id, attempt, maxRetries },
           `Failed to set room state, attempt ${attempt}/${maxRetries}`,

@@ -167,7 +167,7 @@ export class TeamBuilderIntegration {
         case 'EV_SINGLE_EXCEEDED':
           suggestions.push({
             type: 'modify',
-            message: `精灵 "${error.context?.petName}" 的学习力需要调整`,
+            message: `精灵 "${typeof error.context?.petName === 'string' ? error.context.petName : JSON.stringify(error.context?.petName)}" 的学习力需要调整`,
             petId: error.objectId,
             details: error.context,
           })

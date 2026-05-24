@@ -73,7 +73,7 @@ export function createResourceStatusRoutes(): Router {
     } catch (error) {
       res.status(500).json({
         error: 'Failed to get resource status',
-        message: error instanceof Error ? error.message : String(error),
+        message: error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error),
       })
     }
   })
@@ -138,7 +138,7 @@ export function createResourceStatusRoutes(): Router {
       res.status(500).json({
         ready: false,
         status: 'error',
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error),
       })
     }
   })

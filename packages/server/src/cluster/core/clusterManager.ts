@@ -196,7 +196,9 @@ export class ClusterManager {
         logger.error({ err }, `Failed to psubscribe to ${dataPattern}`)
         return
       }
-      logger.info(`PSUBSCRIBE to ${dataPattern} succeeded, subscribed to ${count} channels.`)
+      logger.info(
+        `PSUBSCRIBE to ${dataPattern} succeeded, subscribed to ${typeof count === 'number' || typeof count === 'string' ? count : JSON.stringify(count)} channels.`,
+      )
     })
 
     // 订阅控制频道
@@ -206,7 +208,9 @@ export class ClusterManager {
         logger.error({ err }, `Failed to subscribe to ${controlChannel}`)
         return
       }
-      logger.info(`SUBSCRIBE to ${controlChannel} succeeded, subscribed to ${count} channels.`)
+      logger.info(
+        `SUBSCRIBE to ${controlChannel} succeeded, subscribed to ${typeof count === 'number' || typeof count === 'string' ? count : JSON.stringify(count)} channels.`,
+      )
     })
 
     subscriber.on('pmessage', (pattern, channel, message) => {

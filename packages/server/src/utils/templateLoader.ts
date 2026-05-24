@@ -40,7 +40,10 @@ function loadTemplate(
     cache.set(templatePath, compiledTemplate)
     return compiledTemplate
   } catch (error) {
-    throw new Error(`Failed to load template from ${templatePath}: ${error}`, { cause: error })
+    throw new Error(
+      `Failed to load template from ${templatePath}: ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`,
+      { cause: error },
+    )
   }
 }
 

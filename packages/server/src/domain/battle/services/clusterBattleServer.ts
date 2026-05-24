@@ -2585,7 +2585,7 @@ export class ClusterBattleServer {
       return true
     }
 
-    const message = error instanceof Error ? error.message : String(error)
+    const message = error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)
     const lower = message.toLowerCase()
     if (lower.includes('rpc_timeout')) return true
     if (lower.includes('forward_action_timeout')) return true

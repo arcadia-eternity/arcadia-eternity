@@ -193,7 +193,8 @@ export class ResourceLoadingManager {
       logger.info(`资源加载完成，耗时: ${duration}ms`)
     } catch (error) {
       this.progress.status = ResourceLoadingStatus.Failed
-      this.progress.error = error instanceof Error ? error.message : String(error)
+      this.progress.error =
+        error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)
       logger.error({ error: this.progress.error }, '资源加载失败')
 
       if (!this.options.continueOnError) {

@@ -20,7 +20,7 @@ export function createBattleReportRoutes(router: Router, config: BattleReportRou
 
   // 错误处理中间件
   const handleError = (error: unknown, res: Response, operation: string) => {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const err = error instanceof Error ? error : new Error(typeof error === 'string' ? error : JSON.stringify(error))
     apiLogger.error({ error: err, operation }, 'API operation failed')
 
     if (err.name === 'DatabaseError') {

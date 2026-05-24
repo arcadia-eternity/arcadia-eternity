@@ -71,7 +71,7 @@ export class PrivateRoomService {
       return parseWithErrors(PackLockSchema, lock)
     } catch (error) {
       throw new PrivateRoomError(
-        `无效的 requiredPackLock: ${error instanceof Error ? error.message : String(error)}`,
+        `无效的 requiredPackLock: ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`,
         'INVALID_CONFIG',
       )
     }
@@ -84,7 +84,7 @@ export class PrivateRoomService {
       parsedClientPackLock = parseWithErrors(PackLockSchema, clientPackLock)
     } catch (error) {
       throw new PrivateRoomError(
-        `无效的 clientPackLock: ${error instanceof Error ? error.message : String(error)}`,
+        `无效的 clientPackLock: ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`,
         'INVALID_CONFIG',
       )
     }
@@ -106,7 +106,7 @@ export class PrivateRoomService {
       return parseWithErrors(AssetLockSchema, lock)
     } catch (error) {
       throw new PrivateRoomError(
-        `无效的 requiredAssetLock: ${error instanceof Error ? error.message : String(error)}`,
+        `无效的 requiredAssetLock: ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`,
         'INVALID_CONFIG',
       )
     }
@@ -119,7 +119,7 @@ export class PrivateRoomService {
       parsedClientAssetLock = parseWithErrors(AssetLockSchema, clientAssetLock)
     } catch (error) {
       throw new PrivateRoomError(
-        `无效的 clientAssetLock: ${error instanceof Error ? error.message : String(error)}`,
+        `无效的 clientAssetLock: ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}`,
         'INVALID_CONFIG',
       )
     }
