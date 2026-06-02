@@ -79,6 +79,8 @@ export interface World<
   plugins: TPlugins
   /** Arbitrary metadata (non-serializable, for debugging/profiling) */
   meta: Record<string, unknown>
+  /** Current context entity ID for selector entity navigation (runtime, non-serializable) */
+  currentContextEntityId?: string
 }
 
 // ---------------------------------------------------------------------------

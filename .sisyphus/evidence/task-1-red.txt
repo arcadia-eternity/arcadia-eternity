@@ -1,0 +1,13 @@
+RED Phase: Task 1 - context-entity.test.ts
+============================================
+Date: 2026-06-02T23:52:27
+Expected: 1 failed suite (Cannot find module '../systems/context-entity.js')
+Result: 1 failed suite, 0 tests executed
+
+Output:
+FAIL  src/v2/__tests__/context-entity.test.ts
+Error: Cannot find module '../systems/context-entity.js'
+  Tests: no tests (import failed before execution)
+  Duration: 178ms
+
+Status: ✅ RED phase confirmed — implementation file does not exist yet
