@@ -1,0 +1,14 @@
+RED Phase: Task 4 - selector-entity-navigation.test.ts
+============================================
+Date: 2026-06-03T00:05:32
+Expected: 5 tests fail (resolveSelector still has old signature)
+Result: 5/5 FAILED (all return [] instead of expected values)
+
+Failed Tests:
+1. resolveSelector(world, systems, entityId, "self") → expected ['pet_xxx'], got []
+2. resolveSelector(world, systems, entityId, "opponent") → expected opponent pet, got []
+3. resolveSelector(world, systems, entityId, "selfMarks") → expected mark IDs, got []
+4. resolveSelector(world, systems, entityId, "battle") → expected ['battle'], got []
+5. context selector via world.currentContextEntityId → expected >0 elements, got 0
+
+Status: ✅ RED phase confirmed — resolveSelector still uses old InterpreterContext signature
