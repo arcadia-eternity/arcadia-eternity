@@ -1,0 +1,23 @@
+Task 5: Phase handler context entity lifecycle integration
+============================================
+Date: 2026-06-03T00:15:00
+Expected: skill + damage handlers create/destroy context entities during phase execution
+Result: Both handlers modified
+
+skill.handler.ts changes:
+- Added setComponent import from engine
+- Added createContextEntity/getCurrentContextEntityId/setCurrentContextEntityId imports
+- execute(): saves prev context entity ID, creates new one from UseSkillContextData,
+  sets currentContextEntityId, wraps body in try/finally with restore
+- All 10 effectPipeline.fire() calls include contextEntityId
+- applyDefeatIfNeeded() receives contextEntityId param
+- Writebacks after all ctx mutations (multihitResult, hitResult, crit, etc.)
+
+damage.handler.ts changes:
+- Same import/execute pattern with try/finally
+- All 5 effectPipeline.fire() calls include contextEntityId
+- Writebacks after damageResult mutations
+
+Type fix: Removed all `Record<string, unknown>` — replaced with `WorldSystems` and `ContextData`
+
+Status: ✅ Context entity lifecycle integrated into skill + damage handlers

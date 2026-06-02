@@ -2,7 +2,7 @@
 // Context entity creation, recursive parent-chain lookup, and destruction.
 
 import { createEntity, setComponent, getComponent, removeEntity } from '@arcadia-eternity/engine'
-import type { World } from '@arcadia-eternity/engine'
+import type { World, WorldSystems } from '@arcadia-eternity/engine'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -37,8 +37,8 @@ export interface ContextData {
  */
 export function createContextEntity(
   world: World,
-  _systems: Record<string, unknown>,
-  data: ContextData & Record<string, unknown>,
+  _systems: WorldSystems,
+  data: ContextData,
   parentId?: string,
 ): string {
   const entity = createEntity(world, undefined, [CONTEXT_TAG])
@@ -58,10 +58,10 @@ export function createContextEntity(
  */
 export function findContextByType(
   world: World,
-  systems: Record<string, unknown>,
+  systems: WorldSystems,
   startEntityId: string,
   contextType: string,
-): Record<string, unknown> | undefined {
+): ContextData | undefined {
   let currentId: string | undefined = startEntityId
 
   while (currentId) {
@@ -81,7 +81,7 @@ export function findContextByType(
  * Removes the entity and all its components from the world.
  * Does NOT cascade to child entities (manual cleanup required).
  */
-export function destroyContextEntity(world: World, systems: Record<string, unknown>, entityId: string): void {
+export function destroyContextEntity(world: World, systems: WorldSystems, entityId: string): void {
   removeEntity(world, entityId)
 }
 
