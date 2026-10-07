@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import BattleFrame from './BattleFrame.vue'
 import HealthRageBar from './HealthRageBar.vue'
 import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
@@ -187,7 +186,6 @@ const petStatsInfo = computed(() => {
 
 <template>
   <div v-if="activePet" :class="containerClass" :data-battle-status="side">
-    <BattleFrame :reverse="side === 'right'" />
     <Tooltip position="bottom">
       <template #trigger>
         <PetIcon
@@ -270,7 +268,11 @@ const petStatsInfo = computed(() => {
   height: 72px;
   flex: none;
   background-color: transparent;
-  border-radius: 3px;
+  border-radius: 9px;
+  border: 2px solid #cee2e6;
+  box-shadow:
+    inset 0 0 0 2px #263448,
+    0 1px 2px #000;
 }
 .battle-status__body {
   min-width: 0;

@@ -167,49 +167,31 @@ const skillMarkRelations = computed(() => {
             :aria-label="`${name} · ${category} · 威力 ${skill.power} · 怒气 ${skill.rage} · 命中 ${skill.accuracy}`"
             @click="emit('click', skill.id)"
           >
-            <BattleFrame :accent="originalCategory === 'Climax' ? 'gold' : 'cyan'" />
-            <div class="relative flex h-full pointer-events-none gap-2 px-1">
-              <div class="flex flex-col items-center w-1/4 justify-center pl-2">
-                <div class="relative mb-2">
-                  <div
-                    class="w-14 h-14 flex items-center justify-center rounded-full"
-                    :class="typeEffectivenessContainerClass"
-                  >
-                    <ElementIcon :element="skill.element" class="w-11 h-11 object-contain" />
-                  </div>
+            <BattleFrame variant="skill" />
+            <div v-if="originalCategory === 'Climax' && !disabled" class="battle-skill__particles" aria-hidden="true">
+              <span
+                v-for="particle in 8"
+                :key="particle"
+                class="battle-skill__particle"
+                :style="{ '--particle': particle }"
+              />
+            </div>
+            <div class="battle-skill__content" aria-hidden="true">
+              <div class="battle-skill__identity">
+                <div class="battle-skill__element" :class="typeEffectivenessContainerClass">
+                  <ElementIcon :element="skill.element" />
                 </div>
-                <div class="text-white text-sm font-bold [text-shadow:_1px_1px_0_black] text-center leading-tight mb-1">
-                  {{ category }}
-                </div>
+                <span class="battle-skill__category">{{ category }}</span>
               </div>
-
-              <div class="flex flex-col w-3/4 justify-center space-y-0.5 pl-1">
-                <div class="text-cyan-300 text-base font-bold [text-shadow:_1px_1px_0_black] leading-tight">
-                  {{ name }}
-                </div>
-                <div class="text-orange-500 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
-                  {{
-                    i18next.t('power', {
-                      ns: 'battle',
-                    })
-                  }}
+              <div class="battle-skill__data">
+                <span class="battle-skill__name">{{ name }}</span>
+                <div class="battle-skill__stat battle-skill__stat--power">
+                  <span>{{ i18next.t('power', { ns: 'battle' }) }}</span>
                   <ModifiedValue :value="skill.power" :attribute-info="powerModifierInfo" size="sm" inline />
                 </div>
-                <div class="text-yellow-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
-                  {{
-                    i18next.t('rage', {
-                      ns: 'battle',
-                    })
-                  }}
+                <div class="battle-skill__stat battle-skill__stat--rage">
+                  <span>{{ i18next.t('rage', { ns: 'battle' }) }}</span>
                   <ModifiedValue :value="skill.rage" :attribute-info="rageModifierInfo" size="sm" inline />
-                </div>
-                <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
-                  {{
-                    i18next.t('accuracy', {
-                      ns: 'battle',
-                    })
-                  }}
-                  <ModifiedValue :value="skill.accuracy" :attribute-info="accuracyModifierInfo" size="sm" inline />
                 </div>
               </div>
             </div>
@@ -285,10 +267,10 @@ const skillMarkRelations = computed(() => {
 }
 .battle-skill__info {
   position: absolute;
-  right: 2px;
-  top: 2px;
-  width: 28px;
-  height: 28px;
+  right: 7px;
+  bottom: 4px;
+  width: 20px;
+  height: 20px;
   color: var(--battle-muted);
   cursor: pointer;
   z-index: 40;
@@ -315,59 +297,169 @@ const skillMarkRelations = computed(() => {
   display: block;
   position: relative;
   width: 100%;
-  min-height: 120px;
-  padding: 10px;
+  height: 108px;
+  padding: 0;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.12s;
+  border-radius: 12px;
+  transition:
+    filter 0.12s,
+    box-shadow 0.12s;
 }
 .battle-skill:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 .battle-skill:hover:not(:disabled) {
-  transform: translateY(-3px);
+  filter: brightness(1.22);
+  box-shadow:
+    0 0 12px #66ffff30,
+    inset 0 0 12px #66ffff20;
 }
 .battle-skill:active:not(:disabled) {
-  transform: translateY(0);
+  filter: brightness(0.9);
 }
 .battle-skill:focus-visible {
   outline: 2px solid var(--battle-cyan);
   outline-offset: 4px;
 }
-.battle-skill .w-14 {
-  width: 36px;
-  height: 36px;
+/* UI_FightSkillBrief positions mapped from the original 158 × 85 symbol. */
+.battle-skill__content {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--battle-gold);
+  text-shadow: 1px 1px #000;
 }
-.battle-skill .w-11 {
-  width: 30px;
-  height: 30px;
+.battle-skill__element {
+  position: absolute;
+  left: 6.96%;
+  top: 15.29%;
+  width: 25.32%;
+  height: 47.06%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
 }
-.battle-skill .text-base {
-  font-size: 13px;
-  color: var(--battle-text);
-  padding-right: 8px;
-  min-height: 32px;
-  display: flex;
+.battle-skill__element :deep(img) {
+  width: 80% !important;
+  height: 80% !important;
+  min-height: 0 !important;
+  object-fit: contain;
+}
+.battle-skill__category {
+  position: absolute;
+  left: 5.06%;
+  top: 67.06%;
+  width: 29.11%;
+  font-size: 14px;
+  line-height: 19px;
+  text-align: center;
+}
+.battle-skill__name {
+  position: absolute;
+  left: 39.87%;
+  top: 15.29%;
+  right: 5%;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.battle-skill__stat {
+  position: absolute;
+  left: 39.87%;
+  right: 7%;
+  display: grid;
+  grid-template-columns: 41.6% minmax(0, 1fr);
   align-items: center;
+  font-size: 15px;
+  line-height: 19px;
 }
-.battle-skill .text-sm {
-  font-size: 12px;
+.battle-skill__stat--power {
+  top: 40.59%;
 }
-.battle-skill .text-orange-500,
-.battle-skill .text-green-300 {
-  color: var(--battle-muted);
+.battle-skill__stat--rage {
+  top: 66.47%;
 }
-.battle-skill .text-yellow-300 {
-  color: var(--battle-gold);
+.battle-skill__stat :deep(span) {
+  font-size: inherit;
+  line-height: inherit;
 }
-.battle-skill .mb-2 {
-  margin-bottom: 4px;
-}
-.battle-skill--climax .text-base {
-  color: var(--battle-gold);
+.battle-skill--climax {
+  box-shadow:
+    0 0 9px #38bdf870,
+    inset 0 0 12px #38bdf830;
 }
 .battle-skill--climax:not(:disabled) {
-  filter: drop-shadow(0 0 4px #f4c56a20);
+  animation: climax-blue-glow 2.4s ease-in-out infinite;
+}
+.battle-skill--climax .battle-skill__name {
+  color: #c4f5ff;
+  text-shadow:
+    0 0 6px #38bdf8,
+    0 0 12px #0284c7;
+}
+.battle-skill__particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.battle-skill__particle {
+  position: absolute;
+  left: calc(8% + var(--particle) * 10%);
+  bottom: 3%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #b9f6ff;
+  box-shadow:
+    0 0 4px #38bdf8,
+    0 0 8px #0284c7;
+  opacity: 0;
+  animation: climax-blue-particle 2.8s ease-out infinite;
+  animation-delay: calc(var(--particle) * -0.35s);
+}
+@keyframes climax-blue-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 9px #38bdf870,
+      inset 0 0 12px #38bdf830;
+  }
+  50% {
+    box-shadow:
+      0 0 17px #38bdf8a0,
+      inset 0 0 18px #38bdf850;
+  }
+}
+@keyframes climax-blue-particle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(8px, -85px) scale(0.2);
+  }
+}
+:global(.battle-shell[data-motion='simple'] .battle-skill__particle),
+:global(.battle-shell[data-motion='reduced'] .battle-skill__particle) {
+  display: none;
+}
+:global(.battle-shell[data-motion='simple'] .battle-skill--climax),
+:global(.battle-shell[data-motion='reduced'] .battle-skill--climax) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-skill__particle {
+    display: none;
+  }
+  .battle-skill--climax {
+    animation: none;
+  }
 }
 </style>

@@ -34,18 +34,24 @@ for (const category of [Category.Physical, Category.Climax]) {
         props: { skill: { ...skill, category } },
         global: {
           stubs: {
-            Tooltip: { template: '<div><slot name="trigger" /></div>' },
+            Tooltip: { template: '<div><slot name="trigger" /><slot /></div>' },
             ModifiedValue: { props: ['value'], template: '<span>{{ value }}</span>' },
           },
         },
       })
       const button = wrapper.get('button')
       expect(button.text()).toContain('测试技能')
-      for (const value of ['125', '30', '95']) expect(button.text()).toContain(value)
+      for (const value of ['125', '30']) expect(button.text()).toContain(value)
+      expect(button.text()).not.toContain('命中')
+      expect(button.text()).not.toContain('95')
+      expect(wrapper.text()).toContain('命中')
+      expect(wrapper.text()).toContain('95')
       expect(button.attributes('aria-label')).toContain('命中 95')
+      expect(wrapper.findAll('.battle-skill__particle')).toHaveLength(category === Category.Climax ? 8 : 0)
       await button.trigger('click')
       expect(wrapper.emitted('click')).toEqual([['test']])
       await wrapper.setProps({ disabled: true })
+      expect(wrapper.findAll('.battle-skill__particle')).toHaveLength(0)
       await button.trigger('click')
       expect(wrapper.emitted('click')).toHaveLength(1)
     })

@@ -56,7 +56,10 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
           :style="{ transform: `scaleX(${health})` }"
         ></div>
         <span class="battle-bars__value"
-          ><ModifiedValue :value="current" :attribute-info="currentHpModifierInfo" size="sm" inline /> /
+          ><ModifiedValue :value="current" :attribute-info="currentHpModifierInfo" size="sm" inline /><span
+            class="battle-bars__slash"
+            >/</span
+          >
           <ModifiedValue :value="max" :attribute-info="maxHpModifierInfo" size="sm" inline
         /></span>
       </div>
@@ -74,7 +77,10 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
       >
         <div class="battle-bars__fill battle-bars__fill--rage" :style="{ transform: `scaleX(${rageRatio})` }"></div>
         <span class="battle-bars__value"
-          ><ModifiedValue :value="rage" :attribute-info="rageModifierInfo" size="sm" inline /> /
+          ><ModifiedValue :value="rage" :attribute-info="rageModifierInfo" size="sm" inline /><span
+            class="battle-bars__slash"
+            >/</span
+          >
           <ModifiedValue :value="maxRage" :attribute-info="maxRageModifierInfo" size="sm" inline
         /></span>
       </div>
@@ -93,8 +99,10 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
   gap: 6px;
 }
 .battle-bars__label {
-  color: var(--battle-muted);
-  font-size: 10px;
+  color: var(--battle-hp);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
   width: 18px;
   flex: none;
 }
@@ -112,7 +120,7 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
   inset: 0;
   transform-origin: left;
   transition: transform 0.28s ease;
-  background: var(--battle-hp);
+  background: linear-gradient(#afff78, #67e73b 45%, #50b72e);
 }
 .battle-bars__trail {
   background: var(--battle-gold);
@@ -122,20 +130,45 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
   background: var(--battle-danger);
 }
 .battle-bars__fill--rage {
-  background: var(--battle-gold);
+  background: linear-gradient(#ffbc62, #ff4a24 50%, #b81e13);
 }
 .battle-bars__value {
   position: absolute;
   inset: 0;
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr);
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
+  column-gap: 4px;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 1px;
   color: #fff;
   text-shadow:
     0 1px 3px #000,
     0 0 4px #000;
+}
+.battle-bars__value > :first-child {
+  text-align: right;
+}
+.battle-bars__value > :last-child {
+  text-align: left;
+}
+.battle-bars__value :deep(span) {
+  font-size: inherit;
+  line-height: 1;
+}
+.battle-bars__slash {
+  text-align: center;
+}
+.battle-bars__row--rage .battle-bars__label {
+  color: #ff9b4c;
+}
+.battle-bars--reverse .battle-bars__row {
+  flex-direction: row-reverse;
+}
+.battle-bars--reverse .battle-bars__track {
+  clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%);
 }
 .battle-bars__row--rage .battle-bars__track {
   height: 17px;

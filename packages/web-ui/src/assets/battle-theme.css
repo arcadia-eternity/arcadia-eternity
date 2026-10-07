@@ -7,15 +7,15 @@
   background: #07111d;
 }
 .battle-shell {
-  --battle-void: #07111d;
-  --battle-panel: #0c1b2a;
-  --battle-panel-soft: #152b3b;
-  --battle-line: #365368;
-  --battle-cyan: #66d9ed;
-  --battle-gold: #f4c56a;
+  --battle-void: #030e18;
+  --battle-panel: #0e1525;
+  --battle-panel-soft: #203443;
+  --battle-line: #718798;
+  --battle-cyan: #66ffff;
+  --battle-gold: #f4ec8a;
   --battle-text: #eef6fa;
   --battle-muted: #a3bac9;
-  --battle-hp: #82d7a1;
+  --battle-hp: #65e337;
   --battle-danger: #f58888;
   color: var(--battle-text);
   background: var(--battle-void);
@@ -61,7 +61,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, #07111d55, transparent 30%, transparent 70%, #07111d70);
+  background: linear-gradient(180deg, #030e1820, transparent 22%, transparent 80%, #030e1830);
 }
 .battle-hud {
   position: absolute;
@@ -154,8 +154,11 @@
   min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--battle-line);
-  border-radius: 3px;
-  background: var(--battle-panel);
+  border-radius: 8px;
+  background: linear-gradient(155deg, #42616c80, transparent 48%), var(--battle-panel);
+  box-shadow:
+    inset 0 1px 0 #cfffff60,
+    inset 0 -1px 0 #0009;
   color: var(--battle-muted);
   font-size: 13px;
   cursor: pointer;
@@ -202,8 +205,8 @@
   grid-template-rows: 46px minmax(120px, auto);
   gap: 10px 14px;
   padding: 10px 18px 14px;
-  background: linear-gradient(180deg, var(--battle-panel-soft), var(--battle-void));
-  border-top: 1px solid var(--battle-line);
+  background: url('./battle/command-chrome.svg') center / 100% 100% no-repeat;
+  border-top: 0;
 }
 .battle-dock--log {
   grid-template-columns: 300px minmax(0, 1fr) 130px;
@@ -318,11 +321,11 @@
   inset: 0;
   background-position: center;
   background-size: cover;
-  opacity: 0.12;
+  opacity: 1;
 }
 .battle-loading__content {
   position: relative;
-  width: min(900px, 100%);
+  width: min(1100px, 100%);
   text-align: center;
 }
 .battle-loading__eyebrow {
@@ -333,6 +336,8 @@
 .battle-loading h1 {
   margin: 10px 0 38px;
   font-size: 28px;
+  color: var(--battle-cyan);
+  text-shadow: 0 0 12px #00eaff60;
   letter-spacing: 0.16em;
 }
 .battle-loading__versus {
@@ -416,14 +421,18 @@
   margin-bottom: 10px;
 }
 .battle-loading__track {
-  height: 4px;
+  height: 12px;
+  border: 1px solid #66ffff80;
+  border-radius: 4px;
+  padding: 2px;
   overflow: hidden;
-  background: var(--battle-panel-soft);
+  background: #001e2b;
 }
 .battle-loading__track > div {
   width: 100%;
   height: 100%;
-  background: var(--battle-cyan);
+  background: linear-gradient(#ccffff, #00e5ef);
+  box-shadow: 0 0 10px #00e5ef90;
   transform-origin: left;
   transition: transform 0.25s ease;
 }
@@ -506,7 +515,7 @@
   z-index: 20;
   background: linear-gradient(90deg, var(--battle-panel), #0c1b2a22);
   color: var(--battle-cyan);
-  border-left: 3px solid var(--battle-cyan);
+  border-left: 0;
   padding: 12px 24px;
   min-width: 240px;
   font-size: 22px;
@@ -518,7 +527,7 @@
 .battle-skill-callout--right {
   right: 0;
   border-left: 0;
-  border-right: 3px solid var(--battle-cyan);
+  border-right: 0;
   background: linear-gradient(270deg, var(--battle-panel), #0c1b2a22);
 }
 .battle-shell[data-motion='reduced'] *,
@@ -549,5 +558,67 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #07111d70, transparent 40%, #07111d30 80%, #07111d90);
+  background: linear-gradient(180deg, #030e1820, transparent 30%, transparent 80%, #030e1830);
+}
+
+/* Shared chrome and fixed canvas coordinates follow the reference Flash UI. */
+.battle-hud__center {
+  background: linear-gradient(155deg, #304c5f, #0e1525 60%);
+  border: 2px solid #abc6d0;
+  border-radius: 0 0 12px 12px;
+  box-shadow:
+    inset 0 0 0 2px #15212f,
+    0 0 0 1px #111;
+}
+.battle-hud__round {
+  color: #00f5ff;
+  font-size: 21px;
+  font-weight: 800;
+  text-shadow: 0 2px #00353a;
+}
+.battle-loading__pet:first-child {
+  width: 84px;
+  height: 84px;
+  border: 1px solid #66ffff;
+  border-radius: 10px;
+  box-shadow: inset 0 0 14px #66ffff30;
+}
+.battle-loading__pets {
+  align-items: center;
+}
+.battle-loading__team {
+  background: linear-gradient(150deg, #1d596c80, #051523a0);
+  border-radius: 12px;
+}
+.battle-loading__team h2 {
+  color: #66ffff;
+}
+.battle-skill-callout {
+  background: linear-gradient(90deg, #00313ad9, #00313a00);
+  color: #66ffff;
+  text-shadow: 0 1px 2px #000;
+  font-style: italic;
+}
+.battle-skill-callout--right {
+  background: linear-gradient(270deg, #00313ad9, #00313a00);
+}
+
+.battle-loading__scan {
+  position: absolute;
+  width: 720px;
+  height: 720px;
+  left: calc(50% - 360px);
+  top: calc(50% - 360px);
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(transparent 300deg, #66ffff18 359deg, transparent 360deg);
+  animation: battle-radar 8s linear infinite;
+}
+@keyframes battle-radar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.battle-shell[data-motion='simple'] .battle-loading__scan {
+  animation: none;
 }
