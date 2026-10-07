@@ -60,6 +60,12 @@ function hasRufflePlayer(): boolean {
 function waitForScriptLoad(script: HTMLScriptElement): Promise<void> {
   return new Promise((resolve, reject) => {
     const onLoad = () => {
+      if (!hasRufflePlayer()) {
+        cleanup()
+        script.remove()
+        reject(new Error('Ruffle player API unavailable after script load'))
+        return
+      }
       script.dataset.arcadiaRuffleLoaded = 'true'
       cleanup()
       resolve()
@@ -86,7 +92,11 @@ async function loadRuffleScript(): Promise<void> {
 
   const existing = document.querySelector(RUFFLE_SCRIPT_SELECTOR)
   if (existing instanceof HTMLScriptElement) {
-    if (existing.dataset.arcadiaRuffleLoaded === 'true' || hasRufflePlayer()) return
+    if (hasRufflePlayer()) return
+    if (existing.dataset.arcadiaRuffleLoaded === 'true') {
+      existing.remove()
+      throw new Error('Ruffle player API unavailable after script load')
+    }
     await waitForScriptLoad(existing)
     return
   }
@@ -105,6 +115,10 @@ export async function ensureRuffleRuntime(): Promise<void> {
   if (!loadPromise) {
     loadPromise = loadRuffleScript().catch(error => {
       loadPromise = null
+      // A config-only placeholder must not look like a loaded runtime to pet-render.
+      if (!hasRufflePlayer()) {
+        delete (window as Window & { RufflePlayer?: unknown }).RufflePlayer
+      }
       throw error
     })
   }
