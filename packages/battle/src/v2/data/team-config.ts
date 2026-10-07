@@ -5,8 +5,8 @@ import { Type, type Static } from '@sinclair/typebox'
 import { StringEnum } from '../schemas/utils.js'
 import { Nature, Gender } from '@arcadia-eternity/const'
 
-const NatureValues = Object.values(Nature) as [string, ...string[]]
-const GenderValues = Object.values(Gender) as [string, ...string[]]
+const NatureValues = Object.values(Nature) as Nature[]
+const GenderValues = Object.values(Gender) as Gender[]
 
 export const StatOutBattleSchema = Type.Object({
   hp: Type.Number(),

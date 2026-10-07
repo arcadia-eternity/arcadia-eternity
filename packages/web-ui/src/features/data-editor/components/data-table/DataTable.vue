@@ -259,12 +259,18 @@ function handleRowClick(recordId: string) {
 
 const selectedCount = computed(() => table.getFilteredSelectedRowModel().rows.length)
 const totalCount = computed(() => table.getFilteredRowModel().rows.length)
+const selectedIds = computed(() => table.getFilteredSelectedRowModel().rows.map(r => r.original.id as string))
 </script>
 
 <template>
   <div class="data-table-container">
     <!-- Toolbar -->
-    <DataTableToolbar :entity-type="entityType" :record-count="totalCount" :selected-count="selectedCount" />
+    <DataTableToolbar
+      :entity-type="entityType"
+      :record-count="totalCount"
+      :selected-count="selectedCount"
+      :selected-ids="selectedIds"
+    />
 
     <!-- Table scroll area -->
     <div class="data-table-scroll">

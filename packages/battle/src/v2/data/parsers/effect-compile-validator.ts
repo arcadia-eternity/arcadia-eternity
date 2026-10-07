@@ -4,10 +4,13 @@ import {
   evaluatorDSLSchema,
   operatorDSLSchema,
   extractDslTypingMetadata,
+  effectDSLSchema,
   type EffectDslFieldTypingRule,
   type EffectDslStateConstraint,
   type ExtractorValueType,
+  type StringEnumOption,
 } from '@arcadia-eternity/schema'
+import { Value } from '@sinclair/typebox/value'
 import type { TSchema } from '@sinclair/typebox'
 export type CompileOwner = string
 export type CompileScalarType = 'number' | 'string' | 'boolean' | 'unknown'
@@ -23,7 +26,7 @@ export type CompileObjectClass =
   | 'json:record'
 
 export type CompileValueState =
-  | { kind: 'scalar'; valueType: CompileScalarType }
+  | { kind: 'scalar'; valueType: CompileScalarType; stringEnumOptions?: readonly StringEnumOption[] }
   | { kind: 'object'; objectClass: CompileObjectClass; owner?: CompileOwner; path?: string }
 
 export type CompileState =
@@ -60,11 +63,13 @@ export type EffectCompileExtractorRegistry = {
     key: string
     owners: readonly string[]
     valueType: ExtractorValueType
+    enumOptions?: readonly StringEnumOption[]
   }>
   fields: Array<{
     path: string
     owners: readonly string[]
     valueType: ExtractorValueType
+    enumOptions?: readonly StringEnumOption[]
   }>
   relations: Array<{
     key: string
@@ -155,8 +160,15 @@ export function createPathObjectState(owner: CompileOwner, path: string): Compil
   }
 }
 
-export function createScalarValueState(valueType: CompileScalarType): CompileValueState {
-  return { kind: 'scalar', valueType }
+export function createScalarValueState(
+  valueType: CompileScalarType,
+  stringEnumOptions?: readonly StringEnumOption[],
+): CompileValueState {
+  const state: CompileValueState & { kind: 'scalar' } = { kind: 'scalar', valueType }
+  if (stringEnumOptions && stringEnumOptions.length > 0) {
+    state.stringEnumOptions = stringEnumOptions
+  }
+  return state
 }
 
 function createCompileTypingContext(environment: EffectCompileTypingEnvironment): CompileTypingContext {
@@ -173,7 +185,7 @@ function createCompileTypingContext(environment: EffectCompileTypingEnvironment)
         attributeTypesByOwner,
         owner as CompileOwner,
         attr.key,
-        stateFromExtractorValueType(attr.valueType, owner as CompileOwner, attr.key),
+        stateFromExtractorValueType(attr.valueType, owner as CompileOwner, attr.key, attr.enumOptions),
       )
     }
   }
@@ -197,7 +209,7 @@ function createCompileTypingContext(environment: EffectCompileTypingEnvironment)
         fieldTypesByOwner,
         owner as CompileOwner,
         field.path,
-        stateFromExtractorValueType(field.valueType, owner as CompileOwner, field.path),
+        stateFromExtractorValueType(field.valueType, owner as CompileOwner, field.path, field.enumOptions),
       )
     }
   }
@@ -232,6 +244,23 @@ function createCompileTypingContext(environment: EffectCompileTypingEnvironment)
         key,
         states.map(state => ({ ...state })),
       )
+    }
+  }
+
+  // Merge enumOptions from schema-derived field types into matching attribute types.
+  // System-declared attributes (pet/skill/mark/player systems) have priority for valueType
+  // but schema-derived fields carry stringEnumOptions (e.g. Category, DamageType enums).
+  for (const [owner, attrMap] of attributeTypesByOwner) {
+    const fieldMap = fieldTypesByOwner.get(owner)
+    if (!fieldMap) continue
+    for (const [key, attrState] of attrMap) {
+      if (attrState.kind !== 'scalar' || attrState.stringEnumOptions) continue
+      const fieldState = fieldMap.get(key)
+      if (fieldState?.kind === 'scalar' && fieldState.stringEnumOptions && fieldState.stringEnumOptions.length > 0) {
+        // Merge enum options into attribute state: keep the attribute's valueType but adopt field's enum options
+        ;(attrState as { stringEnumOptions?: readonly StringEnumOption[] }).stringEnumOptions =
+          fieldState.stringEnumOptions
+      }
     }
   }
 
@@ -279,20 +308,21 @@ function stateFromExtractorValueType(
   valueType: ExtractorValueType,
   owner: CompileOwner,
   path: string,
+  enumOptions?: readonly StringEnumOption[],
 ): CompileValueState {
   switch (valueType) {
     case 'number':
-      return { kind: 'scalar', valueType: 'number' }
+      return createScalarValueState('number')
     case 'string':
     case 'id':
-      return { kind: 'scalar', valueType: 'string' }
+      return createScalarValueState('string', enumOptions)
     case 'boolean':
-      return { kind: 'scalar', valueType: 'boolean' }
+      return createScalarValueState('boolean')
     case 'id[]':
     case 'object':
       return createPathObjectState(owner, path)
     default:
-      return { kind: 'scalar', valueType: 'unknown' }
+      return createScalarValueState('unknown')
   }
 }
 
@@ -332,12 +362,27 @@ type SchemaFieldMeta = {
 function inferValueStateFromSchema(owner: CompileOwner, path: string, schema: unknown): CompileValueState {
   const node = asNode(schema)
   const type = typeof node?.type === 'string' ? node.type : undefined
-  if (type === 'number' || type === 'integer') return { kind: 'scalar', valueType: 'number' }
-  if (type === 'string') return { kind: 'scalar', valueType: 'string' }
-  if (type === 'boolean') return { kind: 'scalar', valueType: 'boolean' }
+  if (type === 'number' || type === 'integer') return createScalarValueState('number')
+  if (type === 'string') return createScalarValueState('string')
+  if (type === 'boolean') return createScalarValueState('boolean')
   if (type === 'array' || type === 'object') return createPathObjectState(owner, path)
   const variants = [...(node?.anyOf ?? []), ...(node?.oneOf ?? [])]
   if (variants.length > 0) {
+    // Detect string enum: all variants are string literals with const values
+    const enumOptions: StringEnumOption[] = []
+    let isStringEnum = true
+    for (const variant of variants) {
+      const v = asNode(variant)
+      if (!v || v.type !== 'string' || typeof v.const !== 'string') {
+        isStringEnum = false
+        break
+      }
+      enumOptions.push({ value: v.const, label: v.const })
+    }
+    if (isStringEnum) {
+      return createScalarValueState('string', enumOptions)
+    }
+
     const inferred = variants.map(variant => inferValueStateFromSchema(owner, path, variant))
     const first = inferred[0]
     if (first) {
@@ -349,7 +394,7 @@ function inferValueStateFromSchema(owner: CompileOwner, path: string, schema: un
       }
     }
   }
-  return { kind: 'scalar', valueType: 'unknown' }
+  return createScalarValueState('unknown')
 }
 
 function collectSchemaFields(
@@ -625,11 +670,7 @@ function dedupeStates(states: CompileState[]): CompileState[] {
   return out
 }
 
-function baseSelectorStates(base: string, at: string): CompileState[] {
-  const runtimeStates = getCompileTypingContext().baseSelectorStateMap.get(base)
-  if (runtimeStates && runtimeStates.length > 0) {
-    return runtimeStates.map(state => ({ ...state }))
-  }
+export function defaultBaseSelectorStates(base: string): CompileState[] {
   switch (base) {
     case 'self':
     case 'opponent':
@@ -678,8 +719,20 @@ function baseSelectorStates(base: string, at: string): CompileState[] {
     case 'allPhases':
       return [{ kind: 'owner', owner: 'unknown' }]
     default:
-      throw new Error(`selector typing failed at ${at}: unknown base selector '${base}'`)
+      return []
   }
+}
+
+export function baseSelectorStates(base: string, at: string): CompileState[] {
+  const runtimeStates = getCompileTypingContext().baseSelectorStateMap.get(base)
+  if (runtimeStates && runtimeStates.length > 0) {
+    return runtimeStates.map(state => ({ ...state }))
+  }
+  const states = defaultBaseSelectorStates(base)
+  if (states.length === 0) {
+    throw new Error(`selector typing failed at ${at}: unknown base selector '${base}'`)
+  }
+  return states
 }
 
 function isSelectorRecord(value: unknown): boolean {
@@ -906,6 +959,105 @@ function validateChain(chain: unknown[], initialStates: CompileState[], at: stri
   return states
 }
 
+export type ResolveChainStepResult = { ok: true; states: CompileState[] } | { ok: false; error: string }
+
+export function resolveChainStep(states: CompileState[], step: unknown, at: string): ResolveChainStepResult {
+  try {
+    if (!isRecord(step) || typeof step.type !== 'string') {
+      return { ok: false, error: `链步骤格式无效` }
+    }
+
+    switch (step.type) {
+      case 'select': {
+        const extractorPath = normalizeExtractorPath(step.arg)
+        if (!extractorPath || extractorPath.length === 0) {
+          return { ok: false, error: `select 缺少有效的提取参数` }
+        }
+        const next = states.flatMap(state => resolvePathFromState(state, extractorPath, `${at}/arg`))
+        const deduped = dedupeStates(next)
+        if (deduped.length === 0) {
+          return { ok: false, error: `select '${extractorPath}' 在当前状态下无法解析` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'selectPath': {
+        const path = step.arg
+        if (typeof path !== 'string' || path.length === 0) {
+          return { ok: false, error: `selectPath 需要非空字符串参数` }
+        }
+        const next = states.flatMap(state => resolvePathFromState(state, path, `${at}/arg`))
+        const deduped = dedupeStates(next)
+        if (deduped.length === 0) {
+          return { ok: false, error: `selectPath '${path}' 在当前状态下无法解析` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'selectProp': {
+        const key = step.arg
+        if (typeof key !== 'string' || key.length === 0) {
+          return { ok: false, error: `selectProp 需要非空字符串参数` }
+        }
+        for (const state of states) {
+          if (state.kind === 'scalar' || state.kind === 'propertyRef') {
+            return { ok: false, error: `selectProp 无法应用于 ${formatState(state)}` }
+          }
+        }
+        return { ok: true, states: [{ kind: 'propertyRef' }] }
+      }
+
+      case 'selectAttribute$': {
+        const key = step.arg
+        if (typeof key !== 'string' || key.length === 0) {
+          return { ok: false, error: `selectAttribute$ 需要非空字符串参数` }
+        }
+        const next = states.flatMap(state => resolvePathFromState(state, key, `${at}/arg`))
+        const deduped = dedupeStates(next)
+        if (deduped.length === 0) {
+          return { ok: false, error: `selectAttribute$ '${key}' 在当前状态下无法解析` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'when': {
+        const trueStates = inferStatesFromValue(step.trueValue, `${at}/trueValue`)
+        const falseStates = 'falseValue' in step ? inferStatesFromValue(step.falseValue, `${at}/falseValue`) : []
+        const deduped = dedupeStates([...trueStates, ...falseStates])
+        if (deduped.length === 0) {
+          return { ok: false, error: `when 无法推断有效状态` }
+        }
+        return { ok: true, states: deduped }
+      }
+
+      case 'sum':
+      case 'avg':
+      case 'add':
+      case 'multiply':
+      case 'divide':
+      case 'sampleBetween':
+      case 'clampMax':
+      case 'clampMin':
+        return { ok: true, states: [{ kind: 'scalar', valueType: 'number' }] }
+
+      case 'selectObservable':
+      case 'configGet':
+        return { ok: true, states: [{ kind: 'scalar', valueType: 'unknown' }] }
+
+      case 'where':
+      case 'whereAttr':
+      case 'and':
+      case 'or':
+        return { ok: true, states }
+
+      default:
+        return { ok: true, states }
+    }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error' }
+  }
+}
+
 function inferStatesFromValue(value: unknown, at: string): CompileState[] {
   if (value === null || value === undefined) return [{ kind: 'scalar', valueType: 'unknown' }]
   if (typeof value === 'string') return [{ kind: 'scalar', valueType: 'string' }]
@@ -967,7 +1119,7 @@ function inferStatesFromValue(value: unknown, at: string): CompileState[] {
   return [{ kind: 'object', objectClass: 'json:record' }]
 }
 
-function formatState(state: CompileState): string {
+export function formatState(state: CompileState): string {
   if (state.kind === 'id') return `id(${state.target})`
   if (state.kind === 'owner') return `owner(${state.owner})`
   if (state.kind === 'scalar') return `scalar(${state.valueType})`
@@ -975,7 +1127,7 @@ function formatState(state: CompileState): string {
   return 'propertyRef'
 }
 
-function formatConstraint(constraint: EffectDslStateConstraint): string {
+export function formatConstraint(constraint: EffectDslStateConstraint): string {
   if (constraint.kind === 'id') {
     return constraint.targets && constraint.targets.length > 0 ? `id(${constraint.targets.join('|')})` : 'id(*)'
   }
@@ -993,7 +1145,7 @@ function formatConstraint(constraint: EffectDslStateConstraint): string {
   return 'propertyRef'
 }
 
-function stateMatchesConstraint(state: CompileState, constraint: EffectDslStateConstraint): boolean {
+export function stateMatchesConstraint(state: CompileState, constraint: EffectDslStateConstraint): boolean {
   if (state.kind !== constraint.kind) return false
   if (state.kind === 'id' && constraint.kind === 'id') {
     if (!constraint.targets || constraint.targets.length === 0) return true
@@ -1029,6 +1181,35 @@ function assertStatesMatchRule(states: CompileState[], rule: EffectDslFieldTypin
   }
 }
 
+function getStringEnumValues(rule: EffectDslFieldTypingRule): readonly StringEnumOption[] | undefined {
+  for (const constraint of rule.allow ?? []) {
+    if (constraint.kind === 'stringEnum' && constraint.values) {
+      return constraint.values
+    }
+  }
+  return undefined
+}
+
+function assertStringEnumValue(rawValue: unknown, rule: EffectDslFieldTypingRule, at: string): void {
+  const stringEnum = getStringEnumValues(rule)
+  if (!stringEnum) return
+
+  let value: string | undefined
+  if (typeof rawValue === 'string') {
+    value = rawValue
+  } else if (isRecord(rawValue) && rawValue.type === 'raw:string' && typeof rawValue.value === 'string') {
+    value = rawValue.value
+  }
+  if (value === undefined) return
+
+  const allowed = stringEnum.map(v => v.value)
+  if (!allowed.includes(value)) {
+    throw new Error(
+      `selector typing failed at ${at}: string value '${value}' is not in allowed enum [${allowed.join(', ')}]`,
+    )
+  }
+}
+
 function applyNodeTypingRules(
   at: string,
   node: Record<string, unknown> & { type: string },
@@ -1039,6 +1220,7 @@ function applyNodeTypingRules(
 
   for (const [field, rule] of Object.entries(rules.selectorFields ?? {})) {
     if (!(field in node)) continue
+    if (node[field] === undefined || node[field] === null) continue
     const states = validateSelectorNode(node[field], `${at}/${field}`)
     assertStatesMatchRule(states, rule, `${at}/${field}`)
     checked.add(field)
@@ -1046,6 +1228,7 @@ function applyNodeTypingRules(
 
   for (const [field, rule] of Object.entries(rules.valueFields ?? {})) {
     if (!(field in node)) continue
+    if (node[field] === undefined || node[field] === null) continue
     const states = inferStatesFromValue(node[field], `${at}/${field}`)
     assertStatesMatchRule(states, rule, `${at}/${field}`)
     checked.add(field)
@@ -1086,9 +1269,14 @@ function validateOperatorNode(operator: unknown, at: string): void {
     return
   }
   const node = operator as Record<string, unknown> & { type: string }
-  const checked = applyNodeTypingRules(at, node, getCompileTypingContext().operatorTypingRules[node.type])
+  const rules = getCompileTypingContext().operatorTypingRules[node.type]
+  const checked = applyNodeTypingRules(at, node, rules)
   for (const [key, value] of Object.entries(node)) {
-    if (checked.has(key)) continue
+    if (checked.has(key)) {
+      const fieldRule = rules?.valueFields?.[key]
+      if (fieldRule) assertStringEnumValue(value, fieldRule, `${at}/${key}`)
+      continue
+    }
     walkNode(value, `${at}/${key}`)
   }
 }
@@ -1168,6 +1356,75 @@ function validateEffectCompileTypingRaw(raw: Record<string, unknown>): void {
   }
 }
 
+export type ValidateAgainstRuleResult = { ok: true } | { ok: false; error: string }
+
+export type SelectorValidator = {
+  getBaseStates: (base: string) => CompileState[]
+  resolveStep: (states: CompileState[], step: unknown, at: string) => ResolveChainStepResult
+  getValidKeys: (states: CompileState[]) => Set<string>
+  validateAgainstRule: (states: CompileState[], rule: EffectDslFieldTypingRule) => ValidateAgainstRuleResult
+  inferValueStates: (value: unknown) => CompileState[]
+}
+
+export function createSelectorValidator(environment: EffectCompileTypingEnvironment): SelectorValidator {
+  const context = createCompileTypingContext(environment)
+  return {
+    getBaseStates: (base: string) => withCompileTypingContext(context, () => baseSelectorStates(base, '/base')),
+    resolveStep: (states: CompileState[], step: unknown, at: string) =>
+      withCompileTypingContext(context, () => resolveChainStep(states, step, at)),
+    getValidKeys: (states: CompileState[]) =>
+      withCompileTypingContext(context, () => {
+        if (states.length === 0) return new Set<string>()
+        const keys = new Set<string>()
+
+        const candidates = new Set<string>()
+        for (const state of states) {
+          let owner: CompileOwner
+          if (state.kind === 'id') owner = state.target
+          else if (state.kind === 'owner') owner = state.owner
+          else continue
+
+          const attrs = context.attributeKeysByOwner.get(owner)
+          if (attrs) for (const k of attrs) candidates.add(k)
+          const fields = context.fieldPathsByOwner.get(owner)
+          if (fields) for (const k of fields) if (!k.includes('.')) candidates.add(k)
+          const rels = context.relationByOwner.get(owner)
+          if (rels) for (const k of rels.keys()) candidates.add(k)
+        }
+
+        for (const key of candidates) {
+          try {
+            const result = resolveChainStep(states, { type: 'select', arg: key }, '/test')
+            if (result.ok) keys.add(key)
+          } catch {
+            // skip
+          }
+        }
+        return keys
+      }),
+    validateAgainstRule: (states: CompileState[], rule: EffectDslFieldTypingRule) =>
+      withCompileTypingContext(context, () => {
+        try {
+          assertStatesMatchRule(states, rule, '/rule')
+          return { ok: true as const }
+        } catch (e) {
+          return {
+            ok: false as const,
+            error: e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error',
+          }
+        }
+      }),
+    inferValueStates: (value: unknown) =>
+      withCompileTypingContext(context, () => {
+        try {
+          return inferStatesFromValue(value, '/value')
+        } catch {
+          return [{ kind: 'scalar' as const, valueType: 'unknown' as const }]
+        }
+      }),
+  }
+}
+
 export function createEffectCompileTypingValidator(
   environment: EffectCompileTypingEnvironment,
 ): (raw: Record<string, unknown>) => void {
@@ -1185,4 +1442,114 @@ export function validateEffectCompileTyping(
 ): void {
   const validate = createEffectCompileTypingValidator(environment)
   validate(raw)
+}
+
+export type EffectValidationLevel = 'error' | 'warning'
+
+export interface EffectValidationResult {
+  level: EffectValidationLevel
+  path: string
+  message: string
+  category?: 'schema' | 'typing' | 'reference'
+}
+
+export interface EffectValidationReferences {
+  readonly marks: ReadonlySet<string>
+  readonly skills: ReadonlySet<string>
+  readonly species: ReadonlySet<string>
+  readonly effects: ReadonlySet<string>
+}
+
+function checkEntityReferences(
+  obj: unknown,
+  refs: EffectValidationReferences,
+  path: string,
+  results: EffectValidationResult[],
+): void {
+  if (!obj || typeof obj !== 'object') return
+  if (Array.isArray(obj)) {
+    obj.forEach((item, i) => checkEntityReferences(item, refs, `${path}[${i}]`, results))
+    return
+  }
+  const record = obj as Record<string, unknown>
+
+  if (record.type === 'entity:baseMark' && typeof record.value === 'string') {
+    if (!refs.marks.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的标记 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+  if (record.type === 'entity:baseSkill' && typeof record.value === 'string') {
+    if (!refs.skills.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的技能 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+  if (record.type === 'entity:species' && typeof record.value === 'string') {
+    if (!refs.species.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的物种 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+  if (record.type === 'entity:effect' && typeof record.value === 'string') {
+    if (!refs.effects.has(record.value)) {
+      results.push({ level: 'error', path, message: `引用的效果 "${record.value}" 不存在`, category: 'reference' })
+    }
+  }
+
+  for (const [key, val] of Object.entries(record)) {
+    if (typeof val === 'object' && val !== null) {
+      checkEntityReferences(val, refs, `${path}.${key}`, results)
+    }
+  }
+}
+
+/**
+ * Unified effect validation covering structure, typing, and references.
+ * Used by both the CLI/server and the web editor.
+ */
+export function validateEffect(
+  raw: Record<string, unknown>,
+  environment: EffectCompileTypingEnvironment,
+  references?: EffectValidationReferences,
+): EffectValidationResult[] {
+  const results: EffectValidationResult[] = []
+
+  try {
+    if (!Value.Check(effectDSLSchema, raw)) {
+      for (const err of [...Value.Errors(effectDSLSchema, raw)].slice(0, 20)) {
+        results.push({
+          level: 'error',
+          path: String(err.path).replace(/^\//, '').replace(/\//g, '.'),
+          message: err.message,
+          category: 'schema',
+        })
+      }
+    }
+  } catch (e) {
+    results.push({
+      level: 'error',
+      path: '',
+      message: `Schema validation error: ${e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown schema error'}`,
+      category: 'schema',
+    })
+  }
+
+  // Layer 2 — compile typing (single error; full collection needs walker refactor)
+  try {
+    validateEffectCompileTyping(raw, environment)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown typing error'
+    const atMatch = msg.match(/selector typing failed at (\/?\S+?)[\s:]/)
+    results.push({
+      level: 'warning',
+      path: atMatch ? atMatch[1] : '',
+      message: atMatch ? msg.slice(msg.indexOf(atMatch[1]) + atMatch[1].length).replace(/^[\s:]+/, '') : msg,
+      category: 'typing',
+    })
+  }
+
+  if (references) {
+    if ('apply' in raw) checkEntityReferences(raw.apply, references, 'apply', results)
+    if ('condition' in raw) checkEntityReferences(raw.condition, references, 'condition', results)
+  }
+
+  return results
 }

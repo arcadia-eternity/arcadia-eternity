@@ -13,6 +13,7 @@ import koImage from '@/assets/images/ko.png'
 import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
 import { useBattleAnimations } from '@/composition/useBattleAnimations'
+import { AnimationController } from '@/composition/animationController'
 import { useMobile } from '@/composition/useMobile'
 import { petResourceCache } from '@/services/petResourceCache'
 import { useScreenOrientation, useFullscreen } from '@vueuse/core'
@@ -31,6 +32,7 @@ import {
   BattlePhase,
   BattleStatus as BattleStatusEnum,
   Category,
+  DamageType,
   ELEMENT_CHART,
   type BattleMessage,
   type BattleState,
@@ -76,6 +78,7 @@ import {
   toArray,
 } from 'rxjs'
 import { ActionState } from 'seer2-pet-animator'
+import type { Delta } from 'jsondiffpatch'
 import {
   computed,
   h,
@@ -141,6 +144,34 @@ const resourceStore = useResourceStore()
 const gameSettingStore = useGameSettingStore()
 const battleViewStore = useBattleViewStore()
 const battleClientStore = useBattleClientStore()
+
+// AnimationController - lazily instantiated in onMounted to avoid Vue reactive() issues
+let animationController: AnimationController | null = null
+
+// GSAP routing helpers - route through controller.gsapManager when available
+let gsapIdCounter = 0
+function gsapTo(target: gsap.TweenTarget, config: gsap.TweenVars): gsap.core.Tween {
+  if (animationController?.gsapManager) {
+    return animationController.gsapManager.createTween(target, { ...config, id: `tw-${++gsapIdCounter}` })
+  }
+  return gsap.to(target, config)
+}
+function gsapSet(target: gsap.TweenTarget, config: gsap.TweenVars): void {
+  if (animationController?.gsapManager) {
+    animationController.gsapManager.createTween(target, { ...config, duration: 0, id: `st-${++gsapIdCounter}` })
+    return
+  }
+  gsap.set(target, config)
+}
+function gsapTimeline(config?: gsap.TimelineVars): gsap.core.Timeline {
+  if (animationController?.gsapManager) {
+    return animationController.gsapManager.createTimeline({
+      ...config,
+      id: `tl-${++gsapIdCounter}`,
+    } as gsap.TimelineVars & { id: string })
+  }
+  return gsap.timeline(config)
+}
 
 // 自适应缩放相关
 const battleContainerRef = useTemplateRef('battleContainerRef')
@@ -530,6 +561,7 @@ const {
   opponentPlayer,
   battleViewScale,
   backgroundContainerRef as Ref<HTMLElement | null>,
+  animationController?.gsapManager,
 )
 
 const leftActiveSpecies = computed(() => {
@@ -1531,7 +1563,7 @@ async function animatePetTransition(
   onCompleteCallback?: () => void,
 ) {
   if (petSprite && petSprite.$el && (targetOpacity === 0 ? petSprite.$el.offsetParent !== null : true)) {
-    return gsap.to(petSprite.$el, {
+    return gsapTo(petSprite.$el, {
       x: targetX,
       opacity: targetOpacity,
       duration,
@@ -1580,7 +1612,7 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     await newPetReadyPromise
   }
 
-  gsap.set(newPetSprite.$el, { x: offScreenX, opacity: 0 })
+  gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
   const newPetInfo = store.getPetById(toPetId)
   const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
   if (newPetSpeciesNum !== 0) {
@@ -1631,6 +1663,16 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   // 根据技能类别设置预期动画时长：climax技能20秒，其他技能5秒
   const expectedDuration = category === Category.Climax ? 20000 : 5000
+
+  // Begin animation tracking in the state machine
+  animationController?.beginAnimation({
+    messageType: BattleMessageType.SkillUse,
+    side,
+    skillId: useSkill.data.skill,
+    petId: useSkill.data.user,
+    sequenceId: useSkill.sequenceId ?? -1,
+    expectedDuration,
+  })
 
   // 开始动画追踪（仅在非回放模式下）
   let animationId: string | null = null
@@ -1747,38 +1789,73 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   }
   source.setState(state)
 
+  // Primary: mitt event-driven. Fallback: controller timeout (handles Transform, disconnection)
   const hitPromise = new Promise<void>(resolve => {
+    let resolved = false
     const handler = (hitSide: 'left' | 'right') => {
-      if (hitSide === side) {
+      if (hitSide === side && !resolved) {
+        resolved = true
         emitter.off('attack-hit', handler)
         resolve()
       }
     }
-    setTimeout(async () => {
-      const currentState = await source.getState()
-      if (![ActionState.IDLE, ActionState.DEAD, ActionState.ABOUT_TO_DIE].includes(currentState)) return
-      resolve()
-    }, expectedDuration)
     emitter.on('attack-hit', handler)
+    if (animationController) {
+      animationController.waitForHit(source, category).then(() => {
+        if (!resolved) {
+          resolved = true
+          emitter.off('attack-hit', handler)
+          resolve()
+        }
+      })
+    } else {
+      setTimeout(async () => {
+        if (resolved) return
+        try {
+          const s = await source.getState()
+          if (s && ![ActionState.IDLE, ActionState.DEAD, ActionState.ABOUT_TO_DIE].includes(s)) return
+        } catch {}
+        resolved = true
+        emitter.off('attack-hit', handler)
+        resolve()
+      }, expectedDuration)
+    }
   })
 
   const animateCompletePromise = new Promise<void>(resolve => {
+    let resolved = false
     const handler = (completeSide: 'left' | 'right') => {
-      if (completeSide === side) {
+      if (completeSide === side && !resolved) {
+        resolved = true
         emitter.off('animation-complete', handler)
         resolve()
       }
     }
-    setTimeout(async () => {
-      const currentState = await source.getState()
-      if (![ActionState.IDLE, ActionState.DEAD, ActionState.ABOUT_TO_DIE].includes(currentState)) return
-      resolve()
-    }, expectedDuration)
     emitter.on('animation-complete', handler)
+    if (animationController) {
+      animationController.waitForAnimationComplete(source, category).then(() => {
+        if (!resolved) {
+          resolved = true
+          emitter.off('animation-complete', handler)
+          resolve()
+        }
+      })
+    } else {
+      setTimeout(async () => {
+        if (resolved) return
+        try {
+          const s = await source.getState()
+          if (s && ![ActionState.IDLE, ActionState.DEAD, ActionState.ABOUT_TO_DIE].includes(s)) return
+        } catch {}
+        resolved = true
+        emitter.off('animation-complete', handler)
+        resolve()
+      }, expectedDuration)
+    }
   })
 
   await hitPromise
-  if (category !== 'Climax' && !messages.some(msg => msg.type === BattleMessageType.SkillMiss))
+  if (category !== Category.Climax && !messages.some(msg => msg.type === BattleMessageType.SkillMiss))
     playSkillSound(baseSkillId)
 
   for (const msg of messages) {
@@ -1792,6 +1869,13 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
       await handleCombatEventMessage(msg as CombatEventMessageWithTarget, true)
     } else {
       await store.applyStateDelta(msg)
+      // Check if the delta contains a transform for the active pet
+      if (animationController && msg.data) {
+        const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet
+        if (activePetId) {
+          animationController.checkDeltaForTransform(msg.data as Delta, activePetId)
+        }
+      }
     }
   }
 
@@ -1853,7 +1937,8 @@ async function handleCombatEventMessage(message: CombatEventMessageWithTarget, i
         const isCriticalHealth = currentHp < maxHp * 0.25
         const isFromSelf = damageData.source === targetPetId
         const shouldSetPetAnimationState =
-          (!isFromSkillSequenceContext || (isFromSkillSequenceContext && damageData.damageType !== 'Effect')) &&
+          (!isFromSkillSequenceContext ||
+            (isFromSkillSequenceContext && (damageData as { damageType: string }).damageType !== DamageType.Effect)) &&
           !isFromSelf
 
         if (shouldSetPetAnimationState) {
@@ -1954,7 +2039,7 @@ const startClimaxScreenShake = () => {
   const shakeX = Math.cos(shakeAngle) * shakeIntensity
   const shakeY = Math.sin(shakeAngle) * shakeIntensity
 
-  const shakeAnimation = gsap.to(battleViewRef.value, {
+  const shakeAnimation = gsapTo(battleViewRef.value, {
     x: shakeX,
     y: shakeY,
     scale: currentScale,
@@ -1978,7 +2063,7 @@ const stopClimaxScreenShake = () => {
   }
 
   // 恢复到正确的状态
-  gsap.set(battleViewRef.value, {
+  gsapSet(battleViewRef.value, {
     x: 0,
     y: 0,
     scale: battleViewScale.value,
@@ -2028,15 +2113,19 @@ let messageSubscription: { unsubscribe: () => void } | null = null
 const animationQueue = store.animateQueue
 const animating = ref(false)
 
+// Subscribe to animation queue - tracks animation state via controller when available
 const animatesubscribe = animationQueue
   .pipe(
     concatMap(task =>
       from(task()).pipe(
         tap(() => {
           animating.value = true
+          animationController?.onAnimationPlaying()
         }),
         finalize(() => {
           animating.value = false
+          animationController?.onAnimationComplete()
+          animationController?.onAnimationCleanupDone()
         }),
         catchError(err => {
           console.error('动画执行失败:', err)
@@ -2070,7 +2159,7 @@ async function animatePetEntry(
   onCompleteCallback?: () => void,
 ) {
   if (petSprite && petSprite.$el) {
-    gsap.set(petSprite.$el, { x: initialX, opacity: 0 })
+    gsapSet(petSprite.$el, { x: initialX, opacity: 0 })
     return animatePetTransition(petSprite, targetX, 1, duration, 'power2.out', onCompleteCallback)
   }
   return Promise.resolve()
@@ -2156,6 +2245,10 @@ onMounted(async () => {
   // 初始化自适应缩放
   await nextTick() // 确保DOM已渲染
   initAdaptiveScaling()
+
+  // Lazily create AnimationController after DOM is ready
+  animationController = new AnimationController(store as never)
+  animationController.start()
 
   // VueUse的useFullscreen会自动处理全屏状态监听，无需手动添加事件监听器
 
@@ -2310,7 +2403,15 @@ const setupMessageSubscription = async () => {
               const task = async () => {
                 // 检查是否已经处理过这个技能序列
                 if (store.lastProcessedSequenceId >= (msg.sequenceId ?? -1)) return
-                await useSkillAnimate(messages)
+                // Skip animation if state machine is catching up or recovering
+                if (animationController?.stateMachine.shouldSkipAnimation) {
+                  // Still apply state deltas without animation
+                  for (const m of messages) {
+                    await store.applyStateDelta(m)
+                  }
+                } else {
+                  await useSkillAnimate(messages)
+                }
                 // 更新 store 的 lastProcessedSequenceId
                 const lastMessage = messages[messages.length - 1]
                 if (lastMessage.sequenceId !== undefined) {
@@ -2323,9 +2424,17 @@ const setupMessageSubscription = async () => {
         }
         const task = async () => {
           try {
+            // Skip animation if state machine is catching up or recovering
+            const shouldSkip = animationController?.stateMachine.shouldSkipAnimation ?? false
+
             if (msg.type === BattleMessageType.PetSwitch) {
-              // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
-              await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
+              if (shouldSkip) {
+                // Apply state delta directly without animation
+                await store.applyStateDelta(msg)
+              } else {
+                // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
+                await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
+              }
             } else {
               const combatEventTypes: BattleMessageType[] = [
                 BattleMessageType.SkillMiss,
@@ -2335,7 +2444,11 @@ const setupMessageSubscription = async () => {
               ]
 
               if (combatEventTypes.includes(msg.type as BattleMessageType)) {
-                await handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
+                if (!shouldSkip) {
+                  await handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
+                } else {
+                  await store.applyStateDelta(msg)
+                }
               } else {
                 // 处理其他非战斗事件相关的消息 (PetSwitch 已在上面单独处理)
                 switch (msg.type) {
@@ -2395,6 +2508,12 @@ const setupMessageSubscription = async () => {
 }
 
 onUnmounted(async () => {
+  // Destroy AnimationController
+  if (animationController) {
+    animationController.destroy()
+    animationController = null
+  }
+
   // 清理播放定时器
   emitter.all.clear()
 
@@ -2479,6 +2598,8 @@ watch(
       // 从连接状态变为断线状态
       selfDisconnected.value = true
       reconnecting.value = false
+      // Notify animation controller of disconnect
+      animationController?.onDisconnect()
     } else if (newStatus === 'connecting' && oldStatus === 'disconnected') {
       // 开始重连
       reconnecting.value = true
@@ -2486,6 +2607,10 @@ watch(
       // 重连成功
       selfDisconnected.value = false
       reconnecting.value = false
+      // Notify animation controller of reconnect
+      if (animationController) {
+        await animationController.onReconnect(store as never)
+      }
       await resyncBattleAfterReconnect()
     }
   },
@@ -2528,7 +2653,7 @@ watch(
       await nextTick()
 
       if (koBannerRef.value) {
-        const tl = gsap.timeline({
+        const tl = gsapTimeline({
           onComplete: () => {
             showKoBanner.value = false
             // 回放模式下不显示战斗结束UI
@@ -2539,7 +2664,7 @@ watch(
             }
           },
         })
-        gsap.set(koBannerRef.value, { opacity: 0, scale: 0.8, xPercent: -50, yPercent: -50 })
+        gsapSet(koBannerRef.value, { opacity: 0, scale: 0.8, xPercent: -50, yPercent: -50 })
         tl.to(koBannerRef.value, {
           opacity: 1,
           scale: 1,

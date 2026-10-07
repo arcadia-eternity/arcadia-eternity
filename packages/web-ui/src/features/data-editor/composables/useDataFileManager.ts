@@ -9,7 +9,7 @@ import {
   renameWorkspacePackPath,
   deleteWorkspacePackPath,
 } from '@/services/packWorkspace'
-import { normalizePath, toStringArray } from '@/features/data-editor/utils/packHelpers'
+import { normalizePath, resolveManifestDataPath, toStringArray } from '@/features/data-editor/utils/packHelpers'
 
 export function useDataFileManager(packFolder: MaybeRef<string>) {
   const isLoading = ref(false)
@@ -116,6 +116,10 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
       }
 
       const paths = getDataKindArray(manifest, kind)
+      if (paths.some(p => normalizePath(p) === newRef)) {
+        throw new Error(`文件名 ${newRef} 已存在于清单中`)
+      }
+
       const updatedPaths = paths.map(p => (normalizePath(p) === normalizedOld ? newRef : p))
       setDataKindArray(manifest, kind, updatedPaths)
       await writeWorkspacePackManifest({ folderName: folder, manifest })
@@ -133,7 +137,7 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
     }
   }
 
-  async function deleteDataFile(relativePath: string): Promise<void> {
+  async function deleteDataFile(relativePath: string, options?: { force?: boolean }): Promise<void> {
     const folder = getFolder()
     isLoading.value = true
     error.value = null
@@ -148,7 +152,20 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
         throw new Error(`文件 ${normalized} 不在清单中`)
       }
 
+      const filePath = resolveManifestDataPath(manifest, normalized)
+      const { content } = await readWorkspacePackFile({ folderName: folder, relativePath: filePath })
+      const records = yaml.parse(content)
+      const recordCount = Array.isArray(records) ? records.length : 0
+
+      if (recordCount > 0 && !options?.force) {
+        throw new Error(`文件 ${normalized} 包含 ${recordCount} 条记录，请先移动或删除这些记录后再删除文件`)
+      }
+
       const paths = getDataKindArray(manifest, kind)
+      if (paths.length <= 1) {
+        throw new Error(`无法删除最后一个数据文件 ${normalized}，每种类型至少需要一个数据文件`)
+      }
+
       const updatedPaths = paths.filter(p => normalizePath(p) !== normalized)
       setDataKindArray(manifest, kind, updatedPaths)
       await writeWorkspacePackManifest({ folderName: folder, manifest })
@@ -241,8 +258,9 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
   }
 
   function findFileKind(manifest: Record<string, unknown>, normalizedPath: string): EntityType | null {
-    for (const kind of ['species', 'skills', 'marks'] as EntityType[]) {
-      const paths = getDataKindArray(manifest, kind)
+    const data = manifest.data && typeof manifest.data === 'object' ? (manifest.data as Record<string, unknown>) : {}
+    for (const kind of Object.keys(data)) {
+      const paths = toStringArray(data[kind])
       if (paths.some(p => normalizePath(p) === normalizedPath)) {
         return kind
       }
@@ -264,10 +282,11 @@ export function useDataFileManager(packFolder: MaybeRef<string>) {
   }
 
   function inferKindFromPath(normalizedPath: string): EntityType | null {
-    const lower = normalizedPath.toLowerCase()
-    if (lower.includes('species')) return 'species'
-    if (lower.includes('mark')) return 'marks'
-    if (lower.includes('skill')) return 'skills'
+    const filename = normalizedPath.split('/').pop()?.toLowerCase() ?? ''
+    if (filename.startsWith('species')) return 'species'
+    if (filename.startsWith('mark')) return 'marks'
+    if (filename.startsWith('skill')) return 'skills'
+    if (filename.startsWith('effect')) return 'effects'
     return null
   }
 

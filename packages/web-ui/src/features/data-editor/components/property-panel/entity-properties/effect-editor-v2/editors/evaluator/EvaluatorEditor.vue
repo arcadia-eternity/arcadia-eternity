@@ -1,22 +1,31 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { EvaluatorDSL, EvaluatorDSLView, Value } from '@arcadia-eternity/schema'
-import { useEffectTyping } from './composables/useEffectTyping'
+import type { EvaluatorDSL, EvaluatorDSLView, EffectDslFieldTypingRule } from '@arcadia-eternity/schema'
+import DslNode from '../../DslNode.vue'
+import { useNodeTyping } from '../../composables/useNodeTyping'
+import { CATEGORY_TAG_COLORS } from '../../constants'
 
-const props = defineProps<{
-  modelValue: EvaluatorDSL
-}>()
+defineOptions({ name: 'EvaluatorEditor' })
+
+const props = withDefaults(
+  defineProps<{
+    modelValue: EvaluatorDSL
+    fieldRule?: EffectDslFieldTypingRule
+    depth?: number
+    maxDepth?: number
+  }>(),
+  { fieldRule: undefined, depth: 0, maxDepth: 6 },
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: EvaluatorDSL]
 }>()
 
-defineSlots<{
-  value(props: { modelValue: Value; update: (v: Value) => void }): unknown
-}>()
+const nextDepth = computed(() => (props.depth ?? 0) + 1)
 
-const { resolveEvaluatorOptions } = useEffectTyping()
-const evaluatorOptions = computed(() => resolveEvaluatorOptions())
+const typing = useNodeTyping()
+
+// ── Evaluator type metadata ──────────────────────────────────────────────────
 
 type EvaluatorCategory = 'compare' | 'same' | 'notSame' | 'value' | 'children' | 'singleChild' | 'input' | 'leaf'
 
@@ -66,16 +75,47 @@ const compareOperatorOptions = [
   { value: '==', label: '==' },
 ]
 
-const categoryTagColor: Record<EvaluatorCategory, string> = {
-  compare: 'var(--ae-info-subtle)',
-  same: 'var(--ae-info-subtle)',
-  notSame: 'var(--ae-error-subtle)',
-  value: 'var(--ae-warning-subtle)',
-  children: 'var(--ae-accent-primary-subtle)',
-  singleChild: 'var(--ae-accent-primary-subtle)',
-  input: 'var(--ae-success-subtle)',
-  leaf: 'var(--ae-text-disabled)',
+// ── Computed shortcuts ───────────────────────────────────────────────────────
+
+const ev = computed(() => (props.modelValue ?? {}) as EvaluatorDSLView)
+const evType = computed(() => (ev.value.type as string) ?? '')
+const category = computed(() => categorizeEvaluator(evType.value))
+
+const evaluatorOptions = computed(() => typing.resolveEvaluatorOptions(props.fieldRule))
+
+// ── Field rule resolvers for child DslNodes ──────────────────────────────────
+// For same/notSame/compare evaluators: the value MUST match what the pipeline
+// selector outputs. Use ONLY pipeline constraints.
+// BUT: when fieldRule is structural (from manifest field typing, e.g.
+// DSL_EVALUATOR_OBJECT {kind:'object',classes:['dsl:evaluator']}), fall back
+// to manifest — it's not a pipeline type, it's just saying "this field holds
+// an evaluator node". Structural rules are all object-kind with dsl: classes.
+// For probability/contain/anyOf/exist: value type is independent of pipeline.
+
+function isStructuralRule(rule: EffectDslFieldTypingRule): boolean {
+  return (
+    rule.allow.length > 0 &&
+    rule.allow.every(c => c.kind === 'object' && (c.classes?.some(cls => cls.startsWith('dsl:')) ?? false))
+  )
 }
+
+const valFieldRule = computed(() => {
+  const manifestRule = typing.getFieldTyping('evaluator', evType.value, 'value', 'valueFields')
+  if (!props.fieldRule) return manifestRule
+  if (!manifestRule) return props.fieldRule
+  if (isStructuralRule(props.fieldRule)) return manifestRule
+
+  const narrowingCategories = new Set(['same', 'notSame', 'compare', 'anyOf'])
+  if (narrowingCategories.has(category.value)) {
+    return props.fieldRule
+  }
+
+  return manifestRule
+})
+
+const percentFieldRule = computed(() => typing.getFieldTyping('evaluator', evType.value, 'percent', 'valueFields'))
+
+// ── Field updates ────────────────────────────────────────────────────────────
 
 function emitUpdate(val: EvaluatorDSL) {
   emit('update:modelValue', val)
@@ -107,6 +147,8 @@ function updateInnerChild(child: EvaluatorDSL | undefined) {
   if (!child) return
   emitUpdate({ ...props.modelValue, condition: child } as EvaluatorDSL)
 }
+
+// ── Type picker ──────────────────────────────────────────────────────────────
 
 const showingPicker = ref(false)
 const pickerType = ref('')
@@ -159,18 +201,15 @@ function changeType() {
   pickerType.value = ''
   emitUpdate(evaluator)
 }
-
-const evaluator = computed(() => props.modelValue)
-const e = computed(() => (evaluator.value ?? {}) as unknown as EvaluatorDSLView)
-const category = computed(() => categorizeEvaluator(evaluator.value.type))
 </script>
 
 <template>
   <div class="evaluator-node">
-    <div class="evaluator-simple" v-if="category !== 'children' && category !== 'singleChild'">
+    <!-- ── Simple evaluator (compare, same, notSame, probability, anyOf, contain, exist) ── -->
+    <div v-if="category !== 'children' && category !== 'singleChild'" class="evaluator-simple">
       <div class="evaluator-header">
-        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
-          {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
+        <span class="evaluator-type-tag" :style="{ backgroundColor: CATEGORY_TAG_COLORS[category] }">
+          {{ evaluatorTypeLabel[evType] || evType }}
         </span>
 
         <el-popover :visible="showingPicker" placement="bottom-start" :width="200" trigger="click">
@@ -194,39 +233,64 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
                 :value="opt"
               />
             </el-select>
-            <el-button size="small" text @click="showingPicker = false"> 取消 </el-button>
+            <el-button size="small" text @click="showingPicker = false">取消</el-button>
           </div>
         </el-popover>
       </div>
 
       <div class="evaluator-fields">
+        <!-- compare: operator + value -->
         <template v-if="category === 'compare'">
           <el-select
-            :model-value="e.operator"
+            :model-value="ev.operator"
             size="small"
             class="operator-select"
             @update:model-value="(v: string) => updateField('operator', v)"
           >
             <el-option v-for="opt in compareOperatorOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
-          <slot name="value" :model-value="e.value as Value" :update="v => updateField('value', v as Value)" />
-        </template>
-
-        <template v-else-if="category === 'same' || category === 'notSame'">
-          <slot name="value" :model-value="e.value as Value" :update="v => updateField('value', v as Value)" />
-        </template>
-
-        <template v-else-if="category === 'value'">
-          <slot
-            name="value"
-            :model-value="(e.percent ?? e.value) as unknown as Value"
-            :update="v => updateField(e.type === 'probability' ? 'percent' : 'value', v as Value)"
+          <DslNode
+            kind="value"
+            :model-value="ev.value"
+            :field-rule="valFieldRule"
+            @update:model-value="(v: unknown) => updateField('value', v)"
           />
         </template>
 
+        <!-- same / notSame: value only -->
+        <template v-else-if="category === 'same' || category === 'notSame'">
+          <DslNode
+            kind="value"
+            :model-value="ev.value"
+            :field-rule="valFieldRule"
+            @update:model-value="(v: unknown) => updateField('value', v)"
+          />
+        </template>
+
+        <!-- probability / anyOf: value field with dynamic field name -->
+        <template v-else-if="category === 'value'">
+          <DslNode
+            v-if="evType === 'probability'"
+            kind="value"
+            :model-value="ev.percent"
+            field-name="percent"
+            :field-rule="percentFieldRule"
+            @update:model-value="(v: unknown) => updateField('percent', v)"
+          />
+          <DslNode
+            v-else
+            kind="value"
+            :model-value="ev.value"
+            field-name="value"
+            :field-rule="valFieldRule"
+            @update:model-value="(v: unknown) => updateField('value', v)"
+          />
+        </template>
+
+        <!-- contain: tag input -->
         <template v-else-if="category === 'input'">
           <el-input
-            :model-value="e.tag as unknown as string"
+            :model-value="(ev as { tag?: string }).tag"
             size="small"
             class="tag-input"
             placeholder="标签名"
@@ -234,16 +298,18 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
           />
         </template>
 
+        <!-- exist: no params -->
         <template v-else-if="category === 'leaf'">
           <span class="field-hint">无额外参数</span>
         </template>
       </div>
     </div>
 
+    <!-- ── Compound children evaluator (any / all) ── -->
     <div v-if="category === 'children'" class="evaluator-compound">
       <div class="evaluator-header">
-        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
-          {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
+        <span class="evaluator-type-tag" :style="{ backgroundColor: CATEGORY_TAG_COLORS[category] }">
+          {{ evaluatorTypeLabel[evType] || evType }}
         </span>
 
         <el-popover :visible="showingPicker" placement="bottom-start" :width="200" trigger="click">
@@ -267,34 +333,38 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
                 :value="opt"
               />
             </el-select>
-            <el-button size="small" text @click="showingPicker = false"> 取消 </el-button>
+            <el-button size="small" text @click="showingPicker = false">取消</el-button>
           </div>
         </el-popover>
       </div>
 
       <div class="evaluator-children">
-        <div v-for="(child, index) in e.conditions" :key="index" class="evaluator-child-item">
+        <div
+          v-for="(child, index) in (ev as { conditions: EvaluatorDSL[] }).conditions"
+          :key="index"
+          class="evaluator-child-item"
+        >
           <span class="child-connector">├</span>
-          <EvaluatorEditor
+          <DslNode
+            kind="evaluator"
             :model-value="child"
-            @update:model-value="(v: EvaluatorDSL) => updateChildCondition(Number(index), v)"
-          >
-            <template #value="slotProps">
-              <slot name="value" v-bind="slotProps" />
-            </template>
-          </EvaluatorEditor>
+            :depth="nextDepth"
+            :max-depth="maxDepth"
+            @update:model-value="(v: unknown) => updateChildCondition(Number(index), v as EvaluatorDSL)"
+          />
           <el-button size="small" text class="child-delete-btn" @click="updateChildCondition(Number(index), undefined)">
             ✕
           </el-button>
         </div>
-        <el-button size="small" text class="child-add-btn" @click="addChildCondition"> + 子条件 </el-button>
+        <el-button size="small" text class="child-add-btn" @click="addChildCondition">+ 子条件</el-button>
       </div>
     </div>
 
+    <!-- ── Single-child evaluator (not) ── -->
     <div v-if="category === 'singleChild'" class="evaluator-compound">
       <div class="evaluator-header">
-        <span class="evaluator-type-tag" :style="{ backgroundColor: categoryTagColor[category] }">
-          {{ evaluatorTypeLabel[e.type as string] || (e.type as string) }}
+        <span class="evaluator-type-tag" :style="{ backgroundColor: CATEGORY_TAG_COLORS[category] }">
+          {{ evaluatorTypeLabel[evType] || evType }}
         </span>
 
         <el-popover :visible="showingPicker" placement="bottom-start" :width="200" trigger="click">
@@ -318,7 +388,7 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
                 :value="opt"
               />
             </el-select>
-            <el-button size="small" text @click="showingPicker = false"> 取消 </el-button>
+            <el-button size="small" text @click="showingPicker = false">取消</el-button>
           </div>
         </el-popover>
       </div>
@@ -326,20 +396,18 @@ const category = computed(() => categorizeEvaluator(evaluator.value.type))
       <div class="evaluator-children">
         <div class="evaluator-child-item">
           <span class="child-connector">├</span>
-          <EvaluatorEditor :model-value="e.condition" @update:model-value="(v: EvaluatorDSL) => updateInnerChild(v)">
-            <template #value="slotProps">
-              <slot name="value" v-bind="slotProps" />
-            </template>
-          </EvaluatorEditor>
+          <DslNode
+            kind="evaluator"
+            :model-value="(ev as { condition: EvaluatorDSL }).condition"
+            :depth="nextDepth"
+            :max-depth="maxDepth"
+            @update:model-value="(v: unknown) => updateInnerChild(v as EvaluatorDSL)"
+          />
         </div>
       </div>
     </div>
   </div>
 </template>
-
-<script lang="ts">
-export default { name: 'EvaluatorEditor' }
-</script>
 
 <style scoped>
 .evaluator-node {

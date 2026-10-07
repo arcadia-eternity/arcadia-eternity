@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted } from 'vue'
+import { useThrottleFn } from '@vueuse/core'
 
 export interface EditorKeyboardHandlers {
   onSave?: () => void
@@ -8,6 +9,9 @@ export interface EditorKeyboardHandlers {
   onDelete?: () => void
 }
 
+/** Throttle interval for undo/redo keyboard shortcuts (ms) — prevents rapid-fire from OS key repeat. */
+const KEYBOARD_THROTTLE_MS = 200
+
 function isTextInputFocused(): boolean {
   const el = document.activeElement as HTMLElement | null
   if (!el) return false
@@ -16,6 +20,9 @@ function isTextInputFocused(): boolean {
 }
 
 export function useEditorKeyboard(handlers: EditorKeyboardHandlers): void {
+  const throttledUndo = useThrottleFn(() => handlers.onUndo?.(), KEYBOARD_THROTTLE_MS, false)
+  const throttledRedo = useThrottleFn(() => handlers.onRedo?.(), KEYBOARD_THROTTLE_MS, false)
+
   function handleKeydown(e: KeyboardEvent): void {
     const mod = e.metaKey || e.ctrlKey
 
@@ -29,13 +36,13 @@ export function useEditorKeyboard(handlers: EditorKeyboardHandlers): void {
 
     if (mod && e.key === 'z' && !e.shiftKey) {
       e.preventDefault()
-      handlers.onUndo?.()
+      throttledUndo()
       return
     }
 
     if (mod && e.key === 'z' && e.shiftKey) {
       e.preventDefault()
-      handlers.onRedo?.()
+      throttledRedo()
       return
     }
 

@@ -1,6 +1,7 @@
 import { useBattleStore } from '@/stores/battle'
 import { type petId } from '@arcadia-eternity/const'
 import gsap from 'gsap'
+import type { AnimationGsapManager } from './animationGsapManager'
 import i18next from 'i18next'
 import { h, render, type Ref, type ComputedRef, ref } from 'vue'
 import { Subject, concatMap, delay, tap, timestamp, scan, of } from 'rxjs'
@@ -21,7 +22,38 @@ export function useBattleAnimations(
   opponentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
   battleViewScale: ComputedRef<number>,
   backgroundContainerRef?: Ref<HTMLElement | null>,
+  gsapManager?: AnimationGsapManager,
 ) {
+  // GSAP routing helpers - route through gsapManager when available
+  let localGsapIdCounter = 0
+  function localGsapTo(target: gsap.TweenTarget, config: gsap.TweenVars): gsap.core.Tween {
+    if (gsapManager) {
+      return gsapManager.createTween(target, { ...config, id: `uba-tw-${++localGsapIdCounter}` })
+    }
+    return gsap.to(target, config)
+  }
+  function localGsapSet(target: gsap.TweenTarget, config: gsap.TweenVars): void {
+    if (gsapManager) {
+      gsapManager.createTween(target, { ...config, duration: 0, id: `uba-st-${++localGsapIdCounter}` })
+      return
+    }
+    gsap.set(target, config)
+  }
+  function localGsapTimeline(config?: gsap.TimelineVars): gsap.core.Timeline {
+    if (gsapManager) {
+      return gsapManager.createTimeline({ ...config, id: `uba-tl-${++localGsapIdCounter}` } as gsap.TimelineVars & {
+        id: string
+      })
+    }
+    return gsap.timeline(config)
+  }
+  function registerTempHost(host: HTMLElement): void {
+    gsapManager?.registerTempHost(host)
+  }
+  function removeTempHost(host: HTMLElement): void {
+    gsapManager?.removeTempHost(host)
+  }
+
   // 使用 VueUse 的 useElementBounding 来获取容器尺寸
   const { width: containerWidth, height: containerHeight } = useElementBounding(backgroundContainerRef)
 
@@ -85,18 +117,21 @@ export function useBattleAnimations(
     )
 
     const tempHost = document.createElement('div')
+    registerTempHost(tempHost)
     battleViewRef.value.appendChild(tempHost)
     render(containerVNode, tempHost)
 
     const containerElement = tempHost.firstChild as HTMLElement
     if (!containerElement) {
+      removeTempHost(tempHost)
       battleViewRef.value?.removeChild(tempHost)
       return
     }
 
-    const tl = gsap.timeline({
+    const tl = localGsapTimeline({
       onComplete: () => {
         render(null, tempHost)
+        removeTempHost(tempHost)
         if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
           battleViewRef.value.removeChild(tempHost)
         }
@@ -144,18 +179,21 @@ export function useBattleAnimations(
     )
 
     const tempHost = document.createElement('div')
+    registerTempHost(tempHost)
     battleViewRef.value.appendChild(tempHost)
     render(containerVNode, tempHost)
 
     const containerElement = tempHost.firstChild as HTMLElement
     if (!containerElement) {
+      removeTempHost(tempHost)
       battleViewRef.value?.removeChild(tempHost)
       return
     }
 
-    const tl = gsap.timeline({
+    const tl = localGsapTimeline({
       onComplete: () => {
         render(null, tempHost)
+        removeTempHost(tempHost)
         if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
           battleViewRef.value.removeChild(tempHost)
         }
@@ -194,28 +232,31 @@ export function useBattleAnimations(
     })
 
     const tempHost = document.createElement('div')
+    registerTempHost(tempHost)
     battleViewRef.value.appendChild(tempHost)
     render(flashVNode, tempHost)
 
     const flashElement = tempHost.firstChild as HTMLElement
     if (!flashElement) {
+      removeTempHost(tempHost)
       if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
         battleViewRef.value.removeChild(tempHost)
       }
       return
     }
 
-    gsap.to(flashElement, {
+    localGsapTo(flashElement, {
       opacity: 0.7,
       duration: 0.1,
       ease: 'power2.out',
       onComplete: () => {
-        gsap.to(flashElement, {
+        localGsapTo(flashElement, {
           opacity: 0,
           duration: 0.3,
           ease: 'power2.in',
           onComplete: () => {
             render(null, tempHost)
+            removeTempHost(tempHost)
             if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
               battleViewRef.value.removeChild(tempHost)
             }
@@ -266,7 +307,7 @@ export function useBattleAnimations(
     currentBackgroundOffset = clampedTargetX
 
     // 使用backgroundPosition的百分比+像素组合
-    gsap.to(container, {
+    localGsapTo(container, {
       backgroundPosition: `calc(50% + ${clampedTargetX}px) center`,
       duration: 0.3,
       ease: 'power2.out',
@@ -305,6 +346,7 @@ export function useBattleAnimations(
             const startY = baseY + randomOffsetY
 
             const tempHost = document.createElement('div')
+            registerTempHost(tempHost)
             battleViewRef.value.appendChild(tempHost)
 
             const healVNode = h(HealDisplay, { value })
@@ -326,13 +368,15 @@ export function useBattleAnimations(
             render(containerVNode, tempHost)
             const containerElement = tempHost.firstChild as HTMLElement
             if (!containerElement) {
+              removeTempHost(tempHost)
               battleViewRef.value?.removeChild(tempHost)
               return
             }
 
-            const tl = gsap.timeline({
+            const tl = localGsapTimeline({
               onComplete: () => {
                 render(null, tempHost)
+                removeTempHost(tempHost)
                 if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
                   battleViewRef.value.removeChild(tempHost)
                 }
@@ -476,7 +520,7 @@ export function useBattleAnimations(
               // 连击特殊效果时增加震动次数
               const repeatCount = shouldTriggerComboEffect ? 8 : 5
 
-              gsap.to(battleViewRef.value, {
+              localGsapTo(battleViewRef.value, {
                 x: shakeX,
                 y: shakeY,
                 scale: currentScale, // 保持当前的缩放比例
@@ -486,7 +530,7 @@ export function useBattleAnimations(
                 ease: 'power1.inOut',
                 onComplete: () => {
                   // 动画结束后确保恢复到正确的状态
-                  gsap.set(battleViewRef.value, {
+                  localGsapSet(battleViewRef.value, {
                     x: 0,
                     y: 0,
                     scale: currentScale,
@@ -511,6 +555,7 @@ export function useBattleAnimations(
             if (!battleViewRef.value) return
 
             const tempHost = document.createElement('div')
+            registerTempHost(tempHost)
             battleViewRef.value.appendChild(tempHost)
 
             const damageVNode = h(DamageDisplay, {
@@ -542,13 +587,15 @@ export function useBattleAnimations(
             render(containerVNode, tempHost)
             const containerElement = tempHost.firstChild as HTMLElement
             if (!containerElement) {
+              removeTempHost(tempHost)
               battleViewRef.value?.removeChild(tempHost)
               return
             }
 
-            const tl = gsap.timeline({
+            const tl = localGsapTimeline({
               onComplete: () => {
                 render(null, tempHost)
+                removeTempHost(tempHost)
                 if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
                   battleViewRef.value.removeChild(tempHost)
                 }
@@ -628,25 +675,28 @@ export function useBattleAnimations(
     )
 
     const tempHost = document.createElement('div')
+    registerTempHost(tempHost)
     battleViewRef.value.appendChild(tempHost)
     render(containerVNode, tempHost)
 
     const containerElement = tempHost.firstChild as HTMLElement
     if (!containerElement) {
+      removeTempHost(tempHost)
       battleViewRef.value?.removeChild(tempHost)
       return
     }
 
     const startXPosition = side === 'left' ? -200 : 200
-    gsap.set(containerElement, {
+    localGsapSet(containerElement, {
       x: startXPosition,
       opacity: 0,
       scale: 0.8,
     })
 
-    const tl = gsap.timeline({
+    const tl = localGsapTimeline({
       onComplete: () => {
         render(null, tempHost)
+        removeTempHost(tempHost)
         if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
           battleViewRef.value.removeChild(tempHost)
         }
@@ -673,10 +723,9 @@ export function useBattleAnimations(
   const cleanup = () => {
     damageSubscription.unsubscribe()
     healSubscription.unsubscribe()
-    // 重置背景偏移量
     currentBackgroundOffset = 0
-    // 清理连击跟踪器
     comboTracker.clear()
+    gsapManager?.killAll()
   }
 
   return {

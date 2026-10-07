@@ -13,6 +13,7 @@
 import { inject } from 'vue'
 import { Document, RefreshRight, VideoPlay } from '@element-plus/icons-vue'
 import { ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon, ElTooltip } from 'element-plus'
+import { useDebounceFn } from '@vueuse/core'
 import { useEditorState } from '../../composables/useEditorState'
 import GlobalSearch from './GlobalSearch.vue'
 
@@ -27,6 +28,9 @@ const onStartBattle = inject<() => void>('editor:startBattle', () => {})
 
 const canUndo = inject<() => boolean>('editor:canUndo', () => false)
 const canRedo = inject<() => boolean>('editor:canRedo', () => false)
+
+const debouncedUndo = useDebounceFn(() => onUndo(), 150)
+const debouncedRedo = useDebounceFn(() => onRedo(), 150)
 </script>
 
 <template>
@@ -59,14 +63,20 @@ const canRedo = inject<() => boolean>('editor:canRedo', () => false)
 
       <!-- Undo -->
       <ElTooltip content="撤销 (Ctrl+Z)" placement="bottom" :show-after="400">
-        <ElButton size="small" :icon="RefreshRight" :disabled="!canUndo()" class="app-bar-action-btn" @click="onUndo">
+        <ElButton
+          size="small"
+          :icon="RefreshRight"
+          :disabled="!canUndo()"
+          class="app-bar-action-btn"
+          @click="debouncedUndo"
+        >
           撤销
         </ElButton>
       </ElTooltip>
 
       <!-- Redo -->
       <ElTooltip content="重做 (Ctrl+Shift+Z)" placement="bottom" :show-after="400">
-        <ElButton size="small" :disabled="!canRedo()" class="app-bar-action-btn" @click="onRedo">
+        <ElButton size="small" :disabled="!canRedo()" class="app-bar-action-btn" @click="debouncedRedo">
           <template #icon>
             <span class="redo-icon">&#x21bb;</span>
           </template>

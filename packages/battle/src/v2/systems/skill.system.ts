@@ -13,8 +13,29 @@ import {
 import { AttackTargetOpinion, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import type { BaseSkillData, SkillData } from '../schemas/skill.schema.js'
 import type { UseSkillContextData } from '../schemas/context.schema.js'
+import type { EntityAttributeDef } from './pet.system.js'
 
 export const SKILL = 'skill' as const
+
+// ---------------------------------------------------------------------------
+// Attribute declarations — single source of truth for extractor registry
+// ---------------------------------------------------------------------------
+
+export const skillAttributes: EntityAttributeDef[] = [
+  { key: 'power', valueType: 'number', modifiable: true },
+  { key: 'accuracy', valueType: 'number', modifiable: true },
+  { key: 'rage', valueType: 'number', modifiable: true },
+  { key: 'priority', valueType: 'number', modifiable: true },
+  { key: 'category', valueType: 'string', modifiable: true },
+  { key: 'element', valueType: 'string', modifiable: true },
+  { key: 'target', valueType: 'string', modifiable: true },
+  { key: 'multihit', valueType: 'object', modifiable: true },
+  { key: 'sureHit', valueType: 'boolean', modifiable: true },
+  { key: 'sureCrit', valueType: 'boolean', modifiable: true },
+  { key: 'ignoreShield', valueType: 'boolean', modifiable: true },
+  { key: 'tags', valueType: 'object', modifiable: true },
+  { key: 'appeared', valueType: 'boolean', modifiable: true },
+]
 
 // ---------------------------------------------------------------------------
 // SkillSystem

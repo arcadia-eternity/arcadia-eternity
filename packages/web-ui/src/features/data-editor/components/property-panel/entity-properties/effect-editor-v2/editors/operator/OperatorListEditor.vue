@@ -1,23 +1,25 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { OperatorDSL } from '@arcadia-eternity/schema'
+import { OPERATOR_TYPE_LABELS } from '../../constants'
 
 const props = defineProps<{
   modelValue: OperatorDSL | OperatorDSL[]
 }>()
 
-const emit = defineEmits<{ 'update:modelValue': [value: OperatorDSL | OperatorDSL[]] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: OperatorDSL | OperatorDSL[]]
+}>()
+
+defineSlots<{
+  default(props: { modelValue: OperatorDSL; update: (v: OperatorDSL) => void }): unknown
+}>()
 
 const isArray = computed(() => Array.isArray(props.modelValue))
 
-const items = computed(() => {
-  if (Array.isArray(props.modelValue)) return props.modelValue as OperatorDSL[]
+const items = computed<OperatorDSL[]>(() => {
+  if (Array.isArray(props.modelValue)) return props.modelValue
   return []
-})
-
-const singleItem = computed(() => {
-  if (!Array.isArray(props.modelValue)) return props.modelValue as OperatorDSL
-  return null
 })
 
 function updateSingle(value: OperatorDSL) {
@@ -56,30 +58,9 @@ function addItem() {
 }
 
 function getItemLabel(op: OperatorDSL, index: number): string {
-  const t = (op as Record<string, unknown>)?.type
+  const t = op.type
   if (typeof t === 'string' && t.length > 0) {
-    const labels: Record<string, string> = {
-      dealDamage: '造成伤害',
-      heal: '治疗',
-      executeKill: '处决',
-      addMark: '添加标记',
-      destroyMark: '销毁标记',
-      transferMark: '转移标记',
-      addStacks: '增加堆叠',
-      consumeStacks: '消耗堆叠',
-      addPower: '威力增加',
-      addCritRate: '暴击率增加',
-      setMultihit: '多段攻击',
-      stun: '眩晕',
-      conditional: '条件分支',
-      statStageBuff: '能力升降',
-      setRage: '设置怒气',
-      addAttributeModifier: '属性修正',
-      setSkill: '设置技能',
-      transform: '变身',
-      overrideMarkConfig: '覆盖标记配置',
-    }
-    return labels[t] ?? t
+    return OPERATOR_TYPE_LABELS[t] ?? t
   }
   return `操作符 #${index + 1}`
 }
@@ -108,9 +89,7 @@ function getItemLabel(op: OperatorDSL, index: number): string {
             </div>
           </div>
           <div class="op-list-item-body">
-            <slot name="operator" :modelValue="item" :index="index" :update="(v: OperatorDSL) => updateItem(index, v)">
-              <div class="op-list-fallback">请提供 operator 插槽</div>
-            </slot>
+            <slot :model-value="item" :update="(v: OperatorDSL) => updateItem(index, v)" />
           </div>
         </div>
       </div>
@@ -118,7 +97,7 @@ function getItemLabel(op: OperatorDSL, index: number): string {
     </template>
 
     <template v-else>
-      <slot name="operator" :modelValue="singleItem" :update="(v: OperatorDSL) => updateSingle(v)" />
+      <slot :model-value="props.modelValue as OperatorDSL" :update="(v: OperatorDSL) => updateSingle(v)" />
     </template>
   </div>
 </template>
@@ -197,12 +176,6 @@ function getItemLabel(op: OperatorDSL, index: number): string {
 }
 
 .op-list-item-body {
-  padding: var(--ae-space-2);
-}
-
-.op-list-fallback {
-  font-size: var(--ae-font-sm);
-  color: var(--ae-text-muted);
   padding: var(--ae-space-2);
 }
 

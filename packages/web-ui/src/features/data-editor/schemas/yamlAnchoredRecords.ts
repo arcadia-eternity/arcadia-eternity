@@ -1,5 +1,6 @@
 import type { TSchema } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
+import { stripUndefinedOptionals } from '@arcadia-eternity/schema'
 import {
   isAlias,
   isMap,
@@ -288,7 +289,8 @@ export function upsertYamlAnchoredRecord(args: {
   targetIndex?: number
 }): { index: number; normalized: Record<string, unknown> } {
   const { dataset, schema, draft, targetIndex } = args
-  const normalized = normalizeWithSchema(schema, draft)
+  const cleaned = stripUndefinedOptionals(draft) as Record<string, unknown>
+  const normalized = normalizeWithSchema(schema, cleaned)
   const nextId = readRecordId(normalized)
 
   if (!nextId) {

@@ -5,10 +5,10 @@ import { Type, type Static } from '@sinclair/typebox'
 import { StringEnum } from './utils.js'
 import { Category, Element, AttackTargetOpinion, IgnoreStageStrategy } from '@arcadia-eternity/const'
 
-const CategoryValues = Object.values(Category) as [string, ...string[]]
-const ElementValues = Object.values(Element) as [string, ...string[]]
-const TargetValues = Object.values(AttackTargetOpinion) as [string, ...string[]]
-const IgnoreStageValues = Object.values(IgnoreStageStrategy) as [string, ...string[]]
+const CategoryValues = Object.values(Category) as Category[]
+const ElementValues = Object.values(Element) as Element[]
+const TargetValues = Object.values(AttackTargetOpinion) as AttackTargetOpinion[]
+const IgnoreStageValues = Object.values(IgnoreStageStrategy) as IgnoreStageStrategy[]
 
 export const MultihitSchema = Type.Union([Type.Tuple([Type.Number(), Type.Number()]), Type.Number()])
 

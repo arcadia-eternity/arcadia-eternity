@@ -993,4 +993,5 @@ type MergeUnionMembers<T> = {
 export type ConditionDSLView = MergeUnionMembers<ConditionDSL>
 export type EvaluatorDSLView = MergeUnionMembers<EvaluatorDSL>
 export type OperatorDSLView = MergeUnionMembers<OperatorDSL>
+export type SelectorChainView = MergeUnionMembers<SelectorChain>
 export type ValueView = MergeUnionMembers<Value>

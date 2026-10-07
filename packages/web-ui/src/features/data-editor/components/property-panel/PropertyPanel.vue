@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, inject, type Ref, type Component } from 'vue'
+import { ElSelect, ElOption, ElMessageBox, ElMessage } from 'element-plus'
 import { useEditorState } from '../../composables/useEditorState'
 import { useGameDataStore } from '@/stores/gameData'
 import { useGameConfig, getEntityConfig } from '../../game-config'
@@ -84,6 +85,35 @@ const recordDisplayName = computed(() => {
   if (!currentRecord.value || !currentEntityConfig.value) return null
   return translateEntityName(state.selectedRecordId!, currentEntityConfig.value)
 })
+
+const sourceFileLabel = computed(() => {
+  if (!state.selectedRecordId) return null
+  return state.recordSourceFiles?.[state.selectedRecordId] ?? null
+})
+
+// ── Move record to another file ──
+const moveRecords = inject<(sourceFile: string, targetFile: string, recordIds: string[]) => Promise<void>>(
+  'file:moveRecords',
+  async () => {},
+)
+
+async function handleMoveToFile(targetFile: string) {
+  if (!state.selectedRecordId || !sourceFileLabel.value) return
+  if (targetFile === sourceFileLabel.value) return
+
+  try {
+    await ElMessageBox.confirm(
+      `确认将 "${state.selectedRecordId}" 从 ${sourceFileLabel.value} 移动到 ${targetFile}？`,
+      '移动记录',
+      { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' },
+    )
+    await moveRecords(sourceFileLabel.value, targetFile, [state.selectedRecordId])
+    state.recordSourceFiles[state.selectedRecordId] = targetFile
+    ElMessage.success(`已移动到 ${targetFile}`)
+  } catch {
+    /* cancelled */
+  }
+}
 </script>
 
 <template>
@@ -93,6 +123,15 @@ const recordDisplayName = computed(() => {
         {{ config.entities[state.selectedEntityType ?? '']?.label ?? state.selectedEntityType ?? '属性' }}
         <template v-if="recordDisplayName"> · {{ recordDisplayName }}</template>
         编辑器
+        <ElSelect
+          v-if="sourceFileLabel && state.selectedEntityType"
+          :model-value="sourceFileLabel"
+          size="small"
+          class="source-file-select"
+          @change="handleMoveToFile"
+        >
+          <ElOption v-for="f in state.availableDataFiles" :key="f" :label="f" :value="f" />
+        </ElSelect>
       </span>
     </div>
 
@@ -127,3 +166,32 @@ const recordDisplayName = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.source-file-select {
+  width: 140px;
+  margin-left: var(--ae-space-2);
+}
+
+.source-file-select :deep(.el-input__wrapper) {
+  background: var(--ae-bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--ae-border-subtle) inset !important;
+  border-radius: var(--ae-radius-sm) !important;
+  height: 24px !important;
+  font-size: var(--ae-font-xs);
+  transition: box-shadow 0.15s ease;
+}
+
+.source-file-select :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--ae-border-default) inset !important;
+}
+
+.source-file-select :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--ae-accent-primary) inset !important;
+}
+
+.source-file-select :deep(.el-input__inner) {
+  font-size: var(--ae-font-xs);
+  color: var(--ae-text-muted);
+}
+</style>

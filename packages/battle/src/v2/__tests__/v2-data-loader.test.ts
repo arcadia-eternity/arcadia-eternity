@@ -245,6 +245,56 @@ describe('parseEffect', () => {
     ).toThrow('object(json:stringArray)')
   })
 
+  test('strict compile rejects invalid string enum value at parse time', () => {
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_enum',
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: {
+          type: 'addAttributeModifier',
+          target: 'self',
+          stat: 'atk',
+          modifierType: 'add',
+          value: 10,
+        },
+      } as Record<string, unknown>),
+    ).toThrow('not in allowed enum')
+  })
+
+  test('strict compile accepts valid string enum value at parse time', () => {
+    expect(() =>
+      parseEffect({
+        id: 'eff_valid_enum',
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: {
+          type: 'addAttributeModifier',
+          target: 'self',
+          stat: 'atk',
+          modifierType: 'delta',
+          value: 10,
+        },
+      } as Record<string, unknown>),
+    ).not.toThrow()
+  })
+
+  test('strict compile rejects invalid statType enum value at parse time', () => {
+    expect(() =>
+      parseEffect({
+        id: 'eff_invalid_stat',
+        trigger: 'OnDamage',
+        priority: 0,
+        apply: {
+          type: 'statStageBuff',
+          target: 'self',
+          statType: 'hitRate',
+          value: 1,
+        },
+      } as Record<string, unknown>),
+    ).toThrow('not in allowed enum')
+  })
+
   test('default strict compile rejects undeclared custom path on useSkillContext', () => {
     const raw = {
       id: 'eff_invalid_custom_path',

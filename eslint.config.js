@@ -44,6 +44,12 @@ export default tseslint.config(
       },
     },
     rules: {
+      '@typescript-eslint/no-base-to-string': [
+        'error',
+        {
+          checkUnknown: true,
+        },
+      ],
       '@typescript-eslint/no-namespace': ['error', { allowDeclarations: true }],
       '@typescript-eslint/no-unused-vars': [
         'error',

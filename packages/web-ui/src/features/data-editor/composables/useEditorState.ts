@@ -22,6 +22,11 @@ export interface EditorState {
   activeTabId: string | null
   searchQuery: string
   isDirty: boolean
+  // File management
+  availableDataFiles: string[]
+  selectedDataFile: string | null
+  createTargetFile: string | null // null = use default (first file)
+  recordSourceFiles: Record<string, string> // recordId → sourceFile
 }
 
 const EDITOR_STATE_KEY = Symbol('editor-state') as InjectionKey<EditorState>
@@ -38,6 +43,10 @@ export function provideEditorState(): EditorState {
     activeTabId: null,
     searchQuery: '',
     isDirty: false,
+    availableDataFiles: [],
+    selectedDataFile: null,
+    createTargetFile: null,
+    recordSourceFiles: {},
   })
 
   provide(EDITOR_STATE_KEY, state)

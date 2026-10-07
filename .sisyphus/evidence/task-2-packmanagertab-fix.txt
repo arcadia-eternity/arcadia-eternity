@@ -1,0 +1,2 @@
+Line 39: editorState.packFilters.enabledPacks = result.filter(p => p.enabled).map(p => p.folderName)
+Line 60: editorState.packFilters.enabledPacks = packs.value.filter(p => p.enabled).map(p => p.folderName)

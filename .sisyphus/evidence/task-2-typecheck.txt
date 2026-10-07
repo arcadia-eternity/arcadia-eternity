@@ -1,0 +1,4 @@
+
+> arcadia-eternity@3.2.8 test:types /Users/yuuinih/GitHub/test_battle
+> pnpm exec tsgo --noEmit
+

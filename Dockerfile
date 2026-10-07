@@ -3,7 +3,7 @@ FROM node:24-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git && \
-    npm install -g pnpm
+    npm install -g pnpm@10
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN pnpm run build:prod
 FROM node:24-alpine AS deps
 
 RUN apk add --no-cache git && \
-    npm install -g pnpm
+    npm install -g pnpm@10
 
 WORKDIR /app
 

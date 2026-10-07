@@ -330,6 +330,7 @@ export const useBattleStore = defineStore('battle', {
             if (msg.data.player.includes(this.playerId as playerId)) {
               this.availableActions = await this.fetchAvailableSelection()
             }
+            break
           case BattleMessageType.FaintSwitch:
             if (msg.data.player === (this.playerId as playerId)) {
               this.availableActions = await this.fetchAvailableSelection()
@@ -490,9 +491,19 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async fetchAvailableSelection() {
+      if (!this.battleInterface) {
+        console.warn('[battle] fetchAvailableSelection: battleInterface is null')
+        return [] as PlayerSelection[]
+      }
+
       try {
-        const res = await this.battleInterface?.getAvailableSelection(this.playerId as playerId)
-        return res as PlayerSelection[]
+        const res = await Promise.race([
+          this.battleInterface.getAvailableSelection(this.playerId as playerId),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('getAvailableSelection timeout')), 10000),
+          ),
+        ])
+        return (Array.isArray(res) ? res : []) as PlayerSelection[]
       } catch (error) {
         if (isBattleUnavailableError(error)) {
           this.waitingForResponse = false
@@ -501,7 +512,8 @@ export const useBattleStore = defineStore('battle', {
           this.errorMessage = '战斗已结束'
           return []
         }
-        throw error
+        console.warn('[battle] fetchAvailableSelection failed:', error)
+        return [] as PlayerSelection[]
       }
     },
 
