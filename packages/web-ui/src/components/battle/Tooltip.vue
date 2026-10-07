@@ -41,7 +41,12 @@ const adjustTooltipPosition = async () => {
     const anchor = triggerRef.value.getBoundingClientRect()
     const size = tooltip.getBoundingClientRect()
     let x = anchor.left + (anchor.width - size.width) / 2
-    let y = props.position === 'top' ? anchor.top - size.height - 8 : anchor.bottom + 8
+    let y = anchor.bottom + 8
+    if (props.position === 'top') y = anchor.top - size.height - 8
+    if (props.position === 'left' || props.position === 'right') {
+      x = props.position === 'left' ? anchor.left - size.width - 8 : anchor.right + 8
+      y = anchor.top + (anchor.height - size.height) / 2
+    }
     x = Math.max(8, Math.min(x, window.innerWidth - size.width - 8))
     y = Math.max(8, Math.min(y, window.innerHeight - size.height - 8))
     portalPoint.value = { x, y }

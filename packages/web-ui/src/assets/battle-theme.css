@@ -138,10 +138,6 @@
 .battle-roster--right {
   right: 12px;
 }
-.battle-roster .pet-icon > .relative > .pet-icon {
-  width: 44px;
-  height: 44px;
-}
 .battle-roster .pet-icon .h-1 {
   height: 3px;
 }

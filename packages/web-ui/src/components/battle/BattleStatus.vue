@@ -284,18 +284,11 @@ const petStatsInfo = computed(() => {
   white-space: nowrap;
 }
 .battle-status__marks {
-  min-height: 26px;
-  height: 26px;
+  min-height: 36px;
+  height: 36px;
   flex-wrap: nowrap;
   gap: 4px;
   margin: 4px 0 0;
-}
-.battle-status__marks :deep(img) {
-  width: 26px;
-  height: 26px;
-}
-.battle-status__marks :deep(.text-sm) {
-  font-size: 10px;
 }
 .battle-status__more {
   position: relative;
@@ -304,7 +297,7 @@ const petStatsInfo = computed(() => {
   display: grid;
   place-items: center;
   width: 30px;
-  height: 26px;
+  height: 36px;
   background: var(--battle-panel-soft);
   color: var(--battle-cyan);
   cursor: pointer;
@@ -313,7 +306,7 @@ const petStatsInfo = computed(() => {
 }
 .battle-status__more > div {
   position: absolute;
-  top: 32px;
+  top: 42px;
   right: 0;
   width: 190px;
   display: flex;

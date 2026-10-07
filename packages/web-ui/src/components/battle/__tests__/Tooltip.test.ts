@@ -46,6 +46,34 @@ describe('battle detail portal', () => {
     expect(detail.textContent).toContain('完整技能说明')
     wrapper.unmount()
   })
+  it.each(['left', 'right'] as const)('places side details on the %s of their scaled anchor', async position => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const tooltip = this.classList.contains('fixed')
+      return {
+        left: 500,
+        right: 540,
+        top: 100,
+        bottom: 140,
+        width: tooltip ? 100 : 40,
+        height: tooltip ? 80 : 40,
+        x: 500,
+        y: 100,
+        toJSON() {},
+      }
+    })
+    const wrapper = mount(Tooltip, {
+      attachTo: document.body,
+      props: { portal: true, position },
+      slots: { trigger: '<button>精灵</button>', default: '精灵详情' },
+    })
+    await wrapper.get('.relative.inline-block').trigger('mouseenter')
+    await nextTick()
+    await nextTick()
+    const detail = document.body.querySelector('.fixed') as HTMLElement
+    expect(detail.style.left).toBe(position === 'left' ? '392px' : '548px')
+    expect(detail.style.top).toBe('80px')
+    wrapper.unmount()
+  })
   it('dismisses a manually opened detail with Escape and updates its control', async () => {
     const wrapper = mount(Tooltip, {
       props: { show: true, trigger: 'click' },
