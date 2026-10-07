@@ -38,6 +38,7 @@
   "dependencies": {
     "@arcadia-eternity/const": "workspace:*",
     "@arcadia-eternity/engine": "workspace:*",
+    "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/plugin-damage": "workspace:*",
     "@arcadia-eternity/plugin-element": "workspace:*",
     "@arcadia-eternity/plugin-transformation": "workspace:*",

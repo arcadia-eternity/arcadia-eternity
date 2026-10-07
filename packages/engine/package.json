@@ -12,7 +12,8 @@
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",
-    "build:types": "pnpm exec tsgo --emitDeclarationOnly"
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "test:run": "vitest run test"
   },
   "keywords": [],
   "author": "yuuinih",

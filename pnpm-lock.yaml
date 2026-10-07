@@ -228,6 +228,9 @@ importers:
       '@arcadia-eternity/engine':
         specifier: workspace:*
         version: link:../engine
+      '@arcadia-eternity/interface':
+        specifier: workspace:^
+        version: link:../interface
       '@arcadia-eternity/plugin-damage':
         specifier: workspace:*
         version: link:../engine-plugins/damage

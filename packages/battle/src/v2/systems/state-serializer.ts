@@ -42,7 +42,7 @@ function toDisplayValue(value: AttributeValue): string | number | boolean {
   try {
     return JSON.stringify(value)
   } catch {
-    return String(value)
+    return '[unserializable value]'
   }
 }
 

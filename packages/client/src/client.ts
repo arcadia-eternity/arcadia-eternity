@@ -273,7 +273,8 @@ export class BattleClient {
   }
 
   private isAuthError(error: unknown): boolean {
-    const errorMessage = (error as Error)?.message || String(error)
+    const message = error && typeof error === 'object' && 'message' in error ? error.message : undefined
+    const errorMessage = typeof message === 'string' ? message : typeof error === 'string' ? error : ''
     return (
       errorMessage.includes('INVALID_TOKEN') ||
       errorMessage.includes('TOKEN_REQUIRED_FOR_REGISTERED_USER') ||

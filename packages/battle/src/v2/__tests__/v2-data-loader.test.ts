@@ -464,7 +464,7 @@ describe('parseSpecies', () => {
 
 describe('loadV2GameData', () => {
   test('loads all YAML files and populates repository', async () => {
-    const { errors } = await loadV2GameData(DATA_DIR, { continueOnError: true })
+    const { repository, errors } = await loadV2GameData(DATA_DIR, { continueOnError: true })
     const stats = repository.stats()
 
     // Should have loaded a significant number of each type
