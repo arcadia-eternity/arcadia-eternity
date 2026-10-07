@@ -43,6 +43,12 @@ const debouncedSaveAllSettings = useDebounceFn((settings: Record<string, unknown
 }, 300)
 
 export const useGameSettingStore = defineStore('gameSetting', () => {
+  const storedMotion = loadFromStorage<string>('battleMotion', 'standard')
+  const battleMotion = ref<'standard' | 'simple' | 'reduced'>(
+    ['standard', 'simple', 'reduced'].includes(storedMotion)
+      ? (storedMotion as 'standard' | 'simple' | 'reduced')
+      : 'standard',
+  )
   const mute = ref<boolean>(loadFromStorage('mute', false))
   const musicVolume = ref<number>(loadFromStorage('musicVolume', 50))
   const musicMute = ref<boolean>(loadFromStorage('musicMute', false))
@@ -58,6 +64,7 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
 
   watchEffect(() => {
     debouncedSaveAllSettings({
+      battleMotion: battleMotion.value,
       mute: mute.value,
       musicVolume: musicVolume.value,
       musicMute: musicMute.value,
@@ -93,6 +100,7 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
   }
 
   return {
+    battleMotion,
     mute,
     musicVolume,
     musicMute,

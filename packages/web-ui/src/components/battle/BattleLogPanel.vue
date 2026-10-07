@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import BattleLogEntry from './BattleLogEntry.vue'
+import BattleFrame from './BattleFrame.vue'
+import BattleGlyph from './BattleGlyph.vue'
 import {
   BattleMessageType,
   DamageType,
@@ -356,39 +358,81 @@ watch(
 </script>
 
 <template>
-  <div
-    data-testid="battle-log-panel"
-    class="bg-black/80 rounded-lg h-full flex flex-col min-w-0 max-h-full overflow-hidden"
-  >
-    <!-- 日志面板标题栏 -->
-    <div class="flex items-center justify-between px-3 py-1 border-b border-white/10 flex-none">
-      <div class="text-xs font-medium text-white/70">战斗日志</div>
+  <section data-testid="battle-log-panel" class="battle-log">
+    <BattleFrame />
+    <header class="battle-log__header">
+      <span><BattleGlyph name="log" />战斗记录</span>
+      <span class="battle-log__count">{{ formattedMessages.length }} 条</span>
       <button
-        class="group relative w-5 h-4 cursor-pointer flex-none"
+        class="battle-log__close"
         @click="battleViewStore.toggleLogPanel()"
         title="隐藏日志面板"
+        aria-label="隐藏战斗记录"
       >
-        <div
-          class="w-full h-full rounded-sm transition-all duration-200 border border-red-400/30 group-hover:border-red-400/60 group-hover:bg-red-400/10"
-        ></div>
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <!-- 向左箭头 -->
-          <div
-            class="text-[10px] font-bold text-red-400 transform group-hover:-translate-x-0.5 transition-transform duration-200"
-          >
-            ◀
-          </div>
-        </div>
+        <BattleGlyph name="log" />
       </button>
-    </div>
-
-    <!-- 日志内容 -->
-    <div
-      data-testid="battle-log-list"
-      ref="logContainerRef"
-      class="h-full flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 scroll-smooth scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 scrollbar-thumb-rounded min-w-0 min-h-0"
-    >
+    </header>
+    <div data-testid="battle-log-list" ref="logContainerRef" class="battle-log__list" role="log" aria-label="战斗记录">
+      <p v-if="!formattedMessages.length" class="battle-log__empty">等待战斗开始</p>
       <BattleLogEntry v-for="(msg, index) in formattedMessages" :key="msg.receivedAt + index" :message="msg" />
     </div>
-  </div>
+  </section>
 </template>
+<style scoped>
+.battle-log {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.battle-log__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--battle-line);
+  flex: none;
+}
+.battle-log__header > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--battle-cyan);
+}
+.battle-log__count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--battle-muted);
+}
+.battle-log__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--battle-muted);
+  cursor: pointer;
+}
+.battle-log__close:hover,
+.battle-log__close:focus-visible {
+  color: var(--battle-cyan);
+  outline: 1px solid currentColor;
+}
+.battle-log__list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--battle-line) transparent;
+}
+.battle-log__empty {
+  color: var(--battle-muted);
+  font-size: 12px;
+  padding: 12px 0;
+}
+</style>

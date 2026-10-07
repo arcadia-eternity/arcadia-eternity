@@ -13,6 +13,10 @@ declare module 'vue' {
   export interface GlobalComponents {
     ArrayTagCell: typeof import('./src/components/ArrayTagCell.vue')['default']
     AuthStatus: typeof import('./src/components/auth/AuthStatus.vue')['default']
+    BattleCommandDock: typeof import('./src/components/battle/BattleCommandDock.vue')['default']
+    BattleFrame: typeof import('./src/components/battle/BattleFrame.vue')['default']
+    BattleGlyph: typeof import('./src/components/battle/BattleGlyph.vue')['default']
+    BattleLoading: typeof import('./src/components/battle/BattleLoading.vue')['default']
     BattleLogEntry: typeof import('./src/components/battle/BattleLogEntry.vue')['default']
     BattleLogPanel: typeof import('./src/components/battle/BattleLogPanel.vue')['default']
     BattleMarkInfo: typeof import('./src/components/battle/BattleMarkInfo.vue')['default']

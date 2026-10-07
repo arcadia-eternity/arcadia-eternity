@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import BattleFrame from './BattleFrame.vue'
 import HealthRageBar from './HealthRageBar.vue'
 import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
@@ -22,8 +23,8 @@ const props = defineProps<{
 }>()
 
 const containerClass = computed(() => [
-  'absolute top-5 flex gap-3',
-  props.side === 'left' ? 'left-5' : 'right-5',
+  'battle-status',
+  `battle-status--${props.side}`,
   props.side === 'left' ? 'flex-row' : 'flex-row-reverse',
 ])
 
@@ -121,7 +122,7 @@ const typeEffectivenessConfig = computed(() => {
 
 // 精灵图标的样式类（包含属性相性背景色）
 const petIconClasses = computed(() => {
-  const baseClasses = ['relative w-32 h-32 bg-black flex-none rounded-xl']
+  const baseClasses = ['battle-status__portrait']
   const zIndexClass = `z-[${Z_INDEX.BATTLE_STATUS_ICON}]`
 
   // 添加属性相性背景色
@@ -185,7 +186,8 @@ const petStatsInfo = computed(() => {
 </script>
 
 <template>
-  <div :class="containerClass">
+  <div v-if="activePet" :class="containerClass" :data-battle-status="side">
+    <BattleFrame :reverse="side === 'right'" />
     <Tooltip position="bottom">
       <template #trigger>
         <PetIcon
@@ -217,7 +219,7 @@ const petStatsInfo = computed(() => {
       </div>
     </Tooltip>
 
-    <div :class="statusBarClass">
+    <div :class="statusBarClass" class="battle-status__body">
       <div class="flex items-center gap-2 mb-1" :class="[side === 'right' ? 'flex-row-reverse' : '']">
         <span class="font-semibold text-base">{{ activePet!.name }}</span>
         <span class="text-sm opacity-80">
@@ -239,9 +241,88 @@ const petStatsInfo = computed(() => {
         :max-rage-modifier-info="rageModifierInfo?.maxRage"
       />
 
-      <div v-if="activePet!.marks?.length" :class="markContainerClass">
-        <Mark v-for="mark in activePet!.marks" :key="mark.id" :mark="mark" />
+      <div v-if="activePet!.marks?.length" :class="markContainerClass" class="battle-status__marks">
+        <Mark v-for="mark in activePet!.marks.slice(0, 5)" :key="mark.id" :mark="mark" />
+        <details v-if="activePet!.marks.length > 5" class="battle-status__more">
+          <summary :aria-label="`展开其余 ${activePet!.marks.length - 5} 个印记`">
+            +{{ activePet!.marks.length - 5 }}
+          </summary>
+          <div><Mark v-for="mark in activePet!.marks.slice(5)" :key="mark.id" :mark="mark" /></div>
+        </details>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.battle-status {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+.battle-status > :not(svg) {
+  position: relative;
+}
+.battle-status__portrait {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  background-color: transparent;
+  border-radius: 3px;
+}
+.battle-status__body {
+  min-width: 0;
+  gap: 0;
+}
+.battle-status__body > div:first-child span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.battle-status__marks {
+  min-height: 26px;
+  height: 26px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 4px 0 0;
+}
+.battle-status__marks :deep(img) {
+  width: 26px;
+  height: 26px;
+}
+.battle-status__marks :deep(.text-sm) {
+  font-size: 10px;
+}
+.battle-status__more {
+  position: relative;
+}
+.battle-status__more summary {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 26px;
+  background: var(--battle-panel-soft);
+  color: var(--battle-cyan);
+  cursor: pointer;
+  font-size: 12px;
+  list-style: none;
+}
+.battle-status__more > div {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  width: 190px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: var(--battle-panel);
+  border: 1px solid var(--battle-line);
+  z-index: 100;
+}
+.battle-status :deep(.battle-frame__fill) {
+  fill: none;
+}
+</style>

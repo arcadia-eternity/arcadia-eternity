@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" role="img" aria-label="KO">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2=".3" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#fff4be"/><stop offset=".45" stop-color="#ffda43"/><stop offset="1" stop-color="#ff7800"/></linearGradient>
+    <linearGradient id="speed"><stop stop-color="#ff7800" stop-opacity="0"/><stop offset=".7" stop-color="#ffb62c"/><stop offset="1" stop-color="#fff4be"/></linearGradient>
+  </defs>
+  <g stroke="#101c23" stroke-width="7" stroke-linejoin="round">
+    <path d="M515 10 565 48 520 115Q598 44 676 35Q601 68 597 117Q581 173 745 235Q593 226 516 126L478 199 407 251Z" fill="url(#gold)"/>
+    <path d="M680 62C744 38 789 82 766 145C747 197 680 216 649 171C621 132 639 81 680 62ZM692 102C666 111 658 145 678 156C699 168 727 142 721 118C718 104 706 98 692 102Z" fill="url(#gold)" fill-rule="evenodd"/>
+  </g>
+  <g fill="url(#speed)"><path d="M60 119H401L410 130Z"/><path d="M70 138H412L420 148Z"/></g>
+  <g fill="url(#speed)" transform="translate(1200 0) scale(-1 1)"><path d="M60 119H401L410 130Z"/><path d="M70 138H412L420 148Z"/></g>
+  <path d="M518 21 553 49 460 188ZM550 102Q602 56 648 48Q585 66 559 98ZM676 72Q702 59 726 64Q678 73 657 110Z" fill="#fff9d4" opacity=".65"/>
+</svg>

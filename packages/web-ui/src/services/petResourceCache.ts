@@ -42,7 +42,9 @@ interface CacheEntry {
   error?: string
 }
 
-class PetResourceCache {
+export class PetResourceCache {
+  private pending = new Map<string, Promise<void>>()
+  private warmedUrls = new Set<string>()
   private cache = new Map<number, CacheEntry>()
   private stats = reactive<CacheStats>({
     total: 0,
@@ -156,47 +158,63 @@ class PetResourceCache {
     }
   }
 
+  // Opaque responses can warm the HTTP cache but cannot prove that an SWF is valid.
+  // PetSprite separately checks renderer readiness before declaring an animation usable.
+  preloadUrl(url: string): Promise<void> {
+    if (this.warmedUrls.has(url)) return Promise.resolve()
+    const existing = this.pending.get(url)
+    if (existing) return existing
+    const task = (async () => {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 8000)
+      try {
+        const response = await fetch(url, { mode: 'no-cors', signal: controller.signal })
+        if (response.type !== 'opaque' && !response.ok) throw new Error(`资源加载失败 (${response.status})`)
+        if (response.type !== 'opaque') {
+          const bytes = await response.arrayBuffer()
+          if (!bytes.byteLength) throw new Error('精灵资源为空')
+          this.warmedUrls.add(url)
+        }
+      } finally {
+        clearTimeout(timer)
+        this.pending.delete(url)
+      }
+    })()
+    this.pending.set(url, task)
+    return task
+  }
+
   async preloadPetSwf(num: number): Promise<void> {
-    const remoteUrl = this.getRemotePetUrl(num)
-
+    const url = this.getRemotePetUrl(num)
     const existing = this.cache.get(num)
-    if (existing?.cached || existing?.loading) {
-      return
-    }
-
-    const entry: CacheEntry = {
-      url: remoteUrl,
-      cached: false,
-      loading: true,
-    }
+    if (existing?.cached) return
+    const key = `pet:${num}`
+    const pending = this.pending.get(key)
+    if (pending) return pending
+    const entry: CacheEntry = { url, cached: false, loading: true }
     this.cache.set(num, entry)
     this.updateStats()
-
-    try {
-      if (isDesktop) {
+    const task = (async () => {
+      try {
         const api = getDesktopApi()
-        if (api) {
-          await api.downloadPetSwf(num, remoteUrl)
+        if (isDesktop && api) {
+          await api.downloadPetSwf(num, url)
+          entry.cached = true
+        } else {
+          await this.preloadUrl(url)
+          entry.cached = this.warmedUrls.has(url)
         }
-      } else {
-        const response = await fetch(remoteUrl, {
-          method: 'HEAD',
-          mode: 'no-cors',
-        })
-
-        if (response.ok || response.type === 'opaque') {
-          await fetch(remoteUrl, { mode: 'no-cors' })
-        }
+      } catch (error) {
+        entry.error = error instanceof Error ? error.message : String(error)
+        throw error
+      } finally {
+        entry.loading = false
+        this.pending.delete(key)
+        this.updateStats()
       }
-
-      entry.cached = true
-    } catch (error) {
-      entry.error = (error as Error).message
-      console.warn(`Failed to preload pet ${num}:`, error)
-    } finally {
-      entry.loading = false
-      this.updateStats()
-    }
+    })()
+    this.pending.set(key, task)
+    return task
   }
 
   async preloadAllPets(
@@ -261,6 +279,7 @@ class PetResourceCache {
     }
 
     this.cache.clear()
+    this.warmedUrls.clear()
     this.updateStats()
     console.log('Cache has been reset.')
   }

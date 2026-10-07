@@ -249,9 +249,16 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
 
 <template>
   <div class="flex flex-wrap content-center justify-center">
-    <Tooltip :show="showTooltip" :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'">
+    <Tooltip
+      :portal="position === 'bottom'"
+      :show="showTooltip"
+      :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'"
+    >
       <template #trigger>
-        <div
+        <button
+          type="button"
+          :aria-label="petDisplayName"
+          :disabled="!canClick"
           :class="[
             ...petButtonClasses,
             `z-[${Z_INDEX.PET_BUTTON}]`,
@@ -322,7 +329,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
               {{ petDisplayName }}
             </div>
           </div>
-        </div>
+        </button>
       </template>
 
       <div class="space-y-3">

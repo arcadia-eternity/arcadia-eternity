@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type SkillMessage, type AttributeModifierInfo, Category } from '@arcadia-eternity/const'
+import BattleFrame from './BattleFrame.vue'
 import ElementIcon from './ElementIcon.vue'
 import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
@@ -31,6 +32,7 @@ const props = defineProps<{
   typeEffectiveness?: number
 }>()
 
+const showDetails = ref(false)
 const emit = defineEmits<{
   (e: 'click', id: string): void
 }>()
@@ -145,221 +147,86 @@ const skillMarkRelations = computed(() => {
   // 只显示前3个最相关的印记，避免tooltip过长
   return analysis.relatedMarks.slice(0, 3)
 })
-
-// 技能按钮的特殊样式
-const skillButtonClasses = computed(() => {
-  return [
-    'group relative w-44 h-26 p-2 cursor-pointer overflow-visible disabled:opacity-75 disabled:cursor-not-allowed',
-  ]
-})
-
-// 粒子效果配置
-const particlesId = ref(`particles-${Math.random().toString(36).substring(2, 11)}`)
-const isHovered = ref(false)
-
-// 基础粒子配置
-const baseParticlesOptions = {
-  background: {
-    color: {
-      value: 'transparent',
-    },
-  },
-  fpsLimit: 60,
-  fullScreen: {
-    enable: false,
-  },
-  particles: {
-    color: {
-      value: ['#fbbf24', '#f59e0b', '#d97706', '#92400e'],
-    },
-    move: {
-      direction: 'none',
-      enable: true,
-      outModes: {
-        default: 'out',
-        top: 'out',
-        bottom: 'out',
-        left: 'out',
-        right: 'out',
-      },
-      random: true,
-      speed: { min: 0.5, max: 1.5 },
-      straight: false,
-    },
-    number: {
-      density: {
-        enable: false,
-      },
-      value: 12,
-    },
-    opacity: {
-      value: { min: 0.4, max: 0.8 },
-      animation: {
-        enable: true,
-        speed: 1.2,
-        minimumValue: 0.2,
-      },
-    },
-    shape: {
-      type: 'circle',
-    },
-    size: {
-      value: { min: 1, max: 2.5 },
-      animation: {
-        enable: true,
-        speed: 1.5,
-        minimumValue: 0.5,
-      },
-    },
-  },
-  detectRetina: true,
-}
-
-// hover状态的粒子配置 - 更多、更亮、更躁动
-const hoverParticlesOptions = {
-  ...baseParticlesOptions,
-  particles: {
-    ...baseParticlesOptions.particles,
-    number: {
-      density: { enable: false },
-      value: 20,
-    },
-    opacity: {
-      value: { min: 0.7, max: 1.0 },
-      animation: {
-        enable: true,
-        speed: 2.5,
-        minimumValue: 0.4,
-      },
-    },
-    size: {
-      value: { min: 1.5, max: 3.5 },
-      animation: {
-        enable: true,
-        speed: 3,
-        minimumValue: 0.8,
-      },
-    },
-    move: {
-      ...baseParticlesOptions.particles.move,
-      speed: { min: 1.2, max: 2.8 },
-      random: true,
-      outModes: {
-        default: 'out',
-        top: 'out',
-        bottom: 'out',
-        left: 'out',
-        right: 'out',
-      },
-    },
-    color: {
-      value: ['#fbbf24', '#f59e0b', '#d97706', '#eab308', '#facc15'],
-    },
-  },
-}
-
-// 响应式粒子配置
-const particlesOptions = computed(() => {
-  return isHovered.value ? hoverParticlesOptions : baseParticlesOptions
-})
-
-const particlesLoaded = async () => {
-  // 粒子系统加载完成
-}
 </script>
 
 <template>
-  <div class="flex flex-wrap content-center justify-center">
-    <Tooltip position="top">
+  <div class="battle-skill-slot">
+    <Tooltip portal position="top" v-model:show="showDetails" :trigger="showDetails ? 'click' : 'hover'">
       <template #trigger>
-        <button
-          :class="[...skillButtonClasses, `z-[${Z_INDEX.SKILL_BUTTON}]`]"
-          data-testid="skill-button"
-          :data-skill-id="skill.id"
-          :data-skill-base-id="skill.baseId"
-          :disabled="disabled"
-          @click="emit('click', skill.id)"
-          @mouseenter="isHovered = true"
-          @mouseleave="isHovered = false"
-        >
-          <!-- 粒子效果容器 - 围绕光效区域 -->
-          <div
-            v-if="originalCategory === 'Climax' && !disabled"
-            class="absolute pointer-events-none overflow-visible"
-            style="top: -8px; left: -8px; right: -8px; bottom: -8px"
+        <div class="battle-skill__trigger">
+          <button
+            :class="[
+              'battle-skill',
+              { 'battle-skill--climax': originalCategory === 'Climax' },
+              `z-[${Z_INDEX.SKILL_BUTTON}]`,
+            ]"
+            data-testid="skill-button"
+            :data-skill-id="skill.id"
+            :data-skill-base-id="skill.baseId"
+            :disabled="disabled"
+            :aria-label="`${name} · ${category} · 威力 ${skill.power} · 怒气 ${skill.rage} · 命中 ${skill.accuracy}`"
+            @click="emit('click', skill.id)"
           >
-            <vue-particles
-              :id="particlesId"
-              :options="particlesOptions"
-              @particles-loaded="particlesLoaded"
-              class="w-full h-full"
-            />
-          </div>
-
-          <div
-            class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-8 transition-all duration-300 border"
-            :class="{
-              'border-blue-500/30 group-hover:shadow-[0_0_10px_2px_rgba(100,200,255,0.7)] group-disabled:hover:shadow-none':
-                originalCategory !== 'Climax',
-              'border-yellow-300 border-3 climax-glow-available': originalCategory === 'Climax' && !disabled,
-              'border-yellow-300 border-3': originalCategory === 'Climax' && disabled,
-            }"
-          >
-            <div class="bg-gray-900 w-full h-10"></div>
-            <div class="absolute bottom-2 right-2">
-              <div class="flex">
-                <div class="bg-white w-6 h-1 mt-6"></div>
-                <div class="bg-white w-1 h-7"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="relative flex h-full pointer-events-none gap-2 px-1">
-            <div class="flex flex-col items-center w-1/4 justify-center pl-2">
-              <div class="relative mb-2">
-                <div
-                  class="w-14 h-14 flex items-center justify-center rounded-full"
-                  :class="typeEffectivenessContainerClass"
-                >
-                  <ElementIcon :element="skill.element" class="w-11 h-11 object-contain" />
+            <BattleFrame :accent="originalCategory === 'Climax' ? 'gold' : 'cyan'" />
+            <div class="relative flex h-full pointer-events-none gap-2 px-1">
+              <div class="flex flex-col items-center w-1/4 justify-center pl-2">
+                <div class="relative mb-2">
+                  <div
+                    class="w-14 h-14 flex items-center justify-center rounded-full"
+                    :class="typeEffectivenessContainerClass"
+                  >
+                    <ElementIcon :element="skill.element" class="w-11 h-11 object-contain" />
+                  </div>
+                </div>
+                <div class="text-white text-sm font-bold [text-shadow:_1px_1px_0_black] text-center leading-tight mb-1">
+                  {{ category }}
                 </div>
               </div>
-              <div class="text-white text-sm font-bold [text-shadow:_1px_1px_0_black] text-center leading-tight mb-1">
-                {{ category }}
-              </div>
-            </div>
 
-            <div class="flex flex-col w-3/4 justify-center space-y-0.5 pl-1">
-              <div class="text-cyan-300 text-base font-bold [text-shadow:_1px_1px_0_black] truncate leading-tight">
-                {{ name }}
-              </div>
-              <div class="text-orange-500 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
-                {{
-                  i18next.t('power', {
-                    ns: 'battle',
-                  })
-                }}
-                <ModifiedValue :value="skill.power" :attribute-info="powerModifierInfo" size="sm" inline />
-              </div>
-              <div class="text-yellow-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
-                {{
-                  i18next.t('rage', {
-                    ns: 'battle',
-                  })
-                }}
-                <ModifiedValue :value="skill.rage" :attribute-info="rageModifierInfo" size="sm" inline />
-              </div>
-              <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
-                {{
-                  i18next.t('accuracy', {
-                    ns: 'battle',
-                  })
-                }}
-                <ModifiedValue :value="skill.accuracy" :attribute-info="accuracyModifierInfo" size="sm" inline />
+              <div class="flex flex-col w-3/4 justify-center space-y-0.5 pl-1">
+                <div class="text-cyan-300 text-base font-bold [text-shadow:_1px_1px_0_black] leading-tight">
+                  {{ name }}
+                </div>
+                <div class="text-orange-500 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
+                  {{
+                    i18next.t('power', {
+                      ns: 'battle',
+                    })
+                  }}
+                  <ModifiedValue :value="skill.power" :attribute-info="powerModifierInfo" size="sm" inline />
+                </div>
+                <div class="text-yellow-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
+                  {{
+                    i18next.t('rage', {
+                      ns: 'battle',
+                    })
+                  }}
+                  <ModifiedValue :value="skill.rage" :attribute-info="rageModifierInfo" size="sm" inline />
+                </div>
+                <div class="text-green-300 text-sm font-semibold [text-shadow:_1px_1px_0_black] leading-tight">
+                  {{
+                    i18next.t('accuracy', {
+                      ns: 'battle',
+                    })
+                  }}
+                  <ModifiedValue :value="skill.accuracy" :attribute-info="accuracyModifierInfo" size="sm" inline />
+                </div>
               </div>
             </div>
-          </div>
-        </button>
+          </button>
+          <button
+            class="battle-skill__info"
+            type="button"
+            :aria-label="`${name}详情`"
+            :aria-expanded="showDetails"
+            @click.stop="showDetails = !showDetails"
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="10" cy="10" r="7" />
+              <path d="M10 9v5m0-9v1" />
+            </svg>
+          </button>
+        </div>
       </template>
       <div class="prose prose-invert max-w-none">
         <div class="flex items-center justify-between mb-3">
@@ -413,35 +280,94 @@ const particlesLoaded = async () => {
 </template>
 
 <style scoped>
-/* Climax技能呼吸光效动画 */
-@keyframes climax-breathing {
-  0%,
-  100% {
-    box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 20px 4px rgba(245, 158, 11, 0.8);
-  }
+.battle-skill__trigger {
+  position: relative;
 }
-
-/* 可用状态的climax技能 - 持续呼吸光效 */
-.climax-glow-available {
-  animation: climax-breathing 2s ease-in-out infinite;
+.battle-skill__info {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 28px;
+  height: 28px;
+  color: var(--battle-muted);
+  cursor: pointer;
+  z-index: 40;
 }
-
-/* hover状态的呼吸动画 - 更快更亮 */
-@keyframes climax-breathing-hover {
-  0%,
-  100% {
-    box-shadow: 0 0 15px 3px rgba(245, 158, 11, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 25px 5px rgba(245, 158, 11, 1);
-  }
+.battle-skill__info svg {
+  width: 18px;
+  height: 18px;
+  margin: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
 }
-
-/* hover状态 - 保持呼吸并增强高亮 */
-.group:hover .background.climax-glow-available {
-  animation: climax-breathing-hover 1.5s ease-in-out infinite !important;
+.battle-skill__info:focus-visible {
+  outline: 2px solid var(--battle-cyan);
+}
+.battle-skill-slot {
+  width: 100%;
+  min-width: 0;
+}
+.battle-skill-slot :deep(.relative.inline-block) {
+  width: 100%;
+}
+.battle-skill {
+  display: block;
+  position: relative;
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.battle-skill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.battle-skill:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+.battle-skill:active:not(:disabled) {
+  transform: translateY(0);
+}
+.battle-skill:focus-visible {
+  outline: 2px solid var(--battle-cyan);
+  outline-offset: 4px;
+}
+.battle-skill .w-14 {
+  width: 36px;
+  height: 36px;
+}
+.battle-skill .w-11 {
+  width: 30px;
+  height: 30px;
+}
+.battle-skill .text-base {
+  font-size: 13px;
+  color: var(--battle-text);
+  padding-right: 8px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.battle-skill .text-sm {
+  font-size: 12px;
+}
+.battle-skill .text-orange-500,
+.battle-skill .text-green-300 {
+  color: var(--battle-muted);
+}
+.battle-skill .text-yellow-300 {
+  color: var(--battle-gold);
+}
+.battle-skill .mb-2 {
+  margin-bottom: 4px;
+}
+.battle-skill--climax .text-base {
+  color: var(--battle-gold);
+}
+.battle-skill--climax:not(:disabled) {
+  filter: drop-shadow(0 0 4px #f4c56a20);
 }
 </style>
