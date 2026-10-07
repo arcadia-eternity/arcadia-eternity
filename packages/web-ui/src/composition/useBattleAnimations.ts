@@ -30,7 +30,7 @@ export function useBattleAnimations(
   const tweens = new Set<gsap.core.Tween | gsap.core.Timeline>()
   const hostTweens = new Map<HTMLElement, gsap.core.Timeline>()
   let backgroundAspectRatio = 1200 / 660
-  let backgroundOffset = 0
+  const backgroundPosition = { offset: 0 }
   let backgroundTween: gsap.core.Timeline | undefined
   let id = 0
   function remove(host: HTMLElement) {
@@ -172,18 +172,26 @@ export function useBattleAnimations(
     const maxDistance = Math.max(0, (height * backgroundAspectRatio - width) / 2)
     if (maxDistance <= 0) return
     const delta = Math.min(width * 0.3, maxDistance * 0.4) * intensity
-    backgroundOffset = Math.max(
-      -maxDistance,
-      Math.min(maxDistance, backgroundOffset + (side === 'left' ? delta : -delta)),
-    )
     backgroundTween?.kill()
     if (backgroundTween) tweens.delete(backgroundTween)
-    backgroundTween = timeline().to(background, {
-      backgroundPosition: `calc(50% + ${backgroundOffset}px) center`,
-      duration: 0.3,
-      ease: 'power2.out',
-      overwrite: true,
-    })
+    const start = backgroundPosition.offset
+    const target = Math.max(-maxDistance, Math.min(maxDistance, start + (side === 'left' ? delta : -delta)))
+    // Animate a number, not a CSS percentage/calc pair: CSSPlugin can convert the
+    // initial centered position to pixels and visibly jump on the first hit.
+    const paint = () => {
+      background.style.backgroundPosition = `calc(50% + ${backgroundPosition.offset}px) center`
+    }
+    backgroundTween = timeline()
+    if (Math.abs(target - start) < 0.01 && delta > 0) {
+      // A capped cumulative pan must still react to another hit. Recoil inward
+      // briefly, then settle at the same edge without exposing empty scenery.
+      const recoil = start - Math.sign(start) * Math.min(delta, maxDistance)
+      backgroundTween
+        .to(backgroundPosition, { offset: recoil, duration: 0.1, ease: 'power2.out', onUpdate: paint })
+        .to(backgroundPosition, { offset: target, duration: 0.2, ease: 'power2.out', onUpdate: paint })
+    } else {
+      backgroundTween.to(backgroundPosition, { offset: target, duration: 0.3, ease: 'power2.out', onUpdate: paint })
+    }
   }
   function showDamageMessage(
     side: Side,
@@ -261,7 +269,7 @@ export function useBattleAnimations(
     for (const host of [...hosts.keys()]) remove(host)
     const camera = cameraRef?.value ?? battleViewRef.value
     if (camera) gsap.set(camera, { x: 0, y: 0 })
-    backgroundOffset = 0
+    backgroundPosition.offset = 0
     backgroundTween = undefined
     if (backgroundContainerRef?.value) gsap.set(backgroundContainerRef.value, { backgroundPosition: '50% center' })
   }

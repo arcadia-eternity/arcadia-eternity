@@ -11,6 +11,11 @@ vi.mock('gsap', () => ({
       const tween = {
         to: (target: unknown, vars: unknown) => {
           cameraTo(target, vars)
+          const animation = vars as { offset?: number; onUpdate?: () => void }
+          if (animation.offset !== undefined) {
+            ;(target as { offset: number }).offset = animation.offset
+            animation.onUpdate?.()
+          }
           return tween
         },
         fromTo: () => tween,
@@ -93,17 +98,12 @@ it.each([0.25, 1, 1.5])('preserves cumulative background drift and image edges u
   effects.moveBackgroundFocus('left')
   effects.moveBackgroundFocus('left')
   effects.moveBackgroundFocus('right')
-  const drift = cameraTo.mock.calls.filter(([target]) => target === background)
-  expect(drift.map(([, vars]) => vars.backgroundPosition)).toEqual([
-    'calc(50% + 160px) center',
-    'calc(50% + 320px) center',
-    'calc(50% + 400px) center',
-    'calc(50% + 240px) center',
-  ])
+  const drift = cameraTo.mock.calls.filter(([, vars]) => 'offset' in vars)
+  expect(drift.map(([, vars]) => vars.offset)).toEqual([160, 320, 400, 240])
   expect(drift[0][1]).toMatchObject({ duration: 0.3, ease: 'power2.out' })
   effects.reset()
   cameraTo.mockClear()
   effects.moveBackgroundFocus('right')
-  expect(cameraTo.mock.calls[0][1].backgroundPosition).toBe('calc(50% + -160px) center')
+  expect(cameraTo.mock.calls[0][1].offset).toBe(-160)
   effects.cleanup()
 })
