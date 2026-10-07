@@ -48,40 +48,62 @@ describe('floating effects canvas coordinates', () => {
     effects.cleanup()
     expect(root.children).toHaveLength(0)
   })
-  it.each(['standard', 'simple', 'reduced'] as const)(
-    'shakes the whole camera and recoils only in standard mode (%s)',
-    motion => {
-      const root = document.createElement('div')
-      const camera = document.createElement('div')
-      const sprite = document.createElement('div')
-      camera.append(root, sprite)
-      document.body.append(camera)
-      const store = { getPetById: () => ({ maxHp: 500 }) } as unknown as ReturnType<typeof useBattleStore>
-      const effects = useBattleAnimations(
-        ref(root),
-        store,
-        computed(() => null),
-        computed(() => null),
-        computed(() => 0.25),
-        undefined,
-        undefined,
-        computed(() => motion),
-        ref(camera),
-        () => sprite,
-      )
-      effects.showDamageMessage('left', 50)
-      effects.recoilPet('left')
-      const shakes = cameraTo.mock.calls.filter(([target, vars]) => target === camera && vars.repeat === 5)
-      expect(shakes).toHaveLength(motion === 'standard' ? 1 : 0)
-      expect(cameraTo.mock.calls.filter(([target]) => target === root)).toHaveLength(0)
-      const recoil = cameraTo.mock.calls.filter(([target]) => target === sprite)
-      expect(recoil).toHaveLength(motion === 'standard' ? 2 : 0)
-      if (motion === 'standard') {
-        expect(shakes[0][1]).toMatchObject({ x: -0.75, y: 0.375 })
-        expect(recoil[0][1]).toMatchObject({ x: -18 })
-        expect(recoil[1][1]).toMatchObject({ x: 0 })
-      }
-      effects.cleanup()
-    },
+  it.each(['standard', 'simple', 'reduced'] as const)('shakes the whole camera only in standard mode (%s)', motion => {
+    const root = document.createElement('div')
+    const camera = document.createElement('div')
+    camera.append(root)
+    document.body.append(camera)
+    const store = { getPetById: () => ({ maxHp: 500 }) } as unknown as ReturnType<typeof useBattleStore>
+    const effects = useBattleAnimations(
+      ref(root),
+      store,
+      computed(() => null),
+      computed(() => null),
+      computed(() => 0.25),
+      undefined,
+      undefined,
+      computed(() => motion),
+      ref(camera),
+    )
+    effects.showDamageMessage('left', 50)
+    const shakes = cameraTo.mock.calls.filter(([target, vars]) => target === camera && vars.repeat === 5)
+    expect(shakes).toHaveLength(motion === 'standard' ? 1 : 0)
+    expect(cameraTo.mock.calls.filter(([target]) => target === root)).toHaveLength(0)
+    if (motion === 'standard') {
+      expect(shakes[0][1]).toMatchObject({ x: -0.75, y: 0.375 })
+    }
+    effects.cleanup()
+  })
+})
+
+it.each([0.25, 1, 1.5])('preserves cumulative background drift and image edges under scale %s', scale => {
+  const root = document.createElement('div')
+  const background = document.createElement('div')
+  Object.defineProperties(background, { offsetWidth: { value: 1600 }, offsetHeight: { value: 900 } })
+  const effects = useBattleAnimations(
+    ref(root),
+    {} as ReturnType<typeof useBattleStore>,
+    computed(() => null),
+    computed(() => null),
+    computed(() => scale),
+    ref(background),
   )
+  effects.updateBackgroundAspectRatio(2400, 900)
+  effects.moveBackgroundFocus('left')
+  effects.moveBackgroundFocus('left')
+  effects.moveBackgroundFocus('left')
+  effects.moveBackgroundFocus('right')
+  const drift = cameraTo.mock.calls.filter(([target]) => target === background)
+  expect(drift.map(([, vars]) => vars.backgroundPosition)).toEqual([
+    'calc(50% + 160px) center',
+    'calc(50% + 320px) center',
+    'calc(50% + 400px) center',
+    'calc(50% + 240px) center',
+  ])
+  expect(drift[0][1]).toMatchObject({ duration: 0.3, ease: 'power2.out' })
+  effects.reset()
+  cameraTo.mockClear()
+  effects.moveBackgroundFocus('right')
+  expect(cameraTo.mock.calls[0][1].backgroundPosition).toBe('calc(50% + -160px) center')
+  effects.cleanup()
 })

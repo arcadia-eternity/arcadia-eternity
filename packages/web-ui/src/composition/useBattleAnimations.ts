@@ -24,14 +24,14 @@ export function useBattleAnimations(
   getManager?: () => AnimationGsapManager | undefined,
   motion?: ComputedRef<Motion>,
   cameraRef?: Ref<HTMLElement | null>,
-  getPetImpactTarget?: (side: Side) => HTMLElement | null,
 ) {
   const mode = computed(() => motion?.value ?? 'standard')
   const hosts = new Map<HTMLElement, { side: Side; kind: string }>()
   const tweens = new Set<gsap.core.Tween | gsap.core.Timeline>()
   const hostTweens = new Map<HTMLElement, gsap.core.Timeline>()
-  const impactTargets = new Set<HTMLElement>()
-  const impactTweens = new Map<HTMLElement, gsap.core.Timeline>()
+  let backgroundAspectRatio = 1200 / 660
+  let backgroundOffset = 0
+  let backgroundTween: gsap.core.Timeline | undefined
   let id = 0
   function remove(host: HTMLElement) {
     if (!hosts.has(host)) return
@@ -160,28 +160,30 @@ export function useBattleAnimations(
       })
       .to(root, { x: 0, y: 0, duration: 0.08 })
   }
-  function recoilPet(side: Side, crit = false) {
-    const target = getPetImpactTarget?.(side)
-    if (mode.value !== 'standard' || !target) return
-    const previous = impactTweens.get(target)
-    previous?.kill()
-    if (previous) tweens.delete(previous)
-    impactTargets.add(target)
-    gsap.set(target, { x: 0 })
-    const tl = timeline()
-      .to(target, { x: (side === 'left' ? -1 : 1) * (crit ? 32 : 18), duration: 0.09, ease: 'power2.out' })
-      .to(target, { x: 0, duration: 0.24, ease: 'power2.out' })
-    impactTweens.set(target, tl)
+  function updateBackgroundAspectRatio(width: number, height: number) {
+    if (width > 0 && height > 0) backgroundAspectRatio = width / height
   }
   function moveBackgroundFocus(side: Side, intensity = 1) {
-    if (mode.value !== 'standard' || !backgroundContainerRef?.value) return
-    timeline()
-      .to(backgroundContainerRef.value, {
-        backgroundPosition: `calc(50% + ${(side === 'left' ? 1 : -1) * 10 * intensity}px) center`,
-        duration: 0.12,
-        overwrite: true,
-      })
-      .to(backgroundContainerRef.value, { backgroundPosition: '50% center', duration: 0.28, ease: 'power2.out' })
+    const background = backgroundContainerRef?.value
+    if (mode.value !== 'standard' || !background) return
+    // offset sizes are logical canvas pixels, independent of viewport scale.
+    const width = background.offsetWidth
+    const height = background.offsetHeight
+    const maxDistance = Math.max(0, (height * backgroundAspectRatio - width) / 2)
+    if (maxDistance <= 0) return
+    const delta = Math.min(width * 0.3, maxDistance * 0.4) * intensity
+    backgroundOffset = Math.max(
+      -maxDistance,
+      Math.min(maxDistance, backgroundOffset + (side === 'left' ? delta : -delta)),
+    )
+    backgroundTween?.kill()
+    if (backgroundTween) tweens.delete(backgroundTween)
+    backgroundTween = timeline().to(background, {
+      backgroundPosition: `calc(50% + ${backgroundOffset}px) center`,
+      duration: 0.3,
+      ease: 'power2.out',
+      overwrite: true,
+    })
   }
   function showDamageMessage(
     side: Side,
@@ -193,10 +195,11 @@ export function useBattleAnimations(
     const player = side === 'left' ? currentPlayer.value : opponentPlayer.value
     const pet = player?.activePet ? store.getPetById(player.activePet) : null
     const heavyHit = crit || !!(pet && value / pet.maxHp > 0.25)
-    shakeCamera(side, heavyHit ? 6 : 3)
+    shakeCamera(side, heavyHit ? 20 + Math.random() * 30 : 3)
     if (mode.value === 'standard' && heavyHit) {
       flashAndShake(side)
-      moveBackgroundFocus(side, crit ? 1.4 : 1)
+      const hpRatio = pet && pet.maxHp > 0 ? value / pet.maxHp : 0
+      moveBackgroundFocus(side, Math.min(1.5, (crit ? 1.2 : 0.8) * Math.min(hpRatio * 2, 1)))
     }
     float(
       side,
@@ -258,21 +261,19 @@ export function useBattleAnimations(
     for (const host of [...hosts.keys()]) remove(host)
     const camera = cameraRef?.value ?? battleViewRef.value
     if (camera) gsap.set(camera, { x: 0, y: 0 })
-    for (const target of impactTargets) gsap.set(target, { x: 0 })
-    impactTargets.clear()
-    impactTweens.clear()
+    backgroundOffset = 0
+    backgroundTween = undefined
     if (backgroundContainerRef?.value) gsap.set(backgroundContainerRef.value, { backgroundPosition: '50% center' })
   }
   return {
     showMissMessage,
     showAbsorbMessage,
     showDamageMessage,
-    recoilPet,
     showHealMessage,
     showUseSkillMessage,
     flashAndShake,
     moveBackgroundFocus,
-    updateBackgroundAspectRatio: (_width: number, _height: number) => {},
+    updateBackgroundAspectRatio,
     reset,
     cleanup: reset,
   }

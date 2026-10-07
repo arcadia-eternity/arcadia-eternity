@@ -421,7 +421,6 @@ const {
   showMissMessage,
   showAbsorbMessage,
   showDamageMessage,
-  recoilPet,
   showHealMessage,
   showUseSkillMessage,
   updateBackgroundAspectRatio,
@@ -437,7 +436,6 @@ const {
   () => animationController?.gsapManager,
   effectiveMotion,
   battleCameraRef as Ref<HTMLElement | null>,
-  side => petSprites.value[side]?.$el.querySelector('[data-pet-impact]') ?? null,
 )
 
 const leftActiveSpecies = computed(() => {
@@ -1463,7 +1461,6 @@ async function handleCombatEventMessage(message: CombatEventMessageWithTarget, i
         if (!targetPetInfo) {
           console.warn(`Target pet info not found for ID: ${damageData.target}`, message)
           // 即使找不到宠物信息，也要显示伤害动画
-          if (damageData.source !== targetPetId) recoilPet(targetSide, damageData.isCrit)
           targetPetSprite.setState(damageData.isCrit ? ActionState.UNDER_ULTRA : ActionState.UNDER_ATK)
           showDamageMessage(
             targetSide,
@@ -1485,7 +1482,6 @@ async function handleCombatEventMessage(message: CombatEventMessageWithTarget, i
           !isFromSelf
 
         if (shouldSetPetAnimationState) {
-          recoilPet(targetSide, damageData.isCrit)
           if (isDead && availableState.includes(ActionState.DEAD)) {
             targetPetSprite.setState(ActionState.DEAD)
           } else if (isCriticalHealth && availableState.includes(ActionState.ABOUT_TO_DIE)) {
@@ -1575,7 +1571,7 @@ const removeClimaxBlackScreen = () => {
 const startClimaxScreenShake = () => {
   if (!battleCameraRef.value || effectiveMotion.value !== 'standard') return
 
-  const shakeIntensity = 6 * battleViewScale.value
+  const shakeIntensity = (20 + Math.random() * 30) * battleViewScale.value
   const shakeAngle = Math.random() * Math.PI * 2
   const shakeX = Math.cos(shakeAngle) * shakeIntensity
   const shakeY = Math.sin(shakeAngle) * shakeIntensity

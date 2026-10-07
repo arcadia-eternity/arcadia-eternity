@@ -227,7 +227,11 @@
 .battle-dock--log {
   grid-template-columns: 300px minmax(0, 1fr) 130px;
 }
+.battle-dock--log .battle-dock__toolbar {
+  grid-column: 2 / -1;
+}
 .battle-dock__toolbar {
+  grid-row: 1;
   grid-column: 1 / -1;
   display: flex;
   justify-content: space-between;
@@ -246,8 +250,19 @@
   margin-left: 8px;
 }
 .battle-dock__log {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1 / span 2;
   min-width: 0;
-  height: 126px;
+  min-height: 0;
+  align-self: stretch;
+}
+.battle-dock .battle-dock__log > .battle-log {
+  /* The log fills the command rows without contributing its content height to them. */
+  position: absolute;
+  inset: 0;
+  height: auto;
+  min-height: 0;
 }
 .battle-dock__commands {
   min-width: 0;
