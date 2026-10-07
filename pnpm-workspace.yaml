@@ -13,11 +13,11 @@ allowBuilds:
 catalog:
   '@typescript/native-preview': 7.0.0-dev.20260504.1
   typescript: 6.0.3
-  nanoid: 5.1.6
+  nanoid: 5.1.16
   '@sinclair/typebox': 0.34.48
-  vitest: 4.1.5
+  vitest: 4.1.11
   '@types/node': 25.6.0
-  jsondiffpatch: 0.7.3
+  jsondiffpatch: 0.7.6
   yaml: 2.8.4
   rxjs: 7.8.2
   'socket.io-client': 4.8.3
@@ -25,18 +25,47 @@ catalog:
 linkWorkspacePackages: true
 overrides:
   yauzl: 3.2.1
-  postcss: '>=8.5.10'
-  '@xmldom/xmldom': '>=0.8.13'
-  dompurify: '>=3.4.0'
+  postcss: '^8.5.23'
+  '@xmldom/xmldom': '^0.9.12'
+  dompurify: '^3.4.16'
   fast-xml-parser: '>=5.7.0'
-  protobufjs: '>=7.5.5'
+  protobufjs: '^8.6.6'
   picomatch: '>=4.0.4'
   lodash: '>=4.18.0'
   lodash-es: '>=4.18.0'
   follow-redirects: '>=1.16.0'
-  brace-expansion: '>=5.0.5'
+  brace-expansion: '^5.0.12'
   flatted: '>=3.4.2'
-  socket.io-parser: '>=4.2.6'
+  socket.io-parser: '^4.2.7'
   defu: '>=6.1.5'
-  i18next-http-backend: '>=3.0.5'
-  i18next-fs-backend: '>=2.6.4'
+  i18next-http-backend: '^4.0.2'
+  i18next-fs-backend: '^2.6.6'
+  '@babel/core@<8': '^7.29.6'
+  '@humanfs/node@<0.17': '^0.16.8'
+  '@grpc/grpc-js': '^1.14.5'
+  'baseline-browser-mapping': '^2.11.0'
+  'body-parser': '^2.3.0'
+  'browserslist': '^4.28.7'
+  'engine.io': '^6.6.10'
+  'esbuild@>=0.27.3 <0.28.1': '^0.28.1'
+  'form-data@>=4 <4.0.6': '^4.0.6'
+  'http-cache-semantics': '^4.3.0'
+  'ip-address': '^10.7.1'
+  'joi@>=18 <18.2.9': '^18.2.9'
+  'js-cookie': '^3.0.7'
+  'js-yaml@>=4 <4.3.2': '^4.3.2'
+  'linkify-it@<6': '^5.0.2'
+  'moment': '^2.31.0'
+  'nanoid@<4': '^3.3.18'
+  'postcss-selector-parser': '^7.1.6'
+  'proxy-addr': '^2.0.8'
+  'qs': '^6.16.0'
+  'shell-quote': '^1.9.0'
+  'source-map-js': '^1.2.2'
+  'tar@<=7.5.20': '^7.5.21'
+  'tmp': '^0.2.6'
+  'vm2': '^3.12.2'
+  'ws@>=8 <8.21': '^8.21.0'
+  'stream-json': '^3.6.0'
+  'vue': '^3.5.42'
+  'builder-util-runtime': '^9.7.0'
