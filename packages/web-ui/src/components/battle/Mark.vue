@@ -45,24 +45,32 @@ const duration = computed(() => props.mark.duration ?? -1)
 
 <template>
   <div ref="rootEl" class="relative inline-block overflow-visible group" data-tooltip-parent>
-    <Tooltip :show="showTooltip" position="bottom" v-if="rootEl">
+    <Tooltip
+      portal
+      v-model:show="showTooltip"
+      position="bottom"
+      v-if="rootEl"
+      :trigger="showTooltip ? 'click' : 'hover'"
+    >
       <template #trigger>
-        <div
-          class="relative transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
+        <button
+          type="button"
+          :aria-label="`${name}印记详情`"
+          :aria-expanded="showTooltip"
+          @click="showTooltip = !showTooltip"
+          class="battle-mark__trigger relative transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
           :class="`z-[${Z_INDEX.MARK}]`"
         >
           <img
             :src="image"
-            class="w-12 h-12 object-contain transition-opacity duration-200 ease-in-out pointer-events-none"
+            class="battle-mark__icon object-contain transition-opacity duration-200 ease-in-out pointer-events-none"
+            :alt="name"
             :class="{ 'opacity-50': !mark.config.persistent && duration == 1 }"
           />
-          <div
-            v-if="mark.config.stackable && (mark.config.maxStacks ?? 1) > 1"
-            class="absolute -bottom-1 -right-1 text-white text-sm px-1.5 py-0.5 rounded-full leading-none [text-shadow:_0_0_2px_black]"
-          >
+          <div v-if="mark.config.stackable && (mark.config.maxStacks ?? 1) > 1" class="battle-mark__stack">
             {{ stackText }}
           </div>
-        </div>
+        </button>
       </template>
 
       <h3 class="text-lg font-bold mb-2">{{ name }}</h3>
@@ -74,3 +82,35 @@ const duration = computed(() => props.mark.duration ?? -1)
     </Tooltip>
   </div>
 </template>
+
+<style scoped>
+.battle-mark__trigger {
+  display: block;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  cursor: pointer;
+}
+.battle-mark__trigger:focus-visible {
+  outline: 2px solid var(--battle-cyan);
+  outline-offset: 2px;
+}
+.battle-mark__icon {
+  width: 100%;
+  height: 100%;
+}
+.battle-mark__stack {
+  position: absolute;
+  bottom: -2px;
+  right: -3px;
+  min-width: 16px;
+  padding: 1px 3px;
+  border-radius: 6px;
+  background: #07111db3;
+  color: #fff;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+}
+</style>

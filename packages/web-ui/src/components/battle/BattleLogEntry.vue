@@ -14,34 +14,51 @@ defineProps<{
 </script>
 
 <template>
-  <div
-    data-testid="battle-log-entry"
-    :data-log-type="message.type"
-    class="flex gap-3 p-2 my-1 transition-all duration-300 text-sm text-amber-50 min-w-0 flex-shrink-0"
-    :class="{
-      'text-red-400!': message.type === 'DAMAGE',
-      'text-green-500!': message.type === 'HEAL',
-      'text-yellow-400!': message.type === 'SKILL_USE',
-      'text-blue-300!': message.type === 'PET_SWITCH',
-      'text-purple-300!': message.type === 'STAT_CHANGE',
-      'text-yellow-300! font-bold': message.type === 'BATTLE_START',
-      'text-green-400!': message.type === 'PET_REVIVE',
-      'text-gray-400!': message.type === 'TURN_END',
-      'text-pink-300!': message.type === 'HP_CHANGE',
-      'text-orange-400!': message.type === 'SKILL_USE_FAIL',
-      'text-blue-400!': message.type === 'EFFECT_APPLY',
-      'text-red-300!': message.type === 'MARK_DESTROY',
-      'text-purple-400!': message.type === 'MARK_UPDATE',
-      'text-gray-300!': message.type === 'INFO',
-    }"
-  >
-    <div class="text-xl shrink-0">{{ message.icon }}</div>
-    <div class="grow min-w-0">
-      <div
-        v-text="message.content"
-        class="break-words [&_.pet-name]:text-blue-200 [&_.pet-name]:font-medium [&_.skill-name]:text-blue-200 [&_.skill-name]:font-medium [&_.damage-value]:font-bold [&_.crit]:text-red-400 [&_.crit]:font-bold [&_.effective]:text-green-500 [&_.effective]:font-bold [&_.not-effective]:text-gray-500 [&_.not-effective]:font-bold [&_.hp-remaining]:text-gray-400"
-      ></div>
-      <div class="text-sm text-gray-500 mt-1">{{ message.timestamp }}</div>
-    </div>
-  </div>
+  <article data-testid="battle-log-entry" :data-log-type="message.type" class="battle-log-entry">
+    <span class="battle-log-entry__dot" aria-hidden="true"></span>
+    <p>{{ message.content }}</p>
+    <time>{{ message.timestamp }}</time>
+  </article>
 </template>
+<style scoped>
+.battle-log-entry {
+  --entry-accent: var(--battle-cyan);
+  display: grid;
+  grid-template-columns: 5px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 3px;
+  padding: 9px 0;
+  border-bottom: 1px solid #36536855;
+  color: var(--battle-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.battle-log-entry__dot {
+  width: 4px;
+  height: 4px;
+  margin-top: 6px;
+  background: var(--entry-accent);
+}
+.battle-log-entry p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.battle-log-entry time {
+  grid-column: 2;
+  color: var(--battle-muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.battle-log-entry[data-log-type='DAMAGE'],
+.battle-log-entry[data-log-type='PET_DEFEATED'] {
+  --entry-accent: var(--battle-danger);
+}
+.battle-log-entry[data-log-type='HEAL'],
+.battle-log-entry[data-log-type='PET_REVIVE'] {
+  --entry-accent: var(--battle-hp);
+}
+.battle-log-entry[data-log-type='SKILL_USE'],
+.battle-log-entry[data-log-type='BATTLE_END'] {
+  --entry-accent: var(--battle-gold);
+}
+</style>

@@ -1,742 +1,288 @@
-import { useBattleStore } from '@/stores/battle'
-import { type petId } from '@arcadia-eternity/const'
+import { computed, h, render, type Ref, type ComputedRef } from 'vue'
 import gsap from 'gsap'
-import type { AnimationGsapManager } from './animationGsapManager'
 import i18next from 'i18next'
-import { h, render, type Ref, type ComputedRef, ref } from 'vue'
-import { Subject, concatMap, delay, tap, timestamp, scan, of } from 'rxjs'
-import { useElementBounding } from '@vueuse/core'
+import type { petId } from '@arcadia-eternity/const'
+import type { useBattleStore } from '@/stores/battle'
+import type { AnimationGsapManager } from './animationGsapManager'
 import DamageDisplay from '@/components/battle/DamageDisplay.vue'
 import HealDisplay from '@/components/battle/HealDisplay.vue'
-// import type { Player } from '@arcadia-eternity/battle' // Assuming Player type is exported from battle package - replaced with MinimalPlayerForAnimations
 
-interface MinimalPlayerForAnimations {
+interface Player {
   activePet?: petId
-  // id: string // Add other properties if needed from the player object itself
 }
+type Side = 'left' | 'right'
+type Motion = 'standard' | 'simple' | 'reduced'
 
+/** Effects use canvas coordinates; a separate camera moves the entire scaled interface. */
 export function useBattleAnimations(
   battleViewRef: Ref<HTMLElement | null>,
   store: ReturnType<typeof useBattleStore>,
-  currentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
-  opponentPlayer: ComputedRef<MinimalPlayerForAnimations | null | undefined>,
+  currentPlayer: ComputedRef<Player | null | undefined>,
+  opponentPlayer: ComputedRef<Player | null | undefined>,
   battleViewScale: ComputedRef<number>,
   backgroundContainerRef?: Ref<HTMLElement | null>,
-  gsapManager?: AnimationGsapManager,
+  getManager?: () => AnimationGsapManager | undefined,
+  motion?: ComputedRef<Motion>,
+  cameraRef?: Ref<HTMLElement | null>,
 ) {
-  // GSAP routing helpers - route through gsapManager when available
-  let localGsapIdCounter = 0
-  function localGsapTo(target: gsap.TweenTarget, config: gsap.TweenVars): gsap.core.Tween {
-    if (gsapManager) {
-      return gsapManager.createTween(target, { ...config, id: `uba-tw-${++localGsapIdCounter}` })
+  const mode = computed(() => motion?.value ?? 'standard')
+  const hosts = new Map<HTMLElement, { side: Side; kind: string }>()
+  const tweens = new Set<gsap.core.Tween | gsap.core.Timeline>()
+  const hostTweens = new Map<HTMLElement, gsap.core.Timeline>()
+  let backgroundAspectRatio = 1200 / 660
+  const backgroundPosition = { offset: 0 }
+  let backgroundTween: gsap.core.Timeline | undefined
+  let id = 0
+  function remove(host: HTMLElement) {
+    if (!hosts.has(host)) return
+    hosts.delete(host)
+    const tween = hostTweens.get(host)
+    hostTweens.delete(host)
+    tween?.kill()
+    render(null, host)
+    host.remove()
+    getManager?.()?.removeTempHost(host)
+  }
+  function timeline(host?: HTMLElement) {
+    const done = () => {
+      if (host) remove(host)
+      tweens.delete(tl)
     }
-    return gsap.to(target, config)
+    const config = { onComplete: done, onInterrupt: done }
+    const tl = getManager?.()?.createTimeline({ ...config, id: `battle-effect-${++id}` }) ?? gsap.timeline(config)
+    tweens.add(tl)
+    if (host) hostTweens.set(host, tl)
+    return tl
   }
-  function localGsapSet(target: gsap.TweenTarget, config: gsap.TweenVars): void {
-    if (gsapManager) {
-      gsapManager.createTween(target, { ...config, duration: 0, id: `uba-st-${++localGsapIdCounter}` })
-      return
-    }
-    gsap.set(target, config)
+  function hostFor(side: Side, kind: string) {
+    const root = battleViewRef.value
+    if (!root) return null
+    const matching = [...hosts].filter(([, value]) => value.side === side && value.kind === kind)
+    // Bound concurrent floating numbers; retain the latest hit instead of a delayed backlog.
+    if (matching.length >= 3) remove(matching[0][0])
+    const host = document.createElement('div')
+    host.dataset.battleEffect = kind
+    root.appendChild(host)
+    hosts.set(host, { side, kind })
+    getManager?.()?.registerTempHost(host)
+    return host
   }
-  function localGsapTimeline(config?: gsap.TimelineVars): gsap.core.Timeline {
-    if (gsapManager) {
-      return gsapManager.createTimeline({ ...config, id: `uba-tl-${++localGsapIdCounter}` } as gsap.TimelineVars & {
-        id: string
-      })
-    }
-    return gsap.timeline(config)
+  function anchor(side: Side) {
+    const root = battleViewRef.value
+    return { x: (root?.offsetWidth || 1600) * (side === 'left' ? 0.27 : 0.73), y: (root?.offsetHeight || 900) * 0.4 }
   }
-  function registerTempHost(host: HTMLElement): void {
-    gsapManager?.registerTempHost(host)
-  }
-  function removeTempHost(host: HTMLElement): void {
-    gsapManager?.removeTempHost(host)
-  }
-
-  // 使用 VueUse 的 useElementBounding 来获取容器尺寸
-  const { width: containerWidth, height: containerHeight } = useElementBounding(backgroundContainerRef)
-
-  // 背景图片的动态宽高比，默认值为 1200x660
-  const backgroundAspectRatio = ref(1200 / 660) // ≈ 1.818
-
-  // 提供方法来更新背景图片宽高比（从外部调用）
-  const updateBackgroundAspectRatio = (width: number, height: number) => {
-    if (width > 0 && height > 0) {
-      backgroundAspectRatio.value = width / height
-      console.debug(`Background aspect ratio updated to: ${backgroundAspectRatio.value} (${width}x${height})`)
-    }
-  }
-  // 战斗视图固定坐标系统 (1600x900)
-  // 基于battlePage.vue中的实际布局结构计算固定位置
-  const getBattleViewPosition = (side: 'left' | 'right', offsetY: number = 120) => {
-    // 分析布局:
-    // - 外层容器: flex justify-between p-5 (左右各20px padding)
-    // - 左侧状态栏: w-1/3 (533px), left-5 (20px from left)
-    // - 右侧状态栏: w-1/3 (533px), right-5 (20px from right)
-    // - 状态栏内容: PetIcon(128px) + 状态条，总高度约150px
-
-    // 左侧状态栏: 从x=20开始，宽度533px，中心在x=20+533/2=286.5
-    // 右侧状态栏: 从x=1600-20-533=1047开始，中心在x=1047+533/2=1313.5
-    // 状态栏底部: y=20(padding) + 150(状态栏高度) = 170
-
-    const leftStatusCenter = { x: 287, y: 170 } // 左侧状态栏中心底部
-    const rightStatusCenter = { x: 1314, y: 170 } // 右侧状态栏中心底部
-
-    const basePosition = side === 'left' ? leftStatusCenter : rightStatusCenter
-
-    return {
-      x: basePosition.x,
-      y: basePosition.y + offsetY,
-    }
-  }
-  const showMissMessage = (side: 'left' | 'right') => {
-    if (!battleViewRef.value) return
-
-    const { x: startX, y: startY } = getBattleViewPosition(side, 120)
-
-    const containerVNode = h(
-      'div',
-      {
-        style: {
-          position: 'absolute',
-          left: `${startX}px`,
-          top: `${startY}px`,
-          transformOrigin: 'center center',
-          pointerEvents: 'none',
-          opacity: 0,
-          zIndex: '1002',
-        },
-      },
-      [
-        h('img', {
-          src: 'https://seer2-resource.yuuinih.com/png/damage/miss.png',
-          class: 'h-20',
-        }),
-      ],
-    )
-
-    const tempHost = document.createElement('div')
-    registerTempHost(tempHost)
-    battleViewRef.value.appendChild(tempHost)
-    render(containerVNode, tempHost)
-
-    const containerElement = tempHost.firstChild as HTMLElement
-    if (!containerElement) {
-      removeTempHost(tempHost)
-      battleViewRef.value?.removeChild(tempHost)
-      return
-    }
-
-    const tl = localGsapTimeline({
-      onComplete: () => {
-        render(null, tempHost)
-        removeTempHost(tempHost)
-        if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-          battleViewRef.value.removeChild(tempHost)
-        }
-      },
-    })
-
-    tl.to(containerElement, {
-      y: -125,
-      opacity: 1,
-      duration: 0.3,
-      ease: 'power2.out',
-    })
-      .to({}, { duration: 0.5 })
-      .to(containerElement, {
-        opacity: 0,
-        duration: 0.5,
-        ease: 'power2.out',
-      })
-  }
-
-  const showAbsorbMessage = (side: 'left' | 'right') => {
-    if (!battleViewRef.value) return
-
-    const { x: startX, y: startY } = getBattleViewPosition(side, 120)
-
-    const containerVNode = h(
-      'div',
-      {
-        style: {
-          position: 'absolute',
-          left: `${startX}px`,
-          top: `${startY}px`,
-          transformOrigin: 'center center',
-          pointerEvents: 'none',
-          opacity: 0,
-          zIndex: '1002',
-        },
-      },
-      [
-        h('img', {
-          src: 'https://seer2-resource.yuuinih.com/png/damage/absorb.png',
-          class: 'h-20',
-        }),
-      ],
-    )
-
-    const tempHost = document.createElement('div')
-    registerTempHost(tempHost)
-    battleViewRef.value.appendChild(tempHost)
-    render(containerVNode, tempHost)
-
-    const containerElement = tempHost.firstChild as HTMLElement
-    if (!containerElement) {
-      removeTempHost(tempHost)
-      battleViewRef.value?.removeChild(tempHost)
-      return
-    }
-
-    const tl = localGsapTimeline({
-      onComplete: () => {
-        render(null, tempHost)
-        removeTempHost(tempHost)
-        if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-          battleViewRef.value.removeChild(tempHost)
-        }
-      },
-    })
-
-    tl.to(containerElement, {
-      y: -125,
-      opacity: 1,
-      duration: 0.3,
-      ease: 'power2.out',
-    })
-      .to({}, { duration: 0.5 })
-      .to(containerElement, {
-        opacity: 0,
-        duration: 0.5,
-        ease: 'power2.out',
-      })
-  }
-
-  const flashAndShake = () => {
-    if (!battleViewRef.value) return
-
-    const flashVNode = h('div', {
-      style: {
-        position: 'absolute',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'white',
-        opacity: '0',
-        pointerEvents: 'none',
-        zIndex: '100',
-      },
-    })
-
-    const tempHost = document.createElement('div')
-    registerTempHost(tempHost)
-    battleViewRef.value.appendChild(tempHost)
-    render(flashVNode, tempHost)
-
-    const flashElement = tempHost.firstChild as HTMLElement
-    if (!flashElement) {
-      removeTempHost(tempHost)
-      if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-        battleViewRef.value.removeChild(tempHost)
-      }
-      return
-    }
-
-    localGsapTo(flashElement, {
-      opacity: 0.7,
-      duration: 0.1,
-      ease: 'power2.out',
-      onComplete: () => {
-        localGsapTo(flashElement, {
-          opacity: 0,
-          duration: 0.3,
-          ease: 'power2.in',
-          onComplete: () => {
-            render(null, tempHost)
-            removeTempHost(tempHost)
-            if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-              battleViewRef.value.removeChild(tempHost)
-            }
-          },
-        })
-      },
-    })
-  }
-
-  // 背景焦点移动效果
-  let currentBackgroundOffset = 0 // 记录当前背景偏移量
-
-  const moveBackgroundFocus = (targetSide: 'left' | 'right', intensity: number = 1) => {
-    if (!backgroundContainerRef?.value) return
-
-    const container = backgroundContainerRef.value
-
-    // 使用 VueUse 的响应式尺寸数据
-    const currentWidth = containerWidth.value
-    const currentHeight = containerHeight.value
-
-    if (!currentWidth || !currentHeight) return
-
-    // 计算背景图片的实际宽度（基于 backgroundSize: 'auto 100%' 和动态宽高比）
-    const aspectRatio = backgroundAspectRatio.value
-    const backgroundWidth = currentHeight * aspectRatio
-
-    // 计算可移动的最大距离（确保图片左边界不超过容器左边界）
-    const maxMoveDistance = Math.max(0, (backgroundWidth - currentWidth) / 2)
-
-    // 如果背景图片宽度小于等于容器宽度，则不移动
-    if (maxMoveDistance <= 0) return
-
-    // 计算本次移动的增量距离
-    const baseMove = Math.min(currentWidth * 0.3, maxMoveDistance * 0.4)
-    const deltaMove = baseMove * intensity
-
-    // 当左侧精灵受攻击时，背景向右移动（正值）；右侧精灵受攻击时，背景向左移动（负值）
-    const deltaX = targetSide === 'left' ? deltaMove : -deltaMove
-
-    // 计算新的目标位置（基于当前位置的累积移动）
-    const newTargetX = currentBackgroundOffset + deltaX
-
-    // 确保移动距离不会超出边界
-    const clampedTargetX = Math.max(-maxMoveDistance, Math.min(maxMoveDistance, newTargetX))
-
-    // 更新当前偏移量记录
-    currentBackgroundOffset = clampedTargetX
-
-    // 使用backgroundPosition的百分比+像素组合
-    localGsapTo(container, {
-      backgroundPosition: `calc(50% + ${clampedTargetX}px) center`,
-      duration: 0.3,
-      ease: 'power2.out',
-      overwrite: true,
-    })
-  }
-
-  const healSubject = new Subject<{
-    side: 'left' | 'right'
-    value: number
-  }>()
-
-  const healSubscription = healSubject
-    .pipe(
-      timestamp(),
-      scan(
-        (acc, { value }) => {
-          const lastTimestamp = acc.timestamp || 0
-          const now = Date.now()
-          const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
-          return { timestamp: now + delayTime, value }
-        },
-        { timestamp: 0, value: null as { side: 'left' | 'right'; value: number } | null },
-      ),
-      concatMap(({ value, timestamp }) =>
-        of(value).pipe(
-          delay(Math.max(0, timestamp - Date.now())),
-          tap(val => {
-            if (!val || !battleViewRef.value) return
-            const { side, value } = val
-
-            const { x: baseX, y: baseY } = getBattleViewPosition(side, 80)
-            const randomOffsetX = (Math.random() - 0.5) * 100
-            const randomOffsetY = (Math.random() - 0.5) * 50
-            const startX = baseX + randomOffsetX
-            const startY = baseY + randomOffsetY
-
-            const tempHost = document.createElement('div')
-            registerTempHost(tempHost)
-            battleViewRef.value.appendChild(tempHost)
-
-            const healVNode = h(HealDisplay, { value })
-            const containerVNode = h(
-              'div',
-              {
-                style: {
-                  position: 'absolute',
-                  left: `${startX}px`,
-                  top: `${startY}px`,
-                  transformOrigin: 'center center',
-                  pointerEvents: 'none',
-                  zIndex: '1001',
-                  opacity: 1,
-                },
-              },
-              [healVNode],
-            )
-            render(containerVNode, tempHost)
-            const containerElement = tempHost.firstChild as HTMLElement
-            if (!containerElement) {
-              removeTempHost(tempHost)
-              battleViewRef.value?.removeChild(tempHost)
-              return
-            }
-
-            const tl = localGsapTimeline({
-              onComplete: () => {
-                render(null, tempHost)
-                removeTempHost(tempHost)
-                if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-                  battleViewRef.value.removeChild(tempHost)
-                }
-              },
-            })
-
-            tl.to(containerElement, {
-              y: -125,
-              scale: 1.2,
-              duration: 0.5,
-              ease: 'power1.out',
-            })
-              .to({}, { duration: 0.5 })
-              .to(containerElement, {
-                opacity: 0,
-                duration: 0.5,
-                ease: 'power1.in',
-              })
-          }),
-        ),
-      ),
-    )
-    .subscribe()
-
-  const damageSubject = new Subject<{
-    side: 'left' | 'right'
-    value: number
-    effectiveness: 'up' | 'normal' | 'down'
-    crit: boolean
-    skillId?: string // 添加技能ID用于跟踪连击
-  }>()
-
-  // 连击伤害累计跟踪
-  const comboTracker = new Map<
-    string,
-    {
-      totalDamage: number
-      hitCount: number
-      lastHitTime: number
-      side: 'left' | 'right'
-      skillId: string
-    }
-  >()
-
-  // 连击重置超时时间（毫秒）
-  const COMBO_RESET_TIMEOUT = 2000
-  // 连击触发特殊效果的伤害阈值比例（相对于目标最大HP）
-  const COMBO_EFFECT_THRESHOLD = 0.4
-
-  const damageSubscription = damageSubject
-    .pipe(
-      timestamp(),
-      scan(
-        (acc, { value }) => {
-          const lastTimestamp = acc.timestamp || 0
-          const now = Date.now()
-          const delayTime = lastTimestamp === 0 ? 0 : Math.max(0, 150 - (now - lastTimestamp))
-          return { timestamp: now + delayTime, value }
-        },
+  function float(side: Side, kind: string, content: ReturnType<typeof h>, crit = false) {
+    const host = hostFor(side, kind)
+    if (!host) return
+    const point = anchor(side)
+    const count = [...hosts.values()].filter(v => v.side === side && v.kind === kind).length
+    render(
+      h(
+        'div',
         {
-          timestamp: 0,
-          value: null as {
-            side: 'left' | 'right'
-            value: number
-            effectiveness: 'up' | 'normal' | 'down'
-            crit: boolean
-            skillId?: string
-          } | null,
+          style: {
+            position: 'absolute',
+            left: `${point.x + (count - 1) * 48}px`,
+            top: `${point.y - (count - 1) * 30}px`,
+            pointerEvents: 'none',
+            width: 'max-content',
+            zIndex: '1002',
+          },
         },
+        [content],
       ),
-      concatMap(({ value, timestamp }) =>
-        of(value).pipe(
-          delay(Math.max(0, timestamp - Date.now())),
-          tap(val => {
-            if (!val) return
-            const { side, value, effectiveness, crit, skillId } = val
-            const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet
-            if (typeof activePetId !== 'string') return
-            const currentPet = store.getPetById(activePetId)
-            if (!currentPet) return
-
-            // 连击伤害累计逻辑
-            let shouldTriggerComboEffect = false
-            if (skillId) {
-              const now = Date.now()
-              const comboKey = `${side}-${skillId}`
-
-              // 清理过期的连击记录
-              for (const [key, combo] of comboTracker.entries()) {
-                if (now - combo.lastHitTime > COMBO_RESET_TIMEOUT) {
-                  comboTracker.delete(key)
-                }
-              }
-
-              // 更新或创建连击记录
-              const existingCombo = comboTracker.get(comboKey)
-              if (existingCombo && now - existingCombo.lastHitTime <= COMBO_RESET_TIMEOUT) {
-                // 连击继续
-                existingCombo.totalDamage += value
-                existingCombo.hitCount += 1
-                existingCombo.lastHitTime = now
-              } else {
-                // 新的连击开始
-                comboTracker.set(comboKey, {
-                  totalDamage: value,
-                  hitCount: 1,
-                  lastHitTime: now,
-                  side,
-                  skillId,
-                })
-              }
-
-              // 检查是否达到连击特殊效果阈值
-              const combo = comboTracker.get(comboKey)!
-              const comboHpRatio = combo.totalDamage / currentPet.maxHp
-              if (combo.hitCount >= 2 && comboHpRatio >= COMBO_EFFECT_THRESHOLD) {
-                shouldTriggerComboEffect = true
-              }
-            }
-
-            const { x: baseX, y: baseY } = getBattleViewPosition(side, 120)
-            const randomOffsetX = (Math.random() - 0.5) * 200
-            const randomOffsetY = (Math.random() - 0.5) * 200
-            const startX = baseX + randomOffsetX
-            const startY = baseY + randomOffsetY
-
-            const hpRatio = value / currentPet.maxHp
-
-            // 修改触发条件：原有条件或连击特殊效果
-            if ((hpRatio > 0.25 || crit || shouldTriggerComboEffect) && battleViewRef.value) {
-              // 连击特殊效果时增强震动强度
-              const baseShakeIntensity = shouldTriggerComboEffect ? 40 : 20
-              const shakeIntensity = baseShakeIntensity + Math.random() * 30
-              const shakeAngle = Math.random() * Math.PI * 2
-              const shakeX = Math.cos(shakeAngle) * shakeIntensity
-              const shakeY = Math.sin(shakeAngle) * shakeIntensity
-
-              // 捕获当前的缩放值，避免在动画过程中发生变化
-              const currentScale = battleViewScale.value
-
-              // 连击特殊效果时增加震动次数
-              const repeatCount = shouldTriggerComboEffect ? 8 : 5
-
-              localGsapTo(battleViewRef.value, {
-                x: shakeX,
-                y: shakeY,
-                scale: currentScale, // 保持当前的缩放比例
-                duration: 0.05,
-                repeat: repeatCount,
-                yoyo: true,
-                ease: 'power1.inOut',
-                onComplete: () => {
-                  // 动画结束后确保恢复到正确的状态
-                  localGsapSet(battleViewRef.value, {
-                    x: 0,
-                    y: 0,
-                    scale: currentScale,
-                  })
-                },
-              })
-
-              // 触发背景焦点移动效果
-              // 计算移动强度：连击特殊效果时增强，暴击时强度更高，伤害比例越高强度越高
-              let moveIntensity = Math.min(1.5, (crit ? 1.2 : 0.8) * Math.min(hpRatio * 2, 1))
-              if (shouldTriggerComboEffect) {
-                moveIntensity = Math.min(2.0, moveIntensity * 1.5) // 连击特殊效果时增强移动强度
-              }
-              moveBackgroundFocus(side, moveIntensity)
-            }
-
-            // 修改闪屏触发条件：原有条件或连击特殊效果
-            if ((hpRatio > 0.5 || shouldTriggerComboEffect) && battleViewRef.value) {
-              flashAndShake()
-            }
-
-            if (!battleViewRef.value) return
-
-            const tempHost = document.createElement('div')
-            registerTempHost(tempHost)
-            battleViewRef.value.appendChild(tempHost)
-
-            const damageVNode = h(DamageDisplay, {
-              value,
-              type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '',
-              class: 'overflow-visible',
-            })
-
-            const moveX = side === 'left' ? 300 : -300
-            const baseScale = crit ? 1.5 : 1
-            const targetScale = crit ? 2.5 : 1.8
-
-            const containerVNode = h(
-              'div',
-              {
-                style: {
-                  position: 'absolute',
-                  left: `${startX}px`,
-                  top: `${startY}px`,
-                  transformOrigin: 'center center',
-                  pointerEvents: 'none',
-                  opacity: 1,
-                  scale: baseScale,
-                  zIndex: '1002',
-                },
-              },
-              [damageVNode],
-            )
-            render(containerVNode, tempHost)
-            const containerElement = tempHost.firstChild as HTMLElement
-            if (!containerElement) {
-              removeTempHost(tempHost)
-              battleViewRef.value?.removeChild(tempHost)
-              return
-            }
-
-            const tl = localGsapTimeline({
-              onComplete: () => {
-                render(null, tempHost)
-                removeTempHost(tempHost)
-                if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-                  battleViewRef.value.removeChild(tempHost)
-                }
-              },
-            })
-
-            tl.to(containerElement, {
-              x: moveX,
-              y: -150,
-              scale: targetScale,
-              duration: 0.25,
-              ease: 'power2.out',
-            })
-              .to({}, { duration: 0.5 })
-              .to(containerElement, {
-                opacity: 0,
-                duration: 0.5,
-                ease: 'power2.out',
-              })
-          }),
-        ),
-      ),
+      host,
     )
-    .subscribe()
-
-  const showDamageMessage = (
-    side: 'left' | 'right',
+    const el = host.firstElementChild as HTMLElement
+    gsap.set(el, { xPercent: -50, scale: mode.value === 'reduced' ? 1 : 0.8 })
+    const tl = timeline(host)
+    tl.to(el, {
+      opacity: 1,
+      scale: mode.value !== 'reduced' && crit ? 1.35 : 1,
+      y: mode.value === 'reduced' ? 0 : -30,
+      duration: 0.16,
+      ease: 'back.out(1.3)',
+    })
+      .to(el, { y: mode.value === 'reduced' ? 0 : -72, duration: 0.6, ease: 'power1.out' })
+      .to(el, { opacity: 0, duration: 0.2 })
+  }
+  function flashAndShake(side: Side = 'left') {
+    if (mode.value !== 'standard') return
+    const host = hostFor(side, 'impact')
+    if (!host) return
+    const { x, y } = anchor(side)
+    render(
+      h(
+        'svg',
+        {
+          viewBox: '0 0 240 240',
+          width: 240,
+          height: 240,
+          'aria-hidden': 'true',
+          style: {
+            position: 'absolute',
+            left: `${x - 120}px`,
+            top: `${y}px`,
+            pointerEvents: 'none',
+            color: 'var(--battle-gold)',
+            zIndex: '20',
+          },
+        },
+        [
+          h('circle', { cx: 120, cy: 120, r: 70, fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }),
+          h('path', {
+            d: 'M120 5v35M120 200v35M5 120h35M200 120h35M39 39l25 25M176 176l25 25M39 201l25-25M176 64l25-25',
+            stroke: 'currentColor',
+            'stroke-width': 3,
+          }),
+        ],
+      ),
+      host,
+    )
+    timeline(host).fromTo(
+      host.firstElementChild,
+      { scale: 0.45, opacity: 0.7 },
+      { scale: 1.4, opacity: 0, duration: 0.3, ease: 'power2.out' },
+    )
+  }
+  function shakeCamera(side: Side, intensity = 3) {
+    const root = (cameraRef?.value ?? battleViewRef.value) as (HTMLElement & { _climaxShakeAnimation?: unknown }) | null
+    if (mode.value !== 'standard' || !root || root._climaxShakeAnimation) return
+    const amplitude = intensity * (cameraRef ? battleViewScale.value : 1)
+    timeline()
+      .to(root, {
+        x: side === 'left' ? -amplitude : amplitude,
+        y: amplitude * 0.5,
+        duration: 0.04,
+        repeat: 5,
+        yoyo: true,
+        overwrite: 'auto',
+      })
+      .to(root, { x: 0, y: 0, duration: 0.08 })
+  }
+  function updateBackgroundAspectRatio(width: number, height: number) {
+    if (width > 0 && height > 0) backgroundAspectRatio = width / height
+  }
+  function moveBackgroundFocus(side: Side, intensity = 1) {
+    const background = backgroundContainerRef?.value
+    if (mode.value !== 'standard' || !background) return
+    // offset sizes are logical canvas pixels, independent of viewport scale.
+    const width = background.offsetWidth
+    const height = background.offsetHeight
+    const maxDistance = Math.max(0, (height * backgroundAspectRatio - width) / 2)
+    if (maxDistance <= 0) return
+    const delta = Math.min(width * 0.3, maxDistance * 0.4) * intensity
+    backgroundTween?.kill()
+    if (backgroundTween) tweens.delete(backgroundTween)
+    const start = backgroundPosition.offset
+    const target = Math.max(-maxDistance, Math.min(maxDistance, start + (side === 'left' ? delta : -delta)))
+    // Animate a number, not a CSS percentage/calc pair: CSSPlugin can convert the
+    // initial centered position to pixels and visibly jump on the first hit.
+    const paint = () => {
+      background.style.backgroundPosition = `calc(50% + ${backgroundPosition.offset}px) center`
+    }
+    backgroundTween = timeline()
+    if (Math.abs(target - start) < 0.01 && delta > 0) {
+      // A capped cumulative pan must still react to another hit. Recoil inward
+      // briefly, then settle at the same edge without exposing empty scenery.
+      const recoil = start - Math.sign(start) * Math.min(delta, maxDistance)
+      backgroundTween
+        .to(backgroundPosition, { offset: recoil, duration: 0.1, ease: 'power2.out', onUpdate: paint })
+        .to(backgroundPosition, { offset: target, duration: 0.2, ease: 'power2.out', onUpdate: paint })
+    } else {
+      backgroundTween.to(backgroundPosition, { offset: target, duration: 0.3, ease: 'power2.out', onUpdate: paint })
+    }
+  }
+  function showDamageMessage(
+    side: Side,
     value: number,
     effectiveness: 'up' | 'normal' | 'down' = 'normal',
-    crit: boolean = false,
-    skillId?: string, // 添加可选的技能ID参数
-  ) => {
-    damageSubject.next({ side, value, effectiveness, crit, skillId })
-  }
-
-  const showHealMessage = (side: 'left' | 'right', value: number) => {
-    healSubject.next({ side, value })
-  }
-
-  const showUseSkillMessage = (side: 'left' | 'right', baseSkillId: string) => {
-    if (!battleViewRef.value) return
-
-    const targetX = side === 'left' ? 0 : 1200 // 左侧从左边缘开始，右侧从右边缘开始
-    const targetY = 200
-    const skillName = i18next.t(`${baseSkillId}.name`, { ns: 'skill' }) || baseSkillId
-
-    const boxVNode = h(
-      'div',
-      {
-        class: 'h-[60px] flex justify-center items-center font-bold text-lg text-white',
-        style: {
-          backgroundImage:
-            side === 'left'
-              ? 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3))'
-              : 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.3))',
-          padding: '15px 0',
-          left: '0',
-          width: '400px', // 状态栏宽度533px的75% ≈ 400px
-        },
-      },
-      skillName,
-    )
-
-    const containerVNode = h(
-      'div',
-      {
-        class: 'absolute pointer-events-none',
-        style: {
-          left: `${targetX}px`,
-          top: `${targetY}px`,
-          transformOrigin: 'center center',
-          opacity: 0,
-          scale: 0.8,
-        },
-      },
-      [boxVNode],
-    )
-
-    const tempHost = document.createElement('div')
-    registerTempHost(tempHost)
-    battleViewRef.value.appendChild(tempHost)
-    render(containerVNode, tempHost)
-
-    const containerElement = tempHost.firstChild as HTMLElement
-    if (!containerElement) {
-      removeTempHost(tempHost)
-      battleViewRef.value?.removeChild(tempHost)
-      return
+    crit = false,
+    _skillId?: string,
+  ) {
+    const player = side === 'left' ? currentPlayer.value : opponentPlayer.value
+    const pet = player?.activePet ? store.getPetById(player.activePet) : null
+    const heavyHit = crit || !!(pet && value / pet.maxHp > 0.25)
+    shakeCamera(side, heavyHit ? 20 + Math.random() * 30 : 3)
+    if (mode.value === 'standard' && heavyHit) {
+      flashAndShake(side)
+      const hpRatio = pet && pet.maxHp > 0 ? value / pet.maxHp : 0
+      moveBackgroundFocus(side, Math.min(1.5, (crit ? 1.2 : 0.8) * Math.min(hpRatio * 2, 1)))
     }
-
-    const startXPosition = side === 'left' ? -200 : 200
-    localGsapSet(containerElement, {
-      x: startXPosition,
-      opacity: 0,
-      scale: 0.8,
-    })
-
-    const tl = localGsapTimeline({
-      onComplete: () => {
-        render(null, tempHost)
-        removeTempHost(tempHost)
-        if (battleViewRef.value && battleViewRef.value.contains(tempHost)) {
-          battleViewRef.value.removeChild(tempHost)
-        }
-      },
-    })
-
-    tl.to(containerElement, {
-      x: 0,
-      opacity: 1,
-      scale: 1,
-      duration: 0.3,
-      ease: 'back.out(1.7)',
-    })
+    float(
+      side,
+      'damage',
+      h(DamageDisplay, { value, type: effectiveness === 'up' ? 'red' : effectiveness === 'down' ? 'blue' : '' }),
+      crit,
+    )
+  }
+  function showHealMessage(side: Side, value: number) {
+    float(side, 'heal', h(HealDisplay, { value }))
+  }
+  function showMissMessage(side: Side) {
+    float(
+      side,
+      'miss',
+      h('img', {
+        src: 'https://seer2-resource.yuuinih.com/png/damage/miss.png',
+        style: { height: '80px', width: 'auto' },
+        alt: '未命中',
+      }),
+    )
+  }
+  function showAbsorbMessage(side: Side) {
+    float(
+      side,
+      'absorb',
+      h('img', {
+        src: 'https://seer2-resource.yuuinih.com/png/damage/absorb.png',
+        style: { height: '80px', width: 'auto' },
+        alt: '吸收',
+      }),
+    )
+  }
+  function showUseSkillMessage(side: Side, skillId: string) {
+    const host = hostFor(side, 'skill')
+    if (!host) return
+    render(
+      h(
+        'div',
+        {
+          class: `battle-skill-callout battle-skill-callout--${side}`,
+          'data-testid': 'battle-skill-callout',
+          'data-side': side,
+        },
+        i18next.t(`${skillId}.name`, { ns: 'skill' }) || skillId,
+      ),
+      host,
+    )
+    const el = host.firstElementChild
+    const offset = mode.value === 'reduced' ? 0 : side === 'left' ? -24 : 24
+    timeline(host)
+      .fromTo(el, { opacity: 0, x: offset }, { opacity: 1, x: 0, duration: 0.16 })
       .to({}, { duration: 1.5 })
-      .to(containerElement, {
-        x: startXPosition,
-        opacity: 0,
-        scale: 0.8,
-        duration: 0.5,
-        ease: 'power2.in',
-      })
+      .to(el, { opacity: 0, x: offset, duration: 0.16 })
   }
-
-  const cleanup = () => {
-    damageSubscription.unsubscribe()
-    healSubscription.unsubscribe()
-    currentBackgroundOffset = 0
-    comboTracker.clear()
-    gsapManager?.killAll()
+  function reset() {
+    for (const tween of [...tweens]) tween.kill()
+    tweens.clear()
+    for (const host of [...hosts.keys()]) remove(host)
+    const camera = cameraRef?.value ?? battleViewRef.value
+    if (camera) gsap.set(camera, { x: 0, y: 0 })
+    backgroundPosition.offset = 0
+    backgroundTween = undefined
+    if (backgroundContainerRef?.value) gsap.set(backgroundContainerRef.value, { backgroundPosition: '50% center' })
   }
-
   return {
     showMissMessage,
     showAbsorbMessage,
-    flashAndShake,
-    moveBackgroundFocus,
     showDamageMessage,
     showHealMessage,
     showUseSkillMessage,
+    flashAndShake,
+    moveBackgroundFocus,
     updateBackgroundAspectRatio,
-    cleanup,
+    reset,
+    cleanup: reset,
   }
 }

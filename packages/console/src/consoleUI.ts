@@ -811,7 +811,7 @@ export class ConsoleUIV2 {
 
   private async handleTeamSelection(playerId: playerId, config: string | Record<string, unknown>) {
     const cfg = typeof config === 'string' ? { mode: config } : config
-    const mode = String(cfg.mode ?? '')
+    const mode = typeof cfg.mode === 'string' ? cfg.mode : ''
     const timeLimit = Number(cfg.timeLimit ?? 0)
     const maxTeamSize = Number(cfg.maxTeamSize ?? 6)
     const minTeamSize = Number(cfg.minTeamSize ?? 1)

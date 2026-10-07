@@ -19,7 +19,7 @@ export class HumanDecisionProvider implements DecisionProvider {
       const picked = ctx.selectionSystem.getSelection(ctx.world, ctx.playerId)
       if (picked) return picked
 
-      const status = String(ctx.world.state.status ?? '')
+      const status = ctx.world.state.status
       if (status === 'ended') {
         throw new Error(`Battle ended while waiting for human selection: ${ctx.playerId}`)
       }

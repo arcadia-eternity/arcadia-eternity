@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import { waitForSkillAnimation } from '@/composition/skillAnimationWait'
+import '@/assets/battle-theme.css'
+import BattleCommandDock from '@/components/battle/BattleCommandDock.vue'
+import BattleLoading from '@/components/battle/BattleLoading.vue'
+import BattleFrame from '@/components/battle/BattleFrame.vue'
+import { useBattlePreparation, withDeadline } from '@/composition/useBattlePreparation'
+import { usePreferredReducedMotion } from '@vueuse/core'
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
 import TrainingPanel from '@/components/battle/TrainingPanel.vue'
@@ -6,15 +13,13 @@ import TeamSelectionPanel from '@/components/battle/TeamSelectionPanel.vue'
 import Mark from '@/components/battle/Mark.vue'
 import PetButton from '@/components/battle/PetButton.vue'
 import PetSprite from '@/components/battle/PetSprite.vue'
-import SkillButton from '@/components/battle/SkillButton.vue'
 import ClimaxEffectAnimation from '@/components/ClimaxEffectAnimation.vue'
 import SimpleBattleTimer from '@/components/SimpleBattleTimer.vue'
-import koImage from '@/assets/images/ko.png'
+import koImage from '@/assets/images/battle-ko.svg'
 import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
 import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { AnimationController } from '@/composition/animationController'
-import { useMobile } from '@/composition/useMobile'
 import { petResourceCache } from '@/services/petResourceCache'
 import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
@@ -29,7 +34,6 @@ import { resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
 import { logMessagesKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
-  BattlePhase,
   BattleStatus as BattleStatusEnum,
   Category,
   DamageType,
@@ -49,17 +53,7 @@ import {
   type SkillMessage,
   type SkillUseEndMessage,
 } from '@arcadia-eternity/const'
-import {
-  Aim,
-  Close,
-  DArrowLeft,
-  DArrowRight,
-  Film,
-  FullScreen,
-  VideoPause,
-  VideoPlay,
-  Warning,
-} from '@element-plus/icons-vue'
+import { DArrowLeft, DArrowRight, Film, VideoPause, VideoPlay, Warning } from '@element-plus/icons-vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
 import mitt from 'mitt'
@@ -177,24 +171,10 @@ function gsapTimeline(config?: gsap.TimelineVars): gsap.core.Timeline {
 const battleContainerRef = useTemplateRef('battleContainerRef')
 let resizeObserver: ResizeObserver | null = null
 
-// 移动端检测
-const { isMobile, isPortrait } = useMobile()
-
 // 屏幕方向控制
 const { lockOrientation, unlockOrientation } = useScreenOrientation()
 
 // 全屏相关（将在下面重新定义包装函数）
-
-// 横屏提示相关
-const orientationHintDismissed = ref(false)
-const showOrientationHint = computed(
-  () => isMobile.value && isPortrait.value && !isFullscreen.value && !orientationHintDismissed.value,
-)
-
-// 关闭横屏提示
-const dismissOrientationHint = () => {
-  orientationHintDismissed.value = true
-}
 
 // 自定义确认对话框（用于全屏模式）
 const showCustomConfirm = ref(false)
@@ -289,7 +269,10 @@ const toggleFullscreen = toggleFullscreenWithOrientation
 const { startMusic, stopMusic } = useMusic(false)
 
 provide(logMessagesKey, store.log)
+const preferredMotion = usePreferredReducedMotion()
+const effectiveMotion = computed(() => (preferredMotion.value === 'reduce' ? 'reduced' : gameSettingStore.battleMotion))
 const battleViewRef = useTemplateRef('battleViewRef')
+const battleCameraRef = useTemplateRef('battleCameraRef')
 const backgroundContainerRef = useTemplateRef('backgroundContainerRef')
 const leftPetRef = useTemplateRef('leftPetRef')
 const rightPetRef = useTemplateRef('rightPetRef')
@@ -412,119 +395,6 @@ const opponentTeamSelection = computed(() => {
 })
 
 // 空过按钮粒子效果相关
-const doNothingParticlesId = ref(`do-nothing-particles-${Math.random().toString(36).substring(2, 11)}`)
-const isDoNothingHovered = ref(false)
-
-// 空过按钮基础粒子配置
-const doNothingBaseParticlesOptions = {
-  background: {
-    color: {
-      value: 'transparent',
-    },
-  },
-  fpsLimit: 60,
-  fullScreen: {
-    enable: false,
-  },
-  particles: {
-    color: {
-      value: ['#fbbf24', '#f59e0b', '#d97706', '#92400e'],
-    },
-    move: {
-      direction: 'none',
-      enable: true,
-      outModes: {
-        default: 'out',
-        top: 'out',
-        bottom: 'out',
-        left: 'out',
-        right: 'out',
-      },
-      random: true,
-      speed: { min: 0.8, max: 2.0 },
-      straight: false,
-    },
-    number: {
-      density: {
-        enable: false,
-      },
-      value: 15,
-    },
-    opacity: {
-      value: { min: 0.5, max: 0.9 },
-      animation: {
-        enable: true,
-        speed: 1.5,
-        minimumValue: 0.3,
-      },
-    },
-    shape: {
-      type: 'circle',
-    },
-    size: {
-      value: { min: 1.5, max: 3.0 },
-      animation: {
-        enable: true,
-        speed: 2.0,
-        minimumValue: 0.8,
-      },
-    },
-  },
-  detectRetina: true,
-}
-
-// hover状态的粒子配置 - 更多、更亮、更活跃
-const doNothingHoverParticlesOptions = {
-  ...doNothingBaseParticlesOptions,
-  particles: {
-    ...doNothingBaseParticlesOptions.particles,
-    number: {
-      density: { enable: false },
-      value: 25,
-    },
-    opacity: {
-      value: { min: 0.8, max: 1.0 },
-      animation: {
-        enable: true,
-        speed: 3.0,
-        minimumValue: 0.5,
-      },
-    },
-    size: {
-      value: { min: 2.0, max: 4.0 },
-      animation: {
-        enable: true,
-        speed: 3.5,
-        minimumValue: 1.0,
-      },
-    },
-    move: {
-      ...doNothingBaseParticlesOptions.particles.move,
-      speed: { min: 1.5, max: 3.5 },
-      random: true,
-      outModes: {
-        default: 'out',
-        top: 'out',
-        bottom: 'out',
-        left: 'out',
-        right: 'out',
-      },
-    },
-    color: {
-      value: ['#fbbf24', '#f59e0b', '#d97706', '#eab308', '#facc15'],
-    },
-  },
-}
-
-// 响应式粒子配置
-const doNothingParticlesOptions = computed(() => {
-  return isDoNothingHovered.value ? doNothingHoverParticlesOptions : doNothingBaseParticlesOptions
-})
-
-const doNothingParticlesLoaded = async () => {
-  // 粒子系统加载完成
-}
-
 // 战斗数据计算属性
 const currentPlayer = computed(() => store.currentPlayer)
 const opponentPlayer = computed(() => store.opponent)
@@ -534,10 +404,11 @@ const currentTurn = computed(() => store.battleState?.currentTurn ?? 0)
 // 当前正在使用的技能ID跟踪（用于连击伤害累计）
 const currentActiveSkillId = ref<string | null>(null)
 
+const backgroundChoice = Math.random()
 const background = computed(() => {
   if (gameSettingStore.background === 'random') {
     return Object.values(resourceStore.background.byId)[
-      Math.floor(Math.random() * resourceStore.background.allIds.length)
+      Math.floor(backgroundChoice * resourceStore.background.allIds.length)
     ]
   }
   return (
@@ -553,6 +424,7 @@ const {
   showHealMessage,
   showUseSkillMessage,
   updateBackgroundAspectRatio,
+  reset: resetBattleEffects,
   cleanup: cleanupBattleAnimations,
 } = useBattleAnimations(
   battleViewRef as Ref<HTMLElement | null>,
@@ -561,7 +433,9 @@ const {
   opponentPlayer,
   battleViewScale,
   backgroundContainerRef as Ref<HTMLElement | null>,
-  animationController?.gsapManager,
+  () => animationController?.gsapManager,
+  effectiveMotion,
+  battleCameraRef as Ref<HTMLElement | null>,
 )
 
 const leftActiveSpecies = computed(() => {
@@ -1046,357 +920,99 @@ const isPlayingAnimations = ref(false) // 是否正在播放动画
 const pendingPause = ref(false) // 是否有待执行的暂停
 
 // 综合加载状态管理
-const isReplayDataLoaded = computed(() => {
-  if (!isReplayMode.value) return true
-  return !battleReportStore.loading.battleRecord && battleReportStore.currentBattleRecord !== null
-})
-
-// 加载进度管理
-interface LoadingProgress {
-  resourceStore: boolean
-  gameDataStore: boolean
-  backgroundImage: boolean
-  petSprites: boolean
-  battleData: boolean
-}
-
-const loadingProgress = ref<LoadingProgress>({
-  resourceStore: false,
-  gameDataStore: false,
-  backgroundImage: false,
-  petSprites: false,
-  battleData: false,
-})
-
-const loadingStatus = ref<string>('初始化中...')
-const isFullyLoaded = ref(false)
-const loadingError = ref<string | null>(null)
-
-// 计算总体加载进度
-const overallProgress = computed(() => {
-  const progress = loadingProgress.value
-  const completed = Object.values(progress).filter(Boolean).length
-  const total = Object.keys(progress).length
-  return Math.round((completed / total) * 100)
-})
-
-// 检查所有资源是否加载完成
-const checkAllResourcesLoaded = () => {
-  const progress = loadingProgress.value
-  const allLoaded = Object.values(progress).every(Boolean)
-
-  if (allLoaded && !isFullyLoaded.value) {
-    isFullyLoaded.value = true
-    loadingStatus.value = '加载完成！'
-  }
-
-  return allLoaded
-}
-
-// 检查资源存储是否加载完成
-const checkResourceStoreLoaded = async () => {
-  try {
-    loadingStatus.value = '加载游戏资源...'
-    await resourceStore.initialize()
-    loadingProgress.value.resourceStore = true
-  } catch (error) {
-    console.error('Failed to load resource store:', error)
-    loadingProgress.value.resourceStore = true // 即使失败也继续
-  }
-}
-
-// 检查游戏数据是否加载完成
-const checkGameDataStoreLoaded = async () => {
-  try {
-    loadingStatus.value = '加载游戏数据...'
-    await gameDataStore.initialize()
-    loadingProgress.value.gameDataStore = true
-  } catch (error) {
-    console.error('Failed to load game data store:', error)
-    loadingProgress.value.gameDataStore = true // 即使失败也继续
-  }
-}
-
-// 检查背景图片是否加载完成并预设置到DOM
-const checkBackgroundImageLoaded = async () => {
-  try {
-    loadingStatus.value = '加载背景图片...'
-    const bgUrl = background.value
-
-    if (bgUrl) {
-      // 预加载背景图片
-      await new Promise<void>(resolve => {
-        const img = new Image()
-        img.onload = () => {
-          // 获取图片的实际尺寸并更新宽高比
-          const imageWidth = img.naturalWidth
-          const imageHeight = img.naturalHeight
-
-          // 更新动画系统中的背景宽高比
-          updateBackgroundAspectRatio(imageWidth, imageHeight)
-
-          // 直接使用模板引用设置背景
-          const setBgToDOM = () => {
-            if (backgroundContainerRef.value) {
-              const container = backgroundContainerRef.value as HTMLElement
-              container.style.backgroundImage = `url(${bgUrl})`
-              container.style.backgroundSize = 'auto 100%'
-              container.style.backgroundPosition = 'center'
-              container.style.backgroundRepeat = 'no-repeat'
-            }
-          }
-
-          // 如果DOM已经准备好，立即设置；否则稍后设置
-          if (backgroundContainerRef.value) {
-            setBgToDOM()
-          } else {
-            // 延迟设置，给DOM一些时间渲染
-            setTimeout(setBgToDOM, 100)
-          }
-
-          resolve()
-        }
-        img.onerror = () => {
-          console.warn('Background image failed to preload, but continuing...')
-          resolve() // 即使失败也继续
-        }
-        img.src = bgUrl
-
-        // 设置超时，避免永远等待
-        setTimeout(() => {
-          console.warn('Background image loading timeout, continuing...')
-          resolve()
-        }, 5000)
-      })
-    }
-
-    loadingProgress.value.backgroundImage = true
-  } catch (error) {
-    console.error('Failed to load background image:', error)
-    loadingProgress.value.backgroundImage = true // 即使失败也继续
-  }
-}
-
-// 检查精灵是否加载完成
-const checkPetSpritesLoaded = async () => {
-  try {
-    loadingStatus.value = '加载精灵资源...'
-
-    // 预加载精灵资源
-    await preloadPetSprites()
-
-    // 等待PetSprite组件准备完成
-    if (isReplayMode.value) {
-      // 回放模式需要等待petSprite的ready promise
-      const spritesReady = await checkPetSpritesReady()
-      if (!spritesReady) {
-        console.warn('Pet sprites not ready, but continuing...')
-      }
-    } else {
-      // 正常模式也需要等待PetSprite组件的ready状态
-      loadingStatus.value = '等待精灵组件初始化...'
-
-      // 等待组件被创建并获取ready promise
-      let retryCount = 0
-      const maxRetries = 50 // 增加重试次数，给组件更多时间初始化
-
-      while (retryCount < maxRetries) {
-        const leftReadyPromise = leftPetRef.value?.ready
-        const rightReadyPromise = rightPetRef.value?.ready
-
-        if (leftReadyPromise && rightReadyPromise) {
-          // 两个组件都已创建，等待它们的ready状态
-          const promisesToWaitFor: Promise<void>[] = [
-            leftReadyPromise.catch(() => {}),
-            rightReadyPromise.catch(() => {}),
-          ]
-
-          await Promise.all(promisesToWaitFor)
-          break
-        }
-
-        // 如果组件还没有创建，等待一段时间后重试
-        await new Promise(resolve => setTimeout(resolve, 100))
-        retryCount++
-      }
-
-      if (retryCount >= maxRetries) {
-        console.warn('Pet sprites not ready after maximum retries, but continuing...')
-      }
-    }
-
-    loadingProgress.value.petSprites = true
-  } catch (error) {
-    console.error('Failed to load pet sprites:', error)
-    loadingProgress.value.petSprites = true // 即使失败也继续
-  }
-}
-
-// 检查战斗数据是否加载完成
-const checkBattleDataLoaded = async () => {
-  try {
-    loadingStatus.value = '初始化战斗数据...'
-
-    if (isReplayMode.value) {
-      // 回放模式等待回放数据加载
-      if (!isReplayDataLoaded.value) {
-        await new Promise<void>(resolve => {
-          const timeoutId = setTimeout(() => {
-            console.warn('Replay data loading timeout, continuing anyway...')
-            unwatch?.()
-            resolve()
-          }, 10000) // 10秒超时
-
-          const unwatch = watch(
-            isReplayDataLoaded,
-            loaded => {
-              if (loaded) {
-                if (timeoutId) clearTimeout(timeoutId)
-                unwatch?.()
-                resolve()
-              }
-            },
-            { immediate: true },
-          )
-        })
-      }
-    }
-    // 注意：正常模式下不在这里调用store.ready()，而是在消息订阅设置完成后调用
-
-    loadingProgress.value.battleData = true
-  } catch (error) {
-    console.error('Failed to load battle data:', error)
-    loadingProgress.value.battleData = true // 即使失败也继续
-  }
-}
-
-// 主要的加载初始化函数
-const initializeBattleResources = async () => {
-  try {
-    const backgroundLoadedPromise = checkBackgroundImageLoaded()
-
-    // 并行加载基础资源
-    await Promise.all([checkResourceStoreLoaded(), checkGameDataStoreLoaded()])
-
-    // 加载背景图片（依赖于resourceStore）
-
-    // 加载战斗数据
-    await checkBattleDataLoaded()
-
-    // 最后加载精灵（依赖于战斗数据）
-    await checkPetSpritesLoaded()
-
-    // 第一轮检查：基础资源、战斗数据、精灵资源
-    checkAllResourcesLoaded()
-
-    await backgroundLoadedPromise
-
-    // 第二轮检查：背景图完成后再统一收口，否则 isFullyLoaded 会卡在 false
-    checkAllResourcesLoaded()
-
-    // 所有资源加载完成后启动音乐
-    startMusic()
-  } catch (error) {
-    console.error('Error during battle resources initialization:', error)
-    // 即使出错也要标记为完成，避免永远卡在加载界面
-    isFullyLoaded.value = true
-    loadingStatus.value = '加载完成（部分资源可能未加载）'
-  }
-}
-
-// 检查petSprite是否准备完毕的Promise函数
-const checkPetSpritesReady = async (): Promise<boolean> => {
-  if (!isReplayMode.value) return true
-
-  const leftPet = petSprites.value.left
-  const rightPet = petSprites.value.right
-
-  if (!leftPet || !rightPet) {
-    return false
-  }
-
-  try {
-    // 等待两个petSprite的ready promise完成
-    const promises = []
-    if (leftPet.ready) {
-      promises.push(leftPet.ready)
-    }
-    if (rightPet.ready) {
-      promises.push(rightPet.ready)
-    }
-
-    if (promises.length === 0) {
-      return false
-    }
-
-    await Promise.all(promises)
-    return true
-  } catch (error) {
-    console.error('Error waiting for pet sprites to be ready:', error)
-    return false
-  }
-}
-
+let battleDisposed = false
+let releasePreparationWait: (() => void) | undefined
+const preparation = useBattlePreparation()
+const {
+  tasks: loadingTasks,
+  error: loadingError,
+  ready: isFullyLoaded,
+  progress: overallProgress,
+  degraded: degradedResources,
+} = preparation
 const isReplayFullyLoaded = ref(false)
 
-// 检查回放是否完全加载完毕
-const checkReplayLoadingStatus = async () => {
-  if (!isReplayMode.value) {
-    isReplayFullyLoaded.value = true
-    return
+async function loadReplayData() {
+  let record
+  if (props.localReportId) {
+    record = battleReportStore.loadLocalBattleReport(props.localReportId)?.battleRecord
+  } else {
+    const id = props.battleRecordId || String(route.params.id || '')
+    if (!id) throw new Error('缺少战报 ID')
+    await battleReportStore.fetchBattleRecord(id)
+    record = battleReportStore.currentBattleRecord
   }
+  if (!record) throw new Error('战报加载失败，请重试或返回战报列表')
+  if (battleDisposed) return
+  store.initReplayMode(record.battle_messages, record.final_state as BattleState, record.player_a_id)
+}
 
+async function checkPetSpritesReady(): Promise<boolean> {
+  await nextTick()
+  const sprites = [leftPetRef.value, rightPetRef.value].filter(p => p != null)
+  if (!sprites.length) return false
   try {
-    // 等待数据加载完成
-    if (!isReplayDataLoaded.value) {
-      isReplayFullyLoaded.value = false
-      return
-    }
-
-    // 等待petSprite准备完成
-    const spritesReady = await checkPetSpritesReady()
-    if (!spritesReady) {
-      isReplayFullyLoaded.value = false
-      return
-    }
-
-    // 等待store初始化完成
-    if (store.replaySnapshots.length === 0) {
-      isReplayFullyLoaded.value = false
-      return
-    }
-
-    isReplayFullyLoaded.value = true
-
-    // 清除加载错误状态
-    if (loadingError.value) {
-      loadingError.value = null
-      loadingStatus.value = '回放加载完成'
-    }
-  } catch (error) {
-    console.error('Error checking replay loading status:', error)
-    isReplayFullyLoaded.value = false
+    await withDeadline(Promise.all(sprites.map(p => p.ready)), 7000)
+    return sprites.every(p => p.availableState.length > 0)
+  } catch {
+    return false
   }
 }
 
-const retryReplayLoading = async () => {
-  loadingError.value = null
-  loadingStatus.value = '重新加载中...'
-  isFullyLoaded.value = false
-
-  // 重置加载进度
-  Object.keys(loadingProgress.value).forEach(key => {
-    loadingProgress.value[key as keyof LoadingProgress] = false
-  })
-
-  // 重新开始加载流程
-  try {
-    await initializeBattleResources()
-  } catch (error) {
-    console.error('Retry failed:', error)
-    loadingError.value = `重试失败: ${error instanceof Error ? error.message : String(error)}`
-    loadingStatus.value = '重试失败'
+const initializeBattleResources = async () => {
+  await preparation.prepare([
+    { id: 'resources', label: '界面资源', required: true, run: () => resourceStore.initialize() },
+    { id: 'data', label: '游戏数据', required: true, run: () => gameDataStore.initialize() },
+    {
+      id: 'battle',
+      label: '对局数据',
+      required: true,
+      run: async () => {
+        if (props.replayMode) await loadReplayData()
+        else if (!store.battleState) throw new Error('没有可用的对局数据，请返回大厅')
+      },
+    },
+    {
+      id: 'background',
+      label: '战斗场景',
+      run: async () => {
+        if (!background.value) return
+        await withDeadline(
+          new Promise<void>((resolve, reject) => {
+            const image = new Image()
+            image.onload = () => {
+              updateBackgroundAspectRatio(image.naturalWidth, image.naturalHeight)
+              resolve()
+            }
+            image.onerror = () => reject(new Error('场景图片不可用'))
+            image.src = background.value!
+          }),
+          4000,
+        )
+      },
+    },
+    {
+      id: 'pets',
+      label: '首发精灵',
+      run: async () => {
+        await nextTick()
+        if (!(await checkPetSpritesReady())) throw new Error('精灵动画不可用，使用静态展示')
+      },
+    },
+  ])
+  if (isFullyLoaded.value) {
+    isReplayFullyLoaded.value = props.replayMode && store.replaySnapshots.length > 0
+    startMusic()
+    // Reserve assets load after the first scene is usable.
+    void preloadPetSprites()
   }
+}
+
+const checkReplayLoadingStatus = async () => {
+  isReplayFullyLoaded.value = isFullyLoaded.value && store.replaySnapshots.length > 0
+}
+const retryReplayLoading = async () => {
+  await initializeBattleResources()
 }
 
 const goBackFromReplay = async () => {
@@ -1438,10 +1054,14 @@ const navigateToHome = async () => {
 }
 
 const nextTurn = () => {
+  cancelSpriteWaits()
+  resetBattleEffects()
   store.nextReplayTurn()
 }
 
 const previousTurn = () => {
+  cancelSpriteWaits()
+  resetBattleEffects()
   store.previousReplayTurn()
 }
 
@@ -1463,6 +1083,7 @@ const handleTimelineClick = (event: MouseEvent) => {
   console.debug(
     `Timeline click: percentage=${percentage.toFixed(3)}, targetIndex=${targetSnapshotIndex}, clampedIndex=${clampedIndex}, totalSnapshots=${totalReplayTurns.value}`,
   )
+  resetBattleEffects()
   store.setReplayTurn(clampedIndex)
 }
 
@@ -1609,7 +1230,7 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
 
   const newPetReadyPromise = newPetSprite.ready
   if (newPetReadyPromise) {
-    await newPetReadyPromise
+    await withDeadline(newPetReadyPromise, 7000).catch(() => {})
   }
 
   gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
@@ -1637,6 +1258,10 @@ const petSprites = computed(() => {
   }
 })
 
+const spriteWaits = new Set<() => void>()
+function cancelSpriteWaits() {
+  for (const finish of [...spriteWaits]) finish()
+}
 async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   const useSkill = messages.filter(m => m.type === BattleMessageType.SkillUse)[0]
   if (!useSkill) return
@@ -1653,11 +1278,9 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   let source = petSprites.value[side]
 
   if (!source) {
-    console.debug('Skipping skill animation: pet sprite component not found', {
-      side,
-      user: useSkill.data.user,
-      skill: useSkill.data.skill,
-    })
+    for (const message of messages) {
+      if (message !== useSkill) await store.applyStateDelta(message)
+    }
     return
   }
 
@@ -1674,67 +1297,18 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     expectedDuration,
   })
 
-  // 开始动画追踪（仅在非回放模式下）
-  let animationId: string | null = null
-  if (!props.replayMode && store.battleInterface) {
-    try {
-      const ownerId = currentPlayer.value?.id
-      if (!ownerId) {
-        console.warn('No current player ID available for animation tracking')
-        return
-      }
-      animationId = await store.battleInterface.startAnimation(baseSkillId, expectedDuration, ownerId)
-    } catch (error) {
-      console.warn('Failed to start animation tracking:', error)
-    }
-  }
-
-  // 等待PetSprite完全初始化 - 使用nextTick确保获取到最新的组件实例
-  let availableState = unref(source.availableState)
-
-  if (!availableState || availableState.length === 0) {
-    let retryCount = 0
-    const maxRetries = 20
-
-    while ((!availableState || availableState.length === 0) && retryCount < maxRetries) {
-      await nextTick()
-      source = petSprites.value[side]
-
-      if (!source) {
-        retryCount++
-        continue
-      }
-
-      // 等待ready Promise，确保组件完全初始化
-      if (source.ready) {
-        try {
-          await source.ready
-        } catch (error) {
-          console.warn('Error waiting for ready promise:', error)
-        }
-      }
-
-      // 重新获取最新实例和availableState
-      source = petSprites.value[side]
-      if (source) {
-        availableState = unref(source.availableState)
-      }
-
-      retryCount++
-    }
-
-    if (!availableState || availableState.length === 0) {
-      console.error('PetSprite availableState still not ready after waiting, skipping animation')
-      return
-    }
-  }
-
-  // 最后一次确保我们使用的是最新的source和availableState
+  await withDeadline(Promise.resolve(source.ready), 7000).catch(() => {})
   source = petSprites.value[side]
-  if (!source) {
-    throw new Error('找不到精灵组件')
+  const availableState = source ? unref(source.availableState) : []
+  if (!source || !availableState.length) {
+    showUseSkillMessage(side, baseSkillId)
+    for (const message of messages) {
+      if (message !== useSkill) await store.applyStateDelta(message)
+    }
+    animationController?.onAnimationComplete()
+    animationController?.onAnimationCleanupDone()
+    return
   }
-  availableState = unref(source.availableState)
 
   const stateMap = new Map<Category, ActionState>([
     [Category.Physical, ActionState.ATK_PHY],
@@ -1752,7 +1326,27 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   const state = stateMap.get(category) || ActionState.ATK_PHY
 
   if (!availableState.includes(state)) {
-    throw new Error(`无效的动画状态: ${state}`)
+    for (const message of messages) {
+      if (message !== useSkill) await store.applyStateDelta(message)
+    }
+    animationController?.onAnimationComplete()
+    animationController?.onAnimationCleanupDone()
+    return
+  }
+
+  // 开始动画追踪（仅在非回放模式下）
+  let animationId: string | null = null
+  if (!props.replayMode && store.battleInterface) {
+    try {
+      const ownerId = currentPlayer.value?.id
+      if (!ownerId) {
+        console.warn('No current player ID available for animation tracking')
+        return
+      }
+      animationId = await store.battleInterface.startAnimation(baseSkillId, expectedDuration, ownerId)
+    } catch (error) {
+      console.warn('Failed to start animation tracking:', error)
+    }
   }
 
   showUseSkillMessage(side, baseSkillId)
@@ -1771,14 +1365,18 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     // 播放特效动画并等待完成
     if (climaxEffectRef.value) {
       await new Promise<void>(resolve => {
+        const timer = setTimeout(() => handleClimaxComplete(), 8000)
         // 创建一个临时的完成处理器
         const handleClimaxComplete = () => {
           // 移除事件监听器
+          clearTimeout(timer)
+          spriteWaits.delete(handleClimaxComplete)
           emitter.off('climax-effect-complete', handleClimaxComplete)
           resolve()
         }
 
         // 监听特效完成事件
+        spriteWaits.add(handleClimaxComplete)
         emitter.on('climax-effect-complete', handleClimaxComplete)
 
         // 播放特效
@@ -1787,72 +1385,14 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     }
     playSkillSound(baseSkillId)
   }
-  source.setState(state)
-
-  // Primary: mitt event-driven. Fallback: controller timeout (handles Transform, disconnection)
-  const hitPromise = new Promise<void>(resolve => {
-    let resolved = false
-    const handler = (hitSide: 'left' | 'right') => {
-      if (hitSide === side && !resolved) {
-        resolved = true
-        emitter.off('attack-hit', handler)
-        resolve()
-      }
-    }
-    emitter.on('attack-hit', handler)
-    if (animationController) {
-      animationController.waitForHit(source, category).then(() => {
-        if (!resolved) {
-          resolved = true
-          emitter.off('attack-hit', handler)
-          resolve()
-        }
-      })
-    } else {
-      setTimeout(async () => {
-        if (resolved) return
-        try {
-          const s = await source.getState()
-          if (s && ![ActionState.IDLE, ActionState.DEAD, ActionState.ABOUT_TO_DIE].includes(s)) return
-        } catch {}
-        resolved = true
-        emitter.off('attack-hit', handler)
-        resolve()
-      }, expectedDuration)
-    }
+  // Register before playback. Missing hit markers fall back to completion, never an early timer.
+  const animationWait = waitForSkillAnimation(emitter, side, expectedDuration, () => {
+    spriteWaits.delete(animationWait.cancel)
   })
-
-  const animateCompletePromise = new Promise<void>(resolve => {
-    let resolved = false
-    const handler = (completeSide: 'left' | 'right') => {
-      if (completeSide === side && !resolved) {
-        resolved = true
-        emitter.off('animation-complete', handler)
-        resolve()
-      }
-    }
-    emitter.on('animation-complete', handler)
-    if (animationController) {
-      animationController.waitForAnimationComplete(source, category).then(() => {
-        if (!resolved) {
-          resolved = true
-          emitter.off('animation-complete', handler)
-          resolve()
-        }
-      })
-    } else {
-      setTimeout(async () => {
-        if (resolved) return
-        try {
-          const s = await source.getState()
-          if (s && ![ActionState.IDLE, ActionState.DEAD, ActionState.ABOUT_TO_DIE].includes(s)) return
-        } catch {}
-        resolved = true
-        emitter.off('animation-complete', handler)
-        resolve()
-      }, expectedDuration)
-    }
-  })
+  spriteWaits.add(animationWait.cancel)
+  const hitPromise = animationWait.hit
+  const animateCompletePromise = animationWait.complete
+  await withDeadline(source.setState(state), expectedDuration).catch(() => {})
 
   await hitPromise
   if (category !== Category.Climax && !messages.some(msg => msg.type === BattleMessageType.SkillMiss))
@@ -1902,7 +1442,7 @@ async function handleCombatEventMessage(message: CombatEventMessageWithTarget, i
   const targetPetSprite = petSprites.value[targetSide]
 
   if (!targetPetSprite) {
-    console.warn(`Target pet sprite not found for side: ${targetSide}`, message)
+    await store.applyStateDelta(message)
     return
   }
 
@@ -2029,33 +1569,29 @@ const removeClimaxBlackScreen = () => {
 
 // Climax全屏震动效果
 const startClimaxScreenShake = () => {
-  if (!battleViewRef.value) return
+  if (!battleCameraRef.value || effectiveMotion.value !== 'standard') return
 
-  // 捕获当前的缩放值，避免在动画过程中发生变化
-  const currentScale = battleViewScale.value
-
-  const shakeIntensity = 20 + Math.random() * 30
+  const shakeIntensity = (20 + Math.random() * 30) * battleViewScale.value
   const shakeAngle = Math.random() * Math.PI * 2
   const shakeX = Math.cos(shakeAngle) * shakeIntensity
   const shakeY = Math.sin(shakeAngle) * shakeIntensity
 
-  const shakeAnimation = gsapTo(battleViewRef.value, {
+  const shakeAnimation = gsapTo(battleCameraRef.value, {
     x: shakeX,
     y: shakeY,
-    scale: currentScale,
     duration: 0.05,
     repeat: -1,
     yoyo: true,
     ease: 'power1.inOut',
   })
 
-  ;(battleViewRef.value as unknown as HTMLElement & Record<string, unknown>)._climaxShakeAnimation = shakeAnimation
+  ;(battleCameraRef.value as unknown as HTMLElement & Record<string, unknown>)._climaxShakeAnimation = shakeAnimation
 }
 
 const stopClimaxScreenShake = () => {
-  if (!battleViewRef.value) return
+  if (!battleCameraRef.value) return
 
-  const el = battleViewRef.value as unknown as HTMLElement & Record<string, unknown>
+  const el = battleCameraRef.value as unknown as HTMLElement & Record<string, unknown>
   const shakeAnimation = el._climaxShakeAnimation as gsap.core.Tween | undefined
   if (shakeAnimation) {
     shakeAnimation.kill()
@@ -2063,15 +1599,19 @@ const stopClimaxScreenShake = () => {
   }
 
   // 恢复到正确的状态
-  gsapSet(battleViewRef.value, {
+  gsapSet(battleCameraRef.value, {
     x: 0,
     y: 0,
-    scale: battleViewScale.value,
   })
 
   // 移除黑屏遮罩
   removeClimaxBlackScreen()
 }
+
+watch(effectiveMotion, () => {
+  resetBattleEffects()
+  stopClimaxScreenShake()
+})
 
 // 处理climax特效完成
 const handleClimaxEffectComplete = () => {
@@ -2137,18 +1677,24 @@ const animatesubscribe = animationQueue
   .subscribe()
 
 const preloadPetSprites = async () => {
-  const spriteNums = allTeamMemberSpritesNum.value
-  if (!spriteNums || !Array.isArray(spriteNums)) {
-    console.debug('Skipping sprite preload: sprite numbers not available yet')
-    return
+  const pets = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])].filter(
+    pet => !pet.isUnknown,
+  )
+  const assets = pets.map(pet =>
+    resolveSpeciesSpriteAsset(gameDataStore.getSpecies(pet.speciesID), resourceStore.getPetSwf),
+  )
+  const urls = [
+    ...new Set(
+      assets
+        .filter(asset => !asset.customImageUrl)
+        .map(asset => asset.customSwfUrl || (asset.swfNum ? petResourceCache.getRemotePetUrl(asset.swfNum) : ''))
+        .filter(Boolean),
+    ),
+  ]
+  // Limit requests so optional reserves do not compete with first-scene resources.
+  for (let index = 0; index < urls.length; index += 3) {
+    await Promise.allSettled(urls.slice(index, index + 3).map(url => petResourceCache.preloadUrl(url)))
   }
-
-  // 使用 petResourceCache 来预加载，避免重复加载
-  const uniqueNums = [...new Set(spriteNums.filter(num => num && num > 0))]
-  console.debug('Preloading pet sprites:', uniqueNums)
-
-  // 使用 petResourceCache 的预加载方法，它会检查是否已经缓存
-  await Promise.allSettled(uniqueNums.map(num => petResourceCache.preloadPetSwf(num)))
 }
 
 async function animatePetEntry(
@@ -2254,10 +1800,12 @@ onMounted(async () => {
 
   // 开始加载所有资源
   await initializeBattleResources()
+  if (battleDisposed) return
 
   // 等待加载完成后再进行后续初始化
   await new Promise<void>(resolve => {
     let unwatch: (() => void) | null = null
+    releasePreparationWait = resolve
     unwatch = watch(
       isFullyLoaded,
       loaded => {
@@ -2270,82 +1818,9 @@ onMounted(async () => {
     )
   })
 
+  if (battleDisposed) return
   // 检查是否是回放模式
   if (props.replayMode) {
-    let battleRecord = null
-    let loadError = null
-
-    try {
-      if (props.localReportId) {
-        // 本地战报回放模式
-        const localReport = battleReportStore.loadLocalBattleReport(props.localReportId)
-        if (localReport) {
-          battleRecord = localReport.battleRecord
-        } else {
-          loadError = `本地战报未找到: ${props.localReportId}`
-          console.error(loadError)
-        }
-      } else {
-        // 在线战报回放模式
-        const battleId = props.battleRecordId || (route.params.id as string)
-        if (battleId) {
-          await battleReportStore.fetchBattleRecord(battleId)
-          battleRecord = battleReportStore.currentBattleRecord
-
-          if (!battleRecord) {
-            loadError = `在线战报加载失败: ${battleId}`
-            console.error(loadError)
-          }
-        } else {
-          loadError = '缺少战报ID参数'
-          console.error(loadError)
-        }
-      }
-    } catch (error) {
-      loadError = `战报加载异常: ${error instanceof Error ? error.message : String(error)}`
-      console.error('Battle record loading error:', error)
-    }
-
-    // 如果加载失败，显示错误信息但仍然继续初始化流程
-    if (loadError) {
-      console.warn('Battle record loading failed, but continuing with replay mode setup:', loadError)
-      loadingError.value = loadError
-      loadingStatus.value = `加载失败: ${loadError}`
-    }
-
-    if (battleRecord) {
-      try {
-        store.initReplayMode(
-          battleRecord.battle_messages,
-          battleRecord.final_state as BattleState,
-          battleRecord.player_a_id, // 默认从玩家A视角观看
-        )
-      } catch (error) {
-        console.error('Failed to initialize replay mode:', error)
-        loadingError.value = `回放初始化失败: ${error instanceof Error ? error.message : String(error)}`
-        loadingStatus.value = '回放初始化失败，但继续运行'
-      }
-    } else {
-      console.warn('No battle record available for replay mode')
-      // 即使没有战报数据，也要初始化一个空的回放模式，确保UI能正常显示
-      try {
-        store.initReplayMode(
-          [],
-          {
-            status: BattleStatusEnum.Unstarted,
-            currentPhase: BattlePhase.SelectionPhase,
-            currentTurn: 0,
-            marks: [],
-            players: [],
-          } as BattleState,
-          '',
-        )
-      } catch (error) {
-        console.error('Failed to initialize empty replay mode:', error)
-        loadingError.value = `回放模式初始化失败: ${error instanceof Error ? error.message : String(error)}`
-      }
-    }
-
     // 回放模式也需要消息订阅来处理动画
     try {
       await setupMessageSubscription()
@@ -2508,6 +1983,10 @@ const setupMessageSubscription = async () => {
 }
 
 onUnmounted(async () => {
+  cancelSpriteWaits()
+  battleDisposed = true
+  releasePreparationWait?.()
+  preparation.cancel()
   // Destroy AnimationController
   if (animationController) {
     animationController.destroy()
@@ -2599,6 +2078,9 @@ watch(
       selfDisconnected.value = true
       reconnecting.value = false
       // Notify animation controller of disconnect
+      cancelSpriteWaits()
+      resetBattleEffects()
+      stopClimaxScreenShake()
       animationController?.onDisconnect()
     } else if (newStatus === 'connecting' && oldStatus === 'disconnected') {
       // 开始重连
@@ -2696,353 +2178,136 @@ watch(
 </script>
 
 <template>
-  <div class="h-full w-full relative overflow-hidden">
+  <div ref="battleContainerRef" class="battle-viewport">
     <div data-testid="battle-actions-ready" :data-ready="battleActionsReady ? 'true' : 'false'" class="sr-only">
       {{ battleActionsReady ? 'ready' : 'pending' }}
     </div>
-    <div
-      ref="battleContainerRef"
-      class="h-full w-full bg-[#1a1a2e] overflow-visible relative flex justify-center items-center"
-    >
-      <!-- 加载遮罩 -->
-      <Transition name="fade">
-        <div
-          v-if="!isFullyLoaded"
-          data-testid="battle-loading-overlay"
-          class="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#2a2a4a] to-[#1a1a2e] flex items-center justify-center"
-          :class="Z_INDEX_CLASS.LOADING_OVERLAY"
-        >
-          <div class="text-center">
-            <!-- 加载动画 -->
-            <div class="mb-8">
-              <div class="relative w-32 h-32 mx-auto">
-                <!-- 外圈旋转动画 -->
-                <div
-                  class="absolute inset-0 border-4 border-blue-500/30 rounded-full animate-spin border-t-blue-500"
-                ></div>
-                <!-- 内圈反向旋转动画 -->
-                <div
-                  class="absolute inset-4 border-4 border-purple-500/30 rounded-full animate-spin-reverse border-b-purple-500"
-                ></div>
-                <!-- 中心图标 -->
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <div class="text-4xl">⚔️</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 加载进度 -->
-            <div class="mb-6">
-              <div class="text-2xl font-bold text-white mb-2">{{ overallProgress }}%</div>
-              <div class="w-80 h-2 bg-gray-700 rounded-full overflow-hidden mx-auto">
-                <div
-                  class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 ease-out"
-                  :style="{ width: `${overallProgress}%` }"
-                ></div>
-              </div>
-            </div>
-
-            <!-- 加载状态文本 -->
-            <div class="text-gray-300 text-lg">{{ loadingStatus }}</div>
-
-            <!-- 错误信息显示 -->
-            <div v-if="loadingError" class="mt-4 p-4 bg-red-900/50 border border-red-500/50 rounded-lg">
-              <div class="text-red-400 text-sm font-bold mb-2">⚠️ 加载错误</div>
-              <div class="text-red-300 text-sm">{{ loadingError }}</div>
-              <div class="text-red-200 text-xs mt-2">回放模式将以有限功能继续运行</div>
-              <button
-                @click="retryReplayLoading"
-                class="mt-3 px-4 py-2 bg-red-600 hover:bg-red-500 rounded text-white text-sm font-bold transition-colors"
-              >
-                重试加载
-              </button>
-            </div>
-
-            <!-- 加载提示 -->
-            <div v-if="!loadingError" class="mt-4 text-gray-400 text-sm">正在加载...</div>
-          </div>
-        </div>
-      </Transition>
-
-      <!-- 自定义确认对话框（覆盖整个战斗容器） -->
-      <Transition name="fade">
-        <div
-          v-if="showCustomConfirm"
-          class="absolute inset-0 bg-black/80 flex items-center justify-center"
-          :class="Z_INDEX_CLASS.CUSTOM_CONFIRM_DIALOG"
-        >
-          <div
-            class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(255,165,0,0.4)] text-center max-w-md mx-4"
-          >
-            <!-- 警告图标 -->
-            <div class="mb-6">
-              <el-icon class="text-orange-400 text-6xl" :size="64">
-                <Warning />
-              </el-icon>
-            </div>
-
-            <!-- 对话框标题 -->
-            <h2 class="text-3xl mb-4 text-white [text-shadow:_0_0_20px_#fff] font-bold">
-              {{ customConfirmTitle }}
-            </h2>
-
-            <!-- 对话框内容 -->
-            <p class="text-gray-300 text-lg leading-relaxed mb-8">
-              {{ customConfirmMessage }}
-            </p>
-
-            <!-- 对话框按钮 -->
-            <div class="flex gap-4 justify-center">
-              <button
-                @click="handleCustomConfirm(false)"
-                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-              >
-                {{ i18next.t('cancel', { ns: 'battle', defaultValue: '取消' }) }}
-              </button>
-              <button
-                @click="handleCustomConfirm(true)"
-                class="px-6 py-3 bg-orange-600 hover:bg-orange-500 rounded-lg text-white font-bold transition-colors shadow-[0_0_15px_rgba(255,165,0,0.3)]"
-              >
-                {{ i18next.t('surrender-confirm-button', { ns: 'battle', defaultValue: '投降' }) }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-
-      <!-- 移动端横屏提示 -->
+    <div ref="battleCameraRef" class="battle-camera">
       <div
-        v-if="showOrientationHint"
-        class="absolute inset-0 bg-black/60 flex items-center justify-center"
-        :class="Z_INDEX_CLASS.MOBILE_ORIENTATION_HINT"
-        @click="dismissOrientationHint"
+        class="battle-shell"
+        :data-motion="effectiveMotion"
+        :style="{ transform: `translate(-50%, -50%) scale(${battleViewScale})` }"
       >
-        <div class="bg-white/90 backdrop-blur-sm rounded-lg p-6 mx-4 text-center max-w-sm relative" @click.stop>
-          <!-- 关闭按钮 -->
-          <button
-            @click="dismissOrientationHint"
-            class="absolute top-2 right-2 w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 transition-colors duration-200"
-            title="关闭提示"
-          >
-            <el-icon :size="16">
-              <Close />
-            </el-icon>
-          </button>
+        <Transition name="fade">
+          <BattleLoading
+            v-if="!isFullyLoaded"
+            :left="currentPlayer"
+            :right="opponentPlayer"
+            :background="background"
+            :tasks="loadingTasks"
+            :progress="overallProgress"
+            :error="loadingError"
+            :replay="isReplayMode"
+            @retry="retryReplayLoading"
+            @exit="isReplayMode ? goBackFromReplay() : navigateToHome()"
+          />
+        </Transition>
 
-          <div class="text-2xl mb-4">📱 ➡️ 📱</div>
-          <h3 class="text-lg font-bold text-gray-800 mb-2">建议横屏游戏</h3>
-          <p class="text-gray-600 text-sm mb-4">为了获得最佳游戏体验，建议将设备旋转至横屏模式</p>
-          <p class="text-gray-500 text-xs mb-4">或点击右上角的全屏按钮进入全屏模式</p>
-
-          <!-- 操作按钮 -->
-          <div class="flex gap-2 justify-center">
-            <button
-              @click="toggleFullscreen"
-              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors duration-200"
-            >
-              进入全屏
-            </button>
-            <button
-              @click="dismissOrientationHint"
-              class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
-            >
-              继续游戏
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 移动端全屏按钮 -->
-      <button
-        v-if="isMobile"
-        @click="toggleFullscreen"
-        class="absolute top-4 right-4 w-12 h-12 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95"
-        :class="Z_INDEX_CLASS.MOBILE_FULLSCREEN_BUTTON"
-        :title="isFullscreen ? '退出全屏' : '进入全屏'"
-      >
-        <el-icon :size="20">
-          <FullScreen v-if="!isFullscreen" />
-          <Aim v-else />
-        </el-icon>
-      </button>
-
-      <div
-        ref="battleViewRef"
-        class="w-[1600px] h-[900px] min-w-[1600px] min-h-[900px] flex-shrink-0 relative flex justify-center items-center object-contain bg-gray-900 transition-transform duration-300 ease-out"
-        :style="{
-          transform: `scale(${battleViewScale}) translateZ(0)`,
-          transformOrigin: 'center center',
-          opacity: isFullyLoaded ? 1 : 0,
-          transition: 'opacity 0.5s ease-in-out',
-        }"
-      >
-        <!-- Team Selection Panel -->
+        <!-- 自定义确认对话框（覆盖整个战斗容器） -->
         <Transition name="fade">
           <div
-            v-if="showTeamSelectionPanel && !isSpectatorMode"
+            v-if="showCustomConfirm"
             class="absolute inset-0 bg-black/80 flex items-center justify-center"
-            :class="Z_INDEX_CLASS.TEAM_SELECTION_PANEL"
+            :class="Z_INDEX_CLASS.CUSTOM_CONFIRM_DIALOG"
           >
-            <TeamSelectionPanel
-              v-if="teamSelectionConfig"
-              :fullTeam="currentPlayerTeam"
-              :opponentTeam="teamSelectionOpponentTeam"
-              :config="teamSelectionConfig"
-              :timeLimit="teamSelectionTimeLimit"
-              :initialSelection="currentTeamSelection || undefined"
-              :opponentProgress="opponentSelectionProgress"
-              :opponentSelection="opponentTeamSelection || undefined"
-              @selectionChange="onTeamSelectionChange"
-              @confirm="onTeamSelectionConfirm"
-              @timeout="onTeamSelectionTimeout"
-            />
+            <div
+              class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(255,165,0,0.4)] text-center max-w-md mx-4"
+            >
+              <!-- 警告图标 -->
+              <div class="mb-6">
+                <el-icon class="text-orange-400 text-6xl" :size="64">
+                  <Warning />
+                </el-icon>
+              </div>
+
+              <!-- 对话框标题 -->
+              <h2 class="text-3xl mb-4 text-white [text-shadow:_0_0_20px_#fff] font-bold">
+                {{ customConfirmTitle }}
+              </h2>
+
+              <!-- 对话框内容 -->
+              <p class="text-gray-300 text-lg leading-relaxed mb-8">
+                {{ customConfirmMessage }}
+              </p>
+
+              <!-- 对话框按钮 -->
+              <div class="flex gap-4 justify-center">
+                <button
+                  @click="handleCustomConfirm(false)"
+                  class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
+                >
+                  {{ i18next.t('cancel', { ns: 'battle', defaultValue: '取消' }) }}
+                </button>
+                <button
+                  @click="handleCustomConfirm(true)"
+                  class="px-6 py-3 bg-orange-600 hover:bg-orange-500 rounded-lg text-white font-bold transition-colors shadow-[0_0_15px_rgba(255,165,0,0.3)]"
+                >
+                  {{ i18next.t('surrender-confirm-button', { ns: 'battle', defaultValue: '投降' }) }}
+                </button>
+              </div>
+            </div>
           </div>
         </Transition>
 
-        <img
-          v-show="showKoBanner"
-          ref="koBannerRef"
-          :src="koImage"
-          alt="KO Banner"
-          class="absolute left-1/2 top-1/2 max-w-[80%] max-h-[80%] object-contain"
-          :class="Z_INDEX_CLASS.KO_BANNER"
-        />
-        <div
-          ref="backgroundContainerRef"
-          class="relative h-full w-full flex flex-col bg-center bg-no-repeat overflow-visible"
-          :class="[
-            background ? `bg-cover` : 'bg-gray-900',
-            'overflow-hidden',
-            'transition-all duration-300 ease-in-out',
-          ]"
-          :style="{
-            backgroundImage: background ? `url(${background})` : 'none',
-            backgroundSize: background ? 'auto 100%' : 'auto',
-          }"
-        >
-          <div class="flex justify-between p-5">
-            <BattleStatus v-if="currentPlayer" ref="leftStatusRef" class="w-1/3" :player="currentPlayer" side="left" />
-
-            <BattleStatus
-              v-if="opponentPlayer"
-              ref="rightStatusRef"
-              class="w-1/3"
-              :player="opponentPlayer"
-              side="right"
-            />
-          </div>
-
-          <!-- 回合数和公共印记区域 -->
-          <div class="flex flex-col items-center py-2 min-h-[80px]">
-            <!-- 回合数和计时器显示 -->
-            <div class="grid grid-cols-3 items-center mb-2 min-h-[24px]">
-              <!-- 回合时间 - 左侧 -->
-              <div class="flex justify-start">
-                <SimpleBattleTimer
-                  v-if="!isReplayMode && !isSpectatorMode"
-                  type="turn"
-                  :player-id="currentPlayer?.id"
-                />
-              </div>
-
-              <!-- 回合数居中显示 - 始终在中间 -->
-              <div class="flex justify-center">
-                <div class="text-white text-xl font-bold">
-                  {{
-                    i18next.t('turn', {
-                      ns: 'battle',
-                    })
-                  }}
-                  {{ currentTurn || 1 }}
+        <div class="battle-stage" data-testid="battle-stage">
+          <div
+            ref="backgroundContainerRef"
+            class="battle-stage__backdrop"
+            :style="{
+              backgroundImage: degradedResources.includes('战斗场景')
+                ? 'none'
+                : background
+                  ? `url(${background})`
+                  : 'none',
+            }"
+          ></div>
+          <div class="battle-hud" :style="{ opacity: isFullyLoaded ? 1 : 0 }">
+            <BattleStatus v-if="currentPlayer" ref="leftStatusRef" :player="currentPlayer" side="left" />
+            <div class="battle-hud__center">
+              <BattleFrame />
+              <div class="relative">
+                <div class="battle-hud__round">{{ i18next.t('turn', { ns: 'battle' }) }} {{ currentTurn || 1 }}</div>
+                <div v-if="!isReplayMode && !isSpectatorMode" class="battle-hud__timers">
+                  <SimpleBattleTimer type="turn" :player-id="currentPlayer?.id" /><SimpleBattleTimer
+                    type="total"
+                    :player-id="currentPlayer?.id"
+                  />
+                </div>
+                <div v-if="globalMarks.length" class="battle-hud__marks">
+                  <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
                 </div>
               </div>
-
-              <!-- 总时间 - 右侧 -->
-              <div class="flex justify-end">
-                <SimpleBattleTimer
-                  v-if="!isReplayMode && !isSpectatorMode"
-                  type="total"
-                  :player-id="currentPlayer?.id"
-                />
-              </div>
             </div>
-
-            <!-- 公共印记（天气）显示 -->
-            <div v-if="globalMarks.length > 0" class="flex flex-wrap justify-center gap-2 max-w-md">
-              <Mark v-for="mark in globalMarks" :key="mark.id" :mark="mark" />
-            </div>
-
-            <!-- 等待对手提示 -->
-            <Transition name="fade">
-              <div
-                v-if="isWaitingForOpponent && !isReplayMode && !isSpectatorMode"
-                class="flex items-center justify-center gap-2 text-blue-300 text-lg font-medium"
-              >
-                <!-- 简单的旋转加载图标 -->
-                <div class="w-4 h-4 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin"></div>
-                <span>
-                  {{
-                    i18next.t('waiting-for-opponent-message', {
-                      ns: 'battle',
-                      defaultValue: '等待对手操作中...',
-                    })
-                  }}
-                </span>
-              </div>
-            </Transition>
-
-            <!-- 对手掉线提示 -->
-            <Transition name="fade">
-              <div
-                v-if="opponentDisconnected && !isReplayMode && !isSpectatorMode"
-                class="flex items-center justify-center gap-2 text-orange-300 text-lg font-medium bg-orange-900/30 px-4 py-2 rounded-lg border border-orange-500/50"
-              >
-                <!-- 警告图标 -->
-                <div class="w-5 h-5 text-orange-400">⚠️</div>
-                <span>
-                  对手已掉线，等待重连中...
-                  <span v-if="disconnectGraceTime > 0" class="text-orange-200"> ({{ disconnectGraceTime }}秒) </span>
-                </span>
-              </div>
-            </Transition>
-
-            <!-- 自己掉线提示 -->
-            <Transition name="fade">
-              <div
-                v-if="selfDisconnected && !isReplayMode && !isSpectatorMode"
-                class="flex items-center justify-center gap-2 text-red-300 text-lg font-medium bg-red-900/30 px-4 py-2 rounded-lg border border-red-500/50"
-              >
-                <!-- 警告图标 -->
-                <div class="w-5 h-5 text-red-400">🔌</div>
-                <span v-if="reconnecting"> 连接已断开，正在重连中... </span>
-                <span v-else> 连接已断开，请检查网络连接 </span>
-              </div>
-            </Transition>
+            <BattleStatus v-if="opponentPlayer" ref="rightStatusRef" :player="opponentPlayer" side="right" />
           </div>
-
-          <!-- 精灵容器 - 绝对定位相对于整个battleView，不受其他元素挤压 -->
-          <div class="absolute inset-0 pointer-events-none">
-            <!-- 左侧精灵侧栏 - 绝对定位 -->
-            <div
-              class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 pointer-events-auto"
-              :class="Z_INDEX_CLASS.PET_BUTTON_CONTAINER"
-            >
+          <div v-if="selfDisconnected" class="battle-notice battle-notice--error" role="status">
+            {{ reconnecting ? '连接中断，正在重连…' : '连接已断开，请检查网络连接' }}
+          </div>
+          <div v-else-if="opponentDisconnected" class="battle-notice battle-notice--warning" role="status">
+            对手已掉线，等待重连 {{ disconnectGraceTime > 0 ? `· ${disconnectGraceTime} 秒` : '' }}
+          </div>
+          <div
+            v-else-if="isWaitingForOpponent && !isReplayMode && !isSpectatorMode"
+            class="battle-notice"
+            role="status"
+          >
+            已提交行动 · 等待对手
+          </div>
+          <div class="battle-roster battle-roster--left">
+            <div class="battle-roster__list">
               <PetButton
                 v-for="pet in leftPlayerPets"
                 :key="pet.id"
                 :pet="pet"
-                :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent || isSpectatorMode"
+                :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent || isSpectatorMode || isReplayMode"
                 :is-active="pet.id === currentPlayer?.activePet"
                 position="left"
                 @click="handlePetSelect"
               />
             </div>
-
-            <!-- 右侧精灵侧栏 - 绝对定位 -->
-            <div
-              class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 pointer-events-auto"
-              :class="Z_INDEX_CLASS.PET_BUTTON_CONTAINER"
-            >
+          </div>
+          <div class="battle-roster battle-roster--right">
+            <div class="battle-roster__list">
               <PetButton
                 v-for="pet in rightPlayerPets"
                 :key="pet.id"
@@ -3052,473 +2317,266 @@ watch(
                 position="right"
               />
             </div>
-
-            <!-- 左侧精灵 - 绝对定位在画面左侧 -->
-            <PetSprite
-              v-if="leftPetSpeciesNum !== 0 || !!leftPetSpriteAsset.customSwfUrl"
-              ref="leftPetRef"
-              :num="leftPetSpeciesNum"
-              :swf-url="leftPetSpriteAsset.customSwfUrl"
-              class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
-              :class="Z_INDEX_CLASS.PET_SPRITE"
-              @hit="handleAttackHit('left')"
-              @animate-complete="handleAnimationComplete('left')"
-            />
-            <!-- 右侧精灵 - 绝对定位在画面右侧 -->
-            <PetSprite
-              v-if="rightPetSpeciesNum !== 0 || !!rightPetSpriteAsset.customSwfUrl"
-              ref="rightPetRef"
-              :num="rightPetSpeciesNum"
-              :swf-url="rightPetSpriteAsset.customSwfUrl"
-              :reverse="true"
-              class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"
-              :class="Z_INDEX_CLASS.PET_SPRITE"
-              @hit="handleAttackHit('right')"
-              @animate-complete="handleAnimationComplete('right')"
-            />
-
-            <!-- Climax特效 - 绝对定位在对应精灵位置 -->
-            <div
-              v-show="showClimaxEffect"
-              class="absolute pointer-events-none"
-              :class="Z_INDEX_CLASS.CLIMAX_EFFECT"
-              :style="getClimaxEffectStyle()"
-            >
-              <div class="relative w-full h-full">
-                <ClimaxEffectAnimation
-                  ref="climaxEffectRef"
-                  :auto-play="false"
-                  :loop="false"
-                  :frame-duration="30"
-                  :flip-horizontal="climaxEffectSide === 'right'"
-                  :on-complete="handleClimaxEffectComplete"
-                />
-              </div>
-            </div>
           </div>
-
-          <!-- 占位元素 - 保持原有的flex布局空间分配 -->
-          <div class="flex-grow"></div>
-
-          <!-- 回放模式控制界面 -->
-          <div v-if="isReplayMode" class="flex flex-none bg-black/80 h-1/5">
-            <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2">
-              <BattleLogPanel />
-            </div>
-
-            <div class="flex-1 h-full flex flex-col justify-center p-4">
-              <!-- 回放控制按钮 -->
-              <div class="flex items-center justify-center space-x-4 mb-4">
-                <button
-                  @click="goBackFromReplay"
-                  class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
-                >
-                  {{ props.localReportId ? '返回本地战报' : '返回详情' }}
-                </button>
-
-                <!-- 播放控制 -->
-                <button
-                  @click="previousTurn"
-                  :disabled="currentReplayTurn <= 0 || isPlaying || !isReplayFullyLoaded"
-                  class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
-                >
-                  <el-icon><DArrowLeft /></el-icon>
-                </button>
-
-                <button
-                  @click="togglePlayback"
-                  :disabled="!isReplayFullyLoaded"
-                  class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center space-x-2"
-                >
-                  <el-icon>
-                    <VideoPause v-if="isPlaying" />
-                    <VideoPlay v-else />
-                  </el-icon>
-                  <span>
-                    {{
-                      !isReplayFullyLoaded ? '加载中...' : isPlaying ? (pendingPause ? '暂停中...' : '暂停') : '播放'
-                    }}
-                  </span>
-                </button>
-
-                <button
-                  @click="() => playCurrentTurnAnimations(true)"
-                  :disabled="isPlaying || isPlayingAnimations || !isReplayFullyLoaded"
-                  class="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
-                  title="播放当前回合动画并推进到下一个快照"
-                >
-                  <el-icon><Film /></el-icon>
-                </button>
-
-                <button
-                  @click="nextTurn"
-                  :disabled="currentReplayTurn >= totalReplayTurns || isPlaying || !isReplayFullyLoaded"
-                  class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
-                >
-                  <el-icon><DArrowRight /></el-icon>
-                </button>
-
-                <span class="text-white font-bold">
-                  回合 {{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}
-                </span>
-              </div>
-
-              <!-- 回合进度条 -->
-              <div class="flex items-center space-x-4">
-                <span class="text-white text-sm">进度:</span>
-                <!-- 时间轴样式进度条 -->
-                <div class="flex-1 relative">
-                  <div class="timeline-container">
-                    <!-- 时间轴背景轨道 -->
-                    <div class="timeline-track">
-                      <!-- 已完成部分 -->
-                      <div
-                        class="timeline-fill"
-                        :style="{
-                          width: `${totalReplayTurns > 0 ? (currentReplayTurn / totalReplayTurns) * 100 : 0}%`,
-                        }"
-                      ></div>
-                      <!-- 刻度点 -->
-                      <div
-                        v-for="i in Math.min(totalReplayTurns + 1, 11)"
-                        :key="i"
-                        class="timeline-tick"
-                        :class="{ active: i - 1 <= currentReplayTurn }"
-                        :style="{ left: `${totalReplayTurns > 0 ? ((i - 1) / totalReplayTurns) * 100 : 0}%` }"
-                      ></div>
-                    </div>
-                    <!-- 可点击区域 -->
-                    <div
-                      class="timeline-clickable"
-                      :class="[
-                        Z_INDEX_CLASS.TIMELINE_CLICKABLE,
-                        { 'pointer-events-none': isPlaying || !isReplayFullyLoaded },
-                      ]"
-                      @click="handleTimelineClick"
-                    ></div>
-                  </div>
-                </div>
-                <span class="text-white text-sm font-mono"
-                  >{{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}</span
-                >
-              </div>
-            </div>
+          <div v-if="isFullyLoaded && degradedResources.length" class="battle-degraded" role="status">
+            {{ degradedResources.join('、') }} · 简化显示
           </div>
-
-          <!-- 显示日志按钮（浮动在左下角） -->
           <div
-            v-if="!isReplayMode && !isSpectatorMode && !battleViewStore.showLogPanel"
-            class="absolute bottom-4 left-4 z-50"
+            ref="battleViewRef"
+            class="battle-scene"
+            :style="{
+              transformOrigin: 'center center',
+              opacity: isFullyLoaded ? 1 : 0,
+              transition: 'opacity 0.5s ease-in-out',
+            }"
           >
-            <button
-              class="group relative w-8 h-8 cursor-pointer bg-black/70 rounded-r-lg border border-gray-400/50 hover:border-green-400/70 hover:bg-black/90 transition-all duration-200"
-              @click="battleViewStore.toggleLogPanel()"
-              title="显示日志面板"
-            >
-              <div class="flex items-center justify-center h-full">
-                <!-- 向右箭头 -->
-                <div
-                  class="text-sm font-bold text-gray-400 group-hover:text-green-400 transform group-hover:translate-x-0.5 transition-transform duration-200"
-                >
-                  ▶
-                </div>
-              </div>
-            </button>
-          </div>
-
-          <!-- 控制面板（移动端和桌面端完全一样） -->
-          <div v-if="!isReplayMode" class="flex h-1/5 flex-none overflow-visible">
-            <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2 max-h-full overflow-hidden">
-              <BattleLogPanel />
-            </div>
-
-            <div class="h-full max-h-full overflow-visible" :class="battleViewStore.showLogPanel ? 'flex-1' : 'w-full'">
+            <!-- Team Selection Panel -->
+            <Transition name="fade">
               <div
-                class="h-full max-h-full grid grid-cols-5 gap-4 p-2 overflow-visible"
-                v-show="panelState === PanelState.SKILLS && !isSpectatorMode"
+                v-if="showTeamSelectionPanel && !isSpectatorMode"
+                class="absolute inset-0 bg-black/80 flex items-center justify-center"
+                :class="Z_INDEX_CLASS.TEAM_SELECTION_PANEL"
               >
-                <template v-for="skill in availableSkills" :key="skill.id">
-                  <SkillButton
-                    :skill="skill"
-                    @click="handleSkillClick(skill.id)"
-                    :disabled="!isSkillAvailable(skill.id) || isWaitingForOpponent"
-                    :power-modifier-info="getSkillModifierInfo(skill, 'power')"
-                    :accuracy-modifier-info="getSkillModifierInfo(skill, 'accuracy')"
-                    :rage-modifier-info="getSkillModifierInfo(skill, 'rage')"
-                    :type-effectiveness="getTypeEffectiveness(skill)"
-                  />
-                </template>
-              </div>
-
-              <div
-                class="grid grid-cols-6 gap-2 h-full max-h-full overflow-visible"
-                v-show="panelState === PanelState.PETS && !isSpectatorMode"
-              >
-                <PetButton
-                  v-for="pet in currentPlayer?.team || []"
-                  :key="pet.id"
-                  :pet="pet"
-                  :disabled="!isPetSelectable(pet.id) || isWaitingForOpponent"
-                  @click="handlePetSelect"
-                  position="bottom"
+                <TeamSelectionPanel
+                  v-if="teamSelectionConfig"
+                  :fullTeam="currentPlayerTeam"
+                  :opponentTeam="teamSelectionOpponentTeam"
+                  :config="teamSelectionConfig"
+                  :timeLimit="teamSelectionTimeLimit"
+                  :initialSelection="currentTeamSelection || undefined"
+                  :opponentProgress="opponentSelectionProgress"
+                  :opponentSelection="opponentTeamSelection || undefined"
+                  @selectionChange="onTeamSelectionChange"
+                  @confirm="onTeamSelectionConfirm"
+                  @timeout="onTeamSelectionTimeout"
                 />
               </div>
+            </Transition>
 
-              <!-- 观战模式下显示信息面板 -->
-              <div v-if="isSpectatorMode" class="h-full max-h-full p-4 overflow-y-auto bg-black/20">
-                <div class="text-white">
-                  <h3 class="text-lg font-bold mb-3 text-center text-gray-300">观战模式</h3>
-                  <p class="text-gray-400 mb-4 text-center text-sm">您正在观看战斗</p>
-
-                  <!-- 退出按钮 -->
-                  <div class="flex justify-center mb-4">
-                    <button
-                      @click="navigateToHome"
-                      class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold transition-colors"
-                    >
-                      退出观战
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="!isSpectatorMode" class="flex flex-col gap-2 p-2 w-1/5 flex-none h-full">
-              <!-- 训练面板按钮 -->
-              <button
-                v-if="isTrainingMode"
-                class="group relative h-10 p-2 cursor-pointer overflow-visible flex-none"
-                @click="isTrainingPanelOpen = !isTrainingPanelOpen"
-              >
-                <div
-                  class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-green-400/50 group-hover:shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]"
-                  :class="
-                    isTrainingPanelOpen
-                      ? 'border-green-400/50 group-hover:shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]'
-                      : 'border-green-400/50'
+            <img
+              v-show="showKoBanner"
+              ref="koBannerRef"
+              :src="koImage"
+              alt="KO Banner"
+              class="absolute left-1/2 top-1/2 max-w-[80%] max-h-[80%] object-contain"
+              :class="Z_INDEX_CLASS.KO_BANNER"
+            />
+            <div class="battle-scenery">
+              <!-- 精灵容器 - 绝对定位相对于整个battleView，不受其他元素挤压 -->
+              <div class="absolute inset-0 pointer-events-none">
+                <!-- 左侧精灵 - 绝对定位在画面左侧 -->
+                <PetSprite
+                  v-if="
+                    leftPetSpeciesNum !== 0 || !!leftPetSpriteAsset.customSwfUrl || !!leftPetSpriteAsset.customImageUrl
                   "
-                >
-                  <div class="bg-gray-900 w-full h-2"></div>
-                  <div class="absolute bottom-1 right-1">
-                    <div class="flex">
-                      <div class="w-2 h-0.5 mt-1" :class="isTrainingPanelOpen ? 'bg-green-400' : 'bg-green-400'"></div>
-                      <div class="w-0.5 h-2" :class="isTrainingPanelOpen ? 'bg-green-400' : 'bg-green-400'"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="relative flex items-center justify-center h-full pointer-events-none">
-                  <div
-                    class="text-xs font-bold [text-shadow:_1px_1px_0_black]"
-                    :class="isTrainingPanelOpen ? 'text-green-400' : 'text-green-400'"
-                  >
-                    🎯 训练
-                  </div>
-                </div>
-              </button>
+                  ref="leftPetRef"
+                  :num="leftPetSpeciesNum"
+                  :swf-url="leftPetSpriteAsset.customSwfUrl"
+                  :image-url="leftPetSpriteAsset.customImageUrl"
+                  class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
+                  :class="Z_INDEX_CLASS.PET_SPRITE"
+                  @hit="handleAttackHit('left')"
+                  @animate-complete="handleAnimationComplete('left')"
+                />
+                <!-- 右侧精灵 - 绝对定位在画面右侧 -->
+                <PetSprite
+                  v-if="
+                    rightPetSpeciesNum !== 0 ||
+                    !!rightPetSpriteAsset.customSwfUrl ||
+                    !!rightPetSpriteAsset.customImageUrl
+                  "
+                  ref="rightPetRef"
+                  :num="rightPetSpeciesNum"
+                  :swf-url="rightPetSpriteAsset.customSwfUrl"
+                  :image-url="rightPetSpriteAsset.customImageUrl"
+                  :reverse="true"
+                  class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"
+                  :class="Z_INDEX_CLASS.PET_SPRITE"
+                  @hit="handleAttackHit('right')"
+                  @animate-complete="handleAnimationComplete('right')"
+                />
 
-              <!-- 主要操作按钮区域 -->
-              <div class="grid grid-cols-2 gap-2 flex-1">
-                <!-- 战斗按钮 -->
-                <button
-                  class="group relative p-2 cursor-pointer overflow-visible"
-                  @click="panelState = PanelState.SKILLS"
+                <!-- Climax特效 - 绝对定位在对应精灵位置 -->
+                <div
+                  v-show="showClimaxEffect"
+                  class="absolute pointer-events-none"
+                  :class="Z_INDEX_CLASS.CLIMAX_EFFECT"
+                  :style="getClimaxEffectStyle()"
                 >
-                  <div
-                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
-                  >
-                    <div class="bg-gray-900 w-full h-3"></div>
-                    <div class="absolute bottom-1 right-1">
-                      <div class="flex">
-                        <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
-                        <div class="bg-sky-400 w-0.5 h-3.5"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="relative flex items-center justify-center h-full pointer-events-none">
-                    <div class="text-sky-400 text-sm font-bold [text-shadow:_1px_1px_0_black]">
-                      {{
-                        i18next.t('fight', {
-                          ns: 'battle',
-                        })
-                      }}
-                    </div>
-                  </div>
-                </button>
-
-                <!-- 切换按钮 -->
-                <button
-                  class="group relative p-2 cursor-pointer overflow-visible"
-                  @click="panelState = PanelState.PETS"
-                >
-                  <div
-                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border border-sky-400/50 group-hover:shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
-                  >
-                    <div class="bg-gray-900 w-full h-3"></div>
-                    <div class="absolute bottom-1 right-1">
-                      <div class="flex">
-                        <div class="bg-sky-400 w-3 h-0.5 mt-3"></div>
-                        <div class="bg-sky-400 w-0.5 h-3.5"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="relative flex items-center justify-center h-full pointer-events-none">
-                    <div class="text-sky-400 text-sm font-bold [text-shadow:_1px_1px_0_black]">
-                      {{
-                        i18next.t('switch', {
-                          ns: 'battle',
-                        })
-                      }}
-                    </div>
-                  </div>
-                </button>
-
-                <!-- 什么都不做按钮 -->
-                <button
-                  data-testid="do-nothing-button"
-                  class="group relative p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
-                  :disabled="!store.availableActions.find(a => a.type === 'do-nothing')"
-                  @click="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
-                  @mouseenter="isDoNothingHovered = true"
-                  @mouseleave="isDoNothingHovered = false"
-                >
-                  <!-- 粒子效果容器 - 围绕光效区域 -->
-                  <div
-                    v-if="store.availableActions.find(a => a.type === 'do-nothing')"
-                    class="absolute pointer-events-none overflow-visible"
-                    style="top: -8px; left: -8px; right: -8px; bottom: -8px"
-                  >
-                    <vue-particles
-                      :id="doNothingParticlesId"
-                      :options="doNothingParticlesOptions"
-                      @particles-loaded="doNothingParticlesLoaded"
-                      class="w-full h-full"
+                  <div class="relative w-full h-full">
+                    <ClimaxEffectAnimation
+                      ref="climaxEffectRef"
+                      :auto-play="false"
+                      :loop="false"
+                      :frame-duration="30"
+                      :flip-horizontal="climaxEffectSide === 'right'"
+                      :on-complete="handleClimaxEffectComplete"
                     />
                   </div>
-
-                  <div
-                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
-                    :class="
-                      store.availableActions.find(a => a.type === 'do-nothing')
-                        ? 'border-sky-400/50 do-nothing-glow-available'
-                        : 'border-gray-500/50'
-                    "
-                  >
-                    <div class="bg-gray-900 w-full h-3"></div>
-                    <div class="absolute bottom-1 right-1">
-                      <div class="flex">
-                        <div
-                          class="w-3 h-0.5 mt-3"
-                          :class="
-                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-yellow-400' : 'bg-gray-500'
-                          "
-                        ></div>
-                        <div
-                          class="w-0.5 h-3.5"
-                          :class="
-                            store.availableActions.find(a => a.type === 'do-nothing') ? 'bg-yellow-400' : 'bg-gray-500'
-                          "
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="relative flex items-center justify-center h-full pointer-events-none">
-                    <div
-                      class="text-sm font-bold [text-shadow:_1px_1px_0_black] transition-colors duration-300"
-                      :class="
-                        store.availableActions.find(a => a.type === 'do-nothing')
-                          ? 'text-yellow-400 group-hover:text-yellow-300'
-                          : 'text-gray-400'
-                      "
-                    >
-                      {{ i18next.t('do-nothing', { ns: 'battle' }) }}
-                    </div>
-                  </div>
-                </button>
-
-                <!-- 投降按钮 -->
-                <button
-                  data-testid="surrender-button"
-                  class="group relative p-2 cursor-pointer overflow-visible disabled:opacity-60 disabled:cursor-not-allowed"
-                  :disabled="!store.availableActions.find(a => a.type === 'surrender')"
-                  @click="handleEscape"
-                >
-                  <div
-                    class="background bg-black w-full h-full absolute top-0 left-0 -skew-x-6 transition-all duration-300 border group-disabled:border-gray-500/50 group-disabled:hover:shadow-none"
-                    :class="
-                      store.availableActions.find(a => a.type === 'surrender')
-                        ? 'border-red-400/50 group-hover:shadow-[0_0_8px_2px_rgba(248,113,113,0.6)]'
-                        : 'border-gray-500/50'
-                    "
-                  >
-                    <div class="bg-gray-900 w-full h-3"></div>
-                    <div class="absolute bottom-1 right-1">
-                      <div class="flex">
-                        <div
-                          class="w-3 h-0.5 mt-3"
-                          :class="
-                            store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'
-                          "
-                        ></div>
-                        <div
-                          class="w-0.5 h-3.5"
-                          :class="
-                            store.availableActions.find(a => a.type === 'surrender') ? 'bg-red-400' : 'bg-gray-500'
-                          "
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="relative flex items-center justify-center h-full pointer-events-none">
-                    <div
-                      class="text-sm font-bold [text-shadow:_1px_1px_0_black]"
-                      :class="
-                        store.availableActions.find(a => a.type === 'surrender') ? 'text-red-400' : 'text-gray-400'
-                      "
-                    >
-                      {{
-                        i18next.t('surrunder', {
-                          ns: 'battle',
-                        })
-                      }}
-                    </div>
-                  </div>
-                </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <Transition name="fade">
-        <div
-          v-if="showBattleEndUI"
-          class="fixed inset-0 bg-black/80 flex items-center justify-center"
-          :class="Z_INDEX_CLASS.BATTLE_END_UI"
-        >
-          <div
-            class="bg-gradient-to-br from-[#2a2a4a] to-[#1a1a2e] p-8 rounded-2xl shadow-[0_0_30px_rgba(81,65,173,0.4)] text-center"
-          >
-            <h2 class="text-5xl mb-4 text-white [text-shadow:_0_0_20px_#fff]">{{ battleResult }}</h2>
-            <div class="flex gap-4 mt-8">
+        <!-- 回放模式控制界面 -->
+        <div v-if="isReplayMode" class="battle-replay-dock flex">
+          <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2">
+            <BattleLogPanel />
+          </div>
+
+          <div class="flex-1 h-full flex flex-col justify-center p-4">
+            <!-- 回放控制按钮 -->
+            <div class="flex items-center justify-center space-x-4 mb-4">
               <button
-                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-                @click="navigateToLobbyWithMatching"
+                @click="goBackFromReplay"
+                class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-bold"
               >
-                重新匹配
+                {{ props.localReportId ? '返回本地战报' : '返回详情' }}
               </button>
+
+              <!-- 播放控制 -->
               <button
-                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
-                @click="navigateToHome"
+                @click="previousTurn"
+                :disabled="currentReplayTurn <= 0 || isPlaying || !isReplayFullyLoaded"
+                class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
               >
-                返回大厅
+                <el-icon><DArrowLeft /></el-icon>
               </button>
+
+              <button
+                @click="togglePlayback"
+                :disabled="!isReplayFullyLoaded"
+                class="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center space-x-2"
+              >
+                <el-icon>
+                  <VideoPause v-if="isPlaying" />
+                  <VideoPlay v-else />
+                </el-icon>
+                <span>
+                  {{ !isReplayFullyLoaded ? '加载中...' : isPlaying ? (pendingPause ? '暂停中...' : '暂停') : '播放' }}
+                </span>
+              </button>
+
+              <button
+                @click="() => playCurrentTurnAnimations(true)"
+                :disabled="isPlaying || isPlayingAnimations || !isReplayFullyLoaded"
+                class="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+                title="播放当前回合动画并推进到下一个快照"
+              >
+                <el-icon><Film /></el-icon>
+              </button>
+
+              <button
+                @click="nextTurn"
+                :disabled="currentReplayTurn >= totalReplayTurns || isPlaying || !isReplayFullyLoaded"
+                class="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-white font-bold flex items-center justify-center"
+              >
+                <el-icon><DArrowRight /></el-icon>
+              </button>
+
+              <span class="text-white font-bold">
+                回合 {{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}
+              </span>
+            </div>
+
+            <!-- 回合进度条 -->
+            <div class="flex items-center space-x-4">
+              <span class="text-white text-sm">进度:</span>
+              <!-- 时间轴样式进度条 -->
+              <div class="flex-1 relative">
+                <div class="timeline-container">
+                  <!-- 时间轴背景轨道 -->
+                  <div class="timeline-track">
+                    <!-- 已完成部分 -->
+                    <div
+                      class="timeline-fill"
+                      :style="{
+                        width: `${totalReplayTurns > 0 ? (currentReplayTurn / totalReplayTurns) * 100 : 0}%`,
+                      }"
+                    ></div>
+                    <!-- 刻度点 -->
+                    <div
+                      v-for="i in Math.min(totalReplayTurns + 1, 11)"
+                      :key="i"
+                      class="timeline-tick"
+                      :class="{ active: i - 1 <= currentReplayTurn }"
+                      :style="{ left: `${totalReplayTurns > 0 ? ((i - 1) / totalReplayTurns) * 100 : 0}%` }"
+                    ></div>
+                  </div>
+                  <!-- 可点击区域 -->
+                  <div
+                    class="timeline-clickable"
+                    :class="[
+                      Z_INDEX_CLASS.TIMELINE_CLICKABLE,
+                      { 'pointer-events-none': isPlaying || !isReplayFullyLoaded },
+                    ]"
+                    @click="handleTimelineClick"
+                  ></div>
+                </div>
+              </div>
+              <span class="text-white text-sm font-mono"
+                >{{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}</span
+              >
             </div>
           </div>
         </div>
-      </Transition>
 
-      <!-- 训练面板 -->
-      <TrainingPanel :is-developer-mode="isTrainingMode" v-model:is-open="isTrainingPanelOpen" />
+        <BattleCommandDock
+          v-if="!isReplayMode"
+          :panel="panelState"
+          :skills="availableSkills"
+          :pets="currentPlayer?.team || []"
+          :waiting="isWaitingForOpponent"
+          :spectator="isSpectatorMode"
+          :training="isTrainingMode"
+          :can-wait="!!store.availableActions.find(a => a.type === 'do-nothing')"
+          :can-surrender="!!store.availableActions.find(a => a.type === 'surrender')"
+          :skill-available="isSkillAvailable"
+          :pet-selectable="isPetSelectable"
+          :modifier="getSkillModifierInfo"
+          :effectiveness="getTypeEffectiveness"
+          @panel="panelState = $event === 'skills' ? PanelState.SKILLS : PanelState.PETS"
+          @skill="handleSkillClick"
+          @pet="handlePetSelect"
+          @wait="store.sendplayerSelection(store.availableActions.find(a => a.type === 'do-nothing')!)"
+          @surrender="handleEscape"
+          @training="isTrainingPanelOpen = !isTrainingPanelOpen"
+          @fullscreen="toggleFullscreen"
+          @exit="navigateToHome"
+        />
+
+        <Transition name="fade">
+          <div
+            v-if="showBattleEndUI"
+            class="fixed inset-0 bg-black/80 flex items-center justify-center"
+            :class="Z_INDEX_CLASS.BATTLE_END_UI"
+          >
+            <div class="battle-result">
+              <BattleFrame accent="gold" />
+              <div class="battle-loading__eyebrow">对战结束</div>
+              <h2>{{ battleResult }}</h2>
+              <div class="flex gap-4 mt-8">
+                <button
+                  class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
+                  @click="navigateToLobbyWithMatching"
+                >
+                  重新匹配
+                </button>
+                <button
+                  class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
+                  @click="navigateToHome"
+                >
+                  返回大厅
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- 训练面板 -->
+        <TrainingPanel :is-developer-mode="isTrainingMode" v-model:is-open="isTrainingPanelOpen" />
+      </div>
     </div>
   </div>
 </template>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="field"><stop stop-color="#003d53"/><stop offset="1" stop-color="#00131e"/></radialGradient>
+    <pattern id="grid" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#13566a" stroke-width=".6"/></pattern>
+    <pattern id="major" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0V60" fill="none" stroke="#22677a" stroke-width=".6"/></pattern>
+  </defs>
+  <path fill="url(#field)" d="M0 0H1200V660H0Z"/>
+  <path fill="url(#grid)" d="M0 0H1200V660H0Z"/>
+  <path fill="url(#major)" d="M0 0H1200V660H0Z"/>
+  <g fill="none" stroke="#46dcea" stroke-width=".65" opacity=".55">
+    <circle cx="600" cy="330" r="270"/><circle cx="600" cy="330" r="250"/>
+    <circle cx="600" cy="330" r="230" stroke-dasharray="6 6"/><circle cx="600" cy="330" r="90"/>
+    <path d="M330 330H870M600 60V600"/>
+  </g>
+</svg>

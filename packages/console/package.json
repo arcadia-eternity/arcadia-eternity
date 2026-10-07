@@ -27,7 +27,7 @@
     "@arcadia-eternity/interface": "workspace:^",
     "i18next": "catalog:",
     "i18next-chained-backend": "^5.0.2",
-    "i18next-fs-backend": "^2.6.1",
+    "i18next-fs-backend": "^2.6.6",
     "jsondiffpatch": "catalog:",
     "marked": "^17.0.4",
     "marked-terminal": "^7.3.0"

@@ -18,7 +18,7 @@ const displayText = computed(() => `+${props.value}`)
 
 <template>
   <div
-    class="font-sans font-bold subpixel-antialiased text-5xl"
+    class="battle-heal font-sans font-bold subpixel-antialiased"
     :style="{
       color: '#a3e635',
       textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 5px rgba(0, 0, 0, 0.3)',
@@ -28,4 +28,10 @@ const displayText = computed(() => `+${props.value}`)
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.battle-heal {
+  font-size: 32px;
+  line-height: 40px;
+  white-space: nowrap;
+}
+</style>

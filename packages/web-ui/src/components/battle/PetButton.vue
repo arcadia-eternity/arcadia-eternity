@@ -249,9 +249,16 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
 
 <template>
   <div class="flex flex-wrap content-center justify-center">
-    <Tooltip :show="showTooltip" :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'">
+    <Tooltip
+      portal
+      :show="showTooltip"
+      :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'"
+    >
       <template #trigger>
-        <div
+        <button
+          type="button"
+          :aria-label="petDisplayName"
+          :disabled="!canClick"
           :class="[
             ...petButtonClasses,
             `z-[${Z_INDEX.PET_BUTTON}]`,
@@ -283,7 +290,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
                 :id="petIconId"
                 :name="petDisplayName"
                 :is-unknown="isPetUnknown || !speciesInfo"
-                :class="position === 'left' || position === 'right' ? 'size-16' : 'size-35'"
+                :class="position === 'left' || position === 'right' ? 'pet-button__side-icon' : 'size-35'"
                 :reverse="position === 'right'"
               />
 
@@ -322,7 +329,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
               {{ petDisplayName }}
             </div>
           </div>
-        </div>
+        </button>
       </template>
 
       <div class="space-y-3">
@@ -418,6 +425,10 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
 </template>
 
 <style scoped>
+.pet-button__side-icon {
+  width: 64px;
+  height: 64px;
+}
 /* Pet 受到 modifier 影响时的样式 */
 .pet-modified {
   position: relative;

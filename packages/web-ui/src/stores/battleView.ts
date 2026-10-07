@@ -15,7 +15,7 @@ export const useBattleViewStore = defineStore('battleView', () => {
   const containerHeight = ref(0)
 
   // 缩放限制
-  const MIN_SCALE = 0.2
+  const MIN_SCALE = 0.01
   const MAX_SCALE = 2.0
 
   // 是否启用自适应缩放模式
@@ -58,7 +58,7 @@ export const useBattleViewStore = defineStore('battleView', () => {
     const scaleY = availableHeight / BATTLE_VIEW_HEIGHT
 
     const calculatedScale = Math.min(scaleX, scaleY, 1)
-    return Math.max(calculatedScale, 0.3)
+    return Math.max(calculatedScale, MIN_SCALE)
   })
 
   // 切换日志面板显示状态

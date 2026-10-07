@@ -6,7 +6,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function formatInvalid(kind: 'condition' | 'operator', value: unknown): string {
-  const hint = isObject(value) && typeof value.type === 'string' ? `type=${value.type}` : `value=${String(value)}`
+  const hint = isObject(value) && typeof value.type === 'string' ? `type=${value.type}` : `value type=${typeof value}`
   return `[effect-interpreter] Invalid ${kind} DSL (${hint})`
 }
 

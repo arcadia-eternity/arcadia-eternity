@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick, useTemplateRef 
 import { Z_INDEX } from '@/constants/zIndex'
 
 interface Props {
+  portal?: boolean
   position?: 'top' | 'bottom' | 'left' | 'right'
   trigger?: 'hover' | 'click' | 'focus'
   show?: boolean
@@ -10,13 +11,21 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  portal: false,
   position: 'bottom',
   trigger: 'hover',
   contentClass: '',
 })
 
+const emit = defineEmits<{ 'update:show': [value: boolean] }>()
+function dismiss() {
+  showTooltip.value = false
+  emit('update:show', false)
+}
 const showTooltip = ref(props.show || false)
 const tooltipRef = useTemplateRef('tooltipRef')
+const triggerRef = useTemplateRef('triggerRef')
+const portalPoint = ref({ x: 0, y: 0 })
 
 // 偏移量，只在需要调整位置时使用
 const dynamicOffset = ref({ x: 0, y: 0 })
@@ -28,6 +37,21 @@ const adjustTooltipPosition = async () => {
   await nextTick()
 
   const tooltip = tooltipRef.value
+  if (props.portal && triggerRef.value) {
+    const anchor = triggerRef.value.getBoundingClientRect()
+    const size = tooltip.getBoundingClientRect()
+    let x = anchor.left + (anchor.width - size.width) / 2
+    let y = anchor.bottom + 8
+    if (props.position === 'top') y = anchor.top - size.height - 8
+    if (props.position === 'left' || props.position === 'right') {
+      x = props.position === 'left' ? anchor.left - size.width - 8 : anchor.right + 8
+      y = anchor.top + (anchor.height - size.height) / 2
+    }
+    x = Math.max(8, Math.min(x, window.innerWidth - size.width - 8))
+    y = Math.max(8, Math.min(y, window.innerHeight - size.height - 8))
+    portalPoint.value = { x, y }
+    return
+  }
   const tooltipRect = tooltip.getBoundingClientRect()
   const viewport = {
     width: window.innerWidth,
@@ -64,6 +88,7 @@ const adjustTooltipPosition = async () => {
 const tooltipClasses = computed(() => {
   // 使用常量确保始终在所有战斗组件之上
   // PetSprite(5) < PetButton(45) < SkillButton(30) < BattleStatus(40) < Mark(50) < Tooltip(200)
+  if (props.portal) return 'fixed w-max pointer-events-none z-[2000]'
   const baseClasses = `absolute w-max pointer-events-none z-[${Z_INDEX.TOOLTIP}]`
   const positionClasses = {
     bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
@@ -76,8 +101,9 @@ const tooltipClasses = computed(() => {
 
 // 动态样式，包含偏移量
 const tooltipStyle = computed(() => {
+  if (props.portal) return { left: `${portalPoint.value.x}px`, top: `${portalPoint.value.y}px` }
   return {
-    transform: `translate(${dynamicOffset.value.x}px, ${dynamicOffset.value.y}px)`,
+    translate: `${dynamicOffset.value.x}px ${dynamicOffset.value.y}px`,
   }
 })
 
@@ -127,9 +153,12 @@ onMounted(() => {
     }
   })
   resizeObserver.observe(document.body)
+  if (showTooltip.value) adjustTooltipPosition()
+  window.addEventListener('scroll', adjustTooltipPosition, true)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('scroll', adjustTooltipPosition, true)
   if (resizeObserver) {
     resizeObserver.disconnect()
   }
@@ -137,33 +166,43 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative inline-block" @mouseenter="toggleTooltip(true)" @mouseleave="toggleTooltip(false)">
+  <div
+    ref="triggerRef"
+    class="relative inline-block"
+    @mouseenter="toggleTooltip(true)"
+    @mouseleave="toggleTooltip(false)"
+    @focusin="toggleTooltip(true)"
+    @focusout="toggleTooltip(false)"
+    @keydown.esc="dismiss"
+  >
     <slot name="trigger" />
 
     <!-- 直接使用CSS定位的tooltip -->
-    <transition name="fade">
-      <div v-show="showTooltip" ref="tooltipRef" :class="tooltipClasses" :style="tooltipStyle">
-        <div
-          class="relative bg-black/90 text-white p-4 rounded-xl min-w-[280px] max-w-[320px] shadow-2xl shadow-black/30 backdrop-blur-sm border border-white/10"
-          :class="contentClass"
-        >
-          <!-- 对话框箭头 -->
-          <div class="absolute w-3 h-3" :class="arrowClasses">
-            <div
-              class="w-full h-full bg-black/90"
-              :class="{
-                'clip-path-triangle-bottom': props.position === 'top',
-                'clip-path-triangle-top': props.position === 'bottom',
-                'clip-path-triangle-right': props.position === 'left',
-                'clip-path-triangle-left': props.position === 'right',
-              }"
-            ></div>
-          </div>
+    <Teleport to="body" :disabled="!portal">
+      <transition name="fade">
+        <div v-show="showTooltip" ref="tooltipRef" :class="tooltipClasses" :style="tooltipStyle">
+          <div
+            class="battle-tooltip relative bg-black/90 text-white p-4 rounded-xl min-w-[280px] max-w-[320px] shadow-2xl shadow-black/30 backdrop-blur-sm border border-white/10"
+            :class="contentClass"
+          >
+            <!-- 对话框箭头 -->
+            <div class="absolute w-3 h-3" :class="arrowClasses">
+              <div
+                class="w-full h-full bg-black/90"
+                :class="{
+                  'clip-path-triangle-bottom': props.position === 'top',
+                  'clip-path-triangle-top': props.position === 'bottom',
+                  'clip-path-triangle-right': props.position === 'left',
+                  'clip-path-triangle-left': props.position === 'right',
+                }"
+              ></div>
+            </div>
 
-          <slot />
+            <slot />
+          </div>
         </div>
-      </div>
-    </transition>
+      </transition>
+    </Teleport>
   </div>
 </template>
 

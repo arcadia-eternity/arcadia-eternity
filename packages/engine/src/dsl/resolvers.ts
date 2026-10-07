@@ -72,8 +72,8 @@ export function applyCommonSelectorChain<TValue, TSelector, TCondition, TEvaluat
       }
       case 'and': {
         const other = hooks.resolveSelector(step.arg)
-        const set = new Set(other.map(item => String(item)))
-        current = current.filter(item => set.has(String(item)))
+        const set = new Set(other)
+        current = current.filter(item => set.has(item))
         break
       }
       case 'or': {
@@ -82,8 +82,8 @@ export function applyCommonSelectorChain<TValue, TSelector, TCondition, TEvaluat
           current = [...current, ...other]
           break
         }
-        const seen = new Set(current.map(item => String(item)))
-        const unique = other.filter(item => !seen.has(String(item)))
+        const seen = new Set(current)
+        const unique = other.filter(item => !seen.has(item))
         current = [...current, ...unique]
         break
       }

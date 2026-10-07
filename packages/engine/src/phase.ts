@@ -171,7 +171,7 @@ export class PhaseManager {
       return result
     } catch (err) {
       phase.state = 'failed'
-      const error = err instanceof Error ? err.message : String(err)
+      const error = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error'
       await this.emitExecutionEvent(world, {
         transition: 'fail',
         phase,
@@ -227,7 +227,7 @@ export class PhaseManager {
       return result
     } catch (err) {
       phase.state = 'failed'
-      const error = err instanceof Error ? err.message : String(err)
+      const error = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error'
       await this.emitExecutionEvent(world, {
         transition: 'fail',
         phase,

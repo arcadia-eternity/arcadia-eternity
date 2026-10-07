@@ -89,7 +89,7 @@ const elementRef = useTemplateRef('elementRef')
     <Tooltip v-if="showTooltip && isModified && tooltipContent" position="bottom">
       <template #trigger>
         <span ref="elementRef" :class="valueClasses">
-          {{ renderedValue }}
+          <slot :value="renderedValue">{{ renderedValue }}</slot>
         </span>
       </template>
       <div class="text-sm max-w-xs bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-lg">
@@ -109,7 +109,7 @@ const elementRef = useTemplateRef('elementRef')
     </Tooltip>
 
     <span v-else ref="elementRef" :class="valueClasses">
-      {{ renderedValue }}
+      <slot :value="renderedValue">{{ renderedValue }}</slot>
     </span>
   </div>
 </template>

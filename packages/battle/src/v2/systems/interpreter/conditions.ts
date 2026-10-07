@@ -638,7 +638,7 @@ function evaluateDefaultRegisteredCondition(
 
     default: {
       const conditionType = (cond as { type?: unknown }).type
-      const typeText = typeof conditionType === 'string' ? conditionType : String(conditionType)
+      const typeText = typeof conditionType === 'string' ? conditionType : typeof conditionType
       throw new Error(`[effect-interpreter] Unsupported condition type: ${typeText}`)
     }
   }

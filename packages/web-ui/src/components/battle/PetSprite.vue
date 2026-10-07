@@ -1,166 +1,119 @@
 <script setup lang="ts">
 import 'seer2-pet-animator'
-import { ActionState } from 'seer2-pet-animator'
-import type { PetRendererEvent } from 'seer2-pet-animator'
-import { ref, useTemplateRef, watchEffect, watch, nextTick, computed } from 'vue'
+import { ActionState, type PetRendererEvent } from 'seer2-pet-animator'
+import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { asyncComputed } from '@vueuse/core'
+import { petResourceCache } from '@/services/petResourceCache'
+import { withDeadline } from '@/composition/useBattlePreparation'
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
 type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
-import { petResourceCache } from '@/services/petResourceCache'
-import { asyncComputed } from '@vueuse/core'
-
-const props = withDefaults(
-  defineProps<{
-    num: number
-    swfUrl?: string
-    reverse?: boolean
-  }>(),
-  {
-    num: 999,
-    swfUrl: '',
-    reverse: false,
-  },
-)
-
-const petSpriteRef = useTemplateRef('petSpriteRef')
+const props = withDefaults(defineProps<{ num: number; swfUrl?: string; imageUrl?: string; reverse?: boolean }>(), {
+  num: 999,
+  swfUrl: '',
+  imageUrl: '',
+  reverse: false,
+})
+const emit = defineEmits<{ hit: [detail: HitEventDetail]; animateComplete: [detail: AnimationCompleteEventDetail] }>()
 const petRenderRef = useTemplateRef('pet-render')
 const inited = ref(false)
-const forceHttps = computed(() => window.location.protocol === 'https:')
-
-// 使用 asyncComputed 来异步获取 URL，避免初始化时的空值问题
-const resolvedSwfUrl = asyncComputed(
-  async () => {
-    if (props.swfUrl) return props.swfUrl
-    if (!props.num) return ''
-    const url = await petResourceCache.getPetSwfUrl(props.num)
-    console.log(`PetSprite(${props.num}): 获取到 URL:`, url)
-    return url
-  },
-  '', // 默认值
-)
-
+const imageFailed = ref(false)
 const availableState = ref<ActionState[]>([])
+const ready = ref<Promise<void>>(Promise.resolve())
+const forceHttps = computed(() => window.location.protocol === 'https:')
+const resolvedSwfUrl = asyncComputed(
+  async () => (props.imageUrl ? '' : props.swfUrl || (props.num ? petResourceCache.getPetSwfUrl(props.num) : '')),
+  '',
+)
+const portrait = computed(() => props.imageUrl || `https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`)
+let generation = 0
+let resolveReady: (() => void) | undefined
+let fallbackTimer: ReturnType<typeof setTimeout> | undefined
 
-// 修改 ready 和 readyResolve 的定义
-const ready = ref<Promise<void>>()
-let currentReadyResolve: (() => void) | undefined = undefined
-
-function resetReady() {
-  inited.value = false // 重置 inited 状态
-  availableState.value = [] // 清空旧的 availableState
-  ready.value = new Promise<void>(resolve => {
-    currentReadyResolve = resolve
-  })
-}
-
-// 初始化时调用
-resetReady()
-
-// 监听 props.num 的变化
 watch(
-  () => [props.num, props.swfUrl],
+  () => [props.num, props.swfUrl, props.imageUrl],
   () => {
-    console.debug(`PetSprite: source changed for num ${props.num}, resetting ready promise.`)
-    resetReady()
+    generation++
+    resolveReady?.()
+    clearTimeout(fallbackTimer)
+    inited.value = false
+    imageFailed.value = false
+    availableState.value = []
+    ready.value = new Promise<void>(resolve => {
+      resolveReady = resolve
+    })
+    const current = generation
+    fallbackTimer = setTimeout(() => {
+      if (current === generation) resolveReady?.()
+    }, 6500)
+    if (props.imageUrl) resolveReady?.()
   },
-  { immediate: false },
+  { immediate: true, flush: 'sync' },
 )
 
-watchEffect(
-  async () => {
-    // 确保 petRenderRef.value 存在，并且 currentReadyResolve 对应的是当前的 Promise
-    if (props.num && petRenderRef.value && currentReadyResolve !== undefined && !inited.value) {
-      console.debug(`PetSprite: watchEffect triggered for num ${props.num}. Fetching available states.`)
-      try {
-        // 重试机制：确保pet-render组件完全准备好
-        let states: ActionState[] | undefined
-        let retryCount = 0
-        const maxRetries = 5
-
-        while ((!states || states.length === 0) && retryCount < maxRetries) {
-          await nextTick()
-          await petRenderRef.value.updateComplete
-          states = (await petRenderRef.value.getAvailableStates()) as ActionState[]
-          if (!states || states.length === 0) {
-            console.debug(
-              `PetSprite: getAvailableStates returned undefined for num ${props.num}, retry ${retryCount + 1}/${maxRetries}`,
-            )
-            // 等待一小段时间让pet-render完全加载
-            await new Promise(resolve => setTimeout(resolve, 100))
-            retryCount++
-          }
-        }
-
-        if (states) {
-          availableState.value = states
-          console.debug(`PetSprite: availableStates updated for num ${props.num}:`, states)
-
-          // 安全地调用 resolve 函数
-          const resolveFunction = currentReadyResolve
-          currentReadyResolve = undefined // 先清除，防止重复调用
-          if (typeof resolveFunction === 'function') {
-            resolveFunction() // Resolve 当前的 Promise
-            console.debug(`PetSprite: ready promise resolved for num ${props.num}.`)
-          }
-        } else {
-          console.error(`PetSprite: Failed to get available states for num ${props.num} after ${maxRetries} retries`)
-          // 即使失败也要清理 resolver
-          const resolveFunction = currentReadyResolve
-          currentReadyResolve = undefined
-          if (typeof resolveFunction === 'function') {
-            resolveFunction() // 即使出错也要 resolve，避免 Promise 永远 pending
-          }
-        }
-      } catch (error) {
-        console.error(`PetSprite: Error fetching available states for num ${props.num}:`, error)
-        // 在错误情况下也要清理 resolver
-        const resolveFunction = currentReadyResolve
-        currentReadyResolve = undefined
-        if (typeof resolveFunction === 'function') {
-          resolveFunction() // 即使出错也要 resolve，避免 Promise 永远 pending
-        }
+watch(
+  () => [resolvedSwfUrl.value, props.num, props.swfUrl, props.imageUrl] as const,
+  async ([url]) => {
+    if (!url) return
+    const current = generation
+    const finish = resolveReady
+    await nextTick()
+    const renderer = petRenderRef.value
+    if (!renderer) return
+    try {
+      await withDeadline(renderer.updateComplete, 6000)
+      let states: ActionState[] = []
+      for (let retry = 0; retry < 40 && current === generation; retry++) {
+        states = ((await withDeadline(renderer.getAvailableStates(), 6000)) as ActionState[]) || []
+        if (states.length) break
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      if (current !== generation) return
+      availableState.value = states
+      inited.value = states.length > 0
+    } catch {
+      /* The static portrait keeps the scene usable. */
+    } finally {
+      if (current === generation) {
+        clearTimeout(fallbackTimer)
+        finish?.()
       }
     }
   },
-  {
-    flush: 'post',
-  },
+  { flush: 'post' },
 )
 
-const setState = async (state: ActionState) => {
-  await petRenderRef.value?.setState(state)
-}
-
-const getState = async () => {
-  return petRenderRef.value?.getState()
-}
-
-const handleHitEvent = (event: CustomEvent<HitEventDetail>) => {
-  console.debug('hit', event.detail)
-  emit('hit', event.detail)
-}
-
-const handleAnimationComplete = (event: CustomEvent<AnimationCompleteEventDetail>) => {
-  console.debug('播放完毕:', event.detail)
-  emit('animateComplete', event.detail)
-}
-
-const emit = defineEmits<{
-  hit: [detail: HitEventDetail]
-  animateComplete: [detail: AnimationCompleteEventDetail]
-}>()
-defineExpose({
-  setState,
-  getState,
-  availableState,
-  ready,
+onUnmounted(() => {
+  generation++
+  clearTimeout(fallbackTimer)
+  resolveReady?.()
 })
+const setState = async (state: ActionState) => {
+  if (inited.value) await petRenderRef.value?.setState(state)
+}
+const getState = async () => (inited.value ? petRenderRef.value?.getState() : ActionState.IDLE)
+const handleHit = (event: CustomEvent<HitEventDetail>) => emit('hit', event.detail)
+const handleComplete = (event: CustomEvent<AnimationCompleteEventDetail>) => emit('animateComplete', event.detail)
+defineExpose({ setState, getState, availableState, ready })
 </script>
 <template>
-  <div ref="petSpriteRef" class="w-full h-full overflow-visible">
+  <div class="w-full h-full overflow-visible">
+    <div
+      v-if="!inited"
+      class="battle-pet-fallback"
+      :class="{ 'battle-pet-fallback--reverse': reverse }"
+      data-testid="pet-static-fallback"
+    >
+      <img v-if="!imageFailed" :src="portrait" alt="精灵静态形象" @error="imageFailed = true" />
+      <svg v-else viewBox="0 0 180 180" aria-label="精灵形象不可用" role="img">
+        <path d="M90 15 160 55v70l-70 40-70-40V55Z" fill="var(--battle-panel)" stroke="var(--battle-cyan)" />
+        <path d="M65 65q25-30 50 0t-25 35v16m0 12v8" fill="none" stroke="var(--battle-cyan)" stroke-width="8" />
+      </svg>
+    </div>
     <pet-render
       v-if="resolvedSwfUrl"
       class="overflow-visible pet-render"
+      :style="{ opacity: inited ? 1 : 0 }"
       ref="pet-render"
       :url="resolvedSwfUrl"
       :reverse="reverse"
@@ -169,9 +122,31 @@ defineExpose({
       :offsetY="160"
       :scaleX="1.1"
       :scaleY="1.1"
-      @hit="handleHitEvent"
-      @animationComplete="handleAnimationComplete"
+      @hit="handleHit"
+      @animationComplete="handleComplete"
       :forceHttps="forceHttps"
     />
   </div>
 </template>
+<style scoped>
+.battle-pet-fallback {
+  position: absolute;
+  left: 260px;
+  top: 260px;
+  width: 310px;
+  height: 310px;
+  display: grid;
+  place-items: center;
+}
+.battle-pet-fallback img,
+.battle-pet-fallback svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.battle-pet-fallback--reverse {
+  left: auto;
+  right: 260px;
+  transform: scaleX(-1);
+}
+</style>
