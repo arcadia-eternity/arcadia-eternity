@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.3.0...arcadia-eternity-v3.4.0) (2026-10-07)
+
+
+### ✨ Features
+
+* **web-ui:** redesign battle visuals with unified canvas scaling ([f6bffd7](https://github.com/arcadia-eternity/arcadia-eternity/commit/f6bffd74260c3013748268f6ba6df7b282418f9b))
+* **web-ui:** restore reference skill chrome and blue climax effects ([a69a708](https://github.com/arcadia-eternity/arcadia-eternity/commit/a69a70836b02396675449d25002a3f327510b03d))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update vulnerable dependencies ([4d18da6](https://github.com/arcadia-eternity/arcadia-eternity/commit/4d18da627c465665de4152785edd41fc0a184521))
+* narrow unknown values and restore CI builds ([1e66f79](https://github.com/arcadia-eternity/arcadia-eternity/commit/1e66f7975464ac7157830425c3830a39a00155af))
+* **web-ui:** restore bar numerals and synchronize health feedback ([3f290d1](https://github.com/arcadia-eternity/arcadia-eternity/commit/3f290d1a1d4de2ebfb68520eb0f3d7623cc46f82))
+* **web-ui:** restore battle feedback and scaled effect layout ([b85417f](https://github.com/arcadia-eternity/arcadia-eternity/commit/b85417fee0b92942c13ae91078ba797bd91687b5))
+* **web-ui:** restore battle impact motion and constrain log layout ([6e9cd0c](https://github.com/arcadia-eternity/arcadia-eternity/commit/6e9cd0cb270be81fa8c937adc163ef18a9a2907b))
+* **web-ui:** smooth background recoil and preserve edge feedback ([3691179](https://github.com/arcadia-eternity/arcadia-eternity/commit/36911791ca6d8de847ac2338b2f8918657ad22c5))
+* **web-ui:** unify roster and mark sizing and portal detail placement ([1bce98c](https://github.com/arcadia-eternity/arcadia-eternity/commit/1bce98c94012c187614bbe60e89096aec6a28c38))
+* **web-ui:** validate Ruffle runtime readiness and retry failed loads ([ba1e5e1](https://github.com/arcadia-eternity/arcadia-eternity/commit/ba1e5e1617d0fb0545c96169e2dd08b3c11ec9e2))
+
 ## [3.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.2.8...arcadia-eternity-v3.3.0) (2026-10-07)
 
 
