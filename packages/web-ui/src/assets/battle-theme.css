@@ -6,6 +6,10 @@
   overflow: hidden;
   background: #07111d;
 }
+.battle-camera {
+  position: absolute;
+  inset: 0;
+}
 .battle-shell {
   --battle-void: #030e18;
   --battle-panel: #0e1525;
@@ -125,12 +129,28 @@
 }
 .battle-roster {
   position: absolute;
-  top: 50%;
-  transform: translateY(-35%);
+  top: 200px;
+  bottom: 220px;
+  width: 84px;
+  display: grid;
+  align-items: center;
+  z-index: 50;
+}
+.battle-roster__list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 50;
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--battle-line) transparent;
+  overscroll-behavior: contain;
+}
+.battle-roster__list > * {
+  flex: none;
 }
 .battle-roster--left {
   left: 12px;

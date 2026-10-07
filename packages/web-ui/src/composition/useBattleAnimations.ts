@@ -13,21 +13,25 @@ interface Player {
 type Side = 'left' | 'right'
 type Motion = 'standard' | 'simple' | 'reduced'
 
-/** Scene-only effects. HUD and controls remain outside the camera coordinate space. */
+/** Effects use canvas coordinates; a separate camera moves the entire scaled interface. */
 export function useBattleAnimations(
   battleViewRef: Ref<HTMLElement | null>,
   store: ReturnType<typeof useBattleStore>,
   currentPlayer: ComputedRef<Player | null | undefined>,
   opponentPlayer: ComputedRef<Player | null | undefined>,
-  _battleViewScale: ComputedRef<number>,
+  battleViewScale: ComputedRef<number>,
   backgroundContainerRef?: Ref<HTMLElement | null>,
   getManager?: () => AnimationGsapManager | undefined,
   motion?: ComputedRef<Motion>,
+  cameraRef?: Ref<HTMLElement | null>,
+  getPetImpactTarget?: (side: Side) => HTMLElement | null,
 ) {
   const mode = computed(() => motion?.value ?? 'standard')
   const hosts = new Map<HTMLElement, { side: Side; kind: string }>()
   const tweens = new Set<gsap.core.Tween | gsap.core.Timeline>()
   const hostTweens = new Map<HTMLElement, gsap.core.Timeline>()
+  const impactTargets = new Set<HTMLElement>()
+  const impactTweens = new Map<HTMLElement, gsap.core.Timeline>()
   let id = 0
   function remove(host: HTMLElement) {
     if (!hosts.has(host)) return
@@ -81,6 +85,7 @@ export function useBattleAnimations(
             left: `${point.x + (count - 1) * 48}px`,
             top: `${point.y - (count - 1) * 30}px`,
             pointerEvents: 'none',
+            width: 'max-content',
             zIndex: '1002',
           },
         },
@@ -140,6 +145,34 @@ export function useBattleAnimations(
       { scale: 1.4, opacity: 0, duration: 0.3, ease: 'power2.out' },
     )
   }
+  function shakeCamera(side: Side, intensity = 3) {
+    const root = (cameraRef?.value ?? battleViewRef.value) as (HTMLElement & { _climaxShakeAnimation?: unknown }) | null
+    if (mode.value !== 'standard' || !root || root._climaxShakeAnimation) return
+    const amplitude = intensity * (cameraRef ? battleViewScale.value : 1)
+    timeline()
+      .to(root, {
+        x: side === 'left' ? -amplitude : amplitude,
+        y: amplitude * 0.5,
+        duration: 0.04,
+        repeat: 5,
+        yoyo: true,
+        overwrite: 'auto',
+      })
+      .to(root, { x: 0, y: 0, duration: 0.08 })
+  }
+  function recoilPet(side: Side, crit = false) {
+    const target = getPetImpactTarget?.(side)
+    if (mode.value !== 'standard' || !target) return
+    const previous = impactTweens.get(target)
+    previous?.kill()
+    if (previous) tweens.delete(previous)
+    impactTargets.add(target)
+    gsap.set(target, { x: 0 })
+    const tl = timeline()
+      .to(target, { x: (side === 'left' ? -1 : 1) * (crit ? 32 : 18), duration: 0.09, ease: 'power2.out' })
+      .to(target, { x: 0, duration: 0.24, ease: 'power2.out' })
+    impactTweens.set(target, tl)
+  }
   function moveBackgroundFocus(side: Side, intensity = 1) {
     if (mode.value !== 'standard' || !backgroundContainerRef?.value) return
     timeline()
@@ -159,7 +192,9 @@ export function useBattleAnimations(
   ) {
     const player = side === 'left' ? currentPlayer.value : opponentPlayer.value
     const pet = player?.activePet ? store.getPetById(player.activePet) : null
-    if (mode.value === 'standard' && (crit || (pet && value / pet.maxHp > 0.25))) {
+    const heavyHit = crit || !!(pet && value / pet.maxHp > 0.25)
+    shakeCamera(side, heavyHit ? 6 : 3)
+    if (mode.value === 'standard' && heavyHit) {
       flashAndShake(side)
       moveBackgroundFocus(side, crit ? 1.4 : 1)
     }
@@ -177,14 +212,22 @@ export function useBattleAnimations(
     float(
       side,
       'miss',
-      h('img', { src: 'https://seer2-resource.yuuinih.com/png/damage/miss.png', class: 'h-20', alt: '未命中' }),
+      h('img', {
+        src: 'https://seer2-resource.yuuinih.com/png/damage/miss.png',
+        style: { height: '80px', width: 'auto' },
+        alt: '未命中',
+      }),
     )
   }
   function showAbsorbMessage(side: Side) {
     float(
       side,
       'absorb',
-      h('img', { src: 'https://seer2-resource.yuuinih.com/png/damage/absorb.png', class: 'h-20', alt: '吸收' }),
+      h('img', {
+        src: 'https://seer2-resource.yuuinih.com/png/damage/absorb.png',
+        style: { height: '80px', width: 'auto' },
+        alt: '吸收',
+      }),
     )
   }
   function showUseSkillMessage(side: Side, skillId: string) {
@@ -213,12 +256,18 @@ export function useBattleAnimations(
     for (const tween of [...tweens]) tween.kill()
     tweens.clear()
     for (const host of [...hosts.keys()]) remove(host)
+    const camera = cameraRef?.value ?? battleViewRef.value
+    if (camera) gsap.set(camera, { x: 0, y: 0 })
+    for (const target of impactTargets) gsap.set(target, { x: 0 })
+    impactTargets.clear()
+    impactTweens.clear()
     if (backgroundContainerRef?.value) gsap.set(backgroundContainerRef.value, { backgroundPosition: '50% center' })
   }
   return {
     showMissMessage,
     showAbsorbMessage,
     showDamageMessage,
+    recoilPet,
     showHealMessage,
     showUseSkillMessage,
     flashAndShake,

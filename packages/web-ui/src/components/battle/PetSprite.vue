@@ -98,34 +98,36 @@ defineExpose({ setState, getState, availableState, ready })
 </script>
 <template>
   <div class="w-full h-full overflow-visible">
-    <div
-      v-if="!inited"
-      class="battle-pet-fallback"
-      :class="{ 'battle-pet-fallback--reverse': reverse }"
-      data-testid="pet-static-fallback"
-    >
-      <img v-if="!imageFailed" :src="portrait" alt="精灵静态形象" @error="imageFailed = true" />
-      <svg v-else viewBox="0 0 180 180" aria-label="精灵形象不可用" role="img">
-        <path d="M90 15 160 55v70l-70 40-70-40V55Z" fill="var(--battle-panel)" stroke="var(--battle-cyan)" />
-        <path d="M65 65q25-30 50 0t-25 35v16m0 12v8" fill="none" stroke="var(--battle-cyan)" stroke-width="8" />
-      </svg>
+    <div data-pet-impact class="w-full h-full overflow-visible">
+      <div
+        v-if="!inited"
+        class="battle-pet-fallback"
+        :class="{ 'battle-pet-fallback--reverse': reverse }"
+        data-testid="pet-static-fallback"
+      >
+        <img v-if="!imageFailed" :src="portrait" alt="精灵静态形象" @error="imageFailed = true" />
+        <svg v-else viewBox="0 0 180 180" aria-label="精灵形象不可用" role="img">
+          <path d="M90 15 160 55v70l-70 40-70-40V55Z" fill="var(--battle-panel)" stroke="var(--battle-cyan)" />
+          <path d="M65 65q25-30 50 0t-25 35v16m0 12v8" fill="none" stroke="var(--battle-cyan)" stroke-width="8" />
+        </svg>
+      </div>
+      <pet-render
+        v-if="resolvedSwfUrl"
+        class="overflow-visible pet-render"
+        :style="{ opacity: inited ? 1 : 0 }"
+        ref="pet-render"
+        :url="resolvedSwfUrl"
+        :reverse="reverse"
+        salign="TL"
+        :offsetX="275"
+        :offsetY="160"
+        :scaleX="1.1"
+        :scaleY="1.1"
+        @hit="handleHit"
+        @animationComplete="handleComplete"
+        :forceHttps="forceHttps"
+      />
     </div>
-    <pet-render
-      v-if="resolvedSwfUrl"
-      class="overflow-visible pet-render"
-      :style="{ opacity: inited ? 1 : 0 }"
-      ref="pet-render"
-      :url="resolvedSwfUrl"
-      :reverse="reverse"
-      salign="TL"
-      :offsetX="275"
-      :offsetY="160"
-      :scaleX="1.1"
-      :scaleY="1.1"
-      @hit="handleHit"
-      @animationComplete="handleComplete"
-      :forceHttps="forceHttps"
-    />
   </div>
 </template>
 <style scoped>

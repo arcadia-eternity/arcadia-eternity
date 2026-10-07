@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 
 // 定义属性
 interface Props {
@@ -33,7 +33,7 @@ const digits = computed(() => {
   return props.value.toString().split('')
 })
 
-// 动态计算长数字的缩放比例 - 增加基础比例为2倍
+// Fit long values within the fixed canvas-sized damage graphic.
 const contentStyle = computed(() => {
   const length = digits.value.length
   let scale = 1
@@ -49,63 +49,12 @@ const contentStyle = computed(() => {
     width: 'auto',
   }
 })
-
-// 预加载图片缓存状态
-const imagesLoaded = ref(false)
-
-// 预加载所有数字图片和背景图片
-const preloadImages = () => {
-  const promises = []
-  const baseUrl = 'https://seer2-resource.yuuinih.com/png/'
-
-  // 预加载背景图片
-  const backgroundTypes = ['damage.png', 'damage_blue.png', 'damage_red.png']
-  backgroundTypes.forEach(bg => {
-    const img = new Image()
-    const promise = new Promise(resolve => {
-      img.onload = resolve
-      img.onerror = resolve
-    })
-    img.src = `${baseUrl}damage/${bg}`
-    promises.push(promise)
-  })
-
-  // 预加载减号图片
-  const minusImg = new Image()
-  const minusPromise = new Promise(resolve => {
-    minusImg.onload = resolve
-    minusImg.onerror = resolve
-  })
-  minusImg.src = `${baseUrl}damageNumber/minus.png`
-  promises.push(minusPromise)
-
-  // 预加载数字图片 (0-9)
-  for (let i = 0; i <= 9; i++) {
-    const img = new Image()
-    const promise = new Promise(resolve => {
-      img.onload = resolve
-      img.onerror = resolve
-    })
-    img.src = `${baseUrl}damageNumber/${i}.png`
-    promises.push(promise)
-  }
-
-  // 当所有图片加载完成时更新状态
-  Promise.all(promises).then(() => {
-    imagesLoaded.value = true
-  })
-}
-
-// 在组件挂载时预加载所有图片
-onMounted(() => {
-  preloadImages()
-})
 </script>
 
 <template>
-  <div class="relative inline-block">
-    <!-- 背景图片 - 高度从h-20(5rem)增加到h-40(10rem) -->
-    <img :src="backgroundImage" alt="damage background" class="h-40 w-auto" />
+  <div class="battle-damage relative inline-block" :aria-label="`伤害 ${value}`">
+    <!-- Pixel sizes are canvas coordinates; the battle shell supplies the only viewport scale. -->
+    <img :src="backgroundImage" alt="damage background" class="battle-damage__background" />
 
     <!-- 外层容器 - 覆盖整个背景并居中内容 -->
     <div class="absolute inset-0 flex items-center justify-center overflow-visible">
@@ -116,20 +65,43 @@ onMounted(() => {
           <img
             src="https://seer2-resource.yuuinih.com/png/damageNumber/minus.png"
             alt="minus"
-            class="h-10 object-contain"
+            class="battle-damage__minus object-contain"
           />
 
-          <!-- 数字图片 - 高度从h-9增加到h-18，负边距从-ml-1增加到-ml-2 -->
+          <!-- Keep the original digit artwork. -->
           <img
             v-for="(digit, index) in digits"
             :key="index"
             :src="`https://seer2-resource.yuuinih.com/png/damageNumber/${digit}.png`"
             :alt="`digit ${digit}`"
-            class="h-16 object-contain"
-            :class="index > 0 ? '-ml-2' : ''"
+            class="battle-damage__digit object-contain"
+            :class="index > 0 ? 'battle-damage__digit--following' : ''"
           />
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.battle-damage {
+  width: 360px;
+  height: 160px;
+}
+.battle-damage__background {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.battle-damage__minus {
+  height: 40px;
+  width: auto;
+}
+.battle-damage__digit {
+  height: 64px;
+  width: auto;
+}
+.battle-damage__digit--following {
+  margin-left: -8px;
+}
+</style>
