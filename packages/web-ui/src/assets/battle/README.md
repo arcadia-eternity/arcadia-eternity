@@ -7,3 +7,5 @@ The reference SWF vector symbols were inspected using JPEXS 22.0.2 SVG export. `
 `command-chrome.svg` recreates the colors and bevels of `UI_FightBarBack` (character 857), adapting its outer border to the current dock. Original fixed history/climax slot dividers are omitted because live Vue panels own those boundaries.
 
 `loading-grid.svg` recreates the reference loading grid and radar using SVG patterns rather than thousands of repeated grid paths. All three SVGs contain native vector paths/gradients only, with no raster images or executable content. Player names, teams, progress, skill data, log entries and controls remain live Vue content. Reference artwork remains attributable to the reference project and its original game assets; recreating the interface does not change their ownership.
+
+`numbers/` contains the 20 HP/rage digit symbols and two slash symbols exported from the same reference SWF. Their native outlines, italic silhouettes and strokes are retained; exporter metadata is removed, viewBoxes are added, IDs are namespaced, and white fills use currentColor so live modifier colors remain visible. Values stay dynamic and accessible.

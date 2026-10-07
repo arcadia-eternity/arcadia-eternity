@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import ModifiedValue from './ModifiedValue.vue'
+import BattleBarNumber from './BattleBarNumber.vue'
 import type { AttributeModifierInfo } from '@arcadia-eternity/const'
 import { analyzeModifierType } from '@/utils/modifierStyles'
 const props = withDefaults(
@@ -20,19 +21,7 @@ const props = withDefaults(
 const ratio = (value: number, max: number) => (max > 0 ? Math.min(1, Math.max(0, value / max)) : 0)
 const health = computed(() => ratio(props.current, props.max))
 const rageRatio = computed(() => ratio(props.rage, props.maxRage))
-const trail = ref(health.value)
-let timer: ReturnType<typeof setTimeout> | undefined
-watch(health, (value, old) => {
-  clearTimeout(timer)
-  if (value >= old) trail.value = value
-  else {
-    trail.value = Math.max(trail.value, old)
-    timer = setTimeout(() => {
-      trail.value = value
-    }, 450)
-  }
-})
-onUnmounted(() => clearTimeout(timer))
+const healthColor = computed(() => `hsl(${health.value * 120}, 100%, 45%)`)
 const hpModifier = computed(() => analyzeModifierType(props.currentHpModifierInfo, 'currentHp'))
 const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 'currentRage'))
 </script>
@@ -49,19 +38,21 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
         :aria-valuemax="max"
         :data-modifier="hpModifier"
       >
-        <div class="battle-bars__trail" :style="{ transform: `scaleX(${trail})` }"></div>
-        <div
-          class="battle-bars__fill"
-          :class="{ 'battle-bars__fill--low': health < 0.25 }"
-          :style="{ transform: `scaleX(${health})` }"
-        ></div>
-        <span class="battle-bars__value"
-          ><ModifiedValue :value="current" :attribute-info="currentHpModifierInfo" size="sm" inline /><span
-            class="battle-bars__slash"
-            >/</span
-          >
-          <ModifiedValue :value="max" :attribute-info="maxHpModifierInfo" size="sm" inline
-        /></span>
+        <div class="battle-bars__visual">
+          <div
+            class="battle-bars__fill"
+            :style="{ transform: `scaleX(${health})`, backgroundColor: healthColor }"
+          ></div>
+        </div>
+        <span class="battle-bars__value">
+          <ModifiedValue :value="current" :attribute-info="currentHpModifierInfo" size="sm" inline>
+            <template #default="{ value }"><BattleBarNumber :value="value" kind="hp" /></template>
+          </ModifiedValue>
+          <BattleBarNumber value="/" kind="hp" class="battle-bars__slash" />
+          <ModifiedValue :value="max" :attribute-info="maxHpModifierInfo" size="sm" inline>
+            <template #default="{ value }"><BattleBarNumber :value="value" kind="hp" /></template>
+          </ModifiedValue>
+        </span>
       </div>
     </div>
     <div class="battle-bars__row battle-bars__row--rage">
@@ -75,14 +66,18 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
         :aria-valuemax="maxRage"
         :data-modifier="rageModifier"
       >
-        <div class="battle-bars__fill battle-bars__fill--rage" :style="{ transform: `scaleX(${rageRatio})` }"></div>
-        <span class="battle-bars__value"
-          ><ModifiedValue :value="rage" :attribute-info="rageModifierInfo" size="sm" inline /><span
-            class="battle-bars__slash"
-            >/</span
-          >
-          <ModifiedValue :value="maxRage" :attribute-info="maxRageModifierInfo" size="sm" inline
-        /></span>
+        <div class="battle-bars__visual">
+          <div class="battle-bars__fill battle-bars__fill--rage" :style="{ transform: `scaleX(${rageRatio})` }"></div>
+        </div>
+        <span class="battle-bars__value">
+          <ModifiedValue :value="rage" :attribute-info="rageModifierInfo" size="sm" inline>
+            <template #default="{ value }"><BattleBarNumber :value="value" kind="rage" /></template>
+          </ModifiedValue>
+          <BattleBarNumber value="/" kind="rage" class="battle-bars__slash" />
+          <ModifiedValue :value="maxRage" :attribute-info="maxRageModifierInfo" size="sm" inline>
+            <template #default="{ value }"><BattleBarNumber :value="value" kind="rage" /></template>
+          </ModifiedValue>
+        </span>
       </div>
     </div>
   </div>
@@ -108,26 +103,25 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
 }
 .battle-bars__track {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   flex: 1;
   height: 21px;
   background: transparent;
+}
+.battle-bars__visual {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
 }
-.battle-bars__fill,
-.battle-bars__trail {
+.battle-bars__fill {
   position: absolute;
   inset: 0;
   transform-origin: left;
-  transition: transform 0.28s ease;
-  background: linear-gradient(#afff78, #67e73b 45%, #50b72e);
-}
-.battle-bars__trail {
-  background: var(--battle-gold);
-  transition-duration: 0.5s;
-}
-.battle-bars__fill--low {
-  background: var(--battle-danger);
+  transition:
+    transform 0.18s linear,
+    background-color 0.18s linear;
+  background-image: linear-gradient(#ffffff55, #ffffff00 55%, #00000022);
 }
 .battle-bars__fill--rage {
   background: linear-gradient(#ffbc62, #ff4a24 50%, #b81e13);
@@ -140,18 +134,22 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
   align-items: center;
   column-gap: 4px;
   font-size: 16px;
+  line-height: 1;
   font-style: italic;
   font-weight: 800;
   letter-spacing: 1px;
   color: #fff;
-  text-shadow:
-    0 1px 3px #000,
-    0 0 4px #000;
 }
 .battle-bars__value > :first-child {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   text-align: right;
 }
 .battle-bars__value > :last-child {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   text-align: left;
 }
 .battle-bars__value :deep(span) {
@@ -161,20 +159,22 @@ const rageModifier = computed(() => analyzeModifierType(props.rageModifierInfo, 
 .battle-bars__slash {
   text-align: center;
 }
+.battle-bars__row--rage .battle-bars__value {
+  transform: translateY(-1px);
+}
 .battle-bars__row--rage .battle-bars__label {
   color: #ff9b4c;
 }
 .battle-bars--reverse .battle-bars__row {
   flex-direction: row-reverse;
 }
-.battle-bars--reverse .battle-bars__track {
+.battle-bars--reverse .battle-bars__visual {
   clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%);
 }
 .battle-bars__row--rage .battle-bars__track {
   height: 17px;
 }
-.battle-bars--reverse .battle-bars__fill,
-.battle-bars--reverse .battle-bars__trail {
+.battle-bars--reverse .battle-bars__fill {
   transform-origin: right;
 }
 </style>

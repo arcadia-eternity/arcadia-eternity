@@ -1,0 +1,12 @@
+<svg viewBox="0 0 12.1 13" xmlns:xlink="http://www.w3.org/1999/xlink" height="13.0px" width="12.1px" xmlns="http://www.w3.org/2000/svg">
+  <g transform="matrix(1.0, 0.0, 0.0, 1.0, 0.5, 0.5)">
+    <use height="13.0" transform="matrix(1.0, 0.0, 0.0, 1.0, -0.5, -0.5)" width="12.1" xlink:href="#hp-7-shape0"/>
+  </g>
+  <defs>
+    <g id="hp-7-shape0" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.5, 0.5)">
+      <path d="M1.0 11.0 L7.05 3.15 2.85 3.15 3.4 1.0 10.1 1.0 9.55 3.25 3.65 11.0 1.0 11.0" fill="currentColor" fill-rule="evenodd" stroke="none"/>
+      <path d="M1.0 11.0 L7.05 3.15 2.85 3.15 3.4 1.0 10.1 1.0 9.55 3.25 3.65 11.0 1.0 11.0 Z" fill="none" stroke="#333333" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.8" stroke-width="3.0"/>
+      <path d="M1.0 11.0 L7.05 3.15 2.85 3.15 3.4 1.0 10.1 1.0 9.55 3.25 3.65 11.0 1.0 11.0" fill="currentColor" fill-rule="evenodd" stroke="none"/>
+    </g>
+  </defs>
+</svg>
