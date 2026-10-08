@@ -287,6 +287,7 @@ const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板�
 const isWaitingForOpponent = computed(() => store.waitingForResponse)
 const battleActionsReady = computed(
   () =>
+    isFullyLoaded.value &&
     !isReplayMode.value &&
     !isSpectatorMode.value &&
     Array.isArray(store.availableActions) &&
@@ -922,6 +923,8 @@ const pendingPause = ref(false) // 是否有待执行的暂停
 // 综合加载状态管理
 let battleDisposed = false
 let releasePreparationWait: (() => void) | undefined
+let releaseBattleStartWait: (() => void) | undefined
+let playerReadySent = false
 const preparation = useBattlePreparation()
 const {
   tasks: loadingTasks,
@@ -931,6 +934,7 @@ const {
   degraded: degradedResources,
 } = preparation
 const isReplayFullyLoaded = ref(false)
+const resourceAttempt = ref(0)
 
 async function loadReplayData() {
   let record
@@ -947,19 +951,22 @@ async function loadReplayData() {
   store.initReplayMode(record.battle_messages, record.final_state as BattleState, record.player_a_id)
 }
 
-async function checkPetSpritesReady(): Promise<boolean> {
+async function checkPetSpritesReady(): Promise<void> {
   await nextTick()
-  const sprites = [leftPetRef.value, rightPetRef.value].filter(p => p != null)
-  if (!sprites.length) return false
-  try {
-    await withDeadline(Promise.all(sprites.map(p => p.ready)), 7000)
-    return sprites.every(p => p.availableState.length > 0)
-  } catch {
-    return false
+  const sides = [
+    { player: currentPlayer.value, sprite: leftPetRef.value },
+    { player: opponentPlayer.value, sprite: rightPetRef.value },
+  ]
+  for (const { player, sprite } of sides) {
+    const activePet = player?.team?.find(pet => pet.id === player.activePet)
+    // Hidden opponents are revealed after the player-ready handshake.
+    if (activePet && !activePet.isUnknown && !sprite) throw new Error('首发精灵资源尚未初始化')
   }
+  await Promise.all(sides.filter(side => side.sprite).map(side => side.sprite!.ready))
 }
 
 const initializeBattleResources = async () => {
+  resourceAttempt.value++
   await preparation.prepare([
     { id: 'resources', label: '界面资源', required: true, run: () => resourceStore.initialize() },
     { id: 'data', label: '游戏数据', required: true, run: () => gameDataStore.initialize() },
@@ -975,30 +982,64 @@ const initializeBattleResources = async () => {
     {
       id: 'background',
       label: '战斗场景',
+      required: true,
       run: async () => {
-        if (!background.value) return
-        await withDeadline(
-          new Promise<void>((resolve, reject) => {
-            const image = new Image()
-            image.onload = () => {
-              updateBackgroundAspectRatio(image.naturalWidth, image.naturalHeight)
-              resolve()
-            }
-            image.onerror = () => reject(new Error('场景图片不可用'))
-            image.src = background.value!
-          }),
-          4000,
-        )
+        if (!background.value) throw new Error('没有可用的战斗场景')
+        await new Promise<void>((resolve, reject) => {
+          const image = new Image()
+          image.onload = () => {
+            updateBackgroundAspectRatio(image.naturalWidth, image.naturalHeight)
+            resolve()
+          }
+          image.onerror = () => reject(new Error('场景图片不可用'))
+          image.src = background.value!
+        })
       },
     },
     {
       id: 'pets',
       label: '首发精灵',
-      run: async () => {
-        await nextTick()
-        if (!(await checkPetSpritesReady())) throw new Error('精灵动画不可用，使用静态展示')
-      },
+      required: true,
+      run: checkPetSpritesReady,
     },
+    ...(!props.replayMode
+      ? [
+          {
+            id: 'connection',
+            label: '对战连接',
+            required: true,
+            run: async () => {
+              if (!messageSubscription) {
+                await setupMessageSubscription()
+                setupDisconnectHandlers()
+              }
+              const isPlayer = store.battleState?.players.some(player => player.id === store.playerId)
+              if (isPlayer && !playerReadySent) {
+                await store.ready()
+                playerReadySent = true
+              }
+              // The handshake can reveal the opposing starter. Keep the loading screen
+              // until that state (or the team-selection phase) has reached the page.
+              const started = () =>
+                store.battleState?.status !== BattleStatusEnum.Unstarted || store.teamSelectionActive
+              if (!started()) {
+                await new Promise<void>(resolve => {
+                  const stop = watch(started, value => {
+                    if (value) finish()
+                  })
+                  const finish = () => {
+                    stop()
+                    resolve()
+                  }
+                  releaseBattleStartWait?.()
+                  releaseBattleStartWait = finish
+                })
+              }
+            },
+          },
+          { id: 'scene-pets', label: '场上精灵', required: true, run: checkPetSpritesReady },
+        ]
+      : []),
   ])
   if (isFullyLoaded.value) {
     isReplayFullyLoaded.value = props.replayMode && store.replaySnapshots.length > 0
@@ -1843,16 +1884,6 @@ onMounted(async () => {
     return
   }
 
-  // 正常战斗模式
-  await setupMessageSubscription()
-
-  // 设置掉线重连事件监听（在 ready 之前设置，确保能接收到重连状态）
-  setupDisconnectHandlers()
-
-  const isPlayer = store.battleState?.players.some(p => p.id === store.playerId)
-  if (isPlayer) {
-    await store.ready()
-  }
   await initialPetEntryAnimation()
 })
 
@@ -1987,6 +2018,7 @@ onUnmounted(async () => {
   battleDisposed = true
   releasePreparationWait?.()
   preparation.cancel()
+  releaseBattleStartWait?.()
   // Destroy AnimationController
   if (animationController) {
     animationController.destroy()
@@ -2369,6 +2401,7 @@ watch(
                   v-if="
                     leftPetSpeciesNum !== 0 || !!leftPetSpriteAsset.customSwfUrl || !!leftPetSpriteAsset.customImageUrl
                   "
+                  :key="`left-${resourceAttempt}`"
                   ref="leftPetRef"
                   :num="leftPetSpeciesNum"
                   :swf-url="leftPetSpriteAsset.customSwfUrl"
@@ -2385,6 +2418,7 @@ watch(
                     !!rightPetSpriteAsset.customSwfUrl ||
                     !!rightPetSpriteAsset.customImageUrl
                   "
+                  :key="`right-${resourceAttempt}`"
                   ref="rightPetRef"
                   :num="rightPetSpeciesNum"
                   :swf-url="rightPetSpriteAsset.customSwfUrl"
@@ -2523,7 +2557,7 @@ watch(
         </div>
 
         <BattleCommandDock
-          v-if="!isReplayMode"
+          v-if="isFullyLoaded && !isReplayMode"
           :panel="panelState"
           :skills="availableSkills"
           :pets="currentPlayer?.team || []"
