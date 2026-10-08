@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.4.1...arcadia-eternity-v3.4.2) (2026-10-08)
+
+
+### 🐛 Bug Fixes
+
+* **web-ui:** fill mark bar across two rows before collapsing ([99998f4](https://github.com/arcadia-eternity/arcadia-eternity/commit/99998f49bb2e8fe9e9eac67a15b84a6c95af44a5))
+
 ## [3.4.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.4.0...arcadia-eternity-v3.4.1) (2026-10-08)
 
 
