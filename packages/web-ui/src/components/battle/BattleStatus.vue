@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { useElementSize } from '@vueuse/core'
 import HealthRageBar from './HealthRageBar.vue'
 import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
@@ -37,6 +38,17 @@ const markContainerClass = computed(() => [
 const activePet = computed(() => {
   return battleStore.getPetById(props.player.activePet)
 })
+
+const statusBody = ref<HTMLElement | null>(null)
+const { width: statusWidth } = useElementSize(statusBody)
+// Each slot is a 36px mark with a 4px gap, matching the layout below.
+const markCapacity = computed(() => Math.max(1, Math.floor((statusWidth.value + 4) / 40)) * 2)
+const visibleMarkCount = computed(() => {
+  const count = activePet.value?.marks?.length ?? 0
+  return count > markCapacity.value ? markCapacity.value - 1 : count
+})
+const visibleMarks = computed(() => activePet.value?.marks?.slice(0, visibleMarkCount.value) ?? [])
+const overflowMarks = computed(() => activePet.value?.marks?.slice(visibleMarkCount.value) ?? [])
 
 // 获取等级的 modifier 信息
 const levelModifierInfo = computed(() => {
@@ -217,7 +229,7 @@ const petStatsInfo = computed(() => {
       </div>
     </Tooltip>
 
-    <div :class="statusBarClass" class="battle-status__body">
+    <div ref="statusBody" :class="statusBarClass" class="battle-status__body">
       <div class="flex items-center gap-2 mb-1" :class="[side === 'right' ? 'flex-row-reverse' : '']">
         <span class="font-semibold text-base">{{ activePet!.name }}</span>
         <span class="text-sm opacity-80">
@@ -240,12 +252,10 @@ const petStatsInfo = computed(() => {
       />
 
       <div v-if="activePet!.marks?.length" :class="markContainerClass" class="battle-status__marks">
-        <Mark v-for="mark in activePet!.marks.slice(0, 5)" :key="mark.id" :mark="mark" />
-        <details v-if="activePet!.marks.length > 5" class="battle-status__more">
-          <summary :aria-label="`展开其余 ${activePet!.marks.length - 5} 个印记`">
-            +{{ activePet!.marks.length - 5 }}
-          </summary>
-          <div><Mark v-for="mark in activePet!.marks.slice(5)" :key="mark.id" :mark="mark" /></div>
+        <Mark v-for="mark in visibleMarks" :key="mark.id" :mark="mark" />
+        <details v-if="overflowMarks.length" class="battle-status__more">
+          <summary :aria-label="`展开其余 ${overflowMarks.length} 个印记`">+{{ overflowMarks.length }}</summary>
+          <div><Mark v-for="mark in overflowMarks" :key="mark.id" :mark="mark" /></div>
         </details>
       </div>
     </div>
@@ -284,11 +294,15 @@ const petStatsInfo = computed(() => {
   white-space: nowrap;
 }
 .battle-status__marks {
-  min-height: 36px;
-  height: 36px;
-  flex-wrap: nowrap;
+  min-height: 76px;
+  flex-wrap: wrap;
+  align-content: flex-start;
   gap: 4px;
   margin: 4px 0 0;
+}
+.battle-status__marks > * {
+  flex: 0 0 36px;
+  height: 36px;
 }
 .battle-status__more {
   position: relative;
@@ -296,13 +310,17 @@ const petStatsInfo = computed(() => {
 .battle-status__more summary {
   display: grid;
   place-items: center;
-  width: 30px;
+  width: 36px;
   height: 36px;
   background: var(--battle-panel-soft);
   color: var(--battle-cyan);
   cursor: pointer;
   font-size: 12px;
   list-style: none;
+}
+.battle-status--left .battle-status__more > div {
+  left: 0;
+  right: auto;
 }
 .battle-status__more > div {
   position: absolute;
