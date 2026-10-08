@@ -95,8 +95,8 @@ export function useBattleAnimations(
     )
     const el = host.firstElementChild as HTMLElement
     const isDamage = kind === 'damage'
-    const initialScale = isDamage ? (crit ? 1.5 : 1) : 0.8
-    const targetScale = isDamage ? (crit ? 2.5 : 1.8) : 1
+    const initialScale = isDamage ? (crit ? 1.15 : 1) : 0.8
+    const targetScale = isDamage ? (crit ? 1.65 : 1.35) : 1
     gsap.set(el, { xPercent: -50, scale: mode.value === 'reduced' ? 1 : initialScale })
     const tl = timeline(host)
     tl.to(el, {

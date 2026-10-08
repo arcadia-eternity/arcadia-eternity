@@ -85,8 +85,8 @@ const contentStyle = computed(() => {
 
 <style scoped>
 .battle-damage {
-  width: 720px;
-  height: 320px;
+  width: 540px;
+  height: 240px;
 }
 .battle-damage__background {
   width: 100%;
@@ -94,14 +94,14 @@ const contentStyle = computed(() => {
   object-fit: contain;
 }
 .battle-damage__minus {
-  height: 80px;
+  height: 60px;
   width: auto;
 }
 .battle-damage__digit {
-  height: 128px;
+  height: 96px;
   width: auto;
 }
 .battle-damage__digit--following {
-  margin-left: -16px;
+  margin-left: -12px;
 }
 </style>

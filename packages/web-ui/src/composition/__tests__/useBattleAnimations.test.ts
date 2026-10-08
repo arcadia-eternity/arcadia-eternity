@@ -31,10 +31,10 @@ afterEach(() => {
 })
 describe('floating effects canvas coordinates', () => {
   it.each([
-    ['standard', false, 1.8],
-    ['standard', true, 2.5],
-    ['simple', false, 1.8],
-    ['simple', true, 2.5],
+    ['standard', false, 1.35],
+    ['standard', true, 1.65],
+    ['simple', false, 1.35],
+    ['simple', true, 1.65],
     ['reduced', false, 1],
     ['reduced', true, 1],
   ] as const)('scales the entire damage graphic in %s mode (crit=%s)', (motion, crit, expectedScale) => {
