@@ -67,14 +67,18 @@ export function useBattleAnimations(
     getManager?.()?.registerTempHost(host)
     return host
   }
-  function anchor(side: Side) {
+  function anchor(side: Side, abovePet = false) {
     const root = battleViewRef.value
+    if (abovePet) {
+      return { x: (root?.offsetWidth || 1600) * (side === 'left' ? 0.34 : 0.66), y: (root?.offsetHeight || 900) * 0.28 }
+    }
     return { x: (root?.offsetWidth || 1600) * (side === 'left' ? 0.27 : 0.73), y: (root?.offsetHeight || 900) * 0.4 }
   }
   function float(side: Side, kind: string, content: ReturnType<typeof h>, crit = false) {
     const host = hostFor(side, kind)
     if (!host) return
-    const point = anchor(side)
+    const isDamage = kind === 'damage'
+    const point = anchor(side, isDamage)
     const count = [...hosts.values()].filter(v => v.side === side && v.kind === kind).length
     render(
       h(
@@ -94,11 +98,26 @@ export function useBattleAnimations(
       host,
     )
     const el = host.firstElementChild as HTMLElement
-    const isDamage = kind === 'damage'
     const initialScale = isDamage ? (crit ? 1.15 : 1) : 0.8
     const targetScale = isDamage ? (crit ? 1.65 : 1.35) : 1
-    gsap.set(el, { xPercent: -50, scale: mode.value === 'reduced' ? 1 : initialScale })
+    gsap.set(el, { xPercent: -50, yPercent: isDamage ? -50 : 0, scale: mode.value === 'reduced' ? 1 : initialScale })
     const tl = timeline(host)
+    if (isDamage) {
+      // Restore the original inward flight, hold, and fade. Keep the enlarged
+      // graphic inside the scene now that its anchor sits above the pet.
+      const halfHeight = ((el.offsetHeight || 240) * targetScale) / 2
+      const rise = Math.min(150, Math.max(0, Number.parseFloat(el.style.top) - halfHeight - 16))
+      tl.to(el, {
+        x: mode.value === 'reduced' ? 0 : side === 'left' ? 300 : -300,
+        y: mode.value === 'reduced' ? 0 : -rise,
+        scale: mode.value === 'reduced' ? 1 : targetScale,
+        duration: 0.25,
+        ease: 'power2.out',
+      })
+        .to({}, { duration: 0.5 })
+        .to(el, { opacity: 0, duration: 0.5, ease: 'power2.out' })
+      return
+    }
     tl.to(el, {
       opacity: 1,
       scale: mode.value === 'reduced' ? 1 : targetScale,
