@@ -34,6 +34,9 @@ function createGsapManagerMock(): AnimationGsapManager {
 function createStateMachineMock(): AnimationStateMachine {
   return {
     state: AnimationState.IDLE,
+    get canAcceptNewTask() {
+      return this.state === AnimationState.IDLE
+    },
     snapshot: vi.fn().mockReturnValue({
       state: AnimationState.IDLE,
       startTime: 0,
@@ -187,6 +190,34 @@ describe('AnimationHealthMonitor', () => {
     await vi.advanceTimersByTimeAsync(3000)
 
     expect(stateMachine.markStuck).toHaveBeenCalledWith('no-available-actions')
+  })
+
+  it.each([AnimationState.PLAYING, AnimationState.PREPARING, AnimationState.PAUSED, AnimationState.RECOVERING])(
+    'does not recover available actions during %s',
+    async state => {
+      ;(stateMachine as any).state = state
+      monitor.start()
+      await vi.advanceTimersByTimeAsync(12000)
+      expect(store.fetchAvailableSelection).not.toHaveBeenCalled()
+      expect(stateMachine.markStuck).not.toHaveBeenCalled()
+      expect(stateMachine.transition).not.toHaveBeenCalled()
+    },
+  )
+
+  it('ignores an action recovery response if an animation began during the fetch', async () => {
+    let finish!: (actions: any[]) => void
+    vi.mocked(store.fetchAvailableSelection).mockReturnValue(
+      new Promise(resolve => {
+        finish = resolve
+      }),
+    )
+    monitor.start()
+    await vi.advanceTimersByTimeAsync(6000)
+    ;(stateMachine as any).state = AnimationState.PLAYING
+    finish([{ type: 'late-action' }])
+    await vi.advanceTimersByTimeAsync(0)
+    expect(store.availableActions).toEqual([])
+    expect(stateMachine.transition).not.toHaveBeenCalled()
   })
 
   it('skips availableActions check in replay mode', async () => {

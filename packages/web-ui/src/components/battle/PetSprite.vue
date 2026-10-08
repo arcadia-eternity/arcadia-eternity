@@ -7,21 +7,37 @@ import { petResourceCache } from '@/services/petResourceCache'
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
 type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
-const props = withDefaults(defineProps<{ num: number; swfUrl?: string; imageUrl?: string; reverse?: boolean }>(), {
-  num: 999,
-  swfUrl: '',
-  imageUrl: '',
-  reverse: false,
-})
+const props = withDefaults(
+  defineProps<{
+    num: number
+    swfUrl?: string
+    imageUrl?: string
+    reverse?: boolean
+    imageOnly?: boolean
+    allowRecovery?: boolean
+  }>(),
+  {
+    num: 999,
+    swfUrl: '',
+    imageUrl: '',
+    reverse: false,
+    imageOnly: false,
+    allowRecovery: true,
+  },
+)
 const emit = defineEmits<{ hit: [detail: HitEventDetail]; animateComplete: [detail: AnimationCompleteEventDetail] }>()
 const petRenderRef = useTemplateRef('pet-render')
+const loadedStates = ref<ActionState[]>([])
 const inited = ref(false)
 const imageFailed = ref(false)
 const availableState = ref<ActionState[]>([])
 const ready = ref<Promise<void>>(Promise.resolve())
 const forceHttps = computed(() => window.location.protocol === 'https:')
 const resolvedSwfUrl = asyncComputed(
-  async () => (props.imageUrl ? '' : props.swfUrl || (props.num ? petResourceCache.getPetSwfUrl(props.num) : '')),
+  async () =>
+    props.imageOnly || props.imageUrl
+      ? ''
+      : props.swfUrl || (props.num ? petResourceCache.getPetSwfUrl(props.num) : ''),
   '',
 )
 const portrait = computed(() => props.imageUrl || `https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`)
@@ -30,10 +46,11 @@ let resolveReady: (() => void) | undefined
 let rejectReady: ((error: Error) => void) | undefined
 
 watch(
-  () => [props.num, props.swfUrl, props.imageUrl],
+  () => [props.num, props.swfUrl, props.imageUrl, props.imageOnly],
   () => {
     generation++
     rejectReady?.(new Error('精灵资源已切换'))
+    loadedStates.value = []
     inited.value = false
     imageFailed.value = false
     availableState.value = []
@@ -48,9 +65,9 @@ watch(
 )
 
 watch(
-  () => [resolvedSwfUrl.value, petRenderRef.value, props.num, props.swfUrl, props.imageUrl] as const,
+  () => [resolvedSwfUrl.value, petRenderRef.value, props.num, props.swfUrl, props.imageUrl, props.imageOnly] as const,
   async ([url]) => {
-    if (!url || props.imageUrl) return
+    if (!url || props.imageUrl || props.imageOnly) return
     const current = generation
     const finish = resolveReady
     const fail = rejectReady
@@ -67,8 +84,7 @@ watch(
       }
       if (current !== generation || renderer !== petRenderRef.value) return
       if (!states.length) throw new Error('精灵动画回调未就绪')
-      availableState.value = states
-      inited.value = true
+      loadedStates.value = states
       finish?.()
     } catch (error) {
       if (current === generation && renderer === petRenderRef.value) {
@@ -79,23 +95,40 @@ watch(
   { flush: 'post' },
 )
 
+// Publishing recovered states changes the renderer used by the next skill.
+// Keep that switch outside the currently running battle task.
+watch(
+  () => [loadedStates.value, props.allowRecovery] as const,
+  ([states, allowed]) => {
+    if (allowed && states.length) {
+      availableState.value = states
+      inited.value = true
+    }
+  },
+  { flush: 'sync' },
+)
+
 onUnmounted(() => {
   generation++
   rejectReady?.(new Error('精灵组件已卸载'))
 })
 const handleImageLoad = () => {
-  if (props.imageUrl) resolveReady?.()
+  if (props.imageOnly || props.imageUrl) resolveReady?.()
 }
 const handleImageError = () => {
   imageFailed.value = true
-  if (props.imageUrl) rejectReady?.(new Error('精灵图片加载失败'))
+  if (props.imageOnly || props.imageUrl) rejectReady?.(new Error('精灵图片加载失败'))
 }
 const setState = async (state: ActionState) => {
   if (inited.value) await petRenderRef.value?.setState(state)
 }
 const getState = async () => (inited.value ? petRenderRef.value?.getState() : ActionState.IDLE)
-const handleHit = (event: CustomEvent<HitEventDetail>) => emit('hit', event.detail)
-const handleComplete = (event: CustomEvent<AnimationCompleteEventDetail>) => emit('animateComplete', event.detail)
+const handleHit = (event: CustomEvent<HitEventDetail>) => {
+  if (inited.value && event.currentTarget === petRenderRef.value) emit('hit', event.detail)
+}
+const handleComplete = (event: CustomEvent<AnimationCompleteEventDetail>) => {
+  if (inited.value && event.currentTarget === petRenderRef.value) emit('animateComplete', event.detail)
+}
 defineExpose({ setState, getState, availableState, ready })
 </script>
 <template>
@@ -108,7 +141,7 @@ defineExpose({ setState, getState, availableState, ready })
     >
       <img
         v-if="!imageFailed"
-        :key="portrait"
+        :key="`${portrait}-${imageOnly}`"
         :src="portrait"
         alt="精灵静态形象"
         @load="handleImageLoad"
@@ -120,7 +153,7 @@ defineExpose({ setState, getState, availableState, ready })
       </svg>
     </div>
     <pet-render
-      v-if="resolvedSwfUrl"
+      v-if="resolvedSwfUrl && !imageOnly"
       :key="resolvedSwfUrl"
       class="overflow-visible pet-render"
       :style="{ opacity: inited ? 1 : 0 }"

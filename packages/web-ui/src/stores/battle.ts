@@ -225,7 +225,8 @@ export const useBattleStore = defineStore('battle', {
       this.teamSelectionTimeRemaining = timeRemaining
     },
 
-    async applyStateDelta(msg: BattleMessage) {
+    async applyStateDelta(msg: BattleMessage, isCurrent: () => boolean = () => true) {
+      if (!isCurrent()) return
       // 检查消息序号，避免重复处理（除非明确跳过检查）
       if (msg.sequenceId !== undefined && msg.sequenceId <= this.lastProcessedSequenceId) {
         console.debug(`Skipping already processed message with sequenceId: ${msg.sequenceId}`)
@@ -322,18 +323,24 @@ export const useBattleStore = defineStore('battle', {
         switch (msg.type) {
           case BattleMessageType.TurnAction:
             if (msg.data.player.includes(this.playerId as playerId)) {
-              this.availableActions = await this.fetchAvailableSelection()
+              const actions = await this.fetchAvailableSelection(isCurrent)
+              if (!isCurrent()) return
+              this.availableActions = actions
             }
             break
 
           case BattleMessageType.ForcedSwitch:
             if (msg.data.player.includes(this.playerId as playerId)) {
-              this.availableActions = await this.fetchAvailableSelection()
+              const actions = await this.fetchAvailableSelection(isCurrent)
+              if (!isCurrent()) return
+              this.availableActions = actions
             }
             break
           case BattleMessageType.FaintSwitch:
             if (msg.data.player === (this.playerId as playerId)) {
-              this.availableActions = await this.fetchAvailableSelection()
+              const actions = await this.fetchAvailableSelection(isCurrent)
+              if (!isCurrent()) return
+              this.availableActions = actions
             }
             break
           case BattleMessageType.PetSwitch:
@@ -356,7 +363,7 @@ export const useBattleStore = defineStore('battle', {
     },
 
     isApplied(msg: BattleMessage): boolean {
-      return this.lastProcessedSequenceId >= (msg.sequenceId ?? -1)
+      return msg.sequenceId !== undefined && this.lastProcessedSequenceId >= msg.sequenceId
     },
 
     async handleBattleMessage(msg: BattleMessage) {
@@ -490,21 +497,23 @@ export const useBattleStore = defineStore('battle', {
         .find(m => m?.id === markId)
     },
 
-    async fetchAvailableSelection() {
+    async fetchAvailableSelection(isCurrent: () => boolean = () => true) {
       if (!this.battleInterface) {
         console.warn('[battle] fetchAvailableSelection: battleInterface is null')
         return [] as PlayerSelection[]
       }
 
+      let timer: ReturnType<typeof setTimeout> | undefined
       try {
         const res = await Promise.race([
           this.battleInterface.getAvailableSelection(this.playerId as playerId),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('getAvailableSelection timeout')), 10000),
-          ),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('getAvailableSelection timeout')), 10000)
+          }),
         ])
         return (Array.isArray(res) ? res : []) as PlayerSelection[]
       } catch (error) {
+        if (!isCurrent()) return [] as PlayerSelection[]
         if (isBattleUnavailableError(error)) {
           this.waitingForResponse = false
           this.availableActions = []
@@ -514,6 +523,8 @@ export const useBattleStore = defineStore('battle', {
         }
         console.warn('[battle] fetchAvailableSelection failed:', error)
         return [] as PlayerSelection[]
+      } finally {
+        clearTimeout(timer)
       }
     },
 

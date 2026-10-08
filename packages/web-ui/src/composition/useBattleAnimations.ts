@@ -1,7 +1,7 @@
 import { computed, h, render, type Ref, type ComputedRef } from 'vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
-import type { petId } from '@arcadia-eternity/const'
+import { Category, type petId } from '@arcadia-eternity/const'
 import type { useBattleStore } from '@/stores/battle'
 import type { AnimationGsapManager } from './animationGsapManager'
 import DamageDisplay from '@/components/battle/DamageDisplay.vue'
@@ -43,10 +43,11 @@ export function useBattleAnimations(
     host.remove()
     getManager?.()?.removeTempHost(host)
   }
-  function timeline(host?: HTMLElement) {
+  function timeline(host?: HTMLElement, onDone?: () => void) {
     const done = () => {
       if (host) remove(host)
       tweens.delete(tl)
+      onDone?.()
     }
     const config = { onComplete: done, onInterrupt: done }
     const tl = getManager?.()?.createTimeline({ ...config, id: `battle-effect-${++id}` }) ?? gsap.timeline(config)
@@ -285,6 +286,80 @@ export function useBattleAnimations(
       .to({}, { duration: 1.5 })
       .to(el, { opacity: 0, x: offset, duration: 0.16 })
   }
+  function playImageSkill(side: Side, category: Category) {
+    let resolveHit!: () => void
+    let resolveComplete!: () => void
+    const hit = new Promise<void>(resolve => {
+      resolveHit = resolve
+    })
+    const complete = new Promise<void>(resolve => {
+      resolveComplete = resolve
+    })
+    const finish = () => {
+      resolveHit()
+      resolveComplete()
+    }
+    const status = category === Category.Status
+    const host = hostFor(side, status ? 'skill-glow' : 'skill-wave')
+    if (!host) {
+      finish()
+      return { hit, complete, cancel: finish }
+    }
+    const start = anchor(side)
+    const end = anchor(side === 'left' ? 'right' : 'left')
+    const reduced = mode.value === 'reduced'
+    render(
+      h(
+        'svg',
+        {
+          viewBox: '0 0 180 180',
+          width: 180,
+          height: 180,
+          'aria-hidden': 'true',
+          style: {
+            position: 'absolute',
+            left: `${(reduced && !status ? end.x : start.x) - 90}px`,
+            top: `${start.y - 35}px`,
+            pointerEvents: 'none',
+            zIndex: '20',
+            color: status ? 'var(--battle-cyan)' : 'var(--battle-gold)',
+            filter: 'drop-shadow(0 0 16px currentColor)',
+          },
+        },
+        status
+          ? [
+              h('circle', { cx: 90, cy: 90, r: 66, fill: 'currentColor', opacity: 0.15 }),
+              h('circle', { cx: 90, cy: 90, r: 60, fill: 'none', stroke: 'currentColor', 'stroke-width': 5 }),
+              h('path', { d: 'M90 8v26M90 146v26M8 90h26M146 90h26', stroke: 'currentColor', 'stroke-width': 7 }),
+            ]
+          : [
+              h('ellipse', { cx: 90, cy: 90, rx: 66, ry: 28, fill: 'currentColor', opacity: 0.35 }),
+              h('ellipse', { cx: 90, cy: 90, rx: 45, ry: 18, fill: 'currentColor' }),
+              h('ellipse', { cx: 90, cy: 90, rx: 25, ry: 8, fill: 'white' }),
+            ],
+      ),
+      host,
+    )
+    const graphic = host.firstElementChild
+    const tl = timeline(host, finish)
+    tl.fromTo(graphic, { opacity: 0, scale: reduced ? 1 : 0.5 }, { opacity: 1, scale: 1, duration: 0.18 })
+      .to(graphic, {
+        x: status || reduced ? 0 : end.x - start.x,
+        scale: status && !reduced ? 1.3 : 1,
+        duration: status ? 0.45 : 0.4,
+        ease: 'power2.inOut',
+        onComplete: resolveHit,
+      })
+      .to(graphic, { opacity: 0, duration: 0.25 })
+    return {
+      hit,
+      complete,
+      cancel: () => {
+        tl.kill()
+        finish()
+      },
+    }
+  }
   function reset() {
     for (const tween of [...tweens]) tween.kill()
     tweens.clear()
@@ -301,6 +376,7 @@ export function useBattleAnimations(
     showDamageMessage,
     showHealMessage,
     showUseSkillMessage,
+    playImageSkill,
     flashAndShake,
     moveBackgroundFocus,
     updateBackgroundAspectRatio,

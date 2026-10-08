@@ -2,6 +2,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AnimationStateMachine, AnimationState } from '../animationStateMachine'
 
+function enterState(sm: AnimationStateMachine, state: AnimationState) {
+  sm.reset()
+  if (state === AnimationState.PLAYING || state === AnimationState.COMPLETING) {
+    sm.transition(AnimationState.PREPARING, 'setup')
+    sm.transition(AnimationState.PLAYING, 'setup')
+  }
+  if (state === AnimationState.CATCHING_UP) sm.transition(AnimationState.RECOVERING, 'setup')
+  sm.transition(state, 'setup')
+}
+
 describe('AnimationStateMachine', () => {
   let sm: AnimationStateMachine
 
@@ -54,7 +64,7 @@ describe('AnimationStateMachine', () => {
 
   describe('shouldSkipAnimation', () => {
     it('returns true for CATCHING_UP', () => {
-      sm.transition(AnimationState.CATCHING_UP, 'test')
+      enterState(sm, AnimationState.CATCHING_UP)
       expect(sm.shouldSkipAnimation).toBe(true)
     })
 
@@ -85,8 +95,7 @@ describe('AnimationStateMachine', () => {
         AnimationState.RECOVERING,
         AnimationState.STUCK,
       ]) {
-        sm.reset()
-        sm.transition(state, 'test')
+        enterState(sm, state)
         expect(sm.canAcceptNewTask).toBe(false)
       }
     })
@@ -95,8 +104,7 @@ describe('AnimationStateMachine', () => {
   describe('isAnimating', () => {
     it('returns true for PREPARING/PLAYING/COMPLETING', () => {
       for (const state of [AnimationState.PREPARING, AnimationState.PLAYING, AnimationState.COMPLETING]) {
-        sm.reset()
-        sm.transition(state, 'test')
+        enterState(sm, state)
         expect(sm.isAnimating).toBe(true)
       }
     })
@@ -114,8 +122,7 @@ describe('AnimationStateMachine', () => {
         AnimationState.CATCHING_UP,
         AnimationState.STUCK,
       ]) {
-        sm.reset()
-        sm.transition(state, 'test')
+        enterState(sm, state)
         expect(sm.isRecovering).toBe(true)
       }
     })
@@ -287,6 +294,7 @@ describe('AnimationStateMachine', () => {
     })
 
     it('multiple listeners all fire', () => {
+      sm.transition(AnimationState.PREPARING, 'setup')
       const fn1 = vi.fn()
       const fn2 = vi.fn()
       sm.onStateChange(fn1)

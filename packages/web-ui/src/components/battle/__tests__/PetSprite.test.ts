@@ -45,6 +45,36 @@ describe('PetSprite readiness', () => {
     }
   })
 
+  it('defers recovered SWF presentation and events until the battle task ends', async () => {
+    const sprite = mount(PetSprite, { props: { num: 1, allowRecovery: false } })
+    await flushPromises()
+    const renderer = sprite.get('pet-render').element as DelayedPetRenderer
+    renderer.finish()
+    await flushPromises()
+    await sprite.vm.ready
+    expect(sprite.vm.availableState).toEqual([])
+    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(true)
+    await sprite.get('pet-render').trigger('animationComplete', { detail: {} })
+    expect(sprite.emitted('animateComplete')).toBeUndefined()
+    await sprite.setProps({ allowRecovery: true })
+    expect(sprite.vm.availableState).toEqual([ActionState.IDLE])
+    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(false)
+    sprite.unmount()
+  })
+
+  it('uses only the portrait in image mode and never requests a SWF', async () => {
+    const { petResourceCache } = await import('@/services/petResourceCache')
+    vi.mocked(petResourceCache.getPetSwfUrl).mockClear()
+    const sprite = mount(PetSprite, { props: { num: 1, imageOnly: true } })
+    await flushPromises()
+    expect(sprite.find('pet-render').exists()).toBe(false)
+    expect(petResourceCache.getPetSwfUrl).not.toHaveBeenCalled()
+    await sprite.get('img').trigger('load')
+    await sprite.vm.ready
+    expect(sprite.vm.availableState).toEqual([])
+    sprite.unmount()
+  })
+
   it('waits for the custom image load callback before becoming ready', async () => {
     const sprite = mount(PetSprite, { props: { num: 0, imageUrl: '/custom.png' } })
     try {

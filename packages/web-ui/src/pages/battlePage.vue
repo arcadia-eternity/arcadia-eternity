@@ -19,7 +19,9 @@ import koImage from '@/assets/images/battle-ko.svg'
 import { useMusic } from '@/composition/music'
 import { useSound } from '@/composition/sound'
 import { useBattleAnimations } from '@/composition/useBattleAnimations'
-import { AnimationController } from '@/composition/animationController'
+import { waitForAnimationOperation } from '@/composition/animationTask'
+import { planAnimationMessages } from '@/composition/animationMessageBatch'
+import { AnimationController, type AnimationTask } from '@/composition/animationController'
 import { petResourceCache } from '@/services/petResourceCache'
 import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
@@ -60,6 +62,7 @@ import mitt from 'mitt'
 import {
   catchError,
   concatMap,
+  defer,
   filter,
   finalize,
   from,
@@ -68,7 +71,6 @@ import {
   startWith,
   take,
   takeUntil,
-  tap,
   toArray,
 } from 'rxjs'
 import { ActionState } from 'seer2-pet-animator'
@@ -424,6 +426,7 @@ const {
   showDamageMessage,
   showHealMessage,
   showUseSkillMessage,
+  playImageSkill,
   updateBackgroundAspectRatio,
   reset: resetBattleEffects,
   cleanup: cleanupBattleAnimations,
@@ -753,7 +756,6 @@ const onTeamSelectionTimeout = () => {
 let opponentDisconnectedHandler: ((data: { disconnectedPlayerId: string; graceTimeRemaining: number }) => void) | null =
   null
 let opponentReconnectedHandler: ((data: { reconnectedPlayerId: string }) => void) | null = null
-const resyncingAfterReconnect = ref(false)
 
 // 设置掉线重连事件处理
 const setupDisconnectHandlers = () => {
@@ -822,42 +824,6 @@ const exitBattleBecauseServerClosed = async (reason: string) => {
 
   console.warn('Battle ended on server, leaving battle page', { reason })
   await router.replace({ path: '/' })
-}
-
-const resyncBattleAfterReconnect = async () => {
-  if (props.replayMode || isSpectatorMode.value) return
-  if (!store.battleInterface || !store.playerId) return
-  if (battleClientStore.currentState.battle !== 'active') return
-  if (resyncingAfterReconnect.value) return
-
-  resyncingAfterReconnect.value = true
-  try {
-    const latestState = await store.battleInterface.getState(store.playerId as playerId, false)
-    store.battleState = latestState
-    store.lastProcessedSequenceId = latestState?.sequenceId ?? store.lastProcessedSequenceId
-
-    if (latestState.status === BattleStatusEnum.Ended || store.isBattleEnd) {
-      store.availableActions = []
-      store.waitingForResponse = false
-      return
-    }
-
-    store.availableActions = await store.fetchAvailableSelection()
-    store.waitingForResponse = false
-    store.errorMessage = null
-
-    const battleClient = battleClientStore._instance
-    if (battleClient?.refreshTimerSnapshotsFromServer) {
-      await battleClient.refreshTimerSnapshotsFromServer()
-    }
-  } catch (error) {
-    console.warn('Failed to resync battle state after reconnect:', error)
-    if (!store.isBattleEnd) {
-      await exitBattleBecauseServerClosed('reconnect-resync-failed')
-    }
-  } finally {
-    resyncingAfterReconnect.value = false
-  }
 }
 
 const battleResult = computed(() => {
@@ -999,7 +965,7 @@ const initializeBattleResources = async () => {
     {
       id: 'pets',
       label: '首发精灵',
-      required: true,
+      required: false,
       run: checkPetSpritesReady,
     },
     ...(!props.replayMode
@@ -1037,7 +1003,7 @@ const initializeBattleResources = async () => {
               }
             },
           },
-          { id: 'scene-pets', label: '场上精灵', required: true, run: checkPetSpritesReady },
+          { id: 'scene-pets', label: '场上精灵', required: false, run: checkPetSpritesReady },
         ]
       : []),
   ])
@@ -1225,18 +1191,36 @@ async function animatePetTransition(
   onCompleteCallback?: () => void,
 ) {
   if (petSprite && petSprite.$el && (targetOpacity === 0 ? petSprite.$el.offsetParent !== null : true)) {
-    return gsapTo(petSprite.$el, {
+    const config = {
       x: targetX,
       opacity: targetOpacity,
       duration,
       ease,
       onComplete: onCompleteCallback,
+    }
+    if (animationController) {
+      return animationController.gsapManager.createTweenPlayback(petSprite.$el, {
+        ...config,
+        id: `move-${++gsapIdCounter}`,
+      }).finished
+    }
+    return new Promise<void>(resolve => {
+      gsap.to(petSprite.$el, {
+        ...config,
+        onComplete: () => {
+          onCompleteCallback?.()
+          resolve()
+        },
+        onInterrupt: resolve,
+      })
     })
   }
   return Promise.resolve()
 }
 
 async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitchMessage: PetSwitchMessage) {
+  const execution = runningExecution
+  assertExecution(execution)
   const oldPetSprite = petSprites.value[side]
   const battleViewWidth = 1600 // 固定的战斗视图宽度
   const isLeft = side === 'left'
@@ -1245,49 +1229,60 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
 
   // 开始动画追踪（仅在非回放模式下）
   let animationId: string | null = null
-  if (!props.replayMode && store.battleInterface) {
-    try {
-      const ownerId = currentPlayer.value?.id
-      if (!ownerId) {
-        console.warn('No current player ID available for animation tracking')
-        return
+  const trackingInterface = props.replayMode ? null : store.battleInterface
+  try {
+    if (trackingInterface) {
+      try {
+        const ownerId = currentPlayer.value?.id
+        if (!ownerId) {
+          console.warn('No current player ID available for animation tracking')
+        }
+        if (ownerId)
+          animationId = await waitForAnimationOperation(
+            trackingInterface.startAnimation(toPetId, animationDuration * 1000 * 2, ownerId),
+            execution.signal,
+            3000,
+          ) // 切换动画预期时长
+      } catch (error) {
+        console.warn('Failed to start switch animation tracking:', error)
       }
-      animationId = await store.battleInterface.startAnimation(toPetId, animationDuration * 1000 * 2, ownerId) // 切换动画预期时长
-    } catch (error) {
-      console.warn('Failed to start switch animation tracking:', error)
     }
-  }
 
-  await animatePetTransition(oldPetSprite, offScreenX, 0, animationDuration, 'power2.in')
+    assertExecution(execution)
+    await animatePetTransition(oldPetSprite, offScreenX, 0, animationDuration, 'power2.in')
 
-  await store.applyStateDelta(petSwitchMessage)
-  await nextTick()
+    await applyAnimationDelta(petSwitchMessage, execution)
+    await nextTick()
+    assertExecution(execution)
 
-  const newPetSprite = petSprites.value[side]
-  if (!newPetSprite || !newPetSprite.$el) {
-    console.warn(`New PetSprite on side ${side} not found after state update for pet ${toPetId}`)
-    return
-  }
+    const newPetSprite = petSprites.value[side]
+    if (!newPetSprite || !newPetSprite.$el) {
+      console.warn(`New PetSprite on side ${side} not found after state update for pet ${toPetId}`)
+      return
+    }
 
-  const newPetReadyPromise = newPetSprite.ready
-  if (newPetReadyPromise) {
-    await withDeadline(newPetReadyPromise, 7000).catch(() => {})
-  }
+    const newPetReadyPromise = newPetSprite.ready
+    if (newPetReadyPromise) {
+      await withDeadline(newPetReadyPromise, 7000).catch(() => {})
+      assertExecution(execution)
+    }
 
-  gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
-  const newPetInfo = store.getPetById(toPetId)
-  const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
-  if (newPetSpeciesNum !== 0) {
-    playPetSound(newPetSpeciesNum)
-  }
-  await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
-
-  // 结束动画追踪（仅在非回放模式下）
-  if (!props.replayMode && store.battleInterface && animationId) {
-    try {
-      await store.battleInterface.endAnimation(animationId)
-    } catch (error) {
-      console.warn('Failed to end switch animation tracking:', error)
+    gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
+    const newPetInfo = store.getPetById(toPetId)
+    const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
+    if (newPetSpeciesNum !== 0) {
+      playPetSound(newPetSpeciesNum)
+    }
+    await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
+    assertExecution(execution)
+  } finally {
+    // 结束动画追踪（仅在非回放模式下）
+    if (trackingInterface && animationId) {
+      try {
+        await withDeadline(trackingInterface.endAnimation(animationId), 3000).catch(() => {})
+      } catch (error) {
+        console.warn('Failed to end switch animation tracking:', error)
+      }
     }
   }
 }
@@ -1304,13 +1299,15 @@ function cancelSpriteWaits() {
   for (const finish of [...spriteWaits]) finish()
 }
 async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
+  const execution = runningExecution
+  assertExecution(execution)
   const useSkill = messages.filter(m => m.type === BattleMessageType.SkillUse)[0]
   if (!useSkill) return
 
   // 设置当前活跃技能ID用于连击伤害跟踪
   currentActiveSkillId.value = useSkill.data.skill
 
-  await store.applyStateDelta(useSkill)
+  await applyAnimationDelta(useSkill, execution)
 
   const baseSkillId = useSkill.data.baseSkill
   const baseSkillData = gameDataStore.getSkill(baseSkillId)
@@ -1320,7 +1317,7 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
 
   if (!source) {
     for (const message of messages) {
-      if (message !== useSkill) await store.applyStateDelta(message)
+      if (message !== useSkill) await applyAnimationDelta(message, execution)
     }
     return
   }
@@ -1328,29 +1325,12 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   // 根据技能类别设置预期动画时长：climax技能20秒，其他技能5秒
   const expectedDuration = category === Category.Climax ? 20000 : 5000
 
-  // Begin animation tracking in the state machine
-  animationController?.beginAnimation({
-    messageType: BattleMessageType.SkillUse,
-    side,
-    skillId: useSkill.data.skill,
-    petId: useSkill.data.user,
-    sequenceId: useSkill.sequenceId ?? -1,
-    expectedDuration,
-  })
-
-  await withDeadline(Promise.resolve(source.ready), 7000).catch(() => {})
+  // A loading renderer stays on the image path for this entire skill.
+  // Do not repeatedly stall the queue while a degraded SWF is still loading.
+  await nextTick()
+  assertExecution(execution)
   source = petSprites.value[side]
   const availableState = source ? unref(source.availableState) : []
-  if (!source || !availableState.length) {
-    showUseSkillMessage(side, baseSkillId)
-    for (const message of messages) {
-      if (message !== useSkill) await store.applyStateDelta(message)
-    }
-    animationController?.onAnimationComplete()
-    animationController?.onAnimationCleanupDone()
-    return
-  }
-
   const stateMap = new Map<Category, ActionState>([
     [Category.Physical, ActionState.ATK_PHY],
     [Category.Special, ActionState.ATK_SPE],
@@ -1366,124 +1346,138 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
   ])
   const state = stateMap.get(category) || ActionState.ATK_PHY
 
-  if (!availableState.includes(state)) {
-    for (const message of messages) {
-      if (message !== useSkill) await store.applyStateDelta(message)
-    }
-    animationController?.onAnimationComplete()
-    animationController?.onAnimationCleanupDone()
-    return
-  }
+  const useImageEffect = !source || !availableState.includes(state)
 
   // 开始动画追踪（仅在非回放模式下）
   let animationId: string | null = null
-  if (!props.replayMode && store.battleInterface) {
+  const trackingInterface = props.replayMode ? null : store.battleInterface
+  if (trackingInterface) {
     try {
       const ownerId = currentPlayer.value?.id
       if (!ownerId) {
         console.warn('No current player ID available for animation tracking')
-        return
       }
-      animationId = await store.battleInterface.startAnimation(baseSkillId, expectedDuration, ownerId)
+      if (ownerId)
+        animationId = await waitForAnimationOperation(
+          trackingInterface.startAnimation(baseSkillId, expectedDuration, ownerId),
+          execution.signal,
+          3000,
+        )
     } catch (error) {
       console.warn('Failed to start animation tracking:', error)
     }
   }
 
+  animationController?.onAnimationPlaying(execution)
+  assertExecution(execution)
   showUseSkillMessage(side, baseSkillId)
-  source.$el.style.zIndex = Z_INDEX.DYNAMIC_ANIMATION.toString()
+  if (source) source.$el.style.zIndex = Z_INDEX.DYNAMIC_ANIMATION.toString()
 
-  // 如果是climax技能，触发特效并等待播放完成
-  if (category === Category.Climax) {
-    // 显示climax特效
-    climaxEffectSide.value = side
-    showClimaxEffect.value = true
+  try {
+    // 如果是climax技能，触发特效并等待播放完成
+    if (category === Category.Climax && !useImageEffect) {
+      // 显示climax特效
+      climaxEffectSide.value = side
+      showClimaxEffect.value = true
 
-    // 创建黑屏遮罩和启动全屏震动效果
-    createClimaxBlackScreen()
-    startClimaxScreenShake()
+      // 创建黑屏遮罩和启动全屏震动效果
+      createClimaxBlackScreen()
+      startClimaxScreenShake()
 
-    // 播放特效动画并等待完成
-    if (climaxEffectRef.value) {
-      await new Promise<void>(resolve => {
-        const timer = setTimeout(() => handleClimaxComplete(), 8000)
-        // 创建一个临时的完成处理器
-        const handleClimaxComplete = () => {
-          // 移除事件监听器
-          clearTimeout(timer)
-          spriteWaits.delete(handleClimaxComplete)
-          emitter.off('climax-effect-complete', handleClimaxComplete)
-          resolve()
-        }
+      // 播放特效动画并等待完成
+      if (climaxEffectRef.value) {
+        await new Promise<void>(resolve => {
+          const timer = setTimeout(() => handleClimaxComplete(), 8000)
+          // 创建一个临时的完成处理器
+          const handleClimaxComplete = () => {
+            // 移除事件监听器
+            clearTimeout(timer)
+            spriteWaits.delete(handleClimaxComplete)
+            emitter.off('climax-effect-complete', handleClimaxComplete)
+            resolve()
+          }
 
-        // 监听特效完成事件
-        spriteWaits.add(handleClimaxComplete)
-        emitter.on('climax-effect-complete', handleClimaxComplete)
+          // 监听特效完成事件
+          spriteWaits.add(handleClimaxComplete)
+          emitter.on('climax-effect-complete', handleClimaxComplete)
 
-        // 播放特效
-        climaxEffectRef.value!.play()
-      })
+          // 播放特效
+          climaxEffectRef.value!.play()
+        })
+      }
+      playSkillSound(baseSkillId)
     }
-    playSkillSound(baseSkillId)
-  }
-  // Register before playback. Missing hit markers fall back to completion, never an early timer.
-  const animationWait = waitForSkillAnimation(emitter, side, expectedDuration, () => {
-    spriteWaits.delete(animationWait.cancel)
-  })
-  spriteWaits.add(animationWait.cancel)
-  const hitPromise = animationWait.hit
-  const animateCompletePromise = animationWait.complete
-  await withDeadline(source.setState(state), expectedDuration).catch(() => {})
+    assertExecution(execution)
+    // Register before playback. Missing hit markers fall back to completion, never an early timer.
+    const animationWait = useImageEffect
+      ? playImageSkill(side, category)
+      : waitForSkillAnimation(emitter, side, expectedDuration)
+    void animationWait.complete.then(() => spriteWaits.delete(animationWait.cancel))
+    spriteWaits.add(animationWait.cancel)
+    execution?.signal.addEventListener('abort', animationWait.cancel, { once: true })
+    void animationWait.complete.then(() => execution?.signal.removeEventListener('abort', animationWait.cancel))
+    const hitPromise = animationWait.hit
+    const animateCompletePromise = animationWait.complete
+    if (!useImageEffect && source) await withDeadline(source.setState(state), expectedDuration).catch(() => {})
 
-  await hitPromise
-  if (category !== Category.Climax && !messages.some(msg => msg.type === BattleMessageType.SkillMiss))
-    playSkillSound(baseSkillId)
+    await hitPromise
+    assertExecution(execution)
+    if (
+      (category !== Category.Climax || useImageEffect) &&
+      !messages.some(msg => msg.type === BattleMessageType.SkillMiss)
+    )
+      playSkillSound(baseSkillId)
 
-  for (const msg of messages) {
-    const combatEventTypes: BattleMessageType[] = [
-      BattleMessageType.SkillMiss,
-      BattleMessageType.Damage,
-      BattleMessageType.DamageFail,
-      BattleMessageType.Heal,
-    ]
-    if (combatEventTypes.includes(msg.type as BattleMessageType)) {
-      await handleCombatEventMessage(msg as CombatEventMessageWithTarget, true)
-    } else {
-      await store.applyStateDelta(msg)
-      // Check if the delta contains a transform for the active pet
-      if (animationController && msg.data) {
-        const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet
-        if (activePetId) {
-          animationController.checkDeltaForTransform(msg.data as Delta, activePetId)
+    for (const msg of messages) {
+      const combatEventTypes: BattleMessageType[] = [
+        BattleMessageType.SkillMiss,
+        BattleMessageType.Damage,
+        BattleMessageType.DamageFail,
+        BattleMessageType.Heal,
+      ]
+      if (combatEventTypes.includes(msg.type as BattleMessageType)) {
+        await handleCombatEventMessage(msg as CombatEventMessageWithTarget, true)
+      } else {
+        await applyAnimationDelta(msg, execution)
+        // Check if the delta contains a transform for the active pet
+        if (animationController && msg.data) {
+          const activePetId = side === 'left' ? currentPlayer.value?.activePet : opponentPlayer.value?.activePet
+          if (activePetId) {
+            animationController.checkDeltaForTransform(msg.data as Delta, activePetId)
+          }
         }
       }
     }
-  }
 
-  await animateCompletePromise
-  source.$el.style.zIndex = ''
+    await animateCompletePromise
+    assertExecution(execution)
+  } finally {
+    if (runningExecution === execution && source) source.$el.style.zIndex = ''
 
-  // 结束动画追踪（仅在非回放模式下）
-  if (!props.replayMode && store.battleInterface && animationId) {
-    try {
-      await store.battleInterface.endAnimation(animationId)
-    } catch (error) {
-      console.warn('Failed to end animation tracking:', error)
+    // 结束动画追踪（仅在非回放模式下）
+    if (trackingInterface && animationId) {
+      try {
+        await withDeadline(trackingInterface.endAnimation(animationId), 3000).catch(() => {})
+      } catch (error) {
+        console.warn('Failed to end animation tracking:', error)
+      }
     }
-  }
 
-  // 清除当前活跃技能ID
-  currentActiveSkillId.value = null
+    // 清除当前活跃技能ID
+    if (runningExecution === execution) currentActiveSkillId.value = null
+  }
 }
 
 async function handleCombatEventMessage(message: CombatEventMessageWithTarget, isFromSkillSequenceContext: boolean) {
+  const execution = runningExecution
+  assertExecution(execution)
   if (store.isApplied(message)) return
   const targetPetId = message.data.target
   const targetSide = getTargetSide(targetPetId)
   const targetPetSprite = petSprites.value[targetSide]
 
   if (!targetPetSprite) {
-    await store.applyStateDelta(message)
+    await applyAnimationDelta(message, execution)
     return
   }
 
@@ -1554,7 +1548,7 @@ async function handleCombatEventMessage(message: CombatEventMessageWithTarget, i
         message,
       )
   }
-  await store.applyStateDelta(message)
+  await applyAnimationDelta(message, execution)
 }
 
 const handleAttackHit = (side: 'left' | 'right') => {
@@ -1691,33 +1685,132 @@ const getTargetSide = (targetPetId: string): 'left' | 'right' => {
 }
 
 let messageSubscription: { unsubscribe: () => void } | null = null
+type MessageAnimationTask = (() => Promise<void>) & { messages?: BattleMessage[] }
 const animationQueue = store.animateQueue
 const animating = ref(false)
+const battleRenderer = ref(gameSettingStore.battleRenderer)
+// A preference change and recovered SWF become visible between queue tasks.
+watch(
+  [() => gameSettingStore.battleRenderer, animating],
+  ([renderer, playing]) => {
+    if (!playing) battleRenderer.value = renderer
+  },
+  { flush: 'sync' },
+)
+
+function restorePetContainers() {
+  for (const sprite of [leftPetRef.value, rightPetRef.value]) {
+    if (sprite?.$el) gsapSet(sprite.$el, { x: 0, opacity: 1, zIndex: '' })
+  }
+}
+let runningExecution: AnimationTask | null = null
+function assertExecution(execution: AnimationTask | null): asserts execution is AnimationTask {
+  if (battleDisposed || !animationController?.isTaskCurrent(execution))
+    throw new DOMException('动画任务已取消', 'AbortError')
+}
+async function applyAnimationDelta(message: BattleMessage, execution: AnimationTask | null) {
+  assertExecution(execution)
+  await store.applyStateDelta(message, () => !battleDisposed && !!animationController?.isTaskCurrent(execution))
+  assertExecution(execution)
+}
 
 // Subscribe to animation queue - tracks animation state via controller when available
 const animatesubscribe = animationQueue
   .pipe(
     concatMap(task =>
-      from(task()).pipe(
-        tap(() => {
-          animating.value = true
-          animationController?.onAnimationPlaying()
-        }),
-        finalize(() => {
-          animating.value = false
-          animationController?.onAnimationComplete()
-          animationController?.onAnimationCleanupDone()
-        }),
-        catchError(err => {
-          console.error('动画执行失败:', err)
-          return of(null)
-        }),
-      ),
+      defer(() => {
+        if (battleDisposed || !animationController) return of(null)
+        const controller = animationController
+        const execute = (): ReturnType<typeof of> | ReturnType<typeof from> =>
+          from(controller.waitUntilReady()).pipe(
+            concatMap(ready => {
+              if (!ready || battleDisposed) return of(null)
+              const firstMessage = (task as MessageAnimationTask).messages?.[0]
+              const skill = firstMessage?.type === BattleMessageType.SkillUse ? firstMessage : undefined
+              const switchMessage = firstMessage?.type === BattleMessageType.PetSwitch ? firstMessage : undefined
+              const petId = skill?.data.user ?? switchMessage?.data.toPet
+              const category = skill ? gameDataStore.getSkill(skill.data.baseSkill)?.category : undefined
+              const execution = controller.beginAnimation({
+                messageType: firstMessage?.type ?? BattleMessageType.TurnAction,
+                side: petId ? getTargetSide(petId) : 'left',
+                petId,
+                skillId: skill?.data.skill,
+                sequenceId: firstMessage?.sequenceId ?? store.lastProcessedSequenceId,
+                expectedDuration: skill ? (category === Category.Climax ? 20000 : 5000) : 10000,
+              })
+              if (!execution) return execute()
+              runningExecution = execution
+              animating.value = true
+              execution.signal.addEventListener(
+                'abort',
+                () => {
+                  if (runningExecution !== execution) return
+                  cancelSpriteWaits()
+                  resetBattleEffects()
+                  stopClimaxScreenShake()
+                  restorePetContainers()
+                  currentActiveSkillId.value = null
+                },
+                { once: true },
+              )
+              controller.onAnimationPlaying(execution)
+              return from(waitForAnimationOperation(Promise.resolve().then(task), execution.signal, 60000)).pipe(
+                catchError(async err => {
+                  if (!(err instanceof DOMException && err.name === 'AbortError')) {
+                    console.error('动画执行失败:', err)
+                    if (controller.isTaskCurrent(execution)) controller.healthMonitor.forceRecovery()
+                  }
+                  // Connection recovery owns its snapshot. For local animation failures,
+                  // finish remaining message deltas without replaying effects before advancing the queue.
+                  if (battleDisposed || !controller.stateMachine.canAcceptNewTask) return null
+                  const recovery = controller.beginAnimation({
+                    messageType: BattleMessageType.TurnAction,
+                    side: 'left',
+                    sequenceId: store.lastProcessedSequenceId,
+                    expectedDuration: 10000,
+                  })
+                  if (!recovery) return null
+                  try {
+                    const messages = (task as MessageAnimationTask).messages ?? []
+                    await waitForAnimationOperation(
+                      (async () => {
+                        for (const message of messages) await applyAnimationDelta(message, recovery)
+                      })(),
+                      recovery.signal,
+                      15000,
+                    )
+                  } catch (error) {
+                    if (controller.isTaskCurrent(recovery))
+                      controller.stateMachine.markStuck('animation-delta-recovery-failed')
+                    console.warn('动画状态同步失败:', error)
+                  } finally {
+                    controller.onAnimationComplete(recovery)
+                    controller.onAnimationCleanupDone(recovery)
+                  }
+                  return null
+                }),
+                finalize(() => {
+                  if (runningExecution === execution) {
+                    restorePetContainers()
+                    currentActiveSkillId.value = null
+                    runningExecution = null
+                    animating.value = false
+                  }
+                  controller.onAnimationComplete(execution)
+                  controller.onAnimationCleanupDone(execution)
+                }),
+              )
+            }),
+          )
+        return execute()
+      }),
     ),
   )
   .subscribe()
 
 const preloadPetSprites = async () => {
+  const imageMode = () => gameSettingStore.battleRenderer === 'image'
+  if (imageMode()) return
   const pets = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])].filter(
     pet => !pet.isUnknown,
   )
@@ -1734,6 +1827,7 @@ const preloadPetSprites = async () => {
   ]
   // Limit requests so optional reserves do not compete with first-scene resources.
   for (let index = 0; index < urls.length; index += 3) {
+    if (battleDisposed || imageMode()) return
     await Promise.allSettled(urls.slice(index, index + 3).map(url => petResourceCache.preloadUrl(url)))
   }
 }
@@ -1907,28 +2001,33 @@ const setupMessageSubscription = async () => {
             toArray(),
             mergeMap(messages => {
               const task = async () => {
-                // 检查是否已经处理过这个技能序列
-                if (store.lastProcessedSequenceId >= (msg.sequenceId ?? -1)) return
-                // Skip animation if state machine is catching up or recovering
-                if (animationController?.stateMachine.shouldSkipAnimation) {
-                  // Still apply state deltas without animation
-                  for (const m of messages) {
-                    await store.applyStateDelta(m)
+                const execution = runningExecution
+                assertExecution(execution)
+                const batch = planAnimationMessages(messages, store.lastProcessedSequenceId)
+                if (!batch.pending.length) return
+                // A snapshot inside a skill group covers only its prefix.
+                if (!batch.animate || animationController?.stateMachine.shouldSkipAnimation) {
+                  for (const m of batch.pending) {
+                    await applyAnimationDelta(m, execution)
                   }
                 } else {
                   await useSkillAnimate(messages)
                 }
+                assertExecution(execution)
                 // 更新 store 的 lastProcessedSequenceId
                 const lastMessage = messages[messages.length - 1]
                 if (lastMessage.sequenceId !== undefined) {
                   store.lastProcessedSequenceId = Math.max(store.lastProcessedSequenceId, lastMessage.sequenceId)
                 }
               }
-              return of(task)
+              return of(Object.assign(task, { messages }))
             }),
           )
         }
         const task = async () => {
+          const execution = runningExecution
+          assertExecution(execution)
+          if (store.isApplied(msg)) return
           try {
             // Skip animation if state machine is catching up or recovering
             const shouldSkip = animationController?.stateMachine.shouldSkipAnimation ?? false
@@ -1936,7 +2035,7 @@ const setupMessageSubscription = async () => {
             if (msg.type === BattleMessageType.PetSwitch) {
               if (shouldSkip) {
                 // Apply state delta directly without animation
-                await store.applyStateDelta(msg)
+                await applyAnimationDelta(msg, execution)
               } else {
                 // 对于 PetSwitch，状态更新由 switchPetAnimate 内部精确控制时机
                 await switchPetAnimate(msg.data.toPet, getTargetSide(msg.data.toPet), msg as PetSwitchMessage)
@@ -1953,7 +2052,7 @@ const setupMessageSubscription = async () => {
                 if (!shouldSkip) {
                   await handleCombatEventMessage(msg as CombatEventMessageWithTarget, false)
                 } else {
-                  await store.applyStateDelta(msg)
+                  await applyAnimationDelta(msg, execution)
                 }
               } else {
                 // 处理其他非战斗事件相关的消息 (PetSwitch 已在上面单独处理)
@@ -1999,7 +2098,7 @@ const setupMessageSubscription = async () => {
                     // 其他消息类型，如果它们不直接触发战斗动画或UI，则仅应用状态
                     break
                 }
-                await store.applyStateDelta(msg)
+                await applyAnimationDelta(msg, execution)
               }
             }
           } catch (error) {
@@ -2007,15 +2106,15 @@ const setupMessageSubscription = async () => {
             throw error
           }
         }
-        return of(task)
+        return of(Object.assign(task, { messages: [msg] }))
       }),
     )
     .subscribe(task => animationQueue.next(task))
 }
 
 onUnmounted(async () => {
-  cancelSpriteWaits()
   battleDisposed = true
+  cancelSpriteWaits()
   releasePreparationWait?.()
   preparation.cancel()
   releaseBattleStartWait?.()
@@ -2123,9 +2222,21 @@ watch(
       reconnecting.value = false
       // Notify animation controller of reconnect
       if (animationController) {
-        await animationController.onReconnect(store as never)
+        const restored = await animationController.onReconnect(store as never)
+        if (
+          !restored ||
+          battleDisposed ||
+          battleClientStore.currentState.status !== 'connected' ||
+          !animationController?.stateMachine.canAcceptNewTask
+        )
+          return
+        store.errorMessage = null
+        restorePetContainers()
+        const client = battleClientStore._instance
+        if (client?.refreshTimerSnapshotsFromServer) {
+          await withDeadline(client.refreshTimerSnapshotsFromServer(), 3000).catch(() => {})
+        }
       }
-      await resyncBattleAfterReconnect()
     }
   },
   { immediate: true },
@@ -2404,6 +2515,8 @@ watch(
                   :key="`left-${resourceAttempt}`"
                   ref="leftPetRef"
                   :num="leftPetSpeciesNum"
+                  :image-only="battleRenderer === 'image'"
+                  :allow-recovery="!animating"
                   :swf-url="leftPetSpriteAsset.customSwfUrl"
                   :image-url="leftPetSpriteAsset.customImageUrl"
                   class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -2421,6 +2534,8 @@ watch(
                   :key="`right-${resourceAttempt}`"
                   ref="rightPetRef"
                   :num="rightPetSpeciesNum"
+                  :image-only="battleRenderer === 'image'"
+                  :allow-recovery="!animating"
                   :swf-url="rightPetSpriteAsset.customSwfUrl"
                   :image-url="rightPetSpriteAsset.customImageUrl"
                   :reverse="true"
@@ -2513,6 +2628,14 @@ watch(
                 回合 {{ currentReplayTurnNumber }} / {{ totalReplayTurnNumber }}
               </span>
             </div>
+
+            <label class="battle-motion self-center mb-2">
+              <span>精灵表现</span>
+              <select v-model="gameSettingStore.battleRenderer" aria-label="精灵表现">
+                <option value="swf">SWF 动画</option>
+                <option value="image">纯图片战斗</option>
+              </select>
+            </label>
 
             <!-- 回合进度条 -->
             <div class="flex items-center space-x-4">

@@ -109,7 +109,8 @@ describe('AnimationTimeoutManager', () => {
         resolved = true
       })
       await vi.advanceTimersByTimeAsync(0)
-      expect(resolved).toBe(false)
+      expect(resolved).toBe(true)
+      expect(await promise).toBe('cancelled')
     })
 
     it('earlyTerminateChecks fire during phase 1', async () => {
