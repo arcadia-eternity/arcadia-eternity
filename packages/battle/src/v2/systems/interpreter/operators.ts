@@ -3,7 +3,8 @@
 // All ~60 operator types fully implemented.
 
 import type { InterpreterContext, InterpreterFireContext } from './context.js'
-import type { UseSkillContextData, DamageContextData, ConsumeStackContextData } from '../../schemas/context.schema.js'
+import type { UseSkillContextData, DamageContextData } from '../../schemas/context.schema.js'
+import { consumeMarkStacks } from '../consume-mark-stacks.js'
 import type { BaseMarkData } from '../../schemas/mark.schema.js'
 import { getEffectDslManifest, type OperatorDSL, type Value } from '@arcadia-eternity/schema'
 import type { ConfigValue, ConfigModifierType, EffectDef, World } from '@arcadia-eternity/engine'
@@ -899,33 +900,8 @@ async function executeDefaultRegisteredOperator(ctx: InterpreterContext, operato
       const value = resolveValue(ctx, op.value) as number
       if (targets.length === 0 || value === undefined) break
 
-      const { world, systems } = ctx
-      const { markSystem, effectPipeline } = systems
       for (const markId of targets) {
-        const consumeCtx: ConsumeStackContextData = {
-          type: 'consumeStack',
-          parentId: getCurrentPhaseId(ctx),
-          markId,
-          requestedAmount: value,
-          actualAmount: 0,
-          available: true,
-        }
-
-        await effectPipeline.fire(
-          world,
-          'OnBeforeConsumeStack',
-          {
-            trigger: 'OnBeforeConsumeStack',
-            sourceEntityId: markId,
-            context: consumeCtx,
-          },
-          [markId],
-        )
-
-        if (!consumeCtx.available) continue
-
-        const actualAmount = markSystem.consumeStack(world, markId, value)
-        consumeCtx.actualAmount = actualAmount
+        await consumeMarkStacks(ctx.world, markId, value)
       }
       break
     }

@@ -207,6 +207,11 @@ export class SkillHandler implements PhaseHandler<SkillPhaseData> {
         context: ctx,
       })
       await this.applyDefeatIfNeeded(world, bus, ctx)
+      await this.effectPipeline.fire(world, EffectTrigger.SkillUseEnd, {
+        trigger: EffectTrigger.SkillUseEnd,
+        sourceEntityId: ctx.petId,
+        context: ctx,
+      })
       bus.emit(world, 'skillUseEnd', { petId: ctx.petId })
       return { success: true, state: 'completed', data }
     }
