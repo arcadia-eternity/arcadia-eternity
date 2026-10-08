@@ -30,6 +30,35 @@ afterEach(() => {
   cameraTo.mockClear()
 })
 describe('floating effects canvas coordinates', () => {
+  it.each([
+    ['standard', false, 1.8],
+    ['standard', true, 2.5],
+    ['simple', false, 1.8],
+    ['simple', true, 2.5],
+    ['reduced', false, 1],
+    ['reduced', true, 1],
+  ] as const)('scales the entire damage graphic in %s mode (crit=%s)', (motion, crit, expectedScale) => {
+    const root = document.createElement('div')
+    document.body.append(root)
+    const effects = useBattleAnimations(
+      ref(root),
+      {} as ReturnType<typeof useBattleStore>,
+      computed(() => null),
+      computed(() => null),
+      computed(() => 1),
+      undefined,
+      undefined,
+      computed(() => motion),
+    )
+    effects.showDamageMessage('left', 123, 'normal', crit)
+    const graphic = root.querySelector('[data-battle-effect="damage"]')!.firstElementChild
+    expect(cameraTo.mock.calls.find(([target, vars]) => target === graphic && 'scale' in vars)?.[1]).toMatchObject({
+      scale: expectedScale,
+    })
+    expect(graphic?.querySelector('.battle-damage__background')).not.toBeNull()
+    expect(graphic?.querySelector('.battle-damage__digit')).not.toBeNull()
+    effects.cleanup()
+  })
   it.each([0.25, 1, 1.5])('anchors damage in canvas pixels under viewport scale %s', scale => {
     const root = document.createElement('div')
     root.style.transform = `scale(${scale})`
