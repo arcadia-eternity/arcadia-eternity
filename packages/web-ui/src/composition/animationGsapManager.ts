@@ -6,6 +6,7 @@ type TweenLike = gsap.core.Tween | gsap.core.Timeline
 
 export class AnimationGsapManager {
   private tweens = new Map<string, TweenLike>()
+  private settlements = new Map<string, () => void>()
   private tempHosts = new Set<HTMLElement>()
   private stateMachine: AnimationStateMachine | null = null
 
@@ -20,48 +21,109 @@ export class AnimationGsapManager {
 
   createTimeline(config: gsap.TimelineVars & { id: string }): gsap.core.Timeline {
     const { id, ...rest } = config
-    const tl = gsap.timeline({
+    this.killTween(id)
+    let settled = false
+    const cleanup = () => {
+      settled = true
+      this.cleanupTween(id)
+    }
+    const animation = gsap.timeline({
       ...rest,
       onComplete: () => {
-        rest.onComplete?.()
-        this.cleanupTween(id)
+        try {
+          rest.onComplete?.()
+        } finally {
+          cleanup()
+        }
       },
       onInterrupt: () => {
-        rest.onInterrupt?.()
-        this.cleanupTween(id)
+        try {
+          rest.onInterrupt?.()
+        } finally {
+          cleanup()
+        }
       },
     })
-    this.tweens.set(id, tl)
-    this.stateMachine?.registerTween(id)
-    return tl
+    if (!settled) {
+      this.tweens.set(id, animation)
+      this.stateMachine?.registerTween(id)
+    }
+    return animation
   }
 
   createTween(target: gsap.TweenTarget, config: gsap.TweenVars & { id: string }): gsap.core.Tween {
     const { id, ...rest } = config
-    const tween = gsap.to(target, {
+    this.killTween(id)
+    let settled = false
+    const cleanup = () => {
+      settled = true
+      this.cleanupTween(id)
+    }
+    const animation = gsap.to(target, {
       ...rest,
       onComplete: () => {
-        rest.onComplete?.()
-        this.cleanupTween(id)
+        try {
+          rest.onComplete?.()
+        } finally {
+          cleanup()
+        }
       },
       onInterrupt: () => {
-        rest.onInterrupt?.()
-        this.cleanupTween(id)
+        try {
+          rest.onInterrupt?.()
+        } finally {
+          cleanup()
+        }
       },
     })
-    this.tweens.set(id, tween)
-    this.stateMachine?.registerTween(id)
-    return tween
+    if (!settled) {
+      this.tweens.set(id, animation)
+      this.stateMachine?.registerTween(id)
+    }
+    return animation
+  }
+
+  /** GSAP's own thenable never resolves on kill. Page tasks await this instead. */
+  createTweenPlayback(target: gsap.TweenTarget, config: gsap.TweenVars & { id: string }) {
+    let finish!: (result: 'completed' | 'cancelled') => void
+    let settled = false
+    const finished = new Promise<'completed' | 'cancelled'>(resolve => {
+      finish = result => {
+        if (settled) return
+        settled = true
+        this.settlements.delete(config.id)
+        resolve(result)
+      }
+    })
+    const tween = this.createTween(target, {
+      ...config,
+      onComplete: () => {
+        try {
+          config.onComplete?.()
+        } finally {
+          finish('completed')
+        }
+      },
+      onInterrupt: () => {
+        try {
+          config.onInterrupt?.()
+        } finally {
+          finish('cancelled')
+        }
+      },
+    })
+    if (!settled) this.settlements.set(config.id, () => finish('cancelled'))
+    return { tween, finished }
   }
 
   registerTempHost(host: HTMLElement): void {
+    if (this.tempHosts.has(host)) return
     this.tempHosts.add(host)
     this.stateMachine?.incrementTempDom()
   }
 
   removeTempHost(host: HTMLElement): void {
-    this.tempHosts.delete(host)
-    this.stateMachine?.decrementTempDom()
+    if (this.tempHosts.delete(host)) this.stateMachine?.decrementTempDom()
   }
 
   killTween(id: string): void {
@@ -71,6 +133,9 @@ export class AnimationGsapManager {
       tween.kill()
     } catch {
       // tween may already be dead
+    } finally {
+      this.settlements.get(id)?.()
+      this.cleanupTween(id)
     }
   }
 

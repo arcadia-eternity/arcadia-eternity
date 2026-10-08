@@ -2,7 +2,7 @@ import { ActionState } from 'seer2-pet-animator'
 import { Category } from '@arcadia-eternity/const'
 import type { AnimationStateMachine } from './animationStateMachine'
 
-export type TimeoutResult = 'completed' | 'timeout' | 'transformed' | 'defeated' | 'error'
+export type TimeoutResult = 'completed' | 'timeout' | 'transformed' | 'defeated' | 'error' | 'cancelled'
 
 export interface PetSpriteRef {
   getState(): Promise<ActionState | undefined | null>
@@ -25,93 +25,63 @@ export interface TimeoutConfig {
 const IDLE_STATES = new Set<ActionState>([ActionState.IDLE])
 
 export class AnimationTimeoutManager {
-  private timer: ReturnType<typeof setTimeout> | null = null
-  private _isCancelled = false
+  private cancelWait: (() => void) | null = null
 
   async waitForCondition(
     source: PetSpriteRef | null,
     stateMachine: AnimationStateMachine,
     config: TimeoutConfig,
   ): Promise<TimeoutResult> {
-    this._isCancelled = false
+    this.cancel()
     const startTime = performance.now()
-
     return new Promise<TimeoutResult>(resolve => {
-      const safeResolve = (result: TimeoutResult) => {
-        if (!this._isCancelled) {
-          this._isCancelled = true
-          resolve(result)
-        }
+      let settled = false
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const finish = (result: TimeoutResult) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        clearTimeout(deadline)
+        if (this.cancelWait === cancel) this.cancelWait = null
+        resolve(result)
       }
-
+      const cancel = () => finish('cancelled')
+      const deadline = setTimeout(() => finish('timeout'), config.absoluteMaxTimeout)
+      this.cancelWait = cancel
       const poll = async () => {
-        if (this._isCancelled) return
-
+        if (settled) return
+        if (stateMachine.isRecovering) return finish('transformed')
         const elapsed = performance.now() - startTime
-
-        if (stateMachine.isRecovering) {
-          safeResolve('transformed')
-          return
-        }
-
         if (elapsed < config.baseTimeout) {
           for (const check of config.earlyTerminateChecks) {
             try {
-              if (await check.check()) {
-                safeResolve(check.action)
-                return
-              }
+              const matched = await check.check()
+              if (settled) return
+              if (matched) return finish(check.action)
             } catch {}
           }
-          this.timer = setTimeout(poll, config.pollInterval)
-          return
-        }
-
-        if (source) {
+        } else if (!source) {
+          return finish('completed')
+        } else {
           try {
-            const currentState = await source.getState()
-            if (currentState !== undefined && currentState !== null && IDLE_STATES.has(currentState)) {
-              safeResolve('completed')
-              return
-            }
-            if (currentState === ActionState.DEAD || currentState === ActionState.ABOUT_TO_DIE) {
-              safeResolve('defeated')
-              return
-            }
-
-            const ctx = stateMachine.snapshot()
-            if (ctx.hasTransform) {
-              safeResolve('transformed')
-              return
-            }
+            const current = await source.getState()
+            if (settled) return
+            if (stateMachine.isRecovering || stateMachine.snapshot().hasTransform) return finish('transformed')
+            if (current != null && IDLE_STATES.has(current)) return finish('completed')
+            if (current === ActionState.DEAD || current === ActionState.ABOUT_TO_DIE) return finish('defeated')
           } catch {
-            safeResolve('transformed')
+            if (!settled) finish('error')
             return
           }
-        } else {
-          safeResolve('completed')
-          return
         }
-
-        if (elapsed >= config.absoluteMaxTimeout) {
-          safeResolve('timeout')
-          return
-        }
-
-        const phase2Interval = Math.min(500, config.extendedTimeout / 5)
-        this.timer = setTimeout(poll, phase2Interval)
+        if (!settled) timer = setTimeout(poll, config.pollInterval)
       }
-
-      this.timer = setTimeout(poll, config.pollInterval)
+      timer = setTimeout(poll, config.pollInterval)
     })
   }
 
   cancel(): void {
-    this._isCancelled = true
-    if (this.timer !== null) {
-      clearTimeout(this.timer)
-      this.timer = null
-    }
+    this.cancelWait?.()
   }
 
   static configForCategory(category: Category, hasTransform: boolean): TimeoutConfig {

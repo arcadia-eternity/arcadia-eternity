@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.4.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.4.0...arcadia-eternity-v3.4.1) (2026-10-08)
+
+
+### 🐛 Bug Fixes
+
+* **battle:** complete mark stack consumption lifecycle ([6eba7a6](https://github.com/arcadia-eternity/arcadia-eternity/commit/6eba7a6bedf9d0b514fb75e45a6bfd27c9406c1f))
+* **web-ui:** balance damage frame size and pop animation ([f23c254](https://github.com/arcadia-eternity/arcadia-eternity/commit/f23c254a448e1815779395f5c86cb2bd859c3d48))
+* **web-ui:** enlarge damage graphics and restore pop scaling ([9a2ff3a](https://github.com/arcadia-eternity/arcadia-eternity/commit/9a2ff3add6c481a1b12dee0dad1aa59c1657e0eb))
+* **web-ui:** fence animation recovery and support image battles ([83ba3e3](https://github.com/arcadia-eternity/arcadia-eternity/commit/83ba3e3b98e6830df0fde2eb0b0028e5266d040e))
+* **web-ui:** restore damage flight animation above pets ([1be6024](https://github.com/arcadia-eternity/arcadia-eternity/commit/1be602488327531db6252309c55cb8d82fe6f4ee))
+* **web-ui:** wait for battle resources and renderer callbacks ([61ff881](https://github.com/arcadia-eternity/arcadia-eternity/commit/61ff881e95bd9e53e34b16929574cfddd25d4ea1))
+
 ## [3.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v3.3.0...arcadia-eternity-v3.4.0) (2026-10-07)
 
 

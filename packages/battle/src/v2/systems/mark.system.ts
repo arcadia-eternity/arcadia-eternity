@@ -9,6 +9,8 @@ import {
   getComponent,
   removeEntity,
   generateId,
+  ATTRIBUTE_STORE,
+  queryByComponent,
 } from '@arcadia-eternity/engine'
 import type { BaseMarkData, MarkData, MarkConfigData } from '../schemas/mark.schema.js'
 import type { PetData } from '../schemas/pet.schema.js'
@@ -115,6 +117,7 @@ export class MarkSystem {
   }
 
   destroy(world: World, markId: string): void {
+    this.removeBoundModifiers(world, markId)
     this.detach(world, markId)
     removeEntity(world, markId)
   }
@@ -173,6 +176,21 @@ export class MarkSystem {
 
   setActive(world: World, markId: string, active: boolean): void {
     this.attrSystem.setBaseValue(world, markId, 'isActive', active)
+    if (!active) this.removeBoundModifiers(world, markId)
+  }
+
+  private removeBoundModifiers(world: World, markId: string): void {
+    for (const entityId of queryByComponent(world, ATTRIBUTE_STORE)) {
+      const store = this.attrSystem.get(world, entityId)
+      if (!store) continue
+      for (const [key, modifiers] of Object.entries(store.modifiers)) {
+        for (const modifier of [...modifiers]) {
+          if (modifier.sourceId === markId && modifier.durationType === 'binding') {
+            this.attrSystem.removeModifier(world, entityId, key, modifier.id)
+          }
+        }
+      }
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -188,7 +206,7 @@ export class MarkSystem {
   }
 
   isActive(world: World, markId: string): boolean {
-    return (this.attrSystem.getValue(world, markId, 'isActive') as boolean | undefined) ?? false
+    return this.attrSystem.getValue(world, markId, 'isActive') === true
   }
 
   getTags(world: World, markId: string): string[] {

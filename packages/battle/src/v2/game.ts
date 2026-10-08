@@ -18,6 +18,7 @@ import type { DecisionProviderFactory, DecisionProviderSpec } from './decision/t
 import { PetSystem } from './systems/pet.system.js'
 import { SkillSystem } from './systems/skill.system.js'
 import { MarkSystem } from './systems/mark.system.js'
+import { consumeMarkStacks } from './systems/consume-mark-stacks.js'
 import { PlayerSystem } from './systems/player.system.js'
 import { StatStageMarkSystem } from './systems/stat-stage-mark.system.js'
 import { createSeer2DamageFormula } from './systems/damage-formula.js'
@@ -171,17 +172,18 @@ export function createBattle(config: BattleConfig = {}): BattleInstance {
     beforeEffectExecute: (hookWorld, _effect, fireCtx) => {
       const effectEntityId = fireCtx.effectEntityId
       if (typeof effectEntityId !== 'string') return true
+      if (!hookWorld.entities[effectEntityId]) return false
       const mark = markSystem.get(hookWorld, effectEntityId)
       if (!mark) return true
       return markSystem.isActive(hookWorld, effectEntityId)
     },
-    afterEffectExecute: (hookWorld, effect, fireCtx) => {
+    afterEffectExecute: async (hookWorld, effect, fireCtx) => {
       if (!effect.consumesStacks || effect.consumesStacks <= 0) return
       const effectEntityId = fireCtx.effectEntityId
       if (typeof effectEntityId !== 'string') return
       const mark = markSystem.get(hookWorld, effectEntityId)
       if (!mark) return
-      markSystem.consumeStack(hookWorld, effectEntityId, effect.consumesStacks)
+      await consumeMarkStacks(hookWorld, effectEntityId, effect.consumesStacks)
     },
   })
   const eventBus = new EventBus()

@@ -87,6 +87,7 @@ export class AnimationHealthMonitor {
   }
 
   private async checkAvailableActions(): Promise<void> {
+    if (!this.stateMachine.canAcceptNewTask) return
     if (this.store.isReplayMode) return
     if (this.store.isBattleEnd) return
     if (this.store.battleState?.status === 'Ended') return
@@ -107,13 +108,19 @@ export class AnimationHealthMonitor {
     if (this.stuckCount >= 2) {
       console.warn(`[AnimationHealthMonitor] availableActions empty for ${elapsed}s → attempting recovery`)
       try {
-        const actions = await this.store.fetchAvailableSelection()
+        const sequenceId = this.store.lastProcessedSequenceId
+        const snapshot = this.store.battleState
+        const current = () =>
+          this.stateMachine.canAcceptNewTask &&
+          sequenceId === this.store.lastProcessedSequenceId &&
+          snapshot === this.store.battleState
+        const actions = await this.store.fetchAvailableSelection(current)
+        if (!current()) return
         if (Array.isArray(actions)) {
           this.store.availableActions = actions
         }
         if (actions.length > 0) {
           this.stuckCount = 0
-          this.stateMachine.transition(AnimationState.IDLE, 'health-check-recovered-actions')
           return
         }
       } catch {

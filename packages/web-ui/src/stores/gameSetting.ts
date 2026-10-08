@@ -43,6 +43,9 @@ const debouncedSaveAllSettings = useDebounceFn((settings: Record<string, unknown
 }, 300)
 
 export const useGameSettingStore = defineStore('gameSetting', () => {
+  const battleRenderer = ref<'swf' | 'image'>(
+    loadFromStorage<string>('battleRenderer', 'swf') === 'image' ? 'image' : 'swf',
+  )
   const storedMotion = loadFromStorage<string>('battleMotion', 'standard')
   const battleMotion = ref<'standard' | 'simple' | 'reduced'>(
     ['standard', 'simple', 'reduced'].includes(storedMotion)
@@ -64,6 +67,7 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
 
   watchEffect(() => {
     debouncedSaveAllSettings({
+      battleRenderer: battleRenderer.value,
       battleMotion: battleMotion.value,
       mute: mute.value,
       musicVolume: musicVolume.value,
@@ -100,6 +104,7 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
   }
 
   return {
+    battleRenderer,
     battleMotion,
     mute,
     musicVolume,

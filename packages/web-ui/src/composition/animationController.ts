@@ -1,6 +1,6 @@
 import { Category, type BattleMessageType } from '@arcadia-eternity/const'
 import type { Delta } from 'jsondiffpatch'
-import { Subject } from 'rxjs'
+import { waitForAnimationOperation } from './animationTask'
 import { AnimationStateMachine, AnimationState } from './animationStateMachine'
 import { AnimationTimeoutManager, type TimeoutConfig, type PetSpriteRef, type TimeoutResult } from './animationTimeout'
 import { AnimationGsapManager } from './animationGsapManager'
@@ -13,6 +13,11 @@ export type ReconnectEvent = {
   backlog: number
 }
 
+export interface AnimationTask {
+  readonly id: number
+  readonly signal: AbortSignal
+}
+
 export class AnimationController {
   readonly stateMachine: AnimationStateMachine
   readonly timeoutManager: AnimationTimeoutManager
@@ -21,6 +26,13 @@ export class AnimationController {
 
   private onReconnectListeners = new Set<(event: ReconnectEvent) => void>()
   private store: BattleStoreLike
+  private disposed = false
+  private readonly shutdown = new AbortController()
+  private taskCounter = 0
+  private activeTask: (AnimationTask & { abort: AbortController }) | null = null
+  private connectionGeneration = 0
+  private reconnectAbort: AbortController | undefined
+  private disconnectListener: (() => void) | undefined
 
   constructor(store: BattleStoreLike) {
     this.store = store
@@ -29,13 +41,29 @@ export class AnimationController {
     this.gsapManager = new AnimationGsapManager()
     this.healthMonitor = new AnimationHealthMonitor(this.stateMachine, store, this.gsapManager)
     this.gsapManager.attach(this.stateMachine)
+    this.disconnectListener = this.stateMachine.onStateChange((_from, to) => {
+      if (
+        [AnimationState.PAUSED, AnimationState.RECOVERING, AnimationState.CATCHING_UP, AnimationState.STUCK].includes(
+          to,
+        )
+      ) {
+        this.cancelTask()
+      }
+    })
   }
 
   start(): void {
-    this.healthMonitor.start()
+    if (!this.disposed) this.healthMonitor.start()
   }
 
   destroy(): void {
+    if (this.disposed) return
+    this.disposed = true
+    this.shutdown.abort()
+    this.connectionGeneration++
+    this.reconnectAbort?.abort()
+    this.cancelTask()
+    this.disconnectListener?.()
     this.healthMonitor.stop()
     this.timeoutManager.cancel()
     this.gsapManager.killAll()
@@ -50,28 +78,63 @@ export class AnimationController {
     petId?: string
     sequenceId: number
     expectedDuration: number
-  }): void {
+  }): AnimationTask | null {
+    if (this.disposed || this.activeTask || !this.stateMachine.canAcceptNewTask) return null
+    const abort = new AbortController()
+    this.activeTask = { id: ++this.taskCounter, signal: abort.signal, abort }
     this.stateMachine.beginTask(opts)
     this.stateMachine.transition(AnimationState.PREPARING, `task-${opts.messageType}`)
+    return this.activeTask
   }
 
-  onAnimationPlaying(): void {
-    this.stateMachine.transition(AnimationState.PLAYING, 'animation-started')
+  isTaskCurrent(task?: AnimationTask | null): boolean {
+    return !this.disposed && !!task && this.activeTask === task && !task.signal.aborted
   }
 
-  onAnimationComplete(): void {
-    this.stateMachine.transition(AnimationState.COMPLETING, 'animation-finished')
+  /** Connection suspension retains queued tasks; destroy releases their subscriptions. */
+  waitUntilReady(): Promise<boolean> {
+    if (this.disposed) return Promise.resolve(false)
+    if (this.stateMachine.canAcceptNewTask) return Promise.resolve(true)
+    return new Promise(resolve => {
+      const finish = (ready: boolean) => {
+        unsubscribe()
+        this.shutdown.signal.removeEventListener('abort', onShutdown)
+        resolve(ready)
+      }
+      const onShutdown = () => finish(false)
+      const unsubscribe = this.stateMachine.onStateChange((_from, to) => {
+        if (to === AnimationState.IDLE) finish(true)
+      })
+      this.shutdown.signal.addEventListener('abort', onShutdown, { once: true })
+    })
   }
 
-  onAnimationCleanupDone(): void {
-    if (this.stateMachine.state === AnimationState.COMPLETING) {
+  private cancelTask(): void {
+    const task = this.activeTask
+    this.activeTask = null
+    task?.abort.abort()
+    this.timeoutManager.cancel()
+  }
+
+  onAnimationPlaying(task?: AnimationTask | null): void {
+    if (this.isTaskCurrent(task)) this.stateMachine.transition(AnimationState.PLAYING, 'animation-started')
+  }
+
+  onAnimationComplete(task?: AnimationTask | null): void {
+    if (this.isTaskCurrent(task) && this.stateMachine.isAnimating)
+      this.stateMachine.transition(AnimationState.COMPLETING, 'animation-finished')
+  }
+
+  onAnimationCleanupDone(task?: AnimationTask | null): void {
+    if (this.isTaskCurrent(task) && this.stateMachine.state === AnimationState.COMPLETING) {
+      this.activeTask = null
       this.stateMachine.transition(AnimationState.IDLE, 'cleanup-complete')
     }
   }
 
   async waitForHit(source: PetSpriteRef | null, category: Category): Promise<TimeoutResult> {
     const config = this.buildTimeoutConfig(category, false)
-    this.stateMachine.transition(AnimationState.PLAYING, 'waiting-for-hit')
+    if (this.disposed || this.stateMachine.isRecovering) return 'cancelled'
     return this.timeoutManager.waitForCondition(source, this.stateMachine, {
       ...config,
       baseTimeout: Math.min(config.baseTimeout / 3, 3000),
@@ -79,63 +142,78 @@ export class AnimationController {
   }
 
   async waitForAnimationComplete(source: PetSpriteRef | null, category: Category): Promise<TimeoutResult> {
+    if (this.disposed || this.stateMachine.isRecovering) return 'cancelled'
     const hasTransform = this.stateMachine.snapshot().hasTransform
     const config = this.buildTimeoutConfig(category, hasTransform)
     return this.timeoutManager.waitForCondition(source, this.stateMachine, config)
   }
 
   onDisconnect(): void {
+    if (this.disposed) return
+    this.connectionGeneration++
+    this.reconnectAbort?.abort()
     this.stateMachine.onDisconnect()
     this.gsapManager.killAll()
     this.timeoutManager.cancel()
   }
 
-  async onReconnect(store: BattleStoreLike): Promise<void> {
+  async onReconnect(store: BattleStoreLike): Promise<boolean> {
+    if (this.disposed) return false
+    this.reconnectAbort?.abort()
+    const abort = new AbortController()
+    this.reconnectAbort = abort
+    const generation = ++this.connectionGeneration
+    const current = () => !this.disposed && generation === this.connectionGeneration
+    const snapshotSeq = store.lastProcessedSequenceId
     this.stateMachine.onReconnect()
-
-    store.animateQueue.complete()
-    ;(store as unknown as Record<string, unknown>).animateQueue = new Subject()
-
-    let latestSequenceId = store.lastProcessedSequenceId
+    // Keep the channel captured by the page alive. Snapshot sequence fences
+    // buffered tasks instead of replacing the Subject beneath its consumers.
     try {
       if (store.battleInterface) {
-        const latestState = await store.battleInterface.getState(store.playerId, false)
-        if (latestState && 'status' in latestState) {
-          const s = store as unknown as Record<string, unknown>
-          s.battleState = latestState
-          s.lastProcessedSequenceId = latestState.sequenceId ?? store.lastProcessedSequenceId
-          latestSequenceId = s.lastProcessedSequenceId as number
-        }
+        const latestState = await waitForAnimationOperation(
+          store.battleInterface.getState(store.playerId, false),
+          abort.signal,
+          10000,
+        )
+        if (!current()) return false
+        const actions =
+          latestState.status === 'Ended'
+            ? []
+            : await waitForAnimationOperation(store.fetchAvailableSelection(current), abort.signal, 10000)
+        if (!current()) return false
+        store.battleState = latestState
+        if (latestState.status === 'Ended') store.isBattleEnd = true
+        store.lastProcessedSequenceId = latestState.sequenceId ?? snapshotSeq
+        store.availableActions = actions
+        store.waitingForResponse = false
       }
     } catch (err) {
+      if (!current()) return false
+      this.stateMachine.markStuck('reconnect-state-fetch-failed')
       console.warn('[AnimationController] reconnect state fetch failed:', err)
+      return false
     }
-
-    const snapshotSeq = this.stateMachine.snapshot().sequenceId
-    const backlog = latestSequenceId - snapshotSeq
-
-    const event: ReconnectEvent = {
+    if (!current()) return false
+    const event = {
       lastSequenceId: snapshotSeq,
-      latestSequenceId,
-      backlog,
+      latestSequenceId: store.lastProcessedSequenceId,
+      backlog: Math.max(0, store.lastProcessedSequenceId - snapshotSeq),
     }
-
     for (const listener of this.onReconnectListeners) {
       try {
         listener(event)
       } catch (err) {
         console.error('[AnimationController] reconnect listener error:', err)
       }
+      if (!current()) return false
     }
-
-    if (backlog > 5) {
-      this.stateMachine.onBacklog(backlog)
-    } else {
-      this.stateMachine.onRecoveryComplete()
-    }
+    // The authoritative snapshot already contains the backlog. Old queued
+    // messages are ignored by sequence; no unbounded catch-up state is needed.
+    this.stateMachine.onRecoveryComplete()
+    return true
   }
 
-  /** Register for reconnection events. Caller must rewire RxJS subscriptions (animateQueue) in the handler. Returns unsubscribe function. */
+  /** Register for reconnection events. The animation queue retains its identity across reconnects. Returns unsubscribe function. */
   registerReconnectListener(listener: (event: ReconnectEvent) => void): () => void {
     this.onReconnectListeners.add(listener)
     return () => {

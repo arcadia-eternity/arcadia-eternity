@@ -4,9 +4,10 @@ import { useBattleAnimations } from '../useBattleAnimations'
 import type { useBattleStore } from '@/stores/battle'
 
 const cameraTo = vi.hoisted(() => vi.fn())
+const effectSet = vi.hoisted(() => vi.fn())
 vi.mock('gsap', () => ({
   default: {
-    set: vi.fn(),
+    set: effectSet,
     timeline: () => {
       const tween = {
         to: (target: unknown, vars: unknown) => {
@@ -28,9 +29,72 @@ vi.mock('gsap', () => ({
 afterEach(() => {
   document.body.innerHTML = ''
   cameraTo.mockClear()
+  effectSet.mockClear()
 })
 describe('floating effects canvas coordinates', () => {
-  it.each([0.25, 1, 1.5])('anchors damage in canvas pixels under viewport scale %s', scale => {
+  it.each([
+    ['left', false, 300, -74],
+    ['right', false, -300, -74],
+    ['left', true, 300, -38],
+    ['right', true, -300, -38],
+  ] as const)('flies damage inward, holds, and fades (%s, crit=%s)', (side, crit, x, y) => {
+    const root = document.createElement('div')
+    document.body.append(root)
+    const effects = useBattleAnimations(
+      ref(root),
+      {} as ReturnType<typeof useBattleStore>,
+      computed(() => null),
+      computed(() => null),
+      computed(() => 1),
+    )
+    effects.showDamageMessage(side, 123, 'normal', crit)
+    const graphic = root.querySelector('[data-battle-effect="damage"]')!.firstElementChild
+    const phases = cameraTo.mock.calls.filter(([target]) => target === graphic)
+    expect(phases[0][1]).toMatchObject({ x, duration: 0.25, ease: 'power2.out' })
+    expect(phases[0][1].y).toBeCloseTo(y)
+    expect(cameraTo.mock.calls).toContainEqual([{}, { duration: 0.5 }])
+    expect(phases[1][1]).toMatchObject({ opacity: 0, duration: 0.5, ease: 'power2.out' })
+    effects.cleanup()
+  })
+  it.each([
+    ['standard', false, 1.35],
+    ['standard', true, 1.65],
+    ['simple', false, 1.35],
+    ['simple', true, 1.65],
+    ['reduced', false, 1],
+    ['reduced', true, 1],
+  ] as const)('scales the entire damage graphic in %s mode (crit=%s)', (motion, crit, expectedScale) => {
+    const root = document.createElement('div')
+    document.body.append(root)
+    const effects = useBattleAnimations(
+      ref(root),
+      {} as ReturnType<typeof useBattleStore>,
+      computed(() => null),
+      computed(() => null),
+      computed(() => 1),
+      undefined,
+      undefined,
+      computed(() => motion),
+    )
+    effects.showDamageMessage('left', 123, 'normal', crit)
+    const graphic = root.querySelector('[data-battle-effect="damage"]')!.firstElementChild
+    const animation = cameraTo.mock.calls.find(([target, vars]) => target === graphic && 'scale' in vars)?.[1]
+    expect(animation).toMatchObject({
+      scale: expectedScale,
+    })
+    if (motion === 'reduced') expect(animation).toMatchObject({ x: 0, y: 0 })
+    expect(graphic?.querySelector('.battle-damage__background')).not.toBeNull()
+    expect(graphic?.querySelector('.battle-damage__digit')).not.toBeNull()
+    effects.cleanup()
+  })
+  it.each([
+    [0.25, 'left', '544px'],
+    [0.25, 'right', '1056px'],
+    [1, 'left', '544px'],
+    [1, 'right', '1056px'],
+    [1.5, 'left', '544px'],
+    [1.5, 'right', '1056px'],
+  ] as const)('anchors damage above and inward under viewport scale %s (%s)', (scale, side, expectedLeft) => {
     const root = document.createElement('div')
     root.style.transform = `scale(${scale})`
     Object.defineProperties(root, { offsetWidth: { value: 1600 }, offsetHeight: { value: 900 } })
@@ -43,11 +107,12 @@ describe('floating effects canvas coordinates', () => {
       computed(() => null),
       computed(() => scale),
     )
-    effects.showDamageMessage('right', 123)
+    effects.showDamageMessage(side, 123)
     const host = root.querySelector('[data-battle-effect="damage"]')!
     const number = host.firstElementChild as HTMLElement
-    expect(number.style.left).toBe('1168px')
-    expect(number.style.top).toBe('360px')
+    expect(number.style.left).toBe(expectedLeft)
+    expect(Number.parseFloat(number.style.top)).toBeCloseTo(252)
+    expect(effectSet).toHaveBeenCalledWith(number, expect.objectContaining({ xPercent: -50, yPercent: -50 }))
     expect(number.style.width).toBe('max-content')
     expect(host.querySelector('[aria-label="伤害 123"]')).not.toBeNull()
     effects.cleanup()

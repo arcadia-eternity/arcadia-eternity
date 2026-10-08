@@ -4,9 +4,11 @@ packages:
   - '!packages/web-ui/dist/ruffle'
 allowBuilds:
   '@scarf/scarf': true
+  '@swc/core': true
   '@tsparticles/engine': true
   app-builder-bin: true
   electron: true
+  electron-winstaller: true
   esbuild: true
   protobufjs: true
   vue-demi: true

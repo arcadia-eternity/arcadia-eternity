@@ -51,7 +51,16 @@ export function useBattlePreparation() {
       const task = tasks.value.find(t => t.id === job.id)!
       task.state = 'loading'
       try {
-        await withDeadline(job.run(), 12000, `${job.label}超时`)
+        const work = job.run()
+        // Optional visuals may recover after the loading deadline. Update only
+        // their resource status; never rerun preparation or the ready handshake.
+        void work.then(
+          () => {
+            if (run === generation && task.state === 'degraded') task.state = 'ready'
+          },
+          () => {},
+        )
+        await withDeadline(work, 12000, `${job.label}超时`)
         if (run !== generation) return
         task.state = 'ready'
       } catch (cause) {

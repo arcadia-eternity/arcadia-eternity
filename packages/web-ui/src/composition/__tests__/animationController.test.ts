@@ -24,6 +24,7 @@ function createMockStore(overrides?: Partial<BattleStoreLike>): BattleStoreLike 
 
 describe('AnimationController', () => {
   let store: BattleStoreLike
+  let taskToken: ReturnType<AnimationController['beginAnimation']> = null
   let ctrl: AnimationController
 
   beforeEach(() => {
@@ -71,7 +72,7 @@ describe('AnimationController', () => {
 
   describe('beginAnimation', () => {
     it('transitions state machine to PREPARING', () => {
-      ctrl.beginAnimation({
+      taskToken = ctrl.beginAnimation({
         messageType: 'SKILL_USE' as any,
         side: 'left',
         skillId: 'skill-1',
@@ -85,48 +86,59 @@ describe('AnimationController', () => {
 
   describe('onAnimationPlaying', () => {
     it('transitions to PLAYING', () => {
-      ctrl.beginAnimation({
+      taskToken = ctrl.beginAnimation({
         messageType: 'SKILL_USE' as any,
         side: 'left',
         sequenceId: 1,
         expectedDuration: 500,
       })
-      ctrl.onAnimationPlaying()
+      ctrl.onAnimationPlaying(taskToken)
       expect(ctrl.stateMachine.state).toBe(AnimationState.PLAYING)
     })
   })
 
   describe('onAnimationComplete', () => {
     it('transitions to COMPLETING', () => {
-      ctrl.beginAnimation({
+      taskToken = ctrl.beginAnimation({
         messageType: 'SKILL_USE' as any,
         side: 'left',
         sequenceId: 1,
         expectedDuration: 500,
       })
-      ctrl.onAnimationPlaying()
-      ctrl.onAnimationComplete()
+      ctrl.onAnimationPlaying(taskToken)
+      ctrl.onAnimationComplete(taskToken)
       expect(ctrl.stateMachine.state).toBe(AnimationState.COMPLETING)
     })
   })
 
+  it.each([AnimationState.PAUSED, AnimationState.RECOVERING, AnimationState.CATCHING_UP])(
+    'does not let late animation completion overwrite %s',
+    state => {
+      if (state === AnimationState.CATCHING_UP) ctrl.stateMachine.onReconnect()
+      ctrl.stateMachine.transition(state, 'test-interruption')
+      ctrl.onAnimationComplete(taskToken)
+      ctrl.onAnimationCleanupDone(taskToken)
+      expect(ctrl.stateMachine.state).toBe(state)
+    },
+  )
+
   describe('onAnimationCleanupDone', () => {
     it('transitions COMPLETING → IDLE', () => {
-      ctrl.beginAnimation({
+      taskToken = ctrl.beginAnimation({
         messageType: 'SKILL_USE' as any,
         side: 'left',
         sequenceId: 1,
         expectedDuration: 500,
       })
-      ctrl.onAnimationPlaying()
-      ctrl.onAnimationComplete()
-      ctrl.onAnimationCleanupDone()
+      ctrl.onAnimationPlaying(taskToken)
+      ctrl.onAnimationComplete(taskToken)
+      ctrl.onAnimationCleanupDone(taskToken)
       expect(ctrl.stateMachine.state).toBe(AnimationState.IDLE)
     })
 
     it('does nothing from IDLE (no transition)', () => {
       const logLen = ctrl.stateMachine.transitionLog.length
-      ctrl.onAnimationCleanupDone()
+      ctrl.onAnimationCleanupDone(taskToken)
       expect(ctrl.stateMachine.state).toBe(AnimationState.IDLE)
       expect(ctrl.stateMachine.transitionLog.length).toBe(logLen)
     })
@@ -244,7 +256,7 @@ describe('AnimationController', () => {
       })
     })
 
-    it('triggers CATCHING_UP state when backlog > 5', async () => {
+    it('finishes recovery after the authoritative snapshot covers a large backlog', async () => {
       store.lastProcessedSequenceId = 5
       store.battleInterface = {
         getState: vi.fn().mockResolvedValue({ status: 'battle', sequenceId: 20 }),
@@ -252,11 +264,11 @@ describe('AnimationController', () => {
 
       await ctrl.onReconnect(store)
 
-      expect(ctrl.stateMachine.state).toBe(AnimationState.CATCHING_UP)
+      expect(ctrl.stateMachine.state).toBe(AnimationState.IDLE)
     })
 
     it('triggers RECOVERING→IDLE when backlog <= 5', async () => {
-      ctrl.beginAnimation({
+      taskToken = ctrl.beginAnimation({
         messageType: 'SKILL_USE' as any,
         side: 'left',
         sequenceId: 5,
@@ -272,7 +284,7 @@ describe('AnimationController', () => {
       expect(ctrl.stateMachine.state).toBe(AnimationState.IDLE)
     })
 
-    it('creates new Subject after completing old animateQueue', async () => {
+    it('preserves the queue and its page subscriptions across reconnect', async () => {
       const oldComplete = vi.fn()
       store.animateQueue = { complete: oldComplete } as any
 
@@ -282,9 +294,9 @@ describe('AnimationController', () => {
 
       await ctrl.onReconnect(store)
 
-      expect(oldComplete).toHaveBeenCalled()
+      expect(oldComplete).not.toHaveBeenCalled()
       expect((store as any).animateQueue).toBeDefined()
-      expect(typeof (store as any).animateQueue.subscribe).toBe('function')
+      expect((store as any).animateQueue.complete).toBe(oldComplete)
     })
   })
 

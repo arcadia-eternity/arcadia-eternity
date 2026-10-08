@@ -99,9 +99,34 @@ export type StateListener = (from: AnimationState, to: AnimationState, ctx: Deep
 
 const MAX_TRANSITION_LOG = 200
 
+export const ANIMATION_TRANSITIONS: Readonly<Record<AnimationState, readonly AnimationState[]>> = {
+  idle: [AnimationState.PREPARING, AnimationState.PAUSED, AnimationState.RECOVERING, AnimationState.STUCK],
+  preparing: [
+    AnimationState.PLAYING,
+    AnimationState.COMPLETING,
+    AnimationState.PAUSED,
+    AnimationState.RECOVERING,
+    AnimationState.CATCHING_UP,
+    AnimationState.STUCK,
+  ],
+  playing: [
+    AnimationState.COMPLETING,
+    AnimationState.PAUSED,
+    AnimationState.RECOVERING,
+    AnimationState.CATCHING_UP,
+    AnimationState.STUCK,
+  ],
+  completing: [AnimationState.IDLE, AnimationState.PAUSED, AnimationState.RECOVERING, AnimationState.STUCK],
+  paused: [AnimationState.RECOVERING],
+  recovering: [AnimationState.IDLE, AnimationState.CATCHING_UP, AnimationState.PAUSED, AnimationState.STUCK],
+  catching_up: [AnimationState.IDLE, AnimationState.PAUSED, AnimationState.RECOVERING, AnimationState.STUCK],
+  stuck: [AnimationState.RECOVERING, AnimationState.PAUSED],
+}
+
 // ── 核心类 ──────────────────────────────────────────────────
 
 export class AnimationStateMachine {
+  private disposed = false
   private _context = reactive(createDefaultContext())
   private _listeners = new Set<StateListener>()
   private _transitionLog: TransitionLogEntry[] = []
@@ -126,8 +151,10 @@ export class AnimationStateMachine {
    * @param to 目标状态
    * @param reason 转换原因（用于日志和调试）
    */
-  transition(to: AnimationState, reason: string): void {
-    if (this._context.state === to) return
+  transition(to: AnimationState, reason: string): boolean {
+    if (this.disposed) return false
+    if (this._context.state === to) return true
+    if (!ANIMATION_TRANSITIONS[this._context.state].includes(to)) return false
 
     const from = this._context.state
     const entry: TransitionLogEntry = { from, to, time: Date.now(), reason }
@@ -148,6 +175,7 @@ export class AnimationStateMachine {
         console.error('[AnimationStateMachine] listener error:', err)
       }
     }
+    return true
   }
 
   // ── 上下文更新 ───────────────────────────────────────────
@@ -160,7 +188,8 @@ export class AnimationStateMachine {
     petId?: string
     sequenceId: number
     expectedDuration: number
-  }): void {
+  }): boolean {
+    if (!this.canAcceptNewTask) return false
     this._context.currentMessageType = opts.messageType
     this._context.currentSide = opts.side
     this._context.currentSkillId = opts.skillId ?? null
@@ -173,10 +202,12 @@ export class AnimationStateMachine {
     this._context.activeTweenIds = []
     this._context.tempDomCount = 0
     this._context.cancelReason = null
+    return true
   }
 
   /** 注册 GSAP tween ID */
   registerTween(id: string): void {
+    if (this.disposed) return
     if (!this._context.activeTweenIds.includes(id)) {
       this._context.activeTweenIds.push(id)
     }
@@ -184,22 +215,26 @@ export class AnimationStateMachine {
 
   /** 注销 GSAP tween ID */
   unregisterTween(id: string): void {
+    if (this.disposed) return
     const idx = this._context.activeTweenIds.indexOf(id)
     if (idx >= 0) this._context.activeTweenIds.splice(idx, 1)
   }
 
   /** 增加临时 DOM 计数 */
   incrementTempDom(): void {
+    if (this.disposed) return
     this._context.tempDomCount++
   }
 
   /** 减少临时 DOM 计数 */
   decrementTempDom(): void {
+    if (this.disposed) return
     if (this._context.tempDomCount > 0) this._context.tempDomCount--
   }
 
   /** 标记动画序列中存在变身 */
   markTransform(petId: string): void {
+    if (this.disposed) return
     this._context.hasTransform = true
     this._context.currentPetId = petId
   }
@@ -208,18 +243,20 @@ export class AnimationStateMachine {
 
   /** 断线时调用 → PAUSED */
   onDisconnect(): void {
+    if (this.disposed) return
     this._context.cancelReason = 'socket-disconnected'
     this.transition(AnimationState.PAUSED, 'socket-disconnected')
   }
 
   /** 开始重连 → RECOVERING */
   onReconnect(): void {
+    if (this.disposed) return
     this.transition(AnimationState.RECOVERING, 'socket-reconnected')
   }
 
   /** 恢复完成 → IDLE */
   onRecoveryComplete(): void {
-    this.transition(AnimationState.IDLE, 'recovery-complete')
+    if (this.state === AnimationState.RECOVERING) this.transition(AnimationState.IDLE, 'recovery-complete')
   }
 
   /** 检测到消息积压 → CATCHING_UP */
@@ -243,12 +280,14 @@ export class AnimationStateMachine {
 
   /** 标记卡死 → STUCK */
   markStuck(reason: string): void {
+    if (this.disposed || !ANIMATION_TRANSITIONS[this.state].includes(AnimationState.STUCK)) return
     this._context.cancelReason = reason
     this.transition(AnimationState.STUCK, reason)
   }
 
   /** 强制恢复到 IDLE（健康检查触发） */
   forceRecover(): void {
+    if (this.disposed || this.state === AnimationState.PAUSED) return
     this.transition(AnimationState.RECOVERING, 'force-recovery')
     // 立即转到 IDLE
     this._context.cancelReason = 'force-recovered'
@@ -274,7 +313,7 @@ export class AnimationStateMachine {
 
   /** 是否可以接受新动画任务 */
   get canAcceptNewTask(): boolean {
-    return this._context.state === AnimationState.IDLE && !this.isRecovering
+    return !this.disposed && this._context.state === AnimationState.IDLE
   }
 
   /** 是否应该跳过动画（快进模式） */
@@ -307,6 +346,7 @@ export class AnimationStateMachine {
 
   /** 注册状态变更监听器。返回取消注册函数 */
   onStateChange(listener: StateListener): () => void {
+    if (this.disposed) return () => {}
     this._listeners.add(listener)
     return () => {
       this._listeners.delete(listener)
@@ -322,6 +362,7 @@ export class AnimationStateMachine {
 
   /** 完全重置状态机 */
   reset(): void {
+    if (this.disposed) return
     this._context.state = AnimationState.IDLE
     this._context.currentMessageType = null
     this._context.currentSide = null
@@ -342,5 +383,6 @@ export class AnimationStateMachine {
     this._listeners.clear()
     this._transitionLog = []
     this.reset()
+    this.disposed = true
   }
 }

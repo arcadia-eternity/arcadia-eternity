@@ -63,6 +63,37 @@ describe('battle preparation', () => {
     expect(preparation.ready.value).toBe(true)
   })
 
+  it('updates a late optional resource without resetting readiness or repeating the handshake', async () => {
+    vi.useFakeTimers()
+    try {
+      const preparation = useBattlePreparation()
+      let finish!: () => void
+      const handshake = vi.fn(async () => {})
+      const loading = preparation.prepare([
+        {
+          id: 'sprite',
+          label: '精灵',
+          run: () =>
+            new Promise<void>(resolve => {
+              finish = resolve
+            }),
+        },
+        { id: 'connection', label: '连接', required: true, run: handshake },
+      ])
+      await vi.advanceTimersByTimeAsync(12000)
+      await loading
+      expect(preparation.ready.value).toBe(true)
+      expect(preparation.degraded.value).toEqual(['精灵'])
+      finish()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(preparation.degraded.value).toEqual([])
+      expect(preparation.ready.value).toBe(true)
+      expect(handshake).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('bounds a hung resource and clears the deadline on success', async () => {
     vi.useFakeTimers()
     try {

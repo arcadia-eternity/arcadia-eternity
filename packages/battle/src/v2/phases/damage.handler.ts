@@ -5,6 +5,7 @@ import { EffectTrigger } from '@arcadia-eternity/const'
 import { updateDamageResult, type DamageContext } from '@arcadia-eternity/plugin-damage'
 import type { PetSystem } from '../systems/pet.system.js'
 import type { MarkSystem } from '../systems/mark.system.js'
+import { consumeMarkStacks } from '../systems/consume-mark-stacks.js'
 import type { DamageContextData } from '../schemas/context.schema.js'
 
 export interface DamagePhaseData {
@@ -74,7 +75,7 @@ export class DamageHandler implements PhaseHandler<DamagePhaseData> {
       const shields = this.markSystem.getShieldMarks(world, ctx.targetId)
       for (const shield of shields) {
         if (ctx.damageResult <= 0) break
-        const consumed = this.markSystem.consumeStack(world, shield.id, ctx.damageResult)
+        const consumed = await consumeMarkStacks(world, shield.id, ctx.damageResult)
         ctx.damageResult -= consumed
       }
       ctx.damageResult = Math.max(0, ctx.damageResult)

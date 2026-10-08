@@ -11,7 +11,7 @@ export interface BattleStoreLike {
   } | null
   availableActions: unknown[]
   waitingForResponse: boolean
-  fetchAvailableSelection(): Promise<unknown[]>
+  fetchAvailableSelection(isCurrent?: () => boolean): Promise<unknown[]>
   playerId: string
   lastProcessedSequenceId: number
   animateQueue: { complete(): void }

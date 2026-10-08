@@ -64,6 +64,13 @@ const settings = useGameSettingStore()
         >
           <BattleGlyph name="log" />
         </button>
+        <label class="battle-motion">
+          <span class="sr-only">精灵表现</span>
+          <select v-model="settings.battleRenderer" aria-label="精灵表现">
+            <option value="swf">SWF 动画</option>
+            <option value="image">纯图片战斗</option>
+          </select>
+        </label>
         <label class="battle-motion"
           ><BattleGlyph name="motion" /><span class="sr-only">动效模式</span
           ><select v-model="settings.battleMotion" aria-label="动效模式">
