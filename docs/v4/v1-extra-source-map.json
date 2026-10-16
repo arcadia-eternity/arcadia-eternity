@@ -1,0 +1,15 @@
+{
+  "packages/effectBuilder/src/evaluator.ts": "packages/battle/src/v4/legacy/effectBuilder/src/evaluator.ts",
+  "packages/effectBuilder/src/condition.ts": "packages/battle/src/v4/legacy/effectBuilder/src/condition.ts",
+  "packages/effectBuilder/src/extractor.ts": "packages/battle/src/v4/legacy/effectBuilder/src/extractor.ts",
+  "packages/effectBuilder/src/operator.ts": "packages/battle/src/v4/legacy/effectBuilder/src/operator.ts",
+  "packages/effectBuilder/src/selector.ts": "packages/battle/src/v4/legacy/effectBuilder/src/selector.ts",
+  "packages/effectBuilder/src/index.ts": "packages/battle/src/v4/legacy/effectBuilder/src/index.ts",
+  "packages/effectBuilder/src/runtime-type-checker.ts": "packages/battle/src/v4/legacy/effectBuilder/src/runtime-type-checker.ts",
+  "packages/effectBuilder/src/conditionStep.ts": "packages/battle/src/v4/legacy/effectBuilder/src/conditionStep.ts",
+  "packages/effectBuilder/src/effectBuilder.ts": "packages/battle/src/v4/legacy/effectBuilder/src/effectBuilder.ts",
+  "packages/effectBuilder/type-metadata.json": "packages/battle/src/v4/legacy/effectBuilder/type-metadata.json",
+  "packages/parser/src/parseEffect.ts": "packages/battle/src/v4/legacy/parser/parseEffect.ts",
+  "packages/schema/src/effectDsl.ts": "packages/battle/src/v4/legacy/schema/effectDsl.ts",
+  "packages/dataRepository/src/dataRepository.ts": "packages/battle/src/v4/legacy/dataRepository.ts"
+}
