@@ -1,0 +1,12 @@
+$ pnpm --filter @arcadia-eternity/battle run test:run --maxWorkers=2
+$ vitest run --maxWorkers=2
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ target: 'node18' }`
+
+ RUN  v4.1.11 <repo>/packages/battle
+
+
+ Test Files  19 passed (19)
+      Tests  108 passed | 3 expected fail (111)
+   Start at  22:09:59
+   Duration  42.21s (transform 4.20s, setup 0ms, import 16.65s, tests 55.59s, environment 22ms)
+

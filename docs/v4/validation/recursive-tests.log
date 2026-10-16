@@ -1,0 +1,79 @@
+Scope: 19 of 21 workspace projects
+packages/engine test:run$ vitest run test --maxWorkers=2
+packages/engine test:run:  RUN  v4.1.11 <repo>/packages/engine
+packages/engine test:run:  Test Files  1 passed (1)
+packages/engine test:run:       Tests  4 passed (4)
+packages/engine test:run:    Start at  22:11:48
+packages/engine test:run:    Duration  362ms (transform 65ms, setup 0ms, import 89ms, tests 6ms, environment 0ms)
+packages/engine test:run: Done
+packages/schema test:run$ vitest run --maxWorkers=2
+packages/schema test:run: Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ target: 'node18' }`
+packages/schema test:run:  RUN  v4.1.11 <repo>/packages/schema
+packages/schema test:run:  Test Files  5 passed | 1 skipped (6)
+packages/schema test:run:       Tests  14 passed | 6 skipped (20)
+packages/schema test:run:    Start at  22:11:50
+packages/schema test:run:    Duration  1.66s (transform 397ms, setup 0ms, import 1.63s, tests 48ms, environment 1ms)
+packages/schema test:run: Done
+packages/battle test:run$ vitest run --maxWorkers=2
+packages/client test:run$ vitest run --config vitest.config.ts --maxWorkers=2
+packages/battle test:run: Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ target: 'node18' }`
+packages/client test:run:  RUN  v4.1.11 <repo>/packages/client
+packages/battle test:run:  RUN  v4.1.11 <repo>/packages/battle
+packages/client test:run:  Test Files  1 passed (1)
+packages/client test:run:       Tests  3 passed (3)
+packages/client test:run:    Start at  22:11:52
+packages/client test:run:    Duration  942ms (transform 326ms, setup 0ms, import 575ms, tests 15ms, environment 0ms)
+packages/client test:run: Done
+packages/battle test:run:  Test Files  19 passed (19)
+packages/battle test:run:       Tests  108 passed | 3 expected fail (111)
+packages/battle test:run:    Start at  22:11:52
+packages/battle test:run:    Duration  35.22s (transform 2.51s, setup 0ms, import 13.69s, tests 48.60s, environment 3ms)
+packages/battle test:run: Done
+packages/p2p-transport test:run$ vitest run test/*.test.ts --maxWorkers=2
+packages/rules test:run$ vitest run --maxWorkers=2
+packages/p2p-transport test:run:  RUN  v4.1.11 <repo>/packages/p2p-transport
+packages/rules test:run: Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ target: 'node14' }`
+packages/rules test:run:  RUN  v4.1.11 <repo>/packages/rules
+packages/p2p-transport test:run:  ❯ test/battleE2e.test.ts (3 tests | 3 failed) 12ms
+packages/p2p-transport test:run:      × plays at least one real round over p2p transport 6ms
+packages/p2p-transport test:run:      × still advances when peer skips action and turn timer auto-resolves 2ms
+packages/p2p-transport test:run:      × ends battle when peer skips action and total timer is exhausted 1ms
+packages/p2p-transport test:run: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+packages/p2p-transport test:run:  FAIL  test/battleE2e.test.ts > runInMemoryP2PBattleE2E > plays at least one real round over p2p transport
+packages/p2p-transport test:run: TypeError: runInMemoryP2PBattleE2E is not a function
+packages/p2p-transport test:run:  ❯ test/battleE2e.test.ts:7:26
+packages/p2p-transport test:run:       5| describe('runInMemoryP2PBattleE2E', () => {
+packages/p2p-transport test:run:       6|   test('plays at least one real round over p2p transport', async () =>…
+packages/p2p-transport test:run:       7|     const result = await runInMemoryP2PBattleE2E({
+packages/p2p-transport test:run:        |                          ^
+packages/p2p-transport test:run:       8|       rounds: 2,
+packages/p2p-transport test:run:       9|       playerATeam: {
+packages/p2p-transport test:run: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+packages/p2p-transport test:run:  FAIL  test/battleE2e.test.ts > runInMemoryP2PBattleE2E > still advances when peer skips action and turn timer auto-resolves
+packages/p2p-transport test:run: TypeError: runInMemoryP2PBattleE2E is not a function
+packages/p2p-transport test:run:  ❯ test/battleE2e.test.ts:58:26
+packages/p2p-transport test:run:      56|
+packages/p2p-transport test:run:      57|   test('still advances when peer skips action and turn timer auto-reso…
+packages/p2p-transport test:run:      58|     const result = await runInMemoryP2PBattleE2E({
+packages/p2p-transport test:run:        |                          ^
+packages/p2p-transport test:run:      59|       rounds: 1,
+packages/p2p-transport test:run:      60|       peerActionMode: 'skip',
+packages/p2p-transport test:run: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+packages/p2p-transport test:run:  FAIL  test/battleE2e.test.ts > runInMemoryP2PBattleE2E > ends battle when peer skips action and total timer is exhausted
+packages/p2p-transport test:run: TypeError: runInMemoryP2PBattleE2E is not a function
+packages/p2p-transport test:run:  ❯ test/battleE2e.test.ts:119:26
+packages/p2p-transport test:run:     117|
+packages/p2p-transport test:run:     118|   test('ends battle when peer skips action and total timer is exhauste…
+packages/p2p-transport test:run:     119|     const result = await runInMemoryP2PBattleE2E({
+packages/p2p-transport test:run:        |                          ^
+packages/p2p-transport test:run:     120|       rounds: 1,
+packages/p2p-transport test:run:     121|       peerActionMode: 'skip',
+packages/p2p-transport test:run: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+packages/p2p-transport test:run:  Test Files  1 failed | 6 passed (7)
+packages/p2p-transport test:run:       Tests  3 failed | 12 passed (15)
+packages/p2p-transport test:run:    Start at  22:12:28
+packages/p2p-transport test:run:    Duration  2.52s (transform 798ms, setup 0ms, import 1.33s, tests 141ms, environment 1ms)
+packages/p2p-transport test:run: Failed
+<repo>/packages/p2p-transport:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @arcadia-eternity/p2p-transport@1.0.0 test:run: `vitest run test/*.test.ts --maxWorkers=2`
+Exit status 1

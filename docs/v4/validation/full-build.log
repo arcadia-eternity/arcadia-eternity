@@ -1,0 +1,137 @@
+$ run-s lint build:package typecheck build:cli
+$ pnpm exec eslint .
+$ pnpm --filter "./packages/**" --filter=!@arcadia-eternity/web-ui run build
+Scope: 18 of 21 workspace projects
+packages/engine build$ run-p build:code build:types
+packages/const build$ run-p build:code build:types
+packages/engine build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/const build: $ rolldown -c
+packages/engine build: $ rolldown -c
+packages/const build: $ pnpm exec tsgo --emitDeclarationOnly --preserveSymlinks --skipLibCheck
+packages/const build: <DIR>/index.js  chunk │ size: 26.03 kB
+packages/const build: ✔ rolldown v1.0.0-rc.18 Finished in 70.52 ms
+packages/engine build: <DIR>/index.js  chunk │ size: 47.05 kB
+packages/engine build: ✔ rolldown v1.0.0-rc.18 Finished in 78.25 ms
+packages/engine build: Done
+packages/const build: Done
+packages/database build$ run-p build:code build:types
+packages/engine-plugins/element build$ run-p build:code build:types
+packages/engine-plugins/damage build$ run-p build:code build:types
+packages/engine-plugins/transformation build$ run-p build:code build:types
+packages/database build: $ rolldown -c
+packages/engine-plugins/damage build: $ rolldown -c
+packages/engine-plugins/element build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/engine-plugins/element build: $ rolldown -c
+packages/database build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/engine-plugins/transformation build: $ rolldown -c
+packages/engine-plugins/damage build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/engine-plugins/transformation build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/database build: <DIR>/index.js  chunk │ size: 21.35 kB
+packages/database build: ✔ rolldown v1.0.0-rc.18 Finished in 130.97 ms
+packages/engine-plugins/damage build: <DIR>/index.js  chunk │ size: 2.40 kB
+packages/engine-plugins/damage build: ✔ rolldown v1.0.0-rc.18 Finished in 70.25 ms
+packages/engine-plugins/transformation build: <DIR>/index.js  chunk │ size: 5.53 kB
+packages/engine-plugins/transformation build: ✔ rolldown v1.0.0-rc.18 Finished in 166.39 ms
+packages/engine-plugins/element build: <DIR>/index.js  chunk │ size: 2.83 kB
+packages/engine-plugins/element build: ✔ rolldown v1.0.0-rc.18 Finished in 162.34 ms
+packages/engine-plugins/element build: Done
+packages/schema build$ run-s clear build:code build:types
+packages/engine-plugins/transformation build: Done
+packages/engine-plugins/damage build: Done
+packages/database build: Done
+packages/schema build: $ rm -rf dist
+packages/schema build: $ rolldown -c
+packages/schema build: <DIR>/index.js  chunk │ size: 75.36 kB
+packages/schema build: ✔ rolldown v1.0.0-rc.18 Finished in 31.95 ms
+packages/schema build: $ pnpm exec tsgo -p tsconfig.build.json --skipLibCheck
+packages/schema build: Done
+packages/dataRepository build$ run-p build:code build:types
+packages/protocol build$ run-p build:code build:types
+packages/dataRepository build: $ rolldown -c
+packages/protocol build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/protocol build: $ rolldown -c
+packages/dataRepository build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/protocol build: <DIR>/index.js  chunk │ size: 0.00 kB
+packages/protocol build: ✔ rolldown v1.0.0-rc.18 Finished in 31.70 ms
+packages/dataRepository build: <DIR>/index.js  chunk │ size: 12.48 kB
+packages/dataRepository build: ✔ rolldown v1.0.0-rc.18 Finished in 48.70 ms
+packages/protocol build: Done
+packages/dataRepository build: Done
+packages/cli-validator build$ run-p build:code build:types
+packages/interface build$ run-p build:code build:types
+packages/cli-validator build: $ rolldown -c
+packages/cli-validator build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/interface build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/interface build: $ rolldown -c
+packages/cli-validator build: <DIR>/index.js  chunk │ size: 6.95 kB
+packages/cli-validator build: ✔ rolldown v1.0.0-rc.18 Finished in 89.16 ms
+packages/interface build: <DIR>/index.js  chunk │ size: 0.00 kB
+packages/interface build: ✔ rolldown v1.0.0-rc.18 Finished in 51.29 ms
+packages/interface build: Done
+packages/cli-validator build: Done
+packages/client build$ run-p build:code build:types
+packages/battle build$ run-s clear build:code build:types
+packages/battle build: $ rm -rf dist
+packages/client build: $ rolldown -c
+packages/client build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/client build: <DIR>/index.js  chunk │ size: 28.25 kB
+packages/client build: ✔ rolldown v1.0.0-rc.18 Finished in 54.37 ms
+packages/battle build: $ rolldown -c
+packages/client build: Done
+packages/battle build: <DIR>/v4.js                        chunk │ size:   4.96 kB
+packages/battle build: <DIR>/index.js                     chunk │ size:  11.53 kB
+packages/battle build: <DIR>/node.js                      chunk │ size:  16.60 kB
+packages/battle build: <DIR>/attributeSystem-D7HVOxuy.js  chunk │ size:  46.17 kB
+packages/battle build: <DIR>/v4-DfsMprRF.js               chunk │ size: 203.14 kB
+packages/battle build: <DIR>/v4-legacy.js                 chunk │ size: 327.35 kB
+packages/battle build: <DIR>/parsers-BMEZKvQN.js          chunk │ size: 345.88 kB
+packages/battle build: ✔ rolldown v1.0.0-rc.18 Finished in 123.99 ms
+packages/battle build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/battle build: Done
+packages/console build$ run-p build:code build:types
+packages/pack-loader build$ run-s clear build:code build:types
+packages/rules build$ run-p build:code build:types
+packages/p2p-transport build$ run-p build:code build:types
+packages/console build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/console build: $ rolldown -c
+packages/pack-loader build: $ rm -rf dist
+packages/p2p-transport build: $ pnpm exec tsgo -p tsconfig.build.json --emitDeclarationOnly
+packages/p2p-transport build: $ rolldown -c
+packages/console build: <DIR>/index.js  chunk │ size: 24.98 kB
+packages/console build: ✔ rolldown v1.0.0-rc.18 Finished in 127.85 ms
+packages/p2p-transport build: <DIR>/privateRoomPeerSession-CiUlvQI4.js  chunk │ size:  2.62 kB
+packages/p2p-transport build: <DIR>/node.js                             chunk │ size:  7.95 kB
+packages/p2p-transport build: <DIR>/index.js                            chunk │ size: 14.78 kB
+packages/p2p-transport build: ✔ rolldown v1.0.0-rc.18 Finished in 35.05 ms
+packages/rules build: $ rolldown -c
+packages/rules build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/pack-loader build: $ rolldown -c
+packages/rules build: <DIR>/index.js.map  asset │ size: 259.31 kB
+packages/rules build: <DIR>/index.js      chunk │ size: 133.63 kB
+packages/rules build: ✔ rolldown v1.0.0-rc.18 Finished in 136.95 ms
+packages/console build: Done
+packages/p2p-transport build: Done
+packages/pack-loader build: <DIR>/generate-pack-lockfile.js  chunk │ size:  6.77 kB
+packages/pack-loader build: <DIR>/index.js                   chunk │ size: 23.00 kB
+packages/pack-loader build: ✔ rolldown v1.0.0-rc.18 Finished in 37.00 ms
+packages/rules build: Done
+packages/pack-loader build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/pack-loader build: Done
+packages/server build$ run-p build:code build:types
+packages/server build: $ rolldown -c
+packages/server build: $ pnpm exec tsgo --emitDeclarationOnly
+packages/server build: <DIR>/rolldown-runtime-CiIaOW0V.js        chunk │ size:   0.36 kB
+packages/server build: <DIR>/eloCalculationService--37mqEae.js   chunk │ size:   5.18 kB
+packages/server build: <DIR>/eloService-CEf13UGF.js              chunk │ size:   6.16 kB
+packages/server build: <DIR>/clusterAuthService-7BH5CuAS.js      chunk │ size:   9.34 kB
+packages/server build: <DIR>/sessionManager-D_VUuVxW.js          chunk │ size:  11.26 kB
+packages/server build: <DIR>/resourceLoadingManager-CzA-BtED.js  chunk │ size:  12.84 kB
+packages/server build: <DIR>/distributedLock-B1gZVGEl.js         chunk │ size:  14.00 kB
+packages/server build: <DIR>/index.js                            chunk │ size: 659.54 kB
+packages/server build: ✔ rolldown v1.0.0-rc.18 Finished in 166.58 ms
+packages/server build: Done
+$ pnpm exec tsgo --noEmit
+$ rolldown -c
+<DIR>/cli.js  chunk │ size: 22.83 kB
+
+✔ rolldown v1.0.0-rc.18 Finished in 19.00 ms

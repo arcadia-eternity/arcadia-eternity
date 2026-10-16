@@ -1,0 +1,5 @@
+$ pnpm exec tsgo -p packages/battle/tsconfig.v4-test.json
+
+$ pnpm exec tsgo -p packages/battle/tsconfig.baseline.json
+
+$ pnpm exec eslint --config eslint.config.v4.js packages/battle/test/v4/*.ts packages/battle/v4.ts packages/battle/v4-legacy.ts packages/battle/src/v4/api.ts
