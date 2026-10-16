@@ -8,7 +8,7 @@ export interface TrustedEffect<T extends EffectTrigger = EffectTrigger> extends 
   version: string
   triggers: readonly T[]
   priority?: number
-  execute(context: EffectContext<T>): void
+  execute(context: EffectContext<NoInfer<T>>): void
 }
 export function defineEffect<T extends EffectTrigger>(definition: TrustedEffect<T>): TrustedEffect<T> {
   return definition

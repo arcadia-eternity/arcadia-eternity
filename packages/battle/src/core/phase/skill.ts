@@ -7,10 +7,11 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
   protected executeOperation() {
     const ctx = this.context,
       battle = this.battle,
-      { player, pet, skill } = ctx
+      { player, pet } = ctx
     ctx.updateActualTarget()
     battle.applyEffects(ctx, EffectTrigger.BeforeUseSkillCheck)
-    const target = ctx.target
+    battle.phaseManager.assertContext(ctx)
+    const { target, skill } = ctx
     const reason = !ctx.available
       ? 'disabled'
       : !pet.isAlive || player.activePet !== pet

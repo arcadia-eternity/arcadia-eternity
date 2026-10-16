@@ -31,6 +31,9 @@ export class Skill implements Instance<BaseSkill, skillId>, OwnedEntity<Pet>, Ef
     this.rage = base.rage
     this.priority = base.priority
   }
+  get battle() {
+    return this.owner.battle
+  }
   setOwner(owner: Pet) {
     if (owner !== this.owner) throw new Error('Skill ownership is fixed for this battle instance')
   }

@@ -10,6 +10,8 @@ import { prepareNextDecision } from './battleSwitch.js'
 
 export function saveSkillPlan(ctx: UseSkillContext): SkillPlan {
   return copyData({
+    skillId: ctx.skill.id,
+    selectTarget: ctx.selectTarget,
     available: ctx.available,
     power: ctx.power,
     accuracy: ctx.accuracy,
@@ -79,15 +81,17 @@ export class TurnActionPhase extends SynchronousPhase<TurnContext> {
         new SwitchPetPhase(new SwitchPetContext(ctx, player, battle.getPetByID(next.action.pet))),
       )
     if (next.action.type === 'use-skill') {
+      if (!next.skillPlan) throw new Error('Missing queued skill context data')
+      const { skillId, ...plan } = copyData(next.skillPlan)
       const skill = Object.assign(
         new UseSkillContext(
           ctx,
           player,
           battle.getPetByID(next.actorPetId),
           next.action.target,
-          battle.getSkillByID(next.action.skill),
+          battle.getSkillByID(skillId ?? next.action.skill),
         ),
-        copyData(next.skillPlan ?? {}),
+        plan,
       )
       ctx.data.executedPetIds.push(next.actorPetId)
       battle.phaseManager.executeSync(new SkillPhase(skill))

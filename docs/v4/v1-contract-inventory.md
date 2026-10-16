@@ -33,3 +33,13 @@
 - 新增类型反例测试证明错误 owner、prototype、trigger-parent 和 phase-context 组合不能编译；运行测试证明实际结算经过具体 Phase，并保留父链。
 
 此文是修正依据，完成状态以代码、类型反例、运行证据及后续复核为准，不因存在同名类就视为完成。
+
+## 当前实现证据
+
+- 实体契约落在 `src/core/entity.ts`，具体对象实现原型/实例/所有者的泛型关联；runtime ID 使用 const 的品牌类型，内容 Definition 与队伍 build 为纯数据输入。
+- Context 父类型和触发器映射落在 `context.ts`；`EffectContext.effect` 与 `EffectPhase.definition` 使用 NoInfer 约束，防止错误 handler 反向推宽 trigger 泛型。
+- `phase/` 实际包含各结算职责的实现，`Battle` 不再集中规则体。`continuation.ts` 只承载存档数据，不冒充运行时 Phase。
+- 运行测试有 50 项，包括 Phase/Context 真正的父链、TurnContext 数据恢复、BeforeSort 选招/目标连续性、覆盖印记配置和跨 Battle 隔离。另有 13 个有效编译反例；错误匹配不能编译。
+- EffectPhase 已执行 BeforeEffect/AfterEffect 的真实生命周期；AfterAttacked 和 Transform 完整生命周期仍未实现。完整变身/撤销、动态 modifier 与正式 EffectTemplate 不属于这次已验证的能力，不以类型声明替代实现。
+
+这份状态仍是草稿 PR 的可审查进展；Issues 保持打开，未据此自动宣布完整架构验收。

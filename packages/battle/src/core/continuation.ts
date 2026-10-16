@@ -4,6 +4,7 @@ import type { BattleAction } from './battle.js'
 /** Persisted continuation, rather than a serialized call stack or host Promise. */
 export type SkillPlan = Pick<
   SkillContext,
+  | 'selectTarget'
   | 'available'
   | 'power'
   | 'accuracy'
@@ -19,7 +20,7 @@ export type SkillPlan = Pick<
   | 'multihit'
   | 'hitOverrides'
   | 'critOverrides'
->
+> & { skillId: string }
 export interface QueuedAction {
   action: BattleAction
   actorPetId: string

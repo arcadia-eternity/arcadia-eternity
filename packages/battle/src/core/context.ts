@@ -140,6 +140,20 @@ export class UseSkillContext extends Context<TurnContext> {
     const roll = this.battle.random() * 100
     this.crit = override?.willCrit ?? roll < (this.skill.sureCrit ? 100 : this.critRate)
   }
+  setSkill(skill: Skill, updateConfig = true) {
+    if (skill.owner !== this.pet) throw new Error('Replacement skill must belong to the acting Pet')
+    this.skill = skill
+    if (updateConfig) {
+      this.power = skill.power
+      this.rage = skill.rage
+      this.category = skill.category
+      this.element = skill.element
+      this.accuracy = skill.accuracy
+      this.multihit = copyData(skill.multihit)
+      this.ignoreShield = skill.ignoreShield
+      this.ignoreStageStrategy = skill.base.ignoreOpponentStageStrategy
+    }
+  }
   amplifyPower(value: number) {
     this.power *= value
   }
@@ -473,7 +487,7 @@ export class EffectContext<TTrigger extends EffectTrigger> extends Context<Trigg
     readonly trigger: TTrigger,
     readonly source: Skill | Mark,
     readonly params: JsonObject,
-    readonly effect: TrustedEffect<TTrigger>,
+    readonly effect: TrustedEffect<NoInfer<TTrigger>>,
   ) {
     super(parent)
   }

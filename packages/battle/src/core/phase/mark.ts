@@ -48,6 +48,8 @@ export class AddMarkPhase extends SynchronousPhase<AddMarkContext, Mark | null> 
     const ctx = this.context,
       battle = this.battle
     requireNumber(ctx.stack, 'mark stack', 1)
+    requireNumber(ctx.config.maxStacks, 'mark max stacks', 1)
+    if (!Number.isInteger(ctx.duration) || ctx.duration < -1) throw new Error('Invalid mark duration override')
     const existing = ctx.target.marks.find(mark => mark.base.id === ctx.baseMark.id && mark.isActive)
     if (existing) {
       battle.phaseManager.executeSync(new MarkStackPhase(new StackContext(ctx, existing)))
@@ -56,8 +58,14 @@ export class AddMarkPhase extends SynchronousPhase<AddMarkContext, Mark | null> 
     for (const mark of [...ctx.target.marks])
       if (ctx.config.mutexGroup && mark.config.mutexGroup === ctx.config.mutexGroup)
         battle.removeMark(new RemoveMarkContext(ctx, mark, true))
-    const mark = new MarkInstance(battle.allocateMarkId(), ctx.baseMark, ctx.target, ctx.stack, ctx.creatorId)
-    mark.config = copyData(ctx.config)
+    const mark = new MarkInstance(
+      battle.allocateMarkId(),
+      ctx.baseMark,
+      ctx.target,
+      ctx.stack,
+      ctx.creatorId,
+      ctx.config,
+    )
     mark.duration = ctx.duration
     ctx.createdMark = mark
     ctx.target.marks.push(mark)

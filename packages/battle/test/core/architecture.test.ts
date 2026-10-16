@@ -5,11 +5,15 @@ import {
   EffectRegistry,
   defineEffect,
   EffectTrigger,
+  AttackTargetOpinion,
   Context,
   EffectContext,
   TurnContext,
   UseSkillContext,
   DamageContext,
+  HealContext,
+  RageContext,
+  RemoveMarkContext,
   AddMarkContext,
   DamagePhase,
   SkillPhase,
@@ -23,6 +27,7 @@ import {
   type TrustedEffect,
 } from '@arcadia-eternity/battle/core'
 import { officialContent, basicOptions, skillAction, runOfficial } from './official.js'
+import { registry as originalRegistry } from './trusted201.js'
 
 let original: BattleContent
 beforeAll(async () => {
@@ -201,3 +206,157 @@ it('records genuine skill, rage, switch, effect and mark phases during the origi
   ])
     expect(kinds.has(kind), kind).toBe(true)
 })
+
+it.each([
+  [1, 10, 5, 5],
+  [10, 2, 5, 2],
+])('clamps initial stacks against overridden config (%i -> %i)', (baseMax, overrideMax, requested, expected) => {
+  const hook = defineEffect({
+    id: 'config-override',
+    version: '1',
+    triggers: [EffectTrigger.OnBattleStart],
+    execute(context) {
+      const pet = context.battle.playerA.activePet,
+        base = context.battle.content.mark('target')
+      const add = new AddMarkContext(context, pet, base, requested)
+      add.overrideConfig({ maxStacks: overrideMax })
+      const mark = pet.addMark(add)!
+      expect(mark.stack).toBe(expected)
+      expect(mark.config.maxStacks).toBe(overrideMax)
+    },
+  })
+  const { content, options, registry } = contentWith([hook])
+  content.marks.push({ ...structuredClone(content.marks[0]), id: 'target', effects: [] })
+  content.marks[1].config.maxStacks = baseMax
+  const battle = createBattle(options, content, registry)
+  battle.start()
+  expect(restoreBattle(battle.snapshot(), content, registry).snapshot()).toEqual(battle.snapshot())
+})
+it('preserves BeforeSort skill and target changes across a serialized turn boundary', () => {
+  const hook = defineEffect({
+    id: 'retarget',
+    version: '1',
+    triggers: [EffectTrigger.BeforeSort],
+    execute(context) {
+      const skill = context.parent
+      if (skill.player.id !== 'A') return
+      skill.setSkill(skill.pet.skills[1])
+      skill.selectTarget = AttackTargetOpinion.self
+    },
+  })
+  const { content, options, registry } = contentWith([hook])
+  options.players[0].team[0].skills = ['skill_paida', 'skill_qili']
+  const run = (restore: boolean) => {
+    let battle = createBattle(options, content, registry)
+    battle.start()
+    battle.submitAction(skillAction(battle, 'A'), false)
+    battle.submitAction(skillAction(battle, 'B'), false)
+    battle.advance()
+    battle.advance()
+    const queued = battle.snapshot().state.phase.queue.find(item => item.action.player === 'A')!
+    expect(queued.skillPlan?.selectTarget).toBe(AttackTargetOpinion.self)
+    expect(queued.skillPlan?.skillId).toBe(battle.playerA.activePet.skills[1].id)
+    if (restore) battle = restoreBattle(battle.snapshot(), content, registry)
+    while (battle.advance()) {
+      /* finish this turn */
+    }
+    return battle
+  }
+  const fresh = run(false),
+    restored = run(true)
+  expect(restored.snapshot()).toEqual(fresh.snapshot())
+  const used = fresh.getEvents().find(event => event.type === 'skillUse' && event.data.petId === 'A/lead')!
+  expect(used.data.baseSkillId).toBe('skill_qili')
+  expect(used.data.targetId).toBe('A/lead')
+})
+it('rejects foreign participants before mutation and leaves the other battle intact on rollback', () => {
+  const foreign = createBattle(basicOptions(), structuredClone(original), originalRegistry),
+    foreignBefore = foreign.snapshot()
+  const hook = defineEffect({
+    id: 'foreign-damage',
+    version: '1',
+    triggers: [EffectTrigger.OnBattleStart],
+    execute(context) {
+      context.battle.damage(new DamageContext(context, context.battle.playerA.activePet, foreign.playerA.activePet, 10))
+    },
+  })
+  const { content, options, registry } = contentWith([hook]),
+    battle = createBattle(options, content, registry),
+    before = battle.snapshot()
+  expect(() => battle.start()).toThrow('another battle')
+  expect(battle.snapshot()).toEqual(before)
+  expect(foreign.snapshot()).toEqual(foreignBefore)
+})
+it('runs typed BeforeEffect and AfterEffect phases around a callback without recursing on meta hooks', () => {
+  const order: string[] = []
+  const before = defineEffect({
+    id: 'before',
+    version: '1',
+    triggers: [EffectTrigger.BeforeEffect],
+    execute(context) {
+      expect(context.parent).toBeInstanceOf(EffectContext)
+      order.push('before')
+    },
+  })
+  const main = defineEffect({
+    id: 'main',
+    version: '1',
+    triggers: [EffectTrigger.OnBattleStart],
+    execute(context) {
+      expect(context.parent).toBe(context.battle)
+      order.push('main')
+    },
+  })
+  const after = defineEffect({
+    id: 'after',
+    version: '1',
+    triggers: [EffectTrigger.AfterEffect],
+    execute(context) {
+      expect(context.parent.success).toBe(true)
+      order.push('after')
+    },
+  })
+  const { content, options, registry } = contentWith([before, main, after]),
+    battle = createBattle(options, content, registry)
+  battle.start()
+  expect(order).toEqual(['before', 'main', 'after'])
+})
+
+it.each(['damage-source', 'heal-target', 'rage-player', 'remove-mark'] as const)(
+  'isolates foreign %s participants',
+  kind => {
+    const foreignOptions = basicOptions()
+    foreignOptions.players[0].team[0].ability = original.marks[0].id
+    const foreign = createBattle(foreignOptions, structuredClone(original), originalRegistry)
+    foreign.start()
+    const foreignBefore = foreign.snapshot()
+    const hook = defineEffect({
+      id: 'foreign-operation',
+      version: '1',
+      triggers: [EffectTrigger.OnBattleStart],
+      execute(context) {
+        const local = context.battle.playerA.activePet
+        switch (kind) {
+          case 'damage-source':
+            context.battle.damage(new DamageContext(context, foreign.playerA.activePet, local, 10))
+            break
+          case 'heal-target':
+            context.battle.heal(new HealContext(context, local, foreign.playerA.activePet, 10))
+            break
+          case 'rage-player':
+            context.battle.changeRage(new RageContext(context, foreign.playerA, 10, 'add', 'effect'))
+            break
+          case 'remove-mark':
+            context.battle.removeMark(new RemoveMarkContext(context, foreign.playerA.activePet.marks[0], true))
+            break
+        }
+      },
+    })
+    const { content, options, registry } = contentWith([hook]),
+      battle = createBattle(options, content, registry),
+      before = battle.snapshot()
+    expect(() => battle.start()).toThrow('another battle')
+    expect(battle.snapshot()).toEqual(before)
+    expect(foreign.snapshot()).toEqual(foreignBefore)
+  },
+)

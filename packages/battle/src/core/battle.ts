@@ -458,7 +458,7 @@ export class Battle extends Context<null> implements MarkOwner {
     this.lastKillerId = state.lastKillerId
     const restoreMarks = (states: MarkState[], owner: Pet | Battle) =>
       states.map(s => {
-        const mark = new Mark(s.id as markId, this.content.mark(s.baseId), owner, s.stack, s.creatorId)
+        const mark = new Mark(s.id as markId, this.content.mark(s.baseId), owner, s.stack, s.creatorId, s.config)
         mark.duration = s.duration
         mark.isActive = s.isActive
         mark.config = copyData(s.config)
@@ -534,6 +534,13 @@ export class Battle extends Context<null> implements MarkOwner {
       if (pet.owner !== player) throw new Error('Invalid queued player')
       switch (item.action.type) {
         case 'use-skill':
+          if (
+            phase.kind === 'action' &&
+            (!item.skillPlan ||
+              this.getSkillByID(item.skillPlan.skillId).owner !== pet ||
+              !Object.values(AttackTargetOpinion).includes(item.skillPlan.selectTarget))
+          )
+            throw new Error('Invalid saved skill context plan')
           if (
             this.getSkillByID(item.action.skill).owner !== pet ||
             item.action.target !== this.getSkillByID(item.action.skill).target

@@ -41,7 +41,7 @@ stop()
 | Pet    | 原始与当前 Species、等级、EV/IV/性格/性别/尺寸、HP、出场可见性、特性/纹章、技能实例、印记、最近技能/连续次数/历史                 | V1 Pet + V2 的有界技能历史；养成 build 和临时状态分开                                       |
 | Skill  | 稳定实例 ID、原型、owner、威力/命中/怒气/优先度/是否已出现；类别、属性、目标、连击、必中/必暴、穿盾、忽略对手阶段、标签、效果引用 | V1 BaseSkill/SkillInstance；原型内容被冻结，实例值独立                                      |
 | Mark   | 原型、稳定实例 ID、owner、创建者、层数、时长、激活和配置；叠层/消耗/销毁/转移/换宠继承                                            | V1 BaseMark/MarkInstance；能力等级以特殊印记表达，移除印记即移除数值效果，不留残余 modifier |
-| Phase  | 可序列化的阶段 continuation、待提交动作、已排序动作/行动精灵 ID、强制与奖励换宠席位                                               | V1 battleLoop/selection/turn/battleSwitch；不保存函数、闭包、Promise 或对象引用             |
+| Phase  | `BattlePhaseBase<TContext,TResult>`、具体结算 Phase 和 PhaseManager 的嵌套执行栈及生命周期                                        | 运行时 context 保留父链；`BattleContinuation` 单独承载存档 DTO                              |
 
 种族保留原始编号、属性、基础种族值、性别比例、体型范围、特性/纹章候选和学习表；原型可带 asset/sfx/icon 引用，资源加载归宿主。可手动覆盖 HP 用于 #201 的机制样例，不引入排位配队校验。
 
@@ -136,8 +136,16 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 - `Battle extends Context<null>`；`TurnContext.parent` 是 Battle，`UseSkillContext.parent` 是 TurnContext，`DamageContext.parent` 是技能或效果上下文。添加/移除/叠层/消耗/转移/换宠/治疗/怒气各有自己的类和父类型。`EffectContext<T>.parent` 与 `effect` 随 `TriggerContextMap[T]`/`TrustedEffect<T>` 绑定；`defineEffect` 让回调直接获得具体上下文。
 - `phase/` 包含实际执行规则的 BattleStart/BattleLoop/Selection/BattleSwitch/Turn（Start/Action/End）/Skill/SwitchPet/Damage/Heal/Rage/AddMark/RemoveMark/MarkStack/ConsumeStack/MarkSwitchOut/MarkTransfer/MarkUpdate/MarkCleanup/EffectExecution/Effect Phase。规则体已移出 Battle，Battle 保留状态、公开入口及存档校验。
 - PhaseManager 提供确定性 ID、父 Phase ID、执行栈、状态和清理；同步与交互 Phase 区分，输入不足进入 Waiting。快照只写 Phase trace/counter、continuation 和 TurnContext 的普通数据，恢复时重新建立类与父链，不序列化运行时 context 对象。
-- `type-contracts.ts` 有 10 个编译反例，确保错误的父 context、触发器、Phase/Context、实体 owner、prototype、品牌 ID 和变身 prototype 组合不能编译。运行测试检查真实嵌套 Phase、父链、跨行动保存的 TurnContext 数据以及失败回滚后的栈。
+- `type-contracts.ts` 有 13 个编译反例，确保错误的父 context、触发器、Phase/Context、实体 owner、prototype、品牌 ID 和变身 prototype 组合不能编译。运行测试检查真实嵌套 Phase、父链、跨行动保存的 TurnContext 数据以及失败回滚后的栈。
 - 能力等级添加现在仅走一次 AddMarkContext/OnBeforeAddMark，去掉首版 stage helper 重复发出的两次触发；原官方场景仍是 7 回合及相同伤害/最终状态，Core golden 按这个明确差异从 357 调整为 355 条事件。原 V2 golden 不变。
 - `TransformContext<TTarget>` 保留 target→prototype 类型关系；完整变身与恢复/撤销运行机制尚未实现，不能将类型声明当作 TransformPhase 已完成。正式 Effect/EffectTemplate 系统、属性 modifier/变身策略仍需随 #205/#223 明确，不迁移官方 DSL。
 
 当前以新增架构证据为基础重新复核；历史 Standards/Spec 的“无剩余问题”不再作为本次架构完整性结论。
+
+### 修正后的复核记录
+
+独立审查对照 V1 后发现并修复：效果泛型推断可被不匹配的 handler 扩宽；BeforeSort 更换的 skill/selectTarget 在 continuation 中丢失；印记覆盖 maxStacks 后创建及恢复仍按原型上限夹取；typed context 的实体可能来自另一场 Battle。对应加入 handler 编译反例、重建前后技能/目标一致、双向 maxStacks 覆盖及跨战斗 damage/heal/rage/remove 隔离回归。
+
+当前 4 文件、50 项运行测试通过，13 个编译反例均有效，Core/test 严格类型检查与专项 lint 通过。BeforeEffect/AfterEffect 已在 EffectPhase 中执行，meta hook 不递归包装自身，并可影响目标 EffectContext.available；新增实际顺序测试。Core 完整 golden 由 355 增至 379 条事件，新增 24 条 meta trigger，更新时独立校验全部非 trigger 事件、ActionLog 和最终状态完全不变。
+
+仍未实现的触发语义明确包括 AfterAttacked 和完整 Transform 生命周期；不能因 TriggerContextMap 有类型声明就认为这些运行机制已完成。完整 Effect/EffectTemplate、变身/撤销策略和动态属性 modifier 仍待 #205/#223 等后续任务，未宣称本轮完成。

@@ -24,8 +24,9 @@ export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>,
     public owner: MarkOwner,
     stack = 1,
     readonly creatorId: string | null = null,
+    config: MarkConfig = base.config,
   ) {
-    this.config = copyData(base.config)
+    this.config = copyData(config)
     this.stack = Math.min(stack, this.config.maxStacks)
     this.duration = this.config.duration
   }

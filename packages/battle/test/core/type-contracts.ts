@@ -6,6 +6,7 @@ import {
   EffectContext,
   AddMarkContext,
   TransformContext,
+  EffectPhase,
   SkillPhase,
   DamagePhase,
   EffectTrigger,
@@ -37,6 +38,18 @@ export function compileContracts(
   const damage = new DamageContext(use, pet, pet, 10)
   const hit = defineEffect({ id: 'hit', version: '1', triggers: [EffectTrigger.OnHit], execute(_context) {} })
   const effect = new EffectContext(use, EffectTrigger.OnHit, skill, {}, hit)
+  const onDamage = defineEffect({ id: 'damage', version: '1', triggers: [EffectTrigger.OnDamage], execute(_ctx) {} })
+  // @ts-expect-error The effect argument must not widen the explicit OnDamage trigger to a union.
+  new EffectContext(damage, EffectTrigger.OnDamage, skill, {}, hit)
+  // @ts-expect-error EffectPhase must keep its callback bound to the context trigger.
+  new EffectPhase(effect, onDamage)
+  defineEffect({
+    id: 'bad',
+    version: '1',
+    triggers: [EffectTrigger.OnDamage],
+    // @ts-expect-error Trigger inference must not be widened from the wrong callback parameter.
+    execute(_ctx: EffectContext<EffectTrigger.OnHit>) {},
+  })
   const parent: UseSkillContext = effect.parent
   const root: Battle = parent.parent.parent
   const petInstance: Instance<Species, petId> = pet
