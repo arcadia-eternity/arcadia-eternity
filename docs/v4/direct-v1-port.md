@@ -6,7 +6,7 @@
 
 ## 兼容修改（业务现代化另记）
 
-- core/context.ts：当前 const 比 V1 多 5 个触发器。保留 V1 精确映射，为新增 enum 项提供 AllContext 类型回退以便构建；没有新增触发派发，不能视为支持 V2 新触发器。
+- context.ts：当前 const 比 V1 多 5 个触发器。保留 V1 精确映射，为新增 enum 项提供 AllContext 类型回退以便构建；没有新增触发派发，不能视为支持 V2 新触发器。
 - phase/RemoveMarkPhase.ts：在原销毁消息添加当前 const 要求的 baseMarkId，未改销毁顺序。
 - skill.ts：把匿名 Builder 原封移为具名 BaseSkillBuilder，静态 BaseSkill.Builder 仍指向同一实现，解决 TS4094 声明生成失败。
 - timer/timerManager.ts：对当前 const 已改为 unknown 的 TimerEvent.data 补充结构断言，未改计时逻辑。
@@ -51,4 +51,42 @@
 
 不提供部分 Pet/Skill/Mark 快照冒充完整恢复。当前没有 BattleSnapshot、restore 或中途恢复；不复用 #228 的缩水状态表示。下一步在本清单上设计完整快照协议与等待点恢复，并为动态 RxJS/任意函数明确可恢复能力边界。
 
-最终验证命令、结果及 RNG/ActionLog/Replay 实际范围在完成测试后补入本文件。
+
+
+## 已验证后才加入的最小现代化
+
+- `createBattle(Player, Player, options?, ConfigSystem?)` 只调用原版 Battle 构造器；`startBattle / setSelection / getAvailableSelection / getState / registerListener / unregisterListener / cleanup` 仍是原版接口。示例及实际运行见 test/v4/scenario.ts；Node CLI 验证命令 `node scripts/verify-v1-hosts.mjs` 会构建并运行原版内核，无需服务。
+- 可注入 `BattleRng { next, nextInt }`，默认仍是 Prando，保留非零种子的 V1 随机序列；修复种子 0 被当作未提供的问题。洗牌及 AI 选项选择改用该流。这是明确的局部行为修正，单独提交，未改伤害/印记/行动顺序算法。
+- `getActionLog()` 返回经 Battle.setSelection 接受的选择、当前回合/阶段及顺序，采用副本隔离。直接 Player.setSelection（包括原版 AI）不在该日志范围内；日志使用本局随机实例 ID，尚非持久重放协议。
+- Battle Event 沿用原版有序 BattleMessage/sequenceId 及监听接口，没有替换或删减事件。尚未统一随机 ID/时间戳、真实计时、动态 RxJS 状态和自定义效果闭包；固定种子重跑只对已测试场景归一化后的事件类型/状态/伤害一致。
+- **没有实现持久 Replay、BattleSnapshot、restore 或阶段中途恢复**。把同种子与同动作再次执行称为回归重跑，不能据此宣称 #204 验收通过。
+
+使用入口：`@arcadia-eternity/battle/v4`；保留旧 DSL 的可选内容工具入口：`@arcadia-eternity/battle/v4/legacy`。浏览器构建保留原版类名（历史阶段类型识别依赖 constructor.name），不要在未专项验证前开启丢失类名的压缩。
+
+## 验证结果（2026-10-16）
+
+| 命令 | 结果 | 证据 |
+| --- | --- | --- |
+| `pnpm build` | 通过：全仓 lint、全部 package build、根 typecheck、CLI bundle | [完整构建](./validation/full-build.log) |
+| `pnpm test:battle-baseline` | 19 文件；108 通过、3 项既有预期失败，共 111 | [#201/V2 原样回归](./validation/v2-baseline.log) |
+| `pnpm test:battle-v4` | 4 文件；24 通过、1 项 V1 历史缺陷预期失败，共 25 | [V1 运行测试](./validation/v1-tests.log) |
+| `pnpm typecheck:battle-v4`、`pnpm typecheck:battle-baseline`、`pnpm lint:battle-v4` | 通过；V4 检查包括全部 legacy 源码与测试。原版源码保留上述风格豁免 | [类型和新增代码 lint](./validation/typecheck-lint.log) |
+| `pnpm verify:battle-v4-source` | 42 核心文件均来自原 commit；87 个映射文件中 63 字节一致、24 有明确兼容/局部现代化改动；相对依赖闭包通过 | [校验结果](./validation/source-check.json)、[完整差异](./v1-compatibility.patch) |
+| `pnpm verify:battle-v4-hosts` | Node + 真实 Chrome 均完成相同 4 回合战斗；完整结果一致；原版气力 DSL 实际把攻击变为 1.5 倍 | [跨宿主结果](./validation/node-browser.log) |
+| `pnpm battle:v4-demo` | 无服务 CLI 实跑原版 YAML/DSL 的 7 回合战斗，A 胜；双方各 8 动作 | [CLI 完整状态](./validation/cli-result.json) |
+| `pnpm -r --filter './packages/**' --if-present run test:run --maxWorkers=2` | 未通过；在 P2P 3 失败处停止，不能声称全仓 tests 全绿 | [递归测试](./validation/recursive-tests.log) |
+
+V1 唯一预期失败为 **V1-BUG-01**：真实技能已造成伤害，实际玩家怒气仍使用调用者未回填的 DamageContext。准备阶段在 beforeAll 中单独断言伤害实际发生且无失败阶段，不能让准备异常被 test.fails 吞掉。后续应独立修复上下文/伤害结果回传，并把该测试改为普通通过；本轮未把缺陷固化为目标规范。
+
+递归测试已完成：engine 4、schema 14（另跳过 6）、client 3、V2 battle 108+3 expected、P2P 12 通过/3 失败。P2P 的 `test/battleE2e.test.ts` 从 `../node` 导入 `runInMemoryP2PBattleE2E`，但 `node.ts` 只导出 webSocket 模块；相关文件与 `refactor/v4` 的 #201 基线完全相同。本轮不修改 P2P。递归命令在此停止，后面的包不计为已验证。
+
+Node/browser 验证读取公开 package 子入口并检查实际模块图；不包含 engine、engine-plugins、server、database、rules、interface、p2p、web-ui。Node 266、browser 267 模块（含原 RxJS/Zod 等依赖），不以“模块更少”衡量成功。Chrome 校验完整结果与 Node 一致，不只是 bundler 成功。CI 会保存模块图、Node 结果及浏览器 DOM 为 artifact。
+
+## 交付边界与下一阶段
+
+- **已移植**：42/42 Battle 核心源码、全部内部依赖、历史 DSL 运行/解析/校验闭包与只读数据；包括计时器、属性/配置和变身等机制，未因未知机制删除代码。
+- **仍未完成**：全部官方效果的逐项实战等价验收、历史缺陷修复、全局 Config/动态 RxJS 隔离、稳定实例/效果身份、完整快照/恢复/持久重放、通用 CLI/Web/Electron/Server 产品接入。上文状态盘点是后续协议设计输入。旧 Rollup/Babel/Node scriptLoader 的宿主工具链没有重建。
+- #202：原类公开 API + Node/Browser 实跑已经可用，但完整宿主边界/取消等契约尚待验收；#203：直接移植领域模型已经落实，领域缺陷/机制验收仍待审查；#204：仅完成 RNG 边界与有限 ActionLog，不关闭 Issue。
+- 下一阶段先修复已验证的 V1-BUG-01 与 HP 参数问题，补印记反转/变身/阶段配置的专项回归；随后基于真实状态清单设计稳定引用、动态依赖注册及等待点恢复。保留当前 DSL 直到 TS EffectTemplate 有逐项等价证据。
+
+本轮没有替换默认 V2 入口，没有修改 #201 源码/fixtures/预期，没有改动 main，也没有重写或删除 #227/#228 分支。

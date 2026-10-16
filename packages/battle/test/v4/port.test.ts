@@ -29,7 +29,12 @@ it('runs the #201 roster and explicit actions through original V1 YAML parsers a
   expect(result.effects.map(e => e.effect)).toContain('effect_skill_add_mark_hunzhuoshuiyu')
   expect(result.effects.map(e => e.effect)).toContain('effect_skill_raise_atk_1_stage')
   expect(result.checkpoints.map(c => c.hp)).toEqual([
-    [298, 300, 30, 30], [284, 300, 30, 30], [284, 300, 30, 30],
-    [284, 273, 11, 30], [284, 273, 0, 30], [284, 255, 0, 12], [284, 255, 0, 0],
+    [298, 300, 30, 30],
+    [284, 300, 30, 30],
+    [284, 300, 30, 30],
+    [284, 273, 11, 30],
+    [284, 273, 0, 30],
+    [284, 255, 0, 12],
+    [284, 255, 0, 0],
   ])
 }, 30000)

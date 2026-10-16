@@ -38,3 +38,19 @@ jobs:
         run: pnpm typecheck:battle-baseline
       - name: Run all V2 battle regressions (no services)
         run: pnpm test:battle-baseline
+      - name: Verify complete V1 source provenance and import boundary
+        run: pnpm verify:battle-v4-source
+      - name: Typecheck and lint original V1 port tests and adapters
+        run: |
+          pnpm typecheck:battle-v4
+          pnpm lint:battle-v4
+      - name: Run real original V1 battles and mechanism regressions
+        run: pnpm test:battle-v4
+      - name: Build and execute original V1 in Node and Chrome
+        run: pnpm verify:battle-v4-hosts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-v1-host-evidence
+          path: packages/battle/dist/v1-host-check/
+          if-no-files-found: ignore

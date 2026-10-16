@@ -1,0 +1,670 @@
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/battle.ts
++++ packages/battle/src/v4/battle.ts
+@@ -35,6 +35,19 @@
+ import { TransformationSystem } from './transformation'
+ import { createChildLogger } from './logger'
+ 
++/** A host may inject a compatible stream; the default remains V1's Prando. */
++export interface BattleRng {
++  next(): number
++  nextInt(min: number, max: number): number
++}
++
++export interface BattleActionRecord {
++  sequence: number
++  turn: number
++  phase: BattlePhase
++  selection: PlayerSelection
++}
++
+ export class Battle extends Context implements MarkOwner {
+   private lastStateMessage: BattleState = {} as BattleState
+   public id: string = nanoid()
+@@ -50,7 +63,8 @@
+   public readonly timerManager: TimerManager
+   public readonly transformationSystem: TransformationSystem = new TransformationSystem(this)
+   public readonly emitter = mitt<Events>()
+-  private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
++  private readonly rng: BattleRng
++  private actionLog: BattleActionRecord[] = []
+ 
+   public status: BattleStatus = BattleStatus.Unstarted
+   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
+@@ -85,13 +99,14 @@
+     options?: {
+       allowFaintSwitch?: boolean
+       rngSeed?: number
++      rng?: BattleRng
+       showHidden?: boolean
+       timerConfig?: Partial<TimerConfig>
+     },
+     configSystem?: ConfigSystem,
+   ) {
+     super(null)
+-    if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
++    this.rng = options?.rng ?? new Prando(options?.rngSeed ?? (Date.now() ^ (Math.random() * 0x100000000)))
+     // Use provided configSystem or create a new instance for this battle
+     this.configSystem = configSystem || ConfigSystem.createInstance(this.id)
+ 
+@@ -199,7 +214,7 @@
+   public shuffle<T>(array: T[]): T[] {
+     const result = [...array]
+     for (let i = result.length - 1; i > 0; i--) {
+-      const j = Math.floor(Math.random() * (i + 1))
++      const j = this.randomInt(0, i)
+       ;[result[i], result[j]] = [result[j], result[i]]
+     }
+     return result
+@@ -386,12 +401,19 @@
+     if (!player) return false
+     const result = player.setSelection(selection)
+     if (result) {
++      this.actionLog.push({ sequence: this.actionLog.length, turn: this.currentTurn, phase: this.currentPhase,
++        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection })
+       this.checkWaitingResolvers()
+ 
+       // 通知TimerManager玩家选择状态变化
+       this.timerManager.handlePlayerSelectionChange(selection.player, true)
+     }
+     return result
++  }
++
++  /** Inputs accepted through setSelection only; runtime IDs are local to this Battle. */
++  public getActionLog(): BattleActionRecord[] {
++    return JSON.parse(JSON.stringify(this.actionLog)) as BattleActionRecord[]
+   }
+ 
+   public getAvailableSelection(playerId: playerId): PlayerSelection[] {
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/context.ts
++++ packages/battle/src/v4/context.ts
+@@ -623,7 +623,7 @@
+   }
+ }
+ 
+-export type TriggerContextMap = {
++type V1TriggerContextMap = {
+   [EffectTrigger.OnBattleStart]: Battle
+ 
+   [EffectTrigger.BeforeSort]: UseSkillContext
+@@ -675,6 +675,10 @@
+   [EffectTrigger.AfterEffect]: AllContext
+ }
+ 
++// Current const also declares V2-only triggers. They have no V1 dispatch sites.
++export type TriggerContextMap = V1TriggerContextMap &
++  Record<Exclude<EffectTrigger, keyof V1TriggerContextMap>, AllContext>
++
+ export class EffectContext<T extends EffectTrigger> extends Context {
+   readonly type = 'effect'
+   public readonly battle: Battle
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/phase/RemoveMarkPhase.ts
++++ packages/battle/src/v4/phase/RemoveMarkPhase.ts
+@@ -74,6 +74,7 @@
+   // Emit mark destroy message
+   battle.emitMessage(BattleMessageType.MarkDestroy, {
+     mark: mark.id,
++    baseMarkId: mark.baseId,
+     target: owner instanceof Pet ? owner.id : 'battle',
+   })
+ }
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/player.ts
++++ packages/battle/src/v4/player.ts
+@@ -414,6 +414,6 @@
+     if (actions.length === 0) {
+       throw new Error('No actions available for random selection')
+     }
+-    return actions[Math.floor(Math.random() * actions.length)]
++    return actions[this.battle!.randomInt(0, actions.length - 1)]
+   }
+ }
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/skill.ts
++++ packages/battle/src/v4/skill.ts
+@@ -15,6 +15,104 @@
+ import { type Instance, type OwnedEntity, type Prototype } from './entity'
+ import { Pet } from './pet'
+ import { SkillAttributeSystem } from './attributeSystem'
++
++export class BaseSkillBuilder {
++    #id = '' as baseSkillId
++    #type = Element.Normal
++    #power = 0
++    #accuracy = 1
++    #rageCost = 0
++    #target = AttackTargetOpinion.opponent
++    #skillType = Category.Physical
++    #effects: Effect<EffectTrigger>[] = []
++    #priority: number = 0
++    #sureHit: boolean = false
++    #sureCrit: boolean = false
++    #ignoreShield: boolean = false
++    #ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
++    #multihit: [number, number] | number = 0
++    #tags: string[] = []
++
++    withID(id: string) {
++      this.#id = id as baseSkillId
++      return this
++    }
++
++    withType(type: Element) {
++      this.#type = type
++      return this
++    }
++
++    withPower(power: number) {
++      this.#power = power
++      return this
++    }
++
++    withAccuracy(accuracy: number) {
++      this.#accuracy = accuracy
++      return this
++    }
++
++    withRageCost(cost: number) {
++      this.#rageCost = cost
++      return this
++    }
++
++    withTarget(target: AttackTargetOpinion) {
++      this.#target = target
++      return this
++    }
++
++    withSkillType(type: Category) {
++      this.#skillType = type
++      return this
++    }
++
++    addEffect(effect: Effect<EffectTrigger>) {
++      this.#effects.push(effect)
++      return this
++    }
++
++    setSureHit() {
++      this.#sureHit = true
++      return this
++    }
++
++    setSureCrit() {
++      this.#sureCrit = true
++      return this
++    }
++
++    withMultihit(hit: [number, number] | number) {
++      this.#multihit = hit
++      return this
++    }
++
++    withTag(...arg: string[]) {
++      this.#tags.push(...arg)
++      return this
++    }
++
++    build() {
++      return new BaseSkill(
++        this.#id,
++        this.#skillType,
++        this.#type,
++        this.#power,
++        this.#accuracy,
++        this.#rageCost,
++        this.#priority,
++        this.#target,
++        this.#multihit,
++        this.#sureHit,
++        this.#sureCrit,
++        this.#ignoreShield,
++        this.#ignoreOpponentStageStrategy,
++        this.#tags,
++        this.#effects,
++      )
++    }
++}
+ 
+ export class BaseSkill implements Prototype {
+   public readonly effects: Effect<EffectTrigger>[] = []
+@@ -39,103 +137,7 @@
+     this.effects = effects
+   }
+ 
+-  static Builder = class {
+-    #id = '' as baseSkillId
+-    #type = Element.Normal
+-    #power = 0
+-    #accuracy = 1
+-    #rageCost = 0
+-    #target = AttackTargetOpinion.opponent
+-    #skillType = Category.Physical
+-    #effects: Effect<EffectTrigger>[] = []
+-    #priority: number = 0
+-    #sureHit: boolean = false
+-    #sureCrit: boolean = false
+-    #ignoreShield: boolean = false
+-    #ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
+-    #multihit: [number, number] | number = 0
+-    #tags: string[] = []
+-
+-    withID(id: string) {
+-      this.#id = id as baseSkillId
+-      return this
+-    }
+-
+-    withType(type: Element) {
+-      this.#type = type
+-      return this
+-    }
+-
+-    withPower(power: number) {
+-      this.#power = power
+-      return this
+-    }
+-
+-    withAccuracy(accuracy: number) {
+-      this.#accuracy = accuracy
+-      return this
+-    }
+-
+-    withRageCost(cost: number) {
+-      this.#rageCost = cost
+-      return this
+-    }
+-
+-    withTarget(target: AttackTargetOpinion) {
+-      this.#target = target
+-      return this
+-    }
+-
+-    withSkillType(type: Category) {
+-      this.#skillType = type
+-      return this
+-    }
+-
+-    addEffect(effect: Effect<EffectTrigger>) {
+-      this.#effects.push(effect)
+-      return this
+-    }
+-
+-    setSureHit() {
+-      this.#sureHit = true
+-      return this
+-    }
+-
+-    setSureCrit() {
+-      this.#sureCrit = true
+-      return this
+-    }
+-
+-    withMultihit(hit: [number, number] | number) {
+-      this.#multihit = hit
+-      return this
+-    }
+-
+-    withTag(...arg: string[]) {
+-      this.#tags.push(...arg)
+-      return this
+-    }
+-
+-    build() {
+-      return new BaseSkill(
+-        this.#id,
+-        this.#skillType,
+-        this.#type,
+-        this.#power,
+-        this.#accuracy,
+-        this.#rageCost,
+-        this.#priority,
+-        this.#target,
+-        this.#multihit,
+-        this.#sureHit,
+-        this.#sureCrit,
+-        this.#ignoreShield,
+-        this.#ignoreOpponentStageStrategy,
+-        this.#tags,
+-        this.#effects,
+-      )
+-    }
+-  }
++  static Builder = BaseSkillBuilder
+ }
+ 
+ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, Instance {
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/timer/timerManager.ts
++++ packages/battle/src/v4/timer/timerManager.ts
+@@ -606,8 +606,8 @@
+     // 发送状态变化事件
+     this.battle.emitter.emit('timerStateChange', {
+       playerId: event.playerId,
+-      oldState: event.data?.oldState || 'unknown',
+-      newState: event.data?.newState || 'unknown',
++      oldState: (event.data as { oldState?: string } | undefined)?.oldState || 'unknown',
++      newState: (event.data as { newState?: string } | undefined)?.newState || 'unknown',
+       timestamp: event.timestamp,
+     })
+   }
+@@ -616,9 +616,10 @@
+    * 处理计时器超时
+    */
+   private handleTimerTimeout(event: TimerEvent): void {
+-    if (!event.playerId || !event.data?.type) return
+-
+-    const timeoutType = event.data.type as TimeoutType
++    const data = event.data as { type?: TimeoutType } | undefined
++    if (!event.playerId || !data?.type) return
++
++    const timeoutType = data.type
+     let autoAction: string | undefined
+ 
+     // 处理超时逻辑 - autoSelectOnTimeout 现在是固定启用的
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/effectBuilder/src/evaluator.ts
++++ packages/battle/src/v4/legacy/effectBuilder/src/evaluator.ts
+@@ -1,4 +1,4 @@
+-import { EffectContext } from '@arcadia-eternity/battle'
++import { EffectContext } from '../../../index'
+ import { EffectTrigger } from '@arcadia-eternity/const'
+ import type { Condition, Evaluator, TargetSelector } from './effectBuilder'
+ import { ChainableSelector, type SelectorOpinion } from './selector'
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/effectBuilder/src/condition.ts
++++ packages/battle/src/v4/legacy/effectBuilder/src/condition.ts
+@@ -14,7 +14,7 @@
+   SwitchPetContext,
+   TurnContext,
+   UseSkillContext,
+-} from '@arcadia-eternity/battle'
++} from '../../../index'
+ import type { Condition, ValueSource } from './effectBuilder'
+ import { ContinuousUseSkillStrategy, StatTypeWithoutHp } from '@arcadia-eternity/const'
+ import { GetValueFromSource } from './operator'
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/effectBuilder/src/extractor.ts
++++ packages/battle/src/v4/legacy/effectBuilder/src/extractor.ts
+@@ -9,7 +9,7 @@
+   SkillInstance,
+   UseSkillContext,
+   MarkInstanceImpl,
+-} from '@arcadia-eternity/battle'
++} from '../../../index'
+ import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@arcadia-eternity/const'
+ import type { SelectorOpinion } from './selector'
+ import type { ValueExtractor } from './effectBuilder'
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/effectBuilder/src/operator.ts
++++ packages/battle/src/v4/legacy/effectBuilder/src/operator.ts
+@@ -12,7 +12,7 @@
+   PhaseType,
+   PhaseScope,
+   type Prototype,
+-} from '@arcadia-eternity/battle'
++} from '../../../index'
+ import {
+   AttributeSystem,
+   Modifier as AttributeModifier,
+@@ -36,7 +36,7 @@
+   DurationType,
+   StatLevelMarkInstanceImpl,
+   type BattlePhaseBase,
+-} from '@arcadia-eternity/battle'
++} from '../../../index'
+ import { Observable } from 'rxjs'
+ import {
+   type baseMarkId,
+@@ -1770,7 +1770,7 @@
+         : []
+   }
+   if (typeof source == 'function') return source(context) //TargetSelector
+-  if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v)[0]) as T[]
++  if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v as ValueSource<T>)[0]) as T[]
+   if (source && typeof source === 'object' && 'configId' in source) {
+     const _source = source as ConfigValueSource<T>
+     // Use the battle's ConfigSystem instance instead of the global singleton
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/effectBuilder/src/selector.ts
++++ packages/battle/src/v4/legacy/effectBuilder/src/selector.ts
+@@ -19,7 +19,7 @@
+   type ScopeObject,
+   Context,
+   type BattlePhaseBase,
+-} from '@arcadia-eternity/battle'
++} from '../../../index'
+ import { Observable, combineLatest, map } from 'rxjs'
+ import {
+   TurnContext,
+@@ -27,7 +27,7 @@
+   type Instance,
+   type OwnedEntity,
+   type Prototype,
+-} from '@arcadia-eternity/battle'
++} from '../../../index'
+ import {
+   AttackTargetOpinion,
+   Category,
+@@ -60,7 +60,7 @@
+ import { createExtractor, type PathExtractor } from './extractor'
+ import { RuntimeTypeChecker } from './runtime-type-checker'
+ import { GetValueFromSource } from './operator'
+-import { DataRepository } from '@arcadia-eternity/data-repository'
++import { DataRepository } from '../../dataRepository'
+ 
+ export type PropertyRef<T, V> = {
+   get: () => V
+@@ -170,7 +170,7 @@
+   }
+ 
+   selectPath<P extends string>(path: P) {
+-    if (process.env.NODE_ENV !== 'production') {
++    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+       if (!/^[\w\[\].]+$/.test(path)) {
+         throw new Error(`Invalid path format: ${path}`)
+       }
+@@ -196,7 +196,7 @@
+     }
+ 
+     // 开发环境下的路径验证
+-    if (process.env.NODE_ENV !== 'production' && extractorPath !== undefined && this.type !== 'any') {
++    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production') && extractorPath !== undefined && this.type !== 'any') {
+       const fullPath = `${this.type}.${extractorPath}`
+ 
+       if (!RuntimeTypeChecker.validatePath(this.type, extractorPath)) {
+@@ -218,7 +218,7 @@
+ 
+   private createExtractedSelector<U>(extractor: PathExtractor<T, U>): ChainableSelector<U> {
+     // 开发环境类型校验
+-    if (process.env.NODE_ENV !== 'production') {
++    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+       if (!RuntimeTypeChecker.validatePath(this.type, extractor.path)) {
+         throw new Error(`[类型错误] 路径 ${extractor.path} 在 ${this.type} 中不存在`)
+       }
+@@ -259,7 +259,7 @@
+       actualCondition = condition!
+ 
+       // 开发环境路径校验
+-      if (process.env.NODE_ENV !== 'production') {
++      if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+         if (!RuntimeTypeChecker.validatePath(this.type, actualPath)) {
+           throw new Error(`[路径校验失败] 路径 "${actualPath}" 在类型 "${this.type}" 中无效\n`)
+         }
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/effectBuilder/src/runtime-type-checker.ts
++++ packages/battle/src/v4/legacy/effectBuilder/src/runtime-type-checker.ts
+@@ -1,4 +1,4 @@
+-import typeMetadata from '../type-metadata.json' assert { type: 'json' }
++import typeMetadata from '../type-metadata.json' with { type: 'json' }
+ 
+ type TypeMetadata = Record<
+   string,
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/effectBuilder/src/effectBuilder.ts
++++ packages/battle/src/v4/legacy/effectBuilder/src/effectBuilder.ts
+@@ -1,4 +1,4 @@
+-import { ConfigSystem, Effect, EffectContext } from '@arcadia-eternity/battle'
++import { ConfigSystem, Effect, EffectContext } from '../../../index'
+ import { EffectTrigger, type effectId } from '@arcadia-eternity/const'
+ import { type ChainableSelector } from './selector'
+ import { nanoid } from 'nanoid'
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/parseEffect.ts
++++ packages/battle/src/v4/legacy/parser/parseEffect.ts
+@@ -17,7 +17,7 @@
+   SwitchPetContext,
+   UseSkillContext,
+   Battle,
+-} from '@arcadia-eternity/battle'
++} from '../../index'
+ import { Observable } from 'rxjs'
+ import {
+   type baseMarkId,
+@@ -30,7 +30,7 @@
+   type StatTypeOnBattle,
+   StatTypeWithoutHp,
+ } from '@arcadia-eternity/const'
+-import { DataRepository } from '@arcadia-eternity/data-repository'
++import { DataRepository } from '../dataRepository'
+ import {
+   BaseSelector,
+   type PathExtractor,
+@@ -49,8 +49,8 @@
+   registerLiteralValue,
+   type ConfigValueSource,
+   type ConditionalValueSource,
+-} from '@arcadia-eternity/effect-builder'
+-import { RuntimeTypeChecker } from '@arcadia-eternity/effect-builder'
++} from '../effectBuilder/src/index'
++import { RuntimeTypeChecker } from '../effectBuilder/src/index'
+ import type {
+   OperatorDSL,
+   ConditionDSL,
+@@ -62,7 +62,7 @@
+   Value,
+   ChainSelector,
+   SelectorValue,
+-} from '@arcadia-eternity/schema'
++} from '../schema/effectDsl'
+ 
+ export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
+   try {
+@@ -193,7 +193,7 @@
+       }
+ 
+       case 'selectProp': {
+-        if (process.env.NODE_ENV !== 'production') {
++        if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+           validatePath(selector, step.arg)
+         }
+ 
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/schema/src/effectDsl.ts
++++ packages/battle/src/v4/legacy/schema/effectDsl.ts
+@@ -1,6 +1,6 @@
+-import type { MarkInstance } from '@arcadia-eternity/battle'
++import type { MarkInstance } from '../../index'
+ import { CleanStageStrategy, ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
+-import { BaseSelector, Extractor, type CompareOperator } from '@arcadia-eternity/effect-builder'
++import { BaseSelector, Extractor, type CompareOperator } from '../effectBuilder/src/index'
+ 
+ export { EffectTrigger }
+ export type { CompareOperator }
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/dataRepository/src/dataRepository.ts
++++ packages/battle/src/v4/legacy/dataRepository.ts
+@@ -1,4 +1,4 @@
+-import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '@arcadia-eternity/battle'
++import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '../index'
+ import {
+   EffectTrigger,
+   type baseMarkId,
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/schema/src/effectSchema.ts
++++ packages/battle/src/v4/legacy/schema/effectSchema.ts
+@@ -4,7 +4,7 @@
+   EffectTrigger,
+   StatTypeWithoutHp,
+ } from '@arcadia-eternity/const'
+-import { BaseSelector, Extractor } from '@arcadia-eternity/effect-builder'
++import { BaseSelector, Extractor } from '../effectBuilder/src/index'
+ import { z } from 'zod'
+ import type {
+   OperatorDSL,
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/effect.ts
++++ packages/battle/src/v4/legacy/parser/effect.ts
+@@ -1,6 +1,6 @@
+-import { Effect } from '@arcadia-eternity/battle'
++import { Effect } from '../../index'
+ import { EffectTrigger } from '@arcadia-eternity/const'
+-import { effectDSLSchema } from '@arcadia-eternity/schema'
++import { effectDSLSchema } from '../schema/index'
+ import { fromZodError } from 'zod-validation-error'
+ import { ZodError } from 'zod'
+ 
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/mark.ts
++++ packages/battle/src/v4/legacy/parser/mark.ts
+@@ -1,7 +1,7 @@
+-import { BaseMark, Effect } from '@arcadia-eternity/battle'
++import { BaseMark, Effect } from '../../index'
+ import { EffectTrigger, type baseMarkId, type effectId } from '@arcadia-eternity/const'
+-import { DataRepository } from '@arcadia-eternity/data-repository'
+-import { MarkSchema } from '@arcadia-eternity/schema'
++import { DataRepository } from '../dataRepository'
++import { MarkSchema } from '../schema/index'
+ 
+ export class MarkParser {
+   static parse(rawData: unknown): BaseMark {
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/pet.ts
++++ packages/battle/src/v4/legacy/parser/pet.ts
+@@ -1,7 +1,7 @@
+-import { BaseMark, Pet, type Species } from '@arcadia-eternity/battle'
++import { BaseMark, Pet, type Species } from '../../index'
+ import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId } from '@arcadia-eternity/const'
+-import { DataRepository } from '@arcadia-eternity/data-repository'
+-import { PetSchema } from '@arcadia-eternity/schema'
++import { DataRepository } from '../dataRepository'
++import { PetSchema } from '../schema/index'
+ import { nanoid } from 'nanoid'
+ import { fromZodError } from 'zod-validation-error'
+ import { ZodError } from 'zod'
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/player.ts
++++ packages/battle/src/v4/legacy/parser/player.ts
+@@ -1,5 +1,5 @@
+-import { Player } from '@arcadia-eternity/battle'
+-import { PlayerSchema } from '@arcadia-eternity/schema'
++import { Player } from '../../index'
++import { PlayerSchema } from '../schema/index'
+ import { nanoid } from 'nanoid'
+ import { PetParser } from './pet'
+ import type { playerId } from '@arcadia-eternity/const'
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/selection.ts
++++ packages/battle/src/v4/legacy/parser/selection.ts
+@@ -2,7 +2,7 @@
+ import {
+   PlayerSelectionSchema,
+   type PlayerSelectionSchemaType as PlayerSelectionSchemaType,
+-} from '@arcadia-eternity/schema'
++} from '../schema/index'
+ 
+ export class SelectionParser {
+   static parse(rawData: unknown): PlayerSelection {
+@@ -60,7 +60,7 @@
+         }
+       default: {
+         // 类型保护，确保处理所有可能类型
+-        const _exhaustiveCheck: never = selection
++        const _exhaustiveCheck = selection
+         throw new Error(`未知的选择类型: ${_exhaustiveCheck}`)
+       }
+     }
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/skill.ts
++++ packages/battle/src/v4/legacy/parser/skill.ts
+@@ -1,7 +1,7 @@
+-import { BaseSkill, Effect } from '@arcadia-eternity/battle'
++import { BaseSkill, Effect } from '../../index'
+ import { EffectTrigger, type baseSkillId, type effectId } from '@arcadia-eternity/const'
+-import { DataRepository } from '@arcadia-eternity/data-repository'
+-import { SkillSchema } from '@arcadia-eternity/schema'
++import { DataRepository } from '../dataRepository'
++import { SkillSchema } from '../schema/index'
+ import { fromZodError } from 'zod-validation-error'
+ import { ZodError } from 'zod'
+ 
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/parser/src/species.ts
++++ packages/battle/src/v4/legacy/parser/species.ts
+@@ -1,7 +1,7 @@
+-import { type Species } from '@arcadia-eternity/battle'
++import { type Species } from '../../index'
+ import type { baseMarkId, speciesId } from '@arcadia-eternity/const'
+-import { DataRepository } from '@arcadia-eternity/data-repository'
+-import { SpeciesSchema } from '@arcadia-eternity/schema'
++import { DataRepository } from '../dataRepository'
++import { SpeciesSchema } from '../schema/index'
+ import { fromZodError } from 'zod-validation-error'
+ import { ZodError } from 'zod'
+ 

@@ -1,0 +1,164 @@
+{
+  "engine": "original-v1/c0862898",
+  "turn": 7,
+  "winner": "A",
+  "content": {
+    "counts": {
+      "effects": 666,
+      "marks": 280,
+      "skills": 576,
+      "species": 91
+    },
+    "failures": []
+  },
+  "acceptedActions": [
+    8,
+    8
+  ],
+  "checkpoints": [
+    {
+      "turn": 1,
+      "hp": [
+        298,
+        300,
+        30,
+        30
+      ],
+      "rage": [
+        15,
+        50
+      ],
+      "marks": [
+        "mark_hunzhuoshuiyu",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie"
+      ]
+    },
+    {
+      "turn": 2,
+      "hp": [
+        284,
+        300,
+        30,
+        30
+      ],
+      "rage": [
+        20,
+        80
+      ],
+      "marks": [
+        "mark_hunzhuoshuiyu",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie"
+      ]
+    },
+    {
+      "turn": 3,
+      "hp": [
+        284,
+        300,
+        30,
+        30
+      ],
+      "rage": [
+        31,
+        85
+      ],
+      "marks": [
+        "mark_hunzhuoshuiyu",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie"
+      ]
+    },
+    {
+      "turn": 4,
+      "hp": [
+        284,
+        273,
+        11,
+        30
+      ],
+      "rage": [
+        56,
+        100
+      ],
+      "marks": [
+        "mark_hunzhuoshuiyu",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie"
+      ]
+    },
+    {
+      "turn": 5,
+      "hp": [
+        284,
+        273,
+        0,
+        30
+      ],
+      "rage": [
+        81,
+        100
+      ],
+      "marks": [
+        "mark_hunzhuoshuiyu",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie"
+      ]
+    },
+    {
+      "turn": 6,
+      "hp": [
+        284,
+        255,
+        0,
+        12
+      ],
+      "rage": [
+        100,
+        100
+      ],
+      "marks": [
+        "mark_hunzhuoshuiyu",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie"
+      ]
+    },
+    {
+      "turn": 7,
+      "hp": [
+        284,
+        255,
+        0,
+        0
+      ],
+      "rage": [
+        100,
+        100
+      ],
+      "marks": [
+        "mark_hunzhuoshuiyu",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie",
+        "mark_ability_zhongjie",
+        "stat_stage_atk_up",
+        "mark_ability_zhongjie"
+      ]
+    }
+  ]
+}

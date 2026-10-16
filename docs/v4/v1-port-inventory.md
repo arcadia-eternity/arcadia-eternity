@@ -34,47 +34,105 @@
 
 | V1 路径 | 移植 | 新路径 | 修改 |
 | --- | --- | --- | --- |
-| `packages/battle/src/attributeSystem.ts` | 是 | `packages/battle/src/v4/attributeSystem.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/battle.ts` | 是 | `packages/battle/src/v4/battle.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/config.ts` | 是 | `packages/battle/src/v4/config.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/context.ts` | 是 | `packages/battle/src/v4/context.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/effect.ts` | 是 | `packages/battle/src/v4/effect.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/entity.ts` | 是 | `packages/battle/src/v4/entity.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/index.ts` | 是 | `packages/battle/src/v4/index.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/logger.ts` | 是 | `packages/battle/src/v4/logger.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/mark.ts` | 是 | `packages/battle/src/v4/mark.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/pet.ts` | 是 | `packages/battle/src/v4/pet.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/AddMarkPhase.ts` | 是 | `packages/battle/src/v4/phase/AddMarkPhase.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/MarkCleanupPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkCleanupPhase.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/MarkStackPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkStackPhase.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/MarkSwitchOutPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkSwitchOutPhase.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/MarkTransferPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkTransferPhase.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/MarkUpdatePhase.ts` | 是 | `packages/battle/src/v4/phase/MarkUpdatePhase.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/RemoveMarkPhase.ts` | 是 | `packages/battle/src/v4/phase/RemoveMarkPhase.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/base.ts` | 是 | `packages/battle/src/v4/phase/base.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/battleLoop.ts` | 是 | `packages/battle/src/v4/phase/battleLoop.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/battleStart.ts` | 是 | `packages/battle/src/v4/phase/battleStart.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/battleSwitch.ts` | 是 | `packages/battle/src/v4/phase/battleSwitch.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/damage.ts` | 是 | `packages/battle/src/v4/phase/damage.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/effect.ts` | 是 | `packages/battle/src/v4/phase/effect.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/effectExecution.ts` | 是 | `packages/battle/src/v4/phase/effectExecution.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/heal.ts` | 是 | `packages/battle/src/v4/phase/heal.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/index.ts` | 是 | `packages/battle/src/v4/phase/index.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/manager.ts` | 是 | `packages/battle/src/v4/phase/manager.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/mark.ts` | 是 | `packages/battle/src/v4/phase/mark.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/rage.ts` | 是 | `packages/battle/src/v4/phase/rage.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/selection.ts` | 是 | `packages/battle/src/v4/phase/selection.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/skill.ts` | 是 | `packages/battle/src/v4/phase/skill.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/switch.ts` | 是 | `packages/battle/src/v4/phase/switch.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/transform.ts` | 是 | `packages/battle/src/v4/phase/transform.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/phase/turn.ts` | 是 | `packages/battle/src/v4/phase/turn.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/player.ts` | 是 | `packages/battle/src/v4/player.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/skill.ts` | 是 | `packages/battle/src/v4/skill.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/timer/animationTracker.ts` | 是 | `packages/battle/src/v4/timer/animationTracker.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/timer/battleTimer.ts` | 是 | `packages/battle/src/v4/timer/battleTimer.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/timer/index.ts` | 是 | `packages/battle/src/v4/timer/index.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/timer/timerManager.ts` | 是 | `packages/battle/src/v4/timer/timerManager.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/transformation.ts` | 是 | `packages/battle/src/v4/transformation.ts` | 原样导入；兼容修改另记 |
-| `packages/battle/src/transformationStrategies.ts` | 是 | `packages/battle/src/v4/transformationStrategies.ts` | 原样导入；兼容修改另记 |
+| `packages/battle/src/attributeSystem.ts` | 是 | `packages/battle/src/v4/attributeSystem.ts` | 原样保留 |
+| `packages/battle/src/battle.ts` | 是 | `packages/battle/src/v4/battle.ts` | 新增 RNG 注入/零种子、洗牌走同流、公共选招 ActionLog；其余业务保留 |
+| `packages/battle/src/config.ts` | 是 | `packages/battle/src/v4/config.ts` | 原样保留 |
+| `packages/battle/src/context.ts` | 是 | `packages/battle/src/v4/context.ts` | V2 新 enum 项的类型回退，无新增派发 |
+| `packages/battle/src/effect.ts` | 是 | `packages/battle/src/v4/effect.ts` | 原样保留 |
+| `packages/battle/src/entity.ts` | 是 | `packages/battle/src/v4/entity.ts` | 原样保留 |
+| `packages/battle/src/index.ts` | 是 | `packages/battle/src/v4/index.ts` | 原样保留 |
+| `packages/battle/src/logger.ts` | 是 | `packages/battle/src/v4/logger.ts` | 原样保留 |
+| `packages/battle/src/mark.ts` | 是 | `packages/battle/src/v4/mark.ts` | 原样保留 |
+| `packages/battle/src/pet.ts` | 是 | `packages/battle/src/v4/pet.ts` | 原样保留 |
+| `packages/battle/src/phase/AddMarkPhase.ts` | 是 | `packages/battle/src/v4/phase/AddMarkPhase.ts` | 原样保留 |
+| `packages/battle/src/phase/MarkCleanupPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkCleanupPhase.ts` | 原样保留 |
+| `packages/battle/src/phase/MarkStackPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkStackPhase.ts` | 原样保留 |
+| `packages/battle/src/phase/MarkSwitchOutPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkSwitchOutPhase.ts` | 原样保留 |
+| `packages/battle/src/phase/MarkTransferPhase.ts` | 是 | `packages/battle/src/v4/phase/MarkTransferPhase.ts` | 原样保留 |
+| `packages/battle/src/phase/MarkUpdatePhase.ts` | 是 | `packages/battle/src/v4/phase/MarkUpdatePhase.ts` | 原样保留 |
+| `packages/battle/src/phase/RemoveMarkPhase.ts` | 是 | `packages/battle/src/v4/phase/RemoveMarkPhase.ts` | 销毁消息补当前类型要求的 baseMarkId |
+| `packages/battle/src/phase/base.ts` | 是 | `packages/battle/src/v4/phase/base.ts` | 原样保留 |
+| `packages/battle/src/phase/battleLoop.ts` | 是 | `packages/battle/src/v4/phase/battleLoop.ts` | 原样保留 |
+| `packages/battle/src/phase/battleStart.ts` | 是 | `packages/battle/src/v4/phase/battleStart.ts` | 原样保留 |
+| `packages/battle/src/phase/battleSwitch.ts` | 是 | `packages/battle/src/v4/phase/battleSwitch.ts` | 原样保留 |
+| `packages/battle/src/phase/damage.ts` | 是 | `packages/battle/src/v4/phase/damage.ts` | 原样保留 |
+| `packages/battle/src/phase/effect.ts` | 是 | `packages/battle/src/v4/phase/effect.ts` | 原样保留 |
+| `packages/battle/src/phase/effectExecution.ts` | 是 | `packages/battle/src/v4/phase/effectExecution.ts` | 原样保留 |
+| `packages/battle/src/phase/heal.ts` | 是 | `packages/battle/src/v4/phase/heal.ts` | 原样保留 |
+| `packages/battle/src/phase/index.ts` | 是 | `packages/battle/src/v4/phase/index.ts` | 原样保留 |
+| `packages/battle/src/phase/manager.ts` | 是 | `packages/battle/src/v4/phase/manager.ts` | 原样保留 |
+| `packages/battle/src/phase/mark.ts` | 是 | `packages/battle/src/v4/phase/mark.ts` | 原样保留 |
+| `packages/battle/src/phase/rage.ts` | 是 | `packages/battle/src/v4/phase/rage.ts` | 原样保留 |
+| `packages/battle/src/phase/selection.ts` | 是 | `packages/battle/src/v4/phase/selection.ts` | 原样保留 |
+| `packages/battle/src/phase/skill.ts` | 是 | `packages/battle/src/v4/phase/skill.ts` | 原样保留 |
+| `packages/battle/src/phase/switch.ts` | 是 | `packages/battle/src/v4/phase/switch.ts` | 原样保留 |
+| `packages/battle/src/phase/transform.ts` | 是 | `packages/battle/src/v4/phase/transform.ts` | 原样保留 |
+| `packages/battle/src/phase/turn.ts` | 是 | `packages/battle/src/v4/phase/turn.ts` | 原样保留 |
+| `packages/battle/src/player.ts` | 是 | `packages/battle/src/v4/player.ts` | 仅 AI 随机选项改用 Battle RNG |
+| `packages/battle/src/skill.ts` | 是 | `packages/battle/src/v4/skill.ts` | 原 Builder 移为具名类，解决声明生成；方法体保留 |
+| `packages/battle/src/timer/animationTracker.ts` | 是 | `packages/battle/src/v4/timer/animationTracker.ts` | 原样保留 |
+| `packages/battle/src/timer/battleTimer.ts` | 是 | `packages/battle/src/v4/timer/battleTimer.ts` | 原样保留 |
+| `packages/battle/src/timer/index.ts` | 是 | `packages/battle/src/v4/timer/index.ts` | 原样保留 |
+| `packages/battle/src/timer/timerManager.ts` | 是 | `packages/battle/src/v4/timer/timerManager.ts` | TimerEvent.data unknown 类型断言 |
+| `packages/battle/src/transformation.ts` | 是 | `packages/battle/src/v4/transformation.ts` | 原样保留 |
+| `packages/battle/src/transformationStrategies.ts` | 是 | `packages/battle/src/v4/transformationStrategies.ts` | 原样保留 |
 
 无核心源文件被排除。历史包的 rollup/tsconfig/package 由当前 monorepo 配置承接；不恢复旧构建链。额外兼容变更及验证结论见 `direct-v1-port.md`。
+
+## 追加移植的内容闭包
+
+为避免以手写效果代替官方行为，在首场原版 Battle 运行后继续从同一历史 commit 提取 EffectBuilder 全部 9 个源文件与 type-metadata、完整 parser/schema 源码及 DataRepository。历史 YAML 作为只读测试材料保留。`v1-port-provenance.json` 对全部 87 个映射文件保存原始 Git blob、原始 SHA256、当前 SHA256；`pnpm verify:battle-v4-source` 检查遗漏、未审查修改、相对 import 闭包和外部依赖允许列表。
+
+以下文件全部移植，没有删减 DSL operator/selector。相对历史源码的完整小幅差异可直接查看 `v1-compatibility.patch`；不必在新增的几万行中猜测哪些是重写。
+
+| 原路径 | 新路径 | 修改 |
+| --- | --- | --- |
+| `packages/effectBuilder/src/evaluator.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/evaluator.ts` | 仅 import 路径 |
+| `packages/effectBuilder/src/condition.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/condition.ts` | 仅 import 路径 |
+| `packages/effectBuilder/src/extractor.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/extractor.ts` | 仅 import 路径 |
+| `packages/effectBuilder/src/operator.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/operator.ts` | import 路径及递归值类型断言 |
+| `packages/effectBuilder/src/selector.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/selector.ts` | import 路径及浏览器 process 存在性检查 |
+| `packages/effectBuilder/src/index.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/index.ts` | 字节一致 |
+| `packages/effectBuilder/src/runtime-type-checker.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/runtime-type-checker.ts` | JSON assertion 改 with |
+| `packages/effectBuilder/src/conditionStep.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/conditionStep.ts` | 字节一致 |
+| `packages/effectBuilder/src/effectBuilder.ts` | `packages/battle/src/v4/legacy/effectBuilder/src/effectBuilder.ts` | 仅 import 路径 |
+| `packages/effectBuilder/type-metadata.json` | `packages/battle/src/v4/legacy/effectBuilder/type-metadata.json` | 字节一致 |
+| `packages/parser/src/parseEffect.ts` | `packages/battle/src/v4/legacy/parser/parseEffect.ts` | import 路径及浏览器 process 存在性检查 |
+| `packages/schema/src/effectDsl.ts` | `packages/battle/src/v4/legacy/schema/effectDsl.ts` | 仅 import 路径 |
+| `packages/dataRepository/src/dataRepository.ts` | `packages/battle/src/v4/legacy/dataRepository.ts` | 仅 import 路径 |
+| `packages/schema/src/effectSchema.ts` | `packages/battle/src/v4/legacy/schema/effectSchema.ts` | 仅 import 路径 |
+| `packages/schema/src/mark.ts` | `packages/battle/src/v4/legacy/schema/mark.ts` | 字节一致 |
+| `packages/parser/src/effect.ts` | `packages/battle/src/v4/legacy/parser/effect.ts` | 仅 import 路径 |
+| `packages/parser/src/index.ts` | `packages/battle/src/v4/legacy/parser/index.ts` | 字节一致 |
+| `packages/parser/src/mark.ts` | `packages/battle/src/v4/legacy/parser/mark.ts` | 仅 import 路径 |
+| `packages/parser/src/pet.ts` | `packages/battle/src/v4/legacy/parser/pet.ts` | 仅 import 路径 |
+| `packages/parser/src/player.ts` | `packages/battle/src/v4/legacy/parser/player.ts` | 仅 import 路径 |
+| `packages/parser/src/selection.ts` | `packages/battle/src/v4/legacy/parser/selection.ts` | schema import；移除 V2 新选择类型导致不成立的 never 断言 |
+| `packages/parser/src/skill.ts` | `packages/battle/src/v4/legacy/parser/skill.ts` | 仅 import 路径 |
+| `packages/parser/src/species.ts` | `packages/battle/src/v4/legacy/parser/species.ts` | 仅 import 路径 |
+| `packages/parser/src/utils.ts` | `packages/battle/src/v4/legacy/parser/utils.ts` | 字节一致 |
+| `packages/schema/src/element.ts` | `packages/battle/src/v4/legacy/schema/element.ts` | 字节一致 |
+| `packages/schema/src/index.ts` | `packages/battle/src/v4/legacy/schema/index.ts` | 字节一致 |
+| `packages/schema/src/markImage.ts` | `packages/battle/src/v4/legacy/schema/markImage.ts` | 字节一致 |
+| `packages/schema/src/metadata.ts` | `packages/battle/src/v4/legacy/schema/metadata.ts` | 字节一致 |
+| `packages/schema/src/pet.ts` | `packages/battle/src/v4/legacy/schema/pet.ts` | 字节一致 |
+| `packages/schema/src/player.ts` | `packages/battle/src/v4/legacy/schema/player.ts` | 字节一致 |
+| `packages/schema/src/schema.ts` | `packages/battle/src/v4/legacy/schema/schema.ts` | 字节一致 |
+| `packages/schema/src/selection.ts` | `packages/battle/src/v4/legacy/schema/selection.ts` | 字节一致 |
+| `packages/schema/src/skill.ts` | `packages/battle/src/v4/legacy/schema/skill.ts` | 字节一致 |
+| `packages/schema/src/species.ts` | `packages/battle/src/v4/legacy/schema/species.ts` | 字节一致 |
+| `data/effect_ability.yaml` | `packages/battle/test/v4/fixtures/v1-data/effect_ability.yaml` | 字节一致 |
+| `data/effect_emblem.yaml` | `packages/battle/test/v4/fixtures/v1-data/effect_emblem.yaml` | 字节一致 |
+| `data/effect_global.yaml` | `packages/battle/test/v4/fixtures/v1-data/effect_global.yaml` | 字节一致 |
+| `data/effect_mark.yaml` | `packages/battle/test/v4/fixtures/v1-data/effect_mark.yaml` | 字节一致 |
+| `data/effect_skill.yaml` | `packages/battle/test/v4/fixtures/v1-data/effect_skill.yaml` | 字节一致 |
+| `data/mark.yaml` | `packages/battle/test/v4/fixtures/v1-data/mark.yaml` | 字节一致 |
+| `data/mark_ability.yaml` | `packages/battle/test/v4/fixtures/v1-data/mark_ability.yaml` | 字节一致 |
+| `data/mark_emblem.yaml` | `packages/battle/test/v4/fixtures/v1-data/mark_emblem.yaml` | 字节一致 |
+| `data/mark_global.yaml` | `packages/battle/test/v4/fixtures/v1-data/mark_global.yaml` | 字节一致 |
+| `data/skill.yaml` | `packages/battle/test/v4/fixtures/v1-data/skill.yaml` | 字节一致 |
+| `data/species.yaml` | `packages/battle/test/v4/fixtures/v1-data/species.yaml` | 字节一致 |
+
+没有恢复历史 Rollup、Babel、类型元数据生成器、旧 Node scriptLoader 和旧 Server/UI 的宿主入口：它们不是 Battle/DSL 运行时 import 闭包；已保留生成后的完整 type-metadata。当前 monorepo 的依赖、构建和小型文件读取测试宿主承接这些职责。未声称旧热更新工具链已产品化接入。
+
+新增代码只有 `src/v4/api.ts` 的构造器转发、测试/宿主验证/来源检查工具；没有新增领域替代模型。`test/v4/fixtures/qili.json` 是历史 skill/effect YAML 中指定 ID 的解析记录，供 Browser 无 FS 验证，仍使用原 DSL。
