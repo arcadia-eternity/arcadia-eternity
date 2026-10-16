@@ -35,6 +35,19 @@ import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
 import { createChildLogger } from './logger'
 
+/** A host may inject a compatible stream; the default remains V1's Prando. */
+export interface BattleRng {
+  next(): number
+  nextInt(min: number, max: number): number
+}
+
+export interface BattleActionRecord {
+  sequence: number
+  turn: number
+  phase: BattlePhase
+  selection: PlayerSelection
+}
+
 export class Battle extends Context implements MarkOwner {
   private lastStateMessage: BattleState = {} as BattleState
   public id: string = nanoid()
@@ -50,7 +63,8 @@ export class Battle extends Context implements MarkOwner {
   public readonly timerManager: TimerManager
   public readonly transformationSystem: TransformationSystem = new TransformationSystem(this)
   public readonly emitter = mitt<Events>()
-  private readonly rng = new Prando(Date.now() ^ (Math.random() * 0x100000000))
+  private readonly rng: BattleRng
+  private actionLog: BattleActionRecord[] = []
 
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
@@ -85,13 +99,14 @@ export class Battle extends Context implements MarkOwner {
     options?: {
       allowFaintSwitch?: boolean
       rngSeed?: number
+      rng?: BattleRng
       showHidden?: boolean
       timerConfig?: Partial<TimerConfig>
     },
     configSystem?: ConfigSystem,
   ) {
     super(null)
-    if (options?.rngSeed) this.rng = new Prando(options.rngSeed)
+    this.rng = options?.rng ?? new Prando(options?.rngSeed ?? (Date.now() ^ (Math.random() * 0x100000000)))
     // Use provided configSystem or create a new instance for this battle
     this.configSystem = configSystem || ConfigSystem.createInstance(this.id)
 
@@ -199,7 +214,7 @@ export class Battle extends Context implements MarkOwner {
   public shuffle<T>(array: T[]): T[] {
     const result = [...array]
     for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
+      const j = this.randomInt(0, i)
       ;[result[i], result[j]] = [result[j], result[i]]
     }
     return result
@@ -386,12 +401,19 @@ export class Battle extends Context implements MarkOwner {
     if (!player) return false
     const result = player.setSelection(selection)
     if (result) {
+      this.actionLog.push({ sequence: this.actionLog.length, turn: this.currentTurn, phase: this.currentPhase,
+        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection })
       this.checkWaitingResolvers()
 
       // 通知TimerManager玩家选择状态变化
       this.timerManager.handlePlayerSelectionChange(selection.player, true)
     }
     return result
+  }
+
+  /** Inputs accepted through setSelection only; runtime IDs are local to this Battle. */
+  public getActionLog(): BattleActionRecord[] {
+    return JSON.parse(JSON.stringify(this.actionLog)) as BattleActionRecord[]
   }
 
   public getAvailableSelection(playerId: playerId): PlayerSelection[] {

@@ -414,6 +414,6 @@ export class AIPlayer extends Player {
     if (actions.length === 0) {
       throw new Error('No actions available for random selection')
     }
-    return actions[Math.floor(Math.random() * actions.length)]
+    return actions[this.battle!.randomInt(0, actions.length - 1)]
   }
 }
