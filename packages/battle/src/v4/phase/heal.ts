@@ -20,12 +20,13 @@ export class HealPhase extends SynchronousPhase<HealContext> {
     private readonly ignoreEffect: boolean = false,
     private readonly modified: [number, number] = [0, 0],
     id?: string,
+    private readonly existingContext?: HealContext,
   ) {
     super(battle, id)
   }
 
   protected createContext(): HealContext {
-    return new HealContext(this.parentContext, this.source, this.target, this.value, this.ignoreEffect, this.modified)
+    return this.existingContext ?? new HealContext(this.parentContext, this.source, this.target, this.value, this.ignoreEffect, this.modified)
   }
 
   protected executeOperation(): void {
@@ -53,7 +54,7 @@ export function executeHealOperation(context: HealContext, battle: Battle): void
     return
   }
 
-  if (!context.target.isActive || context.target.currentHp <= 0) {
+  if (!context.target.isActive() || context.target.currentHp <= 0) {
     battle.emitMessage(BattleMessageType.HealFail, {
       target: context.target.id,
       reason: 'disactivated',

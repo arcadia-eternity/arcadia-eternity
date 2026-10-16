@@ -101,6 +101,8 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
     // 等待所有玩家完成更换选择
     await this.battle.waitForSwitchSelections(playersNeedingSwitch)
 
+    this.battle.assertRunning()
+    if (this.battle.isBattleEnded()) return
     // 执行所有更换操作
     for (const player of playersNeedingSwitch) {
       if (player.selection?.type === 'switch-pet') {

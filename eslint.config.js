@@ -66,6 +66,11 @@ export default tseslint.config(
   // New adapters/tests use the normal rules in eslint.config.v4.js.
   {
     files: ['packages/battle/src/v4/**/*.ts'],
+    ignores: [
+      'packages/battle/src/v4/api.ts',
+      'packages/battle/src/v4/reactiveValue.ts',
+      'packages/battle/src/v4/rng.ts',
+    ],
     linterOptions: { reportUnusedDisableDirectives: 'off' },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
@@ -79,5 +84,4 @@ export default tseslint.config(
       'no-useless-assignment': 'off',
     },
   },
-
 )

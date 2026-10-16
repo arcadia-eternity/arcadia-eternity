@@ -79,15 +79,6 @@ export async function runHistoricalOfficial() {
   DataRepository.getInstance().species.set(huanli.id, SpeciesParser.parse({ ...huanli, ability: [], emblem: [] }))
   const players = input.teams.map(team => PlayerParser.parse(team))
   const battle = new Battle(players[0], players[1], { rngSeed: 201, timerConfig: { enabled: false }, showHidden: true })
-  // #201's HP override is not honored by the original V1 PetParser/Pet. Set fixture
-  // attributes explicitly; this is visible test setup, not a production behavior fix.
-  players.forEach((player, i) =>
-    player.team.forEach((pet, j) => {
-      const hp = input.teams[i].team[j].maxHp
-      pet.attributeSystem.updateBaseValue('maxHp', hp)
-      pet.currentHp = hp
-    }),
-  )
   const indexes = [0, 0]
   const events: BattleMessage[] = []
   const checkpoints: { turn: number; hp: number[]; rage: number[]; marks: string[] }[] = []

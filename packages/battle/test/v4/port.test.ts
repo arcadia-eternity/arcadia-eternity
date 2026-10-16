@@ -11,10 +11,10 @@ describe('direct original V1 port', () => {
     expect(result.end).toEqual([{ winner: 'A', reason: 'all_pet_fainted' }])
     expect(result.switches).toHaveLength(2)
     expect(result.checkpoints).toEqual([
-      { turn: 1, rage: [33, 48], hp: [248, 260, 80, 80], accuracy: 90, atk: 82.5 },
-      { turn: 2, rage: [41, 76], hp: [248, 247, 80, 80], accuracy: 100, atk: 82.5 },
-      { turn: 3, rage: [71, 91], hp: [248, 247, 0, 80], accuracy: 100, atk: 82.5 },
-      { turn: 4, rage: [100, 87], hp: [248, 247, 0, 0], accuracy: 100, atk: 82.5 },
+      { turn: 1, rage: [35, 48], hp: [246, 260, 80, 80], accuracy: 90, atk: 82.5 },
+      { turn: 2, rage: [45, 76], hp: [246, 247, 80, 80], accuracy: 100, atk: 82.5 },
+      { turn: 3, rage: [75, 100], hp: [246, 247, 0, 80], accuracy: 100, atk: 82.5 },
+      { turn: 4, rage: [100, 100], hp: [246, 247, 0, 0], accuracy: 100, atk: 82.5 },
     ])
   })
 })
@@ -29,12 +29,12 @@ it('runs the #201 roster and explicit actions through original V1 YAML parsers a
   expect(result.effects.map(e => e.effect)).toContain('effect_skill_add_mark_hunzhuoshuiyu')
   expect(result.effects.map(e => e.effect)).toContain('effect_skill_raise_atk_1_stage')
   expect(result.checkpoints.map(c => c.hp)).toEqual([
-    [298, 300, 30, 30],
-    [284, 300, 30, 30],
-    [284, 300, 30, 30],
-    [284, 273, 11, 30],
-    [284, 273, 0, 30],
-    [284, 255, 0, 12],
-    [284, 255, 0, 0],
+    [296, 300, 30, 30],
+    [283, 300, 30, 30],
+    [283, 300, 30, 30],
+    [283, 300, 11, 30],
+    [283, 300, 0, 30],
+    [283, 284, 0, 11],
+    [283, 284, 0, 0],
   ])
 }, 30000)

@@ -54,13 +54,6 @@ export class TransformPhase extends SynchronousPhase<TransformContext> {
  * This function contains the core transformation logic
  */
 export function executeTransformOperation(context: TransformContext, battle: Battle): void {
-  // Apply BeforeTransform effects to potentially prevent transformation
-  battle.applyEffects(context, EffectTrigger.BeforeTransform)
-
-  if (!context.available) {
-    return
-  }
-
   // Apply the transformation using the battle's transformation system
   const success = battle.transformationSystem.applyTransformation(
     context.target as any, // Type assertion needed for the transformation system
@@ -74,12 +67,6 @@ export function executeTransformOperation(context: TransformContext, battle: Bat
     context.available = false
     return
   }
-
-  // Apply OnTransform effects during transformation
-  battle.applyEffects(context, EffectTrigger.OnTransform)
-
-  // Apply AfterTransform effects after transformation is complete
-  battle.applyEffects(context, EffectTrigger.AfterTransform)
 }
 
 /**

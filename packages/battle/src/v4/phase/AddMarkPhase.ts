@@ -22,12 +22,13 @@ export class AddMarkPhase extends SynchronousPhase<AddMarkContext> {
     private readonly duration?: number,
     private readonly config?: Partial<MarkInstance['config']>,
     id?: string,
+    private readonly existingContext?: AddMarkContext,
   ) {
     super(battle, id)
   }
 
   protected createContext(): AddMarkContext {
-    return new AddMarkContext(this.parentContext, this.target, this.baseMark, this.stack, this.duration, this.config)
+    return this.existingContext ?? new AddMarkContext(this.parentContext, this.target, this.baseMark, this.stack, this.duration, this.config)
   }
 
   protected executeOperation(): void {

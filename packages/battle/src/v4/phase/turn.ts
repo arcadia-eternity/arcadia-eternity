@@ -206,14 +206,12 @@ function phaseSort(a: SkillPhase | SwitchPetPhase, b: SkillPhase | SwitchPetPhas
       const bSkillPhase = b as SkillPhase
 
       // 获取技能实例来比较优先级和速度
-      const aSkill = aSkillPhase.skillInstance
-      const bSkill = bSkillPhase.skillInstance
       const aPet = aSkillPhase.petInstance
       const bPet = bSkillPhase.petInstance
 
       // 先比较技能优先级（优先级高的先执行，所以是降序）
-      if (aSkill.priority !== bSkill.priority) {
-        return bSkill.priority - aSkill.priority
+      if (aSkillPhase.effectivePriority !== bSkillPhase.effectivePriority) {
+        return bSkillPhase.effectivePriority - aSkillPhase.effectivePriority
       }
 
       // 同优先级比较速度（速度快的先执行，所以是降序）

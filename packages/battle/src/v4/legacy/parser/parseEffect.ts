@@ -18,7 +18,7 @@ import {
   UseSkillContext,
   Battle,
 } from '../../index'
-import { Observable } from 'rxjs'
+import type { ReactiveValue } from '../../reactiveValue'
 import {
   type baseMarkId,
   type baseSkillId,
@@ -652,7 +652,7 @@ export function parseAddDynamicAttributeModifierAction(
     Operators.addDynamicAttributeModifier(
       parseValue(effectId, dsl.stat) as ValueSource<StatTypeOnBattle>,
       parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
-      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<number>>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<ReactiveValue<number>>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
       // 🆕 Phase-aware parameters
       dsl.phaseType
@@ -1111,7 +1111,7 @@ export function parseAddDynamicSkillAttributeModifierAction(
     Operators.addDynamicSkillAttributeModifier(
       parseValue(effectId, dsl.attribute) as ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
       parseValue(effectId, dsl.modifierType) as ValueSource<'percent' | 'delta' | 'override'>,
-      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<number>>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<ReactiveValue<number>>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
     ),
   )
@@ -1180,7 +1180,7 @@ export function parseAddDynamicConfigModifierAction(
     Operators.addDynamicConfigModifier(
       parseValue(effectId, dsl.configKey) as ValueSource<string>,
       parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
-      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<ConfigValue>>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<ReactiveValue<ConfigValue>>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
     ),
   )
@@ -1244,7 +1244,7 @@ export function parseAddPhaseDynamicConfigModifierAction(
     Operators.addPhaseDynamicConfigModifier(
       parseValue(effectId, dsl.configKey) as ValueSource<string>,
       parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
-      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<ConfigValue>>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<ReactiveValue<ConfigValue>>,
       dsl.priority ? (parseValue(effectId, dsl.priority) as ValueSource<number>) : 0,
     ),
   )
@@ -1277,7 +1277,7 @@ export function parseAddDynamicPhaseTypeConfigModifierAction(
     Operators.addDynamicPhaseTypeConfigModifier(
       parseValue(effectId, dsl.configKey) as ValueSource<string>,
       parseValue(effectId, dsl.modifierType) as ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
-      parseSelector(effectId, dsl.observableValue) as ValueSource<Observable<ConfigValue>>,
+      parseSelector(effectId, dsl.observableValue) as ValueSource<ReactiveValue<ConfigValue>>,
       parseValue(effectId, dsl.phaseType) as ValueSource<
         'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'
       >,

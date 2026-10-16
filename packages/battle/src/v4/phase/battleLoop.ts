@@ -28,6 +28,7 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
 
     // Main battle loop - continues until battle ends
     while (true) {
+      battle.assertRunning()
       // Phase 1: Handle switches (forced and faint switches)
       battle.currentPhase = BattlePhase.SwitchPhase
       const switchPhase = new BattleSwitchPhase(battle)
@@ -36,6 +37,7 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
       // Execute switch phase
       await battle.phaseManager.executePhaseAsync(switchPhase.id)
 
+      battle.assertRunning()
       if (battle.isBattleEnded()) break
 
       // Phase 2: Collect player actions
@@ -46,6 +48,9 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
       // Execute selection phase (async)
       await battle.phaseManager.executePhaseAsync(selectionPhase.id)
 
+      battle.assertRunning()
+      if (battle.isBattleEnded()) break
+
       // Phase 3: Execute turn
       battle.currentPhase = BattlePhase.ExecutionPhase
       const turnPhase = new TurnPhase(battle)
@@ -54,6 +59,7 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
       // Execute turn phase
       await battle.phaseManager.executePhaseAsync(turnPhase.id)
 
+      battle.assertRunning()
       if (battle.isBattleEnded()) break
 
       // Clear selections for next iteration

@@ -1,6 +1,5 @@
 // attribute-system.ts
-import { BehaviorSubject, Observable, combineLatest, Subject, of } from 'rxjs'
-import { map, distinctUntilChanged, shareReplay, startWith, switchMap } from 'rxjs/operators'
+import { Signal, ReactiveValue, derived, isReactiveValue } from './reactiveValue'
 import { nanoid } from 'nanoid'
 import type {
   StatOnBattle,
@@ -14,19 +13,11 @@ import type { SkillInstance } from './skill'
 import type { PhaseTypeSpec } from './config'
 import { createChildLogger } from './logger'
 
-// Computed function similar to Vue's computed
-export function computed<T>(computeFn: () => T, dependencies: Observable<any>[]): Observable<T> {
-  return combineLatest(dependencies).pipe(
-    map(() => computeFn()),
-    distinctUntilChanged(),
-    shareReplay(1),
-  )
+// Keep the historical helper entrypoints, backed by synchronous battle values.
+export function computed<T>(computeFn: () => T, dependencies: ReactiveValue<any>[]): ReactiveValue<T> {
+  return derived(computeFn, dependencies)
 }
-
-// Helper function to create reactive refs (similar to Vue's ref)
-export function ref<T>(initialValue: T): BehaviorSubject<T> {
-  return new BehaviorSubject(initialValue)
-}
+export function ref<T>(initialValue: T): Signal<T> { return new Signal(initialValue) }
 
 type AttributeKey = string
 // type Modifier = <T extends number | boolean | string>(base: T) => T
@@ -37,60 +28,30 @@ export enum DurationType {
 }
 
 export class Modifier<T extends number | boolean | string = any> {
-  public value!: BehaviorSubject<T>
-  private sourceSubscription?: { unsubscribe(): void }
+  public value: ReactiveValue<T>
+  private minBound = new Signal<number | undefined>(undefined)
+  private maxBound = new Signal<number | undefined>(undefined)
+  private extraCleanups: (() => void)[] = []
+  get minValue(): number | undefined { return this.minBound.value }
+  set minValue(value: number | undefined) { this.minBound.next(value) }
+  get maxValue(): number | undefined { return this.maxBound.value }
+  set maxValue(value: number | undefined) { this.maxBound.next(value) }
+  addCleanup(cleanup: () => void): void { this.extraCleanups.push(cleanup) }
 
   constructor(
     public durationType: DurationType,
     public id: string,
-    initialValue: T | Subject<T> | Observable<T>,
+    initialValue: T | ReactiveValue<T>,
     public type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp',
     public priority: number,
     public source?: MarkInstance | SkillInstance,
-    public minValue?: number,
-    public maxValue?: number,
+    minValue?: number,
+    maxValue?: number,
     public phaseTypeSpec?: PhaseTypeSpec, // For phaseType duration type
   ) {
-    if (initialValue instanceof BehaviorSubject) {
-      // 如果传入的是BehaviorSubject，直接使用它
-      this.value = initialValue
-    } else if (initialValue instanceof Subject) {
-      // 如果传入的是普通Subject，需要获取当前值来创建BehaviorSubject
-      let currentValue: T | undefined
-      const sub = initialValue.subscribe(val => (currentValue = val))
-      sub.unsubscribe()
-
-      if (currentValue === undefined) {
-        throw new Error(`Subject passed to Modifier ${this.id} has no current value`)
-      }
-
-      this.value = new BehaviorSubject<T>(currentValue)
-      this.sourceSubscription = initialValue.subscribe(val => this.value.next(val))
-    } else if (initialValue instanceof Observable) {
-      // 如果传入的是Observable（比如computed的结果），需要先获取初始值
-      let hasInitialValue = false
-      let currentValue: T
-
-      const sub = initialValue.subscribe(val => {
-        currentValue = val
-        if (!hasInitialValue) {
-          hasInitialValue = true
-          this.value = new BehaviorSubject<T>(currentValue)
-          // 重新订阅以继续接收更新
-          this.sourceSubscription = initialValue.subscribe(val => this.value.next(val))
-        }
-      })
-
-      if (!hasInitialValue) {
-        sub.unsubscribe()
-        throw new Error(`Observable passed to Modifier ${this.id} did not emit an initial value synchronously`)
-      }
-
-      sub.unsubscribe()
-    } else {
-      // 如果传入的是普通值，创建新的BehaviorSubject
-      this.value = new BehaviorSubject<T>(initialValue)
-    }
+    this.minValue = minValue
+    this.maxValue = maxValue
+    this.value = isReactiveValue(initialValue) ? initialValue as ReactiveValue<T> : new Signal(initialValue as T)
   }
 
   // 获取当前值
@@ -100,10 +61,7 @@ export class Modifier<T extends number | boolean | string = any> {
 
   // 清理订阅
   destroy(): void {
-    if (this.sourceSubscription) {
-      this.sourceSubscription.unsubscribe()
-      this.sourceSubscription = undefined
-    }
+    for (const cleanup of this.extraCleanups.splice(0)) cleanup()
   }
 
   // 统一的 apply 方法
@@ -159,7 +117,7 @@ export const ModifierHelpers = {
    */
   createClampMax: (
     id: string,
-    maxValue: number | Subject<number> | Observable<number>,
+    maxValue: number | ReactiveValue<number>,
     priority: number = 0,
     source?: MarkInstance | SkillInstance,
     durationType: DurationType = DurationType.binding,
@@ -177,7 +135,7 @@ export const ModifierHelpers = {
    */
   createClampMin: (
     id: string,
-    minValue: number | Subject<number> | Observable<number>,
+    minValue: number | ReactiveValue<number>,
     priority: number = 0,
     source?: MarkInstance | SkillInstance,
     durationType: DurationType = DurationType.binding,
@@ -210,16 +168,16 @@ export const ModifierHelpers = {
   /**
    * Create a reactive clamp modifier with observable min/max values
    * @param id Unique identifier for the modifier
-   * @param minValue$ Observable minimum value
-   * @param maxValue$ Observable maximum value
+   * @param minValue$ ReactiveValue minimum value
+   * @param maxValue$ ReactiveValue maximum value
    * @param priority Priority for modifier application (higher = applied first)
    * @param source Optional source (mark or skill instance)
    * @param durationType Duration type (instant or binding)
    */
   createReactiveClamp: (
     id: string,
-    minValue$: Observable<number>,
-    maxValue$: Observable<number>,
+    minValue$: ReactiveValue<number>,
+    maxValue$: ReactiveValue<number>,
     priority: number = 0,
     source?: MarkInstance | SkillInstance,
     durationType: DurationType = DurationType.binding,
@@ -241,6 +199,7 @@ export const ModifierHelpers = {
       maxSub.unsubscribe()
     }
 
+    modifier.addCleanup(cleanup)
     return { modifier, cleanup }
   },
 
@@ -255,7 +214,7 @@ export const ModifierHelpers = {
    */
   createPhaseTypeModifier: <T extends number | boolean | string>(
     id: string,
-    value: T | Subject<T> | Observable<T>,
+    value: T | ReactiveValue<T>,
     type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp',
     phaseTypeSpec: PhaseTypeSpec,
     priority: number = 0,
@@ -274,7 +233,7 @@ export const ModifierHelpers = {
    */
   createPhaseTypeDelta: (
     id: string,
-    value: number | Subject<number> | Observable<number>,
+    value: number | ReactiveValue<number>,
     phaseTypeSpec: PhaseTypeSpec,
     priority: number = 0,
     source?: MarkInstance | SkillInstance,
@@ -302,7 +261,7 @@ export const ModifierHelpers = {
    */
   createPhaseTypePercent: (
     id: string,
-    percentage: number | Subject<number> | Observable<number>,
+    percentage: number | ReactiveValue<number>,
     phaseTypeSpec: PhaseTypeSpec,
     priority: number = 0,
     source?: MarkInstance | SkillInstance,
@@ -338,21 +297,22 @@ export interface PlayerAttributeSet extends AttributeData {
 
 export class AttributeSystem<T extends AttributeData> {
   private readonly logger = createChildLogger('AttributeSystem')
-  private baseAttributes = new Map<keyof T, BehaviorSubject<number | boolean | string>>()
-  private modifiers = new Map<keyof T, BehaviorSubject<Modifier[]>>()
-  private subscriptions = new Map<keyof T, Observable<number | boolean | string>>()
+  private baseAttributes = new Map<keyof T, Signal<number | boolean | string>>()
+  private modifiers = new Map<keyof T, Signal<Modifier[]>>()
+  private subscriptions = new Map<keyof T, ReactiveValue<number | boolean | string>>()
 
   // Track modifiers by source to prevent duplicates
+  private modifierCleanups = new Map<Modifier, () => void>()
   private modifiersBySource = new Map<string, Map<keyof T, Modifier[]>>()
 
   // Track phase type modifiers for automatic cleanup
   private phaseTypeModifiers = new Map<string, Modifier[]>()
 
   // Static reference to ConfigSystem to avoid circular dependency
-  private static configSystemGetter: (() => any) | null = null
+  private static configSystemGetter: ((battleId?: string) => any) | null = null
 
   // Phase change notification subject
-  private static phaseChangeSubject = new Subject<void>()
+  private static phaseVersion = new Signal(0)
 
   // Circular dependency detection and prevention
   private calculationStack = new Set<keyof T>()
@@ -389,7 +349,7 @@ export class AttributeSystem<T extends AttributeData> {
   /**
    * Set the ConfigSystem getter to avoid circular dependency
    */
-  static setConfigSystemGetter(getter: () => any): void {
+  static setConfigSystemGetter(getter: (battleId?: string) => any): void {
     AttributeSystem.configSystemGetter = getter
   }
 
@@ -397,7 +357,7 @@ export class AttributeSystem<T extends AttributeData> {
    * Notify all AttributeSystem instances that phase state has changed
    */
   static notifyPhaseChange(): void {
-    AttributeSystem.phaseChangeSubject.next()
+    AttributeSystem.phaseVersion.next(AttributeSystem.phaseVersion.value + 1)
   }
 
   /**
@@ -537,45 +497,21 @@ export class AttributeSystem<T extends AttributeData> {
       throw new Error(`Cannot register attribute on destroyed AttributeSystem ${this.objectId}`)
     }
 
-    this.baseAttributes.set(key, new BehaviorSubject(initialValue))
-    this.modifiers.set(key, new BehaviorSubject<Modifier[]>([]))
+    this.baseAttributes.set(key, new Signal(initialValue))
+    this.modifiers.set(key, new Signal<Modifier[]>([]))
 
     // Initialize fallback value
     this.fallbackValues.set(key, initialValue)
 
     // 创建计算流 - 添加优先级排序和phase-aware过滤以及循环依赖检测
     // Include phase change notifications to trigger recalculation
-    const computed$ = combineLatest([
-      this.baseAttributes.get(key)!,
-      this.modifiers.get(key)!,
-      AttributeSystem.phaseChangeSubject.pipe(
-        startWith(Date.now()), // Start with initial value
-        map(() => Date.now()), // Use timestamp to ensure emission
-        distinctUntilChanged(),
-      ),
-    ]).pipe(
-      // Switch to a new observable whenever modifiers change to include modifier value changes
-      switchMap(([base, modifiers, _timestamp]) => {
-        // Create observables for all modifier values
-        const modifierValueObservables = modifiers.map(modifier =>
-          modifier.value instanceof BehaviorSubject ? modifier.value.asObservable() : of(modifier.getCurrentValue()),
-        )
-
-        // If no modifiers, just return the base value
-        if (modifierValueObservables.length === 0) {
-          return of(this.calculateAttributeValueSafely(key, base, modifiers))
-        }
-
-        // Combine base value with all modifier values
-        return combineLatest([of(base), of(modifiers), ...modifierValueObservables]).pipe(
-          map(([baseValue, modifierList, ...modifierValues]) => {
-            return this.calculateAttributeValueSafely(key, baseValue, modifierList)
-          }),
-        )
-      }),
-      distinctUntilChanged(),
-      shareReplay(1), // Cache the latest value
-    )
+    const computed$ = derived(() => {
+      void AttributeSystem.phaseVersion.value
+      const base = this.baseAttributes.get(key)!.value
+      const modifiers = this.modifiers.get(key)!.value
+      for (const modifier of modifiers) void modifier.value.value
+      return this.calculateAttributeValueSafely(key, base, modifiers)
+    })
 
     this.subscriptions.set(key, computed$)
 
@@ -599,6 +535,7 @@ export class AttributeSystem<T extends AttributeData> {
       }
 
       // Clean up subscription
+      this.subscriptions.get(key)?.complete()
       this.subscriptions.delete(key)
 
       // Clean up fallback value
@@ -669,8 +606,8 @@ export class AttributeSystem<T extends AttributeData> {
 
     for (const modifier of modifiers) {
       try {
-        // Track dependencies for Observable-based modifiers
-        if (modifier.value instanceof BehaviorSubject) {
+        // Track dependencies for ReactiveValue-based modifiers
+        if (modifier.value instanceof Signal) {
           // For reactive modifiers, we need to track potential dependencies
           // This is a simplified approach - in practice, you might want more sophisticated tracking
           const modifierValue = modifier.getCurrentValue()
@@ -726,8 +663,8 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   // 获取属性流
-  getAttribute$(key: AttributeKey): Observable<number | boolean | string> {
-    return this.subscriptions.get(key) || new BehaviorSubject(0).asObservable()
+  getAttribute$(key: AttributeKey): ReactiveValue<number | boolean | string> {
+    return this.subscriptions.get(key) || new Signal(0)
   }
 
   // 获取当前属性值（同步）
@@ -746,12 +683,7 @@ export class AttributeSystem<T extends AttributeData> {
     const subject = this.subscriptions.get(key)
     if (subject) {
       try {
-        let currentValue: number | boolean | string = 0
-        subject
-          .pipe(map(val => val))
-          .subscribe(val => (currentValue = val))
-          .unsubscribe()
-        return currentValue
+        return subject.value
       } catch (error) {
         this.logger.warn(`Error getting current value for '${String(key)}':`, error)
         return this.getFallbackValue(key)
@@ -764,7 +696,9 @@ export class AttributeSystem<T extends AttributeData> {
    * Filter modifiers based on current phase context
    */
   private filterModifiersByPhaseContext(modifiers: Modifier[]): Modifier[] {
-    return modifiers.filter(modifier => this.isModifierApplicableInCurrentPhase(modifier))
+    return modifiers.filter(modifier =>
+      (!modifier.source || !('isActive' in modifier.source) ||
+        (modifier.source.isActive && !modifier.source.isSuppressed)) && this.isModifierApplicableInCurrentPhase(modifier))
   }
 
   /**
@@ -776,57 +710,8 @@ export class AttributeSystem<T extends AttributeData> {
       return true
     }
 
-    const spec = modifier.phaseTypeSpec
-    if (!spec) {
-      return true
-    }
-
-    // Get ConfigSystem instance to check current phase state
-    if (!AttributeSystem.configSystemGetter) {
-      // If ConfigSystem is not available, apply all modifiers
-      return true
-    }
-
-    try {
-      const configSystem = AttributeSystem.configSystemGetter()
-
-      // Check if we're currently in the right phase type
-      const isInTargetPhaseType = configSystem.hasActivePhaseOfType(spec.phaseType)
-
-      if (!isInTargetPhaseType) {
-        return false
-      }
-
-      // If specific phase ID is required, check if current phase matches
-      if (spec.phaseId) {
-        const currentPhase = configSystem.getCurrentPhaseOfType(spec.phaseType)
-        if (!currentPhase || currentPhase.id !== spec.phaseId) {
-          return false
-        }
-      }
-
-      // Check scope-specific logic
-      switch (spec.scope) {
-        case 'current':
-          // Only apply if we're currently in this phase type
-          return isInTargetPhaseType
-
-        case 'any':
-          // Apply if we're in this phase type (same as Current for now)
-          return isInTargetPhaseType
-
-        case 'next':
-          // TODO: Implement proper "next" logic
-          // For now, treat as Current
-          return isInTargetPhaseType
-
-        default:
-          return true
-      }
-    } catch (error) {
-      // If ConfigSystem is not available, apply all modifiers
-      return true
-    }
+    const config = AttributeSystem.configSystemGetter?.(this.battleId)
+    return config?.isPhaseModifierApplicable(modifier) ?? false
   }
 
   // 添加临时修改器（返回清理函数）
@@ -866,9 +751,6 @@ export class AttributeSystem<T extends AttributeData> {
       sourceModifiers.get(key)!.push(modifier)
     }
 
-    const currentModifiers = [...this.modifiers.get(key)!.value, modifier]
-    this.modifiers.get(key)!.next(currentModifiers)
-
     // Track phase type modifiers for automatic cleanup
     if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
       const phaseKey = `${modifier.phaseTypeSpec.phaseType}:${modifier.phaseTypeSpec.scope}:${modifier.phaseTypeSpec.phaseId || 'any'}`
@@ -878,7 +760,15 @@ export class AttributeSystem<T extends AttributeData> {
       this.phaseTypeModifiers.get(phaseKey)!.push(modifier)
     }
 
-    return () => {
+    let active = true
+    let untrack: (() => void) | undefined
+    const cleanup = () => {
+      if (!active) return
+      active = false
+      this.modifierCleanups.delete(modifier)
+      untrack?.()
+      modifier.destroy()
+      if (this.isDestroyed) return
       // Remove from main modifiers list
       const newModifiers = this.modifiers.get(key)!.value.filter(m => m !== modifier)
       this.modifiers.get(key)!.next(newModifiers)
@@ -919,6 +809,13 @@ export class AttributeSystem<T extends AttributeData> {
         }
       }
     }
+    if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
+      untrack = AttributeSystem.configSystemGetter?.(this.battleId)?.trackPhaseModifier(modifier, modifier.phaseTypeSpec, cleanup)
+    }
+    this.modifierCleanups.set(modifier, cleanup)
+    // Bind before publishing; synchronous observers must see the active phase.
+    this.modifiers.get(key)!.next([...this.modifiers.get(key)!.value, modifier])
+    return cleanup
   }
 
   /**
@@ -1118,6 +1015,8 @@ export class AttributeSystem<T extends AttributeData> {
     // Mark as destroyed
     this.isDestroyed = true
 
+    for (const cleanup of [...this.modifierCleanups.values()]) cleanup()
+    this.modifierCleanups.clear()
     // Clean up all subscriptions
     for (const [key, cleanup] of this.subscriptionCleanups) {
       try {
@@ -1347,18 +1246,9 @@ export class AttributeSystem<T extends AttributeData> {
 
   // 移除来自特定源的所有修改器
   removeModifiersFromSource(sourceId: string): void {
-    const sourceModifiers = this.modifiersBySource.get(sourceId)
-    if (!sourceModifiers) return
-
-    // Remove modifiers from each attribute
-    for (const [attributeKey, modifiersToRemove] of sourceModifiers.entries()) {
-      const currentModifiers = this.modifiers.get(attributeKey)!.value
-      const filteredModifiers = currentModifiers.filter(modifier => !modifiersToRemove.includes(modifier))
-      this.modifiers.get(attributeKey)!.next(filteredModifiers)
+    for (const [modifier, cleanup] of [...this.modifierCleanups]) {
+      if (modifier.source?.id === sourceId) cleanup()
     }
-
-    // Clean up source tracking
-    this.modifiersBySource.delete(sourceId)
   }
 
   // 获取所有属性的当前值

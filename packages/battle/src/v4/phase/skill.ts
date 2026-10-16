@@ -26,6 +26,8 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
     super(battle, id)
   }
 
+  public get effectivePriority(): number { return this.existingContext?.priority ?? this.skill.priority }
+
   // Public getters for sorting purposes (before context is initialized)
   public get skillInstance(): SkillInstance {
     return this.skill

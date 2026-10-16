@@ -285,6 +285,8 @@ export class Player {
       context.value,
       context.ignoreRageObtainEfficiency,
       context.modified,
+      undefined,
+      context,
     )
     context.battle.phaseManager.registerPhase(ragePhase)
     context.battle.phaseManager.executePhase(ragePhase.id)

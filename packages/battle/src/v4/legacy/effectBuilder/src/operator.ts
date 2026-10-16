@@ -37,7 +37,7 @@ import {
   StatLevelMarkInstanceImpl,
   type BattlePhaseBase,
 } from '../../../index'
-import { Observable } from 'rxjs'
+import type { ReactiveValue } from '../../../reactiveValue'
 import {
   type baseMarkId,
   type baseSkillId,
@@ -376,7 +376,7 @@ export const Operators = {
     (
       stat: ValueSource<StatTypeOnBattle>,
       modifierType: ValueSource<'percent' | 'delta' | 'override'>,
-      observableValue: ValueSource<Observable<number>>,
+      observableValue: ValueSource<ReactiveValue<number>>,
       priority: ValueSource<number> = 0,
       phaseType?: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
       scope?: ValueSource<'current' | 'any' | 'next'>,
@@ -1156,7 +1156,7 @@ export const Operators = {
     (
       attribute: ValueSource<'power' | 'accuracy' | 'rage' | 'priority'>,
       modifierType: ValueSource<'percent' | 'delta' | 'override'>,
-      observableValue: ValueSource<Observable<number>>,
+      observableValue: ValueSource<ReactiveValue<number>>,
       priority: ValueSource<number> = 0,
     ): Operator<SkillInstance> =>
     (context: EffectContext<EffectTrigger>, targets: SkillInstance[]) => {
@@ -1390,7 +1390,7 @@ export const Operators = {
     (
       configKey: ValueSource<string>,
       modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
-      observableValue: ValueSource<Observable<ConfigValue>>,
+      observableValue: ValueSource<ReactiveValue<ConfigValue>>,
       priority: ValueSource<number> = 0,
     ): Operator<ScopeObject> =>
     (context: EffectContext<EffectTrigger>, targets: ScopeObject[]) => {
@@ -1561,7 +1561,7 @@ export const Operators = {
     (
       configKey: ValueSource<string>,
       modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
-      observableValue: ValueSource<Observable<ConfigValue>>,
+      observableValue: ValueSource<ReactiveValue<ConfigValue>>,
       priority: ValueSource<number> = 0,
     ): Operator<BattlePhaseBase> =>
     (context: EffectContext<EffectTrigger>, targets: BattlePhaseBase[]) => {
@@ -1668,7 +1668,7 @@ export const Operators = {
     (
       configKey: ValueSource<string>,
       modifierType: ValueSource<'override' | 'delta' | 'append' | 'prepend'>,
-      observableValue: ValueSource<Observable<ConfigValue>>,
+      observableValue: ValueSource<ReactiveValue<ConfigValue>>,
       phaseType: ValueSource<'turn' | 'skill' | 'damage' | 'heal' | 'effect' | 'switch' | 'mark' | 'rage' | 'battle'>,
       scope: ValueSource<'current' | 'any' | 'next'> = 'current',
       priority: ValueSource<number> = 0,

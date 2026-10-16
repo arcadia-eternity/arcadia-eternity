@@ -16,6 +16,8 @@ for (const platform of ['node', 'browser']) {
         name: 'v1-host-boundary',
         moduleParsed(info) {
           modules.push(info.id)
+          if (/(?:^|\/)(?:rxjs|prando)(?:@|\/)/.test(info.id))
+            throw new Error(`Removed dependency reintroduced: ${info.id}`)
           if (/packages\/(engine|engine-plugins|server|database|rules|web-ui|interface|p2p-transport)\//.test(info.id))
             throw new Error(`Forbidden V1 runtime dependency: ${info.id}`)
         },

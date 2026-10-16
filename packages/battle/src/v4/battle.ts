@@ -14,7 +14,7 @@ import {
   type skillId,
   type TimerConfig,
 } from '@arcadia-eternity/const'
-import Prando from 'prando'
+import { GameRng } from './rng'
 import { ConfigSystem } from './config'
 import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
 import { type EffectContainer } from './effect'
@@ -35,7 +35,7 @@ import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
 import { createChildLogger } from './logger'
 
-/** A host may inject a compatible stream; the default remains V1's Prando. */
+/** A host may inject a compatible stream; the default uses the standalone sfc32-v1 stream. */
 export interface BattleRng {
   next(): number
   nextInt(min: number, max: number): number
@@ -69,6 +69,7 @@ export class Battle extends Context implements MarkOwner {
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
+  private cancelled = false
   private _isStarting: boolean = false // 防止重复启动的标志
   private messageCallbacks: Array<{
     original: (message: BattleMessage) => void
@@ -98,7 +99,7 @@ export class Battle extends Context implements MarkOwner {
     public readonly playerB: Player,
     options?: {
       allowFaintSwitch?: boolean
-      rngSeed?: number
+      rngSeed?: number | string
       rng?: BattleRng
       showHidden?: boolean
       timerConfig?: Partial<TimerConfig>
@@ -106,9 +107,10 @@ export class Battle extends Context implements MarkOwner {
     configSystem?: ConfigSystem,
   ) {
     super(null)
-    this.rng = options?.rng ?? new Prando(options?.rngSeed ?? (Date.now() ^ (Math.random() * 0x100000000)))
+    this.rng = options?.rng ?? new GameRng(options?.rngSeed)
     // Use provided configSystem or create a new instance for this battle
     this.configSystem = configSystem || ConfigSystem.createInstance(this.id)
+    ConfigSystem.bindBattle(this)
 
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false
@@ -249,13 +251,15 @@ export class Battle extends Context implements MarkOwner {
       context.stack,
       context.duration,
       context.config,
+      undefined,
+      context,
     )
     this.phaseManager.registerPhase(addMarkPhase)
     this.phaseManager.executePhase(addMarkPhase.id)
   }
 
   public removeMark(context: RemoveMarkContext) {
-    const removeMarkPhase = new RemoveMarkPhase(this, context.parent, context.mark)
+    const removeMarkPhase = new RemoveMarkPhase(this, context.parent, context.mark, undefined, context)
     this.phaseManager.registerPhase(removeMarkPhase)
     this.phaseManager.executePhase(removeMarkPhase.id)
   }
@@ -343,6 +347,7 @@ export class Battle extends Context implements MarkOwner {
 
   // Phase-based battle start (main implementation)
   public async startBattle(): Promise<void> {
+    this.assertRunning()
     // 防止重复启动的检查
     if (this._isStarting) {
       this.logger.warn({ battleId: this.id }, 'Battle is already starting, ignoring duplicate startBattle call')
@@ -485,6 +490,7 @@ export class Battle extends Context implements MarkOwner {
 
   public getVictor(surrender = false, reason?: 'surrender' | 'total_time_timeout') {
     if (surrender && this.victor) {
+      this.resolveWaiting()
       const battleEndReason = reason || 'surrender'
       this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: battleEndReason })
       return this.victor
@@ -544,6 +550,7 @@ export class Battle extends Context implements MarkOwner {
   } = {}
 
   public async waitForSwitchSelections(players: Player[]): Promise<void> {
+    this.assertRunning()
     // Check if already ready
     // 对于强制更换，必须选择switch-pet
     // 对于击破奖励更换，可以选择switch-pet或do-nothing
@@ -582,6 +589,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public async waitForBothPlayersReady(): Promise<void> {
+    this.assertRunning()
     // Check if already ready
     if (this.bothPlayersReady()) {
       return
@@ -639,7 +647,18 @@ export class Battle extends Context implements MarkOwner {
     }
   }
 
+  public assertRunning(): void { if (this.cancelled) throw new Error('Battle cancelled') }
+
+  private resolveWaiting(): void {
+    const waiting = this.waitingResolvers
+    this.waitingResolvers = {}
+    waiting.bothPlayersReady?.resolve()
+    waiting.switchSelections?.resolve()
+  }
+
   public async cleanup() {
+    this.cancelled = true
+    this.resolveWaiting()
     this.clearListeners()
     await this.phaseManager.cleanup()
 

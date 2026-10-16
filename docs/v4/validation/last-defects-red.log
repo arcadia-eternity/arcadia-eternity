@@ -1,0 +1,54 @@
+
+ RUN  v4.1.11 /Users/yuuinih/GitHub/test_battle/packages/battle
+
+ ❯ test/v4/phase-lifecycle.test.ts (7 tests | 1 failed | 6 skipped) 58ms
+   × rejects unsupported automatic retry before mutating state 53ms
+ ❯ test/v4/historical-fixes.test.ts (5 tests | 1 failed | 4 skipped) 34ms
+   × retains sureCrit and opponent-stage strategy in the actual skill context 31ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/v4/historical-fixes.test.ts > retains sureCrit and opponent-stage strategy in the actual skill context
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/v4/historical-fixes.test.ts:53:20
+     51|   const ctx = new UseSkillContext(new TurnContext(battle), a, a.active…
+     52|   ctx.critRate = 0; ctx.updateCritResult()
+     53|   expect(ctx.crit).toBe(true); expect(ctx.ignoreStageStrategy).toBe(Ig…
+       |                    ^
+     54| })
+     55|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/v4/phase-lifecycle.test.ts > rejects unsupported automatic retry before mutating state
+AssertionError: expected [Function] to throw error including 'rollback' but got 'Cannot execute phase in state: failed'
+
+Expected: "rollback"
+Received: "Cannot execute phase in state: failed"
+
+ ❯ test/v4/phase-lifecycle.test.ts:93:79
+     91|   const phase = new TurnPhase(battle, () => { writes++; throw new Erro…
+     92|   battle.phaseManager.registerPhase(phase)
+     93|   expect(() => battle.phaseManager.executePhase(phase.id, { retryCount…
+       |                                                                               ^
+     94|   expect(writes).toBe(0)
+     95| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 10 skipped (12)
+   Start at  22:40:04
+   Duration  1.38s (transform 1.11s, setup 0ms, import 1.48s, tests 92ms, environment 0ms)
+
+undefined
+/Users/yuuinih/GitHub/test_battle/packages/battle:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run --config vitest.v4.config.mjs test/v4/historical-fixes.test.ts test/v4/phase-lifecycle.test.ts -t 'sureCrit|automatic retry'

@@ -26,7 +26,7 @@ export class Effect<T extends EffectTrigger> implements Prototype {
   public innerApply(context: EffectContext<T>) {
     // 先执行消耗逻辑
     if (context.source instanceof MarkInstanceImpl) {
-      if (!context.source.isActive) return
+      if (!context.source.isActive || context.source.isSuppressed) return
       if (this.consumesStacks) {
         context.source.consumeStack(context, this.consumesStacks)
       }

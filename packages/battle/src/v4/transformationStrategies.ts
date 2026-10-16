@@ -11,12 +11,15 @@ import {
 } from './transformation'
 import { Pet } from './pet'
 import { SkillInstance } from './skill'
-import { MarkInstanceImpl } from './mark'
+import { MarkInstanceImpl, type MarkInstance, type BaseMark } from './mark'
 
 /**
  * 精灵变身策略 - 简化版本，只处理base值变更
  */
 export class PetTransformationStrategy implements TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet> {
+  // Native marks can themselves cause forms. Suspend them, retaining their owner,
+  // duration and source identity, so source expiry can still revert the form.
+  private nativeMarks = new WeakMap<PetEntity, Map<string, MarkInstance>>()
   canTransform(entity: unknown): entity is PetEntity {
     return entity instanceof Pet
   }
@@ -25,11 +28,11 @@ export class PetTransformationStrategy implements TransformationStrategy<PetEnti
     return EntityType.Pet
   }
 
-  async performTransformation(
+  performTransformation(
     entity: PetEntity,
     newBase: PetPrototype,
     effectHandlingStrategy: EffectHandlingStrategy,
-  ): Promise<void> {
+  ): void {
     // 更新base引用
     ;(entity as any).base = newBase
 
@@ -43,92 +46,36 @@ export class PetTransformationStrategy implements TransformationStrategy<PetEnti
       entity.attributeSystem.updateBaseValue(key, value)
     })
 
-    // 处理特性和徽章的effect策略
     this.handleEffectStrategy(entity, newBase, effectHandlingStrategy)
   }
 
-  /**
-   * 处理变形时的effect策略
-   */
-  private handleEffectStrategy(
-    entity: PetEntity,
-    newBase: PetPrototype,
-    effectHandlingStrategy: EffectHandlingStrategy,
-  ): void {
-    if (effectHandlingStrategy === EffectHandlingStrategy.Override) {
-      // 覆盖策略：移除原有的特性和徽章印记，然后添加新的
-      this.removeAbilityAndEmblemMarks(entity)
-      this.addNewAbilityAndEmblemMarks(entity, newBase)
-    } else if (effectHandlingStrategy === EffectHandlingStrategy.Preserve) {
-      // 保留策略：保持原有的特性和徽章印记，同时添加新的（如果不冲突）
-      this.addNewAbilityAndEmblemMarks(entity, newBase, true)
-    }
-  }
-
-  /**
-   * 移除精灵身上来自特性和徽章的印记
-   */
-  private removeAbilityAndEmblemMarks(entity: PetEntity): void {
-    // 移除来自特性的印记
-    if (entity.ability) {
-      const abilityMarkId = entity.ability.id
-      entity.marks = entity.marks.filter(mark => mark.base.id !== abilityMarkId)
-    }
-
-    // 移除来自徽章的印记
-    if (entity.emblem) {
-      const emblemMarkId = entity.emblem.id
-      entity.marks = entity.marks.filter(mark => mark.base.id !== emblemMarkId)
-    }
-  }
-
-  /**
-   * 添加新base的特性和徽章印记
-   */
-  private addNewAbilityAndEmblemMarks(
-    entity: PetEntity,
-    newBase: PetPrototype,
-    preserveExisting: boolean = false,
-  ): void {
-    // 添加新的特性印记
-    if (newBase.ability && newBase.ability.length > 0) {
-      const newAbility = newBase.ability[0] // 通常取第一个特性
-
-      // 检查是否已经存在相同的特性印记（在preserve模式下）
-      const existingAbilityMark = preserveExisting
-        ? entity.marks.find(mark => mark.base.id === newAbility.id)
-        : undefined
-
-      if (!existingAbilityMark) {
-        const abilityMark = newAbility.createInstance()
-        if (entity.emitter) {
-          abilityMark.setOwner(entity, entity.emitter)
-        }
-        entity.marks.push(abilityMark)
-
-        // 更新Pet的当前特性引用（用于变身期间）
-        ;(entity as any).currentAbility = newAbility
+  private handleEffectStrategy(entity: PetEntity, newBase: PetPrototype, strategy: EffectHandlingStrategy): void {
+    let marks = this.nativeMarks.get(entity)
+    if (!marks) {
+      marks = new Map()
+      for (const base of [entity.ability, entity.emblem]) {
+        const instance = base && entity.marks.find(mark => mark.baseId === base.id)
+        if (instance) marks.set(instance.baseId, instance)
       }
+      this.nativeMarks.set(entity, marks)
     }
-
-    // 添加新的徽章印记
-    if (newBase.emblem && newBase.emblem.length > 0) {
-      const newEmblem = newBase.emblem[0] // 通常取第一个徽章
-
-      // 检查是否已经存在相同的徽章印记（在preserve模式下）
-      const existingEmblemMark = preserveExisting ? entity.marks.find(mark => mark.base.id === newEmblem.id) : undefined
-
-      if (!existingEmblemMark) {
-        const emblemMark = newEmblem.createInstance()
-        if (entity.emitter) {
-          emblemMark.setOwner(entity, entity.emitter)
-        }
-        entity.marks.push(emblemMark)
-
-        // 更新Pet的当前徽章引用（用于变身期间）
-        ;(entity as any).currentEmblem = newEmblem
+    if (strategy === EffectHandlingStrategy.Override) for (const mark of marks.values()) mark.isSuppressed = true
+    const restoringOriginal = newBase === entity.originalSpecies
+    const ability = restoringOriginal ? entity.ability : newBase.ability?.[0]
+    const emblem = restoringOriginal ? entity.emblem : newBase.emblem?.[0]
+    for (const base of [ability, emblem]) {
+      if (!base) continue
+      let mark = marks.get(base.id)
+      if (!mark?.isActive || mark.owner !== entity) {
+        mark = base.createInstance()
+        if (entity.emitter) mark.setOwner(entity, entity.emitter)
+        entity.marks.push(mark)
+        marks.set(base.id, mark)
       }
+      mark.isSuppressed = false
     }
+    ;(entity as PetEntity & { currentAbility?: BaseMark }).currentAbility = ability
+    ;(entity as PetEntity & { currentEmblem?: BaseMark }).currentEmblem = emblem
   }
 
   getOriginalBase(entity: PetEntity): PetPrototype | undefined {
@@ -150,11 +97,11 @@ export class SkillTransformationStrategy
     return EntityType.Skill
   }
 
-  async performTransformation(
+  performTransformation(
     entity: SkillEntity,
     newBase: SkillPrototype,
     effectHandlingStrategy: EffectHandlingStrategy,
-  ): Promise<void> {
+  ): void {
     // 更新base引用
     ;(entity as any).base = newBase
 
@@ -227,11 +174,11 @@ export class MarkTransformationStrategy implements TransformationStrategy<MarkEn
     return EntityType.Mark
   }
 
-  async performTransformation(
+  performTransformation(
     entity: MarkEntity,
     newBase: MarkPrototype,
     effectHandlingStrategy: EffectHandlingStrategy,
-  ): Promise<void> {
+  ): void {
     // 更新base引用
     ;(entity as any).base = newBase
 

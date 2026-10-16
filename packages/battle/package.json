@@ -56,8 +56,6 @@
     "jsondiffpatch": "catalog:",
     "mitt": "^3.0.1",
     "nanoid": "catalog:",
-    "prando": "^6.0.1",
-    "rxjs": "catalog:",
     "zod": "3.25.76",
     "zod-validation-error": "3.5.4"
   },

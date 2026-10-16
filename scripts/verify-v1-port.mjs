@@ -58,8 +58,6 @@ const allowed = new Set([
   'jsondiffpatch',
   'mitt',
   'nanoid',
-  'prando',
-  'rxjs',
   'zod',
   'zod-validation-error',
 ])

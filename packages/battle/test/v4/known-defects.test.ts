@@ -3,7 +3,7 @@ import { BattleMessageType, SkillPhase, TurnContext, PhaseState, setGlobalLogger
 import { makeScenario } from './scenario'
 let actualRage = 0
 let intendedRage = 0
-// Setup assertions live outside test.fails: missing damage/phase errors must fail normally.
+// Retained from the original expected-failure case; now a normal regression test.
 beforeAll(async () => {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
   const { battle, a, b } = makeScenario()
@@ -32,6 +32,6 @@ beforeAll(async () => {
     await battle.cleanup()
   }
 })
-it.fails('V1-BUG-01: damage rage should use the DamagePhase result, not the stale caller context', () => {
+it('V1-BUG-01: damage rage should use the DamagePhase result, not the stale caller context', () => {
   expect(actualRage).toBe(intendedRage)
 })

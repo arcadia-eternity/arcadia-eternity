@@ -1,17 +1,16 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
-import Prando from 'prando'
-import { AIPlayer, BattlePhase, BattleStatus, setGlobalLogger, type Battle } from '@arcadia-eternity/battle/v4'
+import { GameRng, AIPlayer, BattlePhase, BattleStatus, setGlobalLogger, type Battle } from '@arcadia-eternity/battle/v4'
 import { makeScenario, runScenario } from './scenario'
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
-it('preserves the original Prando sequence and accepts seed zero', () => {
+it('uses deterministic sfc32-v1 streams including seed zero', () => {
   for (const seed of [0, 201, -12]) {
     const fixture = makeScenario(seed)
     battles.push(fixture.battle)
-    const reference = new Prando(seed)
+    const reference = new GameRng(seed)
     expect(Array.from({ length: 8 }, () => fixture.battle.random())).toEqual(
       Array.from({ length: 8 }, () => reference.next()),
     )
@@ -61,4 +60,28 @@ it('records accepted Battle.setSelection input with defensive copies', () => {
 })
 it('repeats the complete actual V1 battle with the same seed after normalizing instance metadata', async () => {
   expect(await runScenario(201)).toEqual(await runScenario(201))
+})
+
+it('restores the exact RNG continuation from a versioned JSON state', () => {
+  const rng = new GameRng('continuation')
+  for (let i = 0; i < 19; i++) rng.next()
+  const restored = GameRng.fromState(JSON.parse(JSON.stringify(rng.getState())))
+  expect(restored.getState().algorithm).toBe('sfc32-v1')
+  expect(Array.from({ length: 40 }, () => restored.next())).toEqual(Array.from({ length: 40 }, () => rng.next()))
+  expect(() => GameRng.fromState({ ...rng.getState(), a: Number.NaN })).toThrow('Invalid')
+})
+it('distinguishes zero from one and validates inclusive integer bounds', () => {
+  expect(new GameRng(0).next()).not.toBe(new GameRng(1).next())
+  const rng = new GameRng(0)
+  expect(rng.nextInt(7, 7)).toBe(7)
+  expect(() => rng.nextInt(4, 3)).toThrow('range')
+  expect(() => new GameRng(Number.NaN)).toThrow('finite')
+})
+
+it('pins the sfc32-v1 seed expansion and draw sequence to the audited existing algorithm', () => {
+  const rng = new GameRng(201)
+  expect(Array.from({ length: 8 }, () => rng.next())).toEqual([
+    0.038409685948863626, 0.24384259898215532, 0.6457200676668435, 0.23372138058766723, 0.5024729664437473,
+    0.9169247860554606, 0.3005135338753462, 0.8028738892171532,
+  ])
 })

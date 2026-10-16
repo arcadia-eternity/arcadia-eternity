@@ -1,7 +1,7 @@
 import type { baseMarkId, baseSkillId, markId, petId, playerId, skillId, speciesId } from '@arcadia-eternity/const'
-import { BehaviorSubject, Subject, Observable, combineLatest } from 'rxjs'
-import { map, distinctUntilChanged } from 'rxjs/operators'
-import { Battle } from './battle'
+import { Signal, ReactiveValue, isReactiveValue } from './reactiveValue'
+import type { Battle } from './battle'
+import { AttributeSystem } from './attributeSystem'
 import type { MarkInstance } from './mark'
 import type { Pet } from './pet'
 import type { Player } from './player'
@@ -75,51 +75,18 @@ export enum PhaseScope {
  * Similar to Modifier but specialized for config values
  */
 export class ConfigModifier {
-  public value!: BehaviorSubject<ConfigValue>
-  private sourceSubscription?: { unsubscribe(): void }
+  public value: ReactiveValue<ConfigValue>
 
   constructor(
     public durationType: ConfigDurationType,
     public id: string,
-    initialValue: ConfigValue | Subject<ConfigValue> | Observable<ConfigValue>,
+    initialValue: ConfigValue | ReactiveValue<ConfigValue>,
     public type: ConfigModifierType,
     public priority: number,
     public source?: MarkInstance | SkillInstance | BattlePhaseBase,
     public phaseTypeSpec?: PhaseTypeSpec, // For phaseType duration type
   ) {
-    if (initialValue instanceof BehaviorSubject) {
-      this.value = initialValue
-    } else if (initialValue instanceof Subject) {
-      let currentValue: ConfigValue | undefined
-      const sub = initialValue.subscribe(val => (currentValue = val))
-      sub.unsubscribe()
-
-      if (currentValue === undefined) {
-        throw new Error(`Subject passed to ConfigModifier ${this.id} has no current value`)
-      }
-
-      this.value = new BehaviorSubject<ConfigValue>(currentValue)
-      this.sourceSubscription = initialValue.subscribe(val => this.value.next(val))
-    } else if (initialValue instanceof Observable) {
-      let hasInitialValue = false
-      let currentValue: ConfigValue
-
-      const sub = initialValue.subscribe(val => {
-        currentValue = val
-        if (!hasInitialValue) {
-          hasInitialValue = true
-          this.value = new BehaviorSubject<ConfigValue>(currentValue)
-          this.sourceSubscription = initialValue.subscribe(val => this.value.next(val))
-        }
-      })
-
-      if (!hasInitialValue) {
-        sub.unsubscribe()
-        throw new Error(`Observable passed to ConfigModifier ${this.id} did not emit an initial value synchronously`)
-      }
-    } else {
-      this.value = new BehaviorSubject<ConfigValue>(initialValue)
-    }
+    this.value = isReactiveValue(initialValue) ? initialValue as ReactiveValue<ConfigValue> : new Signal(initialValue)
   }
 
   /**
@@ -159,10 +126,6 @@ export class ConfigModifier {
    * Cleanup resources
    */
   cleanup(): void {
-    if (this.sourceSubscription) {
-      this.sourceSubscription.unsubscribe()
-      this.sourceSubscription = undefined
-    }
   }
 }
 
@@ -172,22 +135,25 @@ export class ConfigModifier {
  * Now supports non-singleton mode for battle instance isolation
  */
 export class ConfigSystem {
+  private static battleConfigs = new Map<string, ConfigSystem>()
+  static bindBattle(battle: Battle): void { this.battleConfigs.set(battle.id, battle.configSystem) }
+  static getBattleConfig(battleId: string): ConfigSystem | undefined { return this.battleConfigs.get(battleId) }
   private static instance: ConfigSystem | null = null
   private static battleRegistry: Map<string, Set<ConfigSystem>> = new Map()
   private readonly logger: BattleLogger = createChildLogger('ConfigSystem')
 
   // Modifier support
-  private baseConfigs: Map<string, BehaviorSubject<ConfigValue>> = new Map()
-  private modifiers: Map<string, BehaviorSubject<ConfigModifier[]>> = new Map()
-  private subscriptions: Map<string, Observable<ConfigValue>> = new Map()
+  private baseConfigs: Map<string, Signal<ConfigValue>> = new Map()
+  private modifiers: Map<string, Signal<ConfigModifier[]>> = new Map()
   private modifiersBySource: Map<string, Map<string, ConfigModifier[]>> = new Map()
 
-  private scopedBaseConfigs: WeakMap<ScopeObject, Map<string, BehaviorSubject<ConfigValue>>> = new WeakMap()
+  private scopedBaseConfigs: WeakMap<ScopeObject, Map<string, Signal<ConfigValue>>> = new WeakMap()
   private scopedModifiers: WeakMap<ScopeObject, Map<string, ConfigModifier[]>> = new WeakMap()
 
   // Phase type tracking
   private phaseStack: BattlePhaseBase[] = [] // Current phase execution stack
-  private phaseTypeModifiers: Map<string, ConfigModifier[]> = new Map() // Modifiers by phase type
+  private phaseBindings = new Map<object, { spec: PhaseTypeSpec; boundId?: string; excluded: Set<string>; cleanup: () => void }>()
+  private modifierCleanups = new Map<ConfigModifier, () => void>()
   private phaseTypeInstances: Map<PhaseType, BattlePhaseBase[]> = new Map() // Track instances by type
 
   // Tagged configuration system
@@ -215,16 +181,6 @@ export class ConfigSystem {
   static getInstance() {
     if (!ConfigSystem.instance) {
       ConfigSystem.instance = new ConfigSystem()
-
-      // Set up AttributeSystem integration to avoid circular dependency
-      // Use async import to avoid circular dependency issues
-      import('./attributeSystem.js')
-        .then(({ AttributeSystem }) => {
-          AttributeSystem.setConfigSystemGetter(() => ConfigSystem.getInstance())
-        })
-        .catch(() => {
-          // AttributeSystem not available, ignore
-        })
     }
     return ConfigSystem.instance
   }
@@ -274,6 +230,7 @@ export class ConfigSystem {
    * Clean up all ConfigSystem instances associated with a specific battle
    */
   static cleanupBattle(battleId: string): number {
+    ConfigSystem.battleConfigs.delete(battleId)
     const battleInstances = ConfigSystem.battleRegistry.get(battleId)
     if (!battleInstances) {
       return 0
@@ -308,20 +265,8 @@ export class ConfigSystem {
       return
     }
 
-    this.baseConfigs.set(key, new BehaviorSubject(initialValue))
-    this.modifiers.set(key, new BehaviorSubject<ConfigModifier[]>([]))
-
-    // Create computed stream with modifier application
-    const computed$ = combineLatest([this.baseConfigs.get(key)!, this.modifiers.get(key)!]).pipe(
-      map(([base, modifiers]) => {
-        // Sort modifiers by priority (higher priority first)
-        const sortedModifiers = [...modifiers].sort((a, b) => b.priority - a.priority)
-        return sortedModifiers.reduce((acc, modifier) => modifier.apply(acc), base)
-      }),
-      distinctUntilChanged(),
-    )
-
-    this.subscriptions.set(key, computed$)
+    this.baseConfigs.set(key, new Signal(initialValue))
+    this.modifiers.set(key, new Signal<ConfigModifier[]>([]))
   }
 
   /**
@@ -545,53 +490,14 @@ export class ConfigSystem {
    * Check if a modifier should be applied based on scope hierarchy
    */
   private isModifierApplicableInScopeHierarchy(modifier: ConfigModifier, currentScope?: ScopeObject): boolean {
+    if (modifier.source && 'isActive' in modifier.source &&
+        (!modifier.source.isActive || modifier.source.isSuppressed)) return false
     // Always apply non-phase-type modifiers for now
     if (modifier.durationType !== ConfigDurationType.phaseType) {
       return this.isModifierScopeCompatible(modifier, currentScope)
     }
 
-    const spec = modifier.phaseTypeSpec
-    if (!spec) {
-      return this.isModifierScopeCompatible(modifier, currentScope)
-    }
-
-    // Check if we're currently in the right phase type
-    const isInTargetPhaseType = this.hasActivePhaseOfType(spec.phaseType)
-    if (!isInTargetPhaseType) {
-      return false
-    }
-
-    // If specific phase ID is required, check if current phase matches
-    if (spec.phaseId) {
-      const currentPhase = this.getCurrentPhaseOfType(spec.phaseType)
-      if (!currentPhase || currentPhase.id !== spec.phaseId) {
-        return false
-      }
-    }
-
-    // Check scope compatibility
-    if (!this.isModifierScopeCompatible(modifier, currentScope)) {
-      return false
-    }
-
-    // Check scope-specific logic
-    switch (spec.scope) {
-      case PhaseScope.Current:
-        // Only apply if we're currently in this phase type
-        return isInTargetPhaseType
-
-      case PhaseScope.Any:
-        // Apply if we're in this phase type (same as Current for now)
-        return isInTargetPhaseType
-
-      case PhaseScope.Next:
-        // TODO: Implement proper "next" logic
-        // For now, treat as Current
-        return isInTargetPhaseType
-
-      default:
-        return true
-    }
+    return this.isModifierScopeCompatible(modifier, currentScope) && this.isPhaseModifierApplicable(modifier)
   }
 
   /**
@@ -724,11 +630,11 @@ export class ConfigSystem {
       const scopeConfigs = this.scopedBaseConfigs.get(scope)!
 
       if (scopeConfigs.has(key)) {
-        // Update the existing BehaviorSubject for this scope.
+        // Update the existing Signal for this scope.
         scopeConfigs.get(key)!.next(value)
       } else {
-        // Create a new BehaviorSubject for this key within this scope.
-        scopeConfigs.set(key, new BehaviorSubject(value))
+        // Create a new Signal for this key within this scope.
+        scopeConfigs.set(key, new Signal(value))
       }
     } else {
       // Setting the global base value.
@@ -748,7 +654,7 @@ export class ConfigSystem {
   addTaggedConfigModifier(
     tag: string,
     modifierType: ConfigModifierType,
-    value: ConfigValue | Subject<ConfigValue> | Observable<ConfigValue>,
+    value: ConfigValue | ReactiveValue<ConfigValue>,
     priority: number = 0,
     durationType: ConfigDurationType = ConfigDurationType.instant,
     source?: MarkInstance | SkillInstance | BattlePhaseBase,
@@ -777,7 +683,7 @@ export class ConfigSystem {
   addTaggedConfigModifierSingle(
     tag: string,
     modifierType: ConfigModifierType,
-    value: ConfigValue | Subject<ConfigValue> | Observable<ConfigValue>,
+    value: ConfigValue | ReactiveValue<ConfigValue>,
     priority: number = 0,
     durationType: ConfigDurationType = ConfigDurationType.instant,
     source?: MarkInstance | SkillInstance | BattlePhaseBase,
@@ -803,6 +709,23 @@ export class ConfigSystem {
    * Add a config modifier with specific scope
    */
   addScopedConfigModifier(key: string, modifier: ConfigModifier, scope?: ScopeObject): () => void {
+    if (modifier.source) for (const [existing, cleanup] of this.modifierCleanups) {
+      if (existing.id === modifier.id && existing.source?.id === modifier.source.id) cleanup()
+    }
+    const rawCleanup = this.addScopedConfigModifierRaw(key, modifier, scope)
+    let active = true
+    const cleanup = () => {
+      if (!active) return
+      active = false
+      this.modifierCleanups.delete(modifier)
+      this.phaseBindings.delete(modifier)
+      rawCleanup()
+    }
+    this.modifierCleanups.set(modifier, cleanup)
+    return cleanup
+  }
+
+  private addScopedConfigModifierRaw(key: string, modifier: ConfigModifier, scope?: ScopeObject): () => void {
     // Ensure the config is registered
     if (!this.modifiers.has(key)) {
       throw new Error(`Config key '${key}' is not registered for modifier support. Call registerConfig() first.`)
@@ -907,19 +830,9 @@ export class ConfigSystem {
    * Remove all modifiers from a specific source
    */
   removeModifiersFromSource(sourceId: string): void {
-    const sourceModifiers = this.modifiersBySource.get(sourceId)
-    if (!sourceModifiers) return
-
-    for (const [configKey, modifiersToRemove] of sourceModifiers.entries()) {
-      const currentModifiers = this.modifiers.get(configKey)!.value
-      const filteredModifiers = currentModifiers.filter(modifier => !modifiersToRemove.includes(modifier))
-      this.modifiers.get(configKey)!.next(filteredModifiers)
-
-      // Cleanup removed modifiers
-      modifiersToRemove.forEach(modifier => modifier.cleanup())
+    for (const [modifier, cleanup] of [...this.modifierCleanups]) {
+      if (modifier.source?.id === sourceId) cleanup()
     }
-
-    this.modifiersBySource.delete(sourceId)
   }
 
   /**
@@ -951,25 +864,20 @@ export class ConfigSystem {
    * Notify AttributeSystem of phase changes
    */
   private notifyAttributeSystemPhaseChange(): void {
-    // Use async import to avoid circular dependency issues
-    import('./attributeSystem.js')
-      .then(({ AttributeSystem }) => {
-        AttributeSystem.notifyPhaseChange()
-      })
-      .catch(() => {
-        // AttributeSystem not available, ignore
-      })
+    AttributeSystem.notifyPhaseChange()
   }
 
   /**
    * Infer phase type from phase instance
    */
   private inferPhaseType(phase: BattlePhaseBase): PhaseType {
+    if (phase.phaseType) return phase.phaseType
     const className = phase.constructor.name
 
     // Map class names to phase types
     switch (className) {
       case 'BattleStartPhase':
+      case 'BattleLoopPhase':
         return PhaseType.Battle
       case 'TurnPhase':
         return PhaseType.Turn
@@ -980,23 +888,15 @@ export class ConfigSystem {
       case 'HealPhase':
         return PhaseType.Heal
       case 'SwitchPetPhase':
+      case 'BattleSwitchPhase':
         return PhaseType.Switch
       case 'MarkPhase':
         return PhaseType.Mark
       case 'RagePhase':
         return PhaseType.Rage
       default:
-        // Check if it contains certain keywords in the ID
-        if (phase.id.includes('turn')) return PhaseType.Turn
-        if (phase.id.includes('skill')) return PhaseType.Skill
-        if (phase.id.includes('damage')) return PhaseType.Damage
-        if (phase.id.includes('heal')) return PhaseType.Heal
-        if (phase.id.includes('switch')) return PhaseType.Switch
-        if (phase.id.includes('mark')) return PhaseType.Mark
-        if (phase.id.includes('rage')) return PhaseType.Rage
-        if (phase.id.includes('battle')) return PhaseType.Battle
-
-        // Default to Effect for unknown types
+        if (/^(?:Mark|AddMark|RemoveMark)/.test(className)) return PhaseType.Mark
+        // Unknown custom phases use Effect unless their phaseType is explicit.
         return PhaseType.Effect
     }
   }
@@ -1014,7 +914,11 @@ export class ConfigSystem {
     }
     this.phaseTypeInstances.get(phaseType)!.push(phase)
 
-    // Notify AttributeSystem of phase change
+    for (const binding of this.phaseBindings.values()) {
+      if (binding.spec.phaseType === phaseType && binding.spec.scope !== PhaseScope.Any &&
+          !binding.boundId && !binding.excluded.has(phase.id)) binding.boundId = phase.id
+    }
+    // Notify synchronously: phase-sensitive attributes must change before execution.
     this.notifyAttributeSystemPhaseChange()
   }
 
@@ -1074,172 +978,42 @@ export class ConfigSystem {
     return !!(instances && instances.length > 0)
   }
 
-  /**
-   * Add a phase-type bound config modifier (legacy method - global scope)
-   */
-  addPhaseTypeConfigModifier(configKey: string, modifier: ConfigModifier, phaseTypeSpec: PhaseTypeSpec): () => void {
-    return this.addScopedPhaseTypeConfigModifier(configKey, modifier, phaseTypeSpec, undefined)
+  trackPhaseModifier(modifier: object, spec: PhaseTypeSpec, cleanup: () => void): () => void {
+    const active = this.phaseTypeInstances.get(spec.phaseType) ?? []
+    const boundId = spec.phaseId ?? (spec.scope === PhaseScope.Current ? active.at(-1)?.id : undefined)
+    this.phaseBindings.set(modifier, { spec: { ...spec }, boundId,
+      excluded: new Set(spec.scope === PhaseScope.Next ? active.map(p => p.id) : []), cleanup })
+    return () => this.phaseBindings.delete(modifier)
   }
 
-  /**
-   * Add a phase-type bound config modifier with specific scope
-   */
-  addScopedPhaseTypeConfigModifier(
-    configKey: string,
-    modifier: ConfigModifier,
-    phaseTypeSpec: PhaseTypeSpec,
-    scope?: ScopeObject,
-  ): () => void {
-    // Validate that this is a phaseType modifier
-    if (modifier.durationType !== ConfigDurationType.phaseType) {
-      throw new Error('Modifier must have phaseType duration type for phase type binding')
-    }
-
-    // Set the phase type spec
-    modifier.phaseTypeSpec = phaseTypeSpec
-
-    // Add to scoped modifiers
-    const cleanup = this.addScopedConfigModifier(configKey, modifier, scope)
-
-    // Track for type-based cleanup
-    const typeKey = `${configKey}:${phaseTypeSpec.phaseType}:${phaseTypeSpec.scope}:${phaseTypeSpec.phaseId || 'any'}`
-    if (!this.phaseTypeModifiers.has(typeKey)) {
-      this.phaseTypeModifiers.set(typeKey, [])
-    }
-    this.phaseTypeModifiers.get(typeKey)!.push(modifier)
-
-    return () => {
-      cleanup()
-      // Remove from type tracking
-      const typeModifiers = this.phaseTypeModifiers.get(typeKey)
-      if (typeModifiers) {
-        const index = typeModifiers.indexOf(modifier)
-        if (index > -1) {
-          typeModifiers.splice(index, 1)
-        }
-        if (typeModifiers.length === 0) {
-          this.phaseTypeModifiers.delete(typeKey)
-        }
-      }
-    }
+  isPhaseModifierApplicable(modifier: object): boolean {
+    const binding = this.phaseBindings.get(modifier)
+    if (!binding) return false
+    const active = this.phaseTypeInstances.get(binding.spec.phaseType) ?? []
+    return active.some(p => binding.spec.scope === PhaseScope.Any
+      ? (!binding.spec.phaseId || binding.spec.phaseId === p.id)
+      : binding.boundId === p.id)
   }
 
-  /**
-   * Cleanup modifiers based on phase type completion
-   */
+  addPhaseTypeConfigModifier(key: string, modifier: ConfigModifier, spec: PhaseTypeSpec): () => void {
+    return this.addScopedPhaseTypeConfigModifier(key, modifier, spec)
+  }
+
+  addScopedPhaseTypeConfigModifier(key: string, modifier: ConfigModifier, spec: PhaseTypeSpec, scope?: ScopeObject): () => void {
+    if (modifier.durationType !== ConfigDurationType.phaseType) throw new Error('Modifier must have phaseType duration type')
+    modifier.phaseTypeSpec = { ...spec }
+    const cleanup = this.addScopedConfigModifier(key, modifier, scope)
+    const untrack = this.trackPhaseModifier(modifier, spec, cleanup)
+    return () => { untrack(); cleanup() }
+  }
+
   private cleanupPhaseTypeModifiers(phaseType: PhaseType, completedPhase: BattlePhaseBase): void {
-    const modifiersToCleanup: ConfigModifier[] = []
-
-    for (const [typeKey, modifiers] of this.phaseTypeModifiers.entries()) {
-      const [_configKey, keyPhaseType, scope, phaseId] = typeKey.split(':')
-
-      // Only process modifiers for the completed phase type
-      if (keyPhaseType !== phaseType) continue
-
-      for (const modifier of modifiers) {
-        if (this.shouldCleanupPhaseTypeModifier(modifier, phaseType, scope, phaseId, completedPhase)) {
-          modifiersToCleanup.push(modifier)
-        }
-      }
-    }
-
-    // Remove the modifiers
-    for (const modifier of modifiersToCleanup) {
-      this.removeSpecificModifier(modifier)
-    }
-  }
-
-  /**
-   * Check if a modifier should be cleaned up based on phase type completion
-   */
-  private shouldCleanupPhaseTypeModifier(
-    modifier: ConfigModifier,
-    _phaseType: PhaseType,
-    scope: string,
-    phaseId: string,
-    completedPhase: BattlePhaseBase,
-  ): boolean {
-    const spec = modifier.phaseTypeSpec
-    if (!spec) return false
-
-    // If specific phase ID is specified, check if it matches
-    if (phaseId !== 'any' && phaseId !== completedPhase.id) {
-      return false
-    }
-
-    // Check scope matching strategy
-    switch (scope) {
-      case PhaseScope.Current:
-        // Cleanup when the current instance of this phase type completes
-        // This is the most common case - "在当前这次技能使用中"
-        return true
-
-      case PhaseScope.Any:
-        // Cleanup when any instance of this phase type completes
-        // This is for "在任何一次技能使用中"
-        return true
-
-      case PhaseScope.Next:
-        // This is more complex - should cleanup when the NEXT instance completes
-        // For now, we'll implement it the same as Current
-        // TODO: Implement proper "next" logic if needed
-        return true
-
-      default:
-        return false
-    }
-  }
-
-  /**
-   * Remove a specific modifier from all tracking structures
-   */
-  private removeSpecificModifier(modifier: ConfigModifier): void {
-    // Find and remove from main modifiers
-    for (const [_configKey, modifierSubject] of this.modifiers.entries()) {
-      const currentModifiers = modifierSubject.value
-      const index = currentModifiers.indexOf(modifier)
-      if (index > -1) {
-        const newModifiers = [...currentModifiers]
-        newModifiers.splice(index, 1)
-        modifierSubject.next(newModifiers)
-
-        // Cleanup modifier resources
-        modifier.cleanup()
-        break
-      }
-    }
-
-    // Remove from source tracking
-    if (modifier.source) {
-      const sourceId = this.getSourceId(modifier.source)
-      const sourceModifiers = this.modifiersBySource.get(sourceId)
-      if (sourceModifiers) {
-        for (const [configKey, modifierList] of sourceModifiers.entries()) {
-          const index = modifierList.indexOf(modifier)
-          if (index > -1) {
-            modifierList.splice(index, 1)
-            if (modifierList.length === 0) {
-              sourceModifiers.delete(configKey)
-            }
-            break
-          }
-        }
-        if (sourceModifiers.size === 0) {
-          this.modifiersBySource.delete(sourceId)
-        }
-      }
-    }
-
-    // Remove from type tracking
-    for (const [typeKey, modifiers] of this.phaseTypeModifiers.entries()) {
-      const index = modifiers.indexOf(modifier)
-      if (index > -1) {
-        modifiers.splice(index, 1)
-        if (modifiers.length === 0) {
-          this.phaseTypeModifiers.delete(typeKey)
-        }
-        break
-      }
+    for (const [modifier, binding] of [...this.phaseBindings]) {
+      if (binding.spec.phaseType !== phaseType) continue
+      const matches = binding.spec.scope === PhaseScope.Any
+        ? !binding.spec.phaseId || binding.spec.phaseId === completedPhase.id
+        : binding.boundId === completedPhase.id
+      if (matches) { this.phaseBindings.delete(modifier); binding.cleanup() }
     }
   }
 
@@ -1251,6 +1025,9 @@ export class ConfigSystem {
       return
     }
 
+    for (const cleanup of [...this.modifierCleanups.values()]) cleanup()
+    for (const binding of [...this.phaseBindings.values()]) binding.cleanup()
+    this.phaseBindings.clear()
     // Cleanup all modifiers
     for (const [_key, modifierSubject] of this.modifiers.entries()) {
       const modifiers = modifierSubject.value
@@ -1273,10 +1050,8 @@ export class ConfigSystem {
     // Clear all maps and arrays
     this.baseConfigs.clear()
     this.modifiers.clear()
-    this.subscriptions.clear()
     this.modifiersBySource.clear()
     this.phaseStack.length = 0
-    this.phaseTypeModifiers.clear()
     this.phaseTypeInstances.clear()
     this.allSubscriptions.length = 0
 
@@ -1369,8 +1144,13 @@ export class ConfigSystem {
     }
 
     ConfigSystem.battleRegistry.clear()
+    ConfigSystem.battleConfigs.clear()
     const logger = createChildLogger('ConfigSystem')
     logger.log(`Cleaned up ${totalCleaned} ConfigSystem instances from all battles`)
     return totalCleaned
   }
 }
+
+// A Battle's attributes query its own phase stack, never the global template.
+AttributeSystem.setConfigSystemGetter((battleId?: string) =>
+  battleId ? ConfigSystem.getBattleConfig(battleId) : ConfigSystem.getInstance())

@@ -172,6 +172,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       context.minThreshold,
       context.maxThreshold,
       context.element,
+      undefined,
+      context,
     )
     context.battle.phaseManager.registerPhase(damagePhase)
     context.battle.phaseManager.executePhase(damagePhase.id)
@@ -189,6 +191,8 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
       context.baseHeal,
       context.ingoreEffect,
       context.modified,
+      undefined,
+      context,
     )
     context.battle.phaseManager.registerPhase(healPhase)
     context.battle.phaseManager.executePhase(healPhase.id)
@@ -204,7 +208,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public getShieldMark() {
-    return this.marks.filter(m => m.config.isShield)
+    return this.marks.filter(m => m.config.isShield && m.isActive && !m.isSuppressed)
   }
 
   private calculateStat(type: StatTypeOnBattle): number {
@@ -265,6 +269,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   private calculateMaxHp(): number {
+    if (this.maxHp !== undefined) return this.maxHp
     const baseStat = this.base.baseStats.hp
     const level = this.level
     const iv = this.ivs.hp

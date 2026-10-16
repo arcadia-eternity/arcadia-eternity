@@ -83,7 +83,8 @@ export class PetParser {
       emblem,
       validated.weight ?? species.weightRange[1],
       validated.height ?? species.heightRange[1],
-      gender,
+      validated.gender ?? gender,
+      validated.maxHp,
     )
   }
 }

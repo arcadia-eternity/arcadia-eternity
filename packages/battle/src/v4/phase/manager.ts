@@ -105,9 +105,12 @@ export class PhaseManager {
       throw new Error(`Interactive phase ${phaseId} must be executed with executePhaseAsync()`)
     }
 
+    if (options.retryCount) throw new Error('Automatic phase retry requires a rollback boundary')
+    if (options.timeout) throw new Error('Phase timeout requires a cooperative cancellation boundary')
     // Check dependencies
     this.checkDependencies(phaseId)
 
+    const previousPhase = this.currentPhase
     this.currentPhase = phase
 
     // Push phase to config system stack for level tracking
@@ -132,16 +135,13 @@ export class PhaseManager {
         error: error instanceof Error ? error : new Error(String(error)),
       }
 
-      // Retry logic
-      if (options.retryCount && options.retryCount > 0) {
-        this.logger.warn(`Phase ${phaseId} failed, retrying... (${options.retryCount} attempts left)`)
-        return this.executePhase(phaseId, { ...options, retryCount: options.retryCount - 1 })
-      }
-
+      if (!options.skipOnError) throw errorResult.error
       return errorResult
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
       configSystem.popPhase(phase as BattlePhaseBase)
+      if (phase.isFinished()) phase.cleanupConfigModifiers()
+      this.currentPhase = previousPhase
     }
   }
 
@@ -154,9 +154,12 @@ export class PhaseManager {
       throw new Error(`Phase ${phaseId} not found`)
     }
 
+    if (options.retryCount) throw new Error('Automatic phase retry requires a rollback boundary')
+    if (options.timeout) throw new Error('Phase timeout requires a cooperative cancellation boundary')
     // Check dependencies
     this.checkDependencies(phaseId)
 
+    const previousPhase = this.currentPhase
     this.currentPhase = phase
 
     // Push phase to config system stack for level tracking
@@ -192,16 +195,13 @@ export class PhaseManager {
         error: error instanceof Error ? error : new Error(String(error)),
       }
 
-      // Retry logic
-      if (options.retryCount && options.retryCount > 0) {
-        this.logger.warn(`Phase ${phaseId} failed, retrying... (${options.retryCount} attempts left)`)
-        return this.executePhaseAsync(phaseId, { ...options, retryCount: options.retryCount - 1 })
-      }
-
+      if (!options.skipOnError) throw errorResult.error
       return errorResult
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
       configSystem.popPhase(phase as BattlePhaseBase)
+      if (phase.isFinished()) phase.cleanupConfigModifiers()
+      this.currentPhase = previousPhase
     }
   }
 

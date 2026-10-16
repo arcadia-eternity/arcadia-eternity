@@ -290,6 +290,7 @@ export class TransformationSystem {
       this.applyPermanentTransformation(record, strategy)
     }
 
+    this.battle.applyEffects(context, EffectTrigger.OnTransform)
     // 触发变身后效果
     this.battle.applyEffects(context, EffectTrigger.AfterTransform)
 
@@ -319,11 +320,12 @@ export class TransformationSystem {
   ): void {
     if (target instanceof Pet) {
       const petStrategy = strategy as TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet>
+      currentHpRatio = target.stat.maxHp > 0 ? target.currentHp / target.stat.maxHp : 0
       petStrategy.performTransformation(target, newBase as PetPrototype, effectHandlingStrategy)
       // 恢复HP比例
       if (currentHpRatio !== undefined) {
         const newCurrentHp = Math.floor(target.stat.maxHp * currentHpRatio)
-        target.attributeSystem.setCurrentHp(newCurrentHp)
+        target.currentHp = newCurrentHp
       }
     } else if (target instanceof SkillInstance) {
       const skillStrategy = strategy as TransformationStrategy<SkillEntity, SkillPrototype, EntityType.Skill>

@@ -134,6 +134,7 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
   const addedEffects = new Set<string>()
 
   effectContainers.forEach(container => {
+    if ('isActive' in container && (!container.isActive || ('isSuppressed' in container && container.isSuppressed))) return
     if ('effects' in container && Array.isArray((container as any).effects)) {
       const containerEffects = (container as any).effects as Effect<EffectTrigger>[]
 

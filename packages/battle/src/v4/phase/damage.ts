@@ -27,12 +27,13 @@ export class DamagePhase extends SynchronousPhase<DamageContext> {
     private readonly maxThreshold: number = Number.MAX_SAFE_INTEGER,
     private readonly element?: Element,
     id?: string,
+    private readonly existingContext?: DamageContext,
   ) {
     super(battle, id)
   }
 
   protected createContext(): DamageContext {
-    return new DamageContext(
+    return this.existingContext ?? new DamageContext(
       this.parentContext,
       this.source,
       this.target,
@@ -68,6 +69,7 @@ export function executeDamageOperation(context: DamageContext, battle: Battle): 
     context.updateDamageResult()
 
     if (!context.available) {
+      context.damageResult = 0
       battle.emitMessage(BattleMessageType.DamageFail, {
         source: context.source.id,
         target: context.target.id,

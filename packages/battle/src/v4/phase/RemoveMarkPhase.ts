@@ -16,12 +16,13 @@ export class RemoveMarkPhase extends SynchronousPhase<RemoveMarkContext> {
     private readonly parentContext: any, // EffectContext, DamageContext, AddMarkContext, or TurnContext
     private readonly mark: MarkInstance,
     id?: string,
+    private readonly existingContext?: RemoveMarkContext,
   ) {
     super(battle, id)
   }
 
   protected createContext(): RemoveMarkContext {
-    return new RemoveMarkContext(this.parentContext, this.mark)
+    return this.existingContext ?? new RemoveMarkContext(this.parentContext, this.mark)
   }
 
   protected executeOperation(): void {

@@ -52,7 +52,8 @@ function replaceStatLevelMark(
   context: AddMarkContext,
   battle: Battle,
 ): void {
-  if (!existingMark.owner) return
+  const owner = existingMark.owner
+  if (!owner) return
 
   // Create new BaseMark with correct baseId
   const newBaseMark = CreateStatStageMark(existingMark.base.statType, newLevel)
@@ -73,27 +74,27 @@ function replaceStatLevelMark(
 
   // Set owner and emitter
   if (existingMark.emitter) {
-    newMarkInstance.setOwner(existingMark.owner, existingMark.emitter)
+    newMarkInstance.setOwner(owner, existingMark.emitter)
   }
 
   // Replace in marks array
-  const markIndex = existingMark.owner.marks.indexOf(existingMark)
+  const markIndex = owner.marks.indexOf(existingMark)
   if (markIndex !== -1) {
-    existingMark.owner.marks[markIndex] = newMarkInstance
+    owner.marks[markIndex] = newMarkInstance
   }
 
   // Clean up existing mark's modifier
   existingMark.detach()
 
   // Add modifier for new mark by attaching to target
-  newMarkInstance.attachTo(existingMark.owner)
+  newMarkInstance.attachTo(owner)
 
   // Set existing mark as inactive
   existingMark.isActive = false
 
   // Emit mark update message
   battle.emitMessage(BattleMessageType.MarkUpdate, {
-    target: existingMark.owner instanceof Pet ? existingMark.owner.id : 'battle',
+    target: owner instanceof Pet ? owner.id : 'battle',
     mark: newMarkInstance.toMessage(),
   })
 }

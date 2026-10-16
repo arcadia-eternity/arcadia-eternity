@@ -281,12 +281,6 @@ importers:
       nanoid:
         specifier: 'catalog:'
         version: 5.1.16
-      prando:
-        specifier: ^6.0.1
-        version: 6.0.1
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -6055,9 +6049,6 @@ packages:
     resolution: {integrity: sha512-b9Eb8h2eVqNE8edvKdwqkrY6O7kAwmI8kcnBv1NScolYJbo59XUF0noFq+lxbC1yN20bmC0WBEbDC5H/7ASb0A==}
     engines: {node: '>=14.0.0'}
     hasBin: true
-
-  prando@6.0.1:
-    resolution: {integrity: sha512-ghUWxQ1T9IJmPu6eshc3VU0OwveUtXQ33ZLXYUcz1Oc5ppKLDXKp0TBDj6b0epwhEctzcQSNGR2iHyvQSn4W5A==}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -13303,8 +13294,6 @@ snapshots:
     dependencies:
       commander: 9.5.0
     optional: true
-
-  prando@6.0.1: {}
 
   prelude-ls@1.2.1: {}
 

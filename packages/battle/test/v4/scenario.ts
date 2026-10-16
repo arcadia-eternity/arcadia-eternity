@@ -1,6 +1,7 @@
 // Custom mechanism fixture, not a substitute for the official Effect catalog.
 import {
   createBattle,
+  type ConfigSystem,
   Player,
   Pet,
   BaseSkill,
@@ -34,7 +35,7 @@ import {
   type speciesId,
 } from '@arcadia-eternity/battle/v4'
 
-export function makeScenario(seed = 201, rng?: BattleRng, ai = false) {
+export function makeScenario(seed = 201, rng?: BattleRng, ai = false, ability?: BaseMark, config?: ConfigSystem) {
   const counters = { created: 0, expired: 0, destroyed: 0, ticked: 0, hits: 0 }
   const debuff = new BaseMark(
     'fixture/debuff' as baseMarkId,
@@ -160,14 +161,14 @@ export function makeScenario(seed = 201, rng?: BattleRng, ai = false) {
   const weak = species('fixture/weak', 20, 10)
   const evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
   function pet(id: string, base: Species, skills: BaseSkill[]) {
-    return new Pet(id, id as petId, base, 50, evs, evs, Nature.Hardy, skills)
+    return new Pet(id, id as petId, base, 50, evs, evs, Nature.Hardy, skills, id === 'A/lead' ? ability : undefined)
   }
   const a = new (ai ? AIPlayer : Player)('A', 'A' as playerId, [
     pet('A/lead', good, [setup]),
     pet('A/reserve', good, [strike]),
   ])
   const b = new Player('B', 'B' as playerId, [pet('B/lead', weak, [tap]), pet('B/reserve', weak, [tap])])
-  const battle = createBattle(a, b, { rngSeed: seed, rng, timerConfig: { enabled: false }, showHidden: true })
+  const battle = createBattle(a, b, { rngSeed: seed, rng, timerConfig: { enabled: false }, showHidden: true }, config)
   return { battle, a, b, counters, debuff }
 }
 

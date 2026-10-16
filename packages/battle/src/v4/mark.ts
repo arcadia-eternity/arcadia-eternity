@@ -35,7 +35,7 @@ import {
   type BaseMarkAccessors,
   type LevelAccessors,
 } from './attributeSystem'
-import { Observable } from 'rxjs'
+import { Signal, type ReactiveValue } from './reactiveValue'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance
@@ -80,6 +80,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   readonly effects: Effect<EffectTrigger>[]
   config: Partial<MarkConfig>
   readonly tags: string[]
+  isSuppressed: boolean
 
   readonly base: BaseMark
   readonly attributeSystem: MarkAttributeSystem
@@ -105,6 +106,9 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
 }
 
 export class MarkInstanceImpl implements MarkInstance {
+  private suppression = new Signal(false)
+  get isSuppressed(): boolean { return this.suppression.value }
+  set isSuppressed(value: boolean) { this.suppression.next(value) }
   public owner: Battle | Pet | null = null
 
   public readonly id: markId
@@ -281,7 +285,7 @@ export class MarkInstanceImpl implements MarkInstance {
       baseId: this.base.id,
       stack: this.stack,
       duration: this.duration,
-      isActive: this.isActive,
+      isActive: this.isActive && !this.isSuppressed,
       config: this.config,
     }
   }
@@ -329,7 +333,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   private levelAccessors: BaseMarkAccessors & LevelAccessors
 
   // 使用computed创建自动计算的stage multiplier，基于attributeSystem的level
-  private stageMultiplier$: Observable<number>
+  private stageMultiplier$: ReactiveValue<number>
 
   constructor(public readonly base: BaseStatLevelMark) {
     super(base)
@@ -351,6 +355,12 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
       () => this.getStageMultiplier(this.levelAccessors.getLevel()),
       [this.statLevelAttributeSystem.getAttribute$('level')],
     )
+  }
+
+  override setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
+    super.setOwner(owner, emitter)
+    const battleId = owner instanceof Pet ? owner.owner?.battle?.id : owner.id
+    if (battleId) this.statLevelAttributeSystem.setBattleId(battleId)
   }
 
   // level的getter和setter，操作attributeSystem

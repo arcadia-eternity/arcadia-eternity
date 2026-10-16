@@ -6,7 +6,7 @@ const result = await runHistoricalOfficial()
 console.log(
   JSON.stringify(
     {
-      engine: 'original-v1/c0862898',
+      engine: 'v1-port/sfc32-v1',
       turn: result.turn,
       winner: result.winner,
       content: result.content,

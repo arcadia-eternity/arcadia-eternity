@@ -19,12 +19,13 @@ export class RagePhase extends SynchronousPhase<RageContext> {
     private readonly ignoreRageObtainEfficiency: boolean = false,
     private readonly modified: [number, number] = [0, 0],
     id?: string,
+    private readonly existingContext?: RageContext,
   ) {
     super(battle, id)
   }
 
   protected createContext(): RageContext {
-    return new RageContext(
+    return this.existingContext ?? new RageContext(
       this.parentContext,
       this.target,
       this.reason,
@@ -50,18 +51,21 @@ export class RagePhase extends SynchronousPhase<RageContext> {
 export function executeRageOperation(context: RageContext, battle: Battle): void {
   const before = context.target.currentRage
 
+  if (!context.available) return
   switch (context.modifiedType) {
     case 'setting':
       context.target.settingRage(context.value)
       break
     case 'add':
       battle.applyEffects(context, EffectTrigger.OnRageGain)
-      context.updateRageChangeResult()
+      if (context.available) context.updateRageChangeResult()
+      else context.rageChangeResult = 0
       context.target.settingRage(context.target.currentRage + context.rageChangeResult)
       break
     case 'reduce':
       battle.applyEffects(context, EffectTrigger.OnRageLoss)
-      context.updateRageChangeResult()
+      if (context.available) context.updateRageChangeResult()
+      else context.rageChangeResult = 0
       context.target.settingRage(context.target.currentRage - context.rageChangeResult)
       break
   }

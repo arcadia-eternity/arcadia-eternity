@@ -39,6 +39,7 @@ export interface PhaseContext<TContext extends Context = Context> {
  */
 export abstract class BattlePhaseBase<TContext extends Context = Context> {
   public state: PhaseState = PhaseState.Pending
+  public phaseType?: import('../config').PhaseType
   public result?: PhaseResult
   protected _context?: TContext
   protected configModifierCleanups: (() => void)[] = []
@@ -107,6 +108,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
     try {
       // Execute the core operation
       this.executeOperation()
+      if (this.isCancelled()) return this.result!
       this.state = PhaseState.Completed
       this.result = {
         success: true,
@@ -147,6 +149,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
       // Execute the core operation
       await this.executeOperationAsync()
 
+      if (this.isCancelled()) return this.result!
       this.state = PhaseState.Completed
       this.result = {
         success: true,
@@ -230,7 +233,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
     value: ConfigValue,
     priority: number = 0,
   ): void {
-    const configSystem = ConfigSystem.getInstance()
+    const configSystem = this.battle.configSystem
 
     // Create a unique modifier ID
     const timestamp = Date.now()
@@ -254,7 +257,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
     observableValue: any, // Observable<ConfigValue>
     priority: number = 0,
   ): void {
-    const configSystem = ConfigSystem.getInstance()
+    const configSystem = this.battle.configSystem
 
     // Create a unique modifier ID
     const timestamp = Date.now()
@@ -279,7 +282,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   /**
    * Cleanup all config modifiers associated with this phase
    */
-  private cleanupConfigModifiers(): void {
+  public cleanupConfigModifiers(): void {
     this.configModifierCleanups.forEach(cleanup => cleanup())
     this.configModifierCleanups.length = 0
   }
@@ -301,6 +304,8 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   /**
    * Check if the phase is finished (completed, failed, or cancelled)
    */
+  public isCancelled(): boolean { return this.state === PhaseState.Cancelled }
+
   public isFinished(): boolean {
     return [PhaseState.Completed, PhaseState.Failed, PhaseState.Cancelled].includes(this.state)
   }
@@ -337,12 +342,14 @@ export abstract class SynchronousPhase<TContext extends Context = Context> exten
       // Execute the core operation synchronously (no await)
       this.executeOperation()
 
+      if (this.isCancelled()) return this.result!
       this.state = PhaseState.Completed
       this.result = {
         success: true,
         state: this.state,
       }
 
+      this.onComplete()
       return this.result
     } catch (error) {
       this.state = PhaseState.Failed
@@ -352,6 +359,7 @@ export abstract class SynchronousPhase<TContext extends Context = Context> exten
         error: error instanceof Error ? error : new Error(String(error)),
       }
 
+      this.onError(this.result.error!)
       throw error
     }
   }
@@ -414,6 +422,7 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
       // Execute the core operation
       await this.executeOperation()
 
+      if (this.isCancelled()) return this.result!
       this.state = PhaseState.Completed
       this.result = {
         success: true,

@@ -129,6 +129,9 @@ export class UseSkillContext extends Context {
   ignoreShield = false
   ignoreStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
 
+  private skillSureHit = false
+  private skillSureCrit = false
+
   hitOverrides: {
     willHit: boolean
     priority: number
@@ -177,11 +180,9 @@ export class UseSkillContext extends Context {
     this.petAccuracy = skill.owner?.stat.accuracy || 100
     this.rage = skill.rage
     this.critRate = pet.stat.critRate
-    if (skill.sureHit)
-      this.hitOverrides.push({
-        willHit: true,
-        priority: 0,
-      })
+    this.skillSureHit = skill.sureHit
+    this.skillSureCrit = skill.sureCrit
+    this.ignoreStageStrategy = skill.base.ignoreOpponentStageStrategy
     this.ignoreShield = skill.ignoreShield
   }
 
@@ -203,6 +204,7 @@ export class UseSkillContext extends Context {
   updateHitResult() {
     if (this.hitOverrides.length > 0)
       this.hitResult = this.hitOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willHit
+    else if (this.skillSureHit) this.hitResult = true
     else if (this.actualTarget === this.skill.owner)
       this.hitResult = this.battle!.random() <= (this.accuracy / 100) * (this.petAccuracy / 100)
     else
@@ -213,7 +215,7 @@ export class UseSkillContext extends Context {
   updateCritResult() {
     if (this.critOverrides.length > 0)
       this.crit = this.critOverrides.reduce((a, b) => (a.priority > b.priority ? a : b)).willCrit
-    else this.crit = this.battle.random() * 100 < this.critRate
+    else this.crit = this.skillSureCrit || this.battle.random() * 100 < this.critRate
     this.logger.debug('critrate', this.critRate)
   }
 
@@ -270,11 +272,11 @@ export class UseSkillContext extends Context {
       this.category = skill.category
       this.element = skill.element
       this.accuracy = skill.accuracy
-      if (skill.sureHit)
-        this.hitOverrides.push({
-          willHit: true,
-          priority: 0,
-        })
+      this.skillSureHit = skill.sureHit
+      this.skillSureCrit = skill.sureCrit
+      this.ignoreStageStrategy = skill.base.ignoreOpponentStageStrategy
+      this.selectTarget = skill.target
+      this.updateActualTarget()
       this.multihit = skill.multihit
       this.ignoreShield = skill.ignoreShield
     }

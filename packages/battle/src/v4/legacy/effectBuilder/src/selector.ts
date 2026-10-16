@@ -20,7 +20,7 @@ import {
   Context,
   type BattlePhaseBase,
 } from '../../../index'
-import { Observable, combineLatest, map } from 'rxjs'
+import { ReactiveValue, derived, combineValues } from '../../../reactiveValue'
 import {
   TurnContext,
   type CanOwnedEntity,
@@ -70,7 +70,7 @@ export type PropertyRef<T, V> = {
 
 export type ObservableRef<T, V> = {
   get: () => V
-  get$: () => Observable<V>
+  get$: () => ReactiveValue<V>
   set: (value: V) => void
   target: T // 保留原对象引用
 }
@@ -131,10 +131,7 @@ export class ChainableSelector<T> {
                   return attributeSystem.getAttribute$(prop as string)
                 }
                 // 如果没有attributeSystem，返回一个包含当前值的Observable
-                return new Observable(subscriber => {
-                  subscriber.next((target as NonNullable<T>)[prop])
-                  subscriber.complete()
-                })
+                return derived(() => (target as NonNullable<T>)[prop])
               },
               set: (value: NonNullable<T>[K]) => {
                 ;(target as NonNullable<T>)[prop] = value
@@ -146,7 +143,7 @@ export class ChainableSelector<T> {
   }
 
   // 专门用于attribute的Observable选择器
-  selectAttribute$<K extends string>(attributeName: K): ChainableSelector<Observable<number | boolean | string>> {
+  selectAttribute$<K extends string>(attributeName: K): ChainableSelector<ReactiveValue<number | boolean | string>> {
     return new ChainableSelector(
       context =>
         this.selector(context)
@@ -161,9 +158,7 @@ export class ChainableSelector<T> {
             }
 
             // 如果没有attributeSystem，返回一个空的Observable
-            return new Observable(subscriber => {
-              subscriber.error(new Error(`Target does not have attributeSystem: ${target}`))
-            })
+            return derived(() => { throw new Error('Target does not have attributeSystem') })
           }),
       'Observable<number | boolean | string>',
     )
@@ -314,26 +309,23 @@ export class ChainableSelector<T> {
 
   //对所有的结果进行求和，得到唯一的参数
   sum(this: ChainableSelector<number>): ChainableSelector<number>
-  sum(this: ChainableSelector<Observable<number>>): ChainableSelector<Observable<number>>
+  sum(this: ChainableSelector<ReactiveValue<number>>): ChainableSelector<ReactiveValue<number>>
   sum(
-    this: ChainableSelector<number> | ChainableSelector<Observable<number>>,
-  ): ChainableSelector<number> | ChainableSelector<Observable<number>> {
+    this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
+  ): ChainableSelector<number> | ChainableSelector<ReactiveValue<number>> {
     if (this.type.includes('Observable')) {
-      return new ChainableSelector<Observable<number>>(context => {
-        const observables = this.selector(context) as Observable<number>[]
+      return new ChainableSelector<ReactiveValue<number>>(context => {
+        const observables = this.selector(context) as ReactiveValue<number>[]
         if (observables.length === 0) {
           return [
-            new Observable(subscriber => {
-              subscriber.next(0)
-              subscriber.complete()
-            }),
+            derived(() => 0),
           ]
         }
         if (observables.length === 1) {
           return observables
         }
         // 使用combineLatest来组合多个Observable并求和
-        const combined = combineLatest(observables).pipe(map(values => values.reduce((acc, cur) => acc + cur, 0)))
+        const combined = combineValues(observables).map(values => values.reduce((acc, cur) => acc + cur, 0))
         return [combined]
       }, 'Observable<number>')
     }
@@ -346,18 +338,18 @@ export class ChainableSelector<T> {
   //加一个固定数，或者加一个来源的数。如果来源选择了多个数，则会加上来源的每一个数。
   add(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number>
   add(
-    this: ChainableSelector<Observable<number>>,
+    this: ChainableSelector<ReactiveValue<number>>,
     valueSource: ValueSource<number>,
-  ): ChainableSelector<Observable<number>>
+  ): ChainableSelector<ReactiveValue<number>>
   add(
-    this: ChainableSelector<number> | ChainableSelector<Observable<number>>,
+    this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
     valueSource: ValueSource<number>,
-  ): ChainableSelector<number> | ChainableSelector<Observable<number>> {
+  ): ChainableSelector<number> | ChainableSelector<ReactiveValue<number>> {
     if (this.type.includes('Observable')) {
-      return new ChainableSelector<Observable<number>>(context => {
-        const observables = this.selector(context) as Observable<number>[]
+      return new ChainableSelector<ReactiveValue<number>>(context => {
+        const observables = this.selector(context) as ReactiveValue<number>[]
         const values = GetValueFromSource(context, valueSource)
-        return observables.map((obs, i) => obs.pipe(map(val => val + (values[i] ?? 0))))
+        return observables.map((obs, i) => obs.map(val => val + (values[i] ?? 0)))
       }, 'Observable<number>')
     }
     return this.combine(valueSource, (a, b) => a + b)
@@ -366,18 +358,18 @@ export class ChainableSelector<T> {
   // 乘一个固定数，或者乘一个来源的数。如果来源选择了多个数，则会乘上来源的每一个数。
   multiply(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number>
   multiply(
-    this: ChainableSelector<Observable<number>>,
+    this: ChainableSelector<ReactiveValue<number>>,
     valueSource: ValueSource<number>,
-  ): ChainableSelector<Observable<number>>
+  ): ChainableSelector<ReactiveValue<number>>
   multiply(
-    this: ChainableSelector<number> | ChainableSelector<Observable<number>>,
+    this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
     valueSource: ValueSource<number>,
-  ): ChainableSelector<number> | ChainableSelector<Observable<number>> {
+  ): ChainableSelector<number> | ChainableSelector<ReactiveValue<number>> {
     if (this.type.includes('Observable')) {
-      return new ChainableSelector<Observable<number>>(context => {
-        const observables = this.selector(context) as Observable<number>[]
+      return new ChainableSelector<ReactiveValue<number>>(context => {
+        const observables = this.selector(context) as ReactiveValue<number>[]
         const values = GetValueFromSource(context, valueSource)
-        return observables.map((obs, i) => obs.pipe(map(val => Math.floor(val * (values[i] ?? 1)))))
+        return observables.map((obs, i) => obs.map(val => Math.floor(val * (values[i] ?? 1))))
       }, 'Observable<number>')
     }
     return this.combine(valueSource, (a, b) => Math.floor(a * b))
@@ -386,21 +378,21 @@ export class ChainableSelector<T> {
   // 除以一个固定数，或者除以一个来源的数。如果来源选择了多个数，则会除以上来源的每一个数。
   divide(this: ChainableSelector<number>, valueSource: ValueSource<number>): ChainableSelector<number>
   divide(
-    this: ChainableSelector<Observable<number>>,
+    this: ChainableSelector<ReactiveValue<number>>,
     valueSource: ValueSource<number>,
-  ): ChainableSelector<Observable<number>>
+  ): ChainableSelector<ReactiveValue<number>>
   divide(
-    this: ChainableSelector<number> | ChainableSelector<Observable<number>>,
+    this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
     valueSource: ValueSource<number>,
-  ): ChainableSelector<number> | ChainableSelector<Observable<number>> {
+  ): ChainableSelector<number> | ChainableSelector<ReactiveValue<number>> {
     if (this.type.includes('Observable')) {
-      return new ChainableSelector<Observable<number>>(context => {
-        const observables = this.selector(context) as Observable<number>[]
+      return new ChainableSelector<ReactiveValue<number>>(context => {
+        const observables = this.selector(context) as ReactiveValue<number>[]
         const values = GetValueFromSource(context, valueSource)
         return observables.map((obs, i) => {
           const divisor = values[i] ?? 1
           if (divisor === 0) throw new Error('Division by zero in Observable operation')
-          return obs.pipe(map(val => Math.floor(val / divisor)))
+          return obs.map(val => Math.floor(val / divisor))
         })
       }, 'Observable<number>')
     }
@@ -444,16 +436,16 @@ export class ChainableSelector<T> {
 
   // 最大值限制
   clampMax(this: ChainableSelector<number>, max: ValueSource<number>): ChainableSelector<number>
-  clampMax(this: ChainableSelector<Observable<number>>, max: ValueSource<number>): ChainableSelector<Observable<number>>
+  clampMax(this: ChainableSelector<ReactiveValue<number>>, max: ValueSource<number>): ChainableSelector<ReactiveValue<number>>
   clampMax(
-    this: ChainableSelector<number> | ChainableSelector<Observable<number>>,
+    this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
     max: ValueSource<number>,
-  ): ChainableSelector<number> | ChainableSelector<Observable<number>> {
+  ): ChainableSelector<number> | ChainableSelector<ReactiveValue<number>> {
     if (this.type.includes('Observable')) {
-      return new ChainableSelector<Observable<number>>(context => {
-        const observables = this.selector(context) as Observable<number>[]
+      return new ChainableSelector<ReactiveValue<number>>(context => {
+        const observables = this.selector(context) as ReactiveValue<number>[]
         const maxValues = GetValueFromSource(context, max)
-        return observables.map((obs, i) => obs.pipe(map(val => Math.min(val, maxValues[i] ?? Number.MAX_SAFE_INTEGER))))
+        return observables.map((obs, i) => obs.map(val => Math.min(val, maxValues[i] ?? Number.MAX_SAFE_INTEGER)))
       }, 'Observable<number>')
     }
     return this.mapNumber(max, (v, value) => Math.min(v, value))
@@ -461,16 +453,16 @@ export class ChainableSelector<T> {
 
   // 最小值限制
   clampMin(this: ChainableSelector<number>, min: ValueSource<number>): ChainableSelector<number>
-  clampMin(this: ChainableSelector<Observable<number>>, min: ValueSource<number>): ChainableSelector<Observable<number>>
+  clampMin(this: ChainableSelector<ReactiveValue<number>>, min: ValueSource<number>): ChainableSelector<ReactiveValue<number>>
   clampMin(
-    this: ChainableSelector<number> | ChainableSelector<Observable<number>>,
+    this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
     min: ValueSource<number>,
-  ): ChainableSelector<number> | ChainableSelector<Observable<number>> {
+  ): ChainableSelector<number> | ChainableSelector<ReactiveValue<number>> {
     if (this.type.includes('Observable')) {
-      return new ChainableSelector<Observable<number>>(context => {
-        const observables = this.selector(context) as Observable<number>[]
+      return new ChainableSelector<ReactiveValue<number>>(context => {
+        const observables = this.selector(context) as ReactiveValue<number>[]
         const minValues = GetValueFromSource(context, min)
-        return observables.map((obs, i) => obs.pipe(map(val => Math.max(val, minValues[i] ?? Number.MIN_SAFE_INTEGER))))
+        return observables.map((obs, i) => obs.map(val => Math.max(val, minValues[i] ?? Number.MIN_SAFE_INTEGER)))
       }, 'Observable<number>')
     }
     return this.mapNumber(min, (v, value) => Math.max(v, value))
@@ -605,7 +597,7 @@ export type ObjectOpinion =
   | Prototype
   | PropertyRef<any, any>
   | ObservableRef<any, any>
-  | Observable<any>
+  | ReactiveValue<any>
   | BattlePhaseBase
 
 export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>

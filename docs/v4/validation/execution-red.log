@@ -1,0 +1,97 @@
+
+ RUN  v4.1.11 /Users/yuuinih/GitHub/test_battle/packages/battle
+
+stdout | test/v4/execution-lifecycle.test.ts > dispatches transformation lifecycle once in order through the public TransformPhase
+[Transformation] applyTopTransformation for A/lead
+[Transformation] Stack length: 1
+[Transformation] Applying top transform to fixture/good
+
+ ❯ test/v4/execution-lifecycle.test.ts (4 tests | 4 failed) 600ms
+   × settles the running Battle when cleanup cancels an input wait 163ms
+   × finishes a Battle abandoned while waiting for a player action 148ms
+   × honors BeforeSort context priority in the actual TurnPhase ordering 231ms
+   × dispatches transformation lifecycle once in order through the public TransformPhase 50ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/v4/execution-lifecycle.test.ts > settles the running Battle when cleanup cancels an input wait
+AssertionError: expected 'stuck' to be 'Battle cancelled' // Object.is equality
+
+Expected: "Battle cancelled"
+Received: "stuck"
+
+ ❯ test/v4/execution-lifecycle.test.ts:24:18
+     22|   await battle.cleanup()
+     23|   const result = await Promise.race([outcome, new Promise(resolve => s…
+     24|   expect(result).toBe('Battle cancelled')
+       |                  ^
+     25| })
+     26| it('finishes a Battle abandoned while waiting for a player action', as…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/v4/execution-lifecycle.test.ts > finishes a Battle abandoned while waiting for a player action
+AssertionError: expected 'stuck' to be 'finished' // Object.is equality
+
+Expected: "finished"
+Received: "stuck"
+
+ ❯ test/v4/execution-lifecycle.test.ts:30:106
+     28|   const outcome = run.then(() => 'finished', () => 'failed')
+     29|   battle.abandonPlayer(a.id)
+     30|   expect(await Promise.race([outcome, new Promise(resolve => setTimeou…
+       |                                                                                                          ^
+     31|   expect(battle.victor).toBe(b)
+     32| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/v4/execution-lifecycle.test.ts > honors BeforeSort context priority in the actual TurnPhase ordering
+AssertionError: expected 'A/lead' to be 'B/lead' // Object.is equality
+
+Expected: "B/lead"
+Received: "A/lead"
+
+ ❯ test/v4/execution-lifecycle.test.ts:42:20
+     40|   battle.registerListener(m => { if (m.type === BattleMessageType.Skil…
+     41|   executeTurnOperation(new TurnContext(battle), battle)
+     42|   expect(order[0]).toBe(b.activePet.id)
+       |                    ^
+     43| })
+     44| it('dispatches transformation lifecycle once in order through the publ…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/v4/execution-lifecycle.test.ts > dispatches transformation lifecycle once in order through the public TransformPhase
+AssertionError: expected [ 'BeforeTransform', …(4) ] to deeply equal [ 'BeforeTransform', …(2) ]
+
+- Expected
++ Received
+
+  [
+    "BeforeTransform",
++   "BeforeTransform",
++   "AfterTransform",
+    "OnTransform",
+    "AfterTransform",
+  ]
+
+ ❯ test/v4/execution-lifecycle.test.ts:51:17
+     49|   const phase = new TransformPhase(battle, battle, a.activePet, 'pet',…
+     50|   battle.phaseManager.registerPhase(phase); battle.phaseManager.execut…
+     51|   expect(order).toEqual(triggers)
+       |                 ^
+     52| })
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  22:36:09
+   Duration  1.80s (transform 537ms, setup 0ms, import 705ms, tests 600ms, environment 0ms)
+
+undefined
+/Users/yuuinih/GitHub/test_battle/packages/battle:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run --config vitest.v4.config.mjs test/v4/execution-lifecycle.test.ts

@@ -20,7 +20,7 @@ export class BaseSkillBuilder {
     #id = '' as baseSkillId
     #type = Element.Normal
     #power = 0
-    #accuracy = 1
+    #accuracy = 100
     #rageCost = 0
     #target = AttackTargetOpinion.opponent
     #skillType = Category.Physical
@@ -30,7 +30,7 @@ export class BaseSkillBuilder {
     #sureCrit: boolean = false
     #ignoreShield: boolean = false
     #ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
-    #multihit: [number, number] | number = 0
+    #multihit: [number, number] | number = 1
     #tags: string[] = []
 
     withID(id: string) {
@@ -242,6 +242,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
 
   setOwner(owner: Pet): void {
     this.owner = owner
+    if (owner.owner?.battle) this.attributeSystem.setBattleId(owner.owner.battle.id)
   }
 
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
