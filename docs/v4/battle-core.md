@@ -108,3 +108,22 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 - 新增 Browser 是核心包运行验证，没有 Web UI、本地 AI 产品流程或 Electron 安装版；这些属于 #207–#209。
 - 保存点是规则原子边界，不支持可信函数栈内部存档；网络重连的鉴权/隐私/去重由宿主负责。
 - 没有引入 Redis、用户数据库、规则系统、排位或服务依赖。
+
+## 本轮验收记录（2026-10-16）
+
+- 新 Core：3 文件、35 项测试通过；Core 无宿主 types 的类型检查、测试严格类型检查、源码/测试专项 lint 通过。
+- 旧 V2：19 文件、108 项通过、3 项明确预期失败，原 #201 golden/known-defects 未修改；基线专项类型检查与 lint 通过。
+- `pnpm build` 完整通过：全仓 lint、各包构建、根 typecheck、CLI 构建均执行成功。本轮没有再遇到 #201 文档所述的旧类型检查问题，不将那份旧记录当作当前失败。
+- `pnpm test:run` 实际执行：engine 4、schema 14（另 6 skipped）、client 3、V2 battle 108（另 3 expected fail）通过；随后 P2P 12 通过、3 失败，错误为 `runInMemoryP2PBattleE2E is not a function`。在 #201 的原工作目录独立复现了相同三项失败；P2P 文件相对基线无差异，未为通过测试扩大修改范围。递归命令在此停止，不能声称剩余所有宿主测试通过。
+- Node 与真实 Chrome 执行公开 `/core` 的完整 fixture 回放与 JSON 恢复：均为 7 回合、A 获胜、357 条事件、恢复状态完全一致；Browser/Node 运行时模块图各 5 个节点，仅核心、const 和测试输入，没有 engine 或宿主依赖。
+- PR #228 面向 `refactor/v4`，提交从 #201 的合并提交派生；`main` 保持 `1492b2cae49a65d88c7132047132c85d0d06bff1`。
+
+### Standards
+
+独立审查未发现仓库规范硬违规，也没有需要阻塞的代码气味。发现两个运行时问题：构建数据可变导致抛错后 EV 逃逸回滚；全部输入已提交但未推进的状态仍可导出无法重放的 fixture。已分别冻结 build/队伍/技能数组，并将 replay export 限定为真正等待输入或结束的边界；添加回归后复核通过。
+
+### Spec
+
+独立审查确认领域对象、官方 #201 队伍与宿主边界符合本轮范围，没有范围扩张。发现 replay 导出边界问题（与 Standards 同一问题）和 `StackStrategy.remove` 绕过印记销毁回调/事件的问题；后者已统一经过 `removeMark`，回归确认销毁回调及移除事件各一次。审查者独立复跑相关测试并确认修复。
+
+汇总：Standards 2 项、Spec 2 项（其中 replay 为重复发现），3 个独立问题均已修复；两个轴均无剩余阻塞项。
