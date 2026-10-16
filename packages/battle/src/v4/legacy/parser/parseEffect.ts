@@ -17,7 +17,7 @@ import {
   SwitchPetContext,
   UseSkillContext,
   Battle,
-} from '@arcadia-eternity/battle'
+} from '../../index'
 import { Observable } from 'rxjs'
 import {
   type baseMarkId,
@@ -30,7 +30,7 @@ import {
   type StatTypeOnBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import { DataRepository } from '@arcadia-eternity/data-repository'
+import { DataRepository } from '../dataRepository'
 import {
   BaseSelector,
   type PathExtractor,
@@ -49,8 +49,8 @@ import {
   registerLiteralValue,
   type ConfigValueSource,
   type ConditionalValueSource,
-} from '@arcadia-eternity/effect-builder'
-import { RuntimeTypeChecker } from '@arcadia-eternity/effect-builder'
+} from '../effectBuilder/src/index'
+import { RuntimeTypeChecker } from '../effectBuilder/src/index'
 import type {
   OperatorDSL,
   ConditionDSL,
@@ -62,7 +62,7 @@ import type {
   Value,
   ChainSelector,
   SelectorValue,
-} from '@arcadia-eternity/schema'
+} from '../schema/effectDsl'
 
 export function parseEffect(dsl: EffectDSL): Effect<EffectTrigger> {
   try {
@@ -193,7 +193,7 @@ function applySelectorStep(
       }
 
       case 'selectProp': {
-        if (process.env.NODE_ENV !== 'production') {
+        if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
           validatePath(selector, step.arg)
         }
 

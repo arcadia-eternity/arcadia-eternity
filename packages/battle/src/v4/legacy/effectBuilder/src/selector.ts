@@ -19,7 +19,7 @@ import {
   type ScopeObject,
   Context,
   type BattlePhaseBase,
-} from '@arcadia-eternity/battle'
+} from '../../../index'
 import { Observable, combineLatest, map } from 'rxjs'
 import {
   TurnContext,
@@ -27,7 +27,7 @@ import {
   type Instance,
   type OwnedEntity,
   type Prototype,
-} from '@arcadia-eternity/battle'
+} from '../../../index'
 import {
   AttackTargetOpinion,
   Category,
@@ -60,7 +60,7 @@ import type {
 import { createExtractor, type PathExtractor } from './extractor'
 import { RuntimeTypeChecker } from './runtime-type-checker'
 import { GetValueFromSource } from './operator'
-import { DataRepository } from '@arcadia-eternity/data-repository'
+import { DataRepository } from '../../dataRepository'
 
 export type PropertyRef<T, V> = {
   get: () => V
@@ -170,7 +170,7 @@ export class ChainableSelector<T> {
   }
 
   selectPath<P extends string>(path: P) {
-    if (process.env.NODE_ENV !== 'production') {
+    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
       if (!/^[\w\[\].]+$/.test(path)) {
         throw new Error(`Invalid path format: ${path}`)
       }
@@ -196,7 +196,7 @@ export class ChainableSelector<T> {
     }
 
     // 开发环境下的路径验证
-    if (process.env.NODE_ENV !== 'production' && extractorPath !== undefined && this.type !== 'any') {
+    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production') && extractorPath !== undefined && this.type !== 'any') {
       const fullPath = `${this.type}.${extractorPath}`
 
       if (!RuntimeTypeChecker.validatePath(this.type, extractorPath)) {
@@ -218,7 +218,7 @@ export class ChainableSelector<T> {
 
   private createExtractedSelector<U>(extractor: PathExtractor<T, U>): ChainableSelector<U> {
     // 开发环境类型校验
-    if (process.env.NODE_ENV !== 'production') {
+    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
       if (!RuntimeTypeChecker.validatePath(this.type, extractor.path)) {
         throw new Error(`[类型错误] 路径 ${extractor.path} 在 ${this.type} 中不存在`)
       }
@@ -259,7 +259,7 @@ export class ChainableSelector<T> {
       actualCondition = condition!
 
       // 开发环境路径校验
-      if (process.env.NODE_ENV !== 'production') {
+      if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
         if (!RuntimeTypeChecker.validatePath(this.type, actualPath)) {
           throw new Error(`[路径校验失败] 路径 "${actualPath}" 在类型 "${this.type}" 中无效\n`)
         }

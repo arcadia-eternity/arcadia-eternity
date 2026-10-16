@@ -61,4 +61,22 @@ export default tseslint.config(
       ],
     },
   },
+  // Imported historical source: retain V1 syntax while compatibility is established.
+  // New adapters/tests use the normal rules in eslint.config.v4.js.
+  {
+    files: ['packages/battle/src/v4/**/*.ts'],
+    linterOptions: { reportUnusedDisableDirectives: 'off' },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-base-to-string': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      'no-case-declarations': 'off',
+      'prefer-const': 'off',
+      'preserve-caught-error': 'off',
+      'no-useless-escape': 'off',
+      'no-useless-assignment': 'off',
+    },
+  },
+
 )

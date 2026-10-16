@@ -16,30 +16,7 @@ import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { SkillAttributeSystem } from './attributeSystem'
 
-export class BaseSkill implements Prototype {
-  public readonly effects: Effect<EffectTrigger>[] = []
-
-  constructor(
-    public readonly id: baseSkillId,
-    public readonly category: Category,
-    public readonly element: Element,
-    public readonly power: number,
-    public readonly accuracy: number,
-    public readonly rage: number,
-    public readonly priority: number = 0,
-    public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
-    public readonly multihit: [number, number] | number = 1,
-    public readonly sureHit: boolean = false,
-    public readonly sureCrit: boolean = false,
-    public readonly ignoreShield: boolean = false,
-    public readonly ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none,
-    public readonly tags: string[] = [],
-    effects: Effect<EffectTrigger>[] = [],
-  ) {
-    this.effects = effects
-  }
-
-  static Builder = class {
+export class BaseSkillBuilder {
     #id = '' as baseSkillId
     #type = Element.Normal
     #power = 0
@@ -135,7 +112,32 @@ export class BaseSkill implements Prototype {
         this.#effects,
       )
     }
+}
+
+export class BaseSkill implements Prototype {
+  public readonly effects: Effect<EffectTrigger>[] = []
+
+  constructor(
+    public readonly id: baseSkillId,
+    public readonly category: Category,
+    public readonly element: Element,
+    public readonly power: number,
+    public readonly accuracy: number,
+    public readonly rage: number,
+    public readonly priority: number = 0,
+    public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent,
+    public readonly multihit: [number, number] | number = 1,
+    public readonly sureHit: boolean = false,
+    public readonly sureCrit: boolean = false,
+    public readonly ignoreShield: boolean = false,
+    public readonly ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none,
+    public readonly tags: string[] = [],
+    effects: Effect<EffectTrigger>[] = [],
+  ) {
+    this.effects = effects
   }
+
+  static Builder = BaseSkillBuilder
 }
 
 export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, Instance {

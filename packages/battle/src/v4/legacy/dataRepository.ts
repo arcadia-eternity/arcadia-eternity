@@ -1,4 +1,4 @@
-import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '@arcadia-eternity/battle'
+import { type Prototype, type Species, Effect, BaseMark, BaseSkill } from '../index'
 import {
   EffectTrigger,
   type baseMarkId,

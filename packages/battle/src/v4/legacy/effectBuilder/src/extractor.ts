@@ -9,7 +9,7 @@ import {
   SkillInstance,
   UseSkillContext,
   MarkInstanceImpl,
-} from '@arcadia-eternity/battle'
+} from '../../../index'
 import type { Element, InstanceId, PrototypeId, StatOnBattle } from '@arcadia-eternity/const'
 import type { SelectorOpinion } from './selector'
 import type { ValueExtractor } from './effectBuilder'

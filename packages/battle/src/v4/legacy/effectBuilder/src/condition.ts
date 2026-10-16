@@ -14,7 +14,7 @@ import {
   SwitchPetContext,
   TurnContext,
   UseSkillContext,
-} from '@arcadia-eternity/battle'
+} from '../../../index'
 import type { Condition, ValueSource } from './effectBuilder'
 import { ContinuousUseSkillStrategy, StatTypeWithoutHp } from '@arcadia-eternity/const'
 import { GetValueFromSource } from './operator'

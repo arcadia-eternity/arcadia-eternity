@@ -1,6 +1,6 @@
-import type { MarkInstance } from '@arcadia-eternity/battle'
+import type { MarkInstance } from '../../index'
 import { CleanStageStrategy, ContinuousUseSkillStrategy, EffectTrigger } from '@arcadia-eternity/const'
-import { BaseSelector, Extractor, type CompareOperator } from '@arcadia-eternity/effect-builder'
+import { BaseSelector, Extractor, type CompareOperator } from '../effectBuilder/src/index'
 
 export { EffectTrigger }
 export type { CompareOperator }

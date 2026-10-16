@@ -1,4 +1,4 @@
-import { EffectContext } from '@arcadia-eternity/battle'
+import { EffectContext } from '../../../index'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { Condition, Evaluator, TargetSelector } from './effectBuilder'
 import { ChainableSelector, type SelectorOpinion } from './selector'

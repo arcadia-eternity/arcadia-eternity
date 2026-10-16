@@ -606,8 +606,8 @@ export class TimerManager {
     // 发送状态变化事件
     this.battle.emitter.emit('timerStateChange', {
       playerId: event.playerId,
-      oldState: event.data?.oldState || 'unknown',
-      newState: event.data?.newState || 'unknown',
+      oldState: (event.data as { oldState?: string } | undefined)?.oldState || 'unknown',
+      newState: (event.data as { newState?: string } | undefined)?.newState || 'unknown',
       timestamp: event.timestamp,
     })
   }
@@ -616,9 +616,10 @@ export class TimerManager {
    * 处理计时器超时
    */
   private handleTimerTimeout(event: TimerEvent): void {
-    if (!event.playerId || !event.data?.type) return
+    const data = event.data as { type?: TimeoutType } | undefined
+    if (!event.playerId || !data?.type) return
 
-    const timeoutType = event.data.type as TimeoutType
+    const timeoutType = data.type
     let autoAction: string | undefined
 
     // 处理超时逻辑 - autoSelectOnTimeout 现在是固定启用的

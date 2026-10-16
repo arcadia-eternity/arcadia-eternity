@@ -623,7 +623,7 @@ export class StackContext extends Context {
   }
 }
 
-export type TriggerContextMap = {
+type V1TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
   [EffectTrigger.BeforeSort]: UseSkillContext
@@ -674,6 +674,10 @@ export type TriggerContextMap = {
   [EffectTrigger.BeforeEffect]: AllContext
   [EffectTrigger.AfterEffect]: AllContext
 }
+
+// Current const also declares V2-only triggers. They have no V1 dispatch sites.
+export type TriggerContextMap = V1TriggerContextMap &
+  Record<Exclude<EffectTrigger, keyof V1TriggerContextMap>, AllContext>
 
 export class EffectContext<T extends EffectTrigger> extends Context {
   readonly type = 'effect'

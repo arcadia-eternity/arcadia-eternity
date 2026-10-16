@@ -1,4 +1,4 @@
-import { ConfigSystem, Effect, EffectContext } from '@arcadia-eternity/battle'
+import { ConfigSystem, Effect, EffectContext } from '../../../index'
 import { EffectTrigger, type effectId } from '@arcadia-eternity/const'
 import { type ChainableSelector } from './selector'
 import { nanoid } from 'nanoid'
