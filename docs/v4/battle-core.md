@@ -146,6 +146,10 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 
 独立审查对照 V1 后发现并修复：效果泛型推断可被不匹配的 handler 扩宽；BeforeSort 更换的 skill/selectTarget 在 continuation 中丢失；印记覆盖 maxStacks 后创建及恢复仍按原型上限夹取；typed context 的实体可能来自另一场 Battle。对应加入 handler 编译反例、重建前后技能/目标一致、双向 maxStacks 覆盖及跨战斗 damage/heal/rage/remove 隔离回归。
 
-当前 4 文件、50 项运行测试通过，13 个编译反例均有效，Core/test 严格类型检查与专项 lint 通过。BeforeEffect/AfterEffect 已在 EffectPhase 中执行，meta hook 不递归包装自身，并可影响目标 EffectContext.available；新增实际顺序测试。Core 完整 golden 由 355 增至 379 条事件，新增 24 条 meta trigger，更新时独立校验全部非 trigger 事件、ActionLog 和最终状态完全不变。
+当前 4 文件、51 项运行测试通过，13 个编译反例均有效，Core/test 严格类型检查与专项 lint 通过。BeforeEffect/AfterEffect 已在 EffectPhase 中执行，meta hook 不递归包装自身，并可影响目标 EffectContext.available；新增实际顺序测试。Core 完整 golden 由 355 增至 379 条事件，新增 24 条 meta trigger，更新时独立校验全部非 trigger 事件、ActionLog 和最终状态完全不变。
+
+最后一次 Spec 复核还发现 setSkill 未随替换技能更新默认目标，已修复并加入对手→自身→对手及显式重定向测试。复核者独立跑过相关测试，当前限定范围未发现其他阻塞问题。
+
+修正后的全仓 `pnpm build` 通过（lint、各包、根 typecheck、CLI）；最后的目标修复后重新构建 battle 包并执行根 typecheck，通过。公开 `/core` 在 Node 和真实 Chrome 中分别执行完整 fixture 回放及 JSON 恢复，均为 7 回合、A 胜、379 条事件，恢复结果及跨宿主结果完全一致；运行时模块图各 5 个节点，没有 engine 或宿主依赖。全仓测试的三个 P2P 既有失败仍按上文单独记录，不宣称全仓测试全绿。
 
 仍未实现的触发语义明确包括 AfterAttacked 和完整 Transform 生命周期；不能因 TriggerContextMap 有类型声明就认为这些运行机制已完成。完整 Effect/EffectTemplate、变身/撤销策略和动态属性 modifier 仍待 #205/#223 等后续任务，未宣称本轮完成。
