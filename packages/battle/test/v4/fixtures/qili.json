@@ -1,0 +1,33 @@
+{
+  "skill": {
+    "id": "skill_qili",
+    "element": "Normal",
+    "category": "Status",
+    "target": "self",
+    "power": 0,
+    "rage": 10,
+    "accuracy": 100,
+    "sureHit": false,
+    "ignoreShield": false,
+    "tags": [],
+    "effect": [
+      "effect_skill_raise_atk_1_stage"
+    ]
+  },
+  "effects": [
+    {
+      "id": "effect_skill_raise_atk_1_stage",
+      "trigger": "BeforeHit",
+      "priority": 0,
+      "apply": {
+        "type": "statStageBuff",
+        "target": "self",
+        "statType": "atk",
+        "value": 1
+      },
+      "condition": {
+        "type": "selfUseSkill"
+      }
+    }
+  ]
+}

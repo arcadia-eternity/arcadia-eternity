@@ -1,0 +1,702 @@
+{
+  "source": "c086289812885e7a4903b181e2b8989e201452b8",
+  "coreFiles": 42,
+  "files": [
+    {
+      "original": "packages/battle/src/attributeSystem.ts",
+      "destination": "packages/battle/src/v4/attributeSystem.ts",
+      "sourceBlob": "116166a6d13c38f7041595ab5b4dbc6ff926a3a0",
+      "sourceSha256": "adeb377ba9f00c67fc4b26d4b5e4737de18213d4e6cee844b89e1f29096bd2a2",
+      "portedSha256": "adeb377ba9f00c67fc4b26d4b5e4737de18213d4e6cee844b89e1f29096bd2a2",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/battle.ts",
+      "destination": "packages/battle/src/v4/battle.ts",
+      "sourceBlob": "4447676e5e03cf1f816690453a5eaa6117798de5",
+      "sourceSha256": "43a0c245e88c00c6d10ea023283d8a30aef60ba63560654d30a95a33aa30d24c",
+      "portedSha256": "43a0c245e88c00c6d10ea023283d8a30aef60ba63560654d30a95a33aa30d24c",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/config.ts",
+      "destination": "packages/battle/src/v4/config.ts",
+      "sourceBlob": "7d3cf25a789b0da440c5bb2e7f7a6ee1e3f37487",
+      "sourceSha256": "e878fb08aa00ad9b8cb61ee051ac4ddaeddc577daa8231e47825b6bc8752ca6f",
+      "portedSha256": "e878fb08aa00ad9b8cb61ee051ac4ddaeddc577daa8231e47825b6bc8752ca6f",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/context.ts",
+      "destination": "packages/battle/src/v4/context.ts",
+      "sourceBlob": "f65a016fe5b37b6825235b6fd3795f5f5068bfad",
+      "sourceSha256": "ee67306512235f7be6b921316ee46da58478fa1c2dfb9b5efc63fcdfa9eda763",
+      "portedSha256": "bc865393cbd6af8f4e787a270f1ddec037e272837f4676c2a167d25dd682302a",
+      "changed": true
+    },
+    {
+      "original": "packages/battle/src/effect.ts",
+      "destination": "packages/battle/src/v4/effect.ts",
+      "sourceBlob": "5c16e28a92682ee76cdf50f9bca5b8f54a2ae184",
+      "sourceSha256": "ce39c5a7a9644eeb536efa850946e41cf41e08f15ac6eba1c664a04b7be01ff1",
+      "portedSha256": "ce39c5a7a9644eeb536efa850946e41cf41e08f15ac6eba1c664a04b7be01ff1",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/entity.ts",
+      "destination": "packages/battle/src/v4/entity.ts",
+      "sourceBlob": "e33eeb251c3188144be404572bf2b9f993b55d72",
+      "sourceSha256": "1fce754a5afa07afe0b1d38557357d03c08d6951cee502ebe630bd18febb35c5",
+      "portedSha256": "1fce754a5afa07afe0b1d38557357d03c08d6951cee502ebe630bd18febb35c5",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/index.ts",
+      "destination": "packages/battle/src/v4/index.ts",
+      "sourceBlob": "a6ae7d84c2ae90b40c8ccefe24c39fa4d790d6ab",
+      "sourceSha256": "ca886ac52e2914df0c83063ff61069b1847e0e9295eea9232d47ae703efc98b0",
+      "portedSha256": "ca886ac52e2914df0c83063ff61069b1847e0e9295eea9232d47ae703efc98b0",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/logger.ts",
+      "destination": "packages/battle/src/v4/logger.ts",
+      "sourceBlob": "9cf9bd6f03063acef07432272365c9d284c05bdf",
+      "sourceSha256": "7f8508b67a26e8be26d75b1087afea665a66dc9b3e33469a6213eb97a51eca0f",
+      "portedSha256": "7f8508b67a26e8be26d75b1087afea665a66dc9b3e33469a6213eb97a51eca0f",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/mark.ts",
+      "destination": "packages/battle/src/v4/mark.ts",
+      "sourceBlob": "e87faf945537770f069ce9e9859f52036533c7ee",
+      "sourceSha256": "4a5bcfd9ec774d352f04bd2fdc39333e0825641710b7ae63b919d42f0de597a1",
+      "portedSha256": "4a5bcfd9ec774d352f04bd2fdc39333e0825641710b7ae63b919d42f0de597a1",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/pet.ts",
+      "destination": "packages/battle/src/v4/pet.ts",
+      "sourceBlob": "c68cccbd34c7ed631090a0aa4428bc182868b7f7",
+      "sourceSha256": "5f8e75527274c996ad736cd461fb9fcc998afce000c4c3c1a3d2093a12f3fea1",
+      "portedSha256": "5f8e75527274c996ad736cd461fb9fcc998afce000c4c3c1a3d2093a12f3fea1",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/AddMarkPhase.ts",
+      "destination": "packages/battle/src/v4/phase/AddMarkPhase.ts",
+      "sourceBlob": "6d9161d9063befd22dd709503b947d19beb4d808",
+      "sourceSha256": "c53a6bed97412c9ddcd157ad496d0cb0aba7abb9fff74c6025d6e3903357122c",
+      "portedSha256": "c53a6bed97412c9ddcd157ad496d0cb0aba7abb9fff74c6025d6e3903357122c",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/MarkCleanupPhase.ts",
+      "destination": "packages/battle/src/v4/phase/MarkCleanupPhase.ts",
+      "sourceBlob": "eca7df95d9ae85cf2a871873d7439814d3181a14",
+      "sourceSha256": "6a1a6aba6623225293ea42d9bc948866b6fe93ff172bcafe8fbf4da1edc25b98",
+      "portedSha256": "6a1a6aba6623225293ea42d9bc948866b6fe93ff172bcafe8fbf4da1edc25b98",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/MarkStackPhase.ts",
+      "destination": "packages/battle/src/v4/phase/MarkStackPhase.ts",
+      "sourceBlob": "6b736b420f923cb6f1bd40d1bbc0bd1e15a9d462",
+      "sourceSha256": "4db91b21ee67b06ddd555905772881f0b66a713432018f571c9aba892e54f348",
+      "portedSha256": "4db91b21ee67b06ddd555905772881f0b66a713432018f571c9aba892e54f348",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/MarkSwitchOutPhase.ts",
+      "destination": "packages/battle/src/v4/phase/MarkSwitchOutPhase.ts",
+      "sourceBlob": "a34545e89e30077da187b8affe90049af441ebbd",
+      "sourceSha256": "3aebcf4b64175a453527c6fb311d7b045dd13ade80b62183d107779dbb83e71c",
+      "portedSha256": "3aebcf4b64175a453527c6fb311d7b045dd13ade80b62183d107779dbb83e71c",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/MarkTransferPhase.ts",
+      "destination": "packages/battle/src/v4/phase/MarkTransferPhase.ts",
+      "sourceBlob": "f701919b5ae5c276a91dfa0ae263413546f65194",
+      "sourceSha256": "295d2236fab200b7ddfd5549d7e330944bda7937a17b21f4c2063b16c345e73d",
+      "portedSha256": "295d2236fab200b7ddfd5549d7e330944bda7937a17b21f4c2063b16c345e73d",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/MarkUpdatePhase.ts",
+      "destination": "packages/battle/src/v4/phase/MarkUpdatePhase.ts",
+      "sourceBlob": "677d8ff059d767dac34b87b70db68335d27964c9",
+      "sourceSha256": "79c19ecbef99f0917ddca4c5aba5171d68a3e86bb20a5aa087e9b0b7ac9a2dcf",
+      "portedSha256": "79c19ecbef99f0917ddca4c5aba5171d68a3e86bb20a5aa087e9b0b7ac9a2dcf",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/RemoveMarkPhase.ts",
+      "destination": "packages/battle/src/v4/phase/RemoveMarkPhase.ts",
+      "sourceBlob": "9ae51d25074536bf235f962006f6e6f3a67fafe6",
+      "sourceSha256": "1b91cbb1e53e9f0c8cd1aa08120ddd776a03caa1c25552247fa7c174fc2ae1c1",
+      "portedSha256": "36d5e75f973bea628c761ee753245b0225b1f8fd15ecce16095a233965ca889a",
+      "changed": true
+    },
+    {
+      "original": "packages/battle/src/phase/base.ts",
+      "destination": "packages/battle/src/v4/phase/base.ts",
+      "sourceBlob": "b4187fb6981fa1047645cffe214600ab22a539b6",
+      "sourceSha256": "3783574d34c88ce884bb7ba359a032ab425fdc288ca3b3c25cfc8d54d33a1426",
+      "portedSha256": "3783574d34c88ce884bb7ba359a032ab425fdc288ca3b3c25cfc8d54d33a1426",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/battleLoop.ts",
+      "destination": "packages/battle/src/v4/phase/battleLoop.ts",
+      "sourceBlob": "04684be138d390b3f3e7859963e564477effecf9",
+      "sourceSha256": "0d986fbd1392e8e76a0ca50f70b77dea671286892cc78c0a5908e516e322ca0c",
+      "portedSha256": "0d986fbd1392e8e76a0ca50f70b77dea671286892cc78c0a5908e516e322ca0c",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/battleStart.ts",
+      "destination": "packages/battle/src/v4/phase/battleStart.ts",
+      "sourceBlob": "a0a6794952b095f45b9e76ae23ca62919a0a663a",
+      "sourceSha256": "79d234fb576833725e98ba6151ef3fbb634df888d872b967785b5cb19bdc95e3",
+      "portedSha256": "79d234fb576833725e98ba6151ef3fbb634df888d872b967785b5cb19bdc95e3",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/battleSwitch.ts",
+      "destination": "packages/battle/src/v4/phase/battleSwitch.ts",
+      "sourceBlob": "b97e8798ec5a87e4f5751f32e5f857758bde0eec",
+      "sourceSha256": "1aa5207682f1b37274f6b20fc50f6777de517bef496ca30f5a54c44fdf2bc915",
+      "portedSha256": "1aa5207682f1b37274f6b20fc50f6777de517bef496ca30f5a54c44fdf2bc915",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/damage.ts",
+      "destination": "packages/battle/src/v4/phase/damage.ts",
+      "sourceBlob": "8aa22958fb08c035893566db51f543a2f271370a",
+      "sourceSha256": "7e4bb7b7d45c462b2d1a98e1a6db8586ca2701da884d8aa01268eb4b2ba457ec",
+      "portedSha256": "7e4bb7b7d45c462b2d1a98e1a6db8586ca2701da884d8aa01268eb4b2ba457ec",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/effect.ts",
+      "destination": "packages/battle/src/v4/phase/effect.ts",
+      "sourceBlob": "c3954cc773aea1b43aaa0870f4136c1e3cbde17c",
+      "sourceSha256": "f8480cb3678d5e591b6fd1f59fedfd8bed32bc07fc981bad648e8c15c16da4ee",
+      "portedSha256": "f8480cb3678d5e591b6fd1f59fedfd8bed32bc07fc981bad648e8c15c16da4ee",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/effectExecution.ts",
+      "destination": "packages/battle/src/v4/phase/effectExecution.ts",
+      "sourceBlob": "9225c751f7a60f07aac6a5ef99e85cb11f9a0a89",
+      "sourceSha256": "fb7ce115c3d944a701f29e4cfba46623f9be552c1c24f3e6203f33172c099c4f",
+      "portedSha256": "fb7ce115c3d944a701f29e4cfba46623f9be552c1c24f3e6203f33172c099c4f",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/heal.ts",
+      "destination": "packages/battle/src/v4/phase/heal.ts",
+      "sourceBlob": "0baa49d73eff2e052d2d8ffed460843ee801a188",
+      "sourceSha256": "ae2a93457831b09aaae49acb9fa9405e22676de33e079e386d70b2c9576c81ca",
+      "portedSha256": "ae2a93457831b09aaae49acb9fa9405e22676de33e079e386d70b2c9576c81ca",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/index.ts",
+      "destination": "packages/battle/src/v4/phase/index.ts",
+      "sourceBlob": "5ff58ebed42ed0b32f9a3cca229e021142aa1e9a",
+      "sourceSha256": "5150c5e56ead488e09085acb03ae708f1413a14bbabc408903ccda600b1521a8",
+      "portedSha256": "5150c5e56ead488e09085acb03ae708f1413a14bbabc408903ccda600b1521a8",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/manager.ts",
+      "destination": "packages/battle/src/v4/phase/manager.ts",
+      "sourceBlob": "bad2048f991bd6b50821c975b5273363b4f7dd18",
+      "sourceSha256": "41bdf1e393e3218dc5d4ec7065ee8ca9411a91b2974043b02824b4159c8bde77",
+      "portedSha256": "41bdf1e393e3218dc5d4ec7065ee8ca9411a91b2974043b02824b4159c8bde77",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/mark.ts",
+      "destination": "packages/battle/src/v4/phase/mark.ts",
+      "sourceBlob": "3d3a18d65e45ee14691fe106fdeded7ccceeecf3",
+      "sourceSha256": "7f1255f335c1c9e9a941d50bcc3e5746a1216ad683375606cd289d7ba7c36a18",
+      "portedSha256": "7f1255f335c1c9e9a941d50bcc3e5746a1216ad683375606cd289d7ba7c36a18",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/rage.ts",
+      "destination": "packages/battle/src/v4/phase/rage.ts",
+      "sourceBlob": "cbdbd61e77d9a3afc4996ebc2fbd0edd07e80fe4",
+      "sourceSha256": "5247db5c7697c1667eec3e606ab992b2558d943445508e9ecc1903e02e740ac3",
+      "portedSha256": "5247db5c7697c1667eec3e606ab992b2558d943445508e9ecc1903e02e740ac3",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/selection.ts",
+      "destination": "packages/battle/src/v4/phase/selection.ts",
+      "sourceBlob": "3e1aca57c5c718eba959ee39301536e4c7933102",
+      "sourceSha256": "4cc8332659a9ed0d9138521ff623abd9b5950e7b98af8192cf267c3d17d63118",
+      "portedSha256": "4cc8332659a9ed0d9138521ff623abd9b5950e7b98af8192cf267c3d17d63118",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/skill.ts",
+      "destination": "packages/battle/src/v4/phase/skill.ts",
+      "sourceBlob": "c9caafaaa2e664d778a82aa8823c94479eb1efa7",
+      "sourceSha256": "86f6f38264bc07ec9b8e735d2731152aca5b1bc15b7be25f0fcaa55994267fd4",
+      "portedSha256": "86f6f38264bc07ec9b8e735d2731152aca5b1bc15b7be25f0fcaa55994267fd4",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/switch.ts",
+      "destination": "packages/battle/src/v4/phase/switch.ts",
+      "sourceBlob": "7bdbc23863294fd8100ed0e36264d430011653d7",
+      "sourceSha256": "644d08dbebbb81824a1ee9d34114a327ee9135178844c782c4213d06236e6048",
+      "portedSha256": "644d08dbebbb81824a1ee9d34114a327ee9135178844c782c4213d06236e6048",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/transform.ts",
+      "destination": "packages/battle/src/v4/phase/transform.ts",
+      "sourceBlob": "cad5adbd3c54ac0fe6324eecf5f3226f35a8b4a4",
+      "sourceSha256": "4d257ddd1587353b41b312afbf82b13c7ff8c1a703376c9d88fd52974deaeefc",
+      "portedSha256": "4d257ddd1587353b41b312afbf82b13c7ff8c1a703376c9d88fd52974deaeefc",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/phase/turn.ts",
+      "destination": "packages/battle/src/v4/phase/turn.ts",
+      "sourceBlob": "df372109f42b01008e42e1d0097dbc8e2e5df64a",
+      "sourceSha256": "7f494f587940e3758844a8145686d23daac2ad2f094930d59614a38b16ecabfe",
+      "portedSha256": "7f494f587940e3758844a8145686d23daac2ad2f094930d59614a38b16ecabfe",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/player.ts",
+      "destination": "packages/battle/src/v4/player.ts",
+      "sourceBlob": "324eb0e981cc8d9983e999faff1b4cc69b5c4256",
+      "sourceSha256": "69ff216cf02d4c7a460abaf4babe4a760f76249807529a13c4d4bd2d89d1de5e",
+      "portedSha256": "69ff216cf02d4c7a460abaf4babe4a760f76249807529a13c4d4bd2d89d1de5e",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/skill.ts",
+      "destination": "packages/battle/src/v4/skill.ts",
+      "sourceBlob": "c253cc764a3582e44dea435001ffd1a3fc642667",
+      "sourceSha256": "73d62ec770232e537f77def05d8ba09c8d308829bdbf29205056f4575ceefbd1",
+      "portedSha256": "28c7f4fe8ece66d66f59f7ec0b02c8b2b3b4de6df9464235aeffd6f2d8264526",
+      "changed": true
+    },
+    {
+      "original": "packages/battle/src/timer/animationTracker.ts",
+      "destination": "packages/battle/src/v4/timer/animationTracker.ts",
+      "sourceBlob": "ea71a05bef099945ce353bedadb4ac365039613b",
+      "sourceSha256": "bcc6396ab282ab2bf0bc6b01e114f965be87a5de09f9de2a71298e0e5267557e",
+      "portedSha256": "bcc6396ab282ab2bf0bc6b01e114f965be87a5de09f9de2a71298e0e5267557e",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/timer/battleTimer.ts",
+      "destination": "packages/battle/src/v4/timer/battleTimer.ts",
+      "sourceBlob": "7f3e83a053df65928db252d08f481f74537f4a49",
+      "sourceSha256": "c4c190239d8d28936b9652c663038c40449d775e3031c7fe0bc0a5745dd37b19",
+      "portedSha256": "c4c190239d8d28936b9652c663038c40449d775e3031c7fe0bc0a5745dd37b19",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/timer/index.ts",
+      "destination": "packages/battle/src/v4/timer/index.ts",
+      "sourceBlob": "dad67ca5f16001f097e55083206b0b50de86e568",
+      "sourceSha256": "2fbd2b51b0e2eaeea01e6bf76b72224340ad5db0f1b163540746ccf17544d44c",
+      "portedSha256": "2fbd2b51b0e2eaeea01e6bf76b72224340ad5db0f1b163540746ccf17544d44c",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/timer/timerManager.ts",
+      "destination": "packages/battle/src/v4/timer/timerManager.ts",
+      "sourceBlob": "458d0b7831fbce0b10ce6876e231c4d4c0d9fb81",
+      "sourceSha256": "fb636c9d6399ee869265744d6a766c2e9e43051974c69f0e035611fc843ad70e",
+      "portedSha256": "8cae5927edd3176623c1a3f8d23edccada84e8b13fef29e60507f18e48441112",
+      "changed": true
+    },
+    {
+      "original": "packages/battle/src/transformation.ts",
+      "destination": "packages/battle/src/v4/transformation.ts",
+      "sourceBlob": "872246af7306d6cf86f8a32ac72781477d1f0ed6",
+      "sourceSha256": "2ce9c1d4f8e967c0c022744654da5e6a6869ffc56585a5be663d6022cec658c6",
+      "portedSha256": "2ce9c1d4f8e967c0c022744654da5e6a6869ffc56585a5be663d6022cec658c6",
+      "changed": false
+    },
+    {
+      "original": "packages/battle/src/transformationStrategies.ts",
+      "destination": "packages/battle/src/v4/transformationStrategies.ts",
+      "sourceBlob": "37d338bd6dbcfb921d08f5bc9218edf55960bea9",
+      "sourceSha256": "6d7e5e913d6671d534a49006a4e0555105714ebfe03671654a1410d03ec8ea68",
+      "portedSha256": "6d7e5e913d6671d534a49006a4e0555105714ebfe03671654a1410d03ec8ea68",
+      "changed": false
+    },
+    {
+      "original": "packages/effectBuilder/src/evaluator.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/evaluator.ts",
+      "sourceBlob": "996d50ca6f50b4fbb315bf450797de3fee4d98f9",
+      "sourceSha256": "5c45e273c9889d80708fd65fad1f3fb9cf2ef30905a7b603ba303b751eaeaba9",
+      "portedSha256": "99b50eeee1ec7f9ffb8ca612c4e1587b50986e841bd622073f2b6708ce74fecd",
+      "changed": true
+    },
+    {
+      "original": "packages/effectBuilder/src/condition.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/condition.ts",
+      "sourceBlob": "ab25092dfb2df3f9b2f38aca7011e28a74918754",
+      "sourceSha256": "14304ff8286947f5adee0811c1a79f7eb30833a053582d859899a5201b46c860",
+      "portedSha256": "30a895cfe3c1434ba56b7714fb8bf11a760430bebc589eb45285bb790f150684",
+      "changed": true
+    },
+    {
+      "original": "packages/effectBuilder/src/extractor.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/extractor.ts",
+      "sourceBlob": "979c100564bb60eb35d966a41f9a010a04e6c62f",
+      "sourceSha256": "64bdd2272db812d12e048e8f70c0c22b746c0c71643477e82b29901cb565bfbb",
+      "portedSha256": "1846168e33508a648a7c52a1686750a0b8080c9b591c9533e0676043f04929eb",
+      "changed": true
+    },
+    {
+      "original": "packages/effectBuilder/src/operator.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/operator.ts",
+      "sourceBlob": "50c484263b798bae164dc905c9c2e867a00445bc",
+      "sourceSha256": "e3de54fd2fbee59b779bcc316000bf3dfcf323bfd64cfd747056c3166b2c6704",
+      "portedSha256": "749bfe4767e2cfa5bed027e2e9eaef4f1c6dd20765a4e532df092c09ac543ff4",
+      "changed": true
+    },
+    {
+      "original": "packages/effectBuilder/src/selector.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/selector.ts",
+      "sourceBlob": "c9209243ad3658ae5ab9be8e649f739a9c361252",
+      "sourceSha256": "21aea13038b2881934f32907e0b5182972bc37715d834ad9fb6fe5ac14307b7c",
+      "portedSha256": "039ea2d54343e85bacd3dc2332fc701753afed77eaa5e07212ac3dcff8965c39",
+      "changed": true
+    },
+    {
+      "original": "packages/effectBuilder/src/index.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/index.ts",
+      "sourceBlob": "c7c7b08866528fdab80e7e863a17e52f866137cd",
+      "sourceSha256": "6bdb98462b51132b573e3bafebe590d8cb92283b42fd5ee98cbcb71302de2e51",
+      "portedSha256": "6bdb98462b51132b573e3bafebe590d8cb92283b42fd5ee98cbcb71302de2e51",
+      "changed": false
+    },
+    {
+      "original": "packages/effectBuilder/src/runtime-type-checker.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/runtime-type-checker.ts",
+      "sourceBlob": "0b7743ac30b1792b89508e85961e156dda65ae47",
+      "sourceSha256": "8e64eb644f81b80170deec4a366e863b72d280b0c68883cf4044c75c4cc8f950",
+      "portedSha256": "707f33c48ed9f54d40ee064f43d2e9efed69036f0f96520bbb7081ddd291a139",
+      "changed": true
+    },
+    {
+      "original": "packages/effectBuilder/src/conditionStep.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/conditionStep.ts",
+      "sourceBlob": "e20f59c60f9173a15d3cf472c6e8658cd5f7c84e",
+      "sourceSha256": "b33dceab7ffacd84136f9ba1eb26b532971a839110e2fe6b1516dbd157414204",
+      "portedSha256": "b33dceab7ffacd84136f9ba1eb26b532971a839110e2fe6b1516dbd157414204",
+      "changed": false
+    },
+    {
+      "original": "packages/effectBuilder/src/effectBuilder.ts",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/src/effectBuilder.ts",
+      "sourceBlob": "ba5d19d69a5032c79b8367ed34fa3f6029a1d730",
+      "sourceSha256": "eae8b0394f37e2e25d958198f76decd7fffdb9157a0b389f2c4966cd3f177739",
+      "portedSha256": "70bc7f739f5a9f95ea0adce7a98b3119998858cdb5c3368f858ffd4b14ba8f17",
+      "changed": true
+    },
+    {
+      "original": "packages/effectBuilder/type-metadata.json",
+      "destination": "packages/battle/src/v4/legacy/effectBuilder/type-metadata.json",
+      "sourceBlob": "521945066501cd689f1b31a88285773db57df063",
+      "sourceSha256": "dd3a86c61b5faf95cfd1ba58a63c0a0a0b4e1373bfe7a91c3457e77dc3315f57",
+      "portedSha256": "dd3a86c61b5faf95cfd1ba58a63c0a0a0b4e1373bfe7a91c3457e77dc3315f57",
+      "changed": false
+    },
+    {
+      "original": "packages/parser/src/parseEffect.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/parseEffect.ts",
+      "sourceBlob": "c78b8c8fa2033c22e1708e3eaf201be11dc0de58",
+      "sourceSha256": "e9c8b4a65333e235c54e12fe76235c5851a77c7f86b7582f39f5a058e19c277b",
+      "portedSha256": "817923f3f7f44ce55e0beaba6dbb9d8dff740c075c66edade915f7523836ff5b",
+      "changed": true
+    },
+    {
+      "original": "packages/schema/src/effectDsl.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/effectDsl.ts",
+      "sourceBlob": "3f5e64c1231578f9ccfda6d9d7c70b84564a229a",
+      "sourceSha256": "9eab53a7f82f7bb7454538c030b4601bca50a83278dab0b1e67983f74db81d24",
+      "portedSha256": "146fea1cbd3dd2623b54fba1ab01a431c5ef13f38b7b230e44b4810cba8e7506",
+      "changed": true
+    },
+    {
+      "original": "packages/dataRepository/src/dataRepository.ts",
+      "destination": "packages/battle/src/v4/legacy/dataRepository.ts",
+      "sourceBlob": "6eea6234ed6129ce2372606bdb5996514165d7c8",
+      "sourceSha256": "269669a51b4c19b1cdc3604772d3452c29eb521104c3bfdc2ca7ead05edd75ff",
+      "portedSha256": "9b2e35166943acf1ee4867dc9dba267c490b581dc7166e61cc8faf98e096b2dd",
+      "changed": true
+    },
+    {
+      "original": "packages/schema/src/effectSchema.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/effectSchema.ts",
+      "sourceBlob": "edcc390451d889f44507c6f85c82fa67557001ca",
+      "sourceSha256": "42490c642ce44821305804e4be4603649b3fd0ab960fde446ded9de597c644c7",
+      "portedSha256": "f40ca2843c9ff5616483b283d6d1bbfbcb4317638057f0ddf0797c2bbd17ca92",
+      "changed": true
+    },
+    {
+      "original": "packages/schema/src/mark.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/mark.ts",
+      "sourceBlob": "87f334311f0cf246aa1e993d7d36e161ab2655ae",
+      "sourceSha256": "e262672b775dc94791d6bca35f7b022355d6e1774e80fcf56b7505341b82ee90",
+      "portedSha256": "e262672b775dc94791d6bca35f7b022355d6e1774e80fcf56b7505341b82ee90",
+      "changed": false
+    },
+    {
+      "original": "packages/parser/src/effect.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/effect.ts",
+      "sourceBlob": "7e830f80684ad9080b0ad8fabdfc155d7e7f205b",
+      "sourceSha256": "825dcf61680f1c1ebc33d5f873504a19316e4606abbe090ccc55a69b0c016a19",
+      "portedSha256": "e377d6dede78eb5f759b5bd9321ac0de57689480469e86d9795c8ec35497be38",
+      "changed": true
+    },
+    {
+      "original": "packages/parser/src/index.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/index.ts",
+      "sourceBlob": "43abb44e48befddd8ea3bd19b20208825a52009c",
+      "sourceSha256": "f2df1212164f09bf7e7e736f96dad61e404d09ad09c8b515dae6d86da2e9607a",
+      "portedSha256": "f2df1212164f09bf7e7e736f96dad61e404d09ad09c8b515dae6d86da2e9607a",
+      "changed": false
+    },
+    {
+      "original": "packages/parser/src/mark.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/mark.ts",
+      "sourceBlob": "d440159955d0c63aa3a0d86529d2306d597f3253",
+      "sourceSha256": "88e8ab666ae28a4ae64d107922ec8e59775fba78f3927eeb0a2594ef4e7ca951",
+      "portedSha256": "7a7794e93988c6d63632d4de12a3a51d41cafcad5b6378d174c8498541ff6234",
+      "changed": true
+    },
+    {
+      "original": "packages/parser/src/pet.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/pet.ts",
+      "sourceBlob": "81b24e81731f08f14d53e0925610d7accb08dc76",
+      "sourceSha256": "11de99d95187b58a306db8be6e9c12cb5bd7db0bc42817073999b80f880253f1",
+      "portedSha256": "90d27891eab0ed1482d5f6606d91f2381357ebd172a4756d6c1dcf6990616598",
+      "changed": true
+    },
+    {
+      "original": "packages/parser/src/player.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/player.ts",
+      "sourceBlob": "e5e2fbc1819384ff7ee06ca621794f36499e1b93",
+      "sourceSha256": "0e294407c5e5817a07dc1c2189c2ead0694255730ccff41030938f9a6d11ff5c",
+      "portedSha256": "257fe8a5564c25ab6da03105edeb7506b7d6a6c1c3194aefa0e98b4c6146f394",
+      "changed": true
+    },
+    {
+      "original": "packages/parser/src/selection.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/selection.ts",
+      "sourceBlob": "a738be4ff8e159f48fa96030d368184daf0d37c5",
+      "sourceSha256": "f5db58744125ef45c0076e019fd4f97d28d3acdc171528db6582c5a11f817f1a",
+      "portedSha256": "a13cc7bbc4e48da0f36f98b6d464855aad4af3bb9fc53babc6c547b7ff29b43f",
+      "changed": true
+    },
+    {
+      "original": "packages/parser/src/skill.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/skill.ts",
+      "sourceBlob": "4975977e3d2dcc117e32cfd22d6cf6a55798be95",
+      "sourceSha256": "32f2c0c13968caf2d14953810028fa353cc790fd94f9ad4215ec2d07e12a2fd9",
+      "portedSha256": "f95bc2b1ef8aa2f63dd6f4835683ef7475213bb095b19474992be5a22e96476d",
+      "changed": true
+    },
+    {
+      "original": "packages/parser/src/species.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/species.ts",
+      "sourceBlob": "3c3524163827e8b671d4d1c281828beb418c9f93",
+      "sourceSha256": "5780b02af488743c4169f3faec8cf7c24fe21cd08454cb9c7af763747237687a",
+      "portedSha256": "cefdf1ae4f9c679830c634553acc20224cc9628fef7bbb304eeade88c3588f43",
+      "changed": true
+    },
+    {
+      "original": "packages/parser/src/utils.ts",
+      "destination": "packages/battle/src/v4/legacy/parser/utils.ts",
+      "sourceBlob": "f219518c5f4988bf994445ce33d57e9f94d7dd53",
+      "sourceSha256": "2b445e0d6cf7a3366c8ff7bc518803017496bfd72da7f0b3971d5e3b4e7d7397",
+      "portedSha256": "2b445e0d6cf7a3366c8ff7bc518803017496bfd72da7f0b3971d5e3b4e7d7397",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/element.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/element.ts",
+      "sourceBlob": "0155c3732d11215c00af23e9fe39f0a3bcadc340",
+      "sourceSha256": "ed347cdaab326669ee4ce059c289984413e58b1dc454c3173d0bfe16c294fee2",
+      "portedSha256": "ed347cdaab326669ee4ce059c289984413e58b1dc454c3173d0bfe16c294fee2",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/index.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/index.ts",
+      "sourceBlob": "e19dcf1d57d4cbf61d37f4cac0dba5928275f713",
+      "sourceSha256": "880558d6a75bb3f67bd82ef9c130db293dff3a671687693cbf004e0786e2c37e",
+      "portedSha256": "880558d6a75bb3f67bd82ef9c130db293dff3a671687693cbf004e0786e2c37e",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/markImage.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/markImage.ts",
+      "sourceBlob": "713415be6dacabe47e0d9d0bbc00a2506a601dff",
+      "sourceSha256": "882b8a9e13f278eee8a5b0ae7eb4fc0c237e53f52bf7e9932f35ab62ea231f5e",
+      "portedSha256": "882b8a9e13f278eee8a5b0ae7eb4fc0c237e53f52bf7e9932f35ab62ea231f5e",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/metadata.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/metadata.ts",
+      "sourceBlob": "f2e8c42c946841830e0baa609422964fe409e1ec",
+      "sourceSha256": "6c3a74d2d6986619a7f25263d90114fefe7f2491ec4fef28dd3420f25d1dcb44",
+      "portedSha256": "6c3a74d2d6986619a7f25263d90114fefe7f2491ec4fef28dd3420f25d1dcb44",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/pet.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/pet.ts",
+      "sourceBlob": "be83592274444e4f13552ecdab754ebb9815b6d9",
+      "sourceSha256": "a840ea5d3aa9f1a8474495e060acf479c7021ec027f355317546f5f6dc98cd25",
+      "portedSha256": "a840ea5d3aa9f1a8474495e060acf479c7021ec027f355317546f5f6dc98cd25",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/player.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/player.ts",
+      "sourceBlob": "d6022745b7ca4b6b2383b2d2e798cbd54c146bc7",
+      "sourceSha256": "f7df62a8767f846c6cb4d523faa7e66d6d019ae408e63843286e02dbccaa9ff8",
+      "portedSha256": "f7df62a8767f846c6cb4d523faa7e66d6d019ae408e63843286e02dbccaa9ff8",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/schema.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/schema.ts",
+      "sourceBlob": "7ef8035d256a40636169ab615aaff4752183fdc4",
+      "sourceSha256": "0f45775be16aeb9dc9163b149ad8cefb219376e1fd6fb71935fbc63234d0a526",
+      "portedSha256": "0f45775be16aeb9dc9163b149ad8cefb219376e1fd6fb71935fbc63234d0a526",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/selection.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/selection.ts",
+      "sourceBlob": "bee8571cba9954c331c4bcbd6879db9ec3f0d941",
+      "sourceSha256": "d7f1642b2e108c438b31ec0deeb6596b1332ba7595c8ca874e2649a93586ad88",
+      "portedSha256": "d7f1642b2e108c438b31ec0deeb6596b1332ba7595c8ca874e2649a93586ad88",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/skill.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/skill.ts",
+      "sourceBlob": "f8f5c97b96162d6a600764e7eea8e1f672d85baf",
+      "sourceSha256": "1d884f7297e629ca3d4bebe6fe76c7f4de87a968d90be560252a286ad2477490",
+      "portedSha256": "1d884f7297e629ca3d4bebe6fe76c7f4de87a968d90be560252a286ad2477490",
+      "changed": false
+    },
+    {
+      "original": "packages/schema/src/species.ts",
+      "destination": "packages/battle/src/v4/legacy/schema/species.ts",
+      "sourceBlob": "e2ffa743549e84d6e77097eb589f33fac773e3e5",
+      "sourceSha256": "52126f68215214bc830fd9ba250f9223751936fdc30fce7dd709085d16891503",
+      "portedSha256": "52126f68215214bc830fd9ba250f9223751936fdc30fce7dd709085d16891503",
+      "changed": false
+    },
+    {
+      "original": "data/effect_ability.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/effect_ability.yaml",
+      "sourceBlob": "0a266f32d0b0501687fd2810473fa953497995da",
+      "sourceSha256": "fdf913db0bc8087892642549608b4ef0a92d72c99c91e769cd0cee4fd466c8e7",
+      "portedSha256": "fdf913db0bc8087892642549608b4ef0a92d72c99c91e769cd0cee4fd466c8e7",
+      "changed": false
+    },
+    {
+      "original": "data/effect_emblem.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/effect_emblem.yaml",
+      "sourceBlob": "56ec2e75a33fd07aea17cadae3114dac141d0031",
+      "sourceSha256": "b49895309028efb3f651a93b0903f728874c0e96c3ab8d57132c2048099c68c7",
+      "portedSha256": "b49895309028efb3f651a93b0903f728874c0e96c3ab8d57132c2048099c68c7",
+      "changed": false
+    },
+    {
+      "original": "data/effect_global.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/effect_global.yaml",
+      "sourceBlob": "86180e93c8c1d7b0c19d2192da7b3b1db5e606fb",
+      "sourceSha256": "d55f20dc01afe561413f455e31ac6814a859a233f97bea2cbb3142c6244e871a",
+      "portedSha256": "d55f20dc01afe561413f455e31ac6814a859a233f97bea2cbb3142c6244e871a",
+      "changed": false
+    },
+    {
+      "original": "data/effect_mark.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/effect_mark.yaml",
+      "sourceBlob": "4a566ac9bc0b845a5985f17ce2e94fcf44fb2b2c",
+      "sourceSha256": "d6334d92b477aaad0d62a91aff513cfe71d80f716b51dcf22aa13711953f4605",
+      "portedSha256": "d6334d92b477aaad0d62a91aff513cfe71d80f716b51dcf22aa13711953f4605",
+      "changed": false
+    },
+    {
+      "original": "data/effect_skill.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/effect_skill.yaml",
+      "sourceBlob": "cef40552c6dedce9e7af282f9fb666fbab2e4ad4",
+      "sourceSha256": "b43c6276ceef2b686bcabd9a8c7d54a8399d3ba2fe5b8ab0a9b4bbe4caa95fa0",
+      "portedSha256": "b43c6276ceef2b686bcabd9a8c7d54a8399d3ba2fe5b8ab0a9b4bbe4caa95fa0",
+      "changed": false
+    },
+    {
+      "original": "data/mark.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/mark.yaml",
+      "sourceBlob": "72ac69d20de57eac884b6720f0f597eb4c19bd7d",
+      "sourceSha256": "57da8e1b00bef6086fb2bb664ce47017e4ba3ae8314c7b1504c4e2c1fb789f9c",
+      "portedSha256": "57da8e1b00bef6086fb2bb664ce47017e4ba3ae8314c7b1504c4e2c1fb789f9c",
+      "changed": false
+    },
+    {
+      "original": "data/mark_ability.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/mark_ability.yaml",
+      "sourceBlob": "3a7417aeaa42a3accd176387491c23badef4744c",
+      "sourceSha256": "56d637280ad42c49de89574f7dcdab7d2963d777b5d5a028e2f8da7ff6c902b6",
+      "portedSha256": "56d637280ad42c49de89574f7dcdab7d2963d777b5d5a028e2f8da7ff6c902b6",
+      "changed": false
+    },
+    {
+      "original": "data/mark_emblem.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/mark_emblem.yaml",
+      "sourceBlob": "b1b43de25b2a5537ac0209e3d50d701e7622a140",
+      "sourceSha256": "9f4e5ee36b763e76129d1a4e5eb259894195985f4d0aa3ed0148cb948827e4d5",
+      "portedSha256": "9f4e5ee36b763e76129d1a4e5eb259894195985f4d0aa3ed0148cb948827e4d5",
+      "changed": false
+    },
+    {
+      "original": "data/mark_global.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/mark_global.yaml",
+      "sourceBlob": "a36891a78b56382598daed8a35bb2b75e8c6d5b9",
+      "sourceSha256": "e15dcae6c1178c663dba342dd124b2acc645a84b01ee401d8bb48aa118807dfa",
+      "portedSha256": "e15dcae6c1178c663dba342dd124b2acc645a84b01ee401d8bb48aa118807dfa",
+      "changed": false
+    },
+    {
+      "original": "data/skill.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/skill.yaml",
+      "sourceBlob": "d7e78764da6b5e444a4cd373f45f08264dbefb20",
+      "sourceSha256": "1f52265759d44165ef73f953914328dc74e0dab57d797dd20b4136c69c027093",
+      "portedSha256": "1f52265759d44165ef73f953914328dc74e0dab57d797dd20b4136c69c027093",
+      "changed": false
+    },
+    {
+      "original": "data/species.yaml",
+      "destination": "packages/battle/test/v4/fixtures/v1-data/species.yaml",
+      "sourceBlob": "3fc128b5ecb5488678ce7a26e78af83773ec347e",
+      "sourceSha256": "1ece3423e6cb34f2f0bc8841c17dd40863f397d597e7ed9364118907db41e598",
+      "portedSha256": "1ece3423e6cb34f2f0bc8841c17dd40863f397d597e7ed9364118907db41e598",
+      "changed": false
+    }
+  ]
+}

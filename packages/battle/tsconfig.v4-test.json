@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.v4.json",
+  "include": [
+    "v4.ts",
+    "v4-legacy.ts",
+    "src/v4/**/*.ts",
+    "src/v4/**/*.json",
+    "test/v4/**/*.ts",
+    "test/v4/**/*.json"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
