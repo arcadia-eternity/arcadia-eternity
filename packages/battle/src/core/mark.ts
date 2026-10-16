@@ -52,8 +52,7 @@ export class Mark {
         this.stack = Math.min(this.config.maxStacks, stack)
         this.duration = this.config.duration
         break
-      case StackStrategy.remove:
-        this.isActive = false
+      case StackStrategy.remove: // Battle routes this through the common destruction lifecycle.
         break
       case StackStrategy.none:
         break

@@ -15,7 +15,7 @@ export interface PlayerState {
 export class Player {
   readonly id: string
   readonly name: string
-  readonly team: Pet[]
+  readonly team: readonly Pet[]
   readonly battle: Battle
   activePet: Pet
   currentRage = 20
@@ -26,7 +26,7 @@ export class Player {
     this.id = build.id
     this.name = build.name
     this.battle = battle
-    this.team = build.team.map(p => new Pet(p, this, content))
+    this.team = Object.freeze(build.team.map(p => new Pet(p, this, content)))
     this.activePet = this.team[0]
     this.activePet.appeared = true
   }

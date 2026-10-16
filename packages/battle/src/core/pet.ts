@@ -8,7 +8,7 @@ import {
 } from '@arcadia-eternity/const'
 import type { ContentCatalog, PetBuild, Species } from './content.js'
 import { parseStageMark } from './stat-stage.js'
-import { copyData, requireNumber } from './data.js'
+import { copyData, freezeData, requireNumber } from './data.js'
 import type { Player } from './player.js'
 import { Skill, type SkillState } from './skill.js'
 import type { Mark, MarkState } from './mark.js'
@@ -33,7 +33,7 @@ export class Pet {
   readonly originalSpecies: Species
   species: Species
   readonly owner: Player
-  readonly skills: Skill[]
+  readonly skills: readonly Skill[]
   marks: Mark[] = []
   gender: Gender
   appeared = false
@@ -50,7 +50,7 @@ export class Pet {
   lastSkillUsedTimes = 0
   skillHistory: string[] = []
   constructor(build: PetBuild, owner: Player, content: ContentCatalog) {
-    this.build = copyData(build)
+    this.build = freezeData(copyData(build))
     this.id = build.id
     this.owner = owner
     this.originalSpecies = content.species(build.species)
@@ -71,7 +71,9 @@ export class Pet {
       (!this.species.genderRatio ? Gender.NoGender : this.species.genderRatio[0] !== 0 ? Gender.Female : Gender.Male)
     if (build.skills.length < 1 || build.skills.length > 5 || new Set(build.skills).size !== build.skills.length)
       throw new Error('Invalid skills')
-    this.skills = build.skills.map((id, index) => new Skill(`${this.id}/skill/${index}`, content.skill(id), this))
+    this.skills = Object.freeze(
+      build.skills.map((id, index) => new Skill(`${this.id}/skill/${index}`, content.skill(id), this)),
+    )
     this.currentHp = this.stat.maxHp
   }
   get name() {

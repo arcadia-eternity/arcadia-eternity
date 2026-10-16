@@ -1,4 +1,4 @@
-import { AttackTargetOpinion, Category, EffectTrigger, ELEMENT_CHART } from '@arcadia-eternity/const'
+import { AttackTargetOpinion, Category, EffectTrigger, ELEMENT_CHART, StackStrategy } from '@arcadia-eternity/const'
 import { ContentCatalog, type BattleContent, type PlayerBuild } from './content.js'
 import { copyData, canonicalData, freezeData, requireNumber, type JsonObject } from './data.js'
 import { EffectRegistry } from './effects.js'
@@ -71,7 +71,7 @@ export interface ActionResult {
 /** Owns battle state. Host IO, decision latency and authentication live outside this class. */
 export class Battle {
   readonly id: string
-  readonly players: [Player, Player]
+  readonly players: readonly [Player, Player]
   readonly content: ContentCatalog
   readonly initial: BattleOptions
   readonly registry: EffectRegistry
@@ -106,7 +106,10 @@ export class Battle {
     for (const item of [...this.content.data.skills, ...this.content.data.marks])
       for (const ref of item.effects) registry.resolve(ref)
     this.rng = new GameRng(options.seed)
-    this.players = options.players.map(p => new Player(p, this, this.content)) as [Player, Player]
+    this.players = Object.freeze(options.players.map(p => new Player(p, this, this.content))) as readonly [
+      Player,
+      Player,
+    ]
     const ids = [
       this.id,
       ...this.players.flatMap(p => [p.id, ...p.team.flatMap(pet => [pet.id, ...pet.skills.map(s => s.id)])]),
@@ -459,6 +462,10 @@ export class Battle {
     const base = this.content.mark(baseId)
     const existing = owner.marks.find(m => m.base.id === baseId && m.isActive)
     if (existing) {
+      if (existing.config.stackable && existing.config.stackStrategy === StackStrategy.remove) {
+        this.removeMark(existing, true)
+        return existing
+      }
       this.fire(EffectTrigger.OnStackBefore, { kind: 'mark', battle: this, mark: existing }, [existing])
       existing.merge(stack)
       this.fire(EffectTrigger.OnStack, { kind: 'mark', battle: this, mark: existing }, [existing])
@@ -709,7 +716,10 @@ export class Battle {
     })
   }
   exportReplay(): ReplayFixture {
-    if (!['selection', 'switch', 'ended'].includes(this.phase.kind) || this.busy)
+    if (
+      this.busy ||
+      (this.phase.kind !== 'ended' && !this.players.some(p => this.getAvailableActions(p.id).length > 0))
+    )
       throw new Error('Replay export requires a decision or ended boundary; use snapshot for mid-turn state')
     return {
       version: 1,

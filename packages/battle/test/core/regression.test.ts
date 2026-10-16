@@ -77,3 +77,14 @@ describe('V1 domain core / #201 official roster', () => {
     expect(battle.snapshot()).toEqual(reference.snapshot())
   })
 })
+
+it('only exports replays at actual input-waiting boundaries', () => {
+  const battle = createBattle(officialOptions(), content, registry)
+  battle.start()
+  battle.submitAction(officialAction(battle, 'A', 0), false)
+  expect(replayBattle(battle.exportReplay(), content, registry).snapshot()).toEqual(battle.snapshot())
+  battle.submitAction(officialAction(battle, 'B', 0), false)
+  expect(() => battle.exportReplay()).toThrow('boundary')
+  // Snapshot is the mechanism for this queued, not-yet-executed turn.
+  expect(restoreBattle(battle.snapshot(), content, registry).snapshot()).toEqual(battle.snapshot())
+})

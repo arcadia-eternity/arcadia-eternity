@@ -257,6 +257,31 @@ describe('trusted seam and mark lifecycle', () => {
       20,
     )
   })
+  it('routes remove stacking through the common destruction hooks and event', () => {
+    let destroyed = 0
+    const { content, options, effects } = withMarks([{}], ctx => {
+      ctx.battle.addMark(ctx.battle.playerA.activePet, 'm0')
+      ctx.battle.addMark(ctx.battle.playerA.activePet, 'm0')
+    })
+    content.marks[0].config.stackStrategy = StackStrategy.remove
+    content.marks[0].effects = [{ id: 'destroy', version: '1', params: {} }]
+    const combined = new EffectRegistry([
+      effects.resolve({ id: 'test', version: '1', params: {} }),
+      {
+        id: 'destroy',
+        version: '1',
+        triggers: [EffectTrigger.OnMarkDestroy],
+        execute() {
+          destroyed++
+        },
+      },
+    ])
+    const battle = createBattle(options, content, combined)
+    battle.start()
+    expect(destroyed).toBe(1)
+    expect(battle.getEvents().filter(e => e.type === 'markRemoved' && e.data.baseMarkId === 'm0')).toHaveLength(1)
+    expect(battle.playerA.activePet.marks.some(m => m.base.id === 'm0')).toBe(false)
+  })
   it('removing a stage mark removes the stat bonus without stale modifiers', () => {
     const { content, options, effects } = withMarks([], ctx => {
       const pet = ctx.battle.playerA.activePet,
@@ -329,4 +354,28 @@ describe('trusted seam and mark lifecycle', () => {
       now.mockRestore()
     }
   })
+})
+
+it('keeps team builds immutable so a failing callback cannot escape rollback through EV/IV data', () => {
+  const content = clone(original)
+  content.skills.forEach(s => {
+    s.effects = []
+  })
+  const hook: TrustedEffect = {
+    id: 'immutable',
+    version: '1',
+    triggers: [EffectTrigger.OnBattleStart],
+    execute(ctx) {
+      ctx.battle.playerA.activePet.evs.atk = 100
+    },
+  }
+  content.marks[0].effects = [{ id: hook.id, version: hook.version, params: {} }]
+  const options = basicOptions()
+  options.players[0].team[0].ability = content.marks[0].id
+  const battle = createBattle(options, content, new EffectRegistry([hook])),
+    before = battle.snapshot()
+  expect(() => battle.start()).toThrow()
+  expect(battle.snapshot()).toEqual(before)
+  expect(Object.isFrozen(battle.playerA.team)).toBe(true)
+  expect(Object.isFrozen(battle.playerA.activePet.skills)).toBe(true)
 })

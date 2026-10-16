@@ -79,7 +79,7 @@ if (process.argv.includes('--browser')) {
       [
         '--headless=new',
         '--disable-gpu',
-        '--no-sandbox',
+        ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-dev-shm-usage'] : []),
         '--no-first-run',
         `--user-data-dir=${profile}`,
         '--dump-dom',
