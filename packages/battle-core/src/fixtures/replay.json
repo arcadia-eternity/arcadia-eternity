@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 1,
+  "initial": {
+    "schemaVersion": 1,
+    "content": {
+      "species": [
+        {
+          "id": "species-fast",
+          "name": "快攻型",
+          "maxHp": 70,
+          "attack": 15,
+          "defense": 4,
+          "speed": 20
+        }
+      ],
+      "skills": [
+        {
+          "id": "skill-hit",
+          "name": "普通攻击",
+          "power": 20,
+          "accuracy": 1,
+          "rageCost": 0,
+          "target": "opponent"
+        }
+      ]
+    },
+    "state": {
+      "id": "battle-seed-7",
+      "seed": 7,
+      "rngState": 7,
+      "turn": 1,
+      "phase": {
+        "type": "selection"
+      },
+      "winnerId": null,
+      "players": [
+        {
+          "id": "player-a",
+          "name": "甲",
+          "petIds": ["a-fast"],
+          "activePetId": "a-fast",
+          "rage": 0
+        },
+        {
+          "id": "player-b",
+          "name": "乙",
+          "petIds": ["b-fast"],
+          "activePetId": "b-fast",
+          "rage": 0
+        }
+      ],
+      "pets": [
+        {
+          "id": "a-fast",
+          "speciesId": "species-fast",
+          "skillIds": ["skill-hit"],
+          "hp": 70,
+          "marks": []
+        },
+        {
+          "id": "b-fast",
+          "speciesId": "species-fast",
+          "skillIds": ["skill-hit"],
+          "hp": 70,
+          "marks": []
+        }
+      ],
+      "pendingActions": {},
+      "actionLog": [],
+      "events": [
+        {
+          "type": "battle-started",
+          "battleId": "battle-seed-7",
+          "sequence": 0,
+          "turn": 1
+        }
+      ]
+    }
+  },
+  "actions": [
+    {
+      "playerId": "player-a",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      }
+    },
+    {
+      "playerId": "player-b",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      }
+    },
+    {
+      "playerId": "player-a",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      }
+    },
+    {
+      "playerId": "player-b",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      }
+    },
+    {
+      "playerId": "player-a",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      }
+    },
+    {
+      "playerId": "player-b",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      }
+    }
+  ],
+  "expectedEvents": [
+    {
+      "type": "battle-started",
+      "battleId": "battle-seed-7",
+      "sequence": 0,
+      "turn": 1
+    },
+    {
+      "type": "action-submitted",
+      "playerId": "player-a",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      },
+      "sequence": 1,
+      "turn": 1
+    },
+    {
+      "type": "action-submitted",
+      "playerId": "player-b",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      },
+      "sequence": 2,
+      "turn": 1
+    },
+    {
+      "type": "phase-changed",
+      "phase": {
+        "type": "turn-resolution"
+      },
+      "sequence": 3,
+      "turn": 1
+    },
+    {
+      "type": "skill-used",
+      "playerId": "player-a",
+      "petId": "a-fast",
+      "skillId": "skill-hit",
+      "targetPetId": "b-fast",
+      "sequence": 4,
+      "turn": 1
+    },
+    {
+      "type": "damage",
+      "sourcePetId": "a-fast",
+      "targetPetId": "b-fast",
+      "amount": 31,
+      "hp": 39,
+      "sequence": 5,
+      "turn": 1
+    },
+    {
+      "type": "skill-used",
+      "playerId": "player-b",
+      "petId": "b-fast",
+      "skillId": "skill-hit",
+      "targetPetId": "a-fast",
+      "sequence": 6,
+      "turn": 1
+    },
+    {
+      "type": "damage",
+      "sourcePetId": "b-fast",
+      "targetPetId": "a-fast",
+      "amount": 31,
+      "hp": 39,
+      "sequence": 7,
+      "turn": 1
+    },
+    {
+      "type": "turn-ended",
+      "rage": {
+        "player-a": 15,
+        "player-b": 15
+      },
+      "sequence": 8,
+      "turn": 1
+    },
+    {
+      "type": "phase-changed",
+      "phase": {
+        "type": "selection"
+      },
+      "sequence": 9,
+      "turn": 2
+    },
+    {
+      "type": "action-submitted",
+      "playerId": "player-a",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      },
+      "sequence": 10,
+      "turn": 2
+    },
+    {
+      "type": "action-submitted",
+      "playerId": "player-b",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      },
+      "sequence": 11,
+      "turn": 2
+    },
+    {
+      "type": "phase-changed",
+      "phase": {
+        "type": "turn-resolution"
+      },
+      "sequence": 12,
+      "turn": 2
+    },
+    {
+      "type": "skill-used",
+      "playerId": "player-a",
+      "petId": "a-fast",
+      "skillId": "skill-hit",
+      "targetPetId": "b-fast",
+      "sequence": 13,
+      "turn": 2
+    },
+    {
+      "type": "damage",
+      "sourcePetId": "a-fast",
+      "targetPetId": "b-fast",
+      "amount": 31,
+      "hp": 8,
+      "sequence": 14,
+      "turn": 2
+    },
+    {
+      "type": "skill-used",
+      "playerId": "player-b",
+      "petId": "b-fast",
+      "skillId": "skill-hit",
+      "targetPetId": "a-fast",
+      "sequence": 15,
+      "turn": 2
+    },
+    {
+      "type": "damage",
+      "sourcePetId": "b-fast",
+      "targetPetId": "a-fast",
+      "amount": 31,
+      "hp": 8,
+      "sequence": 16,
+      "turn": 2
+    },
+    {
+      "type": "turn-ended",
+      "rage": {
+        "player-a": 30,
+        "player-b": 30
+      },
+      "sequence": 17,
+      "turn": 2
+    },
+    {
+      "type": "phase-changed",
+      "phase": {
+        "type": "selection"
+      },
+      "sequence": 18,
+      "turn": 3
+    },
+    {
+      "type": "action-submitted",
+      "playerId": "player-a",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      },
+      "sequence": 19,
+      "turn": 3
+    },
+    {
+      "type": "action-submitted",
+      "playerId": "player-b",
+      "action": {
+        "type": "use-skill",
+        "skillId": "skill-hit"
+      },
+      "sequence": 20,
+      "turn": 3
+    },
+    {
+      "type": "phase-changed",
+      "phase": {
+        "type": "turn-resolution"
+      },
+      "sequence": 21,
+      "turn": 3
+    },
+    {
+      "type": "skill-used",
+      "playerId": "player-a",
+      "petId": "a-fast",
+      "skillId": "skill-hit",
+      "targetPetId": "b-fast",
+      "sequence": 22,
+      "turn": 3
+    },
+    {
+      "type": "damage",
+      "sourcePetId": "a-fast",
+      "targetPetId": "b-fast",
+      "amount": 31,
+      "hp": 0,
+      "sequence": 23,
+      "turn": 3
+    },
+    {
+      "type": "pet-fainted",
+      "playerId": "player-b",
+      "petId": "b-fast",
+      "sequence": 24,
+      "turn": 3
+    },
+    {
+      "type": "phase-changed",
+      "phase": {
+        "type": "ended"
+      },
+      "sequence": 25,
+      "turn": 3
+    },
+    {
+      "type": "battle-ended",
+      "winnerId": "player-a",
+      "sequence": 26,
+      "turn": 3
+    }
+  ]
+}

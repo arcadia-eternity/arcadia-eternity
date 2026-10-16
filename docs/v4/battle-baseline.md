@@ -115,3 +115,9 @@ CLI 本地入口是 `bin/cli.ts` 的 `local` 命令：`createLocalBattleFromYAML
 - 覆盖清单并不证明所有官方内容等价；没有开启要求所有条目都有专项测试的 strict coverage 模式。
 - 下一轮按 #202/#203 建立 `Battle / Player / Pet / Skill / Mark / Phase` 领域 API，以本轮动作、状态、事件作为输入输出契约，并优先按 V1 规范消除上面三处偏差。触发器和引擎事件格式可通过测试适配层转换，不要求保留通用 ECS。
 - #204 的 RNG/快照/重放、#205/#223 的可信 TypeScript Effect/EffectTemplate、#207 的离线 CLI 应分别验收。此轮没有提前实现或关闭这些任务。
+
+## Core cross-check (2026-10-16, #202–#204)
+
+The new host-independent core adds passing assertions for two V1 requirements that #201 records as V2 expected failures: switching at 21 rage leaves `floor(21 * 0.8) = 16` before end-of-turn gain, and an opponent skill resolves against the newly active pet after a switch. Its synthetic battle also exercises deterministic victory, ordered events, mid-turn snapshot restore, and a committed replay fixture.
+
+This is a targeted contract cross-check, not a port of the official 7-turn golden into the new core. Official skill formulas, Mark lifecycle/effects, the third known V2 defect, and full event/state parity remain unverified until follow-on effect and rules work.

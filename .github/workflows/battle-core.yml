@@ -1,0 +1,44 @@
+name: Seir2 Battle Core
+
+on:
+  pull_request:
+    branches: [refactor/v4, main]
+    paths:
+      - '.github/workflows/battle-core.yml'
+      - 'packages/battle-core/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  push:
+    branches: [refactor/v4]
+    paths:
+      - '.github/workflows/battle-core.yml'
+      - 'packages/battle-core/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cross-host-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @arcadia-eternity/battle-core build
+      - run: pnpm --filter @arcadia-eternity/battle-core typecheck
+      - run: pnpm --filter @arcadia-eternity/battle-core test:run
+      - name: Import package in Node
+        working-directory: packages/battle-core
+        run: node --input-type=module -e "import('@arcadia-eternity/battle-core').then(({createBattle}) => { if (typeof createBattle !== 'function') process.exit(1) })"
+      - name: Bundle for browsers
+        run: pnpm exec esbuild packages/battle-core/dist/index.js --bundle --platform=browser --format=esm --outfile=/tmp/battle-core.browser.js
