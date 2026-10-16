@@ -29,7 +29,10 @@
     "test": "run-s test:types test:run",
     "test:types": "pnpm exec tsgo --noEmit",
     "test:run": "pnpm --filter \"./packages/**\" --if-present run test:run",
-    "test:watch": "pnpm --filter \"./packages/**\" --if-present run test"
+    "test:watch": "pnpm --filter \"./packages/**\" --if-present run test",
+    "test:battle-baseline": "pnpm --filter @arcadia-eternity/battle run test:run --maxWorkers=2",
+    "typecheck:battle-baseline": "pnpm exec tsgo -p packages/battle/tsconfig.baseline.json",
+    "lint:battle-baseline": "pnpm exec eslint --config eslint.config.baseline.js packages/battle/src/v2/__tests__/helpers/golden-battle.ts packages/battle/src/v2/__tests__/v2-golden-battle.test.ts packages/battle/src/v2/__tests__/v2-baseline-known-defects.test.ts"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

@@ -1,0 +1,40 @@
+name: Battle regression baseline
+
+on:
+  pull_request:
+    branches: [refactor/v4, main]
+  push:
+    branches: [refactor/v4]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  headless-battle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build battle dependency graph
+        run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/pack-loader... run build
+      - name: Lint
+        run: |
+          pnpm lint
+          pnpm lint:battle-baseline
+      - name: Typecheck baseline tests and imported battle source
+        run: pnpm typecheck:battle-baseline
+      - name: Run all V2 battle regressions (no services)
+        run: pnpm test:battle-baseline
