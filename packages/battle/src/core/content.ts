@@ -1,3 +1,4 @@
+import type { Prototype } from './entity.js'
 import {
   AttackTargetOpinion,
   Category,
@@ -7,6 +8,9 @@ import {
   Nature,
   StackStrategy,
   type StatOutBattle,
+  type speciesId,
+  type baseSkillId,
+  type baseMarkId,
 } from '@arcadia-eternity/const'
 import { stageMark } from './stat-stage.js'
 import type { JsonObject } from './data.js'
@@ -18,8 +22,8 @@ export interface EffectReference {
   version: string
   params: JsonObject
 }
-export interface Species {
-  id: string
+export interface Species extends Prototype<speciesId> {
+  id: speciesId
   num: number
   assetRef?: string
   element: Element
@@ -31,8 +35,8 @@ export interface Species {
   emblemIds: string[]
   learnableSkills: { skill_id: string; level: number; hidden: boolean }[]
 }
-export interface BaseSkill {
-  id: string
+export interface BaseSkill extends Prototype<baseSkillId> {
+  id: baseSkillId
   sfxRef?: string
   category: Category
   element: Element
@@ -62,17 +66,20 @@ export interface MarkConfig {
   inheritOnFaint: boolean
   mutexGroup?: string
 }
-export interface BaseMark {
-  id: string
+export interface BaseMark extends Prototype<baseMarkId> {
+  id: baseMarkId
   iconRef?: string
   config: MarkConfig
   tags: string[]
   effects: EffectReference[]
 }
+export type SpeciesDefinition = Omit<Species, 'id'> & { id: string }
+export type SkillDefinition = Omit<BaseSkill, 'id'> & { id: string }
+export type MarkDefinition = Omit<BaseMark, 'id'> & { id: string }
 export interface BattleContent {
-  species: Species[]
-  skills: BaseSkill[]
-  marks: BaseMark[]
+  species: SpeciesDefinition[]
+  skills: SkillDefinition[]
+  marks: MarkDefinition[]
 }
 /** A team build is data; a battle Pet is its temporary runtime instance. */
 export interface PetBuild {
@@ -107,12 +114,12 @@ export class ContentCatalog {
     this.data = freezeData(copyData(content))
     this.identity = canonicalData(this.data)
     for (const species of this.data.species) {
-      this.insert(this.speciesById, species)
+      this.insert(this.speciesById, species as Species)
       if (!Object.values(Element).includes(species.element)) throw new Error('Invalid species element')
       for (const stat of Object.values(species.baseStats)) requireNumber(stat, 'base stat', 1)
     }
     for (const skill of this.data.skills) {
-      this.insert(this.skillsById, skill)
+      this.insert(this.skillsById, skill as BaseSkill)
       if (
         !Object.values(Category).includes(skill.category) ||
         !Object.values(Element).includes(skill.element) ||
@@ -129,7 +136,7 @@ export class ContentCatalog {
     }
     for (const mark of this.data.marks) {
       if (stageMark(mark.id)) throw new Error('Reserved stat stage mark ID')
-      this.insert(this.marksById, mark)
+      this.insert(this.marksById, mark as BaseMark)
       if (!Object.values(StackStrategy).includes(mark.config.stackStrategy)) throw new Error('Invalid stack strategy')
       if (!Number.isSafeInteger(mark.config.duration) || mark.config.duration < -1)
         throw new Error('Invalid mark duration')
@@ -137,7 +144,8 @@ export class ContentCatalog {
     }
   }
   private insert<T extends { id: string }>(map: Map<string, T>, item: T) {
-    if (!item.id || map.has(item.id)) throw new Error(`Duplicate or empty content ID: ${item.id}`)
+    if (typeof item.id !== 'string' || !item.id || map.has(item.id))
+      throw new Error(`Duplicate or empty content ID: ${item.id}`)
     map.set(item.id, item)
   }
   species(id: string): Species {

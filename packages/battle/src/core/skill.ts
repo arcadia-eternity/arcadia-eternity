@@ -1,3 +1,5 @@
+import type { skillId } from '@arcadia-eternity/const'
+import type { Instance, OwnedEntity, EffectContainer } from './entity.js'
 import type { BaseSkill } from './content.js'
 import type { Pet } from './pet.js'
 import { copyData } from './data.js'
@@ -11,8 +13,8 @@ export interface SkillState {
   priority: number
   appeared: boolean
 }
-export class Skill {
-  readonly id: string
+export class Skill implements Instance<BaseSkill, skillId>, OwnedEntity<Pet>, EffectContainer {
+  readonly id: skillId
   readonly base: BaseSkill
   readonly owner: Pet
   power: number
@@ -21,13 +23,16 @@ export class Skill {
   priority: number
   appeared = false
   constructor(id: string, base: BaseSkill, owner: Pet) {
-    this.id = id
+    this.id = id as skillId
     this.base = base
     this.owner = owner
     this.power = base.power
     this.accuracy = base.accuracy
     this.rage = base.rage
     this.priority = base.priority
+  }
+  setOwner(owner: Pet) {
+    if (owner !== this.owner) throw new Error('Skill ownership is fixed for this battle instance')
   }
   get category() {
     return this.base.category

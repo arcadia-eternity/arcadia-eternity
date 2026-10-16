@@ -1,3 +1,6 @@
+import type { petId } from '@arcadia-eternity/const'
+import type { Instance, OwnedEntity, MarkOwner } from './entity.js'
+import type { AddMarkContext, RemoveMarkContext } from './context.js'
 import {
   Gender,
   NatureMap,
@@ -27,8 +30,8 @@ export interface PetState {
   lastSkillUsedTimes: number
   skillHistory: string[]
 }
-export class Pet {
-  readonly id: string
+export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkOwner {
+  readonly id: petId
   readonly build: PetBuild
   readonly originalSpecies: Species
   species: Species
@@ -51,7 +54,7 @@ export class Pet {
   skillHistory: string[] = []
   constructor(build: PetBuild, owner: Player, content: ContentCatalog) {
     this.build = freezeData(copyData(build))
-    this.id = build.id
+    this.id = build.id as petId
     this.owner = owner
     this.originalSpecies = content.species(build.species)
     this.species = this.originalSpecies
@@ -75,6 +78,23 @@ export class Pet {
       build.skills.map((id, index) => new Skill(`${this.id}/skill/${index}`, content.skill(id), this)),
     )
     this.currentHp = this.stat.maxHp
+  }
+  get base() {
+    return this.species
+  }
+  get battle() {
+    return this.owner.battle
+  }
+  setOwner(owner: Player) {
+    if (owner !== this.owner) throw new Error('Pet team ownership is fixed')
+  }
+  addMark(context: AddMarkContext) {
+    if (context.target !== this) throw new Error('Wrong mark target')
+    return this.battle.addMark(context)
+  }
+  removeMark(context: RemoveMarkContext) {
+    if (context.mark.owner !== this) throw new Error('Wrong mark owner')
+    this.battle.removeMark(context)
   }
   get name() {
     return this.build.name

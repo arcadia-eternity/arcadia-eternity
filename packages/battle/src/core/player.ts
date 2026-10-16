@@ -1,3 +1,5 @@
+import type { playerId } from '@arcadia-eternity/const'
+import type { OwnedEntity } from './entity.js'
 import { MAX_RAGE } from '@arcadia-eternity/const'
 import type { ContentCatalog, PlayerBuild } from './content.js'
 import { Pet, type PetState } from './pet.js'
@@ -12,8 +14,8 @@ export interface PlayerState {
   team: PetState[]
 }
 /** A battle seat; id is not a server authentication credential or a global Account. */
-export class Player {
-  readonly id: string
+export class Player implements OwnedEntity<Battle> {
+  readonly id: playerId
   readonly name: string
   readonly team: readonly Pet[]
   readonly battle: Battle
@@ -23,12 +25,18 @@ export class Player {
   constructor(build: PlayerBuild, battle: Battle, content: ContentCatalog) {
     if (!build.id || !build.name || build.team.length < 1 || build.team.length > 6)
       throw new Error('Invalid player build')
-    this.id = build.id
+    this.id = build.id as playerId
     this.name = build.name
     this.battle = battle
     this.team = Object.freeze(build.team.map(p => new Pet(p, this, content)))
     this.activePet = this.team[0]
     this.activePet.appeared = true
+  }
+  get owner() {
+    return this.battle
+  }
+  setOwner(owner: Battle) {
+    if (owner !== this.battle) throw new Error('Player battle ownership is fixed')
   }
   getAvailableSelection(): BattleAction[] {
     return this.battle.getAvailableActions(this.id)

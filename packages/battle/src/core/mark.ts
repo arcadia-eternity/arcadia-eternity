@@ -1,7 +1,6 @@
-import { StackStrategy } from '@arcadia-eternity/const'
+import type { markId } from '@arcadia-eternity/const'
+import type { Instance, OwnedEntity, MarkOwner, EffectContainer } from './entity.js'
 import type { BaseMark, MarkConfig } from './content.js'
-import type { Battle } from './battle.js'
-import type { Pet } from './pet.js'
 import { copyData } from './data.js'
 
 export interface MarkState {
@@ -14,15 +13,15 @@ export interface MarkState {
   config: MarkConfig
   creatorId: string | null
 }
-export class Mark {
+export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>, EffectContainer {
   stack: number
   duration: number
   isActive = true
   config: MarkConfig
   constructor(
-    readonly id: string,
+    readonly id: markId,
     readonly base: BaseMark,
-    public owner: Pet | Battle,
+    public owner: MarkOwner,
     stack = 1,
     readonly creatorId: string | null = null,
   ) {
@@ -30,33 +29,19 @@ export class Mark {
     this.stack = Math.min(stack, this.config.maxStacks)
     this.duration = this.config.duration
   }
-  merge(stack: number) {
-    if (!this.config.stackable) return
-    switch (this.config.stackStrategy) {
-      case StackStrategy.stack:
-        this.stack = Math.min(this.config.maxStacks, this.stack + stack)
-        this.duration = this.config.duration
-        break
-      case StackStrategy.refresh:
-        this.duration = this.config.duration
-        break
-      case StackStrategy.extend:
-        this.stack = Math.min(this.config.maxStacks, this.stack + stack)
-        this.duration += this.config.duration
-        break
-      case StackStrategy.max:
-        this.stack = Math.min(this.config.maxStacks, Math.max(this.stack, stack))
-        this.duration = this.config.duration
-        break
-      case StackStrategy.replace:
-        this.stack = Math.min(this.config.maxStacks, stack)
-        this.duration = this.config.duration
-        break
-      case StackStrategy.remove: // Battle routes this through the common destruction lifecycle.
-        break
-      case StackStrategy.none:
-        break
-    }
+  get battle() {
+    return this.owner.battle
+  }
+  get effects() {
+    return this.base.effects
+  }
+  setOwner(owner: MarkOwner) {
+    this.battle.assertInOperation()
+    if (owner.battle !== this.battle) throw new Error('Cannot change mark battle ownership')
+    if (owner === this.owner) return
+    this.owner.marks = this.owner.marks.filter(mark => mark !== this)
+    this.owner = owner
+    if (!owner.marks.includes(this)) owner.marks.push(this)
   }
   getState(): MarkState {
     return copyData({

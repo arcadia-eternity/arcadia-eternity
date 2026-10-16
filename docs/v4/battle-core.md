@@ -1,5 +1,7 @@
 # Battle Core：领域模型、宿主边界与确定性（#202–#204）
 
+> 首版架构验收已因用户复核撤回；PR #228 保持草稿，#202–#204 保持打开。当前按 [V1 契约盘点](v1-contract-inventory.md) 修正实体基类型、Context 泛型和具体 Phase。历史测试记录不是架构完整性的证明。
+
 ## 起点与范围
 
 基线是 `origin/refactor/v4` 的 `2fcb8640e276b93bffa76aeb648aecd9e7712675`（#226 / #201 已合并，headless CI 成功）；`main` 为 `1492b2ca`。没有使用已撤回的 #227，没有修改 V2 的生产实现或原有 golden。历史参考为 `c086289812885e7a4903b181e2b8989e201452b8` 的 `battle.ts`、`player.ts`、`pet.ts`、`skill.ts`、`mark.ts`、`context.ts` 与 `phase/*`。
@@ -109,7 +111,7 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 - 保存点是规则原子边界，不支持可信函数栈内部存档；网络重连的鉴权/隐私/去重由宿主负责。
 - 没有引入 Redis、用户数据库、规则系统、排位或服务依赖。
 
-## 本轮验收记录（2026-10-16）
+## 首版验证记录（架构验收已撤回，2026-10-16）
 
 - 新 Core：3 文件、35 项测试通过；Core 无宿主 types 的类型检查、测试严格类型检查、源码/测试专项 lint 通过。
 - 旧 V2：19 文件、108 项通过、3 项明确预期失败，原 #201 golden/known-defects 未修改；基线专项类型检查与 lint 通过。
@@ -127,3 +129,15 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 独立审查确认领域对象、官方 #201 队伍与宿主边界符合本轮范围，没有范围扩张。发现 replay 导出边界问题（与 Standards 同一问题）和 `StackStrategy.remove` 绕过印记销毁回调/事件的问题；后者已统一经过 `removeMark`，回归确认销毁回调及移除事件各一次。审查者独立复跑相关测试并确认修复。
 
 汇总：Standards 2 项、Spec 2 项（其中 replay 为重复发现），3 个独立问题均已修复；两个轴均无剩余阻塞项。
+
+## 用户复核后的类型与 Phase 修正
+
+- `entity.ts` 恢复 `Prototype<TId>`、`Instance<TPrototype,TId>`、`OwnedEntity<TOwner>`、`MarkOwner`、`EffectContainer`。Species/Skill/Mark 原型与 Pet/Skill/Mark 实例使用原 const 中的品牌 ID；宿主 Definition/build 输入继续接收可移植字符串，由内容及实例创建边界校验归一。
+- `Battle extends Context<null>`；`TurnContext.parent` 是 Battle，`UseSkillContext.parent` 是 TurnContext，`DamageContext.parent` 是技能或效果上下文。添加/移除/叠层/消耗/转移/换宠/治疗/怒气各有自己的类和父类型。`EffectContext<T>.parent` 与 `effect` 随 `TriggerContextMap[T]`/`TrustedEffect<T>` 绑定；`defineEffect` 让回调直接获得具体上下文。
+- `phase/` 包含实际执行规则的 BattleStart/BattleLoop/Selection/BattleSwitch/Turn（Start/Action/End）/Skill/SwitchPet/Damage/Heal/Rage/AddMark/RemoveMark/MarkStack/ConsumeStack/MarkSwitchOut/MarkTransfer/MarkUpdate/MarkCleanup/EffectExecution/Effect Phase。规则体已移出 Battle，Battle 保留状态、公开入口及存档校验。
+- PhaseManager 提供确定性 ID、父 Phase ID、执行栈、状态和清理；同步与交互 Phase 区分，输入不足进入 Waiting。快照只写 Phase trace/counter、continuation 和 TurnContext 的普通数据，恢复时重新建立类与父链，不序列化运行时 context 对象。
+- `type-contracts.ts` 有 10 个编译反例，确保错误的父 context、触发器、Phase/Context、实体 owner、prototype、品牌 ID 和变身 prototype 组合不能编译。运行测试检查真实嵌套 Phase、父链、跨行动保存的 TurnContext 数据以及失败回滚后的栈。
+- 能力等级添加现在仅走一次 AddMarkContext/OnBeforeAddMark，去掉首版 stage helper 重复发出的两次触发；原官方场景仍是 7 回合及相同伤害/最终状态，Core golden 按这个明确差异从 357 调整为 355 条事件。原 V2 golden 不变。
+- `TransformContext<TTarget>` 保留 target→prototype 类型关系；完整变身与恢复/撤销运行机制尚未实现，不能将类型声明当作 TransformPhase 已完成。正式 Effect/EffectTemplate 系统、属性 modifier/变身策略仍需随 #205/#223 明确，不迁移官方 DSL。
+
+当前以新增架构证据为基础重新复核；历史 Standards/Spec 的“无剩余问题”不再作为本次架构完整性结论。

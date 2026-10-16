@@ -1,17 +1,17 @@
 import type { EffectTrigger } from '@arcadia-eternity/const'
 import type { EffectReference } from './content.js'
-import type { OperationContext } from './context.js'
-import type { Mark } from './mark.js'
-import type { Skill } from './skill.js'
-import type { JsonObject } from './data.js'
+import type { EffectContext } from './context.js'
+import type { Prototype } from './entity.js'
 
-/** Temporary trusted execution seam for #205/#223, not a DSL or a template catalog. */
-export interface TrustedEffect {
-  id: string
+/** The trigger generic binds callback.parent to TriggerContextMap[trigger]. */
+export interface TrustedEffect<T extends EffectTrigger = EffectTrigger> extends Prototype {
   version: string
-  triggers: readonly EffectTrigger[]
+  triggers: readonly T[]
   priority?: number
-  execute(context: OperationContext, source: Skill | Mark, params: JsonObject): void
+  execute(context: EffectContext<T>): void
+}
+export function defineEffect<T extends EffectTrigger>(definition: TrustedEffect<T>): TrustedEffect<T> {
+  return definition
 }
 export class EffectRegistry {
   private readonly definitions = new Map<string, TrustedEffect>()

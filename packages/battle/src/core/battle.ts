@@ -1,15 +1,44 @@
-import { AttackTargetOpinion, Category, EffectTrigger, ELEMENT_CHART, StackStrategy } from '@arcadia-eternity/const'
+import { AttackTargetOpinion, EffectTrigger, type markId } from '@arcadia-eternity/const'
 import { ContentCatalog, type BattleContent, type PlayerBuild } from './content.js'
 import { copyData, canonicalData, freezeData, requireNumber, type JsonObject } from './data.js'
 import { EffectRegistry } from './effects.js'
-import type { DamageContext, OperationContext, RageContext, SkillContext, SwitchContext } from './context.js'
+import {
+  Context,
+  EffectContext,
+  TurnContext,
+  BattleLoopContext,
+  AddMarkContext,
+  RemoveMarkContext,
+  ConsumeStackContext,
+  RageContext,
+  DamageContext,
+  HealContext,
+  type AnyEffectContext,
+  type TriggerContextMap,
+  type TurnContextData,
+} from './context.js'
 import { GameRng, type RngState } from './rng.js'
 import { Player, type PlayerState } from './player.js'
 import { Pet, type StageStat } from './pet.js'
 import { Skill } from './skill.js'
 import { Mark, type MarkState } from './mark.js'
 import { STAGE_STATS } from './stat-stage.js'
-import { Phase, type QueuedAction, type SkillPlan } from './phase.js'
+import { BattleContinuation } from './continuation.js'
+import {
+  PhaseManager,
+  BattleStartPhase,
+  BattleLoopPhase,
+  EffectExecutionPhase,
+  DamagePhase,
+  RagePhase,
+  HealPhase,
+  AddMarkPhase,
+  RemoveMarkPhase,
+  ConsumeStackPhase,
+  type PhaseManagerState,
+  PhaseState,
+} from './phase/index.js'
+import type { MarkOwner } from './entity.js'
 
 export type BattleAction =
   | { type: 'use-skill'; player: string; skill: string; target: AttackTargetOpinion }
@@ -43,7 +72,8 @@ export interface BattleState {
   lastKillerId: string | null
   players: PlayerState[]
   marks: MarkState[]
-  phase: ReturnType<Phase['getState']>
+  phase: ReturnType<BattleContinuation['getState']>
+  turnContext: TurnContextData | null
 }
 export interface BattleSnapshot {
   version: 1
@@ -52,6 +82,7 @@ export interface BattleSnapshot {
   state: BattleState
   rng: RngState
   nextId: number
+  phases: PhaseManagerState
   events: BattleEvent[]
   actions: ActionLogEntry[]
 }
@@ -69,13 +100,20 @@ export interface ActionResult {
 }
 
 /** Owns battle state. Host IO, decision latency and authentication live outside this class. */
-export class Battle {
+export class Battle extends Context<null> implements MarkOwner {
+  readonly kind = 'battle'
+  readonly type = 'battle'
+  override get battle(): Battle {
+    return this
+  }
+  readonly phaseManager: PhaseManager
+  activeTurn: TurnContext | null = null
   readonly id: string
   readonly players: readonly [Player, Player]
   readonly content: ContentCatalog
   readonly initial: BattleOptions
   readonly registry: EffectRegistry
-  phase = new Phase()
+  phase = new BattleContinuation()
   marks: Mark[] = []
   turn = 0
   status: BattleState['status'] = 'unstarted'
@@ -89,9 +127,11 @@ export class Battle {
   private observerErrors: unknown[] = []
   private busy = false
   private delivering = false
-  private lastKiller: string | null = null
+  lastKillerId: string | null = null
 
   constructor(options: BattleOptions, content: BattleContent, registry = new EffectRegistry()) {
+    super(null)
+    this.phaseManager = new PhaseManager(this)
     this.initial = freezeData(copyData(options))
     this.id = options.id
     if (
@@ -153,6 +193,9 @@ export class Battle {
     if (!this.busy) throw new Error('RNG is only available during an operation')
     return this.rng.next()
   }
+  randomInt(min: number, max: number) {
+    return Math.floor(this.random() * (max - min + 1)) + min
+  }
   events(listener: (event: BattleEvent) => void): () => void {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
@@ -168,7 +211,7 @@ export class Battle {
   getActionLog(): ActionLogEntry[] {
     return copyData(this.actionLog)
   }
-  private emit(type: string, data: JsonObject) {
+  emitEvent(type: string, data: JsonObject) {
     this.journal.push(freezeData(copyData({ sequence: this.journal.length + 1, turn: this.turn, type, data })))
   }
   private operation<T>(fn: () => T): T {
@@ -203,15 +246,7 @@ export class Battle {
   }
   /** Synchronous rule execution; await this result in an asynchronous host if desired. */
   start(): void {
-    this.operation(() => {
-      if (this.status !== 'unstarted') throw new Error('Battle already started')
-      this.status = 'active'
-      for (const player of this.players)
-        for (const pet of player.team) for (const id of [pet.ability, pet.emblem]) if (id) this.addMark(pet, id)
-      this.emit('battleStart', { playerAId: this.playerA.id, playerBId: this.playerB.id })
-      this.fire(EffectTrigger.OnBattleStart, { kind: 'turn', battle: this })
-      this.setDecisionPhase()
-    })
+    this.operation(() => this.phaseManager.executeSync(new BattleStartPhase(this)))
   }
   getAvailableActions(playerId: string): BattleAction[] {
     const player = this.getPlayerByID(playerId)
@@ -261,433 +296,101 @@ export class Battle {
     }
   }
   private step(): boolean {
-    switch (this.phase.kind) {
-      case 'created':
-      case 'ended':
-        return false
-      case 'selection': {
-        if (this.phase.pending.length !== 2) return false
-        const queue: QueuedAction[] = this.players.map(player => ({
-          action: this.phase.pending.find(a => a.player === player.id)!,
-          actorPetId: player.activePet.id,
-        }))
-        this.phase.queue = queue
-        this.phase.pending = []
-        this.phase.kind = 'turn-start'
-        return true
-      }
-      case 'turn-start': {
-        this.turn++
-        this.lastKiller = null
-        this.emit('turnStart', { turn: this.turn })
-        const queue = this.phase.queue
-        // V1 applies BeforeSort before TurnStart; plans store only data for resumption.
-        for (const item of queue)
-          if (item.action.type === 'use-skill') {
-            const ctx = this.skillContext(
-              this.getPlayerByID(item.action.player),
-              this.getPetByID(item.actorPetId),
-              this.getSkillByID(item.action.skill),
-            )
-            this.fire(EffectTrigger.BeforeSort, ctx)
-            item.skillPlan = {
-              available: ctx.available,
-              power: ctx.power,
-              accuracy: ctx.accuracy,
-              rage: ctx.rage,
-              category: ctx.category,
-              element: ctx.element,
-              priority: ctx.priority,
-              ignoreStageStrategy: ctx.ignoreStageStrategy,
-            }
-          }
-        // Stable seat order breaks speed ties, as in V1; no random comparator.
-        queue.sort((a, b) => {
-          if (a.action.type !== b.action.type && (a.action.type === 'switch-pet' || b.action.type === 'switch-pet'))
-            return a.action.type === 'switch-pet' ? -1 : 1
-          if (a.action.type === 'use-skill' && b.action.type === 'use-skill')
-            return (
-              (b.skillPlan?.priority ?? 0) - (a.skillPlan?.priority ?? 0) ||
-              this.getPetByID(b.actorPetId).stat.spe - this.getPetByID(a.actorPetId).stat.spe
-            )
-          return 0
-        })
-        this.fire(EffectTrigger.TurnStart, { kind: 'turn', battle: this })
-        this.phase.kind = 'action'
-        return true
-      }
-      case 'action': {
-        const next = this.phase.queue.shift()
-        if (!next) {
-          this.phase.kind = 'turn-end'
-          return true
-        }
-        const player = this.getPlayerByID(next.action.player)
-        if (next.action.type === 'switch-pet') this.switchPet(player, this.getPetByID(next.action.pet))
-        if (next.action.type === 'use-skill')
-          this.useSkill(player, this.getPetByID(next.actorPetId), this.getSkillByID(next.action.skill), next.skillPlan)
-        this.cleanupMarks()
-        return true
-      }
-      case 'turn-end': {
-        this.fire(EffectTrigger.TurnEnd, { kind: 'turn', battle: this })
-        // V1 grants rage before forced replacement, including a fainted active pet (#201-03).
-        for (const player of this.players) this.changeRage(player, player.activePet.stat.ragePerTurn, 'add', 'turn')
-        for (const mark of this.activeMarks()) {
-          if (mark.config.persistent) continue
-          if (mark.duration > 0) {
-            mark.duration--
-            this.emit('markDuration', { markId: mark.id, duration: mark.duration })
-          }
-          if (mark.duration === 0) {
-            this.fire(EffectTrigger.OnMarkDurationEnd, { kind: 'mark', battle: this, mark }, [mark])
-            this.removeMark(mark, true)
-          }
-        }
-        this.cleanupMarks()
-        this.emit('turnEnd', { turn: this.turn })
-        this.setDecisionPhase()
-        return true
-      }
-      case 'switch': {
-        const expected = [...this.phase.forced, ...(this.phase.reward ? [this.phase.reward] : [])]
-        if (!expected.every(id => this.phase.pending.some(a => a.player === id))) return false
-        const pending = this.phase.pending
-        for (const id of expected) {
-          const action = pending.find(a => a.player === id)!
-          if (action.type === 'switch-pet') this.switchPet(this.getPlayerByID(id), this.getPetByID(action.pet))
-        }
-        this.phase.pending = []
-        this.setDecisionPhase(false)
-        return true
-      }
+    if (this.phase.kind === 'created' || this.phase.kind === 'ended') return false
+    if (this.phase.kind === 'selection' && this.phase.pending.length !== 2) return false
+    if (this.phase.kind === 'switch') {
+      const required = [...this.phase.forced, ...(this.phase.reward ? [this.phase.reward] : [])]
+      if (!required.every(id => this.phase.pending.some(action => action.player === id))) return false
     }
+    this.phaseManager.executeSync(new BattleLoopPhase(new BattleLoopContext(this)))
+    return true
   }
-  private setDecisionPhase(reward = true) {
-    const dead = this.players.filter(p => p.team.every(pet => !pet.isAlive))
-    if (dead.length) {
-      this.finish(
-        dead.length === 2 ? null : this.getOpponent(dead[0]).id,
-        dead.length === 2 ? 'draw' : 'all_pet_fainted',
-      )
-      return
-    }
-    const forced = this.players.filter(p => !p.activePet.isAlive).map(p => p.id)
-    const killer = this.lastKiller ? this.getPetByID(this.lastKiller).owner : null
-    const bonus =
-      reward &&
-      forced.length &&
-      this.initial.allowFaintSwitch &&
-      killer?.activePet.isAlive &&
-      !forced.includes(killer.id)
-        ? killer.id
-        : null
-    this.phase = new Phase(forced.length ? 'switch' : 'selection', [], [], forced, bonus)
-    this.lastKiller = null
-    if (forced.length) this.emit('switchPrompt', { forced, reward: bonus })
-    else this.emit('turnAction', { players: this.players.map(p => p.id) })
-  }
-  private finish(victor: string | null, reason: string) {
+  finish(victor: string | null, reason: string) {
     this.status = 'ended'
     this.victor = victor
     this.endReason = reason
-    this.phase = new Phase('ended')
-    this.lastKiller = null
-    this.emit('battleEnd', { winner: victor, reason })
+    this.phase = new BattleContinuation('ended')
+    this.lastKillerId = null
+    this.activeTurn = null
+    this.emitEvent('battleEnd', { winner: victor, reason })
   }
-  /** The complete #205 trigger pipeline can replace this seam without changing save data. */
-  private fire(trigger: EffectTrigger, context: OperationContext, only?: Mark[]) {
-    this.emit('trigger', { trigger })
-    const sources: (Mark | Skill)[] = only ?? [
-      ...this.activeMarks(),
-      ...(context.kind === 'skill' ? [context.skill] : []),
-    ]
-    const calls = sources
-      .flatMap(source =>
-        source instanceof Mark && !source.isActive && trigger !== EffectTrigger.OnMarkDestroy
-          ? []
-          : source.base.effects.map(ref => ({ source, ref, definition: this.registry.resolve(ref) })),
-      )
-      .filter(c => c.definition.triggers.includes(trigger))
-      .sort((a, b) => (b.definition.priority ?? 0) - (a.definition.priority ?? 0))
-    for (const call of calls) {
-      if (call.source instanceof Mark && !call.source.isActive && trigger !== EffectTrigger.OnMarkDestroy) continue
-      const result: unknown = call.definition.execute(context, call.source, copyData(call.ref.params))
-      if (result !== undefined) throw new Error('Trusted effects must execute synchronously and return void')
-    }
+  applyEffects<T extends EffectTrigger>(context: TriggerContextMap[NoInfer<T>], trigger: T, only?: readonly Mark[]) {
+    this.phaseManager.executeSync(new EffectExecutionPhase(context, trigger, only))
   }
-  private activeMarks(): Mark[] {
-    return [...this.marks, ...this.players.flatMap(p => p.activePet.marks)].filter(m => m.isActive)
+  getActiveMarks(): Mark[] {
+    return [...this.marks, ...this.players.flatMap(player => player.activePet.marks)].filter(mark => mark.isActive)
   }
-  private assertExecuting() {
+  assertInOperation() {
     if (!this.busy) throw new Error('Rule mutations require a battle operation')
   }
-  changeRage(player: Player, amount: number, direction: RageContext['direction'], reason: string) {
-    this.assertExecuting()
-    requireNumber(amount, 'rage amount')
-    const ctx: RageContext = { kind: 'rage', battle: this, player, amount, direction, reason, available: true }
-    if (direction !== 'setting')
-      this.fire(direction === 'add' ? EffectTrigger.BeforeRageGain : EffectTrigger.BeforeRageLoss, ctx)
-    if (!ctx.available) return
-    requireNumber(ctx.amount, 'modified rage')
-    const before = player.currentRage
-    const value = Math.floor(ctx.amount)
-    player.settingRage(direction === 'setting' ? value : before + (direction === 'add' ? value : -value))
-    this.emit('rageChange', {
-      playerId: player.id,
-      reason,
-      type: direction,
-      amount: value,
-      before,
-      newRage: player.currentRage,
-    })
-    if (direction !== 'setting')
-      this.fire(direction === 'add' ? EffectTrigger.OnRageGain : EffectTrigger.OnRageLoss, ctx)
+  allocateMarkId() {
+    this.assertInOperation()
+    return `@mark/${this.nextId++}` as markId
+  }
+  private effectParent(): AnyEffectContext {
+    const context = this.phaseManager.currentContext
+    if (!(context instanceof EffectContext))
+      throw new Error('Convenience rule operations require an EffectContext; otherwise supply a typed context')
+    // The dispatch phase constructs one concrete member of this mapped union.
+    return context as AnyEffectContext
+  }
+  changeRage(context: RageContext): void
+  changeRage(player: Player, amount: number, direction: RageContext['direction'], reason: string): void
+  changeRage(context: RageContext | Player, amount?: number, direction?: RageContext['direction'], reason?: string) {
+    const operation =
+      context instanceof RageContext
+        ? context
+        : new RageContext(this.effectParent(), context, amount!, direction!, reason!)
+    this.phaseManager.executeSync(new RagePhase(operation))
   }
   addStatStage(pet: Pet, stat: StageStat, amount: number) {
-    this.assertExecuting()
     if (!STAGE_STATS.includes(stat) || !Number.isInteger(amount)) throw new Error('Invalid stage change')
-    const context = { kind: 'stage' as const, battle: this, pet, stat, amount }
-    this.fire(EffectTrigger.OnBeforeAddMark, context)
-    const before = pet.stages[stat]
-    const next = Math.max(-6, Math.min(6, before + context.amount))
-    for (const mark of [...pet.marks]) if (mark.base.id.startsWith(`stat_stage_${stat}_`)) this.removeMark(mark, true)
-    if (next !== 0) this.addMark(pet, `stat_stage_${stat}_${next > 0 ? 'up' : 'down'}`, Math.abs(next))
-    this.emit('statStageChange', { petId: pet.id, stat, before, stage: next })
-  }
-
-  addMark(owner: Pet | Battle, baseId: string, stack = 1, creatorId: string | null = null): Mark {
-    this.assertExecuting()
-    requireNumber(stack, 'mark stack', 1)
-    const base = this.content.mark(baseId)
-    const existing = owner.marks.find(m => m.base.id === baseId && m.isActive)
-    if (existing) {
-      if (existing.config.stackable && existing.config.stackStrategy === StackStrategy.remove) {
-        this.removeMark(existing, true)
-        return existing
-      }
-      this.fire(EffectTrigger.OnStackBefore, { kind: 'mark', battle: this, mark: existing }, [existing])
-      existing.merge(stack)
-      this.fire(EffectTrigger.OnStack, { kind: 'mark', battle: this, mark: existing }, [existing])
-      this.cleanupMarks()
-      return existing
-    }
-    for (const mark of [...owner.marks])
-      if (base.config.mutexGroup && mark.config.mutexGroup === base.config.mutexGroup) this.removeMark(mark, true)
-    const mark = new Mark(`@mark/${this.nextId++}`, base, owner, stack, creatorId)
-    this.fire(EffectTrigger.OnBeforeAddMark, { kind: 'mark', battle: this, mark })
-    owner.marks.push(mark)
-    this.emit('markAdded', {
-      markId: mark.id,
-      baseMarkId: baseId,
-      ownerId: owner.id,
-      stack: mark.stack,
-      duration: mark.duration,
-    })
-    this.fire(EffectTrigger.OnMarkCreated, { kind: 'mark', battle: this, mark }, [mark])
-    this.fire(EffectTrigger.OnAnyMarkAdded, { kind: 'mark', battle: this, mark })
-    return mark
-  }
-  removeMark(mark: Mark, force = false) {
-    this.assertExecuting()
-    if (!mark.isActive || (!force && !mark.config.destroyable)) return
-    this.fire(EffectTrigger.OnRemoveMark, { kind: 'mark', battle: this, mark }, [mark])
-    mark.isActive = false
-    this.fire(EffectTrigger.OnMarkDestroy, { kind: 'mark', battle: this, mark }, [mark])
-    this.emit('markRemoved', { markId: mark.id, baseMarkId: mark.base.id, ownerId: mark.owner.id })
-    mark.owner.marks = mark.owner.marks.filter(m => m !== mark)
-  }
-  consumeMarkStacks(mark: Mark, amount: number): number {
-    this.assertExecuting()
-    requireNumber(amount, 'stack consumption')
-    if (!mark.isActive) return 0
-    this.fire(EffectTrigger.OnBeforeConsumeStack, { kind: 'mark', battle: this, mark }, [mark])
-    const consumed = Math.min(mark.stack, amount)
-    mark.stack -= consumed
-    this.fire(EffectTrigger.OnConsumeStack, { kind: 'mark', battle: this, mark }, [mark])
-    if (mark.stack <= 0) this.removeMark(mark, true)
-    return consumed
-  }
-  private cleanupMarks() {
-    for (const owner of [this, ...this.players.flatMap(p => p.team)])
-      owner.marks = owner.marks.filter(m => m.isActive && m.stack > 0)
-  }
-  private switchPet(player: Player, incoming: Pet) {
-    const outgoing = player.activePet
-    if (!incoming.isAlive || incoming === outgoing || incoming.owner !== player) return
-    const ctx: SwitchContext = { kind: 'switch', battle: this, player, outgoing, incoming }
-    this.fire(EffectTrigger.OnSwitchOut, ctx)
-    this.fire(EffectTrigger.OnOwnerSwitchOut, ctx, [...outgoing.marks])
-    for (const mark of [...outgoing.marks]) {
-      if (mark.config.transferOnSwitch || (!outgoing.isAlive && mark.config.inheritOnFaint)) {
-        outgoing.marks = outgoing.marks.filter(m => m !== mark)
-        mark.owner = incoming
-        incoming.marks.push(mark)
-      } else if (!mark.config.keepOnSwitchOut) this.removeMark(mark, true)
-    }
-    this.emit('switchOut', { playerId: player.id, petId: outgoing.id })
-    player.activePet = incoming
-    incoming.appeared = true
-    this.emit('switchIn', { playerId: player.id, petId: incoming.id })
-    this.fire(EffectTrigger.OnSwitchIn, ctx)
-    this.fire(EffectTrigger.OnOwnerSwitchIn, ctx, [...incoming.marks])
-    // V1 assignment rounding (#201-01), not floor(rage * .2) subtraction.
-    this.changeRage(player, player.currentRage - Math.floor(player.currentRage * 0.8), 'reduce', 'switch')
-  }
-  private skillContext(player: Player, pet: Pet, skill: Skill): SkillContext {
-    // Resolve target at execution, after switches (#201-02).
-    const target = skill.target === AttackTargetOpinion.self ? pet : this.getOpponent(player).activePet
-    const ctx: SkillContext = {
-      kind: 'skill',
-      battle: this,
-      player,
+    const context = new AddMarkContext(
+      this.effectParent(),
       pet,
-      skill,
-      target,
-      selectTarget: skill.target,
-      priority: skill.priority,
-      available: true,
-      power: skill.power,
-      accuracy: skill.accuracy,
-      rage: skill.rage,
-      category: skill.category,
-      element: skill.element,
-      ignoreStageStrategy: skill.base.ignoreOpponentStageStrategy,
-      hit: false,
-      crit: false,
-      hitCount: 1,
-      currentHit: 0,
-    }
-    return ctx
+      this.content.mark(`stat_stage_${stat}_${amount > 0 ? 'up' : 'down'}`),
+      Math.max(1, Math.abs(amount)),
+    )
+    context.statStage = { stat, level: amount }
+    this.addMark(context)
   }
-  private useSkill(player: Player, pet: Pet, skill: Skill, plan?: SkillPlan) {
-    const ctx = Object.assign(this.skillContext(player, pet, skill), plan)
-    const target = ctx.target
-    this.fire(EffectTrigger.BeforeUseSkillCheck, ctx)
-    const reason = !ctx.available
-      ? 'disabled'
-      : !pet.isAlive || player.activePet !== pet
-        ? 'faint'
-        : player.currentRage < ctx.rage
-          ? 'noRage'
-          : !target.isAlive
-            ? 'noTarget'
-            : null
-    if (reason) {
-      this.emit('skillFail', { petId: pet.id, skillId: skill.id, reason })
-      return
-    }
-    pet.rememberSkill(skill)
-    this.emit('skillUse', {
-      petId: pet.id,
-      skillId: skill.id,
-      baseSkillId: skill.base.id,
-      target: skill.target,
-      targetId: target.id,
-      rage: ctx.rage,
-    })
-    this.changeRage(player, ctx.rage, 'reduce', 'skill')
-    this.fire(EffectTrigger.AfterUseSkillCheck, ctx)
-    ctx.hitCount = typeof skill.multihit === 'number' ? skill.multihit : this.rng.nextInt(...skill.multihit)
-    ctx.hit =
-      this.random() * 100 <
-      (skill.sureHit ? 100 : ((ctx.accuracy * pet.stat.accuracy) / 100) * (1 - target.stat.evasion / 100))
-    if (!ctx.hit) {
-      this.emit('skillMiss', { petId: pet.id, targetId: target.id, skillId: skill.id })
-      this.fire(EffectTrigger.OnMiss, ctx)
-    } else {
-      ctx.crit = this.random() * 100 < (skill.sureCrit ? 100 : pet.stat.critRate)
-      this.fire(EffectTrigger.BeforeMultiHit, ctx)
-      for (ctx.currentHit = 1; ctx.currentHit <= ctx.hitCount && target.isAlive; ctx.currentHit++) {
-        this.fire(EffectTrigger.BeforeHit, ctx)
-        if (ctx.category !== Category.Status) {
-          const factor = 0.85 + this.random() * 0.15
-          const attackStats = pet.stat
-          const defenseStats = target.getEffectiveStat(ctx.ignoreStageStrategy)
-          const physical =
-            ctx.category === Category.Physical ||
-            (ctx.category === Category.Climax && attackStats.atk > attackStats.spa)
-          const effectiveness = ELEMENT_CHART[ctx.element][target.element]
-          const stab = pet.element === ctx.element ? 1.5 : 1
-          const base = Math.floor(
-            (((2 * pet.level) / 5 + 2) * ctx.power * (physical ? attackStats.atk : attackStats.spa)) /
-              (physical ? defenseStats.def : defenseStats.spd) /
-              50 +
-              2,
-          )
-          const damage = Math.floor(Math.floor(base * effectiveness * stab * (ctx.crit ? 2 : 1)) * factor)
-          const damageCtx: DamageContext = {
-            kind: 'damage',
-            battle: this,
-            source: pet,
-            target,
-            amount: damage,
-            available: true,
-            crit: ctx.crit,
-            effectiveness,
-            ignoreShield: skill.ignoreShield,
-            damageType: physical ? 'Physical' : 'Special',
-          }
-          ctx.damage = damageCtx
-          if (ctx.crit) this.fire(EffectTrigger.OnCritPreDamage, ctx)
-          this.fire(EffectTrigger.PreDamage, ctx)
-          const dealt = this.damage(damageCtx)
-          const gained = Math.floor((dealt * 49) / target.stat.maxHp)
-          if (gained > 0) this.changeRage(target.owner, gained, 'add', 'damage')
-        }
-        this.fire(EffectTrigger.OnHit, ctx)
-      }
-      if (ctx.category !== Category.Status) this.changeRage(player, 15, 'add', 'skillHit')
-    }
-    if (!target.isAlive) {
-      this.lastKiller = pet.id
-      this.emit('petDefeated', { petId: target.id, killerId: pet.id })
-      this.fire(EffectTrigger.OnDefeat, ctx)
-    }
-    this.fire(EffectTrigger.SkillUseEnd, ctx)
-    this.emit('skillUseEnd', { petId: pet.id })
+  addMark(context: AddMarkContext): Mark | null
+  addMark(owner: MarkOwner, baseId: string, stack?: number, creatorId?: string | null): Mark | null
+  addMark(
+    context: AddMarkContext | MarkOwner,
+    baseId?: string,
+    stack = 1,
+    creatorId: string | null = null,
+  ): Mark | null {
+    const operation =
+      context instanceof AddMarkContext
+        ? context
+        : new AddMarkContext(this.effectParent(), context, this.content.mark(baseId!), stack, creatorId)
+    return this.phaseManager.executeSync(new AddMarkPhase(operation))
   }
-  damage(ctx: DamageContext): number {
-    this.assertExecuting()
-    this.fire(EffectTrigger.OnBeforeCalculateDamage, ctx)
-    if (!ctx.available) {
-      this.emit('damageFail', { sourceId: ctx.source.id, targetId: ctx.target.id, reason: 'disabled' })
-      return 0
-    }
-    requireNumber(ctx.amount, 'damage')
-    ctx.amount = Math.floor(ctx.amount)
-    if (!ctx.ignoreShield) {
-      this.fire(EffectTrigger.Shield, ctx)
-      for (const mark of [...ctx.target.marks])
-        if (mark.isActive && mark.config.isShield) ctx.amount -= this.consumeMarkStacks(mark, ctx.amount)
-    }
-    ctx.target.currentHp = Math.max(0, ctx.target.currentHp - ctx.amount)
-    this.fire(EffectTrigger.OnDamage, ctx)
-    this.emit('damage', {
-      sourceId: ctx.source.id,
-      targetId: ctx.target.id,
-      damage: ctx.amount,
-      isCrit: ctx.crit,
-      effectiveness: ctx.effectiveness,
-      damageType: ctx.damageType,
-      currentHp: ctx.target.currentHp,
-      maxHp: ctx.target.stat.maxHp,
-    })
-    this.fire(EffectTrigger.PostDamage, ctx)
-    if (ctx.crit) this.fire(EffectTrigger.OnCritPostDamage, ctx)
-    return ctx.amount
+  removeMark(context: RemoveMarkContext): void
+  removeMark(mark: Mark, force?: boolean): void
+  removeMark(context: RemoveMarkContext | Mark, force = false) {
+    const operation =
+      context instanceof RemoveMarkContext ? context : new RemoveMarkContext(this.effectParent(), context, force)
+    this.phaseManager.executeSync(new RemoveMarkPhase(operation))
   }
-  heal(source: Pet, target: Pet, amount: number) {
-    this.assertExecuting()
-    requireNumber(amount, 'heal')
-    const ctx = { kind: 'heal' as const, battle: this, source, target, amount, available: true }
-    this.fire(EffectTrigger.OnBeforeHeal, ctx)
-    if (!ctx.available || !target.isAlive) return
-    requireNumber(ctx.amount, 'modified heal')
-    const before = target.currentHp
-    target.currentHp = Math.min(target.stat.maxHp, before + Math.floor(ctx.amount))
-    this.fire(EffectTrigger.OnHeal, ctx)
-    this.emit('heal', { sourceId: source.id, targetId: target.id, amount: target.currentHp - before })
+  consumeMarkStacks(context: ConsumeStackContext): number
+  consumeMarkStacks(mark: Mark, amount: number): number
+  consumeMarkStacks(context: ConsumeStackContext | Mark, amount?: number): number {
+    const operation =
+      context instanceof ConsumeStackContext ? context : new ConsumeStackContext(this.effectParent(), context, amount!)
+    return this.phaseManager.executeSync(new ConsumeStackPhase(operation))
+  }
+  damage(context: DamageContext): number {
+    return this.phaseManager.executeSync(new DamagePhase(context))
+  }
+  heal(context: HealContext): number
+  heal(source: Pet, target: Pet, amount: number): number
+  heal(context: HealContext | Pet, target?: Pet, amount?: number): number {
+    const operation =
+      context instanceof HealContext ? context : new HealContext(this.effectParent(), context, target!, amount!)
+    return this.phaseManager.executeSync(new HealPhase(operation))
   }
   getState(): BattleState {
     return copyData({
@@ -696,10 +399,11 @@ export class Battle {
       status: this.status,
       victor: this.victor,
       endReason: this.endReason,
-      lastKillerId: this.lastKiller,
+      lastKillerId: this.lastKillerId,
       players: this.players.map(p => p.getState()),
       marks: this.marks.map(m => m.getState()),
       phase: this.phase.getState(),
+      turnContext: this.activeTurn ? copyData(this.activeTurn.data) : null,
     })
   }
   snapshot(): BattleSnapshot {
@@ -711,6 +415,7 @@ export class Battle {
       state: this.getState(),
       rng: this.rng.getState(),
       nextId: this.nextId,
+      phases: this.phaseManager.snapshot(),
       events: this.journal,
       actions: this.actionLog,
     })
@@ -737,21 +442,23 @@ export class Battle {
     this.status = state.status
     this.victor = state.victor
     this.endReason = state.endReason
-    this.phase = new Phase(
+    this.phase = new BattleContinuation(
       state.phase.kind,
       copyData(state.phase.queue),
       copyData(state.phase.pending),
       [...state.phase.forced],
       state.phase.reward,
     )
+    this.activeTurn = state.turnContext ? new TurnContext(this, copyData(state.turnContext)) : null
+    this.phaseManager.restore(snapshot.phases)
     this.rng = GameRng.fromState(snapshot.rng)
     this.nextId = snapshot.nextId
     this.journal = copyData(snapshot.events)
     this.actionLog = copyData(snapshot.actions)
-    this.lastKiller = state.lastKillerId
+    this.lastKillerId = state.lastKillerId
     const restoreMarks = (states: MarkState[], owner: Pet | Battle) =>
       states.map(s => {
-        const mark = new Mark(s.id, this.content.mark(s.baseId), owner, s.stack, s.creatorId)
+        const mark = new Mark(s.id as markId, this.content.mark(s.baseId), owner, s.stack, s.creatorId)
         mark.duration = s.duration
         mark.isActive = s.isActive
         mark.config = copyData(s.config)
@@ -797,7 +504,9 @@ export class Battle {
     return battle
   }
   private validateContinuation() {
-    if (this.lastKiller !== null) this.getPetByID(this.lastKiller)
+    if (this.lastKillerId !== null) this.getPetByID(this.lastKillerId)
+    if (['action', 'turn-end'].includes(this.phase.kind) !== (this.activeTurn !== null))
+      throw new Error('Invalid saved TurnContext')
     const phase = this.phase
     if (new Set(phase.forced).size !== phase.forced.length) throw new Error('Duplicate forced switches')
     for (const id of phase.forced)
@@ -843,6 +552,28 @@ export class Battle {
   }
   private validateSnapshot(snapshot: BattleSnapshot) {
     const { state, rng } = snapshot
+    if (!Number.isSafeInteger(snapshot.phases.nextId) || snapshot.phases.nextId < 0)
+      throw new Error('Invalid phase counter')
+    for (const row of snapshot.phases.history) {
+      const validId = (id: string) => /^@phase\/\d+$/.test(id) && Number(id.slice(7)) < snapshot.phases.nextId
+      if (
+        !validId(row.id) ||
+        (row.parentId !== null && !validId(row.parentId)) ||
+        !Object.values(PhaseState).includes(row.state) ||
+        row.turn < 0 ||
+        row.turn > state.turn
+      )
+        throw new Error('Invalid saved phase history')
+    }
+    if (state.turnContext) {
+      if (state.turnContext.number !== state.turn) throw new Error('Invalid saved turn number')
+      for (const id of [
+        ...Object.keys(state.turnContext.petData),
+        ...state.turnContext.plannedPetIds,
+        ...state.turnContext.executedPetIds,
+      ])
+        this.getPetByID(id)
+    }
     if (
       state.id !== this.id ||
       !Number.isSafeInteger(state.turn) ||

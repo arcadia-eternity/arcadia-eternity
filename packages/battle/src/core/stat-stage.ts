@@ -1,4 +1,4 @@
-import { StackStrategy } from '@arcadia-eternity/const'
+import { StackStrategy, type baseMarkId } from '@arcadia-eternity/const'
 import type { BaseMark } from './content.js'
 import type { StageStat } from './pet.js'
 
@@ -10,7 +10,7 @@ export function parseStageMark(id: string): { stat: StageStat; sign: number } | 
 export function stageMark(id: string): BaseMark | null {
   if (!parseStageMark(id)) return null
   return {
-    id,
+    id: id as baseMarkId,
     effects: [],
     tags: ['statStage'],
     config: {

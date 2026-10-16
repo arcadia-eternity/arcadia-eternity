@@ -1363,14 +1363,6 @@
       {
         "sequence": 71,
         "turn": 2,
-        "type": "trigger",
-        "data": {
-          "trigger": "OnBeforeAddMark"
-        }
-      },
-      {
-        "sequence": 72,
-        "turn": 2,
         "type": "markAdded",
         "data": {
           "markId": "@mark/1",
@@ -1381,7 +1373,7 @@
         }
       },
       {
-        "sequence": 73,
+        "sequence": 72,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1389,7 +1381,7 @@
         }
       },
       {
-        "sequence": 74,
+        "sequence": 73,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1397,7 +1389,7 @@
         }
       },
       {
-        "sequence": 75,
+        "sequence": 74,
         "turn": 2,
         "type": "statStageChange",
         "data": {
@@ -1408,7 +1400,7 @@
         }
       },
       {
-        "sequence": 76,
+        "sequence": 75,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1416,7 +1408,7 @@
         }
       },
       {
-        "sequence": 77,
+        "sequence": 76,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1424,7 +1416,7 @@
         }
       },
       {
-        "sequence": 78,
+        "sequence": 77,
         "turn": 2,
         "type": "skillUseEnd",
         "data": {
@@ -1432,7 +1424,7 @@
         }
       },
       {
-        "sequence": 79,
+        "sequence": 78,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1440,7 +1432,7 @@
         }
       },
       {
-        "sequence": 80,
+        "sequence": 79,
         "turn": 2,
         "type": "skillUse",
         "data": {
@@ -1453,7 +1445,7 @@
         }
       },
       {
-        "sequence": 81,
+        "sequence": 80,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1461,7 +1453,7 @@
         }
       },
       {
-        "sequence": 82,
+        "sequence": 81,
         "turn": 2,
         "type": "rageChange",
         "data": {
@@ -1474,7 +1466,7 @@
         }
       },
       {
-        "sequence": 83,
+        "sequence": 82,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1482,7 +1474,7 @@
         }
       },
       {
-        "sequence": 84,
+        "sequence": 83,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1490,7 +1482,7 @@
         }
       },
       {
-        "sequence": 85,
+        "sequence": 84,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1498,7 +1490,7 @@
         }
       },
       {
-        "sequence": 86,
+        "sequence": 85,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1506,7 +1498,7 @@
         }
       },
       {
-        "sequence": 87,
+        "sequence": 86,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1514,7 +1506,7 @@
         }
       },
       {
-        "sequence": 88,
+        "sequence": 87,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1522,7 +1514,7 @@
         }
       },
       {
-        "sequence": 89,
+        "sequence": 88,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1530,7 +1522,7 @@
         }
       },
       {
-        "sequence": 90,
+        "sequence": 89,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1538,7 +1530,7 @@
         }
       },
       {
-        "sequence": 91,
+        "sequence": 90,
         "turn": 2,
         "type": "damage",
         "data": {
@@ -1553,7 +1545,7 @@
         }
       },
       {
-        "sequence": 92,
+        "sequence": 91,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1561,7 +1553,7 @@
         }
       },
       {
-        "sequence": 93,
+        "sequence": 92,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1569,7 +1561,7 @@
         }
       },
       {
-        "sequence": 94,
+        "sequence": 93,
         "turn": 2,
         "type": "rageChange",
         "data": {
@@ -1582,7 +1574,7 @@
         }
       },
       {
-        "sequence": 95,
+        "sequence": 94,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1590,7 +1582,7 @@
         }
       },
       {
-        "sequence": 96,
+        "sequence": 95,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1598,7 +1590,7 @@
         }
       },
       {
-        "sequence": 97,
+        "sequence": 96,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1606,7 +1598,7 @@
         }
       },
       {
-        "sequence": 98,
+        "sequence": 97,
         "turn": 2,
         "type": "rageChange",
         "data": {
@@ -1619,7 +1611,7 @@
         }
       },
       {
-        "sequence": 99,
+        "sequence": 98,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1627,7 +1619,7 @@
         }
       },
       {
-        "sequence": 100,
+        "sequence": 99,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1635,7 +1627,7 @@
         }
       },
       {
-        "sequence": 101,
+        "sequence": 100,
         "turn": 2,
         "type": "skillUseEnd",
         "data": {
@@ -1643,7 +1635,7 @@
         }
       },
       {
-        "sequence": 102,
+        "sequence": 101,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1651,7 +1643,7 @@
         }
       },
       {
-        "sequence": 103,
+        "sequence": 102,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1659,7 +1651,7 @@
         }
       },
       {
-        "sequence": 104,
+        "sequence": 103,
         "turn": 2,
         "type": "rageChange",
         "data": {
@@ -1672,7 +1664,7 @@
         }
       },
       {
-        "sequence": 105,
+        "sequence": 104,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1680,7 +1672,7 @@
         }
       },
       {
-        "sequence": 106,
+        "sequence": 105,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1688,7 +1680,7 @@
         }
       },
       {
-        "sequence": 107,
+        "sequence": 106,
         "turn": 2,
         "type": "rageChange",
         "data": {
@@ -1701,7 +1693,7 @@
         }
       },
       {
-        "sequence": 108,
+        "sequence": 107,
         "turn": 2,
         "type": "trigger",
         "data": {
@@ -1709,7 +1701,7 @@
         }
       },
       {
-        "sequence": 109,
+        "sequence": 108,
         "turn": 2,
         "type": "markDuration",
         "data": {
@@ -1718,7 +1710,7 @@
         }
       },
       {
-        "sequence": 110,
+        "sequence": 109,
         "turn": 2,
         "type": "turnEnd",
         "data": {
@@ -1726,7 +1718,7 @@
         }
       },
       {
-        "sequence": 111,
+        "sequence": 110,
         "turn": 2,
         "type": "turnAction",
         "data": {
@@ -1737,7 +1729,7 @@
         }
       },
       {
-        "sequence": 112,
+        "sequence": 111,
         "turn": 3,
         "type": "turnStart",
         "data": {
@@ -1745,7 +1737,7 @@
         }
       },
       {
-        "sequence": 113,
+        "sequence": 112,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1753,7 +1745,7 @@
         }
       },
       {
-        "sequence": 114,
+        "sequence": 113,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1761,7 +1753,7 @@
         }
       },
       {
-        "sequence": 115,
+        "sequence": 114,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1769,7 +1761,7 @@
         }
       },
       {
-        "sequence": 116,
+        "sequence": 115,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1777,7 +1769,7 @@
         }
       },
       {
-        "sequence": 117,
+        "sequence": 116,
         "turn": 3,
         "type": "switchOut",
         "data": {
@@ -1786,7 +1778,7 @@
         }
       },
       {
-        "sequence": 118,
+        "sequence": 117,
         "turn": 3,
         "type": "switchIn",
         "data": {
@@ -1795,7 +1787,7 @@
         }
       },
       {
-        "sequence": 119,
+        "sequence": 118,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1803,7 +1795,7 @@
         }
       },
       {
-        "sequence": 120,
+        "sequence": 119,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1811,7 +1803,7 @@
         }
       },
       {
-        "sequence": 121,
+        "sequence": 120,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1819,7 +1811,7 @@
         }
       },
       {
-        "sequence": 122,
+        "sequence": 121,
         "turn": 3,
         "type": "rageChange",
         "data": {
@@ -1832,7 +1824,7 @@
         }
       },
       {
-        "sequence": 123,
+        "sequence": 122,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1840,7 +1832,7 @@
         }
       },
       {
-        "sequence": 124,
+        "sequence": 123,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1848,7 +1840,7 @@
         }
       },
       {
-        "sequence": 125,
+        "sequence": 124,
         "turn": 3,
         "type": "skillUse",
         "data": {
@@ -1861,7 +1853,7 @@
         }
       },
       {
-        "sequence": 126,
+        "sequence": 125,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1869,7 +1861,7 @@
         }
       },
       {
-        "sequence": 127,
+        "sequence": 126,
         "turn": 3,
         "type": "rageChange",
         "data": {
@@ -1882,7 +1874,7 @@
         }
       },
       {
-        "sequence": 128,
+        "sequence": 127,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1890,7 +1882,7 @@
         }
       },
       {
-        "sequence": 129,
+        "sequence": 128,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1898,7 +1890,7 @@
         }
       },
       {
-        "sequence": 130,
+        "sequence": 129,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1906,7 +1898,7 @@
         }
       },
       {
-        "sequence": 131,
+        "sequence": 130,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1914,23 +1906,15 @@
         }
       },
       {
+        "sequence": 131,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeAddMark"
+        }
+      },
+      {
         "sequence": 132,
-        "turn": 3,
-        "type": "trigger",
-        "data": {
-          "trigger": "OnBeforeAddMark"
-        }
-      },
-      {
-        "sequence": 133,
-        "turn": 3,
-        "type": "trigger",
-        "data": {
-          "trigger": "OnBeforeAddMark"
-        }
-      },
-      {
-        "sequence": 134,
         "turn": 3,
         "type": "markAdded",
         "data": {
@@ -1942,7 +1926,7 @@
         }
       },
       {
-        "sequence": 135,
+        "sequence": 133,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1950,7 +1934,7 @@
         }
       },
       {
-        "sequence": 136,
+        "sequence": 134,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1958,7 +1942,7 @@
         }
       },
       {
-        "sequence": 137,
+        "sequence": 135,
         "turn": 3,
         "type": "statStageChange",
         "data": {
@@ -1969,7 +1953,7 @@
         }
       },
       {
-        "sequence": 138,
+        "sequence": 136,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1977,7 +1961,7 @@
         }
       },
       {
-        "sequence": 139,
+        "sequence": 137,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -1985,7 +1969,7 @@
         }
       },
       {
-        "sequence": 140,
+        "sequence": 138,
         "turn": 3,
         "type": "skillUseEnd",
         "data": {
@@ -1993,7 +1977,7 @@
         }
       },
       {
-        "sequence": 141,
+        "sequence": 139,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -2001,7 +1985,7 @@
         }
       },
       {
-        "sequence": 142,
+        "sequence": 140,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -2009,7 +1993,7 @@
         }
       },
       {
-        "sequence": 143,
+        "sequence": 141,
         "turn": 3,
         "type": "rageChange",
         "data": {
@@ -2022,7 +2006,7 @@
         }
       },
       {
-        "sequence": 144,
+        "sequence": 142,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -2030,7 +2014,7 @@
         }
       },
       {
-        "sequence": 145,
+        "sequence": 143,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -2038,7 +2022,7 @@
         }
       },
       {
-        "sequence": 146,
+        "sequence": 144,
         "turn": 3,
         "type": "rageChange",
         "data": {
@@ -2051,7 +2035,7 @@
         }
       },
       {
-        "sequence": 147,
+        "sequence": 145,
         "turn": 3,
         "type": "trigger",
         "data": {
@@ -2059,7 +2043,7 @@
         }
       },
       {
-        "sequence": 148,
+        "sequence": 146,
         "turn": 3,
         "type": "turnEnd",
         "data": {
@@ -2067,7 +2051,7 @@
         }
       },
       {
-        "sequence": 149,
+        "sequence": 147,
         "turn": 3,
         "type": "turnAction",
         "data": {
@@ -2078,7 +2062,7 @@
         }
       },
       {
-        "sequence": 150,
+        "sequence": 148,
         "turn": 4,
         "type": "turnStart",
         "data": {
@@ -2086,23 +2070,23 @@
         }
       },
       {
+        "sequence": 149,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 150,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
         "sequence": 151,
-        "turn": 4,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 152,
-        "turn": 4,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 153,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2110,7 +2094,7 @@
         }
       },
       {
-        "sequence": 154,
+        "sequence": 152,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2118,7 +2102,7 @@
         }
       },
       {
-        "sequence": 155,
+        "sequence": 153,
         "turn": 4,
         "type": "skillUse",
         "data": {
@@ -2131,7 +2115,7 @@
         }
       },
       {
-        "sequence": 156,
+        "sequence": 154,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2139,7 +2123,7 @@
         }
       },
       {
-        "sequence": 157,
+        "sequence": 155,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2152,7 +2136,7 @@
         }
       },
       {
-        "sequence": 158,
+        "sequence": 156,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2160,7 +2144,7 @@
         }
       },
       {
-        "sequence": 159,
+        "sequence": 157,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2168,7 +2152,7 @@
         }
       },
       {
-        "sequence": 160,
+        "sequence": 158,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2176,7 +2160,7 @@
         }
       },
       {
-        "sequence": 161,
+        "sequence": 159,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2184,7 +2168,7 @@
         }
       },
       {
-        "sequence": 162,
+        "sequence": 160,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2192,7 +2176,7 @@
         }
       },
       {
-        "sequence": 163,
+        "sequence": 161,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2200,7 +2184,7 @@
         }
       },
       {
-        "sequence": 164,
+        "sequence": 162,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2208,7 +2192,7 @@
         }
       },
       {
-        "sequence": 165,
+        "sequence": 163,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2216,7 +2200,7 @@
         }
       },
       {
-        "sequence": 166,
+        "sequence": 164,
         "turn": 4,
         "type": "damage",
         "data": {
@@ -2231,7 +2215,7 @@
         }
       },
       {
-        "sequence": 167,
+        "sequence": 165,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2239,7 +2223,7 @@
         }
       },
       {
-        "sequence": 168,
+        "sequence": 166,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2247,7 +2231,7 @@
         }
       },
       {
-        "sequence": 169,
+        "sequence": 167,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2260,7 +2244,7 @@
         }
       },
       {
-        "sequence": 170,
+        "sequence": 168,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2268,7 +2252,7 @@
         }
       },
       {
-        "sequence": 171,
+        "sequence": 169,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2276,7 +2260,7 @@
         }
       },
       {
-        "sequence": 172,
+        "sequence": 170,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2284,7 +2268,7 @@
         }
       },
       {
-        "sequence": 173,
+        "sequence": 171,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2297,7 +2281,7 @@
         }
       },
       {
-        "sequence": 174,
+        "sequence": 172,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2305,7 +2289,7 @@
         }
       },
       {
-        "sequence": 175,
+        "sequence": 173,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2313,7 +2297,7 @@
         }
       },
       {
-        "sequence": 176,
+        "sequence": 174,
         "turn": 4,
         "type": "skillUseEnd",
         "data": {
@@ -2321,7 +2305,7 @@
         }
       },
       {
-        "sequence": 177,
+        "sequence": 175,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2329,7 +2313,7 @@
         }
       },
       {
-        "sequence": 178,
+        "sequence": 176,
         "turn": 4,
         "type": "skillUse",
         "data": {
@@ -2342,7 +2326,7 @@
         }
       },
       {
-        "sequence": 179,
+        "sequence": 177,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2350,7 +2334,7 @@
         }
       },
       {
-        "sequence": 180,
+        "sequence": 178,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2363,7 +2347,7 @@
         }
       },
       {
-        "sequence": 181,
+        "sequence": 179,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2371,7 +2355,7 @@
         }
       },
       {
-        "sequence": 182,
+        "sequence": 180,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2379,7 +2363,7 @@
         }
       },
       {
-        "sequence": 183,
+        "sequence": 181,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2387,7 +2371,7 @@
         }
       },
       {
-        "sequence": 184,
+        "sequence": 182,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2395,7 +2379,7 @@
         }
       },
       {
-        "sequence": 185,
+        "sequence": 183,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2403,7 +2387,7 @@
         }
       },
       {
-        "sequence": 186,
+        "sequence": 184,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2411,7 +2395,7 @@
         }
       },
       {
-        "sequence": 187,
+        "sequence": 185,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2419,7 +2403,7 @@
         }
       },
       {
-        "sequence": 188,
+        "sequence": 186,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2427,7 +2411,7 @@
         }
       },
       {
-        "sequence": 189,
+        "sequence": 187,
         "turn": 4,
         "type": "damage",
         "data": {
@@ -2442,7 +2426,7 @@
         }
       },
       {
-        "sequence": 190,
+        "sequence": 188,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2450,7 +2434,7 @@
         }
       },
       {
-        "sequence": 191,
+        "sequence": 189,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2458,7 +2442,7 @@
         }
       },
       {
-        "sequence": 192,
+        "sequence": 190,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2471,7 +2455,7 @@
         }
       },
       {
-        "sequence": 193,
+        "sequence": 191,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2479,7 +2463,7 @@
         }
       },
       {
-        "sequence": 194,
+        "sequence": 192,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2487,7 +2471,7 @@
         }
       },
       {
-        "sequence": 195,
+        "sequence": 193,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2495,7 +2479,7 @@
         }
       },
       {
-        "sequence": 196,
+        "sequence": 194,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2508,7 +2492,7 @@
         }
       },
       {
-        "sequence": 197,
+        "sequence": 195,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2516,7 +2500,7 @@
         }
       },
       {
-        "sequence": 198,
+        "sequence": 196,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2524,7 +2508,7 @@
         }
       },
       {
-        "sequence": 199,
+        "sequence": 197,
         "turn": 4,
         "type": "skillUseEnd",
         "data": {
@@ -2532,7 +2516,7 @@
         }
       },
       {
-        "sequence": 200,
+        "sequence": 198,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2540,7 +2524,7 @@
         }
       },
       {
-        "sequence": 201,
+        "sequence": 199,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2548,7 +2532,7 @@
         }
       },
       {
-        "sequence": 202,
+        "sequence": 200,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2561,7 +2545,7 @@
         }
       },
       {
-        "sequence": 203,
+        "sequence": 201,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2569,7 +2553,7 @@
         }
       },
       {
-        "sequence": 204,
+        "sequence": 202,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2577,7 +2561,7 @@
         }
       },
       {
-        "sequence": 205,
+        "sequence": 203,
         "turn": 4,
         "type": "rageChange",
         "data": {
@@ -2590,7 +2574,7 @@
         }
       },
       {
-        "sequence": 206,
+        "sequence": 204,
         "turn": 4,
         "type": "trigger",
         "data": {
@@ -2598,7 +2582,7 @@
         }
       },
       {
-        "sequence": 207,
+        "sequence": 205,
         "turn": 4,
         "type": "turnEnd",
         "data": {
@@ -2606,7 +2590,7 @@
         }
       },
       {
-        "sequence": 208,
+        "sequence": 206,
         "turn": 4,
         "type": "turnAction",
         "data": {
@@ -2617,7 +2601,7 @@
         }
       },
       {
-        "sequence": 209,
+        "sequence": 207,
         "turn": 5,
         "type": "turnStart",
         "data": {
@@ -2625,23 +2609,23 @@
         }
       },
       {
+        "sequence": 208,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 209,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
         "sequence": 210,
-        "turn": 5,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 211,
-        "turn": 5,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 212,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2649,7 +2633,7 @@
         }
       },
       {
-        "sequence": 213,
+        "sequence": 211,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2657,7 +2641,7 @@
         }
       },
       {
-        "sequence": 214,
+        "sequence": 212,
         "turn": 5,
         "type": "skillUse",
         "data": {
@@ -2670,7 +2654,7 @@
         }
       },
       {
-        "sequence": 215,
+        "sequence": 213,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2678,7 +2662,7 @@
         }
       },
       {
-        "sequence": 216,
+        "sequence": 214,
         "turn": 5,
         "type": "rageChange",
         "data": {
@@ -2691,7 +2675,7 @@
         }
       },
       {
-        "sequence": 217,
+        "sequence": 215,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2699,7 +2683,7 @@
         }
       },
       {
-        "sequence": 218,
+        "sequence": 216,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2707,7 +2691,7 @@
         }
       },
       {
-        "sequence": 219,
+        "sequence": 217,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2715,7 +2699,7 @@
         }
       },
       {
-        "sequence": 220,
+        "sequence": 218,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2723,7 +2707,7 @@
         }
       },
       {
-        "sequence": 221,
+        "sequence": 219,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2731,7 +2715,7 @@
         }
       },
       {
-        "sequence": 222,
+        "sequence": 220,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2739,7 +2723,7 @@
         }
       },
       {
-        "sequence": 223,
+        "sequence": 221,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2747,7 +2731,7 @@
         }
       },
       {
-        "sequence": 224,
+        "sequence": 222,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2755,7 +2739,7 @@
         }
       },
       {
-        "sequence": 225,
+        "sequence": 223,
         "turn": 5,
         "type": "damage",
         "data": {
@@ -2770,7 +2754,7 @@
         }
       },
       {
-        "sequence": 226,
+        "sequence": 224,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2778,7 +2762,7 @@
         }
       },
       {
-        "sequence": 227,
+        "sequence": 225,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2786,7 +2770,7 @@
         }
       },
       {
-        "sequence": 228,
+        "sequence": 226,
         "turn": 5,
         "type": "rageChange",
         "data": {
@@ -2799,7 +2783,7 @@
         }
       },
       {
-        "sequence": 229,
+        "sequence": 227,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2807,7 +2791,7 @@
         }
       },
       {
-        "sequence": 230,
+        "sequence": 228,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2815,7 +2799,7 @@
         }
       },
       {
-        "sequence": 231,
+        "sequence": 229,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2823,7 +2807,7 @@
         }
       },
       {
-        "sequence": 232,
+        "sequence": 230,
         "turn": 5,
         "type": "rageChange",
         "data": {
@@ -2836,7 +2820,7 @@
         }
       },
       {
-        "sequence": 233,
+        "sequence": 231,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2844,7 +2828,7 @@
         }
       },
       {
-        "sequence": 234,
+        "sequence": 232,
         "turn": 5,
         "type": "petDefeated",
         "data": {
@@ -2853,7 +2837,7 @@
         }
       },
       {
-        "sequence": 235,
+        "sequence": 233,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2861,7 +2845,7 @@
         }
       },
       {
-        "sequence": 236,
+        "sequence": 234,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2869,7 +2853,7 @@
         }
       },
       {
-        "sequence": 237,
+        "sequence": 235,
         "turn": 5,
         "type": "skillUseEnd",
         "data": {
@@ -2877,7 +2861,7 @@
         }
       },
       {
-        "sequence": 238,
+        "sequence": 236,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2885,7 +2869,7 @@
         }
       },
       {
-        "sequence": 239,
+        "sequence": 237,
         "turn": 5,
         "type": "skillFail",
         "data": {
@@ -2895,7 +2879,7 @@
         }
       },
       {
-        "sequence": 240,
+        "sequence": 238,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2903,7 +2887,7 @@
         }
       },
       {
-        "sequence": 241,
+        "sequence": 239,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2911,7 +2895,7 @@
         }
       },
       {
-        "sequence": 242,
+        "sequence": 240,
         "turn": 5,
         "type": "rageChange",
         "data": {
@@ -2924,7 +2908,7 @@
         }
       },
       {
-        "sequence": 243,
+        "sequence": 241,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2932,7 +2916,7 @@
         }
       },
       {
-        "sequence": 244,
+        "sequence": 242,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2940,7 +2924,7 @@
         }
       },
       {
-        "sequence": 245,
+        "sequence": 243,
         "turn": 5,
         "type": "rageChange",
         "data": {
@@ -2953,7 +2937,7 @@
         }
       },
       {
-        "sequence": 246,
+        "sequence": 244,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2961,7 +2945,7 @@
         }
       },
       {
-        "sequence": 247,
+        "sequence": 245,
         "turn": 5,
         "type": "turnEnd",
         "data": {
@@ -2969,7 +2953,7 @@
         }
       },
       {
-        "sequence": 248,
+        "sequence": 246,
         "turn": 5,
         "type": "switchPrompt",
         "data": {
@@ -2980,7 +2964,7 @@
         }
       },
       {
-        "sequence": 249,
+        "sequence": 247,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2988,7 +2972,7 @@
         }
       },
       {
-        "sequence": 250,
+        "sequence": 248,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -2996,7 +2980,7 @@
         }
       },
       {
-        "sequence": 251,
+        "sequence": 249,
         "turn": 5,
         "type": "switchOut",
         "data": {
@@ -3005,7 +2989,7 @@
         }
       },
       {
-        "sequence": 252,
+        "sequence": 250,
         "turn": 5,
         "type": "switchIn",
         "data": {
@@ -3014,7 +2998,7 @@
         }
       },
       {
-        "sequence": 253,
+        "sequence": 251,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -3022,7 +3006,7 @@
         }
       },
       {
-        "sequence": 254,
+        "sequence": 252,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -3030,7 +3014,7 @@
         }
       },
       {
-        "sequence": 255,
+        "sequence": 253,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -3038,7 +3022,7 @@
         }
       },
       {
-        "sequence": 256,
+        "sequence": 254,
         "turn": 5,
         "type": "rageChange",
         "data": {
@@ -3051,7 +3035,7 @@
         }
       },
       {
-        "sequence": 257,
+        "sequence": 255,
         "turn": 5,
         "type": "trigger",
         "data": {
@@ -3059,7 +3043,7 @@
         }
       },
       {
-        "sequence": 258,
+        "sequence": 256,
         "turn": 5,
         "type": "turnAction",
         "data": {
@@ -3070,7 +3054,7 @@
         }
       },
       {
-        "sequence": 259,
+        "sequence": 257,
         "turn": 6,
         "type": "turnStart",
         "data": {
@@ -3078,23 +3062,23 @@
         }
       },
       {
+        "sequence": 258,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 259,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
         "sequence": 260,
-        "turn": 6,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 261,
-        "turn": 6,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 262,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3102,7 +3086,7 @@
         }
       },
       {
-        "sequence": 263,
+        "sequence": 261,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3110,7 +3094,7 @@
         }
       },
       {
-        "sequence": 264,
+        "sequence": 262,
         "turn": 6,
         "type": "skillUse",
         "data": {
@@ -3123,7 +3107,7 @@
         }
       },
       {
-        "sequence": 265,
+        "sequence": 263,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3131,7 +3115,7 @@
         }
       },
       {
-        "sequence": 266,
+        "sequence": 264,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3144,7 +3128,7 @@
         }
       },
       {
-        "sequence": 267,
+        "sequence": 265,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3152,7 +3136,7 @@
         }
       },
       {
-        "sequence": 268,
+        "sequence": 266,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3160,7 +3144,7 @@
         }
       },
       {
-        "sequence": 269,
+        "sequence": 267,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3168,7 +3152,7 @@
         }
       },
       {
-        "sequence": 270,
+        "sequence": 268,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3176,7 +3160,7 @@
         }
       },
       {
-        "sequence": 271,
+        "sequence": 269,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3184,7 +3168,7 @@
         }
       },
       {
-        "sequence": 272,
+        "sequence": 270,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3192,7 +3176,7 @@
         }
       },
       {
-        "sequence": 273,
+        "sequence": 271,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3200,7 +3184,7 @@
         }
       },
       {
-        "sequence": 274,
+        "sequence": 272,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3208,7 +3192,7 @@
         }
       },
       {
-        "sequence": 275,
+        "sequence": 273,
         "turn": 6,
         "type": "damage",
         "data": {
@@ -3223,7 +3207,7 @@
         }
       },
       {
-        "sequence": 276,
+        "sequence": 274,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3231,7 +3215,7 @@
         }
       },
       {
-        "sequence": 277,
+        "sequence": 275,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3239,7 +3223,7 @@
         }
       },
       {
-        "sequence": 278,
+        "sequence": 276,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3252,7 +3236,7 @@
         }
       },
       {
-        "sequence": 279,
+        "sequence": 277,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3260,7 +3244,7 @@
         }
       },
       {
-        "sequence": 280,
+        "sequence": 278,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3268,7 +3252,7 @@
         }
       },
       {
-        "sequence": 281,
+        "sequence": 279,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3276,7 +3260,7 @@
         }
       },
       {
-        "sequence": 282,
+        "sequence": 280,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3289,7 +3273,7 @@
         }
       },
       {
-        "sequence": 283,
+        "sequence": 281,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3297,7 +3281,7 @@
         }
       },
       {
-        "sequence": 284,
+        "sequence": 282,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3305,7 +3289,7 @@
         }
       },
       {
-        "sequence": 285,
+        "sequence": 283,
         "turn": 6,
         "type": "skillUseEnd",
         "data": {
@@ -3313,7 +3297,7 @@
         }
       },
       {
-        "sequence": 286,
+        "sequence": 284,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3321,7 +3305,7 @@
         }
       },
       {
-        "sequence": 287,
+        "sequence": 285,
         "turn": 6,
         "type": "skillUse",
         "data": {
@@ -3334,7 +3318,7 @@
         }
       },
       {
-        "sequence": 288,
+        "sequence": 286,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3342,7 +3326,7 @@
         }
       },
       {
-        "sequence": 289,
+        "sequence": 287,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3355,7 +3339,7 @@
         }
       },
       {
-        "sequence": 290,
+        "sequence": 288,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3363,7 +3347,7 @@
         }
       },
       {
-        "sequence": 291,
+        "sequence": 289,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3371,7 +3355,7 @@
         }
       },
       {
-        "sequence": 292,
+        "sequence": 290,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3379,7 +3363,7 @@
         }
       },
       {
-        "sequence": 293,
+        "sequence": 291,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3387,7 +3371,7 @@
         }
       },
       {
-        "sequence": 294,
+        "sequence": 292,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3395,7 +3379,7 @@
         }
       },
       {
-        "sequence": 295,
+        "sequence": 293,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3403,7 +3387,7 @@
         }
       },
       {
-        "sequence": 296,
+        "sequence": 294,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3411,7 +3395,7 @@
         }
       },
       {
-        "sequence": 297,
+        "sequence": 295,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3419,7 +3403,7 @@
         }
       },
       {
-        "sequence": 298,
+        "sequence": 296,
         "turn": 6,
         "type": "damage",
         "data": {
@@ -3434,7 +3418,7 @@
         }
       },
       {
-        "sequence": 299,
+        "sequence": 297,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3442,7 +3426,7 @@
         }
       },
       {
-        "sequence": 300,
+        "sequence": 298,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3450,7 +3434,7 @@
         }
       },
       {
-        "sequence": 301,
+        "sequence": 299,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3463,7 +3447,7 @@
         }
       },
       {
-        "sequence": 302,
+        "sequence": 300,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3471,7 +3455,7 @@
         }
       },
       {
-        "sequence": 303,
+        "sequence": 301,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3479,7 +3463,7 @@
         }
       },
       {
-        "sequence": 304,
+        "sequence": 302,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3487,7 +3471,7 @@
         }
       },
       {
-        "sequence": 305,
+        "sequence": 303,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3500,7 +3484,7 @@
         }
       },
       {
-        "sequence": 306,
+        "sequence": 304,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3508,7 +3492,7 @@
         }
       },
       {
-        "sequence": 307,
+        "sequence": 305,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3516,7 +3500,7 @@
         }
       },
       {
-        "sequence": 308,
+        "sequence": 306,
         "turn": 6,
         "type": "skillUseEnd",
         "data": {
@@ -3524,7 +3508,7 @@
         }
       },
       {
-        "sequence": 309,
+        "sequence": 307,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3532,7 +3516,7 @@
         }
       },
       {
-        "sequence": 310,
+        "sequence": 308,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3540,7 +3524,7 @@
         }
       },
       {
-        "sequence": 311,
+        "sequence": 309,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3553,7 +3537,7 @@
         }
       },
       {
-        "sequence": 312,
+        "sequence": 310,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3561,7 +3545,7 @@
         }
       },
       {
-        "sequence": 313,
+        "sequence": 311,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3569,7 +3553,7 @@
         }
       },
       {
-        "sequence": 314,
+        "sequence": 312,
         "turn": 6,
         "type": "rageChange",
         "data": {
@@ -3582,7 +3566,7 @@
         }
       },
       {
-        "sequence": 315,
+        "sequence": 313,
         "turn": 6,
         "type": "trigger",
         "data": {
@@ -3590,7 +3574,7 @@
         }
       },
       {
-        "sequence": 316,
+        "sequence": 314,
         "turn": 6,
         "type": "turnEnd",
         "data": {
@@ -3598,7 +3582,7 @@
         }
       },
       {
-        "sequence": 317,
+        "sequence": 315,
         "turn": 6,
         "type": "turnAction",
         "data": {
@@ -3609,7 +3593,7 @@
         }
       },
       {
-        "sequence": 318,
+        "sequence": 316,
         "turn": 7,
         "type": "turnStart",
         "data": {
@@ -3617,23 +3601,23 @@
         }
       },
       {
+        "sequence": 317,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 318,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
         "sequence": 319,
-        "turn": 7,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 320,
-        "turn": 7,
-        "type": "trigger",
-        "data": {
-          "trigger": "BeforeSort"
-        }
-      },
-      {
-        "sequence": 321,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3641,7 +3625,7 @@
         }
       },
       {
-        "sequence": 322,
+        "sequence": 320,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3649,7 +3633,7 @@
         }
       },
       {
-        "sequence": 323,
+        "sequence": 321,
         "turn": 7,
         "type": "skillUse",
         "data": {
@@ -3662,7 +3646,7 @@
         }
       },
       {
-        "sequence": 324,
+        "sequence": 322,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3670,7 +3654,7 @@
         }
       },
       {
-        "sequence": 325,
+        "sequence": 323,
         "turn": 7,
         "type": "rageChange",
         "data": {
@@ -3683,7 +3667,7 @@
         }
       },
       {
-        "sequence": 326,
+        "sequence": 324,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3691,7 +3675,7 @@
         }
       },
       {
-        "sequence": 327,
+        "sequence": 325,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3699,7 +3683,7 @@
         }
       },
       {
-        "sequence": 328,
+        "sequence": 326,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3707,7 +3691,7 @@
         }
       },
       {
-        "sequence": 329,
+        "sequence": 327,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3715,7 +3699,7 @@
         }
       },
       {
-        "sequence": 330,
+        "sequence": 328,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3723,7 +3707,7 @@
         }
       },
       {
-        "sequence": 331,
+        "sequence": 329,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3731,7 +3715,7 @@
         }
       },
       {
-        "sequence": 332,
+        "sequence": 330,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3739,7 +3723,7 @@
         }
       },
       {
-        "sequence": 333,
+        "sequence": 331,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3747,7 +3731,7 @@
         }
       },
       {
-        "sequence": 334,
+        "sequence": 332,
         "turn": 7,
         "type": "damage",
         "data": {
@@ -3762,7 +3746,7 @@
         }
       },
       {
-        "sequence": 335,
+        "sequence": 333,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3770,7 +3754,7 @@
         }
       },
       {
-        "sequence": 336,
+        "sequence": 334,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3778,7 +3762,7 @@
         }
       },
       {
-        "sequence": 337,
+        "sequence": 335,
         "turn": 7,
         "type": "rageChange",
         "data": {
@@ -3791,7 +3775,7 @@
         }
       },
       {
-        "sequence": 338,
+        "sequence": 336,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3799,7 +3783,7 @@
         }
       },
       {
-        "sequence": 339,
+        "sequence": 337,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3807,7 +3791,7 @@
         }
       },
       {
-        "sequence": 340,
+        "sequence": 338,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3815,7 +3799,7 @@
         }
       },
       {
-        "sequence": 341,
+        "sequence": 339,
         "turn": 7,
         "type": "rageChange",
         "data": {
@@ -3828,7 +3812,7 @@
         }
       },
       {
-        "sequence": 342,
+        "sequence": 340,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3836,7 +3820,7 @@
         }
       },
       {
-        "sequence": 343,
+        "sequence": 341,
         "turn": 7,
         "type": "petDefeated",
         "data": {
@@ -3845,7 +3829,7 @@
         }
       },
       {
-        "sequence": 344,
+        "sequence": 342,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3853,7 +3837,7 @@
         }
       },
       {
-        "sequence": 345,
+        "sequence": 343,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3861,7 +3845,7 @@
         }
       },
       {
-        "sequence": 346,
+        "sequence": 344,
         "turn": 7,
         "type": "skillUseEnd",
         "data": {
@@ -3869,7 +3853,7 @@
         }
       },
       {
-        "sequence": 347,
+        "sequence": 345,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3877,7 +3861,7 @@
         }
       },
       {
-        "sequence": 348,
+        "sequence": 346,
         "turn": 7,
         "type": "skillFail",
         "data": {
@@ -3887,7 +3871,7 @@
         }
       },
       {
-        "sequence": 349,
+        "sequence": 347,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3895,7 +3879,7 @@
         }
       },
       {
-        "sequence": 350,
+        "sequence": 348,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3903,7 +3887,7 @@
         }
       },
       {
-        "sequence": 351,
+        "sequence": 349,
         "turn": 7,
         "type": "rageChange",
         "data": {
@@ -3916,7 +3900,7 @@
         }
       },
       {
-        "sequence": 352,
+        "sequence": 350,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3924,7 +3908,7 @@
         }
       },
       {
-        "sequence": 353,
+        "sequence": 351,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3932,7 +3916,7 @@
         }
       },
       {
-        "sequence": 354,
+        "sequence": 352,
         "turn": 7,
         "type": "rageChange",
         "data": {
@@ -3945,7 +3929,7 @@
         }
       },
       {
-        "sequence": 355,
+        "sequence": 353,
         "turn": 7,
         "type": "trigger",
         "data": {
@@ -3953,7 +3937,7 @@
         }
       },
       {
-        "sequence": 356,
+        "sequence": 354,
         "turn": 7,
         "type": "turnEnd",
         "data": {
@@ -3961,7 +3945,7 @@
         }
       },
       {
-        "sequence": 357,
+        "sequence": 355,
         "turn": 7,
         "type": "battleEnd",
         "data": {
@@ -4338,7 +4322,8 @@
         "pending": [],
         "forced": [],
         "reward": null
-      }
+      },
+      "turnContext": null
     }
   }
 }

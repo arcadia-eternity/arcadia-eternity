@@ -27,7 +27,7 @@ describe('V1 domain core / #201 official roster', () => {
     ).toEqual([27, 14, 20, 23, 20, 20, 18, 20])
     expect(runOfficial(content).snapshot()).toEqual(battle.snapshot())
     // Compare unchanged action/switch/defeat order to the original V2 golden; full native payloads are checked above.
-    const aliases = new Map(
+    const aliases = new Map<string, string>(
       battle.players.flatMap(p =>
         p.team.flatMap(pet => pet.skills.map(s => [s.id, `${pet.id}/${s.base.id}`] as const)),
       ),
