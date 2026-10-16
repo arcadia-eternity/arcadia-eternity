@@ -21,6 +21,7 @@
     "test:run": "vitest run"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "vitest": "catalog:"
   }
 }

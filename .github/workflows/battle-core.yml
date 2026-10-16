@@ -41,4 +41,5 @@ jobs:
         working-directory: packages/battle-core
         run: node --input-type=module -e "import('@arcadia-eternity/battle-core').then(({createBattle}) => { if (typeof createBattle !== 'function') process.exit(1) })"
       - name: Bundle for browsers
-        run: pnpm exec esbuild packages/battle-core/dist/index.js --bundle --platform=browser --format=esm --outfile=/tmp/battle-core.browser.js
+        working-directory: packages/battle-core
+        run: pnpm exec esbuild dist/index.js --bundle --platform=browser --format=esm --outfile=/tmp/battle-core.browser.js
