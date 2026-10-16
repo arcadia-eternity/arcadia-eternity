@@ -16,6 +16,7 @@ export default tseslint.config(
       'tsconfig.json',
       '**/rolldown.config.*',
       '**/vitest.config.*',
+      '**/vitest.core.config.*',
       '**/*.d.ts',
       'scripts/**',
       'tools/**',

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.core.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "paths": {
+      "@arcadia-eternity/battle/core": ["./core.ts"]
+    }
+  },
+  "include": ["core.ts", "src/core/**/*.ts", "test/core/**/*.ts"]
+}

@@ -32,7 +32,11 @@
     "test:watch": "pnpm --filter \"./packages/**\" --if-present run test",
     "test:battle-baseline": "pnpm --filter @arcadia-eternity/battle run test:run --maxWorkers=2",
     "typecheck:battle-baseline": "pnpm exec tsgo -p packages/battle/tsconfig.baseline.json",
-    "lint:battle-baseline": "pnpm exec eslint --config eslint.config.baseline.js packages/battle/src/v2/__tests__/helpers/golden-battle.ts packages/battle/src/v2/__tests__/v2-golden-battle.test.ts packages/battle/src/v2/__tests__/v2-baseline-known-defects.test.ts"
+    "lint:battle-baseline": "pnpm exec eslint --config eslint.config.baseline.js packages/battle/src/v2/__tests__/helpers/golden-battle.ts packages/battle/src/v2/__tests__/v2-golden-battle.test.ts packages/battle/src/v2/__tests__/v2-baseline-known-defects.test.ts",
+    "test:battle-core": "pnpm --filter @arcadia-eternity/battle exec vitest run -c vitest.core.config.mjs --maxWorkers=2",
+    "typecheck:battle-core": "pnpm exec tsgo -p packages/battle/tsconfig.core.json && pnpm exec tsgo -p packages/battle/tsconfig.core-test.json",
+    "verify:battle-core-hosts": "node scripts/verify-battle-core.mjs",
+    "lint:battle-core": "pnpm exec eslint -c eslint.config.core.js packages/battle/src/core packages/battle/core.ts packages/battle/test/core"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

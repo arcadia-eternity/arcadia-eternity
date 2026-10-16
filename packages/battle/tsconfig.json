@@ -13,6 +13,14 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./index.ts", "./node.ts", "./src/index.ts", "./src/logger.ts", "./src/v2/**/*"],
+  "include": [
+    "./index.ts",
+    "./node.ts",
+    "./src/index.ts",
+    "./src/logger.ts",
+    "./src/v2/**/*",
+    "./core.ts",
+    "./src/core/**/*"
+  ],
   "exclude": ["./node_modules", "./dist", "./src/**/__tests__"]
 }

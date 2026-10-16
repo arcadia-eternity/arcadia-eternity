@@ -3,6 +3,7 @@ export default defineConfig({
   input: {
     index: 'index.ts',
     node: 'node.ts',
+    core: 'core.ts',
   },
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,

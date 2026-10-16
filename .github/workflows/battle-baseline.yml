@@ -38,3 +38,11 @@ jobs:
         run: pnpm typecheck:battle-baseline
       - name: Run all V2 battle regressions (no services)
         run: pnpm test:battle-baseline
+      - name: Typecheck portable core without Node or DOM globals, and core tests
+        run: pnpm typecheck:battle-core
+      - name: Lint core and tests
+        run: pnpm lint:battle-core
+      - name: Run V1 domain, snapshot and replay regressions
+        run: pnpm test:battle-core
+      - name: Bundle public core for Node and Browser and execute both
+        run: pnpm verify:battle-core-hosts --browser

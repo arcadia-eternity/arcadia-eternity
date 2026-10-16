@@ -1,0 +1,4344 @@
+{
+  "content": {
+    "species": [
+      {
+        "id": "pet_dilan",
+        "num": 1,
+        "element": "Water",
+        "baseStats": {
+          "hp": 85,
+          "atk": 116,
+          "spa": 125,
+          "def": 114,
+          "spd": 121,
+          "spe": 115
+        },
+        "genderRatio": [
+          0,
+          1
+        ],
+        "heightRange": [
+          39,
+          44
+        ],
+        "weightRange": [
+          7,
+          12
+        ],
+        "learnable_skills": [
+          {
+            "skill_id": "skill_paida",
+            "level": 1,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_shuipao",
+            "level": 5,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_tuoli",
+            "level": 10,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_ruodiangongji",
+            "level": 15,
+            "hidden": false
+          }
+        ],
+        "ability": [
+          "mark_ability_zhongjie"
+        ],
+        "emblem": [
+          "mark_emblem_zhuiji"
+        ],
+        "abilityIds": [
+          "mark_ability_zhongjie"
+        ],
+        "emblemIds": [
+          "mark_emblem_zhuiji"
+        ],
+        "learnableSkills": [
+          {
+            "skill_id": "skill_paida",
+            "level": 1,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_shuipao",
+            "level": 5,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_tuoli",
+            "level": 10,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_ruodiangongji",
+            "level": 15,
+            "hidden": false
+          }
+        ]
+      },
+      {
+        "id": "pet_huanli",
+        "num": 66,
+        "element": "Normal",
+        "baseStats": {
+          "hp": 176,
+          "atk": 176,
+          "spa": 176,
+          "def": 161,
+          "spd": 161,
+          "spe": 145
+        },
+        "genderRatio": [
+          5,
+          5
+        ],
+        "heightRange": [
+          85,
+          90
+        ],
+        "weightRange": [
+          40,
+          45
+        ],
+        "learnable_skills": [
+          {
+            "skill_id": "skill_zhuangji",
+            "level": 1,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_zhongji",
+            "level": 5,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_ruili",
+            "level": 9,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qinangdan",
+            "level": 13,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qigaichongfeng",
+            "level": 18,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_guancha",
+            "level": 23,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_xuexi",
+            "level": 28,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qinangbaodan",
+            "level": 33,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qipochongfeng",
+            "level": 38,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_sikao",
+            "level": 43,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_yunyong",
+            "level": 48,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_woyaorenzhenle",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_qinangjudan",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_polichongfeng",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_nuli",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_jinqu",
+            "level": 60,
+            "hidden": true
+          }
+        ],
+        "ability": [
+          "mark_ability_renzhen"
+        ],
+        "emblem": [
+          "mark_emblem_wuxing"
+        ],
+        "abilityIds": [
+          "mark_ability_renzhen"
+        ],
+        "emblemIds": [
+          "mark_emblem_wuxing"
+        ],
+        "learnableSkills": [
+          {
+            "skill_id": "skill_zhuangji",
+            "level": 1,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_zhongji",
+            "level": 5,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_ruili",
+            "level": 9,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qinangdan",
+            "level": 13,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qigaichongfeng",
+            "level": 18,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_guancha",
+            "level": 23,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_xuexi",
+            "level": 28,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qinangbaodan",
+            "level": 33,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_qipochongfeng",
+            "level": 38,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_sikao",
+            "level": 43,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_yunyong",
+            "level": 48,
+            "hidden": false
+          },
+          {
+            "skill_id": "skill_woyaorenzhenle",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_qinangjudan",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_polichongfeng",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_nuli",
+            "level": 60,
+            "hidden": true
+          },
+          {
+            "skill_id": "skill_jinqu",
+            "level": 60,
+            "hidden": true
+          }
+        ]
+      }
+    ],
+    "skills": [
+      {
+        "id": "skill_paida",
+        "element": "Normal",
+        "category": "Physical",
+        "target": "opponent",
+        "power": 40,
+        "rage": 0,
+        "accuracy": 95,
+        "sureHit": false,
+        "ignoreShield": false,
+        "tags": [],
+        "effect": [
+          "effect_skill_reduce_opponent_def_1_stage_5_percent"
+        ],
+        "priority": 0,
+        "multihit": 1,
+        "sureCrit": false,
+        "ignoreOpponentStageStrategy": "none",
+        "effects": [
+          {
+            "id": "effect_skill_reduce_opponent_def_1_stage_5_percent",
+            "version": "test-201-v1",
+            "params": {}
+          }
+        ]
+      },
+      {
+        "id": "skill_shuipao",
+        "element": "Water",
+        "category": "Special",
+        "target": "opponent",
+        "power": 60,
+        "rage": 5,
+        "accuracy": 95,
+        "sureHit": false,
+        "ignoreShield": false,
+        "tags": [],
+        "effect": [
+          "effect_skill_reduce_opponent_spd_1_stage_5_percent"
+        ],
+        "priority": 0,
+        "multihit": 1,
+        "sureCrit": false,
+        "ignoreOpponentStageStrategy": "none",
+        "effects": [
+          {
+            "id": "effect_skill_reduce_opponent_spd_1_stage_5_percent",
+            "version": "test-201-v1",
+            "params": {}
+          }
+        ]
+      },
+      {
+        "id": "skill_qili",
+        "element": "Normal",
+        "category": "Status",
+        "target": "self",
+        "power": 0,
+        "rage": 10,
+        "accuracy": 100,
+        "sureHit": false,
+        "ignoreShield": false,
+        "tags": [],
+        "effect": [
+          "effect_skill_raise_atk_1_stage"
+        ],
+        "priority": 0,
+        "multihit": 1,
+        "sureCrit": false,
+        "ignoreOpponentStageStrategy": "none",
+        "effects": [
+          {
+            "id": "effect_skill_raise_atk_1_stage",
+            "version": "test-201-v1",
+            "params": {}
+          }
+        ]
+      },
+      {
+        "id": "skill_hunzhuoshuiyu",
+        "element": "Water",
+        "category": "Status",
+        "target": "self",
+        "power": 0,
+        "rage": 20,
+        "accuracy": 100,
+        "sureHit": false,
+        "ignoreShield": false,
+        "tags": [],
+        "effect": [
+          "effect_skill_add_mark_hunzhuoshuiyu"
+        ],
+        "priority": 0,
+        "multihit": 1,
+        "sureCrit": false,
+        "ignoreOpponentStageStrategy": "none",
+        "effects": [
+          {
+            "id": "effect_skill_add_mark_hunzhuoshuiyu",
+            "version": "test-201-v1",
+            "params": {}
+          }
+        ]
+      }
+    ],
+    "marks": [
+      {
+        "id": "mark_hunzhuoshuiyu",
+        "config": {
+          "duration": 5,
+          "persistent": false,
+          "maxStacks": 1,
+          "stackable": true,
+          "stackStrategy": "refresh",
+          "destroyable": true,
+          "isShield": false,
+          "keepOnSwitchOut": true,
+          "transferOnSwitch": false,
+          "inheritOnFaint": false
+        },
+        "effect": [
+          "effect_mark_double_stage_debuff"
+        ],
+        "tags": [],
+        "effects": [
+          {
+            "id": "effect_mark_double_stage_debuff",
+            "version": "test-201-v1",
+            "params": {}
+          }
+        ]
+      }
+    ]
+  },
+  "replay": {
+    "version": 1,
+    "initial": {
+      "id": "baseline-201",
+      "seed": "ae4-official-switch-201",
+      "allowFaintSwitch": true,
+      "players": [
+        {
+          "id": "A",
+          "name": "A",
+          "team": [
+            {
+              "name": "lead",
+              "species": "pet_huanli",
+              "skills": [
+                "skill_hunzhuoshuiyu",
+                "skill_qili"
+              ],
+              "level": 50,
+              "evs": {
+                "hp": 0,
+                "atk": 0,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "ivs": {
+                "hp": 31,
+                "atk": 31,
+                "def": 31,
+                "spa": 31,
+                "spd": 31,
+                "spe": 31
+              },
+              "nature": "Hardy",
+              "gender": "Male",
+              "maxHp": 310,
+              "id": "A/lead"
+            },
+            {
+              "name": "reserve",
+              "species": "pet_dilan",
+              "skills": [
+                "skill_shuipao"
+              ],
+              "level": 50,
+              "evs": {
+                "hp": 0,
+                "atk": 0,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "ivs": {
+                "hp": 31,
+                "atk": 31,
+                "def": 31,
+                "spa": 31,
+                "spd": 31,
+                "spe": 31
+              },
+              "nature": "Hardy",
+              "gender": "Male",
+              "maxHp": 300,
+              "id": "A/reserve"
+            }
+          ]
+        },
+        {
+          "id": "B",
+          "name": "B",
+          "team": [
+            {
+              "name": "lead",
+              "species": "pet_dilan",
+              "skills": [
+                "skill_paida",
+                "skill_qili"
+              ],
+              "level": 50,
+              "evs": {
+                "hp": 0,
+                "atk": 0,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "ivs": {
+                "hp": 31,
+                "atk": 31,
+                "def": 31,
+                "spa": 31,
+                "spd": 31,
+                "spe": 31
+              },
+              "nature": "Hardy",
+              "gender": "Male",
+              "maxHp": 30,
+              "id": "B/lead"
+            },
+            {
+              "name": "reserve",
+              "species": "pet_dilan",
+              "skills": [
+                "skill_paida",
+                "skill_qili"
+              ],
+              "level": 50,
+              "evs": {
+                "hp": 0,
+                "atk": 0,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "ivs": {
+                "hp": 31,
+                "atk": 31,
+                "def": 31,
+                "spa": 31,
+                "spd": 31,
+                "spe": 31
+              },
+              "nature": "Hardy",
+              "gender": "Male",
+              "maxHp": 30,
+              "id": "B/reserve"
+            }
+          ]
+        }
+      ]
+    },
+    "contentIdentity": "{\"marks\":[{\"config\":{\"destroyable\":true,\"duration\":5,\"inheritOnFaint\":false,\"isShield\":false,\"keepOnSwitchOut\":true,\"maxStacks\":1,\"persistent\":false,\"stackStrategy\":\"refresh\",\"stackable\":true,\"transferOnSwitch\":false},\"effect\":[\"effect_mark_double_stage_debuff\"],\"effects\":[{\"id\":\"effect_mark_double_stage_debuff\",\"params\":{},\"version\":\"test-201-v1\"}],\"id\":\"mark_hunzhuoshuiyu\",\"tags\":[]}],\"skills\":[{\"accuracy\":95,\"category\":\"Physical\",\"effect\":[\"effect_skill_reduce_opponent_def_1_stage_5_percent\"],\"effects\":[{\"id\":\"effect_skill_reduce_opponent_def_1_stage_5_percent\",\"params\":{},\"version\":\"test-201-v1\"}],\"element\":\"Normal\",\"id\":\"skill_paida\",\"ignoreOpponentStageStrategy\":\"none\",\"ignoreShield\":false,\"multihit\":1,\"power\":40,\"priority\":0,\"rage\":0,\"sureCrit\":false,\"sureHit\":false,\"tags\":[],\"target\":\"opponent\"},{\"accuracy\":95,\"category\":\"Special\",\"effect\":[\"effect_skill_reduce_opponent_spd_1_stage_5_percent\"],\"effects\":[{\"id\":\"effect_skill_reduce_opponent_spd_1_stage_5_percent\",\"params\":{},\"version\":\"test-201-v1\"}],\"element\":\"Water\",\"id\":\"skill_shuipao\",\"ignoreOpponentStageStrategy\":\"none\",\"ignoreShield\":false,\"multihit\":1,\"power\":60,\"priority\":0,\"rage\":5,\"sureCrit\":false,\"sureHit\":false,\"tags\":[],\"target\":\"opponent\"},{\"accuracy\":100,\"category\":\"Status\",\"effect\":[\"effect_skill_raise_atk_1_stage\"],\"effects\":[{\"id\":\"effect_skill_raise_atk_1_stage\",\"params\":{},\"version\":\"test-201-v1\"}],\"element\":\"Normal\",\"id\":\"skill_qili\",\"ignoreOpponentStageStrategy\":\"none\",\"ignoreShield\":false,\"multihit\":1,\"power\":0,\"priority\":0,\"rage\":10,\"sureCrit\":false,\"sureHit\":false,\"tags\":[],\"target\":\"self\"},{\"accuracy\":100,\"category\":\"Status\",\"effect\":[\"effect_skill_add_mark_hunzhuoshuiyu\"],\"effects\":[{\"id\":\"effect_skill_add_mark_hunzhuoshuiyu\",\"params\":{},\"version\":\"test-201-v1\"}],\"element\":\"Water\",\"id\":\"skill_hunzhuoshuiyu\",\"ignoreOpponentStageStrategy\":\"none\",\"ignoreShield\":false,\"multihit\":1,\"power\":0,\"priority\":0,\"rage\":20,\"sureCrit\":false,\"sureHit\":false,\"tags\":[],\"target\":\"self\"}],\"species\":[{\"ability\":[\"mark_ability_zhongjie\"],\"abilityIds\":[\"mark_ability_zhongjie\"],\"baseStats\":{\"atk\":116,\"def\":114,\"hp\":85,\"spa\":125,\"spd\":121,\"spe\":115},\"element\":\"Water\",\"emblem\":[\"mark_emblem_zhuiji\"],\"emblemIds\":[\"mark_emblem_zhuiji\"],\"genderRatio\":[0,1],\"heightRange\":[39,44],\"id\":\"pet_dilan\",\"learnableSkills\":[{\"hidden\":false,\"level\":1,\"skill_id\":\"skill_paida\"},{\"hidden\":false,\"level\":5,\"skill_id\":\"skill_shuipao\"},{\"hidden\":false,\"level\":10,\"skill_id\":\"skill_tuoli\"},{\"hidden\":false,\"level\":15,\"skill_id\":\"skill_ruodiangongji\"}],\"learnable_skills\":[{\"hidden\":false,\"level\":1,\"skill_id\":\"skill_paida\"},{\"hidden\":false,\"level\":5,\"skill_id\":\"skill_shuipao\"},{\"hidden\":false,\"level\":10,\"skill_id\":\"skill_tuoli\"},{\"hidden\":false,\"level\":15,\"skill_id\":\"skill_ruodiangongji\"}],\"num\":1,\"weightRange\":[7,12]},{\"ability\":[\"mark_ability_renzhen\"],\"abilityIds\":[\"mark_ability_renzhen\"],\"baseStats\":{\"atk\":176,\"def\":161,\"hp\":176,\"spa\":176,\"spd\":161,\"spe\":145},\"element\":\"Normal\",\"emblem\":[\"mark_emblem_wuxing\"],\"emblemIds\":[\"mark_emblem_wuxing\"],\"genderRatio\":[5,5],\"heightRange\":[85,90],\"id\":\"pet_huanli\",\"learnableSkills\":[{\"hidden\":false,\"level\":1,\"skill_id\":\"skill_zhuangji\"},{\"hidden\":false,\"level\":5,\"skill_id\":\"skill_zhongji\"},{\"hidden\":false,\"level\":9,\"skill_id\":\"skill_ruili\"},{\"hidden\":false,\"level\":13,\"skill_id\":\"skill_qinangdan\"},{\"hidden\":false,\"level\":18,\"skill_id\":\"skill_qigaichongfeng\"},{\"hidden\":false,\"level\":23,\"skill_id\":\"skill_guancha\"},{\"hidden\":false,\"level\":28,\"skill_id\":\"skill_xuexi\"},{\"hidden\":false,\"level\":33,\"skill_id\":\"skill_qinangbaodan\"},{\"hidden\":false,\"level\":38,\"skill_id\":\"skill_qipochongfeng\"},{\"hidden\":false,\"level\":43,\"skill_id\":\"skill_sikao\"},{\"hidden\":false,\"level\":48,\"skill_id\":\"skill_yunyong\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_woyaorenzhenle\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_qinangjudan\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_polichongfeng\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_nuli\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_jinqu\"}],\"learnable_skills\":[{\"hidden\":false,\"level\":1,\"skill_id\":\"skill_zhuangji\"},{\"hidden\":false,\"level\":5,\"skill_id\":\"skill_zhongji\"},{\"hidden\":false,\"level\":9,\"skill_id\":\"skill_ruili\"},{\"hidden\":false,\"level\":13,\"skill_id\":\"skill_qinangdan\"},{\"hidden\":false,\"level\":18,\"skill_id\":\"skill_qigaichongfeng\"},{\"hidden\":false,\"level\":23,\"skill_id\":\"skill_guancha\"},{\"hidden\":false,\"level\":28,\"skill_id\":\"skill_xuexi\"},{\"hidden\":false,\"level\":33,\"skill_id\":\"skill_qinangbaodan\"},{\"hidden\":false,\"level\":38,\"skill_id\":\"skill_qipochongfeng\"},{\"hidden\":false,\"level\":43,\"skill_id\":\"skill_sikao\"},{\"hidden\":false,\"level\":48,\"skill_id\":\"skill_yunyong\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_woyaorenzhenle\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_qinangjudan\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_polichongfeng\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_nuli\"},{\"hidden\":true,\"level\":60,\"skill_id\":\"skill_jinqu\"}],\"num\":66,\"weightRange\":[40,45]}]}",
+    "actions": [
+      {
+        "sequence": 1,
+        "turn": 0,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "A",
+          "skill": "A/lead/skill/0",
+          "target": "self"
+        }
+      },
+      {
+        "sequence": 2,
+        "turn": 0,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "B",
+          "skill": "B/lead/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 3,
+        "turn": 1,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "A",
+          "skill": "A/lead/skill/1",
+          "target": "self"
+        }
+      },
+      {
+        "sequence": 4,
+        "turn": 1,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "B",
+          "skill": "B/lead/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 5,
+        "turn": 2,
+        "phase": "selection",
+        "action": {
+          "type": "switch-pet",
+          "player": "A",
+          "pet": "A/reserve"
+        }
+      },
+      {
+        "sequence": 6,
+        "turn": 2,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "B",
+          "skill": "B/lead/skill/1",
+          "target": "self"
+        }
+      },
+      {
+        "sequence": 7,
+        "turn": 3,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "A",
+          "skill": "A/reserve/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 8,
+        "turn": 3,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "B",
+          "skill": "B/lead/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 9,
+        "turn": 4,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "A",
+          "skill": "A/reserve/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 10,
+        "turn": 4,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "B",
+          "skill": "B/lead/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 11,
+        "turn": 5,
+        "phase": "switch",
+        "action": {
+          "type": "do-nothing",
+          "player": "A"
+        }
+      },
+      {
+        "sequence": 12,
+        "turn": 5,
+        "phase": "switch",
+        "action": {
+          "type": "switch-pet",
+          "player": "B",
+          "pet": "B/reserve"
+        }
+      },
+      {
+        "sequence": 13,
+        "turn": 5,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "A",
+          "skill": "A/reserve/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 14,
+        "turn": 5,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "B",
+          "skill": "B/reserve/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 15,
+        "turn": 6,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "A",
+          "skill": "A/reserve/skill/0",
+          "target": "opponent"
+        }
+      },
+      {
+        "sequence": 16,
+        "turn": 6,
+        "phase": "selection",
+        "action": {
+          "type": "use-skill",
+          "player": "B",
+          "skill": "B/reserve/skill/0",
+          "target": "opponent"
+        }
+      }
+    ],
+    "expectedEvents": [
+      {
+        "sequence": 1,
+        "turn": 0,
+        "type": "battleStart",
+        "data": {
+          "playerAId": "A",
+          "playerBId": "B"
+        }
+      },
+      {
+        "sequence": 2,
+        "turn": 0,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBattleStart"
+        }
+      },
+      {
+        "sequence": 3,
+        "turn": 0,
+        "type": "turnAction",
+        "data": {
+          "players": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "sequence": 4,
+        "turn": 1,
+        "type": "turnStart",
+        "data": {
+          "turn": 1
+        }
+      },
+      {
+        "sequence": 5,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 6,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 7,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnStart"
+        }
+      },
+      {
+        "sequence": 8,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 9,
+        "turn": 1,
+        "type": "skillUse",
+        "data": {
+          "petId": "A/lead",
+          "skillId": "A/lead/skill/0",
+          "baseSkillId": "skill_hunzhuoshuiyu",
+          "target": "self",
+          "targetId": "A/lead",
+          "rage": 20
+        }
+      },
+      {
+        "sequence": 10,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 11,
+        "turn": 1,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 20,
+          "before": 20,
+          "newRage": 0
+        }
+      },
+      {
+        "sequence": 12,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 13,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 14,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 15,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 16,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 17,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeAddMark"
+        }
+      },
+      {
+        "sequence": 18,
+        "turn": 1,
+        "type": "markAdded",
+        "data": {
+          "markId": "@mark/0",
+          "baseMarkId": "mark_hunzhuoshuiyu",
+          "ownerId": "A/lead",
+          "stack": 1,
+          "duration": 5
+        }
+      },
+      {
+        "sequence": 19,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnMarkCreated"
+        }
+      },
+      {
+        "sequence": 20,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnAnyMarkAdded"
+        }
+      },
+      {
+        "sequence": 21,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 22,
+        "turn": 1,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "A/lead"
+        }
+      },
+      {
+        "sequence": 23,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 24,
+        "turn": 1,
+        "type": "skillUse",
+        "data": {
+          "petId": "B/lead",
+          "skillId": "B/lead/skill/0",
+          "baseSkillId": "skill_paida",
+          "target": "opponent",
+          "targetId": "A/lead",
+          "rage": 0
+        }
+      },
+      {
+        "sequence": 25,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 26,
+        "turn": 1,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 0,
+          "before": 20,
+          "newRage": 20
+        }
+      },
+      {
+        "sequence": 27,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 28,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 29,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 30,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 31,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnCritPreDamage"
+        }
+      },
+      {
+        "sequence": 32,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 33,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 34,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 35,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 36,
+        "turn": 1,
+        "type": "damage",
+        "data": {
+          "sourceId": "B/lead",
+          "targetId": "A/lead",
+          "damage": 27,
+          "isCrit": true,
+          "effectiveness": 1,
+          "damageType": "Physical",
+          "currentHp": 283,
+          "maxHp": 310
+        }
+      },
+      {
+        "sequence": 37,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 38,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnCritPostDamage"
+        }
+      },
+      {
+        "sequence": 39,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 40,
+        "turn": 1,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "damage",
+          "type": "add",
+          "amount": 4,
+          "before": 0,
+          "newRage": 4
+        }
+      },
+      {
+        "sequence": 41,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 42,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 43,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 44,
+        "turn": 1,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 20,
+          "newRage": 35
+        }
+      },
+      {
+        "sequence": 45,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 46,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 47,
+        "turn": 1,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "B/lead"
+        }
+      },
+      {
+        "sequence": 48,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnEnd"
+        }
+      },
+      {
+        "sequence": 49,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 50,
+        "turn": 1,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 4,
+          "newRage": 19
+        }
+      },
+      {
+        "sequence": 51,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 52,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 53,
+        "turn": 1,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 35,
+          "newRage": 50
+        }
+      },
+      {
+        "sequence": 54,
+        "turn": 1,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 55,
+        "turn": 1,
+        "type": "markDuration",
+        "data": {
+          "markId": "@mark/0",
+          "duration": 4
+        }
+      },
+      {
+        "sequence": 56,
+        "turn": 1,
+        "type": "turnEnd",
+        "data": {
+          "turn": 1
+        }
+      },
+      {
+        "sequence": 57,
+        "turn": 1,
+        "type": "turnAction",
+        "data": {
+          "players": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "sequence": 58,
+        "turn": 2,
+        "type": "turnStart",
+        "data": {
+          "turn": 2
+        }
+      },
+      {
+        "sequence": 59,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 60,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 61,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnStart"
+        }
+      },
+      {
+        "sequence": 62,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 63,
+        "turn": 2,
+        "type": "skillUse",
+        "data": {
+          "petId": "A/lead",
+          "skillId": "A/lead/skill/1",
+          "baseSkillId": "skill_qili",
+          "target": "self",
+          "targetId": "A/lead",
+          "rage": 10
+        }
+      },
+      {
+        "sequence": 64,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 65,
+        "turn": 2,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 10,
+          "before": 19,
+          "newRage": 9
+        }
+      },
+      {
+        "sequence": 66,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 67,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 68,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 69,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 70,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeAddMark"
+        }
+      },
+      {
+        "sequence": 71,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeAddMark"
+        }
+      },
+      {
+        "sequence": 72,
+        "turn": 2,
+        "type": "markAdded",
+        "data": {
+          "markId": "@mark/1",
+          "baseMarkId": "stat_stage_atk_up",
+          "ownerId": "A/lead",
+          "stack": 1,
+          "duration": -1
+        }
+      },
+      {
+        "sequence": 73,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnMarkCreated"
+        }
+      },
+      {
+        "sequence": 74,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnAnyMarkAdded"
+        }
+      },
+      {
+        "sequence": 75,
+        "turn": 2,
+        "type": "statStageChange",
+        "data": {
+          "petId": "A/lead",
+          "stat": "atk",
+          "before": 0,
+          "stage": 1
+        }
+      },
+      {
+        "sequence": 76,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 77,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 78,
+        "turn": 2,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "A/lead"
+        }
+      },
+      {
+        "sequence": 79,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 80,
+        "turn": 2,
+        "type": "skillUse",
+        "data": {
+          "petId": "B/lead",
+          "skillId": "B/lead/skill/0",
+          "baseSkillId": "skill_paida",
+          "target": "opponent",
+          "targetId": "A/lead",
+          "rage": 0
+        }
+      },
+      {
+        "sequence": 81,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 82,
+        "turn": 2,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 0,
+          "before": 50,
+          "newRage": 50
+        }
+      },
+      {
+        "sequence": 83,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 84,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 85,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 86,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 87,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 88,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 89,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 90,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 91,
+        "turn": 2,
+        "type": "damage",
+        "data": {
+          "sourceId": "B/lead",
+          "targetId": "A/lead",
+          "damage": 14,
+          "isCrit": false,
+          "effectiveness": 1,
+          "damageType": "Physical",
+          "currentHp": 269,
+          "maxHp": 310
+        }
+      },
+      {
+        "sequence": 92,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 93,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 94,
+        "turn": 2,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "damage",
+          "type": "add",
+          "amount": 2,
+          "before": 9,
+          "newRage": 11
+        }
+      },
+      {
+        "sequence": 95,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 96,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 97,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 98,
+        "turn": 2,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 50,
+          "newRage": 65
+        }
+      },
+      {
+        "sequence": 99,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 100,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 101,
+        "turn": 2,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "B/lead"
+        }
+      },
+      {
+        "sequence": 102,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnEnd"
+        }
+      },
+      {
+        "sequence": 103,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 104,
+        "turn": 2,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 11,
+          "newRage": 26
+        }
+      },
+      {
+        "sequence": 105,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 106,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 107,
+        "turn": 2,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 65,
+          "newRage": 80
+        }
+      },
+      {
+        "sequence": 108,
+        "turn": 2,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 109,
+        "turn": 2,
+        "type": "markDuration",
+        "data": {
+          "markId": "@mark/0",
+          "duration": 3
+        }
+      },
+      {
+        "sequence": 110,
+        "turn": 2,
+        "type": "turnEnd",
+        "data": {
+          "turn": 2
+        }
+      },
+      {
+        "sequence": 111,
+        "turn": 2,
+        "type": "turnAction",
+        "data": {
+          "players": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "sequence": 112,
+        "turn": 3,
+        "type": "turnStart",
+        "data": {
+          "turn": 3
+        }
+      },
+      {
+        "sequence": 113,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 114,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnStart"
+        }
+      },
+      {
+        "sequence": 115,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnSwitchOut"
+        }
+      },
+      {
+        "sequence": 116,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnOwnerSwitchOut"
+        }
+      },
+      {
+        "sequence": 117,
+        "turn": 3,
+        "type": "switchOut",
+        "data": {
+          "playerId": "A",
+          "petId": "A/lead"
+        }
+      },
+      {
+        "sequence": 118,
+        "turn": 3,
+        "type": "switchIn",
+        "data": {
+          "playerId": "A",
+          "petId": "A/reserve"
+        }
+      },
+      {
+        "sequence": 119,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnSwitchIn"
+        }
+      },
+      {
+        "sequence": 120,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnOwnerSwitchIn"
+        }
+      },
+      {
+        "sequence": 121,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 122,
+        "turn": 3,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "switch",
+          "type": "reduce",
+          "amount": 6,
+          "before": 26,
+          "newRage": 20
+        }
+      },
+      {
+        "sequence": 123,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 124,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 125,
+        "turn": 3,
+        "type": "skillUse",
+        "data": {
+          "petId": "B/lead",
+          "skillId": "B/lead/skill/1",
+          "baseSkillId": "skill_qili",
+          "target": "self",
+          "targetId": "B/lead",
+          "rage": 10
+        }
+      },
+      {
+        "sequence": 126,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 127,
+        "turn": 3,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 10,
+          "before": 80,
+          "newRage": 70
+        }
+      },
+      {
+        "sequence": 128,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 129,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 130,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 131,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 132,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeAddMark"
+        }
+      },
+      {
+        "sequence": 133,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeAddMark"
+        }
+      },
+      {
+        "sequence": 134,
+        "turn": 3,
+        "type": "markAdded",
+        "data": {
+          "markId": "@mark/2",
+          "baseMarkId": "stat_stage_atk_up",
+          "ownerId": "B/lead",
+          "stack": 1,
+          "duration": -1
+        }
+      },
+      {
+        "sequence": 135,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnMarkCreated"
+        }
+      },
+      {
+        "sequence": 136,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnAnyMarkAdded"
+        }
+      },
+      {
+        "sequence": 137,
+        "turn": 3,
+        "type": "statStageChange",
+        "data": {
+          "petId": "B/lead",
+          "stat": "atk",
+          "before": 0,
+          "stage": 1
+        }
+      },
+      {
+        "sequence": 138,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 139,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 140,
+        "turn": 3,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "B/lead"
+        }
+      },
+      {
+        "sequence": 141,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnEnd"
+        }
+      },
+      {
+        "sequence": 142,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 143,
+        "turn": 3,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 20,
+          "newRage": 35
+        }
+      },
+      {
+        "sequence": 144,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 145,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 146,
+        "turn": 3,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 70,
+          "newRage": 85
+        }
+      },
+      {
+        "sequence": 147,
+        "turn": 3,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 148,
+        "turn": 3,
+        "type": "turnEnd",
+        "data": {
+          "turn": 3
+        }
+      },
+      {
+        "sequence": 149,
+        "turn": 3,
+        "type": "turnAction",
+        "data": {
+          "players": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "sequence": 150,
+        "turn": 4,
+        "type": "turnStart",
+        "data": {
+          "turn": 4
+        }
+      },
+      {
+        "sequence": 151,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 152,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 153,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnStart"
+        }
+      },
+      {
+        "sequence": 154,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 155,
+        "turn": 4,
+        "type": "skillUse",
+        "data": {
+          "petId": "A/reserve",
+          "skillId": "A/reserve/skill/0",
+          "baseSkillId": "skill_shuipao",
+          "target": "opponent",
+          "targetId": "B/lead",
+          "rage": 5
+        }
+      },
+      {
+        "sequence": 156,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 157,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 5,
+          "before": 35,
+          "newRage": 30
+        }
+      },
+      {
+        "sequence": 158,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 159,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 160,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 161,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 162,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 163,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 164,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 165,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 166,
+        "turn": 4,
+        "type": "damage",
+        "data": {
+          "sourceId": "A/reserve",
+          "targetId": "B/lead",
+          "damage": 20,
+          "isCrit": false,
+          "effectiveness": 0.5,
+          "damageType": "Special",
+          "currentHp": 10,
+          "maxHp": 30
+        }
+      },
+      {
+        "sequence": 167,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 168,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 169,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "damage",
+          "type": "add",
+          "amount": 32,
+          "before": 85,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 170,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 171,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 172,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 173,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 30,
+          "newRage": 45
+        }
+      },
+      {
+        "sequence": 174,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 175,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 176,
+        "turn": 4,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "A/reserve"
+        }
+      },
+      {
+        "sequence": 177,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 178,
+        "turn": 4,
+        "type": "skillUse",
+        "data": {
+          "petId": "B/lead",
+          "skillId": "B/lead/skill/0",
+          "baseSkillId": "skill_paida",
+          "target": "opponent",
+          "targetId": "A/reserve",
+          "rage": 0
+        }
+      },
+      {
+        "sequence": 179,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 180,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 0,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 181,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 182,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 183,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 184,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 185,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 186,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 187,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 188,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 189,
+        "turn": 4,
+        "type": "damage",
+        "data": {
+          "sourceId": "B/lead",
+          "targetId": "A/reserve",
+          "damage": 23,
+          "isCrit": false,
+          "effectiveness": 1,
+          "damageType": "Physical",
+          "currentHp": 277,
+          "maxHp": 300
+        }
+      },
+      {
+        "sequence": 190,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 191,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 192,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "damage",
+          "type": "add",
+          "amount": 3,
+          "before": 45,
+          "newRage": 48
+        }
+      },
+      {
+        "sequence": 193,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 194,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 195,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 196,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 197,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 198,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 199,
+        "turn": 4,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "B/lead"
+        }
+      },
+      {
+        "sequence": 200,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnEnd"
+        }
+      },
+      {
+        "sequence": 201,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 202,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 48,
+          "newRage": 63
+        }
+      },
+      {
+        "sequence": 203,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 204,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 205,
+        "turn": 4,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 206,
+        "turn": 4,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 207,
+        "turn": 4,
+        "type": "turnEnd",
+        "data": {
+          "turn": 4
+        }
+      },
+      {
+        "sequence": 208,
+        "turn": 4,
+        "type": "turnAction",
+        "data": {
+          "players": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "sequence": 209,
+        "turn": 5,
+        "type": "turnStart",
+        "data": {
+          "turn": 5
+        }
+      },
+      {
+        "sequence": 210,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 211,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 212,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnStart"
+        }
+      },
+      {
+        "sequence": 213,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 214,
+        "turn": 5,
+        "type": "skillUse",
+        "data": {
+          "petId": "A/reserve",
+          "skillId": "A/reserve/skill/0",
+          "baseSkillId": "skill_shuipao",
+          "target": "opponent",
+          "targetId": "B/lead",
+          "rage": 5
+        }
+      },
+      {
+        "sequence": 215,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 216,
+        "turn": 5,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 5,
+          "before": 63,
+          "newRage": 58
+        }
+      },
+      {
+        "sequence": 217,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 218,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 219,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 220,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 221,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 222,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 223,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 224,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 225,
+        "turn": 5,
+        "type": "damage",
+        "data": {
+          "sourceId": "A/reserve",
+          "targetId": "B/lead",
+          "damage": 20,
+          "isCrit": false,
+          "effectiveness": 0.5,
+          "damageType": "Special",
+          "currentHp": 0,
+          "maxHp": 30
+        }
+      },
+      {
+        "sequence": 226,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 227,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 228,
+        "turn": 5,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "damage",
+          "type": "add",
+          "amount": 32,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 229,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 230,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 231,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 232,
+        "turn": 5,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 58,
+          "newRage": 73
+        }
+      },
+      {
+        "sequence": 233,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 234,
+        "turn": 5,
+        "type": "petDefeated",
+        "data": {
+          "petId": "B/lead",
+          "killerId": "A/reserve"
+        }
+      },
+      {
+        "sequence": 235,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDefeat"
+        }
+      },
+      {
+        "sequence": 236,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 237,
+        "turn": 5,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "A/reserve"
+        }
+      },
+      {
+        "sequence": 238,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 239,
+        "turn": 5,
+        "type": "skillFail",
+        "data": {
+          "petId": "B/lead",
+          "skillId": "B/lead/skill/0",
+          "reason": "faint"
+        }
+      },
+      {
+        "sequence": 240,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnEnd"
+        }
+      },
+      {
+        "sequence": 241,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 242,
+        "turn": 5,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 73,
+          "newRage": 88
+        }
+      },
+      {
+        "sequence": 243,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 244,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 245,
+        "turn": 5,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 246,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 247,
+        "turn": 5,
+        "type": "turnEnd",
+        "data": {
+          "turn": 5
+        }
+      },
+      {
+        "sequence": 248,
+        "turn": 5,
+        "type": "switchPrompt",
+        "data": {
+          "forced": [
+            "B"
+          ],
+          "reward": "A"
+        }
+      },
+      {
+        "sequence": 249,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnSwitchOut"
+        }
+      },
+      {
+        "sequence": 250,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnOwnerSwitchOut"
+        }
+      },
+      {
+        "sequence": 251,
+        "turn": 5,
+        "type": "switchOut",
+        "data": {
+          "playerId": "B",
+          "petId": "B/lead"
+        }
+      },
+      {
+        "sequence": 252,
+        "turn": 5,
+        "type": "switchIn",
+        "data": {
+          "playerId": "B",
+          "petId": "B/reserve"
+        }
+      },
+      {
+        "sequence": 253,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnSwitchIn"
+        }
+      },
+      {
+        "sequence": 254,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnOwnerSwitchIn"
+        }
+      },
+      {
+        "sequence": 255,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 256,
+        "turn": 5,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "switch",
+          "type": "reduce",
+          "amount": 20,
+          "before": 100,
+          "newRage": 80
+        }
+      },
+      {
+        "sequence": 257,
+        "turn": 5,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 258,
+        "turn": 5,
+        "type": "turnAction",
+        "data": {
+          "players": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "sequence": 259,
+        "turn": 6,
+        "type": "turnStart",
+        "data": {
+          "turn": 6
+        }
+      },
+      {
+        "sequence": 260,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 261,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 262,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnStart"
+        }
+      },
+      {
+        "sequence": 263,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 264,
+        "turn": 6,
+        "type": "skillUse",
+        "data": {
+          "petId": "A/reserve",
+          "skillId": "A/reserve/skill/0",
+          "baseSkillId": "skill_shuipao",
+          "target": "opponent",
+          "targetId": "B/reserve",
+          "rage": 5
+        }
+      },
+      {
+        "sequence": 265,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 266,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 5,
+          "before": 88,
+          "newRage": 83
+        }
+      },
+      {
+        "sequence": 267,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 268,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 269,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 270,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 271,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 272,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 273,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 274,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 275,
+        "turn": 6,
+        "type": "damage",
+        "data": {
+          "sourceId": "A/reserve",
+          "targetId": "B/reserve",
+          "damage": 20,
+          "isCrit": false,
+          "effectiveness": 0.5,
+          "damageType": "Special",
+          "currentHp": 10,
+          "maxHp": 30
+        }
+      },
+      {
+        "sequence": 276,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 277,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 278,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "damage",
+          "type": "add",
+          "amount": 32,
+          "before": 80,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 279,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 280,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 281,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 282,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 83,
+          "newRage": 98
+        }
+      },
+      {
+        "sequence": 283,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 284,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 285,
+        "turn": 6,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "A/reserve"
+        }
+      },
+      {
+        "sequence": 286,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 287,
+        "turn": 6,
+        "type": "skillUse",
+        "data": {
+          "petId": "B/reserve",
+          "skillId": "B/reserve/skill/0",
+          "baseSkillId": "skill_paida",
+          "target": "opponent",
+          "targetId": "A/reserve",
+          "rage": 0
+        }
+      },
+      {
+        "sequence": 288,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 289,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 0,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 290,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 291,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 292,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 293,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 294,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 295,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 296,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 297,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 298,
+        "turn": 6,
+        "type": "damage",
+        "data": {
+          "sourceId": "B/reserve",
+          "targetId": "A/reserve",
+          "damage": 18,
+          "isCrit": false,
+          "effectiveness": 1,
+          "damageType": "Physical",
+          "currentHp": 259,
+          "maxHp": 300
+        }
+      },
+      {
+        "sequence": 299,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 300,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 301,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "damage",
+          "type": "add",
+          "amount": 2,
+          "before": 98,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 302,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 303,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 304,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 305,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 306,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 307,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 308,
+        "turn": 6,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "B/reserve"
+        }
+      },
+      {
+        "sequence": 309,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnEnd"
+        }
+      },
+      {
+        "sequence": 310,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 311,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 312,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 313,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 314,
+        "turn": 6,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 315,
+        "turn": 6,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 316,
+        "turn": 6,
+        "type": "turnEnd",
+        "data": {
+          "turn": 6
+        }
+      },
+      {
+        "sequence": 317,
+        "turn": 6,
+        "type": "turnAction",
+        "data": {
+          "players": [
+            "A",
+            "B"
+          ]
+        }
+      },
+      {
+        "sequence": 318,
+        "turn": 7,
+        "type": "turnStart",
+        "data": {
+          "turn": 7
+        }
+      },
+      {
+        "sequence": 319,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 320,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeSort"
+        }
+      },
+      {
+        "sequence": 321,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnStart"
+        }
+      },
+      {
+        "sequence": 322,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 323,
+        "turn": 7,
+        "type": "skillUse",
+        "data": {
+          "petId": "A/reserve",
+          "skillId": "A/reserve/skill/0",
+          "baseSkillId": "skill_shuipao",
+          "target": "opponent",
+          "targetId": "B/reserve",
+          "rage": 5
+        }
+      },
+      {
+        "sequence": 324,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageLoss"
+        }
+      },
+      {
+        "sequence": 325,
+        "turn": 7,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skill",
+          "type": "reduce",
+          "amount": 5,
+          "before": 100,
+          "newRage": 95
+        }
+      },
+      {
+        "sequence": 326,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageLoss"
+        }
+      },
+      {
+        "sequence": 327,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "AfterUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 328,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeMultiHit"
+        }
+      },
+      {
+        "sequence": 329,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeHit"
+        }
+      },
+      {
+        "sequence": 330,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "PreDamage"
+        }
+      },
+      {
+        "sequence": 331,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnBeforeCalculateDamage"
+        }
+      },
+      {
+        "sequence": 332,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "Shield"
+        }
+      },
+      {
+        "sequence": 333,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDamage"
+        }
+      },
+      {
+        "sequence": 334,
+        "turn": 7,
+        "type": "damage",
+        "data": {
+          "sourceId": "A/reserve",
+          "targetId": "B/reserve",
+          "damage": 20,
+          "isCrit": false,
+          "effectiveness": 0.5,
+          "damageType": "Special",
+          "currentHp": 0,
+          "maxHp": 30
+        }
+      },
+      {
+        "sequence": 335,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "PostDamage"
+        }
+      },
+      {
+        "sequence": 336,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 337,
+        "turn": 7,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "damage",
+          "type": "add",
+          "amount": 32,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 338,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 339,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnHit"
+        }
+      },
+      {
+        "sequence": 340,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 341,
+        "turn": 7,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "skillHit",
+          "type": "add",
+          "amount": 15,
+          "before": 95,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 342,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 343,
+        "turn": 7,
+        "type": "petDefeated",
+        "data": {
+          "petId": "B/reserve",
+          "killerId": "A/reserve"
+        }
+      },
+      {
+        "sequence": 344,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnDefeat"
+        }
+      },
+      {
+        "sequence": 345,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "SkillUseEnd"
+        }
+      },
+      {
+        "sequence": 346,
+        "turn": 7,
+        "type": "skillUseEnd",
+        "data": {
+          "petId": "A/reserve"
+        }
+      },
+      {
+        "sequence": 347,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeUseSkillCheck"
+        }
+      },
+      {
+        "sequence": 348,
+        "turn": 7,
+        "type": "skillFail",
+        "data": {
+          "petId": "B/reserve",
+          "skillId": "B/reserve/skill/0",
+          "reason": "faint"
+        }
+      },
+      {
+        "sequence": 349,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "TurnEnd"
+        }
+      },
+      {
+        "sequence": 350,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 351,
+        "turn": 7,
+        "type": "rageChange",
+        "data": {
+          "playerId": "A",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 352,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 353,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "BeforeRageGain"
+        }
+      },
+      {
+        "sequence": 354,
+        "turn": 7,
+        "type": "rageChange",
+        "data": {
+          "playerId": "B",
+          "reason": "turn",
+          "type": "add",
+          "amount": 15,
+          "before": 100,
+          "newRage": 100
+        }
+      },
+      {
+        "sequence": 355,
+        "turn": 7,
+        "type": "trigger",
+        "data": {
+          "trigger": "OnRageGain"
+        }
+      },
+      {
+        "sequence": 356,
+        "turn": 7,
+        "type": "turnEnd",
+        "data": {
+          "turn": 7
+        }
+      },
+      {
+        "sequence": 357,
+        "turn": 7,
+        "type": "battleEnd",
+        "data": {
+          "reason": "all_pet_fainted",
+          "winner": "A"
+        }
+      }
+    ],
+    "expectedState": {
+      "id": "baseline-201",
+      "turn": 7,
+      "status": "ended",
+      "victor": "A",
+      "endReason": "all_pet_fainted",
+      "lastKillerId": null,
+      "players": [
+        {
+          "id": "A",
+          "name": "A",
+          "currentRage": 100,
+          "maxRage": 100,
+          "activePetId": "A/reserve",
+          "team": [
+            {
+              "build": {
+                "name": "lead",
+                "species": "pet_huanli",
+                "skills": [
+                  "skill_hunzhuoshuiyu",
+                  "skill_qili"
+                ],
+                "level": 50,
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spa": 0,
+                  "spd": 0,
+                  "spe": 0
+                },
+                "ivs": {
+                  "hp": 31,
+                  "atk": 31,
+                  "def": 31,
+                  "spa": 31,
+                  "spd": 31,
+                  "spe": 31
+                },
+                "nature": "Hardy",
+                "gender": "Male",
+                "maxHp": 310,
+                "id": "A/lead"
+              },
+              "speciesId": "pet_huanli",
+              "currentHp": 269,
+              "gender": "Male",
+              "appeared": true,
+              "stages": {
+                "atk": 1,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "skills": [
+                {
+                  "id": "A/lead/skill/0",
+                  "baseId": "skill_hunzhuoshuiyu",
+                  "power": 0,
+                  "accuracy": 100,
+                  "rage": 20,
+                  "priority": 0,
+                  "appeared": true
+                },
+                {
+                  "id": "A/lead/skill/1",
+                  "baseId": "skill_qili",
+                  "power": 0,
+                  "accuracy": 100,
+                  "rage": 10,
+                  "priority": 0,
+                  "appeared": true
+                }
+              ],
+              "marks": [
+                {
+                  "id": "@mark/0",
+                  "baseId": "mark_hunzhuoshuiyu",
+                  "ownerId": "A/lead",
+                  "stack": 1,
+                  "duration": 3,
+                  "isActive": true,
+                  "config": {
+                    "duration": 5,
+                    "persistent": false,
+                    "maxStacks": 1,
+                    "stackable": true,
+                    "stackStrategy": "refresh",
+                    "destroyable": true,
+                    "isShield": false,
+                    "keepOnSwitchOut": true,
+                    "transferOnSwitch": false,
+                    "inheritOnFaint": false
+                  },
+                  "creatorId": null
+                },
+                {
+                  "id": "@mark/1",
+                  "baseId": "stat_stage_atk_up",
+                  "ownerId": "A/lead",
+                  "stack": 1,
+                  "duration": -1,
+                  "isActive": true,
+                  "config": {
+                    "duration": -1,
+                    "persistent": true,
+                    "maxStacks": 6,
+                    "stackable": true,
+                    "stackStrategy": "stack",
+                    "destroyable": true,
+                    "isShield": false,
+                    "keepOnSwitchOut": true,
+                    "transferOnSwitch": false,
+                    "inheritOnFaint": false
+                  },
+                  "creatorId": null
+                }
+              ],
+              "lastSkillId": "A/lead/skill/1",
+              "lastSkillUsedTimes": 1,
+              "skillHistory": [
+                "skill_hunzhuoshuiyu",
+                "skill_qili"
+              ]
+            },
+            {
+              "build": {
+                "name": "reserve",
+                "species": "pet_dilan",
+                "skills": [
+                  "skill_shuipao"
+                ],
+                "level": 50,
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spa": 0,
+                  "spd": 0,
+                  "spe": 0
+                },
+                "ivs": {
+                  "hp": 31,
+                  "atk": 31,
+                  "def": 31,
+                  "spa": 31,
+                  "spd": 31,
+                  "spe": 31
+                },
+                "nature": "Hardy",
+                "gender": "Male",
+                "maxHp": 300,
+                "id": "A/reserve"
+              },
+              "speciesId": "pet_dilan",
+              "currentHp": 259,
+              "gender": "Male",
+              "appeared": true,
+              "stages": {
+                "atk": 0,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "skills": [
+                {
+                  "id": "A/reserve/skill/0",
+                  "baseId": "skill_shuipao",
+                  "power": 60,
+                  "accuracy": 95,
+                  "rage": 5,
+                  "priority": 0,
+                  "appeared": true
+                }
+              ],
+              "marks": [],
+              "lastSkillId": "A/reserve/skill/0",
+              "lastSkillUsedTimes": 4,
+              "skillHistory": [
+                "skill_shuipao",
+                "skill_shuipao",
+                "skill_shuipao",
+                "skill_shuipao"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "B",
+          "name": "B",
+          "currentRage": 100,
+          "maxRage": 100,
+          "activePetId": "B/reserve",
+          "team": [
+            {
+              "build": {
+                "name": "lead",
+                "species": "pet_dilan",
+                "skills": [
+                  "skill_paida",
+                  "skill_qili"
+                ],
+                "level": 50,
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spa": 0,
+                  "spd": 0,
+                  "spe": 0
+                },
+                "ivs": {
+                  "hp": 31,
+                  "atk": 31,
+                  "def": 31,
+                  "spa": 31,
+                  "spd": 31,
+                  "spe": 31
+                },
+                "nature": "Hardy",
+                "gender": "Male",
+                "maxHp": 30,
+                "id": "B/lead"
+              },
+              "speciesId": "pet_dilan",
+              "currentHp": 0,
+              "gender": "Male",
+              "appeared": true,
+              "stages": {
+                "atk": 1,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "skills": [
+                {
+                  "id": "B/lead/skill/0",
+                  "baseId": "skill_paida",
+                  "power": 40,
+                  "accuracy": 95,
+                  "rage": 0,
+                  "priority": 0,
+                  "appeared": true
+                },
+                {
+                  "id": "B/lead/skill/1",
+                  "baseId": "skill_qili",
+                  "power": 0,
+                  "accuracy": 100,
+                  "rage": 10,
+                  "priority": 0,
+                  "appeared": true
+                }
+              ],
+              "marks": [
+                {
+                  "id": "@mark/2",
+                  "baseId": "stat_stage_atk_up",
+                  "ownerId": "B/lead",
+                  "stack": 1,
+                  "duration": -1,
+                  "isActive": true,
+                  "config": {
+                    "duration": -1,
+                    "persistent": true,
+                    "maxStacks": 6,
+                    "stackable": true,
+                    "stackStrategy": "stack",
+                    "destroyable": true,
+                    "isShield": false,
+                    "keepOnSwitchOut": true,
+                    "transferOnSwitch": false,
+                    "inheritOnFaint": false
+                  },
+                  "creatorId": null
+                }
+              ],
+              "lastSkillId": "B/lead/skill/0",
+              "lastSkillUsedTimes": 1,
+              "skillHistory": [
+                "skill_paida",
+                "skill_paida",
+                "skill_qili",
+                "skill_paida"
+              ]
+            },
+            {
+              "build": {
+                "name": "reserve",
+                "species": "pet_dilan",
+                "skills": [
+                  "skill_paida",
+                  "skill_qili"
+                ],
+                "level": 50,
+                "evs": {
+                  "hp": 0,
+                  "atk": 0,
+                  "def": 0,
+                  "spa": 0,
+                  "spd": 0,
+                  "spe": 0
+                },
+                "ivs": {
+                  "hp": 31,
+                  "atk": 31,
+                  "def": 31,
+                  "spa": 31,
+                  "spd": 31,
+                  "spe": 31
+                },
+                "nature": "Hardy",
+                "gender": "Male",
+                "maxHp": 30,
+                "id": "B/reserve"
+              },
+              "speciesId": "pet_dilan",
+              "currentHp": 0,
+              "gender": "Male",
+              "appeared": true,
+              "stages": {
+                "atk": 0,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "skills": [
+                {
+                  "id": "B/reserve/skill/0",
+                  "baseId": "skill_paida",
+                  "power": 40,
+                  "accuracy": 95,
+                  "rage": 0,
+                  "priority": 0,
+                  "appeared": true
+                },
+                {
+                  "id": "B/reserve/skill/1",
+                  "baseId": "skill_qili",
+                  "power": 0,
+                  "accuracy": 100,
+                  "rage": 10,
+                  "priority": 0,
+                  "appeared": false
+                }
+              ],
+              "marks": [],
+              "lastSkillId": "B/reserve/skill/0",
+              "lastSkillUsedTimes": 1,
+              "skillHistory": [
+                "skill_paida"
+              ]
+            }
+          ]
+        }
+      ],
+      "marks": [],
+      "phase": {
+        "kind": "ended",
+        "queue": [],
+        "pending": [],
+        "forced": [],
+        "reward": null
+      }
+    }
+  }
+}
