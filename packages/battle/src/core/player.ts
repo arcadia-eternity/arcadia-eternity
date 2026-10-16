@@ -22,7 +22,7 @@ export class Player implements OwnedEntity<Battle> {
     return this.attributeSystem.getCurrentValue('currentRage')
   }
   set currentRage(value: number) {
-    this.rawCurrentRage = value
+    this.attributeSystem.setCurrentValue('currentRage', value)
   }
   get maxRage(): number {
     return this.attributeSystem.getCurrentValue('maxRage')
@@ -57,6 +57,8 @@ export class Player implements OwnedEntity<Battle> {
         }
         return false
       },
+      undefined,
+      ['currentRage', 'maxRage'],
     )
     this.team = Object.freeze(build.team.map(p => new Pet(p, this, content)))
     this.activePet = this.team[0]
@@ -82,7 +84,7 @@ export class Player implements OwnedEntity<Battle> {
       .map(p => ({ type: 'switch-pet', player: this.id, pet: p.id }))
   }
   settingRage(value: number) {
-    this.rawCurrentRage = Math.max(0, Math.min(this.maxRage, value))
+    this.currentRage = Math.max(0, Math.min(this.maxRage, value))
   }
   getState(): PlayerState {
     return {

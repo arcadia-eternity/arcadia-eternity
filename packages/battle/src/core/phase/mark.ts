@@ -150,8 +150,9 @@ export class ConsumeStackPhase extends SynchronousPhase<ConsumeStackContext, num
     if (!mark.isActive) return 0
     this.battle.applyEffects(ctx, EffectTrigger.OnBeforeConsumeStack, [mark])
     if (!ctx.available) return 0
-    ctx.consumed = Math.min(mark.stack, ctx.amount)
-    mark.stack -= ctx.consumed
+    const before = mark.stack
+    mark.stack -= Math.min(before, ctx.amount)
+    ctx.consumed = Math.max(0, before - mark.stack)
     this.battle.applyEffects(ctx, EffectTrigger.OnConsumeStack, [mark])
     if (mark.stack <= 0) this.battle.removeMark(new RemoveMarkContext(ctx, mark, true))
     return ctx.consumed

@@ -172,7 +172,9 @@ export class ConfigSystem<T extends { [K in keyof T]: ConfigValue } = Record<str
   ): () => void {
     const base = this.required(key).value
     this.apply(base, this.battle.valueSystem.read(modifier.value.value), modifier.type)
-    return this.store.add(key, modifier, scope ? scopeReference(this.battle, scope) : null)
+    return this.store.add(key, modifier, scope ? scopeReference(this.battle, scope) : null, () => {
+      this.get(key, scope ?? (modifier.source ? parentScope(this.battle, modifier.source) : undefined))
+    })
   }
   addTaggedConfigModifier(tag: string, modifier: ConfigModifier): () => void {
     const cleanup = this.getConfigKeysByTag(tag).map(key =>

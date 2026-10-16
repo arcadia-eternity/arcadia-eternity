@@ -106,8 +106,9 @@ export class AttributeSystem<T extends { [K in keyof T]: AttributeValue }> {
     private readonly base: () => T,
     private readonly writeBase?: <K extends keyof T>(key: K, value: T[K]) => boolean,
     private readonly native: (key: keyof T) => AttributeAdjustment[] = () => [],
+    private readonly resources: readonly (keyof T)[] = [],
   ) {
-    this.store = new ModifierStore(owner.battle)
+    this.store = new ModifierStore(owner.battle, () => this.reconcileResources())
   }
   hasKey(key: string): boolean {
     return Object.hasOwn(this.base(), key)
@@ -135,8 +136,57 @@ export class AttributeSystem<T extends { [K in keyof T]: AttributeValue }> {
         result = apply(result, value, modifier)
         validatePrimitive(result)
       }
+      if (this.resources.includes(key) && typeof result === 'number') {
+        const nearest = Math.round(result)
+        result = Math.max(key === 'duration' ? -1 : 0, Math.floor(Math.abs(result - nearest) < 1e-9 ? nearest : result))
+      }
       return result as T[K]
     })
+  }
+  /** Assign an effective resource value without feeding its modifiers back into the base. */
+  setCurrentValue<K extends keyof T>(key: K, desired: T[K]) {
+    validatePrimitive(desired)
+    let current: AttributeValue = this.getBaseValue(key)
+    const steps = [...this.native(key), ...this.store.read(String(key))]
+      .sort((a, b) => b.priority - a.priority)
+      .map(modifier => {
+        const value = this.owner.battle.valueSystem.read(modifier.value)
+        if (value === null) throw new Error('Attribute modifier cannot yield null')
+        const before = current
+        current = apply(current, value, modifier)
+        return { modifier, value, before }
+      })
+    let base: AttributeValue = desired
+    for (const { modifier, value, before } of steps.reverse()) {
+      if (modifier.type === 'override') {
+        base = before
+        continue
+      }
+      if (typeof base !== 'number' || typeof value !== 'number' || typeof before !== 'number')
+        throw new Error('Numeric resource modifier required')
+      if (modifier.type === 'delta') base -= value
+      else if (modifier.type === 'percent') base = value === -100 ? before : base / (1 + value / 100)
+      else {
+        const min =
+          modifier.type === 'clampMax'
+            ? -Number.MAX_VALUE
+            : modifier.type === 'clampMin'
+              ? value
+              : (modifier.minValue ?? -Number.MAX_VALUE)
+        const max =
+          modifier.type === 'clampMin'
+            ? Number.MAX_VALUE
+            : modifier.type === 'clampMax'
+              ? value
+              : (modifier.maxValue ?? Number.MAX_VALUE)
+        base = Math.max(min, Math.min(max, base))
+        if ((base === min && before <= min) || (base === max && before >= max)) base = before
+      }
+    }
+    this.updateBaseValue(key, base as T[K])
+  }
+  private reconcileResources() {
+    for (const key of this.resources) this.setCurrentValue(key, this.getCurrentValue(key))
   }
   readKey(key: string): AttributeValue {
     if (!this.hasKey(key)) throw new Error('Unknown referenced attribute')
@@ -151,14 +201,9 @@ export class AttributeSystem<T extends { [K in keyof T]: AttributeValue }> {
     const base = this.getBaseValue(key)
     const value = this.owner.battle.valueSystem.read(modifier.value.value)
     apply(base, value as AttributeValue, { ...modifier, value: modifier.value.value })
-    const cleanup = this.store.add(key, modifier)
-    try {
+    return this.store.add(key, modifier, null, () => {
       this.getCurrentValue(key)
-    } catch (error) {
-      cleanup()
-      throw error
-    }
-    return cleanup
+    })
   }
   addPhaseTypeModifier<K extends keyof T & string>(key: K, modifier: Modifier<NoInfer<T[K]>>, spec: PhaseTypeSpec) {
     if (modifier.durationType !== DurationType.phaseType) throw new Error('Expected phaseType modifier')

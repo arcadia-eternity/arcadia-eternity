@@ -24,16 +24,16 @@ export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>,
     return this.attributeSystem.getCurrentValue('stack')
   }
   set stack(value: number) {
-    this.rawStack = value
+    this.attributeSystem.setCurrentValue('stack', value)
   }
   get duration(): number {
     return this.attributeSystem.getCurrentValue('duration')
   }
   set duration(value: number) {
-    this.rawDuration = value
+    this.attributeSystem.setCurrentValue('duration', value)
   }
   get isActive(): boolean {
-    return this.attributeSystem.getCurrentValue('isActive')
+    return this.rawIsActive && this.attributeSystem.getCurrentValue('isActive')
   }
   set isActive(value: boolean) {
     this.rawIsActive = value
@@ -73,6 +73,8 @@ export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>,
         }
         return false
       },
+      undefined,
+      ['stack', 'duration'],
     )
   }
   get battle() {

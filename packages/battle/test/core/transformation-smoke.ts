@@ -50,6 +50,11 @@ export function verifyTransformations(input: BattleContent, initial: BattleOptio
       source.duration = 1
       ctx.battle.transform(pet, ctx.battle.content.species('transformed-species'), { causedBy: source })
       ctx.battle.transform(pet.skills[0], ctx.battle.content.skill('transformed-skill'), { causedBy: source })
+      pet.currentHp = 900
+      pet.attributeSystem.addModifier(
+        'currentHp',
+        new Modifier(DurationType.binding, 'host-hp', 10, 'delta', 0, source),
+      )
       ctx.battle.configSystem.registerConfig('damage', 5)
       ctx.battle.configSystem.addConfigModifier(
         'damage',

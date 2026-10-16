@@ -6,6 +6,9 @@ import {
   EffectRegistry,
   defineEffect,
   EffectTrigger,
+  Category,
+  DamageContext,
+  EffectContext,
   Modifier,
   DurationType,
   ConfigModifier,
@@ -402,4 +405,196 @@ it('preserves independent attribute modifiers while a skill transforms and resto
   })
   input.content.skills.push({ ...structuredClone(input.content.skills[0]), id: 'form-skill', power: 60 })
   createBattle(input.options, input.content, input.registry).start()
+})
+it.each(['delta', 'percent'] as const)(
+  'mutates actual HP, rage and mark resources without reapplying a %s modifier',
+  operation => {
+    const input = setup(battle => {
+      const pet = battle.playerA.activePet,
+        source = pet.marks[0],
+        sourceSkill = pet.skills[0]
+      pet.currentHp = 300
+      pet.attributeSystem.addModifier(
+        'currentHp',
+        new Modifier(DurationType.binding, 'hp-resource', 50, operation, 0, source),
+      )
+      const beforeHp = pet.currentHp
+      battle.damage(
+        new DamageContext(
+          battle.phaseManager.currentContext as EffectContext<EffectTrigger.OnBattleStart>,
+          sourceSkill,
+          pet,
+          20,
+        ),
+      )
+      expect(pet.currentHp).toBe(beforeHp - 20)
+      battle.heal(pet, pet, 10)
+      expect(pet.currentHp).toBe(beforeHp - 10)
+      const player = pet.owner
+      player.attributeSystem.addModifier(
+        'currentRage',
+        new Modifier(DurationType.binding, 'rage-resource', 20, operation, 0, source),
+      )
+      const beforeRage = player.currentRage
+      battle.changeRage(player, 5, 'reduce', 'test')
+      expect(player.currentRage).toBe(beforeRage - 5)
+      source.config.maxStacks = 100
+      source.stack = 20
+      source.attributeSystem.addModifier('stack', new Modifier(DurationType.instant, 'stack-resource', 50, operation))
+      const beforeStack = source.stack
+      expect(battle.consumeMarkStacks(source, 5)).toBe(5)
+      expect(source.stack).toBe(beforeStack - 5)
+      source.duration = 10
+      source.attributeSystem.addModifier(
+        'duration',
+        new Modifier(DurationType.instant, 'duration-resource', 50, operation),
+      )
+      const beforeDuration = source.duration
+      source.duration--
+      expect(source.duration).toBe(beforeDuration - 1)
+    })
+    const battle = createBattle(input.options, input.content, input.registry)
+    battle.start()
+    expect(
+      restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), input.content, input.registry).snapshot(),
+    ).toEqual(battle.snapshot())
+  },
+)
+it('rejects a config self-reference at insertion and rolls back the complete operation', () => {
+  const input = setup(battle => {
+      const config = battle.configSystem
+      config.registerConfig('x', 10)
+      config.addConfigModifier(
+        'x',
+        new ConfigModifier(
+          ConfigDurationType.instant,
+          'self-config',
+          config.numberReference('x'),
+          ConfigModifierType.delta,
+        ),
+      )
+    }),
+    battle = createBattle(input.options, input.content, input.registry),
+    before = battle.snapshot()
+  expect(() => battle.start()).toThrow('Cyclic value dependency')
+  expect(battle.snapshot()).toEqual(before)
+})
+it('consumes a modified shield stack and advances a modified duration through actual rule phases', () => {
+  const input = setup(battle => {
+    const pet = battle.playerA.activePet,
+      source = pet.marks[0],
+      shield = battle.addMark(pet, 'test-shield', 20)!
+    shield.attributeSystem.addModifier(
+      'stack',
+      new Modifier(DurationType.binding, 'shield-capacity', 5, 'delta', 0, source),
+    )
+    shield.attributeSystem.addModifier(
+      'duration',
+      new Modifier(DurationType.binding, 'shield-time', 2, 'delta', 0, source),
+    )
+    const before = pet.currentHp
+    const damage = new DamageContext(
+      battle.phaseManager.currentContext as EffectContext<EffectTrigger.OnBattleStart>,
+      pet.skills[0],
+      pet,
+      10,
+    )
+    battle.damage(damage)
+    expect(shield.stack).toBe(15)
+    expect(pet.currentHp).toBe(before)
+    expect(shield.duration).toBe(5)
+  })
+  input.content.marks.push({
+    ...structuredClone(input.content.marks[0]),
+    id: 'test-shield',
+    effects: [],
+    config: { ...input.content.marks[0].config, persistent: false, duration: 3, maxStacks: 100, isShield: true },
+  })
+  input.content.skills.forEach(skill => {
+    skill.category = Category.Status
+  })
+  const battle = createBattle(input.options, input.content, input.registry)
+  battle.start()
+  battle.submitAction(skillAction(battle, 'A'))
+  battle.submitAction(skillAction(battle, 'B'))
+  expect(battle.playerA.activePet.marks.find(mark => mark.base.id === 'test-shield')!.duration).toBe(4)
+  expect(
+    restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), input.content, input.registry).snapshot(),
+  ).toEqual(battle.snapshot())
+})
+it.each(['override', 'clampMax', 'clampMin'] as const)(
+  'respects a non-invertible %s constraint during effective resource assignment',
+  type => {
+    const input = setup(battle => {
+      const pet = battle.playerA.activePet
+      pet.currentHp = 200
+      const cleanup = pet.attributeSystem.addModifier(
+        'currentHp',
+        new Modifier(DurationType.instant, 'constraint', 100, type),
+      )
+      battle.damage(
+        new DamageContext(
+          battle.phaseManager.currentContext as EffectContext<EffectTrigger.OnBattleStart>,
+          pet.skills[0],
+          pet,
+          20,
+        ),
+      )
+      expect(pet.currentHp).toBe(type === 'override' ? 100 : type === 'clampMax' ? 80 : 180)
+      cleanup()
+      expect(pet.currentHp).toBe(type === 'override' ? 200 : type === 'clampMax' ? 80 : 180)
+    })
+    createBattle(input.options, input.content, input.registry).start()
+  },
+)
+it('keeps an existing modifier intact when a cyclic replacement is caught by trusted code', () => {
+  const input = setup(battle => {
+    const config = battle.configSystem
+    config.registerConfig('x', 10)
+    const modifier = new ConfigModifier<number>(ConfigDurationType.instant, 'replace', 5, ConfigModifierType.delta)
+    config.addConfigModifier('x', modifier)
+    expect(() =>
+      config.addConfigModifier(
+        'x',
+        new ConfigModifier(
+          ConfigDurationType.instant,
+          'replace',
+          config.numberReference('x'),
+          ConfigModifierType.delta,
+        ),
+      ),
+    ).toThrow('Cyclic')
+    expect(config.get('x')).toBe(15)
+    modifier.value.next(7)
+    expect(config.get('x')).toBe(17)
+  })
+  createBattle(input.options, input.content, input.registry).start()
+})
+it('normalizes a depleted temporary HP base when its modifier source disappears, preserving restore behavior', () => {
+  const input = setup(battle => {
+      const pet = battle.playerA.activePet,
+        source = pet.marks[0]
+      pet.currentHp = 20
+      pet.attributeSystem.addModifier(
+        'currentHp',
+        new Modifier(DurationType.binding, 'temporary-hp', 100, 'delta', 0, source),
+      )
+      battle.damage(
+        new DamageContext(
+          battle.phaseManager.currentContext as EffectContext<EffectTrigger.OnBattleStart>,
+          pet.skills[0],
+          pet,
+          100,
+        ),
+      )
+      expect(pet.currentHp).toBe(20)
+      battle.removeMark(source, true)
+      expect(pet.currentHp).toBe(0)
+      expect(pet.attributeSystem.getBaseValue('currentHp')).toBe(0)
+    }),
+    battle = createBattle(input.options, input.content, input.registry)
+  battle.start()
+  const restored = restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), input.content, input.registry)
+  expect(restored.snapshot()).toEqual(battle.snapshot())
+  expect(restored.playerA.activePet.attributeSystem.getBaseValue('currentHp')).toBe(0)
 })

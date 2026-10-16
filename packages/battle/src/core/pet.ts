@@ -57,7 +57,7 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
     return this.attributeSystem.getCurrentValue('currentHp')
   }
   set currentHp(value: number) {
-    this.rawCurrentHp = value
+    this.attributeSystem.setCurrentValue('currentHp', value)
   }
   get stages(): Record<StageStat, number> {
     const result = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
@@ -109,6 +109,7 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
         return false
       },
       key => this.stageAdjustments(key),
+      ['currentHp'],
     )
   }
   get base() {

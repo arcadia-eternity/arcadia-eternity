@@ -534,6 +534,7 @@ export class Battle extends Context<null> implements MarkOwner {
     this.marks = restoreMarks(state.marks, this)
     for (const saved of state.players) {
       const player = this.getPlayerByID(saved.id)
+      player.attributeSystem.restore()
       player.currentRage = saved.currentRage
       player.maxRage = saved.maxRage
       player.attributeSystem.restore(saved.attributes)
@@ -543,7 +544,7 @@ export class Battle extends Context<null> implements MarkOwner {
         pet.species = this.content.species(savedPet.speciesId)
         pet.currentAbility = savedPet.abilityId === undefined ? (pet.build.ability ?? null) : savedPet.abilityId
         pet.currentEmblem = savedPet.emblemId === undefined ? (pet.build.emblem ?? null) : savedPet.emblemId
-        pet.attributeSystem.refreshBase()
+        pet.attributeSystem.restore()
         pet.currentHp = savedPet.currentHp
         pet.attributeSystem.restore(savedPet.attributes)
         pet.appeared = savedPet.appeared

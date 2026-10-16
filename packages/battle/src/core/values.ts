@@ -228,12 +228,13 @@ export class ValueSystem {
   }
   sourceActive(ref: ScopeReference | null) {
     if (!ref) return true
+    let source: ScopeObject
     try {
-      const source = resolveScope(this.battle, ref)
-      return !(source instanceof Mark) || (source.isActive && !source.effectsSuppressed)
+      source = resolveScope(this.battle, ref)
     } catch {
       return false
     }
+    return !(source instanceof Mark) || (!source.effectsSuppressed && source.isActive)
   }
   applicable(row: ModifierRow): boolean {
     if (!this.sourceActive(row.source)) return false
@@ -296,14 +297,22 @@ export function validatePrimitive(value: unknown): asserts value is ConfigValue 
 }
 export class ModifierStore {
   private rows: { row: ModifierRow; live: LiveModifier | null }[] = []
-  constructor(readonly battle: Battle) {}
+  constructor(
+    readonly battle: Battle,
+    private readonly afterRemoval: () => void = () => {},
+  ) {}
   snapshot(): ModifierRow[] {
     return copyData(this.rows.map(({ row, live }) => ({ ...row, value: live ? live.value.value : row.value })))
   }
   restore(rows: ModifierRow[]) {
     this.rows = copyData(rows).map(row => ({ row, live: null }))
   }
-  add(key: string, modifier: LiveModifier, scope: ScopeReference | null = null): () => void {
+  add(
+    key: string,
+    modifier: LiveModifier,
+    scope: ScopeReference | null = null,
+    validate: () => void = () => {},
+  ): () => void {
     this.battle.assertInOperation()
     if (!modifier.id || !Number.isSafeInteger(modifier.priority)) throw new Error('Invalid modifier identity/priority')
     this.battle.valueSystem.validateInput(modifier.value.value)
@@ -319,6 +328,10 @@ export class ModifierStore {
       tags: modifier.tags ? [...modifier.tags] : [],
       ...this.battle.valueSystem.lifetime(modifier),
     }
+    copyData(row)
+    if (row.minValue !== null && row.maxValue !== null && row.minValue > row.maxValue)
+      throw new Error('Invalid modifier bounds')
+    const previous = [...this.rows]
     const entry = { row, live: modifier }
     const existing = this.rows.findIndex(
       item =>
@@ -329,9 +342,17 @@ export class ModifierStore {
     )
     if (existing < 0) this.rows.push(entry)
     else this.rows[existing] = entry
+    try {
+      validate()
+    } catch (error) {
+      this.rows = previous
+      throw error
+    }
     return () => {
       this.battle.assertInOperation()
+      const before = this.rows.length
       this.rows = this.rows.filter(item => item !== entry)
+      if (before !== this.rows.length) this.afterRemoval()
     }
   }
   read(key: string, accept: (row: ModifierRow) => boolean = () => true): ModifierRow[] {
@@ -349,6 +370,7 @@ export class ModifierStore {
       }
   }
   complete(type: PhaseType | null, id: string) {
+    const before = this.rows.length
     this.rows = this.rows.filter(
       ({ row }) =>
         !(row.source?.type === 'phase' && row.source.id === id) &&
@@ -358,9 +380,12 @@ export class ModifierStore {
           (row.durationType === 'phaseType' && row.phaseTypeSpec?.phaseType === type && row.boundPhaseId === id)
         ),
     )
+    if (before !== this.rows.length) this.afterRemoval()
   }
   removeModifiersFromSource(id: string) {
+    const before = this.rows.length
     this.rows = this.rows.filter(({ row }) => row.source?.id !== id)
+    if (before !== this.rows.length) this.afterRemoval()
   }
   validate(allowedTypes: readonly string[]) {
     const seen = new Set<string>()
