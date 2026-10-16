@@ -1,3 +1,4 @@
+import { PhaseType } from '../values.js'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import { TurnContext, UseSkillContext, SwitchPetContext, RageContext } from '../context.js'
 import { copyData } from '../data.js'
@@ -110,6 +111,7 @@ export class TurnEndPhase extends SynchronousPhase<TurnContext> {
     for (const mark of battle.getActiveMarks()) battle.phaseManager.executeSync(new MarkUpdatePhase(ctx, mark))
     battle.phaseManager.executeSync(new MarkCleanupPhase(ctx))
     battle.emitEvent('turnEnd', { turn: battle.turn })
+    battle.valueSystem.complete(PhaseType.Turn, `@turn/${ctx.data.number}`)
     battle.activeTurn = null
     prepareNextDecision(battle)
   }

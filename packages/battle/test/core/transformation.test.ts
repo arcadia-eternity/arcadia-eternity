@@ -522,3 +522,43 @@ it('dispatches the transformed skill effect references and restores the original
   expect(calls.filter(call => call === 'new')).toHaveLength(1)
   expect(calls.filter(call => call === 'old')).toHaveLength(3)
 })
+it('does not acquire destruction ownership of a pre-existing status mark used as a destination ability', () => {
+  const ending = defineEffect({
+    id: 'end-pet-form',
+    version: '1',
+    triggers: [EffectTrigger.TurnEnd],
+    execute(ctx) {
+      ctx.battle.endTransformation(ctx.battle.playerA.activePet)
+    },
+  })
+  const input = setup(
+    battle => {
+      battle.addMark(battle.playerA.activePet, 'form-mark')
+      transform(battle)
+    },
+    [ending],
+  )
+  input.content.marks.find(mark => mark.id === 'control')!.effects.push({ id: ending.id, version: '1', params: {} })
+  const battle = createBattle(input.options, input.content, input.registry)
+  battle.start()
+  const statusId = battle.playerA.activePet.marks.find(mark => mark.base.id === 'form-mark')!.id
+  const restored = restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), input.content, input.registry)
+  restored.submitAction(skillAction(restored, 'A'))
+  restored.submitAction(skillAction(restored, 'B'))
+  expect(restored.playerA.activePet.marks.some(mark => mark.id === statusId)).toBe(true)
+})
+it('keeps an initiating native mark dormant during override, then restores it or cleans its source-bound form', () => {
+  const input = setup(battle => {
+    battle.transform(battle.playerA.activePet, battle.content.species('form'), { effectHandlingStrategy: 'override' })
+  })
+  const battle = createBattle(input.options, input.content, input.registry)
+  battle.start()
+  const source = battle.playerA.activePet.marks.find(mark => mark.base.id === 'control')!
+  expect(source.isActive).toBe(true)
+  expect(source.effectsSuppressed).toBe(true)
+  expect(source.effects).toEqual([])
+  const restored = restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), input.content, input.registry)
+  expect(restored.snapshot()).toEqual(battle.snapshot())
+  expect(restored.playerA.activePet.base.id).toBe('form')
+  expect(restored.playerA.activePet.marks.find(mark => mark.id === source.id)!.effectsSuppressed).toBe(true)
+})

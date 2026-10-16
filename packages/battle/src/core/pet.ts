@@ -1,3 +1,9 @@
+import {
+  AttributeSystem,
+  type AttributeSystemState,
+  type PetAttributeSet,
+  type AttributeAdjustment,
+} from './attributeSystem.js'
 import type { petId } from '@arcadia-eternity/const'
 import type { Instance, OwnedEntity, MarkOwner } from './entity.js'
 import type { AddMarkContext, RemoveMarkContext } from './context.js'
@@ -18,6 +24,7 @@ import type { Mark, MarkState } from './mark.js'
 
 export type StageStat = 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 export interface PetState {
+  attributes?: AttributeSystemState
   build: PetBuild
   speciesId: string
   abilityId?: string | null
@@ -44,7 +51,14 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
   currentEmblem: string | null
   gender: Gender
   appeared = false
-  currentHp: number
+  private rawCurrentHp: number
+  readonly attributeSystem: AttributeSystem<PetAttributeSet>
+  get currentHp(): number {
+    return this.attributeSystem.getCurrentValue('currentHp')
+  }
+  set currentHp(value: number) {
+    this.rawCurrentHp = value
+  }
   get stages(): Record<StageStat, number> {
     const result = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
     for (const mark of this.marks) {
@@ -83,7 +97,19 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
     this.skills = Object.freeze(
       build.skills.map((id, index) => new Skill(`${this.id}/skill/${index}`, content.skill(id), this)),
     )
-    this.currentHp = this.stat.maxHp
+    this.rawCurrentHp = this.calculateStats().maxHp
+    this.attributeSystem = new AttributeSystem<PetAttributeSet>(
+      this,
+      () => ({ ...this.calculateStats(), currentHp: this.rawCurrentHp }),
+      (key, value) => {
+        if (key === 'currentHp') {
+          this.rawCurrentHp = value
+          return true
+        }
+        return false
+      },
+      key => this.stageAdjustments(key),
+    )
   }
   get base() {
     return this.species
@@ -162,18 +188,33 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
   get actualStat() {
     return this.stat
   }
+  private stageAdjustments(key: keyof PetAttributeSet): AttributeAdjustment[] {
+    if (!['atk', 'def', 'spa', 'spd', 'spe'].includes(key)) return []
+    const stage = this.stages[key as StageStat]
+    if (!stage) return []
+    return [
+      {
+        id: `@stage/${key}`,
+        type: 'percent',
+        priority: 0,
+        value: [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4][stage + 6] * 100 - 100,
+        tags: ['statStage', stage > 0 ? 'positive' : 'negative'],
+      },
+    ]
+  }
   getEffectiveStat(ignoreStage = IgnoreStageStrategy.none): StatOnBattle {
     const result = this.calculateStats()
-    for (const stat of ['atk', 'def', 'spa', 'spd', 'spe'] as const) {
-      const stage = this.stages[stat]
-      if (
-        ignoreStage === IgnoreStageStrategy.all ||
-        (ignoreStage === IgnoreStageStrategy.positive && stage > 0) ||
-        (ignoreStage === IgnoreStageStrategy.negative && stage < 0)
+    for (const key of Object.keys(result) as (keyof StatOnBattle)[])
+      result[key] = this.attributeSystem.getCurrentValue(
+        key,
+        modifier =>
+          !modifier.tags.includes('statStage') ||
+          !(
+            ignoreStage === IgnoreStageStrategy.all ||
+            (ignoreStage === IgnoreStageStrategy.positive && modifier.tags.includes('positive')) ||
+            (ignoreStage === IgnoreStageStrategy.negative && modifier.tags.includes('negative'))
+          ),
       )
-        continue
-      result[stat] *= [0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4][stage + 6]
-    }
     return result
   }
   rememberSkill(skill: Skill) {
@@ -186,6 +227,7 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
   getState(): PetState {
     return copyData({
       build: this.build,
+      attributes: this.attributeSystem.snapshot(),
       speciesId: this.species.id,
       abilityId: this.currentAbility !== (this.build.ability ?? null) ? this.currentAbility : undefined,
       emblemId: this.currentEmblem !== (this.build.emblem ?? null) ? this.currentEmblem : undefined,

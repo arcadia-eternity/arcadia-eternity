@@ -39,6 +39,7 @@ export interface TransformTargetState {
   originalEffects: EffectReference[]
   originalConfig: MarkConfig | null
   nativeMarkIds: string[]
+  suppressedMarkIds: string[]
   records: TransformationRecord[]
 }
 export interface TransformationState {
@@ -163,6 +164,7 @@ export class TransformationSystem {
           target instanceof Pet
             ? target.marks.filter(mark => [target.ability, target.emblem].includes(mark.base.id)).map(mark => mark.id)
             : [],
+        suppressedMarkIds: [],
         records: [],
       }
       this.targets.set(id, entry)
@@ -235,7 +237,10 @@ export class TransformationSystem {
         new TransformEndContext(parent, target, item.id, target === mark ? 'target_destroyed' : 'mark_destroyed'),
       )
     }
-    for (const entry of this.targets.values()) entry.nativeMarkIds = entry.nativeMarkIds.filter(id => id !== mark.id)
+    for (const entry of this.targets.values()) {
+      entry.nativeMarkIds = entry.nativeMarkIds.filter(id => id !== mark.id)
+      entry.suppressedMarkIds = entry.suppressedMarkIds.filter(id => id !== mark.id)
+    }
   }
   private effectiveEffects(entry: TransformTargetState): readonly EffectReference[] {
     const active = top(entry.records),
@@ -262,14 +267,18 @@ export class TransformationSystem {
         previousMax = target.stat.maxHp,
         alive = target.isAlive
       target.species = base
-      target.currentHp = alive ? Math.max(1, Math.floor((target.stat.maxHp * previousHp) / previousMax)) : 0
+      target.attributeSystem.refreshBase()
       this.updateNativeMarks(entry, target, active, base, parent)
+      target.currentHp = alive ? Math.max(1, Math.floor((target.stat.maxHp * previousHp) / previousMax)) : 0
     } else {
       const effects = this.effectiveEffects(entry)
       if (target instanceof Skill) {
         if (!('power' in base)) throw new Error('Skill requires skill prototype')
         for (const field of ['power', 'accuracy', 'rage', 'priority'] as const)
-          target[field] += base[field] - target.base[field]
+          target.attributeSystem.updateBaseValue(
+            field,
+            target.attributeSystem.getBaseValue(field) + base[field] - target.base[field],
+          )
         target.base = base
       } else {
         if (!('config' in base)) throw new Error('Mark requires mark prototype')
@@ -302,17 +311,27 @@ export class TransformationSystem {
     for (const id of desired) this.battle.content.mark(id)
     pet.currentAbility = ability ?? null
     pet.currentEmblem = emblem ?? null
-    for (const mark of [...pet.marks])
-      if (entry.nativeMarkIds.includes(mark.id) && !desired.has(mark.base.id)) {
+    for (const mark of [...pet.marks]) {
+      if (!entry.nativeMarkIds.includes(mark.id)) continue
+      if (desired.has(mark.base.id)) {
+        if (entry.suppressedMarkIds.includes(mark.id)) mark.effectsSuppressed = false
+        entry.suppressedMarkIds = entry.suppressedMarkIds.filter(id => id !== mark.id)
+      } else if (entry.records.some(record => record.causedBy?.type === 'mark' && record.causedBy.id === mark.id)) {
+        // Retain the live source as a dormant anchor; destroying it would immediately undo its own form.
+        mark.effectsSuppressed = true
+        if (!entry.suppressedMarkIds.includes(mark.id)) entry.suppressedMarkIds.push(mark.id)
+      } else {
         this.battle.removeMark(new RemoveMarkContext(parent, mark, true))
         if (mark.isActive) throw new Error('Native mark removal was prevented during transformation')
       }
+    }
     entry.nativeMarkIds = entry.nativeMarkIds.filter(id => pet.marks.some(mark => mark.id === id))
     for (const id of desired) {
-      let mark = pet.marks.find(mark => mark.base.id === id && mark.isActive)
-      if (!mark) mark = this.battle.addMark(new AddMarkContext(parent, pet, this.battle.content.mark(id))) ?? undefined
+      const existing = pet.marks.find(mark => mark.base.id === id && mark.isActive)
+      if (existing) continue // Reusing a status mark does not acquire ownership of its destruction.
+      const mark = this.battle.addMark(new AddMarkContext(parent, pet, this.battle.content.mark(id)))
       if (!mark) throw new Error('Native mark creation was prevented during transformation')
-      if (!entry.nativeMarkIds.includes(mark.id)) entry.nativeMarkIds.push(mark.id)
+      entry.nativeMarkIds.push(mark.id)
     }
   }
   /** Validate ID/prototype/source relationships after the Battle object graph has been rehydrated. */
@@ -381,7 +400,15 @@ export class TransformationSystem {
         if (!entry.originalConfig) throw new Error('Missing original mark config')
         requireNumber(entry.originalConfig.maxStacks, 'original mark max stacks', 1)
       } else if (entry.originalConfig !== null) throw new Error('Unexpected original mark config')
-      if (!(target instanceof Pet) && entry.nativeMarkIds.length) throw new Error('Unexpected native marks')
+      if (!(target instanceof Pet) && (entry.nativeMarkIds.length || entry.suppressedMarkIds.length))
+        throw new Error('Unexpected native marks')
+      for (const id of entry.suppressedMarkIds)
+        if (
+          !entry.nativeMarkIds.includes(id) ||
+          !(target instanceof Pet) ||
+          !target.marks.some(mark => mark.id === id && mark.effectsSuppressed)
+        )
+          throw new Error('Invalid suppressed native mark')
       if (new Set(entry.nativeMarkIds).size !== entry.nativeMarkIds.length) throw new Error('Duplicate native mark')
       for (const id of entry.nativeMarkIds)
         if (!(target instanceof Pet) || !target.marks.some(mark => mark.id === id && mark.isActive))

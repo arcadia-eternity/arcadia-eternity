@@ -100,3 +100,41 @@ export function compileContracts(
     },
   })
 }
+
+// Value systems retain the key/value and modifier-operation relationships at the public API.
+import {
+  Modifier,
+  DurationType,
+  ConfigSystem,
+  ConfigModifier,
+  ConfigModifierType,
+  ConfigDurationType,
+} from '@arcadia-eternity/battle/core'
+export function compileValueContracts(battle: Battle, pet: Pet) {
+  const config = new ConfigSystem<{ count: number; label: string; enabled: boolean }>(battle)
+  config.registerConfig('count', 10)
+  const count: number | undefined = config.get('count')
+  void count
+  // @ts-expect-error Unknown typed config key.
+  config.get('missing')
+  // @ts-expect-error A numeric config cannot take a string base value.
+  config.set('count', 'ten')
+  // @ts-expect-error Attribute keys are tied to the entity's actual attribute set.
+  pet.attributeSystem.addModifier('unknown', new Modifier(DurationType.instant, 'bad', 1, 'delta'))
+  // @ts-expect-error A numeric attribute cannot be overridden with a boolean modifier.
+  pet.attributeSystem.addModifier('atk', new Modifier<boolean>(DurationType.instant, 'bad', true, 'override'))
+  // @ts-expect-error Boolean modifiers do not support numeric percent operations.
+  new Modifier<boolean>(DurationType.instant, 'bad', true, 'percent')
+  // @ts-expect-error A boolean config modifier cannot use a string append operation.
+  new ConfigModifier<boolean>(ConfigDurationType.instant, 'bad', true, ConfigModifierType.append)
+  config.addConfigModifier(
+    'count',
+    // @ts-expect-error A string config modifier cannot target a numeric config.
+    new ConfigModifier<string>(ConfigDurationType.instant, 'bad', 'x', ConfigModifierType.append),
+  )
+  pet.attributeSystem.addModifier(
+    'atk',
+    // @ts-expect-error A boolean live attribute reference cannot supply a numeric modifier.
+    new Modifier<number>(DurationType.instant, 'bad', pet.skills[0].attributeSystem.reference('appeared'), 'delta'),
+  )
+}

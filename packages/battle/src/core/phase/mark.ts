@@ -7,7 +7,7 @@ import {
   MarkTransferContext,
   SwitchPetContext,
   TurnContext,
-  type OperationContext,
+  type MarkOperationParent,
 } from '../context.js'
 import type { Mark } from '../mark.js'
 import { Mark as MarkInstance } from '../mark.js'
@@ -91,6 +91,7 @@ export class RemoveMarkPhase extends SynchronousPhase<RemoveMarkContext> {
     battle.applyEffects(ctx, EffectTrigger.OnRemoveMark, [mark])
     if (!ctx.available) return
     mark.isActive = false
+    battle.valueSystem.removeSource(mark.id)
     battle.applyEffects(ctx, EffectTrigger.OnMarkDestroy, [mark])
     battle.transformationSystem.cleanupMark(mark, ctx)
     battle.emitEvent('markRemoved', { markId: mark.id, baseMarkId: mark.base.id, ownerId: mark.owner.id })
@@ -198,10 +199,17 @@ export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
     }
   }
 }
-export class MarkCleanupPhase<C extends OperationContext> extends SynchronousPhase<C> {
+export class MarkCleanupPhase<C extends MarkOperationParent> extends SynchronousPhase<C> {
   readonly kind = 'mark-cleanup'
   protected executeOperation() {
-    for (const owner of [this.battle, ...this.battle.players.flatMap(p => p.team)])
+    for (const owner of [this.battle, ...this.battle.players.flatMap(p => p.team)]) {
+      for (const mark of [...owner.marks]) {
+        if (!mark.isActive) {
+          this.battle.valueSystem.removeSource(mark.id)
+          this.battle.transformationSystem.cleanupMark(mark, new RemoveMarkContext(this.context, mark, true))
+        } else if (mark.stack <= 0) this.battle.removeMark(new RemoveMarkContext(this.context, mark, true))
+      }
       owner.marks = owner.marks.filter(mark => mark.isActive && mark.stack > 0)
+    }
   }
 }

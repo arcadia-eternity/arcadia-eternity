@@ -35,3 +35,7 @@ export {
 } from '@arcadia-eternity/const'
 export { TransformationSystem } from './transformation.js'
 export type * from './transformation.js'
+export * from './attributeSystem.js'
+export * from './config.js'
+export { computed, ValueCell } from './values.js'
+export type { TrustedValue, ValueInput, AttributeReference, ConfigReference, ComputedReference } from './values.js'

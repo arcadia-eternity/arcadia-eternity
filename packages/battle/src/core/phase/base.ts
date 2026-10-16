@@ -1,3 +1,5 @@
+import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../config.js'
+import type { ConfigValue, ValueInput } from '../values.js'
 import type { ContextNode } from '../context.js'
 
 export enum PhaseState {
@@ -13,6 +15,7 @@ export type PhaseResult<R> = { state: PhaseState.Completed; value: R } | { state
 /** Runtime phase. Its context is a real typed parent graph, not a save DTO. */
 export abstract class BattlePhaseBase<C extends ContextNode, R = void> {
   abstract readonly kind: string
+  private configCounter = 0
   id: string | null = null
   parentPhaseId: string | null = null
   state = PhaseState.Pending
@@ -42,6 +45,23 @@ export abstract class BattlePhaseBase<C extends ContextNode, R = void> {
       this.onError(error)
       throw error
     }
+  }
+  addConfigModifier(key: string, type: ConfigModifierType, value: ValueInput<ConfigValue>, priority = 0): () => void {
+    if (!this.id) throw new Error('Config modifier requires an executing phase')
+    return this.battle.configSystem.addConfigModifier(
+      key,
+      new ConfigModifier(
+        ConfigDurationType.phase,
+        `${this.id}/config/${this.configCounter++}`,
+        value,
+        type,
+        priority,
+        this,
+      ),
+    )
+  }
+  addDynamicConfigModifier(key: string, type: ConfigModifierType, value: ValueInput<ConfigValue>, priority = 0) {
+    return this.addConfigModifier(key, type, value, priority)
   }
   cancel() {
     if ([PhaseState.Pending, PhaseState.Ready, PhaseState.Waiting].includes(this.state)) {

@@ -23,7 +23,9 @@ export class EffectPhase<T extends EffectTrigger> extends SynchronousPhase<Effec
     if (!meta) this.battle.applyEffects(context as AnyEffectContext, EffectTrigger.BeforeEffect)
     if (
       !context.available ||
-      (context.source instanceof Mark && !context.source.isActive && context.trigger !== EffectTrigger.OnMarkDestroy)
+      (context.source instanceof Mark &&
+        (!context.source.isActive || context.source.effectsSuppressed) &&
+        context.trigger !== EffectTrigger.OnMarkDestroy)
     )
       return
     const result: unknown = this.definition.execute(context)
@@ -54,7 +56,12 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
       .filter(call => call.definition.triggers.includes(this.trigger))
       .sort((a, b) => (b.definition.priority ?? 0) - (a.definition.priority ?? 0))
     for (const { source, ref, definition } of calls) {
-      if (source instanceof Mark && !source.isActive && this.trigger !== EffectTrigger.OnMarkDestroy) continue
+      if (
+        source instanceof Mark &&
+        (!source.isActive || source.effectsSuppressed) &&
+        this.trigger !== EffectTrigger.OnMarkDestroy
+      )
+        continue
       this.executeEffect(source, ref, definition)
     }
   }

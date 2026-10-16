@@ -15,6 +15,7 @@ import type { MarkOwner } from './entity.js'
 import type { TrustedEffect } from './effects.js'
 import type { JsonObject } from './data.js'
 import { copyData } from './data.js'
+import { validatePrimitive, type ConfigValue } from './values.js'
 import type { TransformOptions, TransformEndReason, TransformationRecord } from './transformation.js'
 
 export interface ContextNode {
@@ -503,6 +504,12 @@ export interface TriggerContextMap {
 export class EffectContext<TTrigger extends EffectTrigger> extends Context<TriggerContextMap[TTrigger]> {
   readonly kind = 'effect'
   readonly type = 'effect'
+  getConfigValue(name: string): ConfigValue {
+    const configured = this.battle.configSystem.get(`${this.effect.id}.${name}`, this.source)
+    const value = configured === undefined ? this.params[name] : configured
+    validatePrimitive(value)
+    return value
+  }
   available = true
   success = false
   constructor(

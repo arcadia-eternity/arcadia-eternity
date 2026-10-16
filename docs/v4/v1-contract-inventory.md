@@ -23,7 +23,7 @@
 | AddMark / RemoveMark                                                | 添加校验/互斥/实例化与完整销毁生命周期                                                               |
 | MarkStack / MarkSwitchOut / MarkTransfer / MarkUpdate / MarkCleanup | 叠层、离场清理、转移、时长到期与失效清理；复用统一入口                                               |
 | effect / effectExecution                                            | 带 TriggerContextMap 的可信调用接缝与来源收集；完整效果系统仍属于 #205                               |
-| transform                                                           | 保留 target→prototype 类型关系；完整变身及撤销机制需要与 #205 的效果生命周期一起明确，不能虚报已完成 |
+| transform                                                           | 具体 Transform/TransformEnd Phase、临时优先级层、永久变更策略、来源清理和快照重建；target→prototype 保持类型关系 |
 
 ## 可以调整的实现责任
 
@@ -40,6 +40,10 @@
 - Context 父类型和触发器映射落在 `context.ts`；`EffectContext.effect` 与 `EffectPhase.definition` 使用 NoInfer 约束，防止错误 handler 反向推宽 trigger 泛型。
 - `phase/` 实际包含各结算职责的实现，`Battle` 不再集中规则体。`continuation.ts` 只承载存档数据，不冒充运行时 Phase。
 - 运行测试有 51 项，包括 Phase/Context 真正的父链、TurnContext 数据恢复、BeforeSort 选招/目标连续性、替换技能的默认目标刷新、覆盖印记配置和跨 Battle 隔离。另有 13 个有效编译反例；错误匹配不能编译。
-- EffectPhase 已执行 BeforeEffect/AfterEffect 的真实生命周期；AfterAttacked 和 Transform 完整生命周期仍未实现。完整变身/撤销、动态 modifier 与正式 EffectTemplate 不属于这次已验证的能力，不以类型声明替代实现。
+- EffectPhase 已执行 BeforeEffect/AfterEffect 的真实生命周期。变身/撤销及配置/属性 modifier 已补回，契约和验证见 [config-and-modifiers.md](config-and-modifiers.md)。AfterAttacked 未找到官方效果使用，按用户要求搁置；正式 EffectTemplate 仍属后续。
 
 这份状态仍是草稿 PR 的可审查进展；Issues 保持打开，未据此自动宣布完整架构验收。
+
+## 后续用户复核补齐
+
+TransformPhase / TransformEndPhase、分层 TransformationSystem 和原型类型关系已落实；具体支持 Pet/Skill/Mark、临时与永久策略、来源到期/销毁、HP 比例转换、效果保留/覆盖，以及纯 JSON 恢复/重放。ConfigSystem、AttributeSystem<T> 和 Modifier<T> 已重新进入实际实体 getter 和结算，并有来源/阶段清理与动态值重建。此前文档中“未实现 Transform/modifier”的记录仅对应先前版本，不再描述当前代码。

@@ -5,6 +5,12 @@ import {
   defineEffect,
   EffectRegistry,
   EffectTrigger,
+  Modifier,
+  DurationType,
+  ConfigModifier,
+  ConfigModifierType,
+  ConfigDurationType,
+  computed,
   type BattleContent,
   type BattleOptions,
 } from '@arcadia-eternity/battle/core'
@@ -39,17 +45,64 @@ export function verifyTransformations(input: BattleContent, initial: BattleOptio
       const pet = ctx.battle.playerA.activePet
       const source = ctx.battle.addMark(pet, 'transform-source')!
       source.config.persistent = false
+      source.config.maxStacks = 3
+      source.stack = 2
       source.duration = 1
       ctx.battle.transform(pet, ctx.battle.content.species('transformed-species'), { causedBy: source })
       ctx.battle.transform(pet.skills[0], ctx.battle.content.skill('transformed-skill'), { causedBy: source })
+      ctx.battle.configSystem.registerConfig('damage', 5)
+      ctx.battle.configSystem.addConfigModifier(
+        'damage',
+        new ConfigModifier(ConfigDurationType.binding, 'source-config', 2, ConfigModifierType.delta, 0, source),
+      )
+      pet.skills[0].attributeSystem.addModifier(
+        'power',
+        new Modifier(
+          DurationType.binding,
+          'source-stack',
+          source.attributeSystem.reference('stack'),
+          'delta',
+          0,
+          source,
+        ),
+      )
+      pet.attributeSystem.addModifier(
+        'atk',
+        new Modifier(
+          DurationType.binding,
+          'host-computed',
+          computed<number>('host-dynamic', '1', { pet: pet.id }),
+          'delta',
+          0,
+          source,
+        ),
+      )
     },
   })
-  const registry = new EffectRegistry([effect]),
+  const registry = new EffectRegistry(
+      [effect],
+      [
+        {
+          id: 'host-dynamic',
+          version: '1',
+          evaluate(battle, params) {
+            return (
+              battle.getPetByID(params.pet as string).marks.find(mark => mark.base.id === 'transform-source')!.stack * 3
+            )
+          },
+        },
+      ],
+    ),
     battle = createBattle(options, content, registry)
   battle.start()
   if (battle.playerA.activePet.base.id !== 'transformed-species') throw new Error('Pet transformation did not execute')
   if (battle.playerA.activePet.skills[0].base.id !== 'transformed-skill')
     throw new Error('Skill transformation did not execute')
+  if (
+    battle.playerA.activePet.skills[0].power !== 42 ||
+    battle.configSystem.get('damage', battle.playerA.activePet) !== 7
+  )
+    throw new Error('Dynamic values did not execute')
   const restored = restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), content, registry)
   for (const instance of [battle, restored]) {
     for (const player of instance.players) {
@@ -62,5 +115,16 @@ export function verifyTransformations(input: BattleContent, initial: BattleOptio
   const replayed = JSON.stringify(replay.snapshot()) === JSON.stringify(battle.snapshot())
   const endedForms = battle.getEvents().filter(event => event.type === 'transformEnd').length
   if (!identical || !replayed || endedForms !== 2) throw new Error('Transformation restore/expiry/replay mismatch')
-  return { identical, replayed, endedForms, remainingForms: battle.getState().transformations!.targets.length }
+  if (
+    battle.playerA.activePet.skills[0].attributeSystem.snapshot() ||
+    battle.configSystem.get('damage', battle.playerA.activePet) !== 5
+  )
+    throw new Error('Source modifier cleanup failed')
+  return {
+    identical,
+    replayed,
+    endedForms,
+    modifiersCleaned: true,
+    remainingForms: battle.getState().transformations!.targets.length,
+  }
 }

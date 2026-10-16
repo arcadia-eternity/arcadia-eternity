@@ -1,3 +1,5 @@
+import { ConfigSystem, type ConfigSystemState } from './config.js'
+import { ValueSystem, PhaseType, type ModifierStore } from './values.js'
 import { AttackTargetOpinion, EffectTrigger, type markId } from '@arcadia-eternity/const'
 import { ContentCatalog, type BattleContent, type PlayerBuild } from './content.js'
 import { copyData, canonicalData, freezeData, requireNumber, type JsonObject } from './data.js'
@@ -80,6 +82,7 @@ export interface BattleState {
   players: PlayerState[]
   marks: MarkState[]
   phase: ReturnType<BattleContinuation['getState']>
+  config?: ConfigSystemState
   transformations?: TransformationState
   turnContext: TurnContextData | null
 }
@@ -114,6 +117,8 @@ export class Battle extends Context<null> implements MarkOwner {
   override get battle(): Battle {
     return this
   }
+  readonly configSystem: ConfigSystem
+  readonly valueSystem: ValueSystem
   readonly transformationSystem: TransformationSystem
   readonly phaseManager: PhaseManager
   activeTurn: TurnContext | null = null
@@ -141,6 +146,8 @@ export class Battle extends Context<null> implements MarkOwner {
   constructor(options: BattleOptions, content: BattleContent, registry = new EffectRegistry()) {
     super(null)
     this.phaseManager = new PhaseManager(this)
+    this.valueSystem = new ValueSystem(this)
+    this.configSystem = new ConfigSystem(this)
     this.transformationSystem = new TransformationSystem(this)
     this.initial = freezeData(copyData(options))
     this.id = options.id
@@ -168,6 +175,20 @@ export class Battle extends Context<null> implements MarkOwner {
       throw new Error('Battle instance IDs must be unique and outside @mark/')
     for (const player of this.players)
       for (const pet of player.team) for (const id of [pet.ability, pet.emblem]) if (id) this.content.mark(id)
+  }
+  getValueStores(): ModifierStore[] {
+    return [
+      this.configSystem.store,
+      ...this.players.flatMap(player => [
+        player.attributeSystem.store,
+        ...player.team.flatMap(pet => [
+          pet.attributeSystem.store,
+          ...pet.skills.map(skill => skill.attributeSystem.store),
+          ...pet.marks.map(mark => mark.attributeSystem.store),
+        ]),
+      ]),
+      ...this.marks.map(mark => mark.attributeSystem.store),
+    ]
   }
   get playerA() {
     return this.players[0]
@@ -316,6 +337,8 @@ export class Battle extends Context<null> implements MarkOwner {
     return true
   }
   finish(victor: string | null, reason: string) {
+    if (this.activeTurn) this.valueSystem.complete(PhaseType.Turn, `@turn/${this.activeTurn.data.number}`)
+    this.valueSystem.complete(PhaseType.Battle, this.id)
     this.status = 'ended'
     this.victor = victor
     this.endReason = reason
@@ -442,6 +465,7 @@ export class Battle extends Context<null> implements MarkOwner {
       players: this.players.map(p => p.getState()),
       marks: this.marks.map(m => m.getState()),
       phase: this.phase.getState(),
+      config: this.configSystem.snapshot(),
       transformations: this.transformationSystem.snapshot(),
       turnContext: this.activeTurn ? copyData(this.activeTurn.data) : null,
     })
@@ -501,7 +525,9 @@ export class Battle extends Context<null> implements MarkOwner {
         const mark = new Mark(s.id as markId, this.content.mark(s.baseId), owner, s.stack, s.creatorId, s.config)
         mark.duration = s.duration
         mark.isActive = s.isActive
+        mark.effectsSuppressed = s.effectsSuppressed === true
         mark.config = copyData(s.config)
+        mark.attributeSystem.restore(s.attributes)
         mark.effectReferences = s.effects ? copyData(s.effects) : undefined
         return mark
       })
@@ -510,13 +536,16 @@ export class Battle extends Context<null> implements MarkOwner {
       const player = this.getPlayerByID(saved.id)
       player.currentRage = saved.currentRage
       player.maxRage = saved.maxRage
+      player.attributeSystem.restore(saved.attributes)
       player.activePet = this.getPetByID(saved.activePetId)
       for (const savedPet of saved.team) {
         const pet = this.getPetByID(savedPet.build.id)
         pet.species = this.content.species(savedPet.speciesId)
         pet.currentAbility = savedPet.abilityId === undefined ? (pet.build.ability ?? null) : savedPet.abilityId
         pet.currentEmblem = savedPet.emblemId === undefined ? (pet.build.emblem ?? null) : savedPet.emblemId
+        pet.attributeSystem.refreshBase()
         pet.currentHp = savedPet.currentHp
+        pet.attributeSystem.restore(savedPet.attributes)
         pet.appeared = savedPet.appeared
         pet.gender = savedPet.gender
         pet.lastSkill = savedPet.lastSkillId ? this.getSkillByID(savedPet.lastSkillId) : null
@@ -532,10 +561,12 @@ export class Battle extends Context<null> implements MarkOwner {
           skill.rage = s.rage
           skill.priority = s.priority
           skill.appeared = s.appeared
+          skill.attributeSystem.restore(s.attributes)
         }
       }
     }
     this.transformationSystem.restore(state.transformations)
+    this.configSystem.restore(state.config)
   }
   static restore(snapshot: BattleSnapshot, content: BattleContent, registry = new EffectRegistry()): Battle {
     const clean = copyData(snapshot)
@@ -544,6 +575,16 @@ export class Battle extends Context<null> implements MarkOwner {
     if (battle.content.identity !== clean.contentIdentity) throw new Error('Content identity mismatch')
     battle.validateSnapshot(clean)
     battle.load(clean)
+    battle.configSystem.validate(clean.state.config)
+    for (const player of battle.players) {
+      player.attributeSystem.validate()
+      for (const pet of player.team) {
+        pet.attributeSystem.validate()
+        for (const skill of pet.skills) skill.attributeSystem.validate()
+        for (const mark of pet.marks) mark.attributeSystem.validate()
+      }
+    }
+    for (const mark of battle.marks) mark.attributeSystem.validate()
     battle.transformationSystem.validateState(clean.state.transformations)
     battle.validateContinuation()
     if (canonicalData(battle.snapshot()) !== canonicalData(clean))

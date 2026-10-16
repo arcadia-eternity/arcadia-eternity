@@ -49,7 +49,7 @@ stop()
 
 印记覆盖添加/同种叠层策略/互斥、永久与有限时长、离场保留/销毁/转移、阵亡继承、护盾统一消耗路径和销毁回调。能力等级上下限 ±6；等级印记保留在离场精灵上。只对场上精灵及 battle 印记触发常规回合效果，后备持续时间暂停。
 
-没有搬回 RxJS 响应式属性系统、通用 modifier 框架、旧消息差分、timer/animation 管理、变身框架或 AIPlayer。属性由领域状态计算；可信效果对新能力的扩展应在 #205 设计，而不是恢复 ECS。当前 Species 的稳定 ID 可存档恢复；尚未实现完整的技能/印记变身与撤销语义。
+属性和配置修改使用宿主无关的类型化系统，保留动态依赖及生命周期；没有恢复旧的全局注册表、RxJS 订阅、消息差分、timer/animation 或 AIPlayer。Species/Skill/Mark 的变身与撤销、来源生命周期和动态属性已实现，具体契约见 [config-and-modifiers.md](config-and-modifiers.md)。
 
 ## #205 / #223 扩展接缝
 
@@ -106,7 +106,7 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 
 ## 尚未覆盖
 
-- 全量官方内容、所有触发器组合、复杂连锁击杀/强制技能换宠、完整变身/动态 modifier 语义没有迁移验收；正式 Effect 流程和模板校验属 #205/#206/#223。
+- 全量官方内容、所有触发器组合、复杂连锁击杀/强制技能换宠、全量官方变身/属性效果目录没有迁移验收；基础变身/撤销及配置/属性 modifier 已补回，正式 Effect 流程和模板校验属 #205/#206/#223。
 - 新增 Browser 是核心包运行验证，没有 Web UI、本地 AI 产品流程或 Electron 安装版；这些属于 #207–#209。
 - 保存点是规则原子边界，不支持可信函数栈内部存档；网络重连的鉴权/隐私/去重由宿主负责。
 - 没有引入 Redis、用户数据库、规则系统、排位或服务依赖。
@@ -153,3 +153,9 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 修正后的全仓 `pnpm build` 通过（lint、各包、根 typecheck、CLI）；最后的目标修复后重新构建 battle 包并执行根 typecheck，通过。公开 `/core` 在 Node 和真实 Chrome 中分别执行完整 fixture 回放及 JSON 恢复，均为 7 回合、A 胜、379 条事件，恢复结果及跨宿主结果完全一致；运行时模块图各 5 个节点，没有 engine 或宿主依赖。全仓测试的三个 P2P 既有失败仍按上文单独记录，不宣称全仓测试全绿。
 
 仍未实现的触发语义明确包括 AfterAttacked 和完整 Transform 生命周期；不能因 TriggerContextMap 有类型声明就认为这些运行机制已完成。完整 Effect/EffectTemplate、变身/撤销策略和动态属性 modifier 仍待 #205/#223 等后续任务，未宣称本轮完成。
+
+## 最新补齐：变身、ConfigValue 与 modifier
+
+用户要求补齐后，已加入实际 Transform/TransformEnd Phase 和临时/永久变身分层，支持 Pet/Skill/Mark、效果保留/覆盖、原生印记管理、来源销毁/到期、当前 HP 比例转换和 JSON 恢复/动作重放。ConfigSystem、AttributeSystem<T>、Modifier<T> 已接回实体实际 getter；支持类型化操作、动态属性/配置引用、版本化可信计算和来源/阶段清理。完整契约、与 V1 的修正及计算边界见 [config-and-modifiers.md](config-and-modifiers.md)。
+
+AfterAttacked 在当前官方效果目录及 V2 没有使用，指定 V1 提交也只有声明，依用户要求搁置。没有新增派发，原官方 Core golden 仍为 379 条事件。前面“尚未实现 Transform/modifier”的复核记录是历史版本状态。

@@ -1,3 +1,4 @@
+import { phaseType } from '../values.js'
 import type { Battle } from '../battle.js'
 import {
   UseSkillContext,
@@ -35,6 +36,9 @@ export class PhaseManager {
   private stack: BattlePhaseBase<ContextNode, unknown>[] = []
   private observers = new Set<(phase: BattlePhaseBase<ContextNode, unknown>) => void>()
   constructor(readonly battle: Battle) {}
+  getActivePhases(): readonly BattlePhaseBase<ContextNode, unknown>[] {
+    return [...this.stack]
+  }
   get currentContext(): ContextNode {
     return this.stack.at(-1)?.context ?? this.battle
   }
@@ -52,6 +56,7 @@ export class PhaseManager {
     }
     this.stack.push(phase)
     try {
+      this.battle.valueSystem.enter()
       if (phase.state === PhaseState.Pending) phase.initialize()
       return phase.execute()
     } finally {
@@ -65,8 +70,13 @@ export class PhaseManager {
       try {
         for (const observer of this.observers) observer(phase)
       } finally {
-        this.stack.pop()
-        phase.cleanup()
+        try {
+          phase.cleanup()
+        } finally {
+          this.battle.valueSystem.complete(phaseType(phase.kind), phase.id)
+          this.battle.configSystem.cleanupPhase(phase.id)
+          this.stack.pop()
+        }
       }
     }
   }
