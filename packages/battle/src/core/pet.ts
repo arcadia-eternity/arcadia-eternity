@@ -110,6 +110,7 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
       },
       key => this.stageAdjustments(key),
       ['currentHp'],
+      key => (key === 'currentHp' ? this.stat.maxHp : undefined),
     )
   }
   get base() {

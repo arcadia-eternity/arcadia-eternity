@@ -59,6 +59,7 @@ export class Player implements OwnedEntity<Battle> {
       },
       undefined,
       ['currentRage', 'maxRage'],
+      key => (key === 'currentRage' ? this.maxRage : undefined),
     )
     this.team = Object.freeze(build.team.map(p => new Pet(p, this, content)))
     this.activePet = this.team[0]

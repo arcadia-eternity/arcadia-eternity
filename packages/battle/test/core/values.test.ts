@@ -598,3 +598,37 @@ it('normalizes a depleted temporary HP base when its modifier source disappears,
   expect(restored.snapshot()).toEqual(battle.snapshot())
   expect(restored.playerA.activePet.attributeSystem.getBaseValue('currentHp')).toBe(0)
 })
+it('caps effective rage and mark stacks consistently with snapshot validation', () => {
+  const input = setup(battle => {
+      const pet = battle.playerA.activePet,
+        mark = pet.marks[0]
+      pet.owner.attributeSystem.addModifier(
+        'currentRage',
+        new Modifier(DurationType.instant, 'overcap-rage', 200, 'delta'),
+      )
+      mark.attributeSystem.addModifier('stack', new Modifier(DurationType.instant, 'overcap-stack', 2, 'delta'))
+      expect(pet.owner.currentRage).toBe(pet.owner.maxRage)
+      expect(mark.stack).toBe(mark.config.maxStacks)
+    }),
+    battle = createBattle(input.options, input.content, input.registry)
+  battle.start()
+  expect(
+    restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), input.content, input.registry).snapshot(),
+  ).toEqual(battle.snapshot())
+})
+it('preserves a capped resource base when a plain capacity change has temporarily hidden it', () => {
+  const input = setup(battle => {
+      const mark = battle.playerA.activePet.marks[0]
+      mark.config.maxStacks = 20
+      mark.stack = 10
+      mark.config.maxStacks = 2
+      expect(mark.stack).toBe(2)
+    }),
+    battle = createBattle(input.options, input.content, input.registry)
+  battle.start()
+  const restored = restoreBattle(JSON.parse(JSON.stringify(battle.snapshot())), input.content, input.registry)
+  expect(restored.snapshot()).toEqual(battle.snapshot())
+  for (const instance of [battle, restored]) instance.playerA.activePet.marks[0].config.maxStacks = 20
+  expect(restored.playerA.activePet.marks[0].stack).toBe(10)
+  expect(restored.snapshot()).toEqual(battle.snapshot())
+})

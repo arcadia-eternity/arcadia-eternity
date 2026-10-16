@@ -75,6 +75,7 @@ export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>,
       },
       undefined,
       ['stack', 'duration'],
+      key => (key === 'stack' ? this.config.maxStacks : undefined),
     )
   }
   get battle() {

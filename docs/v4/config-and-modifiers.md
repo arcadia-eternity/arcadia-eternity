@@ -66,3 +66,7 @@ config.addScopedConfigModifier(
 ## 本轮复核与修正
 
 独立 Standards/Spec 复核发现并修复了有效资源值写回原始基值而重复应用 modifier 的问题。新增实际 Damage/Heal/Rage/ConsumeStack/MarkUpdate 路径测试，覆盖 delta/percent、盾量、倒计时及 override/clamp 约束；临时 HP 耗尽后的来源清理会归一基值，恢复前后行为一致。配置在登记后的完整计算图上验证循环，失败替换会保留旧修改器及其动态值句柄；失败操作仍整体回滚。
+
+资源有效值同时遵守领域上限：HP 不超过有效 maxHp、怒气不超过 maxRage、印记层数不超过 config.maxStacks。即使普通容量变更临时遮住基础资源，快照也保留该基值，恢复后再提高容量不会凭空丢失资源。追加了超过怒气/层数上限的自身快照恢复与容量往返测试。
+
+最新专项结果：6 文件、114 项运行测试、25 个有效编译反例，Core/test 严格类型检查和专项 lint 通过。具体构建、跨宿主及全仓测试结果在 PR #228 验证记录中更新。

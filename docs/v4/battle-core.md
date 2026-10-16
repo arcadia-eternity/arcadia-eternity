@@ -159,3 +159,7 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 用户要求补齐后，已加入实际 Transform/TransformEnd Phase 和临时/永久变身分层，支持 Pet/Skill/Mark、效果保留/覆盖、原生印记管理、来源销毁/到期、当前 HP 比例转换和 JSON 恢复/动作重放。ConfigSystem、AttributeSystem<T>、Modifier<T> 已接回实体实际 getter；支持类型化操作、动态属性/配置引用、版本化可信计算和来源/阶段清理。完整契约、与 V1 的修正及计算边界见 [config-and-modifiers.md](config-and-modifiers.md)。
 
 AfterAttacked 在当前官方效果目录及 V2 没有使用，指定 V1 提交也只有声明，依用户要求搁置。没有新增派发，原官方 Core golden 仍为 379 条事件。前面“尚未实现 Transform/modifier”的复核记录是历史版本状态。
+
+最新专项回归为 6 文件、114 项运行测试、25 个有效编译反例，Core/test 严格类型检查与专项 lint 均通过。独立复核发现的印记所有权、原生来源覆盖、有效资源写回、配置循环以及资源上限/恢复一致性问题均有对应修复和回归。全仓 build 在 `c58d9b42` 通过；Node/真实 Chrome 同时完成原官方战斗与带动态配置/modifier 的变身、来源到期、恢复/重放场景。最新上限修复另执行 battle 构建及根类型检查。
+
+全仓测试以 `pnpm test:run --maxWorkers=2` 执行：engine 4、schema 14（6 skipped）、client 3、原 V2 battle 108（3 expected fail）通过，随后仍为原有 P2P 12 通过/3 失败（`runInMemoryP2PBattleE2E is not a function`）。首次与构建并行时另遇 V2 loader 5 秒超时，串行复跑后消失，没有修改该测试或延长其超时。

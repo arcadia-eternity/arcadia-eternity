@@ -107,6 +107,7 @@ export class AttributeSystem<T extends { [K in keyof T]: AttributeValue }> {
     private readonly writeBase?: <K extends keyof T>(key: K, value: T[K]) => boolean,
     private readonly native: (key: keyof T) => AttributeAdjustment[] = () => [],
     private readonly resources: readonly (keyof T)[] = [],
+    private readonly upperBound: (key: keyof T) => number | undefined = () => undefined,
   ) {
     this.store = new ModifierStore(owner.battle, () => this.reconcileResources())
   }
@@ -136,12 +137,16 @@ export class AttributeSystem<T extends { [K in keyof T]: AttributeValue }> {
         result = apply(result, value, modifier)
         validatePrimitive(result)
       }
-      if (this.resources.includes(key) && typeof result === 'number') {
-        const nearest = Math.round(result)
-        result = Math.max(key === 'duration' ? -1 : 0, Math.floor(Math.abs(result - nearest) < 1e-9 ? nearest : result))
-      }
+      result = this.resourceValue(key, result)
       return result as T[K]
     })
+  }
+  private resourceValue(key: keyof T, value: AttributeValue): AttributeValue {
+    if (!this.resources.includes(key) || typeof value !== 'number') return value
+    const nearest = Math.round(value),
+      maximum = this.upperBound(key)
+    const result = Math.max(key === 'duration' ? -1 : 0, Math.floor(Math.abs(value - nearest) < 1e-9 ? nearest : value))
+    return maximum === undefined ? result : Math.min(result, Math.max(0, Math.floor(maximum)))
   }
   /** Assign an effective resource value without feeding its modifiers back into the base. */
   setCurrentValue<K extends keyof T>(key: K, desired: T[K]) {
@@ -156,7 +161,7 @@ export class AttributeSystem<T extends { [K in keyof T]: AttributeValue }> {
         current = apply(current, value, modifier)
         return { modifier, value, before }
       })
-    let base: AttributeValue = desired
+    let base: AttributeValue = this.resourceValue(key, desired)
     for (const { modifier, value, before } of steps.reverse()) {
       if (modifier.type === 'override') {
         base = before
@@ -220,7 +225,8 @@ export class AttributeSystem<T extends { [K in keyof T]: AttributeValue }> {
   }
   snapshot(): AttributeSystemState | undefined {
     const modifiers = this.store.snapshot()
-    if (!modifiers.length && !Object.keys(this.overrides).length) return undefined
+    const hiddenResourceBase = this.resources.some(key => this.getBaseValue(key) !== this.getCurrentValue(key))
+    if (!modifiers.length && !Object.keys(this.overrides).length && !hiddenResourceBase) return undefined
     return copyData({ base: { ...this.base(), ...this.overrides }, modifiers })
   }
   restore(state?: AttributeSystemState) {

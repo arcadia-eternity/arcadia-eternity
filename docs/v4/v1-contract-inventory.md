@@ -47,3 +47,5 @@
 ## 后续用户复核补齐
 
 TransformPhase / TransformEndPhase、分层 TransformationSystem 和原型类型关系已落实；具体支持 Pet/Skill/Mark、临时与永久策略、来源到期/销毁、HP 比例转换、效果保留/覆盖，以及纯 JSON 恢复/重放。ConfigSystem、AttributeSystem<T> 和 Modifier<T> 已重新进入实际实体 getter 和结算，并有来源/阶段清理与动态值重建。此前文档中“未实现 Transform/modifier”的记录仅对应先前版本，不再描述当前代码。
+
+最新验证是 114 项运行测试及 25 个编译反例；修正后的实际资源运算、配置循环拒绝、上限与恢复一致性均进入回归，原官方 golden 及 V2 生产代码没有变更。
