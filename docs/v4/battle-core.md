@@ -1,6 +1,6 @@
 # Battle Core：领域模型、宿主边界与确定性（#202–#204）
 
-> 首版架构验收已因用户复核撤回；PR #228 保持草稿，#202–#204 保持打开。当前按 [V1 契约盘点](v1-contract-inventory.md) 修正实体基类型、Context 泛型和具体 Phase。历史测试记录不是架构完整性的证明。
+> 本轮针对 #202–#204，保留 V1 的领域类型关系和具体 Phase，提供跨宿主、可恢复和可重放的战斗核心。正式 Effect/EffectTemplate 与宿主产品接入仍由后续任务负责。
 
 ## 起点与范围
 
@@ -53,7 +53,7 @@ stop()
 
 ## #205 / #223 扩展接缝
 
-`EffectReference = { id, version, params }` 只含 JSON。宿主提供 `EffectRegistry`，按稳定 ID 和代码版本解析可信回调，构造与恢复时缺失或版本错误直接失败。回调接收赛尔号2的 discriminated context（skill/damage/rage/heal/stage/mark/switch/turn）及来源 Skill/Mark；上下文只活在原子操作中，不进入快照。
+`EffectReference = { id, version, params }` 只含 JSON。宿主提供 `EffectRegistry`，按稳定 ID 和代码版本解析可信回调，构造与恢复时缺失或版本错误直接失败。回调接收由 TriggerContextMap 绑定的具体 Context 和父链，以及来源 Skill/Mark；上下文只活在原子操作中，不进入快照。
 
 当前 seam 发出相应规则触发点，收集当前技能/场上印记，按优先度调用同步回调；有销毁后不再运行已收集印记的检查。它**不宣称完成 #205 的全部效果语义或 #223 的参数 schema/模板目录**。没有执行不可信脚本或动态 import，也不提供可执行 DSL。正式 Effect/EffectTemplate 可以替换注册/分发实现，保持 `id/version/params` 引用和快照边界。
 
@@ -111,55 +111,19 @@ Core 的单独 typecheck 使用 ES2022 lib、空 types，不能引用 Node/DOM �
 - 保存点是规则原子边界，不支持可信函数栈内部存档；网络重连的鉴权/隐私/去重由宿主负责。
 - 没有引入 Redis、用户数据库、规则系统、排位或服务依赖。
 
-## 首版验证记录（架构验收已撤回，2026-10-16）
+## 复核与验证记录（2026-10-16）
 
-- 新 Core：3 文件、35 项测试通过；Core 无宿主 types 的类型检查、测试严格类型检查、源码/测试专项 lint 通过。
-- 旧 V2：19 文件、108 项通过、3 项明确预期失败，原 #201 golden/known-defects 未修改；基线专项类型检查与 lint 通过。
-- `pnpm build` 完整通过：全仓 lint、各包构建、根 typecheck、CLI 构建均执行成功。本轮没有再遇到 #201 文档所述的旧类型检查问题，不将那份旧记录当作当前失败。
-- `pnpm test:run` 实际执行：engine 4、schema 14（另 6 skipped）、client 3、V2 battle 108（另 3 expected fail）通过；随后 P2P 12 通过、3 失败，错误为 `runInMemoryP2PBattleE2E is not a function`。在 #201 的原工作目录独立复现了相同三项失败；P2P 文件相对基线无差异，未为通过测试扩大修改范围。递归命令在此停止，不能声称剩余所有宿主测试通过。
-- Node 与真实 Chrome 执行公开 `/core` 的完整 fixture 回放与 JSON 恢复：均为 7 回合、A 获胜、357 条事件、恢复状态完全一致；Browser/Node 运行时模块图各 5 个节点，仅核心、const 和测试输入，没有 engine 或宿主依赖。
-- PR #228 面向 `refactor/v4`，提交从 #201 的合并提交派生；`main` 保持 `1492b2cae49a65d88c7132047132c85d0d06bff1`。
+- Core：6 文件、114 项运行测试通过；25 个编译反例均有效。无 Node/DOM globals 的 Core 类型检查、测试严格类型检查和源码/测试专项 lint 通过。
+- 原 V2：19 文件、108 项通过、3 项明确预期失败；#201 golden/known-defects 与 V2 生产实现未修改，专项类型检查通过。
+- 全仓 `pnpm build` 在 `c58d9b42` 通过：lint、所有包、根 typecheck、CLI 均成功；最后的资源上限修复后重新构建 battle 包、执行根及基线 typecheck，均通过。
+- 公开 `/core` 在 Node 和真实 Chrome 分别执行同一官方 fixture：7 回合、A 胜、379 条事件，恢复和重放结果相同。额外场景在两端执行 Pet/Skill 变身、动态属性/配置、HP modifier、来源到期撤销、JSON 恢复及重放；两次变身均清理，modifier 无残留，结果一致。运行时模块图各 6 节点，无 engine/宿主/外部依赖。
+- 全仓测试 `pnpm test:run --maxWorkers=2`：engine 4、schema 14（6 skipped）、client 3、V2 battle 108（3 expected fail）通过；随后 P2P 12 通过、3 失败，错误仍为 `runInMemoryP2PBattleE2E is not a function`。相同三项已在 #201 工作树复现，P2P 无差异，递归命令在此停止。首次与构建并行时另遇 V2 loader 5 秒超时，串行复跑消失；没有修改其超时。
+- Standards/Spec 独立审查发现并修复了：泛型 handler 推宽、continuation 选招/目标丢失、覆盖印记上限、跨 Battle 参与者、技能替换默认目标、复用状态印记销毁所有权、原生变身来源递归清理、资源有效值写回、配置循环和资源上限/恢复不一致。每项均有对应回归；后两轮独立复核分别重跑资源/容量测试并确认修复。
 
-### Standards
+## 变身、ConfigValue 与 modifier
 
-独立审查未发现仓库规范硬违规，也没有需要阻塞的代码气味。发现两个运行时问题：构建数据可变导致抛错后 EV 逃逸回滚；全部输入已提交但未推进的状态仍可导出无法重放的 fixture。已分别冻结 build/队伍/技能数组，并将 replay export 限定为真正等待输入或结束的边界；添加回归后复核通过。
+`TransformPhase` / `TransformEndPhase` 实际管理 Pet/Skill/Mark、临时优先级层、同源替换、永久变更保留/清除临时层、效果保留/覆盖、原生印记、来源销毁/到期及当前 HP 比例转换。记录只保存稳定 ID 与数据；恢复后继续使用实际领域对象和生命周期。
 
-### Spec
+`ConfigSystem`、`AttributeSystem<T>` 和 `Modifier<T>` 接入实体实际 getter。支持类型化操作、配置作用域继承、动态属性/配置引用、版本化可信计算及来源/阶段清理；资源的基础值和有效值区分读写，Current Turn 跨原子阶段存档保留。完整契约、V1 修正和计算边界见 [config-and-modifiers.md](config-and-modifiers.md)。
 
-独立审查确认领域对象、官方 #201 队伍与宿主边界符合本轮范围，没有范围扩张。发现 replay 导出边界问题（与 Standards 同一问题）和 `StackStrategy.remove` 绕过印记销毁回调/事件的问题；后者已统一经过 `removeMark`，回归确认销毁回调及移除事件各一次。审查者独立复跑相关测试并确认修复。
-
-汇总：Standards 2 项、Spec 2 项（其中 replay 为重复发现），3 个独立问题均已修复；两个轴均无剩余阻塞项。
-
-## 用户复核后的类型与 Phase 修正
-
-- `entity.ts` 恢复 `Prototype<TId>`、`Instance<TPrototype,TId>`、`OwnedEntity<TOwner>`、`MarkOwner`、`EffectContainer`。Species/Skill/Mark 原型与 Pet/Skill/Mark 实例使用原 const 中的品牌 ID；宿主 Definition/build 输入继续接收可移植字符串，由内容及实例创建边界校验归一。
-- `Battle extends Context<null>`；`TurnContext.parent` 是 Battle，`UseSkillContext.parent` 是 TurnContext，`DamageContext.parent` 是技能或效果上下文。添加/移除/叠层/消耗/转移/换宠/治疗/怒气各有自己的类和父类型。`EffectContext<T>.parent` 与 `effect` 随 `TriggerContextMap[T]`/`TrustedEffect<T>` 绑定；`defineEffect` 让回调直接获得具体上下文。
-- `phase/` 包含实际执行规则的 BattleStart/BattleLoop/Selection/BattleSwitch/Turn（Start/Action/End）/Skill/SwitchPet/Damage/Heal/Rage/AddMark/RemoveMark/MarkStack/ConsumeStack/MarkSwitchOut/MarkTransfer/MarkUpdate/MarkCleanup/EffectExecution/Effect Phase。规则体已移出 Battle，Battle 保留状态、公开入口及存档校验。
-- PhaseManager 提供确定性 ID、父 Phase ID、执行栈、状态和清理；同步与交互 Phase 区分，输入不足进入 Waiting。快照只写 Phase trace/counter、continuation 和 TurnContext 的普通数据，恢复时重新建立类与父链，不序列化运行时 context 对象。
-- `type-contracts.ts` 有 13 个编译反例，确保错误的父 context、触发器、Phase/Context、实体 owner、prototype、品牌 ID 和变身 prototype 组合不能编译。运行测试检查真实嵌套 Phase、父链、跨行动保存的 TurnContext 数据以及失败回滚后的栈。
-- 能力等级添加现在仅走一次 AddMarkContext/OnBeforeAddMark，去掉首版 stage helper 重复发出的两次触发；原官方场景仍是 7 回合及相同伤害/最终状态，Core golden 按这个明确差异从 357 调整为 355 条事件。原 V2 golden 不变。
-- `TransformContext<TTarget>` 保留 target→prototype 类型关系；完整变身与恢复/撤销运行机制尚未实现，不能将类型声明当作 TransformPhase 已完成。正式 Effect/EffectTemplate 系统、属性 modifier/变身策略仍需随 #205/#223 明确，不迁移官方 DSL。
-
-当前以新增架构证据为基础重新复核；历史 Standards/Spec 的“无剩余问题”不再作为本次架构完整性结论。
-
-### 修正后的复核记录
-
-独立审查对照 V1 后发现并修复：效果泛型推断可被不匹配的 handler 扩宽；BeforeSort 更换的 skill/selectTarget 在 continuation 中丢失；印记覆盖 maxStacks 后创建及恢复仍按原型上限夹取；typed context 的实体可能来自另一场 Battle。对应加入 handler 编译反例、重建前后技能/目标一致、双向 maxStacks 覆盖及跨战斗 damage/heal/rage/remove 隔离回归。
-
-当前 4 文件、51 项运行测试通过，13 个编译反例均有效，Core/test 严格类型检查与专项 lint 通过。BeforeEffect/AfterEffect 已在 EffectPhase 中执行，meta hook 不递归包装自身，并可影响目标 EffectContext.available；新增实际顺序测试。Core 完整 golden 由 355 增至 379 条事件，新增 24 条 meta trigger，更新时独立校验全部非 trigger 事件、ActionLog 和最终状态完全不变。
-
-最后一次 Spec 复核还发现 setSkill 未随替换技能更新默认目标，已修复并加入对手→自身→对手及显式重定向测试。复核者独立跑过相关测试，当前限定范围未发现其他阻塞问题。
-
-修正后的全仓 `pnpm build` 通过（lint、各包、根 typecheck、CLI）；最后的目标修复后重新构建 battle 包并执行根 typecheck，通过。公开 `/core` 在 Node 和真实 Chrome 中分别执行完整 fixture 回放及 JSON 恢复，均为 7 回合、A 胜、379 条事件，恢复结果及跨宿主结果完全一致；运行时模块图各 5 个节点，没有 engine 或宿主依赖。全仓测试的三个 P2P 既有失败仍按上文单独记录，不宣称全仓测试全绿。
-
-仍未实现的触发语义明确包括 AfterAttacked 和完整 Transform 生命周期；不能因 TriggerContextMap 有类型声明就认为这些运行机制已完成。完整 Effect/EffectTemplate、变身/撤销策略和动态属性 modifier 仍待 #205/#223 等后续任务，未宣称本轮完成。
-
-## 最新补齐：变身、ConfigValue 与 modifier
-
-用户要求补齐后，已加入实际 Transform/TransformEnd Phase 和临时/永久变身分层，支持 Pet/Skill/Mark、效果保留/覆盖、原生印记管理、来源销毁/到期、当前 HP 比例转换和 JSON 恢复/动作重放。ConfigSystem、AttributeSystem<T>、Modifier<T> 已接回实体实际 getter；支持类型化操作、动态属性/配置引用、版本化可信计算和来源/阶段清理。完整契约、与 V1 的修正及计算边界见 [config-and-modifiers.md](config-and-modifiers.md)。
-
-AfterAttacked 在当前官方效果目录及 V2 没有使用，指定 V1 提交也只有声明，依用户要求搁置。没有新增派发，原官方 Core golden 仍为 379 条事件。前面“尚未实现 Transform/modifier”的复核记录是历史版本状态。
-
-最新专项回归为 6 文件、114 项运行测试、25 个有效编译反例，Core/test 严格类型检查与专项 lint 均通过。独立复核发现的印记所有权、原生来源覆盖、有效资源写回、配置循环以及资源上限/恢复一致性问题均有对应修复和回归。全仓 build 在 `c58d9b42` 通过；Node/真实 Chrome 同时完成原官方战斗与带动态配置/modifier 的变身、来源到期、恢复/重放场景。最新上限修复另执行 battle 构建及根类型检查。
-
-全仓测试以 `pnpm test:run --maxWorkers=2` 执行：engine 4、schema 14（6 skipped）、client 3、原 V2 battle 108（3 expected fail）通过，随后仍为原有 P2P 12 通过/3 失败（`runInMemoryP2PBattleE2E is not a function`）。首次与构建并行时另遇 V2 loader 5 秒超时，串行复跑后消失，没有修改该测试或延长其超时。
+`AfterAttacked` 在当前官方效果目录及 V2 没有使用，指定 V1 提交也只有声明；依用户要求搁置，未新增派发。原官方 Core golden 仍为 379 条事件。
