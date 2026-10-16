@@ -144,6 +144,7 @@ export class UseSkillContext extends Context<TurnContext> {
     if (skill.owner !== this.pet) throw new Error('Replacement skill must belong to the acting Pet')
     this.skill = skill
     if (updateConfig) {
+      this.selectTarget = skill.target
       this.power = skill.power
       this.rage = skill.rage
       this.category = skill.category

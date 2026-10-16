@@ -360,3 +360,21 @@ it.each(['damage-source', 'heal-target', 'rage-player', 'remove-mark'] as const)
     expect(foreign.snapshot()).toEqual(foreignBefore)
   },
 )
+
+it('updates the default target when a skill replacement changes target category', () => {
+  const { content, options, registry } = contentWith([])
+  options.players[0].team[0].skills = ['skill_paida', 'skill_qili']
+  const battle = createBattle(options, content, registry),
+    pet = battle.playerA.activePet
+  const context = new UseSkillContext(new TurnContext(battle), battle.playerA, pet, pet.skills[0].target, pet.skills[0])
+  context.setSkill(pet.skills[1])
+  context.updateActualTarget()
+  expect(context.selectTarget).toBe(AttackTargetOpinion.self)
+  expect(context.target).toBe(pet)
+  context.setSkill(pet.skills[0])
+  context.updateActualTarget()
+  expect(context.target).toBe(battle.playerB.activePet)
+  context.selectTarget = AttackTargetOpinion.self
+  context.updateActualTarget()
+  expect(context.target).toBe(pet)
+})
