@@ -13,6 +13,10 @@ import {
   RageContext,
   DamageContext,
   HealContext,
+  TransformContext,
+  TransformEndContext,
+  type Transformable,
+  type PrototypeOf,
   type AnyEffectContext,
   type TriggerContextMap,
   type TurnContextData,
@@ -35,10 +39,13 @@ import {
   AddMarkPhase,
   RemoveMarkPhase,
   ConsumeStackPhase,
+  TransformPhase,
+  TransformEndPhase,
   type PhaseManagerState,
   PhaseState,
 } from './phase/index.js'
 import type { MarkOwner } from './entity.js'
+import { TransformationSystem, type TransformationState, type TransformOptions } from './transformation.js'
 
 export type BattleAction =
   | { type: 'use-skill'; player: string; skill: string; target: AttackTargetOpinion }
@@ -73,6 +80,7 @@ export interface BattleState {
   players: PlayerState[]
   marks: MarkState[]
   phase: ReturnType<BattleContinuation['getState']>
+  transformations?: TransformationState
   turnContext: TurnContextData | null
 }
 export interface BattleSnapshot {
@@ -106,6 +114,7 @@ export class Battle extends Context<null> implements MarkOwner {
   override get battle(): Battle {
     return this
   }
+  readonly transformationSystem: TransformationSystem
   readonly phaseManager: PhaseManager
   activeTurn: TurnContext | null = null
   readonly id: string
@@ -132,6 +141,7 @@ export class Battle extends Context<null> implements MarkOwner {
   constructor(options: BattleOptions, content: BattleContent, registry = new EffectRegistry()) {
     super(null)
     this.phaseManager = new PhaseManager(this)
+    this.transformationSystem = new TransformationSystem(this)
     this.initial = freezeData(copyData(options))
     this.id = options.id
     if (
@@ -392,6 +402,35 @@ export class Battle extends Context<null> implements MarkOwner {
       context instanceof HealContext ? context : new HealContext(this.effectParent(), context, target!, amount!)
     return this.phaseManager.executeSync(new HealPhase(operation))
   }
+  transform<T extends Transformable>(context: TransformContext<T>): string | null
+  transform<T extends Transformable>(
+    target: T,
+    base: NoInfer<PrototypeOf<T>>,
+    options?: TransformOptions,
+  ): string | null
+  transform<T extends Transformable>(
+    context: TransformContext<T> | T,
+    base?: PrototypeOf<T>,
+    options: TransformOptions = {},
+  ): string | null {
+    const operation =
+      context instanceof TransformContext
+        ? context
+        : new TransformContext(this.effectParent(), context, context.base as PrototypeOf<T>, base!, {
+            ...options,
+            causedBy: options.causedBy ?? this.effectParent().source,
+          })
+    return this.phaseManager.executeSync(new TransformPhase(operation))
+  }
+  endTransformation<T extends Transformable>(context: TransformEndContext<T>): boolean
+  endTransformation<T extends Transformable>(target: T, transformationId?: string): boolean
+  endTransformation<T extends Transformable>(context: TransformEndContext<T> | T, transformationId?: string): boolean {
+    const operation =
+      context instanceof TransformEndContext
+        ? context
+        : new TransformEndContext(this.effectParent(), context, transformationId ?? null)
+    return this.phaseManager.executeSync(new TransformEndPhase(operation))
+  }
   getState(): BattleState {
     return copyData({
       id: this.id,
@@ -403,6 +442,7 @@ export class Battle extends Context<null> implements MarkOwner {
       players: this.players.map(p => p.getState()),
       marks: this.marks.map(m => m.getState()),
       phase: this.phase.getState(),
+      transformations: this.transformationSystem.snapshot(),
       turnContext: this.activeTurn ? copyData(this.activeTurn.data) : null,
     })
   }
@@ -462,6 +502,7 @@ export class Battle extends Context<null> implements MarkOwner {
         mark.duration = s.duration
         mark.isActive = s.isActive
         mark.config = copyData(s.config)
+        mark.effectReferences = s.effects ? copyData(s.effects) : undefined
         return mark
       })
     this.marks = restoreMarks(state.marks, this)
@@ -473,6 +514,8 @@ export class Battle extends Context<null> implements MarkOwner {
       for (const savedPet of saved.team) {
         const pet = this.getPetByID(savedPet.build.id)
         pet.species = this.content.species(savedPet.speciesId)
+        pet.currentAbility = savedPet.abilityId === undefined ? (pet.build.ability ?? null) : savedPet.abilityId
+        pet.currentEmblem = savedPet.emblemId === undefined ? (pet.build.emblem ?? null) : savedPet.emblemId
         pet.currentHp = savedPet.currentHp
         pet.appeared = savedPet.appeared
         pet.gender = savedPet.gender
@@ -482,6 +525,8 @@ export class Battle extends Context<null> implements MarkOwner {
         pet.marks = restoreMarks(savedPet.marks, pet)
         for (const s of savedPet.skills) {
           const skill = this.getSkillByID(s.id)
+          skill.base = this.content.skill(s.baseId)
+          skill.effectReferences = s.effects ? copyData(s.effects) : undefined
           skill.power = s.power
           skill.accuracy = s.accuracy
           skill.rage = s.rage
@@ -490,6 +535,7 @@ export class Battle extends Context<null> implements MarkOwner {
         }
       }
     }
+    this.transformationSystem.restore(state.transformations)
   }
   static restore(snapshot: BattleSnapshot, content: BattleContent, registry = new EffectRegistry()): Battle {
     const clean = copyData(snapshot)
@@ -498,6 +544,7 @@ export class Battle extends Context<null> implements MarkOwner {
     if (battle.content.identity !== clean.contentIdentity) throw new Error('Content identity mismatch')
     battle.validateSnapshot(clean)
     battle.load(clean)
+    battle.transformationSystem.validateState(clean.state.transformations)
     battle.validateContinuation()
     if (canonicalData(battle.snapshot()) !== canonicalData(clean))
       throw new Error('Snapshot contains inconsistent or unknown data')
@@ -543,7 +590,7 @@ export class Battle extends Context<null> implements MarkOwner {
             throw new Error('Invalid saved skill context plan')
           if (
             this.getSkillByID(item.action.skill).owner !== pet ||
-            item.action.target !== this.getSkillByID(item.action.skill).target
+            !Object.values(AttackTargetOpinion).includes(item.action.target)
           )
             throw new Error('Invalid queued skill')
           break
@@ -610,6 +657,7 @@ export class Battle extends Context<null> implements MarkOwner {
     const validateMarks = (marks: MarkState[], owner: Pet | Battle) => {
       for (const mark of marks) {
         this.content.mark(mark.baseId)
+        for (const ref of mark.effects ?? []) this.registry.resolve(ref)
         if (
           mark.ownerId !== owner.id ||
           markIds.has(mark.id) ||
@@ -649,8 +697,13 @@ export class Battle extends Context<null> implements MarkOwner {
           if (!Number.isInteger(stage) || Math.abs(stage) > 6) throw new Error('Invalid saved stage')
         for (let j = 0; j < s.skills.length; j++) {
           const skill = s.skills[j]
-          if (skill.id !== pet.skills[j].id || skill.baseId !== pet.skills[j].base.id)
-            throw new Error('Invalid saved skill')
+          if (skill.id !== pet.skills[j].id) throw new Error('Invalid saved skill')
+          this.content.skill(skill.baseId)
+          for (const ref of skill.effects ?? []) this.registry.resolve(ref)
+          const transformed = state.transformations?.targets.some(
+            row => row.target.type === 'skill' && row.target.id === skill.id,
+          )
+          if (!transformed && skill.baseId !== pet.skills[j].base.id) throw new Error('Untracked skill transformation')
           for (const v of [skill.power, skill.accuracy, skill.rage]) requireNumber(v, 'saved skill value')
         }
         if (s.lastSkillId !== null && !pet.skills.some(skill => skill.id === s.lastSkillId))

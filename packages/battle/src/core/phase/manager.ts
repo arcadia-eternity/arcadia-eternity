@@ -12,6 +12,7 @@ import {
   SwitchPetContext,
   EffectContext,
   TransformContext,
+  TransformEndContext,
   type ContextNode,
 } from '../context.js'
 import { BattlePhaseBase, SynchronousPhase, PhaseState, type PhaseResult } from './base.js'
@@ -89,7 +90,7 @@ export class PhaseManager {
       if (context.incoming.owner !== context.player || context.outgoing.owner !== context.player)
         throw new Error('Invalid switch ownership')
     } else if (context instanceof EffectContext) owned(context.source)
-    else if (context instanceof TransformContext) owned(context.target)
+    else if (context instanceof TransformContext || context instanceof TransformEndContext) owned(context.target)
   }
   executeSync<C extends ContextNode, R>(phase: SynchronousPhase<C, R>): R {
     const result = this.execute(phase)

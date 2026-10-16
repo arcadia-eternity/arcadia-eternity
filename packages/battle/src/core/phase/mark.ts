@@ -92,6 +92,7 @@ export class RemoveMarkPhase extends SynchronousPhase<RemoveMarkContext> {
     if (!ctx.available) return
     mark.isActive = false
     battle.applyEffects(ctx, EffectTrigger.OnMarkDestroy, [mark])
+    battle.transformationSystem.cleanupMark(mark, ctx)
     battle.emitEvent('markRemoved', { markId: mark.id, baseMarkId: mark.base.id, ownerId: mark.owner.id })
     mark.owner.marks = mark.owner.marks.filter(m => m !== mark)
   }

@@ -6,6 +6,7 @@ import {
   type ReplayFixture,
 } from '@arcadia-eternity/battle/core'
 import fixture from './fixtures/official-switch.replay.json'
+import { verifyTransformations } from './transformation-smoke.js'
 import { registry } from './trusted201.js'
 
 /** Bundled unchanged for Browser and Node: no fs, DOM, timers, network or service. */
@@ -21,5 +22,6 @@ export function verifyCore() {
     events: restored.getEvents().length,
     identical: JSON.stringify(restored.snapshot()) === JSON.stringify(battle.snapshot()),
     initialActions: fresh.getAvailableActions(fresh.playerA.id).length,
+    transformations: verifyTransformations(content, replay.initial),
   }
 }

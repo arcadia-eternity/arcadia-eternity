@@ -6,6 +6,7 @@ import {
   EffectContext,
   AddMarkContext,
   TransformContext,
+  TransformEndContext,
   EffectPhase,
   SkillPhase,
   DamagePhase,
@@ -73,6 +74,17 @@ export function compileContracts(
   const wrongId: skillId = pet.id
   // @ts-expect-error A pet transformation requires a Species prototype.
   new TransformContext(battle, pet, species, baseSkill)
+  // @ts-expect-error The convenience operation must not widen Pet to accept a skill prototype.
+  battle.transform(pet, baseSkill)
+  // @ts-expect-error A skill transformation requires a BaseSkill prototype.
+  battle.transform(skill, species)
+  const end = new TransformEndContext(battle, pet)
+  const endingSpecies: Species = end.toBase
+  void endingSpecies
+  // @ts-expect-error The ending context keeps its target-to-prototype relation.
+  end.toBase = baseSkill
+  // @ts-expect-error OnTransformEnd has a dedicated ending context.
+  battle.applyEffects(new TransformContext(battle, pet, species, species), EffectTrigger.OnTransformEnd)
   // @ts-expect-error Only MarkOwner entities can receive marks.
   new AddMarkContext(effect, skill, mark.base)
   void [wrongPhase, wrongPrototype, wrongOwner, wrongId]

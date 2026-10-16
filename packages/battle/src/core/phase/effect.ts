@@ -50,7 +50,7 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
       ...(this.context instanceof UseSkillContext ? [this.context.skill] : []),
     ]
     const calls = sources
-      .flatMap(source => source.base.effects.map(ref => ({ source, ref, definition: battle.registry.resolve(ref) })))
+      .flatMap(source => source.effects.map(ref => ({ source, ref, definition: battle.registry.resolve(ref) })))
       .filter(call => call.definition.triggers.includes(this.trigger))
       .sort((a, b) => (b.definition.priority ?? 0) - (a.definition.priority ?? 0))
     for (const { source, ref, definition } of calls) {

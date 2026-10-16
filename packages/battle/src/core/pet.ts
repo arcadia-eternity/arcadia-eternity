@@ -20,6 +20,8 @@ export type StageStat = 'atk' | 'def' | 'spa' | 'spd' | 'spe'
 export interface PetState {
   build: PetBuild
   speciesId: string
+  abilityId?: string | null
+  emblemId?: string | null
   currentHp: number
   appeared: boolean
   gender: Gender
@@ -38,6 +40,8 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
   readonly owner: Player
   readonly skills: readonly Skill[]
   marks: Mark[] = []
+  currentAbility: string | null
+  currentEmblem: string | null
   gender: Gender
   appeared = false
   currentHp: number
@@ -58,6 +62,8 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
     this.owner = owner
     this.originalSpecies = content.species(build.species)
     this.species = this.originalSpecies
+    this.currentAbility = build.ability ?? null
+    this.currentEmblem = build.emblem ?? null
     if (!build.id || !build.name || !Number.isSafeInteger(build.level) || build.level < 1 || build.level > 100)
       throw new Error('Invalid pet build')
     if (!NatureMap[build.nature]) throw new Error('Invalid nature')
@@ -115,10 +121,10 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
     return this.species.element
   }
   get ability() {
-    return this.build.ability
+    return this.currentAbility ?? undefined
   }
   get emblem() {
-    return this.build.emblem
+    return this.currentEmblem ?? undefined
   }
   get isAlive() {
     return this.currentHp > 0
@@ -181,6 +187,8 @@ export class Pet implements Instance<Species, petId>, OwnedEntity<Player>, MarkO
     return copyData({
       build: this.build,
       speciesId: this.species.id,
+      abilityId: this.currentAbility !== (this.build.ability ?? null) ? this.currentAbility : undefined,
+      emblemId: this.currentEmblem !== (this.build.emblem ?? null) ? this.currentEmblem : undefined,
       currentHp: this.currentHp,
       gender: this.gender,
       appeared: this.appeared,

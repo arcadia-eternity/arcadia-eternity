@@ -33,3 +33,5 @@ export {
   StackStrategy,
   EffectTrigger,
 } from '@arcadia-eternity/const'
+export { TransformationSystem } from './transformation.js'
+export type * from './transformation.js'

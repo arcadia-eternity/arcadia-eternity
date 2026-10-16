@@ -3,10 +3,12 @@ import type { Instance, OwnedEntity, EffectContainer } from './entity.js'
 import type { BaseSkill } from './content.js'
 import type { Pet } from './pet.js'
 import { copyData } from './data.js'
+import type { EffectReference } from './content.js'
 
 export interface SkillState {
   id: string
   baseId: string
+  effects?: EffectReference[]
   power: number
   accuracy: number
   rage: number
@@ -15,12 +17,13 @@ export interface SkillState {
 }
 export class Skill implements Instance<BaseSkill, skillId>, OwnedEntity<Pet>, EffectContainer {
   readonly id: skillId
-  readonly base: BaseSkill
+  base: BaseSkill
   readonly owner: Pet
   power: number
   accuracy: number
   rage: number
   priority: number
+  effectReferences?: readonly EffectReference[]
   appeared = false
   constructor(id: string, base: BaseSkill, owner: Pet) {
     this.id = id as skillId
@@ -62,12 +65,13 @@ export class Skill implements Instance<BaseSkill, skillId>, OwnedEntity<Pet>, Ef
     return this.base.tags
   }
   get effects() {
-    return this.base.effects
+    return this.effectReferences ?? this.base.effects
   }
   getState(): SkillState {
     return copyData({
       id: this.id,
       baseId: this.base.id,
+      effects: this.effectReferences ? [...this.effectReferences] : undefined,
       power: this.power,
       accuracy: this.accuracy,
       rage: this.rage,

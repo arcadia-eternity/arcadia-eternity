@@ -15,6 +15,7 @@ import type { MarkOwner } from './entity.js'
 import type { TrustedEffect } from './effects.js'
 import type { JsonObject } from './data.js'
 import { copyData } from './data.js'
+import type { TransformOptions, TransformEndReason, TransformationRecord } from './transformation.js'
 
 export interface ContextNode {
   readonly parent: ContextNode | null
@@ -314,6 +315,8 @@ export type MarkOperationParent =
   | StackContext
   | ConsumeStackContext
   | MarkTransferContext
+  | TransformContext
+  | TransformEndContext
   | SwitchPetContext
   | TurnContext
   | Battle
@@ -415,19 +418,38 @@ export type PrototypeOf<T extends Transformable> = T extends Pet
     : T extends Mark
       ? BaseMark
       : never
-export class TransformContext<TTarget extends Transformable = Transformable> extends Context<
-  Battle | AnyEffectContext
-> {
+export type TransformParent = Battle | AnyEffectContext | RemoveMarkContext | TransformContext | TransformEndContext
+export class TransformContext<TTarget extends Transformable = Transformable> extends Context<TransformParent> {
   readonly kind = 'transform'
   readonly type = 'transform'
   available = true
+  transformationId: string | null = null
   constructor(
-    parent: Battle | AnyEffectContext,
+    parent: TransformParent,
     readonly target: TTarget,
     readonly fromBase: PrototypeOf<TTarget>,
-    readonly toBase: PrototypeOf<NoInfer<TTarget>>,
+    readonly toBase: NoInfer<PrototypeOf<TTarget>>,
+    readonly options: TransformOptions = {},
   ) {
     super(parent)
+  }
+}
+export class TransformEndContext<TTarget extends Transformable = Transformable> extends Context<TransformParent> {
+  readonly kind = 'transform-end'
+  readonly type = 'transform-end'
+  record: TransformationRecord | null = null
+  readonly fromBase: PrototypeOf<TTarget>
+  toBase: PrototypeOf<TTarget>
+  constructor(
+    parent: TransformParent,
+    readonly target: TTarget,
+    readonly transformationId: string | null = null,
+    readonly reason: TransformEndReason = 'manual',
+  ) {
+    super(parent)
+    // The conditional PrototypeOf type mirrors the concrete target.base relation.
+    this.fromBase = target.base as PrototypeOf<TTarget>
+    this.toBase = this.fromBase
   }
 }
 export interface TriggerContextMap {
@@ -474,7 +496,7 @@ export interface TriggerContextMap {
   [EffectTrigger.BeforeTransform]: TransformContext
   [EffectTrigger.OnTransform]: TransformContext
   [EffectTrigger.AfterTransform]: TransformContext
-  [EffectTrigger.OnTransformEnd]: TransformContext
+  [EffectTrigger.OnTransformEnd]: TransformEndContext
   [EffectTrigger.BeforeEffect]: AnyEffectContext
   [EffectTrigger.AfterEffect]: AnyEffectContext
 }
@@ -511,3 +533,4 @@ export type OperationContext =
   | ConsumeStackContext
   | MarkTransferContext
   | TransformContext
+  | TransformEndContext

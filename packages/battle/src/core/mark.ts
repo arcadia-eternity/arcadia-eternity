@@ -2,10 +2,12 @@ import type { markId } from '@arcadia-eternity/const'
 import type { Instance, OwnedEntity, MarkOwner, EffectContainer } from './entity.js'
 import type { BaseMark, MarkConfig } from './content.js'
 import { copyData } from './data.js'
+import type { EffectReference } from './content.js'
 
 export interface MarkState {
   id: string
   baseId: string
+  effects?: EffectReference[]
   ownerId: string
   stack: number
   duration: number
@@ -17,10 +19,11 @@ export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>,
   stack: number
   duration: number
   isActive = true
+  effectReferences?: readonly EffectReference[]
   config: MarkConfig
   constructor(
     readonly id: markId,
-    readonly base: BaseMark,
+    public base: BaseMark,
     public owner: MarkOwner,
     stack = 1,
     readonly creatorId: string | null = null,
@@ -34,7 +37,7 @@ export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>,
     return this.owner.battle
   }
   get effects() {
-    return this.base.effects
+    return this.effectReferences ?? this.base.effects
   }
   setOwner(owner: MarkOwner) {
     this.battle.assertInOperation()
@@ -48,6 +51,7 @@ export class Mark implements Instance<BaseMark, markId>, OwnedEntity<MarkOwner>,
     return copyData({
       id: this.id,
       baseId: this.base.id,
+      effects: this.effectReferences ? [...this.effectReferences] : undefined,
       ownerId: this.owner.id,
       stack: this.stack,
       duration: this.duration,
