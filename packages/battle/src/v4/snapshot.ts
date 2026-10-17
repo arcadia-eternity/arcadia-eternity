@@ -578,6 +578,33 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     })
     for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
     for (const restore of deferred) restore()
+    const ownedValues = new Set<ReactiveValue<unknown>>()
+    for (const { object, state } of attributes) {
+      for (const [key, modifiers] of state.modifiers) {
+        for (const modifier of modifiers) {
+          const recipe = getValueRecipe(modifier.value)
+          if (recipe?.type !== 'bound') continue
+          const target = recipe.target as BindingTarget
+          const source = modifier.source
+          const owner = source?.owner
+          const players = [battle.playerA, battle.playerB]
+          if (
+            ownedValues.has(modifier.value) ||
+            target.pet.attributeSystem !== object ||
+            target.attribute !== key ||
+            !target.pet.owner ||
+            !players.includes(target.pet.owner) ||
+            !target.pet.owner.team.includes(target.pet) ||
+            !(source instanceof MarkInstanceImpl) ||
+            !owner ||
+            !owner.marks.includes(source) ||
+            (owner !== battle && (!(owner instanceof Pet) || !owner.owner || !players.includes(owner.owner)))
+          )
+            throw new Error('Invalid bound contribution ownership')
+          ownedValues.add(modifier.value)
+        }
+      }
+    }
     for (const { object, state } of attributes) object.restoreSnapshotModifiers(state)
     for (const { object, state } of configs) object.restoreSnapshotState(state)
     for (const { object } of configs) object.registerRestoredBattle(battle.id)

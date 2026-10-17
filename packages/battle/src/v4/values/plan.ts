@@ -40,7 +40,7 @@ export class Evaluation {
     readonly restoring = false,
   ) {}
   node(key: string, kind: string): void {
-    if (!key || this.used.has(key)) throw new Error(`Duplicate value node: ${key}`)
+    if (!key || this.used.has(key)) throw new BindingStateError(`Duplicate value node: ${key}`)
     this.used.set(key, kind)
   }
   capture<T>(key: string, anchor: string, read: () => T): T {
@@ -65,7 +65,7 @@ export class Evaluation {
   members<T extends { id: string }>(key: string, input: readonly T[]): Member<T>[] {
     const old = this.state.selections.get(key)
     const ids = input.map(x => x.id)
-    if (new Set(ids).size !== ids.length) throw new Error(`Duplicate selection member: ${key}`)
+    if (new Set(ids).size !== ids.length) throw new BindingStateError(`Duplicate selection member: ${key}`)
     const generations = ids.map(id => {
       const index = old?.ids.indexOf(id) ?? -1
       if (index >= 0) return old!.generations[index]
@@ -150,13 +150,24 @@ export const values = {
     inputs: P,
     project: (input: { [K in keyof P]: P[K] extends ValuePlan<infer T> ? T : never }) => R,
   ): ValuePlan<R> {
-    return new ValuePlan(frame =>
-      project(
-        Object.fromEntries(Object.entries(inputs).map(([key, plan]) => [key, plan.evaluate(frame)])) as {
+    return new ValuePlan(frame => {
+      const results: [string, unknown][] = []
+      const failures: unknown[] = []
+      // Eager siblings retain structural tracking even when another input faults.
+      for (const [key, plan] of Object.entries(inputs)) {
+        try {
+          results.push([key, plan.evaluate(frame)])
+        } catch (error) {
+          failures.push(error)
+        }
+      }
+      if (failures.length) throw failures.find(error => error instanceof BindingStateError) ?? failures[0]
+      return project(
+        Object.fromEntries(results) as {
           [K in keyof P]: P[K] extends ValuePlan<infer T> ? T : never
         },
-      ),
-    )
+      )
+    })
   },
 }
 export interface ValueDefinition<A> {

@@ -803,8 +803,19 @@ export class AttributeSystem<T extends AttributeData> {
   replaceModifierValue(key: AttributeKey, modifier: Modifier, value: ReactiveValue<number>): void {
     const list = this.modifiers.get(key)
     if (!list || !list.value.includes(modifier)) throw new Error('Modifier is not installed on this attribute')
+    const previous = modifier.value
     modifier.value = value
-    list.next([...list.value])
+    try {
+      list.next([...list.value])
+    } catch (error) {
+      modifier.value = previous
+      try {
+        list.next([...list.value])
+      } catch {
+        /* Keep the original publication failure. */
+      }
+      throw error
+    }
   }
 
   addModifier(key: AttributeKey, modifier: Modifier): () => void {

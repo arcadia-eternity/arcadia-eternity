@@ -213,13 +213,25 @@ it('restores captures and structural tracking before any read, without replaying
   for (const effect of debuff.effects) catalogWithoutValue.registerEffect(effect.id, effect)
   expect(() => restoreBattle(payload, catalogWithoutValue)).toThrow('Missing value binding definition')
   const changedDefinition = defineValue(definition.id, (opponent: Player) =>
-    select
-      .activePet(opponent, { key: 'target', mode: 'follow' })
-      .attribute('def', { key: 'renamed-node', mode: 'capture', captureScope: 'input' })
-      .requireOne(),
+    values.combine(
+      {
+        fault: values.constant(0).map(() => {
+          throw new Error('Existing runtime fault')
+        }),
+        capture: select
+          .activePet(opponent, { key: 'target', mode: 'follow' })
+          .attribute('def', { key: 'renamed-node', mode: 'capture', captureScope: 'input' })
+          .requireOne(),
+      },
+      ({ capture }) => capture,
+    ),
   )
   catalogWithoutValue.registerValueBinding(changedDefinition)
   expect(() => restoreBattle(payload, catalogWithoutValue)).toThrow('Missing or mismatched capture')
+  const wrongTarget = structuredClone(payload)
+  const recipe = wrongTarget.nodes.find((node: { fields: { type?: string } }) => node.fields.type === 'bound')
+  wrongTarget.nodes[recipe.fields.target.ref].fields.attribute = 'def'
+  expect(() => restoreBattle(wrongTarget, catalog)).toThrow('Invalid bound contribution ownership')
   const restored = restoreBattle(payload, catalog)
   battles.push(restored)
   expect(restored.random()).toBe(expectedDraw)
@@ -234,9 +246,21 @@ it('restores captures and structural tracking before any read, without replaying
   const twice = restoreBattle(second, catalog)
   battles.push(twice)
   expect(twice.playerA.activePet.stat.atk).toBe(70)
-  const restoredSource = twice.playerA.activePet.marks.find(mark => mark.id === source.id)!
-  twice.removeMark(new RemoveMarkContext(new TurnContext(twice), restoredSource))
+  twice.playerB.team[1].attributeSystem.updateBaseValue('def', Infinity)
+  switchTo(twice, twice.playerB, 1)
   expect(twice.playerA.activePet.stat.atk).toBe(55)
+  const faulted = JSON.parse(JSON.stringify(snapshotBattle(twice, catalog)))
+  await twice.cleanup()
+  const third = restoreBattle(faulted, catalog)
+  battles.push(third)
+  third.playerB.activePet.attributeSystem.updateBaseValue('def', 90)
+  expect(third.playerA.activePet.stat.atk).toBe(55)
+  switchTo(third, third.playerB, 0)
+  switchTo(third, third.playerB, 1)
+  expect(third.playerA.activePet.stat.atk).toBe(90)
+  const restoredSource = third.playerA.activePet.marks.find(mark => mark.id === source.id)!
+  third.removeMark(new RemoveMarkContext(new TurnContext(third), restoredSource))
+  expect(third.playerA.activePet.stat.atk).toBe(55)
 })
 
 it('withdraws a faulted contribution, recovers on valid input, and disposes its listeners', () => {
@@ -466,4 +490,74 @@ it('publishes the new value before switch messages and switch-in hooks without r
   b.activePet.attributeSystem.updateBaseValue('def', 100)
   expect(a.activePet.stat.atk).toBe(100)
   expect(applications).toBe(1)
+})
+
+it('keeps sibling entry tracking alive when an earlier combined value faults', () => {
+  const { battle, a, b, source } = fixture()
+  b.team[0].attributeSystem.updateBaseValue('def', 40)
+  b.team[1].attributeSystem.updateBaseValue('def', 80)
+  const ratio = new Signal(1)
+  const definition = defineValue('sibling-fault', (input: { player: Player; ratio: Signal<number> }) =>
+    values.combine(
+      {
+        ratio: values.reactive(input.ratio).map(value => {
+          if (!value) throw new Error('Invalid multiplier')
+          return value
+        }),
+        defense: select
+          .activePet(input.player, { key: 'pet', mode: 'follow' })
+          .attribute('def', { key: 'def', mode: 'capture', captureScope: 'input' })
+          .requireOne(),
+      },
+      ({ ratio, defense }) => ratio * defense,
+    ),
+  )
+  installValueModifier({
+    definition,
+    args: { player: b, ratio },
+    source,
+    target: a.activePet,
+    attribute: 'atk',
+    operation: 'override',
+    effectId: 'sibling',
+    bindingKey: 'atk',
+  })
+  ratio.next(0)
+  switchTo(battle, b, 1)
+  b.team[0].attributeSystem.updateBaseValue('def', 70)
+  switchTo(battle, b, 0)
+  ratio.next(1)
+  expect(a.activePet.stat.atk).toBe(70)
+})
+
+it('rolls back a failed replacement publication and releases the prepared candidate', async () => {
+  const { battle, a, source } = fixture()
+  const oldInput = new Signal(2),
+    nextInput = new Signal(7)
+  const definition = defineValue('publication', (value: Signal<number>) => values.reactive(value))
+  const options = {
+    definition,
+    args: oldInput,
+    source,
+    target: a.activePet,
+    attribute: 'atk' as const,
+    operation: 'delta' as const,
+    effectId: 'publication',
+    bindingKey: 'atk',
+  }
+  const old = installValueModifier(options)
+  let first = true
+  const stop = a.activePet.attributeSystem.getAttribute$('atk').watch(() => {
+    if (first) {
+      first = false
+      throw new Error('notification failed')
+    }
+  })
+  expect(() => installValueModifier({ ...options, args: nextInput })).toThrow('notification failed')
+  expect(a.activePet.stat.atk).toBe(57)
+  expect(old.isDisposed).toBe(false)
+  expect(nextInput.observerCount).toBe(0)
+  stop()
+  await battle.cleanup()
+  expect(oldInput.observerCount).toBe(0)
 })

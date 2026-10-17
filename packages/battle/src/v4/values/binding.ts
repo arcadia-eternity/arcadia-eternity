@@ -55,7 +55,6 @@ export class BoundValue extends ReactiveValue<number> {
     this.stop?.()
     this.stop = undefined
     this.result = { ok: false, error: new Error('Disposed value binding') }
-    this.changed()
     super.complete()
   }
 }
@@ -217,7 +216,12 @@ export function installValueModifier<A>(options: InstallValueModifier<A>): Value
       throw new Error('Replacement must preserve the contribution operation and priority')
     }
     const previous = old.value
-    options.target.attributeSystem.replaceModifierValue(options.attribute, old, bound)
+    try {
+      options.target.attributeSystem.replaceModifierValue(options.attribute, old, bound)
+    } catch (error) {
+      bound.complete()
+      throw error
+    }
     previous.complete()
     return bindingHandle(bound, () => getModifierCleanup(options.target.attributeSystem, old)?.())
   }

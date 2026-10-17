@@ -54,7 +54,7 @@ The provenance manifest is refreshed only for these reviewed changes:
 
 ## Verification
 
-`test/v4/value-binding.test.ts` exercises four read-mode combinations, captured input plus live multiplier, source cleanup, replacement failure and target independence, live fault recovery, suppression, direct/transitive/dynamic cycles, entry faults, shared selections, frozen self reads, cross-battle ownership rejection, real switch hook/message order, and two JSON snapshot round trips. Missing factories/renamed capture nodes fail restoration before a successful retry; RNG resumes from the saved position.
+`test/v4/value-binding.test.ts` exercises four read-mode combinations, captured input plus live multiplier, source cleanup, replacement failure and target independence, live fault recovery, suppression, direct/transitive/dynamic cycles, entry faults, shared selections, frozen self reads, cross-battle ownership rejection, real switch hook/message order, and repeated JSON snapshot round trips, including an entry-faulted binding. Missing factories/renamed capture nodes fail restoration before a successful retry; RNG resumes from the saved position.
 
 Run against the rebuilt public package (`dist`), not a test-only implementation:
 
@@ -69,3 +69,14 @@ pnpm verify:battle-v4-hosts
 ```
 
 The host check covers the existing Node/browser battle and checkpoint contract. The new value-binding scenarios run in the V4 suite; they are not claimed as a separate browser-driven suite.
+
+### Review fixes (2026-10-18)
+
+Both independent review axes passed after these regressions were repaired:
+
+- A fault in an earlier eager combine input retains later siblings' entry tracking.
+- Restore-state errors take precedence over ordinary runtime faults, so a renamed capture cannot be hidden by a faulted sibling.
+- A synchronous observer failure during replacement restores the old Modifier value and disposes the candidate.
+- Restored bound contributions validate target attribute, source ownership and unique value ownership before activation.
+
+Validation after fixes: 85 tests in all 10 V4 test files; V4 typecheck and lint pass. Existing design drafts and their inventory are outside this implementation commit.
