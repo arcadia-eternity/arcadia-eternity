@@ -27,7 +27,7 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, BattleStartPhase, BattleLoopPhase } from './phase'
+import { PhaseManager, BattleStartPhase, BattleLoopPhase, SelectionPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
 import { AddMarkPhase } from './phase/AddMarkPhase'
@@ -404,7 +404,7 @@ export class Battle extends Context implements MarkOwner {
   public isSnapshotBoundary(): boolean {
     return !this.cancelled && this.status === BattleStatus.OnBattle && this.currentPhase === BattlePhase.SelectionPhase && (this.restoredSelection ||
       (!!this.waitingResolvers.bothPlayersReady && this.currentPhase === BattlePhase.SelectionPhase &&
-       this.phaseManager.getCurrentPhase()?.constructor.name === 'SelectionPhase'))
+       this.phaseManager.getCurrentPhase() instanceof SelectionPhase))
   }
 
   // Legacy generator method removed - use startBattlePhased() instead

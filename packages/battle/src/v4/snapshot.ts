@@ -119,6 +119,75 @@ export class SnapshotCatalog {
   }
 }
 
+// Wire tags are stable protocol identifiers, independent of bundler class renaming.
+const attributeTypes = {
+  AttributeSystem,
+  PetAttributeSystem,
+  PlayerAttributeSystem,
+  MarkAttributeSystem,
+  SkillAttributeSystem,
+  ComposableAttributeSystem,
+}
+function attributeTag(value: object): string {
+  const entry = Object.entries(attributeTypes).find(([, ctor]) => Object.getPrototypeOf(value) === ctor.prototype)
+  if (!entry) throw new Error('Custom attribute class requires a snapshot adapter')
+  return entry[0]
+}
+function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
+  if (!recipe || typeof recipe !== 'object') throw new Error('Invalid snapshot value binding')
+  switch (recipe.type) {
+    case 'attribute':
+      if (recipe.target instanceof AttributeSystem && typeof recipe.key === 'string') return
+      break
+    case 'project':
+      if (
+        recipe.input instanceof ReactiveValue &&
+        ['add', 'multiply', 'divide', 'min', 'max', 'sum', 'stage'].includes(recipe.operation as string) &&
+        typeof recipe.operand === 'number' &&
+        Number.isFinite(recipe.operand) &&
+        !(recipe.operation === 'divide' && recipe.operand === 0)
+      )
+        return
+      break
+    case 'combine':
+      if (Array.isArray(recipe.inputs) && recipe.inputs.every(value => value instanceof ReactiveValue)) return
+      break
+    case 'property':
+      if (recipe.target && typeof recipe.target === 'object' && typeof recipe.key === 'string') return
+      break
+    case 'custom':
+      if (typeof recipe.key !== 'string') break
+      catalog.assertValue(recipe.key)
+      return
+  }
+  throw new Error('Invalid snapshot value binding')
+}
+function validateCleanup(binding: Record<string, unknown>): void {
+  if (binding?.type === 'noop') return
+  if (
+    binding?.type === 'group' &&
+    Array.isArray(binding.cleanups) &&
+    binding.cleanups.every(value => typeof value === 'function')
+  )
+    return
+  if (typeof binding?.active === 'boolean') {
+    if (
+      binding.type === 'modifier' &&
+      ((binding.target instanceof AttributeSystem && binding.modifier instanceof Modifier) ||
+        (binding.target instanceof ConfigSystem && binding.modifier instanceof ConfigModifier))
+    )
+      return
+    if (
+      binding.type === 'clamp' &&
+      binding.modifier instanceof Modifier &&
+      binding.min instanceof ReactiveValue &&
+      binding.max instanceof ReactiveValue
+    )
+      return
+  }
+  throw new Error('Invalid snapshot cleanup binding')
+}
+
 // The ledger is deliberately explicit: a new own field requires a serialization decision.
 const ledger = {
   Battle: {
@@ -236,6 +305,7 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
     if (typeof value === 'function') {
       const binding = getCleanupBinding(value as () => void)
       if (!binding) throw new Error('Unregistered snapshot function/cleanup')
+      validateCleanup(binding as Record<string, unknown>)
       write('cleanup', { binding })
     } else if (catalog.contentKey(value)) write('content', { key: catalog.contentKey(value) })
     else if (value instanceof Effect) write('effect', { key: catalog.effectKey(value) })
@@ -244,23 +314,13 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
     else if (value instanceof ReactiveValue) {
       const recipe = getValueRecipe(value)
       if (!recipe) throw new Error('Dynamic value requires a snapshot binding; its current value is insufficient')
+      validateRecipe(recipe, catalog)
       write('value', { recipe, complete: value.isComplete })
     } else if (value instanceof AttributeSystem) {
       if (value.getBattleId() && value.getBattleId() !== battle.id)
         throw new Error('Cross-Battle attribute reference cannot be snapshotted')
-      if (
-        ![
-          AttributeSystem.prototype,
-          PetAttributeSystem.prototype,
-          PlayerAttributeSystem.prototype,
-          MarkAttributeSystem.prototype,
-          SkillAttributeSystem.prototype,
-          ComposableAttributeSystem.prototype,
-        ].includes(Object.getPrototypeOf(value))
-      )
-        throw new Error('Custom attribute class requires a snapshot adapter')
       write('attribute', {
-        type: value.constructor.name,
+        type: attributeTag(value),
         accessors: value instanceof ComposableAttributeSystem ? Object.keys(value.getAccessors()).join('|') : '',
         state: value.exportSnapshotState(),
       })
@@ -424,6 +484,11 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       if (node.kind === 'set')
         for (const value of decode(node.fields.values) as unknown[]) (objects[index] as Set<unknown>).add(value)
     })
+    // Validate descriptions on the hydrated graph before any runtime registration.
+    for (const node of snapshot.nodes) {
+      if (node.kind === 'value') validateRecipe(decode(node.fields.recipe) as ValueRecipe, catalog)
+      if (node.kind === 'cleanup') validateCleanup(decode(node.fields.binding) as Record<string, unknown>)
+    }
     battle = decode(snapshot.root) as Battle
     if (
       !(battle instanceof Battle) ||
@@ -438,6 +503,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       timerConfig: ReturnType<Battle['getTimerConfig']>
       transformations: ReturnType<TransformationSystem['exportSnapshotState']>
     }
+    if (!data.timerConfig || data.timerConfig.enabled) throw new Error('Snapshot does not support enabled timers')
     const emitter = mitt<Events>()
     set(battle, {
       parent: null,
@@ -457,13 +523,6 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     })
     for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
     for (const restore of deferred) restore()
-    for (const node of snapshot.nodes)
-      if (node.kind === 'value') {
-        const recipe = decode(node.fields.recipe) as ValueRecipe
-        if (!['attribute', 'project', 'combine', 'property', 'custom'].includes(recipe.type))
-          throw new Error('Unknown snapshot value binding')
-        if (recipe.type === 'custom') catalog.assertValue(recipe.key as string)
-      }
     for (const { object, state } of attributes) object.restoreSnapshotModifiers(state)
     for (const { object, state } of configs) object.restoreSnapshotState(state)
     for (const { object } of configs) object.registerRestoredBattle(battle.id)

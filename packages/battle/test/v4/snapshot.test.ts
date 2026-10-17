@@ -368,3 +368,118 @@ it('refuses live phase-bound modifiers and real-time timer state instead of drop
   await battle.cleanup()
   await running
 })
+
+it('uses stable checkpoint identities when class names are minified', async () => {
+  const { battle, debuff } = makeScenario()
+  battles.push(battle)
+  const catalog = new SnapshotCatalog('renamed/1')
+  for (const pet of [...battle.playerA.team, ...battle.playerB.team])
+    for (const skill of pet.skills) for (const effect of skill.effects) catalog.registerEffect(effect.id, effect)
+  for (const effect of debuff.effects) catalog.registerEffect(effect.id, effect)
+  const ready = prompt(battle),
+    run = battle.startBattle().catch(() => {})
+  await ready
+  const constructors = [
+    battle.phaseManager.getCurrentPhase()!.constructor,
+    battle.playerA.activePet.attributeSystem.constructor,
+  ]
+  const names = constructors.map(ctor => Object.getOwnPropertyDescriptor(ctor, 'name')!)
+  try {
+    constructors.forEach((ctor, index) =>
+      Object.defineProperty(ctor, 'name', { value: `min${index}`, configurable: true }),
+    )
+    expect(battle.isSnapshotBoundary()).toBe(true)
+    const payload = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog)))
+    expect(
+      payload.nodes.some(
+        (node: { kind: string; fields: { type?: string } }) =>
+          node.kind === 'attribute' && node.fields.type === 'PetAttributeSystem',
+      ),
+    ).toBe(true)
+    await battle.cleanup()
+    await run
+    const restored = restoreBattle(payload, catalog)
+    battles.push(restored)
+    expect(restored.playerA.activePet.stat.atk).toBe(55)
+  } finally {
+    constructors.forEach((ctor, index) => Object.defineProperty(ctor, 'name', names[index]))
+  }
+})
+
+it('rejects missing factories and malformed value recipes before publishing a snapshot', async () => {
+  const { Modifier, DurationType, derived, describeValue, Signal } = await import('@arcadia-eternity/battle/v4')
+  const { battle, debuff } = makeScenario()
+  battles.push(battle)
+  const catalog = new SnapshotCatalog('factories/1')
+  for (const pet of [...battle.playerA.team, ...battle.playerB.team])
+    for (const skill of pet.skills) for (const effect of skill.effects) catalog.registerEffect(effect.id, effect)
+  for (const effect of debuff.effects) catalog.registerEffect(effect.id, effect)
+  const ready = prompt(battle),
+    run = battle.startBattle().catch(() => {})
+  await ready
+  const other = new SnapshotCatalog(catalog.revision).registerValue('custom', () => new Signal(3))
+  const value = other.describeValue(
+    derived(() => 3),
+    'custom',
+    null,
+  )
+  const remove = battle.playerA.activePet.attributeSystem.addModifier(
+    'atk',
+    new Modifier(DurationType.binding, 'custom-recipe', value, 'delta', 0),
+  )
+  expect(() => snapshotBattle(battle, catalog)).toThrow('Missing snapshot value factory')
+  catalog.registerValue('custom', () => new Signal(3))
+  expect(() => snapshotBattle(battle, catalog)).not.toThrow()
+  describeValue(value, { type: 'project', input: new Signal(3), operation: 'unknown', operand: 1 })
+  expect(() => snapshotBattle(battle, catalog)).toThrow('Invalid snapshot value binding')
+  describeValue(value, { type: 'combine', inputs: [3] })
+  expect(() => snapshotBattle(battle, catalog)).toThrow('Invalid snapshot value binding')
+  remove()
+  await battle.cleanup()
+  await run
+})
+
+it('rejects payloads that reintroduce unsupported timer or phase bindings during restore', async () => {
+  const { Modifier, DurationType, ConfigModifier, ConfigModifierType, ConfigDurationType, AttributeSystem } =
+    await import('@arcadia-eternity/battle/v4')
+  const { battle, debuff } = makeScenario()
+  battles.push(battle)
+  const catalog = new SnapshotCatalog('tampered-boundary/1')
+  for (const pet of [...battle.playerA.team, ...battle.playerB.team])
+    for (const skill of pet.skills) for (const effect of skill.effects) catalog.registerEffect(effect.id, effect)
+  for (const effect of debuff.effects) catalog.registerEffect(effect.id, effect)
+  const ready = prompt(battle),
+    run = battle.startBattle().catch(() => {})
+  await ready
+  battle.playerA.activePet.attributeSystem.addModifier(
+    'atk',
+    new Modifier(DurationType.binding, 'saved-attribute', 1, 'delta', 0),
+  )
+  battle.configSystem.registerConfig('saved-config', 10)
+  battle.configSystem.addScopedConfigModifier(
+    'saved-config',
+    new ConfigModifier(ConfigDurationType.binding, 'saved-config', 1, ConfigModifierType.delta, 0),
+  )
+  const payload = snapshotBattle(battle, catalog)
+  await battle.cleanup()
+  await run
+  const memory = AttributeSystem.getGlobalMemoryStats()
+  const timed = JSON.parse(JSON.stringify(payload))
+  const root = timed.nodes[timed.root.ref]
+  timed.nodes[root.fields.timerConfig.ref].fields.enabled = true
+  expect(() => restoreBattle(timed, catalog)).toThrow('enabled timers')
+  for (const kind of ['Modifier', 'ConfigModifier']) {
+    const forged = JSON.parse(JSON.stringify(payload))
+    const modifier = forged.nodes.find(
+      (node: { kind: string; fields: { id?: string } }) =>
+        node.kind === kind && node.fields.id === (kind === 'Modifier' ? 'saved-attribute' : 'saved-config'),
+    )
+    modifier.fields.durationType = 'phaseType'
+    expect(() => restoreBattle(forged, catalog)).toThrow('phase-bound')
+    expect(AttributeSystem.getGlobalMemoryStats()).toEqual(memory)
+  }
+  const restored = restoreBattle(payload, catalog)
+  battles.push(restored)
+  expect(restored.playerA.activePet.stat.atk).toBe(56)
+  expect(restored.configSystem.get('saved-config')).toBe(11)
+})

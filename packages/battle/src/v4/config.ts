@@ -221,6 +221,10 @@ export class ConfigSystem {
       scopedModifiers: this.scopedModifiers, tags: this.configKeyToTags }
   }
   public restoreSnapshotState(state: ReturnType<ConfigSystem['exportSnapshotState']>): void {
+    const lists = [...state.global.values(), ...[...state.scopedModifiers.values()].flatMap(entries => [...entries.values()])]
+    for (const modifiers of lists) for (const modifier of modifiers)
+      if (modifier.durationType === ConfigDurationType.phase || modifier.durationType === ConfigDurationType.phaseType)
+        throw new Error('Snapshot does not yet support active phase-bound config modifiers')
     this.cleanup()
     for (const [key, value] of state.base) this.registerConfig(key, value)
     for (const [key, tags] of state.tags) this.addConfigTags(key, [...tags])

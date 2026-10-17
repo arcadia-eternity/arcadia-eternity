@@ -232,7 +232,7 @@
  
    // Circular dependency detection and prevention
    private calculationStack = new Set<keyof T>()
-@@ -386,10 +350,41 @@
+@@ -386,10 +350,44 @@
      AttributeSystem.instanceRegistry.add(this)
    }
  
@@ -264,7 +264,10 @@
 +    this.setBattleId(battleId)
 +  }
 +  public restoreSnapshotModifiers(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>): void {
-+    for (const [key, modifiers] of state.modifiers) for (const modifier of modifiers) this.addModifier(String(key), modifier)
++    for (const [key, modifiers] of state.modifiers) for (const modifier of modifiers) {
++      if (modifier.durationType === DurationType.phaseType) throw new Error('Snapshot does not support phase-bound attribute modifiers')
++      this.addModifier(String(key), modifier)
++    }
 +  }
 +
    /**
@@ -275,7 +278,7 @@
      AttributeSystem.configSystemGetter = getter
    }
  
-@@ -397,7 +392,7 @@
+@@ -397,7 +395,7 @@
     * Notify all AttributeSystem instances that phase state has changed
     */
    static notifyPhaseChange(): void {
@@ -284,7 +287,7 @@
    }
  
    /**
-@@ -537,46 +532,23 @@
+@@ -537,46 +535,23 @@
        throw new Error(`Cannot register attribute on destroyed AttributeSystem ${this.objectId}`)
      }
  
@@ -342,7 +345,7 @@
      this.subscriptions.set(key, computed$)
  
      // Store cleanup function for this subscription
-@@ -599,6 +571,7 @@
+@@ -599,6 +574,7 @@
        }
  
        // Clean up subscription
@@ -350,7 +353,7 @@
        this.subscriptions.delete(key)
  
        // Clean up fallback value
-@@ -669,8 +642,8 @@
+@@ -669,8 +645,8 @@
  
      for (const modifier of modifiers) {
        try {
@@ -361,7 +364,7 @@
            // For reactive modifiers, we need to track potential dependencies
            // This is a simplified approach - in practice, you might want more sophisticated tracking
            const modifierValue = modifier.getCurrentValue()
-@@ -726,8 +699,8 @@
+@@ -726,8 +702,8 @@
    }
  
    // 获取属性流
@@ -372,7 +375,7 @@
    }
  
    // 获取当前属性值（同步）
-@@ -746,12 +719,7 @@
+@@ -746,12 +722,7 @@
      const subject = this.subscriptions.get(key)
      if (subject) {
        try {
@@ -386,7 +389,7 @@
        } catch (error) {
          this.logger.warn(`Error getting current value for '${String(key)}':`, error)
          return this.getFallbackValue(key)
-@@ -764,7 +732,9 @@
+@@ -764,7 +735,9 @@
     * Filter modifiers based on current phase context
     */
    private filterModifiersByPhaseContext(modifiers: Modifier[]): Modifier[] {
@@ -397,7 +400,7 @@
    }
  
    /**
-@@ -776,57 +746,8 @@
+@@ -776,57 +749,8 @@
        return true
      }
  
@@ -457,7 +460,7 @@
    }
  
    // 添加临时修改器（返回清理函数）
-@@ -855,7 +776,7 @@
+@@ -855,7 +779,7 @@
  
          if (isDuplicate) {
            // Return a no-op cleanup function for duplicates
@@ -466,7 +469,7 @@
          }
        }
  
-@@ -865,9 +786,6 @@
+@@ -865,9 +789,6 @@
        }
        sourceModifiers.get(key)!.push(modifier)
      }
@@ -476,7 +479,7 @@
  
      // Track phase type modifiers for automatic cleanup
      if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
-@@ -878,7 +796,16 @@
+@@ -878,7 +799,16 @@
        this.phaseTypeModifiers.get(phaseKey)!.push(modifier)
      }
  
@@ -494,7 +497,7 @@
        // Remove from main modifiers list
        const newModifiers = this.modifiers.get(key)!.value.filter(m => m !== modifier)
        this.modifiers.get(key)!.next(newModifiers)
-@@ -919,6 +846,14 @@
+@@ -919,6 +849,14 @@
          }
        }
      }
@@ -509,7 +512,7 @@
    }
  
    /**
-@@ -1118,6 +1053,8 @@
+@@ -1118,6 +1056,8 @@
      // Mark as destroyed
      this.isDestroyed = true
  
@@ -518,7 +521,7 @@
      // Clean up all subscriptions
      for (const [key, cleanup] of this.subscriptionCleanups) {
        try {
-@@ -1347,18 +1284,9 @@
+@@ -1347,18 +1287,9 @@
  
    // 移除来自特定源的所有修改器
    removeModifiersFromSource(sourceId: string): void {
@@ -551,10 +554,19 @@
  import { ConfigSystem } from './config'
  import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
  import { type EffectContainer } from './effect'
-@@ -35,6 +35,19 @@
+@@ -27,13 +27,26 @@
+ import * as jsondiffpatch from 'jsondiffpatch'
+ import { nanoid } from 'nanoid'
+ import mitt from 'mitt'
+-import { PhaseManager, BattleStartPhase, BattleLoopPhase } from './phase'
++import { PhaseManager, BattleStartPhase, BattleLoopPhase, SelectionPhase } from './phase'
+ import { EffectExecutionPhase } from './phase/effectExecution'
+ import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
+ import { AddMarkPhase } from './phase/AddMarkPhase'
+ import { TimerManager } from './timer'
  import { TransformationSystem } from './transformation'
  import { createChildLogger } from './logger'
- 
++
 +/** A host may inject a compatible stream; the default uses the standalone sfc32-v1 stream. */
 +export interface BattleRng {
 +  next(): number
@@ -567,10 +579,9 @@
 +  phase: BattlePhase
 +  selection: PlayerSelection
 +}
-+
+ 
  export class Battle extends Context implements MarkOwner {
    private lastStateMessage: BattleState = {} as BattleState
-   public id: string = nanoid()
 @@ -50,11 +63,14 @@
    public readonly timerManager: TimerManager
    public readonly transformationSystem: TransformationSystem = new TransformationSystem(this)
@@ -667,7 +678,7 @@
 +  public isSnapshotBoundary(): boolean {
 +    return !this.cancelled && this.status === BattleStatus.OnBattle && this.currentPhase === BattlePhase.SelectionPhase && (this.restoredSelection ||
 +      (!!this.waitingResolvers.bothPlayersReady && this.currentPhase === BattlePhase.SelectionPhase &&
-+       this.phaseManager.getCurrentPhase()?.constructor.name === 'SelectionPhase'))
++       this.phaseManager.getCurrentPhase() instanceof SelectionPhase))
 +  }
 +
    // Legacy generator method removed - use startBattlePhased() instead
@@ -870,7 +881,7 @@
      }
      return ConfigSystem.instance
    }
-@@ -253,9 +210,36 @@
+@@ -253,9 +210,40 @@
      return newInstance
    }
  
@@ -885,6 +896,10 @@
 +      scopedModifiers: this.scopedModifiers, tags: this.configKeyToTags }
 +  }
 +  public restoreSnapshotState(state: ReturnType<ConfigSystem['exportSnapshotState']>): void {
++    const lists = [...state.global.values(), ...[...state.scopedModifiers.values()].flatMap(entries => [...entries.values()])]
++    for (const modifiers of lists) for (const modifier of modifiers)
++      if (modifier.durationType === ConfigDurationType.phase || modifier.durationType === ConfigDurationType.phaseType)
++        throw new Error('Snapshot does not yet support active phase-bound config modifiers')
 +    this.cleanup()
 +    for (const [key, value] of state.base) this.registerConfig(key, value)
 +    for (const [key, tags] of state.tags) this.addConfigTags(key, [...tags])
@@ -907,7 +922,7 @@
    private registerWithBattle(battleId: string): void {
      if (!ConfigSystem.battleRegistry.has(battleId)) {
        ConfigSystem.battleRegistry.set(battleId, new Set())
-@@ -274,6 +258,7 @@
+@@ -274,6 +262,7 @@
     * Clean up all ConfigSystem instances associated with a specific battle
     */
    static cleanupBattle(battleId: string): number {
@@ -915,7 +930,7 @@
      const battleInstances = ConfigSystem.battleRegistry.get(battleId)
      if (!battleInstances) {
        return 0
-@@ -308,20 +293,8 @@
+@@ -308,20 +297,8 @@
        return
      }
  
@@ -938,7 +953,7 @@
    }
  
    /**
-@@ -545,53 +518,14 @@
+@@ -545,53 +522,14 @@
     * Check if a modifier should be applied based on scope hierarchy
     */
    private isModifierApplicableInScopeHierarchy(modifier: ConfigModifier, currentScope?: ScopeObject): boolean {
@@ -995,7 +1010,7 @@
    }
  
    /**
-@@ -724,11 +658,11 @@
+@@ -724,11 +662,11 @@
        const scopeConfigs = this.scopedBaseConfigs.get(scope)!
  
        if (scopeConfigs.has(key)) {
@@ -1010,7 +1025,7 @@
        }
      } else {
        // Setting the global base value.
-@@ -748,7 +682,7 @@
+@@ -748,7 +686,7 @@
    addTaggedConfigModifier(
      tag: string,
      modifierType: ConfigModifierType,
@@ -1019,7 +1034,7 @@
      priority: number = 0,
      durationType: ConfigDurationType = ConfigDurationType.instant,
      source?: MarkInstance | SkillInstance | BattlePhaseBase,
-@@ -777,7 +711,7 @@
+@@ -777,7 +715,7 @@
    addTaggedConfigModifierSingle(
      tag: string,
      modifierType: ConfigModifierType,
@@ -1028,7 +1043,7 @@
      priority: number = 0,
      durationType: ConfigDurationType = ConfigDurationType.instant,
      source?: MarkInstance | SkillInstance | BattlePhaseBase,
-@@ -794,15 +728,34 @@
+@@ -794,15 +732,34 @@
      )
  
      // Return a single cleanup function that calls all individual cleanups
@@ -1066,7 +1081,7 @@
      // Ensure the config is registered
      if (!this.modifiers.has(key)) {
        throw new Error(`Config key '${key}' is not registered for modifier support. Call registerConfig() first.`)
-@@ -907,19 +860,9 @@
+@@ -907,19 +864,9 @@
     * Remove all modifiers from a specific source
     */
    removeModifiersFromSource(sourceId: string): void {
@@ -1089,7 +1104,7 @@
    }
  
    /**
-@@ -951,25 +894,20 @@
+@@ -951,25 +898,20 @@
     * Notify AttributeSystem of phase changes
     */
    private notifyAttributeSystemPhaseChange(): void {
@@ -1118,7 +1133,7 @@
          return PhaseType.Battle
        case 'TurnPhase':
          return PhaseType.Turn
-@@ -980,23 +918,15 @@
+@@ -980,23 +922,15 @@
        case 'HealPhase':
          return PhaseType.Heal
        case 'SwitchPetPhase':
@@ -1145,7 +1160,7 @@
          return PhaseType.Effect
      }
    }
-@@ -1014,7 +944,11 @@
+@@ -1014,7 +948,11 @@
      }
      this.phaseTypeInstances.get(phaseType)!.push(phase)
  
@@ -1158,7 +1173,7 @@
      this.notifyAttributeSystemPhaseChange()
    }
  
-@@ -1074,172 +1008,42 @@
+@@ -1074,172 +1012,42 @@
      return !!(instances && instances.length > 0)
    }
  
@@ -1366,7 +1381,7 @@
      }
    }
  
-@@ -1251,6 +1055,9 @@
+@@ -1251,6 +1059,9 @@
        return
      }
  
@@ -1376,7 +1391,7 @@
      // Cleanup all modifiers
      for (const [_key, modifierSubject] of this.modifiers.entries()) {
        const modifiers = modifierSubject.value
-@@ -1271,12 +1078,14 @@
+@@ -1271,12 +1082,14 @@
      }
  
      // Clear all maps and arrays
@@ -1393,7 +1408,7 @@
      this.phaseTypeInstances.clear()
      this.allSubscriptions.length = 0
  
-@@ -1369,8 +1178,13 @@
+@@ -1369,8 +1182,13 @@
      }
  
      ConfigSystem.battleRegistry.clear()

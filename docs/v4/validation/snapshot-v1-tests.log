@@ -1,0 +1,10 @@
+$ pnpm --filter @arcadia-eternity/battle exec vitest run --config vitest.v4.config.mjs
+
+ RUN  v4.1.11 /Users/yuuinih/GitHub/test_battle/packages/battle
+
+
+ Test Files  9 passed (9)
+      Tests  69 passed (69)
+   Start at  12:44:36
+   Duration  16.51s (transform 502ms, setup 0ms, import 932ms, tests 17.64s, environment 2ms)
+

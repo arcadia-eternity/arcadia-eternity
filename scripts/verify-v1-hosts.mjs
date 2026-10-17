@@ -24,11 +24,16 @@ for (const platform of ['node', 'browser']) {
       },
     ],
   })
-  await build.write({ file: `${dir}/${platform}.mjs`, format: 'esm', codeSplitting: false })
+  await build.write({
+    file: `${dir}/${platform}.mjs`,
+    format: 'esm',
+    codeSplitting: false,
+    minify: platform === 'browser',
+  })
   await build.close()
   graphs[platform] = modules.map(id => id.replace(`${process.cwd()}/`, '')).sort()
 }
-const { verifyV1, createCheckpointProbe } = await import(pathToFileURL(`${dir}/node.mjs`).href)
+const { verifyV1, createCheckpointProbe, resumeCheckpointProbe } = await import(pathToFileURL(`${dir}/node.mjs`).href)
 const result = await verifyV1()
 assert.equal(result.fullBattle.turn, 4)
 assert.equal(result.fullBattle.winner, 'A')
@@ -62,6 +67,11 @@ const exitCode = await new Promise(resolve => isolated.on('close', resolve))
 assert.equal(exitCode, 0, isolatedError)
 const isolatedResult = JSON.parse(isolatedOut.trim())
 assert.deepEqual(isolatedResult, result.checkpoint)
+const minifiedHost = await import(pathToFileURL(`${dir}/browser.mjs`).href)
+assert.deepEqual(await minifiedHost.resumeCheckpointProbe(payload), result.checkpoint)
+const minifiedPayload = await minifiedHost.createCheckpointProbe()
+assert.deepEqual(await resumeCheckpointProbe(minifiedPayload), result.checkpoint)
+console.log(JSON.stringify({ minifiedBrowserBundle: true, bidirectionalNodeCheckpoint: true }))
 await writeFile(`${dir}/isolated-checkpoint-result.json`, JSON.stringify(isolatedResult, null, 2))
 console.log(JSON.stringify({ isolatedProcessRestore: true, checkpoint: isolatedResult }))
 
@@ -70,8 +80,12 @@ await writeFile(`${dir}/node-result.json`, JSON.stringify(result, null, 2))
 await writeFile(
   `${dir}/index.html`,
   `<!doctype html><meta charset="utf-8"><title>Original V1 host check</title><pre id="result">Running</pre><script type="module">
-import { verifyV1 } from './browser.mjs';
-try { const result = await verifyV1(); document.querySelector('#result').textContent = JSON.stringify(result); }
+import { verifyV1, resumeCheckpointProbe } from './browser.mjs';
+try { const result = await verifyV1();
+const checkpoint = await (await fetch('./checkpoint.json')).json();
+const crossHost = await resumeCheckpointProbe(checkpoint);
+if (JSON.stringify(crossHost) !== JSON.stringify(result.checkpoint)) throw new Error('Node checkpoint differs in Browser');
+document.querySelector('#result').textContent = JSON.stringify(result); }
 catch (error) { document.querySelector('#result').textContent = String(error); }
 </script>`,
 )
@@ -89,7 +103,14 @@ if (process.argv.includes('--browser')) {
   const { promisify } = await import('node:util')
   const profile = await mkdtemp(`${tmpdir()}/ae-v1-chrome-`)
   const server = createServer(async (request, response) => {
-    const file = request.url === '/' ? 'index.html' : request.url === '/browser.mjs' ? 'browser.mjs' : null
+    const file =
+      request.url === '/'
+        ? 'index.html'
+        : request.url === '/browser.mjs'
+          ? 'browser.mjs'
+          : request.url === '/checkpoint.json'
+            ? 'checkpoint.json'
+            : null
     if (!file) {
       response.writeHead(404)
       response.end()
@@ -122,7 +143,15 @@ if (process.argv.includes('--browser')) {
       stdout.includes(`<pre id="result">${JSON.stringify(result)}</pre>`),
       'Real browser result differs from Node; inspect browser-dom.html',
     )
-    console.log(JSON.stringify({ browser: 'Chrome', matchesNode: true, originalDsl: result.originalDsl }))
+    console.log(
+      JSON.stringify({
+        browser: 'Chrome',
+        minified: true,
+        nodeCheckpointRestored: true,
+        matchesNode: true,
+        originalDsl: result.originalDsl,
+      }),
+    )
   } finally {
     await new Promise(resolve => server.close(resolve))
     await rm(profile, { recursive: true, force: true, maxRetries: 3 })

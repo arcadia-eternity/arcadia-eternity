@@ -378,7 +378,10 @@ export class AttributeSystem<T extends AttributeData> {
     this.setBattleId(battleId)
   }
   public restoreSnapshotModifiers(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>): void {
-    for (const [key, modifiers] of state.modifiers) for (const modifier of modifiers) this.addModifier(String(key), modifier)
+    for (const [key, modifiers] of state.modifiers) for (const modifier of modifiers) {
+      if (modifier.durationType === DurationType.phaseType) throw new Error('Snapshot does not support phase-bound attribute modifiers')
+      this.addModifier(String(key), modifier)
+    }
   }
 
   /**
