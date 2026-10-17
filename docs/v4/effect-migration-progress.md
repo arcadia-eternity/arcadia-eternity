@@ -1,0 +1,30 @@
+# Effect migration execution ledger
+
+Goal: complete the current official Effect DSL → TypeScript migration with bounded UGC authoring. This goal is active; a passing runtime slice is not catalog completion.
+
+Authoritative contracts: reviewed sections of issues [205](https://github.com/arcadia-eternity/arcadia-eternity/issues/205), [206](https://github.com/arcadia-eternity/arcadia-eternity/issues/206), [223](https://github.com/arcadia-eternity/arcadia-eternity/issues/223), plus [218](https://github.com/arcadia-eternity/arcadia-eternity/issues/218) and [224](https://github.com/arcadia-eternity/arcadia-eternity/issues/224).
+
+## Evidence as of 2026-10-18
+
+- Runtime slice: `a3736161`, review fixes: `150e2b02`. Capture/follow of an active slot and numeric attributes, Mark-owned contribution replacement/disposal, suppression and fault handling, strict attribute cycles, JSON restore and ownership validation. See [slice scope and evidence](validation/effect-values-slice-1.md).
+- 85 tests across all 10 V4 files pass. V4 typecheck/lint, source provenance and existing Node/Chrome host/checkpoint checks pass. Both read-only review axes pass after the reported defects were reproduced and repaired.
+- [Per-ID inventory](validation/effect-migration-inventory.json) records source revision/hashes, node paths/types, config declarations/references, callers, parser acceptance and unverified migration status. Reproduce with `node scripts/effect-migration/inventory.mjs`; use `--check` to detect drift. Build the battle public package first.
+- Historical fixtures: 666 definitions, 666 accepted by the legacy V4 parser, 859 direct references. Current production: 1065 definitions, 642 accepted, 423 rejected, 1437 direct references. Neither dataset has duplicate Effect IDs or dangling direct skill/mark Effect references.
+- Relative to historical fixtures, production has 422 new IDs, 23 removed IDs, 251 changed definitions and 392 structurally identical definitions. These are structural facts, not behavioral equivalence results.
+- Every production definition remains **U / behavior not run / not generated** in this initial audit. Parser acceptance is only one prerequisite for using the current DSL as an oracle. Rejected definitions require a concrete mechanism diagnosis; no fallback or generated no-op counts as conversion.
+
+## Remaining work and proof required
+
+| Work                                                 | Current state                                                            | Completion evidence                                                                                                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Per-node decisions, legacy temporal characterization | Source inventory exists; E/C/U decision mapping and scenarios incomplete | Each production ID has source-node mapping, explicit behavior decision and executable scenario                                                                   |
+| Value runtime beyond numeric active-slot pilot       | Partial                                                                  | Once reads, collections/branches, Config edges, Skill/phase ownership, missing policies and all S/R scenarios on real V4                                         |
+| Parameter and UGC pipeline                           | Not implemented                                                          | TypeBox-derived contracts, stable parameter addresses/aliases, immutable capability catalog, UGC-A/B/C and U01–U08                                               |
+| Mark instance parameter transmission                 | Not implemented                                                          | Parameters present before OnMarkCreated; incompatible stacking rejected before side effects; restore tested                                                      |
+| Native effect execution and shared budgets           | Existing V1 execution only                                               | Correlated trigger contexts, dispatch/condition/roll records, expected ordering, nested shared budgets and termination tests                                     |
+| Handwritten official samples                         | Not converted                                                            | Required representative and complex TS cases with mapped config, RNG, binding and snapshot behavior                                                              |
+| Static conversion of current official catalog        | Not started                                                              | Maintainable TS source/registrations, every current ID, dependency-closed mechanism batches, explicit overrides protected                                        |
+| Differential behavioral verification                 | Not run for new catalog                                                  | E scenarios match current-rule oracle; C differences limited by decision ID; no U remains                                                                        |
+| Immutable environment, host integration and switch   | Not started                                                              | Single implementation per ID, build digest/handshake/restore alignment, Node/Browser/CLI continuation; official module graph excludes legacy parser/builder/RxJS |
+
+Next implementation sequence follows #206: finish necessary runtime seams alongside the three parameterized authoring flows; use handwritten real effects to establish the generation target; convert and verify batches; switch only after the final gates above have evidence. Keep old source and matching fixtures/builds as the oracle and rollback path. Do not update goldens to accept new behavior.
