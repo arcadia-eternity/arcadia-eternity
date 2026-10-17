@@ -31,7 +31,6 @@ import {
   DurationType,
   MarkAttributeSystem,
   createStatLevelMarkAttributeSystem,
-
   type BaseMarkAccessors,
   type LevelAccessors,
 } from './attributeSystem'
@@ -101,14 +100,19 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   get isStackable(): boolean
 
   cleanupAttributeModifiers(): void
+  addAttributeModifierCleanup(cleanup: () => void): void
   transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
   toMessage(): MarkMessage
 }
 
 export class MarkInstanceImpl implements MarkInstance {
   private suppression = new Signal(false)
-  get isSuppressed(): boolean { return this.suppression.value }
-  set isSuppressed(value: boolean) { this.suppression.next(value) }
+  get isSuppressed(): boolean {
+    return this.suppression.value
+  }
+  set isSuppressed(value: boolean) {
+    this.suppression.next(value)
+  }
   public owner: Battle | Pet | null = null
 
   public readonly id: markId

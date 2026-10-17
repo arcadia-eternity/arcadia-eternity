@@ -3,6 +3,35 @@ export interface ValueSubscription {
   unsubscribe(): void
 }
 let collecting: Set<ReactiveValue<unknown>> | undefined
+let readGuard: ((value: ReactiveValue<unknown>) => void) | undefined
+
+/** The typed binding path validates reads before subscribing to them. */
+export function withValueReadGuard<T>(guard: (value: ReactiveValue<unknown>) => void, read: () => T): T {
+  const previous = readGuard
+  readGuard = guard
+  try {
+    return read()
+  } finally {
+    readGuard = previous
+  }
+}
+export function checkValueRead(value: ReactiveValue<unknown>): void {
+  readGuard?.(value)
+}
+export function isStrictValueRead(): boolean {
+  return readGuard !== undefined
+}
+
+/** Capture a result without retaining the captured inputs as live dependencies. */
+export function untracked<T>(read: () => T): T {
+  const previous = collecting
+  collecting = undefined
+  try {
+    return read()
+  } finally {
+    collecting = previous
+  }
+}
 
 export abstract class ReactiveValue<T> {
   private listeners = new Set<() => void>()
@@ -12,6 +41,7 @@ export abstract class ReactiveValue<T> {
   protected unobserved(): void {}
 
   get value(): T {
+    checkValueRead(this)
     collecting?.add(this as ReactiveValue<unknown>)
     return this.read()
   }
@@ -57,6 +87,12 @@ export abstract class ReactiveValue<T> {
 
   protected changed(): void {
     for (const listener of [...this.listeners]) if (this.listeners.has(listener)) listener()
+  }
+
+  /** Availability is observable independently of reading a potentially faulted value. */
+  get isAvailable(): boolean {
+    collecting?.add(this as ReactiveValue<unknown>)
+    return true
   }
 
   get isComplete(): boolean {

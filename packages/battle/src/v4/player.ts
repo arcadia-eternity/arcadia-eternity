@@ -24,6 +24,7 @@ import { SwitchPetPhase } from './phase/switch'
 import { RagePhase } from './phase/rage'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Emitter } from 'mitt'
+import { initializePlayerRelations } from './values/relations'
 
 export class Player {
   public emitter?: Emitter<Events>
@@ -43,6 +44,7 @@ export class Player {
     public readonly team: Pet[],
   ) {
     this.activePet = team[0]
+    initializePlayerRelations(this)
     this.activePet.appeared = true
 
     // Initialize attribute system with player ID (battleId will be set later in registerBattle)

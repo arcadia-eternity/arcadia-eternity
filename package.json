@@ -37,7 +37,7 @@
     "typecheck:battle-v4": "pnpm exec tsgo -p packages/battle/tsconfig.v4-test.json",
     "verify:battle-v4-source": "node scripts/verify-v1-port.mjs",
     "verify:battle-v4-hosts": "node scripts/verify-v1-hosts.mjs --browser",
-    "lint:battle-v4": "pnpm exec eslint --config eslint.config.v4.js packages/battle/test/v4/*.ts packages/battle/v4.ts packages/battle/v4-legacy.ts packages/battle/src/v4/api.ts packages/battle/src/v4/reactiveValue.ts packages/battle/src/v4/rng.ts packages/battle/src/v4/snapshot.ts packages/battle/src/v4/snapshotBindings.ts",
+    "lint:battle-v4": "pnpm exec eslint --config eslint.config.v4.js packages/battle/test/v4/*.ts packages/battle/v4.ts packages/battle/v4-legacy.ts packages/battle/src/v4/api.ts packages/battle/src/v4/reactiveValue.ts packages/battle/src/v4/rng.ts packages/battle/src/v4/snapshot.ts packages/battle/src/v4/snapshotBindings.ts packages/battle/src/v4/values/*.ts",
     "battle:v4-demo": "tsx scripts/run-v1-battle.ts"
   },
   "dependencies": {

@@ -38,6 +38,10 @@ import {
   type ValueProjection,
 } from './reactiveValue'
 import { getCleanupBinding, getModifierCleanup, describeCleanup } from './snapshotBindings'
+import { bindValue, RestoredBoundValue, validateBindingState, type BoundValue } from './values/binding'
+import type { BindingTarget } from './values/dependencies'
+import type { ValueDefinition, BindingState } from './values/plan'
+import { initializePlayerRelations } from './values/relations'
 
 type Atom = null | boolean | string | number
 type Encoded = Atom | { ref: number } | { atom: 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' }
@@ -84,6 +88,20 @@ export class SnapshotCatalog {
     if (!this.values.has(key)) throw new Error(`Missing snapshot value factory: ${key}`)
   }
   private values = new Map<string, (args: unknown) => ReactiveValue<unknown>>()
+  private bindings = new Map<string, (args: unknown, state: BindingState, target: BindingTarget) => BoundValue>()
+  registerValueBinding<A>(definition: ValueDefinition<A>): this {
+    if (this.bindings.has(definition.id)) throw new Error(`Duplicate value binding definition: ${definition.id}`)
+    this.bindings.set(definition.id, (args, state, target) => bindValue(definition, args as A, target, state, true))
+    return this
+  }
+  assertValueBinding(key: string): void {
+    if (!this.bindings.has(key)) throw new Error(`Missing value binding definition: ${key}`)
+  }
+  restoreValueBinding(key: string, args: unknown, state: unknown, target: BindingTarget): BoundValue {
+    this.assertValueBinding(key)
+    validateBindingState(state)
+    return this.bindings.get(key)!(args, state, target)
+  }
   constructor(public readonly revision: string) {
     if (!revision) throw new Error('Snapshot catalog revision is required')
   }
@@ -136,6 +154,20 @@ function attributeTag(value: object): string {
 function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
   if (!recipe || typeof recipe !== 'object') throw new Error('Invalid snapshot value binding')
   switch (recipe.type) {
+    case 'bound':
+      if (
+        typeof recipe.key !== 'string' ||
+        !recipe.target ||
+        typeof recipe.target !== 'object' ||
+        !('pet' in recipe.target) ||
+        !(recipe.target.pet instanceof Pet) ||
+        !('attribute' in recipe.target) ||
+        typeof recipe.target.attribute !== 'string'
+      )
+        break
+      catalog.assertValueBinding(recipe.key)
+      validateBindingState(recipe.state)
+      return
     case 'attribute':
       if (recipe.target instanceof AttributeSystem && typeof recipe.key === 'string') return
       break
@@ -163,6 +195,7 @@ function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
   throw new Error('Invalid snapshot value binding')
 }
 function validateCleanup(binding: Record<string, unknown>): void {
+  if (binding?.type === 'bound-value' && binding.modifier instanceof Modifier) return
   if (binding?.type === 'noop') return
   if (
     binding?.type === 'group' &&
@@ -401,6 +434,28 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
             object = new Signal<unknown>(undefined)
             break
           case 'value': {
+            const recipeRef = node.fields.recipe
+            const owned =
+              recipeRef &&
+              typeof recipeRef === 'object' &&
+              'ref' in recipeRef &&
+              snapshot.nodes[recipeRef.ref]?.fields.type === 'bound'
+            if (owned) {
+              object = new RestoredBoundValue(() => {
+                const recipe = decode(node.fields.recipe) as ValueRecipe
+                return catalog.restoreValueBinding(
+                  recipe.key as string,
+                  recipe.args,
+                  recipe.state,
+                  recipe.target as BindingTarget,
+                )
+              })
+              deferred.push(() => {
+                describeValue(object as ReactiveValue<unknown>, decode(node.fields.recipe) as ValueRecipe)
+                if (node.fields.complete) (object as ReactiveValue<unknown>).complete()
+              })
+              break
+            }
             let restored: ReactiveValue<unknown> | undefined
             object = derived(() => {
               restored ??= restoreRecipe(decode(node.fields.recipe) as ValueRecipe, catalog)
@@ -531,6 +586,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     for (const object of objects) {
       if (object instanceof Player) {
         set(object, { battle, owner: battle, emitter, messageCallbacks: [] })
+        initializePlayerRelations(object)
         battle.registerListener(object.handleMessage.bind(object))
         if (object instanceof AIPlayer) object.restoreSnapshotRuntime()
       } else if (object instanceof Pet || object instanceof MarkInstanceImpl) set(object, { emitter })
@@ -542,6 +598,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
         })
     }
     battle.transformationSystem.restoreSnapshotState(data.transformations)
+    for (const object of objects) if (object instanceof RestoredBoundValue) object.initialize()
     for (const object of objects)
       if (typeof object === 'function') {
         // Retain cleanup descriptions so a restored Battle can be saved again.
@@ -577,6 +634,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     for (const object of objects) {
       try {
         if (object instanceof AttributeSystem || object instanceof ConfigSystem) object.destroy()
+        if (object instanceof RestoredBoundValue) object.complete()
       } catch {
         /* Retain the original validation error; no host callbacks survive hydration. */
       }
@@ -606,6 +664,10 @@ function restoreRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): ReactiveV
   }
 }
 function runCleanup(binding: Record<string, unknown>): void {
+  if (binding.type === 'bound-value') {
+    ;(binding.modifier as Modifier).value.complete()
+    return
+  }
   if (binding.type === 'noop') return
   if (binding.type === 'group') {
     for (const cleanup of binding.cleanups as (() => void)[]) cleanup()

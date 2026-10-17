@@ -1,6 +1,6 @@
 import { rememberModifierCleanup, describeCleanup, deactivateCleanup, noopCleanup } from './snapshotBindings'
 // attribute-system.ts
-import { Signal, ReactiveValue, derived, isReactiveValue, describeValue } from './reactiveValue'
+import { Signal, ReactiveValue, derived, isReactiveValue, describeValue, isStrictValueRead } from './reactiveValue'
 import { nanoid } from 'nanoid'
 import type {
   StatOnBattle,
@@ -18,7 +18,9 @@ import { createChildLogger } from './logger'
 export function computed<T>(computeFn: () => T, dependencies: ReactiveValue<any>[]): ReactiveValue<T> {
   return derived(computeFn, dependencies)
 }
-export function ref<T>(initialValue: T): Signal<T> { return new Signal(initialValue) }
+export function ref<T>(initialValue: T): Signal<T> {
+  return new Signal(initialValue)
+}
 
 type AttributeKey = string
 // type Modifier = <T extends number | boolean | string>(base: T) => T
@@ -33,11 +35,21 @@ export class Modifier<T extends number | boolean | string = any> {
   private minBound = new Signal<number | undefined>(undefined)
   private maxBound = new Signal<number | undefined>(undefined)
   private extraCleanups: (() => void)[] = []
-  get minValue(): number | undefined { return this.minBound.value }
-  set minValue(value: number | undefined) { this.minBound.next(value) }
-  get maxValue(): number | undefined { return this.maxBound.value }
-  set maxValue(value: number | undefined) { this.maxBound.next(value) }
-  addCleanup(cleanup: () => void): void { this.extraCleanups.push(cleanup) }
+  get minValue(): number | undefined {
+    return this.minBound.value
+  }
+  set minValue(value: number | undefined) {
+    this.minBound.next(value)
+  }
+  get maxValue(): number | undefined {
+    return this.maxBound.value
+  }
+  set maxValue(value: number | undefined) {
+    this.maxBound.next(value)
+  }
+  addCleanup(cleanup: () => void): void {
+    this.extraCleanups.push(cleanup)
+  }
 
   constructor(
     public durationType: DurationType,
@@ -52,7 +64,7 @@ export class Modifier<T extends number | boolean | string = any> {
   ) {
     this.minValue = minValue
     this.maxValue = maxValue
-    this.value = isReactiveValue(initialValue) ? initialValue as ReactiveValue<T> : new Signal(initialValue as T)
+    this.value = isReactiveValue(initialValue) ? (initialValue as ReactiveValue<T>) : new Signal(initialValue as T)
   }
 
   // 获取当前值
@@ -352,21 +364,32 @@ export class AttributeSystem<T extends AttributeData> {
 
   /** Semantic state only; derived streams and disposers are rebuilt after hydration. */
   public exportSnapshotState() {
-    if (this.isDestroyed || this.calculationStack.size) throw new Error('Attribute system is not at a snapshot boundary')
+    if (this.isDestroyed || this.calculationStack.size)
+      throw new Error('Attribute system is not at a snapshot boundary')
     const seen = new Set<Modifier>()
-    for (const modifiers of this.modifiers.values()) for (const modifier of modifiers.value) {
-      if (modifier.durationType === DurationType.phaseType) throw new Error('Snapshot does not support phase-bound attribute modifiers')
-      if (seen.has(modifier)) throw new Error('Snapshot requires distinct modifier registrations per attribute')
-      seen.add(modifier)
-    }
-    return { base: new Map([...this.baseAttributes].map(([key, value]) => [key, value.value])),
+    for (const modifiers of this.modifiers.values())
+      for (const modifier of modifiers.value) {
+        if (modifier.durationType === DurationType.phaseType)
+          throw new Error('Snapshot does not support phase-bound attribute modifiers')
+        if (seen.has(modifier)) throw new Error('Snapshot requires distinct modifier registrations per attribute')
+        seen.add(modifier)
+      }
+    return {
+      base: new Map([...this.baseAttributes].map(([key, value]) => [key, value.value])),
       modifiers: new Map([...this.modifiers].map(([key, value]) => [key, value.value])),
-      fallback: this.fallbackValues, maxDepth: this.maxCalculationDepth, objectId: this.objectId,
-      dependencies: this.dependencyGraph, depths: this.calculationDepthCounter }
+      fallback: this.fallbackValues,
+      maxDepth: this.maxCalculationDepth,
+      objectId: this.objectId,
+      dependencies: this.dependencyGraph,
+      depths: this.calculationDepthCounter,
+    }
   }
   public restoreSnapshotBase(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>, battleId: string): void {
     for (const key of this.baseAttributes.keys()) this.subscriptionCleanups.get(key)?.()
-    this.baseAttributes.clear(); this.modifiers.clear(); this.subscriptions.clear(); this.subscriptionCleanups.clear()
+    this.baseAttributes.clear()
+    this.modifiers.clear()
+    this.subscriptions.clear()
+    this.subscriptionCleanups.clear()
     for (const [key, value] of state.base) this.registerBaseAttribute(String(key), value)
     this.fallbackValues = new Map(state.fallback)
     this.maxCalculationDepth = state.maxDepth
@@ -378,10 +401,12 @@ export class AttributeSystem<T extends AttributeData> {
     this.setBattleId(battleId)
   }
   public restoreSnapshotModifiers(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>): void {
-    for (const [key, modifiers] of state.modifiers) for (const modifier of modifiers) {
-      if (modifier.durationType === DurationType.phaseType) throw new Error('Snapshot does not support phase-bound attribute modifiers')
-      this.addModifier(String(key), modifier)
-    }
+    for (const [key, modifiers] of state.modifiers)
+      for (const modifier of modifiers) {
+        if (modifier.durationType === DurationType.phaseType)
+          throw new Error('Snapshot does not support phase-bound attribute modifiers')
+        this.addModifier(String(key), modifier)
+      }
   }
 
   /**
@@ -547,7 +572,7 @@ export class AttributeSystem<T extends AttributeData> {
       void AttributeSystem.phaseVersion.value
       const base = this.baseAttributes.get(key)!.value
       const modifiers = this.modifiers.get(key)!.value
-      for (const modifier of modifiers) void modifier.value.value
+      for (const modifier of modifiers) if (modifier.value.isAvailable) void modifier.value.value
       return this.calculateAttributeValueSafely(key, base, modifiers)
     })
 
@@ -592,12 +617,14 @@ export class AttributeSystem<T extends AttributeData> {
   ): number | boolean | string {
     // Check for circular dependency
     if (this.wouldCreateCircularDependency(key)) {
+      if (isStrictValueRead()) throw new Error(`Circular attribute dependency: ${String(key)}`)
       this.logger.warn(`Circular dependency detected for attribute '${String(key)}', using fallback value`)
       return this.getFallbackValue(key)
     }
 
     // Check calculation depth to prevent infinite recursion
     if (!this.checkCalculationDepth(key)) {
+      if (isStrictValueRead()) throw new Error(`Attribute calculation depth exceeded: ${String(key)}`)
       this.logger.warn(`Maximum calculation depth exceeded for attribute '${String(key)}', using fallback value`)
       this.resetCalculationDepth(key)
       return this.getFallbackValue(key)
@@ -622,6 +649,7 @@ export class AttributeSystem<T extends AttributeData> {
 
       return result
     } catch (error) {
+      if (isStrictValueRead()) throw error
       this.logger.warn(`Error calculating attribute '${String(key)}':`, error)
       return this.getFallbackValue(key)
     } finally {
@@ -658,6 +686,7 @@ export class AttributeSystem<T extends AttributeData> {
           result = modifier.apply(result)
         }
       } catch (error) {
+        if (isStrictValueRead()) throw error
         this.logger.warn(`Error applying modifier '${modifier.id}' to attribute '${String(key)}':`, error)
         // Continue with other modifiers instead of failing completely
         continue
@@ -701,8 +730,13 @@ export class AttributeSystem<T extends AttributeData> {
     }
   }
 
+  hasAttribute(key: AttributeKey): boolean {
+    return !this.isDestroyed && this.baseAttributes.has(key)
+  }
+
   // 获取属性流
   getAttribute$(key: AttributeKey): ReactiveValue<number | boolean | string> {
+    if (isStrictValueRead() && !this.hasAttribute(key)) throw new Error(`Unavailable attribute: ${key}`)
     return this.subscriptions.get(key) || new Signal(0)
   }
 
@@ -715,6 +749,7 @@ export class AttributeSystem<T extends AttributeData> {
 
     // Check for circular dependency in synchronous access
     if (this.wouldCreateCircularDependency(key)) {
+      if (isStrictValueRead()) throw new Error(`Circular attribute dependency: ${String(key)}`)
       this.logger.warn(`Circular dependency detected in getCurrentValue for '${String(key)}', using fallback value`)
       return this.getFallbackValue(key)
     }
@@ -724,6 +759,7 @@ export class AttributeSystem<T extends AttributeData> {
       try {
         return subject.value
       } catch (error) {
+        if (isStrictValueRead()) throw error
         this.logger.warn(`Error getting current value for '${String(key)}':`, error)
         return this.getFallbackValue(key)
       }
@@ -735,9 +771,14 @@ export class AttributeSystem<T extends AttributeData> {
    * Filter modifiers based on current phase context
    */
   private filterModifiersByPhaseContext(modifiers: Modifier[]): Modifier[] {
-    return modifiers.filter(modifier =>
-      (!modifier.source || !('isActive' in modifier.source) ||
-        (modifier.source.isActive && !modifier.source.isSuppressed)) && this.isModifierApplicableInCurrentPhase(modifier))
+    return modifiers.filter(
+      modifier =>
+        modifier.value.isAvailable &&
+        (!modifier.source ||
+          !('isActive' in modifier.source) ||
+          (modifier.source.isActive && !modifier.source.isSuppressed)) &&
+        this.isModifierApplicableInCurrentPhase(modifier),
+    )
   }
 
   /**
@@ -754,6 +795,18 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   // 添加临时修改器（返回清理函数）
+  findModifier(key: AttributeKey, id: string): Modifier | undefined {
+    return this.modifiers.get(key)?.value.find(modifier => modifier.id === id)
+  }
+
+  /** Replace only the value; preserve the contribution identity and its source cleanup. */
+  replaceModifierValue(key: AttributeKey, modifier: Modifier, value: ReactiveValue<number>): void {
+    const list = this.modifiers.get(key)
+    if (!list || !list.value.includes(modifier)) throw new Error('Modifier is not installed on this attribute')
+    modifier.value = value
+    list.next([...list.value])
+  }
+
   addModifier(key: AttributeKey, modifier: Modifier): () => void {
     // Check for duplicate modifiers from the same source
     if (modifier.source) {
@@ -850,7 +903,11 @@ export class AttributeSystem<T extends AttributeData> {
       }
     }
     if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
-      untrack = AttributeSystem.configSystemGetter?.(this.battleId)?.trackPhaseModifier(modifier, modifier.phaseTypeSpec, cleanup)
+      untrack = AttributeSystem.configSystemGetter?.(this.battleId)?.trackPhaseModifier(
+        modifier,
+        modifier.phaseTypeSpec,
+        cleanup,
+      )
     }
     rememberModifierCleanup(this, modifier, cleanup)
     this.modifierCleanups.set(modifier, cleanup)
@@ -1326,7 +1383,7 @@ export class AttributeSystem<T extends AttributeData> {
     let hasModifiers = false
 
     for (const [key, modifiersSubject] of this.modifiers.entries()) {
-      const modifiers = modifiersSubject.value
+      const modifiers = modifiersSubject.value.filter(modifier => modifier.value.isAvailable)
       const baseValue = this.baseAttributes.get(key)?.value
       const currentValue = this.getCurrentValue(key as string)
 
