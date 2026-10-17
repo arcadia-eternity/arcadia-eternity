@@ -84,3 +84,7 @@ this.rng = options?.rng ?? new GameRng(options?.rngSeed)
 尚未把 AfterAttacked、OnTransformEnd 的所有调用路径和 inheritOnFaint 的规则确认为完整能力；本轮不猜测规则补齐。新 const 触发器仍只是兼容类型，不冒充 V1 已支持。变身永久/临时栈的所有交叉组合、计时器竞态和任意自定义效果闭包尚无穷尽验收。Suppress 的原生印记仍留在 marks 内维护持续时间，序列化时必须保存 suppression、来源和形态关系；不能仅保存消息中的 isActive。
 
 仍未实现完整 BattleSnapshot/restore、持久 replay、稳定运行实例/效果身份、动态函数的可恢复注册表、等待点恢复。Signal 替代 RxJS 并不会自动使动态函数或阶段栈可 JSON 化。下一步以这些真实状态设计序列化边界，继续保留旧 DSL 到 EffectTemplate 有逐项等价证据。
+
+## 2026-10-17 续作
+
+上述报告是依赖替换里程碑。之后已在真实 V1 上增加正常选择等待点的直接数据快照/恢复、动态依赖/清理重建和原版 AI 监听重绑；未实现的边界及独立进程/Browser 验证见 [快照报告](./v1-snapshots.md)。

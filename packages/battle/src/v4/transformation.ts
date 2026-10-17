@@ -160,6 +160,21 @@ export class TransformationSystem {
     this.registerStrategy(EntityType.Mark, new MarkTransformationStrategy())
   }
 
+  public exportSnapshotState() {
+    const strategies = this.strategyRegistry.getAllStrategies()
+    if (strategies.some(s => ![PetTransformationStrategy.prototype, SkillTransformationStrategy.prototype,
+      MarkTransformationStrategy.prototype].includes(Object.getPrototypeOf(s)))) throw new Error('Custom transformation strategy requires snapshot adapter')
+    const petStrategy = this.strategyRegistry.getStrategyByType(EntityType.Pet) as PetTransformationStrategy
+    return { transformations: this.transformations, temporary: this.temporaryTransformStack,
+      permanent: this.permanentTransforms, nativeMarks: petStrategy.nativeMarks }
+  }
+  public restoreSnapshotState(state: ReturnType<TransformationSystem['exportSnapshotState']>): void {
+    this.transformations = state.transformations; this.temporaryTransformStack = state.temporary
+    this.permanentTransforms = state.permanent
+    const strategy = this.strategyRegistry.getStrategyByType(EntityType.Pet) as PetTransformationStrategy
+    for (const [pet, marks] of state.nativeMarks) strategy.nativeMarks.set(pet, marks)
+  }
+
   /**
    * 注册变身策略
    */

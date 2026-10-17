@@ -1,3 +1,5 @@
+import { createCheckpointProbe, resumeCheckpointProbe } from './snapshot-host'
+export { createCheckpointProbe, resumeCheckpointProbe } from './snapshot-host'
 import { runScenario, makeScenario } from './scenario'
 import { EffectParser, SkillParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
@@ -16,6 +18,7 @@ import qili from './fixtures/qili.json'
 export async function verifyV1() {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
   const fullBattle = await runScenario()
+  const checkpoint = await resumeCheckpointProbe(await createCheckpointProbe())
   const { battle, a } = makeScenario()
   try {
     const repo = DataRepository.getInstance()
@@ -60,6 +63,7 @@ export async function verifyV1() {
     if (continuation.some(n => n !== restored.next())) throw new Error('RNG continuation differs')
     return {
       fullBattle,
+      checkpoint,
       originalDsl: { skill: base.id, attackRatio: ratio },
       dynamic: { before, after },
       rng: { algorithm: saved.algorithm, continuation },

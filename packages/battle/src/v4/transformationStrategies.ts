@@ -19,7 +19,7 @@ import { MarkInstanceImpl, type MarkInstance, type BaseMark } from './mark'
 export class PetTransformationStrategy implements TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet> {
   // Native marks can themselves cause forms. Suspend them, retaining their owner,
   // duration and source identity, so source expiry can still revert the form.
-  private nativeMarks = new WeakMap<PetEntity, Map<string, MarkInstance>>()
+  public readonly nativeMarks = new Map<PetEntity, Map<string, MarkInstance>>()
   canTransform(entity: unknown): entity is PetEntity {
     return entity instanceof Pet
   }

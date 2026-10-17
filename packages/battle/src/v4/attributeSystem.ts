@@ -1,5 +1,6 @@
+import { rememberModifierCleanup, describeCleanup, deactivateCleanup, noopCleanup } from './snapshotBindings'
 // attribute-system.ts
-import { Signal, ReactiveValue, derived, isReactiveValue } from './reactiveValue'
+import { Signal, ReactiveValue, derived, isReactiveValue, describeValue } from './reactiveValue'
 import { nanoid } from 'nanoid'
 import type {
   StatOnBattle,
@@ -194,11 +195,14 @@ export const ModifierHelpers = {
       modifier.maxValue = val
     })
 
+    const binding = { type: 'clamp', modifier, min: minValue$, max: maxValue$, active: true }
     const cleanup = () => {
+      binding.active = false
       minSub.unsubscribe()
       maxSub.unsubscribe()
     }
 
+    describeCleanup(cleanup, binding)
     modifier.addCleanup(cleanup)
     return { modifier, cleanup }
   },
@@ -344,6 +348,37 @@ export class AttributeSystem<T extends AttributeData> {
 
     // Register this instance for battle-based lifecycle management
     AttributeSystem.instanceRegistry.add(this)
+  }
+
+  /** Semantic state only; derived streams and disposers are rebuilt after hydration. */
+  public exportSnapshotState() {
+    if (this.isDestroyed || this.calculationStack.size) throw new Error('Attribute system is not at a snapshot boundary')
+    const seen = new Set<Modifier>()
+    for (const modifiers of this.modifiers.values()) for (const modifier of modifiers.value) {
+      if (modifier.durationType === DurationType.phaseType) throw new Error('Snapshot does not support phase-bound attribute modifiers')
+      if (seen.has(modifier)) throw new Error('Snapshot requires distinct modifier registrations per attribute')
+      seen.add(modifier)
+    }
+    return { base: new Map([...this.baseAttributes].map(([key, value]) => [key, value.value])),
+      modifiers: new Map([...this.modifiers].map(([key, value]) => [key, value.value])),
+      fallback: this.fallbackValues, maxDepth: this.maxCalculationDepth, objectId: this.objectId,
+      dependencies: this.dependencyGraph, depths: this.calculationDepthCounter }
+  }
+  public restoreSnapshotBase(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>, battleId: string): void {
+    for (const key of this.baseAttributes.keys()) this.subscriptionCleanups.get(key)?.()
+    this.baseAttributes.clear(); this.modifiers.clear(); this.subscriptions.clear(); this.subscriptionCleanups.clear()
+    for (const [key, value] of state.base) this.registerBaseAttribute(String(key), value)
+    this.fallbackValues = new Map(state.fallback)
+    this.maxCalculationDepth = state.maxDepth
+    this.dependencyGraph = new Map(state.dependencies)
+    this.calculationDepthCounter = new Map(state.depths)
+    AttributeSystem.globalCalculationStack.delete(this.objectId)
+    this.objectId = state.objectId
+    AttributeSystem.globalCalculationStack.set(this.objectId, new Set())
+    this.setBattleId(battleId)
+  }
+  public restoreSnapshotModifiers(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>): void {
+    for (const [key, modifiers] of state.modifiers) for (const modifier of modifiers) this.addModifier(String(key), modifier)
   }
 
   /**
@@ -513,6 +548,7 @@ export class AttributeSystem<T extends AttributeData> {
       return this.calculateAttributeValueSafely(key, base, modifiers)
     })
 
+    describeValue(computed$, { type: 'attribute', target: this, key })
     this.subscriptions.set(key, computed$)
 
     // Store cleanup function for this subscription
@@ -740,7 +776,7 @@ export class AttributeSystem<T extends AttributeData> {
 
         if (isDuplicate) {
           // Return a no-op cleanup function for duplicates
-          return () => {}
+          return noopCleanup
         }
       }
 
@@ -765,6 +801,7 @@ export class AttributeSystem<T extends AttributeData> {
     const cleanup = () => {
       if (!active) return
       active = false
+      deactivateCleanup(cleanup)
       this.modifierCleanups.delete(modifier)
       untrack?.()
       modifier.destroy()
@@ -812,6 +849,7 @@ export class AttributeSystem<T extends AttributeData> {
     if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
       untrack = AttributeSystem.configSystemGetter?.(this.battleId)?.trackPhaseModifier(modifier, modifier.phaseTypeSpec, cleanup)
     }
+    rememberModifierCleanup(this, modifier, cleanup)
     this.modifierCleanups.set(modifier, cleanup)
     // Bind before publishing; synchronous observers must see the active phase.
     this.modifiers.get(key)!.next([...this.modifiers.get(key)!.value, modifier])

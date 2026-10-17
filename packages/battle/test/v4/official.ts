@@ -65,7 +65,7 @@ export async function loadHistoricalContent() {
   return { counts, failures }
 }
 
-export async function runHistoricalOfficial() {
+export async function createHistoricalOfficialBattle() {
   const content = await loadHistoricalContent()
   // Huanli was added after V1. Feed its unchanged current species definition
   // through the original V1 parser; skills/effects still come from pinned V1 YAML.
@@ -79,6 +79,11 @@ export async function runHistoricalOfficial() {
   DataRepository.getInstance().species.set(huanli.id, SpeciesParser.parse({ ...huanli, ability: [], emblem: [] }))
   const players = input.teams.map(team => PlayerParser.parse(team))
   const battle = new Battle(players[0], players[1], { rngSeed: 201, timerConfig: { enabled: false }, showHidden: true })
+  return { battle, players, content }
+}
+
+export async function runHistoricalOfficial() {
+  const { battle, players, content } = await createHistoricalOfficialBattle()
   const indexes = [0, 0]
   const events: BattleMessage[] = []
   const checkpoints: { turn: number; hp: number[]; rage: number[]; marks: string[] }[] = []

@@ -21,7 +21,11 @@ export class SelectionContext extends Context {
  * This is an interactive phase that waits for player input
  */
 export class SelectionPhase extends InteractivePhase<SelectionContext> {
-  constructor(battle: Battle, id?: string) {
+  constructor(
+    battle: Battle,
+    id?: string,
+    private readonly restored = false,
+  ) {
     super(battle, id)
   }
 
@@ -30,17 +34,18 @@ export class SelectionPhase extends InteractivePhase<SelectionContext> {
   }
 
   protected async executeOperation(): Promise<void> {
-    // Clear previous selections
-    this.battle.clearSelections()
+    if (!this.restored) {
+      // Clear previous selections
+      this.battle.clearSelections()
 
-    // Emit turn action message
-    this.battle.emitMessage(BattleMessageType.TurnAction, {
-      player: [this.battle.playerA.id, this.battle.playerB.id],
-    })
+      // Emit turn action message
+      this.battle.emitMessage(BattleMessageType.TurnAction, {
+        player: [this.battle.playerA.id, this.battle.playerB.id],
+      })
 
-    // Start new turn timer
-    this.battle.timerManager.startNewTurn([this.battle.playerA.id, this.battle.playerB.id])
-
+      // Start new turn timer
+      this.battle.timerManager.startNewTurn([this.battle.playerA.id, this.battle.playerB.id])
+    }
     // Wait for both players to make selections
     await this.battle.waitForBothPlayersReady()
   }

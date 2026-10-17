@@ -32,50 +32,50 @@
 
 ## 文件清单
 
-| V1 路径                                           | 移植 | 新路径                                               | 修改                                                                            |
-| ------------------------------------------------- | ---- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `packages/battle/src/attributeSystem.ts`          | 是   | `packages/battle/src/v4/attributeSystem.ts`          | 同步 Signal/derived 替换 RxJS；保留属性算法；本局阶段绑定/抑制来源过滤/订阅清理 |
-| `packages/battle/src/battle.ts`                   | 是   | `packages/battle/src/v4/battle.ts`                   | RNG 注入/独立 sfc32；ActionLog；原上下文传递；取消及投降唤醒输入等待            |
-| `packages/battle/src/config.ts`                   | 是   | `packages/battle/src/v4/config.ts`                   | 同步值替换 RxJS；本局同步阶段查询；Current/Next 实例绑定和 scoped/source 清理   |
-| `packages/battle/src/context.ts`                  | 是   | `packages/battle/src/v4/context.ts`                  | V2 新 enum 类型回退；技能 sureHit/sureCrit/忽略阶段和替换技能配置传递           |
-| `packages/battle/src/effect.ts`                   | 是   | `packages/battle/src/v4/effect.ts`                   | 跳过失效或被抑制的印记来源                                                      |
-| `packages/battle/src/entity.ts`                   | 是   | `packages/battle/src/v4/entity.ts`                   | 原样保留                                                                        |
-| `packages/battle/src/index.ts`                    | 是   | `packages/battle/src/v4/index.ts`                    | 原样保留                                                                        |
-| `packages/battle/src/logger.ts`                   | 是   | `packages/battle/src/v4/logger.ts`                   | 原样保留                                                                        |
-| `packages/battle/src/mark.ts`                     | 是   | `packages/battle/src/v4/mark.ts`                     | 同步能力等级值；抑制标志；额外属性系统加入本局清理                              |
-| `packages/battle/src/pet.ts`                      | 是   | `packages/battle/src/v4/pet.ts`                      | 显式 maxHp；传递真实伤害/治疗上下文；只使用生效护盾                             |
-| `packages/battle/src/phase/AddMarkPhase.ts`       | 是   | `packages/battle/src/v4/phase/AddMarkPhase.ts`       | 接收调用者原上下文                                                              |
-| `packages/battle/src/phase/MarkCleanupPhase.ts`   | 是   | `packages/battle/src/v4/phase/MarkCleanupPhase.ts`   | 原样保留                                                                        |
-| `packages/battle/src/phase/MarkStackPhase.ts`     | 是   | `packages/battle/src/v4/phase/MarkStackPhase.ts`     | 原样保留                                                                        |
-| `packages/battle/src/phase/MarkSwitchOutPhase.ts` | 是   | `packages/battle/src/v4/phase/MarkSwitchOutPhase.ts` | 原样保留                                                                        |
-| `packages/battle/src/phase/MarkTransferPhase.ts`  | 是   | `packages/battle/src/v4/phase/MarkTransferPhase.ts`  | 原样保留                                                                        |
-| `packages/battle/src/phase/MarkUpdatePhase.ts`    | 是   | `packages/battle/src/v4/phase/MarkUpdatePhase.ts`    | 原样保留                                                                        |
-| `packages/battle/src/phase/RemoveMarkPhase.ts`    | 是   | `packages/battle/src/v4/phase/RemoveMarkPhase.ts`    | 消息补 baseMarkId；接收调用者原上下文                                           |
-| `packages/battle/src/phase/base.ts`               | 是   | `packages/battle/src/v4/phase/base.ts`               | 取消状态不被完成覆盖；同步阶段完成/失败钩子；配置使用本局并及时清理             |
-| `packages/battle/src/phase/battleLoop.ts`         | 是   | `packages/battle/src/v4/phase/battleLoop.ts`         | 等待点取消与战斗结束检查                                                        |
-| `packages/battle/src/phase/battleStart.ts`        | 是   | `packages/battle/src/v4/phase/battleStart.ts`        | 原样保留                                                                        |
-| `packages/battle/src/phase/battleSwitch.ts`       | 是   | `packages/battle/src/v4/phase/battleSwitch.ts`       | 等待点取消与战斗结束检查                                                        |
-| `packages/battle/src/phase/damage.ts`             | 是   | `packages/battle/src/v4/phase/damage.ts`             | 接收调用者原上下文；拒绝伤害结果归零                                            |
-| `packages/battle/src/phase/effect.ts`             | 是   | `packages/battle/src/v4/phase/effect.ts`             | 原样保留                                                                        |
-| `packages/battle/src/phase/effectExecution.ts`    | 是   | `packages/battle/src/v4/phase/effectExecution.ts`    | 不收集失效/被抑制来源的效果                                                     |
-| `packages/battle/src/phase/heal.ts`               | 是   | `packages/battle/src/v4/phase/heal.ts`               | 接收原上下文；实际调用 isActive()                                               |
-| `packages/battle/src/phase/index.ts`              | 是   | `packages/battle/src/v4/phase/index.ts`              | 原样保留                                                                        |
-| `packages/battle/src/phase/manager.ts`            | 是   | `packages/battle/src/v4/phase/manager.ts`            | 错误传播与父阶段恢复；完成时配置清理；显式拒绝无回滚重试/未实现超时             |
-| `packages/battle/src/phase/mark.ts`               | 是   | `packages/battle/src/v4/phase/mark.ts`               | 保存 owner 后再反转能力等级印记                                                 |
-| `packages/battle/src/phase/rage.ts`               | 是   | `packages/battle/src/v4/phase/rage.ts`               | 接收原上下文；尊重效果取消怒气变化                                              |
-| `packages/battle/src/phase/selection.ts`          | 是   | `packages/battle/src/v4/phase/selection.ts`          | 原样保留                                                                        |
-| `packages/battle/src/phase/skill.ts`              | 是   | `packages/battle/src/v4/phase/skill.ts`              | 暴露排序所需的当前上下文优先级                                                  |
-| `packages/battle/src/phase/switch.ts`             | 是   | `packages/battle/src/v4/phase/switch.ts`             | 原样保留                                                                        |
-| `packages/battle/src/phase/transform.ts`          | 是   | `packages/battle/src/v4/phase/transform.ts`          | 消除重复变身前后派发；由原 TransformationSystem 负责                            |
-| `packages/battle/src/phase/turn.ts`               | 是   | `packages/battle/src/v4/phase/turn.ts`               | 使用 BeforeSort 更新后的优先级                                                  |
-| `packages/battle/src/player.ts`                   | 是   | `packages/battle/src/v4/player.ts`                   | AI 走 Battle RNG；怒气阶段复用原上下文                                          |
-| `packages/battle/src/skill.ts`                    | 是   | `packages/battle/src/v4/skill.ts`                    | 具名 Builder 声明兼容；默认 100%/1 段；新技能属性系统加入本局清理               |
-| `packages/battle/src/timer/animationTracker.ts`   | 是   | `packages/battle/src/v4/timer/animationTracker.ts`   | 原样保留                                                                        |
-| `packages/battle/src/timer/battleTimer.ts`        | 是   | `packages/battle/src/v4/timer/battleTimer.ts`        | 原样保留                                                                        |
-| `packages/battle/src/timer/index.ts`              | 是   | `packages/battle/src/v4/timer/index.ts`              | 原样保留                                                                        |
-| `packages/battle/src/timer/timerManager.ts`       | 是   | `packages/battle/src/v4/timer/timerManager.ts`       | TimerEvent.data unknown 类型断言                                                |
-| `packages/battle/src/transformation.ts`           | 是   | `packages/battle/src/v4/transformation.ts`           | 变身事件单次按序派发；按切换时实际 HP 比例转换                                  |
-| `packages/battle/src/transformationStrategies.ts` | 是   | `packages/battle/src/v4/transformationStrategies.ts` | 同步策略异常传播；Override 抑制原生来源并保留到期还原关系                       |
+| V1 路径                                           | 移植 | 新路径                                               | 修改                                                                               |
+| ------------------------------------------------- | ---- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `packages/battle/src/attributeSystem.ts`          | 是   | `packages/battle/src/v4/attributeSystem.ts`          | 同步值/来源与阶段修复；新增完整基础/修饰/fallback/依赖状态导出与重建、cleanup 描述 |
+| `packages/battle/src/battle.ts`                   | 是   | `packages/battle/src/v4/battle.ts`                   | RNG/ActionLog/取消修复；增加检查点边界、真实阶段续接、幂等 cleanup                 |
+| `packages/battle/src/config.ts`                   | 是   | `packages/battle/src/v4/config.ts`                   | 同步值/阶段隔离修复；scoped Map 与标签/修饰器导出、重建及本局注册清理              |
+| `packages/battle/src/context.ts`                  | 是   | `packages/battle/src/v4/context.ts`                  | V2 新 enum 类型回退；技能 sureHit/sureCrit/忽略阶段和替换技能配置传递              |
+| `packages/battle/src/effect.ts`                   | 是   | `packages/battle/src/v4/effect.ts`                   | 跳过失效或被抑制的印记来源                                                         |
+| `packages/battle/src/entity.ts`                   | 是   | `packages/battle/src/v4/entity.ts`                   | 原样保留                                                                           |
+| `packages/battle/src/index.ts`                    | 是   | `packages/battle/src/v4/index.ts`                    | 原样保留                                                                           |
+| `packages/battle/src/logger.ts`                   | 是   | `packages/battle/src/v4/logger.ts`                   | 原样保留                                                                           |
+| `packages/battle/src/mark.ts`                     | 是   | `packages/battle/src/v4/mark.ts`                     | 同步能力等级/抑制/清理修复；倍率加入可恢复依赖描述                                 |
+| `packages/battle/src/pet.ts`                      | 是   | `packages/battle/src/v4/pet.ts`                      | 显式 maxHp；传递真实伤害/治疗上下文；只使用生效护盾                                |
+| `packages/battle/src/phase/AddMarkPhase.ts`       | 是   | `packages/battle/src/v4/phase/AddMarkPhase.ts`       | 接收调用者原上下文                                                                 |
+| `packages/battle/src/phase/MarkCleanupPhase.ts`   | 是   | `packages/battle/src/v4/phase/MarkCleanupPhase.ts`   | 原样保留                                                                           |
+| `packages/battle/src/phase/MarkStackPhase.ts`     | 是   | `packages/battle/src/v4/phase/MarkStackPhase.ts`     | 原样保留                                                                           |
+| `packages/battle/src/phase/MarkSwitchOutPhase.ts` | 是   | `packages/battle/src/v4/phase/MarkSwitchOutPhase.ts` | 原样保留                                                                           |
+| `packages/battle/src/phase/MarkTransferPhase.ts`  | 是   | `packages/battle/src/v4/phase/MarkTransferPhase.ts`  | 原样保留                                                                           |
+| `packages/battle/src/phase/MarkUpdatePhase.ts`    | 是   | `packages/battle/src/v4/phase/MarkUpdatePhase.ts`    | 原样保留                                                                           |
+| `packages/battle/src/phase/RemoveMarkPhase.ts`    | 是   | `packages/battle/src/v4/phase/RemoveMarkPhase.ts`    | 消息补 baseMarkId；接收调用者原上下文                                              |
+| `packages/battle/src/phase/base.ts`               | 是   | `packages/battle/src/v4/phase/base.ts`               | 取消状态不被完成覆盖；同步阶段完成/失败钩子；配置使用本局并及时清理                |
+| `packages/battle/src/phase/battleLoop.ts`         | 是   | `packages/battle/src/v4/phase/battleLoop.ts`         | 等待取消/结束检查；正常选招检查点续接入口，保留原阶段顺序                          |
+| `packages/battle/src/phase/battleStart.ts`        | 是   | `packages/battle/src/v4/phase/battleStart.ts`        | 原样保留                                                                           |
+| `packages/battle/src/phase/battleSwitch.ts`       | 是   | `packages/battle/src/v4/phase/battleSwitch.ts`       | 等待点取消与战斗结束检查                                                           |
+| `packages/battle/src/phase/damage.ts`             | 是   | `packages/battle/src/v4/phase/damage.ts`             | 接收调用者原上下文；拒绝伤害结果归零                                               |
+| `packages/battle/src/phase/effect.ts`             | 是   | `packages/battle/src/v4/phase/effect.ts`             | 原样保留                                                                           |
+| `packages/battle/src/phase/effectExecution.ts`    | 是   | `packages/battle/src/v4/phase/effectExecution.ts`    | 不收集失效/被抑制来源的效果                                                        |
+| `packages/battle/src/phase/heal.ts`               | 是   | `packages/battle/src/v4/phase/heal.ts`               | 接收原上下文；实际调用 isActive()                                                  |
+| `packages/battle/src/phase/index.ts`              | 是   | `packages/battle/src/v4/phase/index.ts`              | 原样保留                                                                           |
+| `packages/battle/src/phase/manager.ts`            | 是   | `packages/battle/src/v4/phase/manager.ts`            | 错误/父阶段修复；增加快照队列/依赖安全检查                                         |
+| `packages/battle/src/phase/mark.ts`               | 是   | `packages/battle/src/v4/phase/mark.ts`               | 保存 owner 后再反转能力等级印记                                                    |
+| `packages/battle/src/phase/rage.ts`               | 是   | `packages/battle/src/v4/phase/rage.ts`               | 接收原上下文；尊重效果取消怒气变化                                                 |
+| `packages/battle/src/phase/selection.ts`          | 是   | `packages/battle/src/v4/phase/selection.ts`          | 恢复时保留既有选择，不重发旧选招事件/重置计时；其余选招逻辑原样                    |
+| `packages/battle/src/phase/skill.ts`              | 是   | `packages/battle/src/v4/phase/skill.ts`              | 暴露排序所需的当前上下文优先级                                                     |
+| `packages/battle/src/phase/switch.ts`             | 是   | `packages/battle/src/v4/phase/switch.ts`             | 原样保留                                                                           |
+| `packages/battle/src/phase/transform.ts`          | 是   | `packages/battle/src/v4/phase/transform.ts`          | 消除重复变身前后派发；由原 TransformationSystem 负责                               |
+| `packages/battle/src/phase/turn.ts`               | 是   | `packages/battle/src/v4/phase/turn.ts`               | 使用 BeforeSort 更新后的优先级                                                     |
+| `packages/battle/src/player.ts`                   | 是   | `packages/battle/src/v4/player.ts`                   | 共享 RNG 与原上下文；恢复时重绑原 AI 内置监听                                      |
+| `packages/battle/src/skill.ts`                    | 是   | `packages/battle/src/v4/skill.ts`                    | 具名 Builder 声明兼容；默认 100%/1 段；新技能属性系统加入本局清理                  |
+| `packages/battle/src/timer/animationTracker.ts`   | 是   | `packages/battle/src/v4/timer/animationTracker.ts`   | 原样保留                                                                           |
+| `packages/battle/src/timer/battleTimer.ts`        | 是   | `packages/battle/src/v4/timer/battleTimer.ts`        | 原样保留                                                                           |
+| `packages/battle/src/timer/index.ts`              | 是   | `packages/battle/src/v4/timer/index.ts`              | 原样保留                                                                           |
+| `packages/battle/src/timer/timerManager.ts`       | 是   | `packages/battle/src/v4/timer/timerManager.ts`       | 当前事件类型兼容；检查并拒绝实时计时/活动动画快照                                  |
+| `packages/battle/src/transformation.ts`           | 是   | `packages/battle/src/v4/transformation.ts`           | 原局部修复；导出/重建完整记录与来源映射，不重做变身触发                            |
+| `packages/battle/src/transformationStrategies.ts` | 是   | `packages/battle/src/v4/transformationStrategies.ts` | 同步策略/原生抑制修复；原生来源映射改为本局拥有的可枚举 Map                        |
 
 无核心源文件被排除。历史包的 rollup/tsconfig/package 由当前 monorepo 配置承接；不恢复旧构建链。额外兼容变更及验证结论见 `direct-v1-port.md`。
 
@@ -138,3 +138,5 @@
 新增代码包括 `src/v4/api.ts` 构造器转发、`reactiveValue.ts` 同步值、从当前 engine RNG 单独移入的 `rng.ts` 以及测试/宿主验证/来源检查工具；没有新增领域替代模型。`test/v4/fixtures/qili.json` 是历史 skill/effect YAML 中指定 ID 的解析记录，供 Browser 无 FS 验证，仍使用原 DSL。
 
 本轮现代化的逐项理由、接口变化和测试映射见 [v1-modernization.md](./v1-modernization.md)。来源映射仍包含全部 87 个原文件；新增同步值与 RNG 不伪装为历史原码。
+
+2026-10-17：新增正常选招等待点快照/恢复，协议和完整状态/缺口见 [v1-snapshots.md](./v1-snapshots.md)。新增 snapshot.ts、snapshotBindings.ts 是原类的状态适配层；原始 42 个文件仍全部保留。

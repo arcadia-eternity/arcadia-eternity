@@ -69,6 +69,7 @@ export class Battle extends Context implements MarkOwner {
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
   public currentTurn = 0
+  private cleanupPromise?: Promise<void>
   private cancelled = false
   private _isStarting: boolean = false // 防止重复启动的标志
   private messageCallbacks: Array<{
@@ -382,6 +383,30 @@ export class Battle extends Context implements MarkOwner {
     }
   }
 
+  /** Continue a hydrated selection checkpoint without replaying start/turn effects. */
+  public async resumeBattle(): Promise<void> {
+    this.assertRunning()
+    if (this._isStarting || this.status !== BattleStatus.OnBattle ||
+      this.currentPhase !== BattlePhase.SelectionPhase || !this.restoredSelection)
+      throw new Error('Battle is not a restored selection checkpoint')
+    this.restoredSelection = false
+    this._isStarting = true
+    try {
+      const loop = new BattleLoopPhase(this, undefined, true)
+      this.phaseManager.registerPhase(loop)
+      await this.phaseManager.executePhaseAsync(loop.id)
+    } catch (error) {
+      this.assertRunning()
+      throw error
+    } finally { this._isStarting = false }
+  }
+  private restoredSelection = false
+  public isSnapshotBoundary(): boolean {
+    return !this.cancelled && this.status === BattleStatus.OnBattle && this.currentPhase === BattlePhase.SelectionPhase && (this.restoredSelection ||
+      (!!this.waitingResolvers.bothPlayersReady && this.currentPhase === BattlePhase.SelectionPhase &&
+       this.phaseManager.getCurrentPhase()?.constructor.name === 'SelectionPhase'))
+  }
+
   // Legacy generator method removed - use startBattlePhased() instead
 
   public getPendingSwitchPlayer(): Player | undefined {
@@ -656,7 +681,11 @@ export class Battle extends Context implements MarkOwner {
     waiting.switchSelections?.resolve()
   }
 
-  public async cleanup() {
+  public cleanup(): Promise<void> {
+    this.cleanupPromise ??= this.performCleanup()
+    return this.cleanupPromise
+  }
+  private async performCleanup(): Promise<void> {
     this.cancelled = true
     this.resolveWaiting()
     this.clearListeners()

@@ -1,14 +1,15 @@
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/attributeSystem.ts
 +++ packages/battle/src/v4/attributeSystem.ts
-@@ -1,6 +1,5 @@
+@@ -1,6 +1,6 @@
++import { rememberModifierCleanup, describeCleanup, deactivateCleanup, noopCleanup } from './snapshotBindings'
  // attribute-system.ts
 -import { BehaviorSubject, Observable, combineLatest, Subject, of } from 'rxjs'
 -import { map, distinctUntilChanged, shareReplay, startWith, switchMap } from 'rxjs/operators'
-+import { Signal, ReactiveValue, derived, isReactiveValue } from './reactiveValue'
++import { Signal, ReactiveValue, derived, isReactiveValue, describeValue } from './reactiveValue'
  import { nanoid } from 'nanoid'
  import type {
    StatOnBattle,
-@@ -14,19 +13,11 @@
+@@ -14,19 +14,11 @@
  import type { PhaseTypeSpec } from './config'
  import { createChildLogger } from './logger'
  
@@ -33,7 +34,7 @@
  
  type AttributeKey = string
  // type Modifier = <T extends number | boolean | string>(base: T) => T
-@@ -37,60 +28,30 @@
+@@ -37,60 +29,30 @@
  }
  
  export class Modifier<T extends number | boolean | string = any> {
@@ -109,7 +110,7 @@
    }
  
    // 获取当前值
-@@ -100,10 +61,7 @@
+@@ -100,10 +62,7 @@
  
    // 清理订阅
    destroy(): void {
@@ -121,7 +122,7 @@
    }
  
    // 统一的 apply 方法
-@@ -159,7 +117,7 @@
+@@ -159,7 +118,7 @@
     */
    createClampMax: (
      id: string,
@@ -130,7 +131,7 @@
      priority: number = 0,
      source?: MarkInstance | SkillInstance,
      durationType: DurationType = DurationType.binding,
-@@ -177,7 +135,7 @@
+@@ -177,7 +136,7 @@
     */
    createClampMin: (
      id: string,
@@ -139,7 +140,7 @@
      priority: number = 0,
      source?: MarkInstance | SkillInstance,
      durationType: DurationType = DurationType.binding,
-@@ -210,16 +168,16 @@
+@@ -210,16 +169,16 @@
    /**
     * Create a reactive clamp modifier with observable min/max values
     * @param id Unique identifier for the modifier
@@ -160,15 +161,23 @@
      priority: number = 0,
      source?: MarkInstance | SkillInstance,
      durationType: DurationType = DurationType.binding,
-@@ -241,6 +199,7 @@
+@@ -236,11 +195,15 @@
+       modifier.maxValue = val
+     })
+ 
++    const binding = { type: 'clamp', modifier, min: minValue$, max: maxValue$, active: true }
+     const cleanup = () => {
++      binding.active = false
+       minSub.unsubscribe()
        maxSub.unsubscribe()
      }
  
++    describeCleanup(cleanup, binding)
 +    modifier.addCleanup(cleanup)
      return { modifier, cleanup }
    },
  
-@@ -255,7 +214,7 @@
+@@ -255,7 +218,7 @@
     */
    createPhaseTypeModifier: <T extends number | boolean | string>(
      id: string,
@@ -177,7 +186,7 @@
      type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp',
      phaseTypeSpec: PhaseTypeSpec,
      priority: number = 0,
-@@ -274,7 +233,7 @@
+@@ -274,7 +237,7 @@
     */
    createPhaseTypeDelta: (
      id: string,
@@ -186,7 +195,7 @@
      phaseTypeSpec: PhaseTypeSpec,
      priority: number = 0,
      source?: MarkInstance | SkillInstance,
-@@ -302,7 +261,7 @@
+@@ -302,7 +265,7 @@
     */
    createPhaseTypePercent: (
      id: string,
@@ -195,7 +204,7 @@
      phaseTypeSpec: PhaseTypeSpec,
      priority: number = 0,
      source?: MarkInstance | SkillInstance,
-@@ -338,21 +297,22 @@
+@@ -338,21 +301,22 @@
  
  export class AttributeSystem<T extends AttributeData> {
    private readonly logger = createChildLogger('AttributeSystem')
@@ -223,7 +232,41 @@
  
    // Circular dependency detection and prevention
    private calculationStack = new Set<keyof T>()
-@@ -389,7 +349,7 @@
+@@ -386,10 +350,41 @@
+     AttributeSystem.instanceRegistry.add(this)
+   }
+ 
++  /** Semantic state only; derived streams and disposers are rebuilt after hydration. */
++  public exportSnapshotState() {
++    if (this.isDestroyed || this.calculationStack.size) throw new Error('Attribute system is not at a snapshot boundary')
++    const seen = new Set<Modifier>()
++    for (const modifiers of this.modifiers.values()) for (const modifier of modifiers.value) {
++      if (modifier.durationType === DurationType.phaseType) throw new Error('Snapshot does not support phase-bound attribute modifiers')
++      if (seen.has(modifier)) throw new Error('Snapshot requires distinct modifier registrations per attribute')
++      seen.add(modifier)
++    }
++    return { base: new Map([...this.baseAttributes].map(([key, value]) => [key, value.value])),
++      modifiers: new Map([...this.modifiers].map(([key, value]) => [key, value.value])),
++      fallback: this.fallbackValues, maxDepth: this.maxCalculationDepth, objectId: this.objectId,
++      dependencies: this.dependencyGraph, depths: this.calculationDepthCounter }
++  }
++  public restoreSnapshotBase(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>, battleId: string): void {
++    for (const key of this.baseAttributes.keys()) this.subscriptionCleanups.get(key)?.()
++    this.baseAttributes.clear(); this.modifiers.clear(); this.subscriptions.clear(); this.subscriptionCleanups.clear()
++    for (const [key, value] of state.base) this.registerBaseAttribute(String(key), value)
++    this.fallbackValues = new Map(state.fallback)
++    this.maxCalculationDepth = state.maxDepth
++    this.dependencyGraph = new Map(state.dependencies)
++    this.calculationDepthCounter = new Map(state.depths)
++    AttributeSystem.globalCalculationStack.delete(this.objectId)
++    this.objectId = state.objectId
++    AttributeSystem.globalCalculationStack.set(this.objectId, new Set())
++    this.setBattleId(battleId)
++  }
++  public restoreSnapshotModifiers(state: ReturnType<AttributeSystem<T>['exportSnapshotState']>): void {
++    for (const [key, modifiers] of state.modifiers) for (const modifier of modifiers) this.addModifier(String(key), modifier)
++  }
++
    /**
     * Set the ConfigSystem getter to avoid circular dependency
     */
@@ -232,7 +275,7 @@
      AttributeSystem.configSystemGetter = getter
    }
  
-@@ -397,7 +357,7 @@
+@@ -397,7 +392,7 @@
     * Notify all AttributeSystem instances that phase state has changed
     */
    static notifyPhaseChange(): void {
@@ -241,7 +284,7 @@
    }
  
    /**
-@@ -537,45 +497,21 @@
+@@ -537,46 +532,23 @@
        throw new Error(`Cannot register attribute on destroyed AttributeSystem ${this.objectId}`)
      }
  
@@ -286,6 +329,7 @@
 -      distinctUntilChanged(),
 -      shareReplay(1), // Cache the latest value
 -    )
+-
 +    const computed$ = derived(() => {
 +      void AttributeSystem.phaseVersion.value
 +      const base = this.baseAttributes.get(key)!.value
@@ -293,10 +337,12 @@
 +      for (const modifier of modifiers) void modifier.value.value
 +      return this.calculateAttributeValueSafely(key, base, modifiers)
 +    })
- 
++
++    describeValue(computed$, { type: 'attribute', target: this, key })
      this.subscriptions.set(key, computed$)
  
-@@ -599,6 +535,7 @@
+     // Store cleanup function for this subscription
+@@ -599,6 +571,7 @@
        }
  
        // Clean up subscription
@@ -304,7 +350,7 @@
        this.subscriptions.delete(key)
  
        // Clean up fallback value
-@@ -669,8 +606,8 @@
+@@ -669,8 +642,8 @@
  
      for (const modifier of modifiers) {
        try {
@@ -315,7 +361,7 @@
            // For reactive modifiers, we need to track potential dependencies
            // This is a simplified approach - in practice, you might want more sophisticated tracking
            const modifierValue = modifier.getCurrentValue()
-@@ -726,8 +663,8 @@
+@@ -726,8 +699,8 @@
    }
  
    // 获取属性流
@@ -326,7 +372,7 @@
    }
  
    // 获取当前属性值（同步）
-@@ -746,12 +683,7 @@
+@@ -746,12 +719,7 @@
      const subject = this.subscriptions.get(key)
      if (subject) {
        try {
@@ -340,7 +386,7 @@
        } catch (error) {
          this.logger.warn(`Error getting current value for '${String(key)}':`, error)
          return this.getFallbackValue(key)
-@@ -764,7 +696,9 @@
+@@ -764,7 +732,9 @@
     * Filter modifiers based on current phase context
     */
    private filterModifiersByPhaseContext(modifiers: Modifier[]): Modifier[] {
@@ -351,7 +397,7 @@
    }
  
    /**
-@@ -776,57 +710,8 @@
+@@ -776,57 +746,8 @@
        return true
      }
  
@@ -411,17 +457,26 @@
    }
  
    // 添加临时修改器（返回清理函数）
-@@ -866,9 +751,6 @@
+@@ -855,7 +776,7 @@
+ 
+         if (isDuplicate) {
+           // Return a no-op cleanup function for duplicates
+-          return () => {}
++          return noopCleanup
+         }
+       }
+ 
+@@ -865,9 +786,6 @@
+       }
        sourceModifiers.get(key)!.push(modifier)
      }
- 
+-
 -    const currentModifiers = [...this.modifiers.get(key)!.value, modifier]
 -    this.modifiers.get(key)!.next(currentModifiers)
--
+ 
      // Track phase type modifiers for automatic cleanup
      if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
-       const phaseKey = `${modifier.phaseTypeSpec.phaseType}:${modifier.phaseTypeSpec.scope}:${modifier.phaseTypeSpec.phaseId || 'any'}`
-@@ -878,7 +760,15 @@
+@@ -878,7 +796,16 @@
        this.phaseTypeModifiers.get(phaseKey)!.push(modifier)
      }
  
@@ -431,6 +486,7 @@
 +    const cleanup = () => {
 +      if (!active) return
 +      active = false
++      deactivateCleanup(cleanup)
 +      this.modifierCleanups.delete(modifier)
 +      untrack?.()
 +      modifier.destroy()
@@ -438,13 +494,14 @@
        // Remove from main modifiers list
        const newModifiers = this.modifiers.get(key)!.value.filter(m => m !== modifier)
        this.modifiers.get(key)!.next(newModifiers)
-@@ -919,6 +809,13 @@
+@@ -919,6 +846,14 @@
          }
        }
      }
 +    if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
 +      untrack = AttributeSystem.configSystemGetter?.(this.battleId)?.trackPhaseModifier(modifier, modifier.phaseTypeSpec, cleanup)
 +    }
++    rememberModifierCleanup(this, modifier, cleanup)
 +    this.modifierCleanups.set(modifier, cleanup)
 +    // Bind before publishing; synchronous observers must see the active phase.
 +    this.modifiers.get(key)!.next([...this.modifiers.get(key)!.value, modifier])
@@ -452,7 +509,7 @@
    }
  
    /**
-@@ -1118,6 +1015,8 @@
+@@ -1118,6 +1053,8 @@
      // Mark as destroyed
      this.isDestroyed = true
  
@@ -461,7 +518,7 @@
      // Clean up all subscriptions
      for (const [key, cleanup] of this.subscriptionCleanups) {
        try {
-@@ -1347,18 +1246,9 @@
+@@ -1347,18 +1284,9 @@
  
    // 移除来自特定源的所有修改器
    removeModifiersFromSource(sourceId: string): void {
@@ -514,7 +571,7 @@
  export class Battle extends Context implements MarkOwner {
    private lastStateMessage: BattleState = {} as BattleState
    public id: string = nanoid()
-@@ -50,11 +63,13 @@
+@@ -50,11 +63,14 @@
    public readonly timerManager: TimerManager
    public readonly transformationSystem: TransformationSystem = new TransformationSystem(this)
    public readonly emitter = mitt<Events>()
@@ -525,11 +582,12 @@
    public status: BattleStatus = BattleStatus.Unstarted
    public currentPhase: BattlePhase = BattlePhase.SelectionPhase
    public currentTurn = 0
++  private cleanupPromise?: Promise<void>
 +  private cancelled = false
    private _isStarting: boolean = false // 防止重复启动的标志
    private messageCallbacks: Array<{
      original: (message: BattleMessage) => void
-@@ -84,16 +99,18 @@
+@@ -84,16 +100,18 @@
      public readonly playerB: Player,
      options?: {
        allowFaintSwitch?: boolean
@@ -550,7 +608,7 @@
  
      this.allowFaintSwitch = options?.allowFaintSwitch ?? true
      this.showHidden = options?.showHidden ?? false
-@@ -199,7 +216,7 @@
+@@ -199,7 +217,7 @@
    public shuffle<T>(array: T[]): T[] {
      const result = [...array]
      for (let i = result.length - 1; i > 0; i--) {
@@ -559,7 +617,7 @@
        ;[result[i], result[j]] = [result[j], result[i]]
      }
      return result
-@@ -234,13 +251,15 @@
+@@ -234,13 +252,15 @@
        context.stack,
        context.duration,
        context.config,
@@ -576,7 +634,7 @@
      this.phaseManager.registerPhase(removeMarkPhase)
      this.phaseManager.executePhase(removeMarkPhase.id)
    }
-@@ -328,6 +347,7 @@
+@@ -328,6 +348,7 @@
  
    // Phase-based battle start (main implementation)
    public async startBattle(): Promise<void> {
@@ -584,7 +642,38 @@
      // 防止重复启动的检查
      if (this._isStarting) {
        this.logger.warn({ battleId: this.id }, 'Battle is already starting, ignoring duplicate startBattle call')
-@@ -386,12 +406,19 @@
+@@ -362,6 +383,30 @@
+     }
+   }
+ 
++  /** Continue a hydrated selection checkpoint without replaying start/turn effects. */
++  public async resumeBattle(): Promise<void> {
++    this.assertRunning()
++    if (this._isStarting || this.status !== BattleStatus.OnBattle ||
++      this.currentPhase !== BattlePhase.SelectionPhase || !this.restoredSelection)
++      throw new Error('Battle is not a restored selection checkpoint')
++    this.restoredSelection = false
++    this._isStarting = true
++    try {
++      const loop = new BattleLoopPhase(this, undefined, true)
++      this.phaseManager.registerPhase(loop)
++      await this.phaseManager.executePhaseAsync(loop.id)
++    } catch (error) {
++      this.assertRunning()
++      throw error
++    } finally { this._isStarting = false }
++  }
++  private restoredSelection = false
++  public isSnapshotBoundary(): boolean {
++    return !this.cancelled && this.status === BattleStatus.OnBattle && this.currentPhase === BattlePhase.SelectionPhase && (this.restoredSelection ||
++      (!!this.waitingResolvers.bothPlayersReady && this.currentPhase === BattlePhase.SelectionPhase &&
++       this.phaseManager.getCurrentPhase()?.constructor.name === 'SelectionPhase'))
++  }
++
+   // Legacy generator method removed - use startBattlePhased() instead
+ 
+   public getPendingSwitchPlayer(): Player | undefined {
+@@ -386,12 +431,19 @@
      if (!player) return false
      const result = player.setSelection(selection)
      if (result) {
@@ -604,7 +693,7 @@
    }
  
    public getAvailableSelection(playerId: playerId): PlayerSelection[] {
-@@ -463,6 +490,7 @@
+@@ -463,6 +515,7 @@
  
    public getVictor(surrender = false, reason?: 'surrender' | 'total_time_timeout') {
      if (surrender && this.victor) {
@@ -612,7 +701,7 @@
        const battleEndReason = reason || 'surrender'
        this.emitMessage(BattleMessageType.BattleEnd, { winner: this.victor.id, reason: battleEndReason })
        return this.victor
-@@ -522,6 +550,7 @@
+@@ -522,6 +575,7 @@
    } = {}
  
    public async waitForSwitchSelections(players: Player[]): Promise<void> {
@@ -620,7 +709,7 @@
      // Check if already ready
      // 对于强制更换，必须选择switch-pet
      // 对于击破奖励更换，可以选择switch-pet或do-nothing
-@@ -560,6 +589,7 @@
+@@ -560,6 +614,7 @@
    }
  
    public async waitForBothPlayersReady(): Promise<void> {
@@ -628,10 +717,11 @@
      // Check if already ready
      if (this.bothPlayersReady()) {
        return
-@@ -617,7 +647,18 @@
+@@ -617,7 +672,22 @@
      }
    }
  
+-  public async cleanup() {
 +  public assertRunning(): void { if (this.cancelled) throw new Error('Battle cancelled') }
 +
 +  private resolveWaiting(): void {
@@ -641,7 +731,11 @@
 +    waiting.switchSelections?.resolve()
 +  }
 +
-   public async cleanup() {
++  public cleanup(): Promise<void> {
++    this.cleanupPromise ??= this.performCleanup()
++    return this.cleanupPromise
++  }
++  private async performCleanup(): Promise<void> {
 +    this.cancelled = true
 +    this.resolveWaiting()
      this.clearListeners()
@@ -649,7 +743,8 @@
  
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/config.ts
 +++ packages/battle/src/v4/config.ts
-@@ -1,7 +1,7 @@
+@@ -1,7 +1,8 @@
++import { rememberModifierCleanup, deactivateCleanup, describeCleanup } from './snapshotBindings'
  import type { baseMarkId, baseSkillId, markId, petId, playerId, skillId, speciesId } from '@arcadia-eternity/const'
 -import { BehaviorSubject, Subject, Observable, combineLatest } from 'rxjs'
 -import { map, distinctUntilChanged } from 'rxjs/operators'
@@ -660,7 +755,7 @@
  import type { MarkInstance } from './mark'
  import type { Pet } from './pet'
  import type { Player } from './player'
-@@ -75,51 +75,18 @@
+@@ -75,51 +76,18 @@
   * Similar to Modifier but specialized for config values
   */
  export class ConfigModifier {
@@ -715,7 +810,7 @@
    }
  
    /**
-@@ -159,10 +126,6 @@
+@@ -159,10 +127,6 @@
     * Cleanup resources
     */
    cleanup(): void {
@@ -726,7 +821,7 @@
    }
  }
  
-@@ -172,22 +135,25 @@
+@@ -172,22 +136,25 @@
   * Now supports non-singleton mode for battle instance isolation
   */
  export class ConfigSystem {
@@ -746,8 +841,9 @@
    private modifiersBySource: Map<string, Map<string, ConfigModifier[]>> = new Map()
  
 -  private scopedBaseConfigs: WeakMap<ScopeObject, Map<string, BehaviorSubject<ConfigValue>>> = new WeakMap()
-+  private scopedBaseConfigs: WeakMap<ScopeObject, Map<string, Signal<ConfigValue>>> = new WeakMap()
-   private scopedModifiers: WeakMap<ScopeObject, Map<string, ConfigModifier[]>> = new WeakMap()
+-  private scopedModifiers: WeakMap<ScopeObject, Map<string, ConfigModifier[]>> = new WeakMap()
++  private scopedBaseConfigs: Map<ScopeObject, Map<string, Signal<ConfigValue>>> = new Map()
++  private scopedModifiers: Map<ScopeObject, Map<string, ConfigModifier[]>> = new Map()
  
    // Phase type tracking
    private phaseStack: BattlePhaseBase[] = [] // Current phase execution stack
@@ -757,7 +853,7 @@
    private phaseTypeInstances: Map<PhaseType, BattlePhaseBase[]> = new Map() // Track instances by type
  
    // Tagged configuration system
-@@ -215,16 +181,6 @@
+@@ -215,16 +182,6 @@
    static getInstance() {
      if (!ConfigSystem.instance) {
        ConfigSystem.instance = new ConfigSystem()
@@ -774,7 +870,44 @@
      }
      return ConfigSystem.instance
    }
-@@ -274,6 +230,7 @@
+@@ -253,9 +210,36 @@
+     return newInstance
+   }
+ 
++  public exportSnapshotState() {
++    if (this.isDestroyed || this.phaseBindings.size || [...this.modifierCleanups.keys()].some(m =>
++      m.durationType === ConfigDurationType.phase || m.durationType === ConfigDurationType.phaseType))
++      throw new Error('Snapshot does not yet support active phase-bound config modifiers')
++    return { base: new Map([...this.baseConfigs].map(([key, value]) => [key, value.value])),
++      global: new Map([...this.modifiers].map(([key, value]) => [key, value.value])),
++      scopedBase: new Map([...this.scopedBaseConfigs].map(([scope, entries]) =>
++        [scope, new Map([...entries].map(([key, value]) => [key, value.value]))])),
++      scopedModifiers: this.scopedModifiers, tags: this.configKeyToTags }
++  }
++  public restoreSnapshotState(state: ReturnType<ConfigSystem['exportSnapshotState']>): void {
++    this.cleanup()
++    for (const [key, value] of state.base) this.registerConfig(key, value)
++    for (const [key, tags] of state.tags) this.addConfigTags(key, [...tags])
++    for (const [scope, entries] of state.scopedBase) for (const [key, value] of entries) this.set(key, value, scope)
++    for (const [key, modifiers] of state.global) for (const modifier of modifiers) this.addScopedConfigModifier(key, modifier)
++    for (const [scope, entries] of state.scopedModifiers) for (const [key, modifiers] of entries)
++      for (const modifier of modifiers) this.addScopedConfigModifier(key, modifier, scope)
++  }
++
+   /**
+    * Register this instance with a battle for lifecycle management
+    */
++  public registerRestoredBattle(battleId: string): void {
++    this.battleId = battleId
++    this.registerWithBattle(battleId)
++  }
++  static unbindRestoredBattle(battle: Battle): void {
++    if (this.battleConfigs.get(battle.id) === battle.configSystem) this.battleConfigs.delete(battle.id)
++  }
+   private registerWithBattle(battleId: string): void {
+     if (!ConfigSystem.battleRegistry.has(battleId)) {
+       ConfigSystem.battleRegistry.set(battleId, new Set())
+@@ -274,6 +258,7 @@
     * Clean up all ConfigSystem instances associated with a specific battle
     */
    static cleanupBattle(battleId: string): number {
@@ -782,7 +915,7 @@
      const battleInstances = ConfigSystem.battleRegistry.get(battleId)
      if (!battleInstances) {
        return 0
-@@ -308,20 +265,8 @@
+@@ -308,20 +293,8 @@
        return
      }
  
@@ -805,7 +938,7 @@
    }
  
    /**
-@@ -545,53 +490,14 @@
+@@ -545,53 +518,14 @@
     * Check if a modifier should be applied based on scope hierarchy
     */
    private isModifierApplicableInScopeHierarchy(modifier: ConfigModifier, currentScope?: ScopeObject): boolean {
@@ -862,7 +995,7 @@
    }
  
    /**
-@@ -724,11 +630,11 @@
+@@ -724,11 +658,11 @@
        const scopeConfigs = this.scopedBaseConfigs.get(scope)!
  
        if (scopeConfigs.has(key)) {
@@ -877,7 +1010,7 @@
        }
      } else {
        // Setting the global base value.
-@@ -748,7 +654,7 @@
+@@ -748,7 +682,7 @@
    addTaggedConfigModifier(
      tag: string,
      modifierType: ConfigModifierType,
@@ -886,7 +1019,7 @@
      priority: number = 0,
      durationType: ConfigDurationType = ConfigDurationType.instant,
      source?: MarkInstance | SkillInstance | BattlePhaseBase,
-@@ -777,7 +683,7 @@
+@@ -777,7 +711,7 @@
    addTaggedConfigModifierSingle(
      tag: string,
      modifierType: ConfigModifierType,
@@ -895,7 +1028,19 @@
      priority: number = 0,
      durationType: ConfigDurationType = ConfigDurationType.instant,
      source?: MarkInstance | SkillInstance | BattlePhaseBase,
-@@ -803,6 +709,23 @@
+@@ -794,15 +728,34 @@
+     )
+ 
+     // Return a single cleanup function that calls all individual cleanups
+-    return () => {
+-      cleanupFunctions.forEach(cleanup => cleanup())
+-    }
++    const cleanup = () => { cleanupFunctions.forEach(cleanup => cleanup()) }
++    describeCleanup(cleanup, { type: 'group', cleanups: cleanupFunctions })
++    return cleanup
+   }
+ 
+   /**
     * Add a config modifier with specific scope
     */
    addScopedConfigModifier(key: string, modifier: ConfigModifier, scope?: ScopeObject): () => void {
@@ -907,10 +1052,12 @@
 +    const cleanup = () => {
 +      if (!active) return
 +      active = false
++      deactivateCleanup(cleanup)
 +      this.modifierCleanups.delete(modifier)
 +      this.phaseBindings.delete(modifier)
 +      rawCleanup()
 +    }
++    rememberModifierCleanup(this, modifier, cleanup)
 +    this.modifierCleanups.set(modifier, cleanup)
 +    return cleanup
 +  }
@@ -919,7 +1066,7 @@
      // Ensure the config is registered
      if (!this.modifiers.has(key)) {
        throw new Error(`Config key '${key}' is not registered for modifier support. Call registerConfig() first.`)
-@@ -907,19 +830,9 @@
+@@ -907,19 +860,9 @@
     * Remove all modifiers from a specific source
     */
    removeModifiersFromSource(sourceId: string): void {
@@ -942,7 +1089,7 @@
    }
  
    /**
-@@ -951,25 +864,20 @@
+@@ -951,25 +894,20 @@
     * Notify AttributeSystem of phase changes
     */
    private notifyAttributeSystemPhaseChange(): void {
@@ -971,7 +1118,7 @@
          return PhaseType.Battle
        case 'TurnPhase':
          return PhaseType.Turn
-@@ -980,23 +888,15 @@
+@@ -980,23 +918,15 @@
        case 'HealPhase':
          return PhaseType.Heal
        case 'SwitchPetPhase':
@@ -998,7 +1145,7 @@
          return PhaseType.Effect
      }
    }
-@@ -1014,7 +914,11 @@
+@@ -1014,7 +944,11 @@
      }
      this.phaseTypeInstances.get(phaseType)!.push(phase)
  
@@ -1011,7 +1158,7 @@
      this.notifyAttributeSystemPhaseChange()
    }
  
-@@ -1074,172 +978,42 @@
+@@ -1074,172 +1008,42 @@
      return !!(instances && instances.length > 0)
    }
  
@@ -1219,7 +1366,7 @@
      }
    }
  
-@@ -1251,6 +1025,9 @@
+@@ -1251,6 +1055,9 @@
        return
      }
  
@@ -1229,8 +1376,14 @@
      // Cleanup all modifiers
      for (const [_key, modifierSubject] of this.modifiers.entries()) {
        const modifiers = modifierSubject.value
-@@ -1273,10 +1050,8 @@
+@@ -1271,12 +1078,14 @@
+     }
+ 
      // Clear all maps and arrays
++    this.scopedBaseConfigs.clear()
++    this.scopedModifiers.clear()
++    this.tagToConfigKeys.clear()
++    this.configKeyToTags.clear()
      this.baseConfigs.clear()
      this.modifiers.clear()
 -    this.subscriptions.clear()
@@ -1240,7 +1393,7 @@
      this.phaseTypeInstances.clear()
      this.allSubscriptions.length = 0
  
-@@ -1369,8 +1144,13 @@
+@@ -1369,8 +1178,13 @@
      }
  
      ConfigSystem.battleRegistry.clear()
@@ -1348,12 +1501,17 @@
        }
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/mark.ts
 +++ packages/battle/src/v4/mark.ts
-@@ -35,7 +35,7 @@
+@@ -31,11 +31,11 @@
+   DurationType,
+   MarkAttributeSystem,
+   createStatLevelMarkAttributeSystem,
+-  computed,
++
    type BaseMarkAccessors,
    type LevelAccessors,
  } from './attributeSystem'
 -import { Observable } from 'rxjs'
-+import { Signal, type ReactiveValue } from './reactiveValue'
++import { Signal, projectValue, type ReactiveValue } from './reactiveValue'
  
  export interface IBaseMark extends Prototype {
    createInstance(...arg: any[]): MarkInstance
@@ -1393,10 +1551,15 @@
  
    constructor(public readonly base: BaseStatLevelMark) {
      super(base)
-@@ -351,6 +355,12 @@
-       () => this.getStageMultiplier(this.levelAccessors.getLevel()),
-       [this.statLevelAttributeSystem.getAttribute$('level')],
-     )
+@@ -347,10 +351,13 @@
+     this.levelAccessors = this.statLevelAttributeSystem.getAccessors() as BaseMarkAccessors & LevelAccessors
+ 
+     // 创建基于attributeSystem level的computed Observable
+-    this.stageMultiplier$ = computed(
+-      () => this.getStageMultiplier(this.levelAccessors.getLevel()),
+-      [this.statLevelAttributeSystem.getAttribute$('level')],
+-    )
++    this.stageMultiplier$ = projectValue(this.statLevelAttributeSystem.getAttribute$('level'), 'stage')
 +  }
 +
 +  override setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
@@ -1580,33 +1743,73 @@
          success: true,
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/phase/battleLoop.ts
 +++ packages/battle/src/v4/phase/battleLoop.ts
-@@ -28,6 +28,7 @@
+@@ -14,7 +14,11 @@
+  * This is an InteractivePhase because it contains SelectionPhase which requires async execution
+  */
+ export class BattleLoopPhase extends InteractivePhase<Context> {
+-  constructor(battle: Battle, id?: string) {
++  constructor(
++    battle: Battle,
++    id?: string,
++    private resumeSelection = false,
++  ) {
+     super(battle, id)
+   }
+ 
+@@ -28,24 +32,37 @@
  
      // Main battle loop - continues until battle ends
      while (true) {
+-      // Phase 1: Handle switches (forced and faint switches)
+-      battle.currentPhase = BattlePhase.SwitchPhase
+-      const switchPhase = new BattleSwitchPhase(battle)
+-      battle.phaseManager.registerPhase(switchPhase)
 +      battle.assertRunning()
-       // Phase 1: Handle switches (forced and faint switches)
-       battle.currentPhase = BattlePhase.SwitchPhase
-       const switchPhase = new BattleSwitchPhase(battle)
-@@ -36,6 +37,7 @@
-       // Execute switch phase
-       await battle.phaseManager.executePhaseAsync(switchPhase.id)
++      if (this.resumeSelection) {
++        this.resumeSelection = false
++        const selection = new SelectionPhase(battle, undefined, true)
++        battle.phaseManager.registerPhase(selection)
++        await battle.phaseManager.executePhaseAsync(selection.id)
++      } else {
++        // Phase 1: Handle switches (forced and faint switches)
++        battle.currentPhase = BattlePhase.SwitchPhase
++        const switchPhase = new BattleSwitchPhase(battle)
++        battle.phaseManager.registerPhase(switchPhase)
  
+-      // Execute switch phase
+-      await battle.phaseManager.executePhaseAsync(switchPhase.id)
++        // Execute switch phase
++        await battle.phaseManager.executePhaseAsync(switchPhase.id)
+ 
++        battle.assertRunning()
++        if (battle.isBattleEnded()) break
++
++        // Phase 2: Collect player actions
++        battle.currentPhase = BattlePhase.SelectionPhase
++        const selectionPhase = new SelectionPhase(battle)
++        battle.phaseManager.registerPhase(selectionPhase)
++
++        // Execute selection phase (async)
++        await battle.phaseManager.executePhaseAsync(selectionPhase.id)
++
++        battle.assertRunning()
++        if (battle.isBattleEnded()) break
++      }
 +      battle.assertRunning()
        if (battle.isBattleEnded()) break
- 
-       // Phase 2: Collect player actions
-@@ -46,6 +48,9 @@
-       // Execute selection phase (async)
-       await battle.phaseManager.executePhaseAsync(selectionPhase.id)
- 
-+      battle.assertRunning()
-+      if (battle.isBattleEnded()) break
-+
+-
+-      // Phase 2: Collect player actions
+-      battle.currentPhase = BattlePhase.SelectionPhase
+-      const selectionPhase = new SelectionPhase(battle)
+-      battle.phaseManager.registerPhase(selectionPhase)
+-
+-      // Execute selection phase (async)
+-      await battle.phaseManager.executePhaseAsync(selectionPhase.id)
+-
        // Phase 3: Execute turn
        battle.currentPhase = BattlePhase.ExecutionPhase
        const turnPhase = new TurnPhase(battle)
-@@ -54,6 +59,7 @@
+@@ -54,6 +71,7 @@
        // Execute turn phase
        await battle.phaseManager.executePhaseAsync(turnPhase.id)
  
@@ -1688,7 +1891,18 @@
        reason: 'disactivated',
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/phase/manager.ts
 +++ packages/battle/src/v4/phase/manager.ts
-@@ -105,9 +105,12 @@
+@@ -34,6 +34,10 @@
+ 
+   constructor(private readonly battle: Battle) {}
+ 
++  public assertSnapshotSafe(): void {
++    if (this.executionQueue.length || this.dependencies.size) throw new Error('Snapshot does not support queued/dependent phases')
++  }
++
+   /**
+    * Register a phase for management
+    */
+@@ -105,9 +109,12 @@
        throw new Error(`Interactive phase ${phaseId} must be executed with executePhaseAsync()`)
      }
  
@@ -1701,7 +1915,7 @@
      this.currentPhase = phase
  
      // Push phase to config system stack for level tracking
-@@ -132,16 +135,13 @@
+@@ -132,16 +139,13 @@
          error: error instanceof Error ? error : new Error(String(error)),
        }
  
@@ -1721,7 +1935,7 @@
      }
    }
  
-@@ -154,9 +154,12 @@
+@@ -154,9 +158,12 @@
        throw new Error(`Phase ${phaseId} not found`)
      }
  
@@ -1734,7 +1948,7 @@
      this.currentPhase = phase
  
      // Push phase to config system stack for level tracking
-@@ -192,16 +195,13 @@
+@@ -192,16 +199,13 @@
          error: error instanceof Error ? error : new Error(String(error)),
        }
  
@@ -1840,6 +2054,49 @@
        context.target.settingRage(context.target.currentRage - context.rageChangeResult)
        break
    }
+--- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/phase/selection.ts
++++ packages/battle/src/v4/phase/selection.ts
+@@ -21,7 +21,11 @@
+  * This is an interactive phase that waits for player input
+  */
+ export class SelectionPhase extends InteractivePhase<SelectionContext> {
+-  constructor(battle: Battle, id?: string) {
++  constructor(
++    battle: Battle,
++    id?: string,
++    private readonly restored = false,
++  ) {
+     super(battle, id)
+   }
+ 
+@@ -30,17 +34,18 @@
+   }
+ 
+   protected async executeOperation(): Promise<void> {
+-    // Clear previous selections
+-    this.battle.clearSelections()
++    if (!this.restored) {
++      // Clear previous selections
++      this.battle.clearSelections()
+ 
+-    // Emit turn action message
+-    this.battle.emitMessage(BattleMessageType.TurnAction, {
+-      player: [this.battle.playerA.id, this.battle.playerB.id],
+-    })
++      // Emit turn action message
++      this.battle.emitMessage(BattleMessageType.TurnAction, {
++        player: [this.battle.playerA.id, this.battle.playerB.id],
++      })
+ 
+-    // Start new turn timer
+-    this.battle.timerManager.startNewTurn([this.battle.playerA.id, this.battle.playerB.id])
+-
++      // Start new turn timer
++      this.battle.timerManager.startNewTurn([this.battle.playerA.id, this.battle.playerB.id])
++    }
+     // Wait for both players to make selections
+     await this.battle.waitForBothPlayersReady()
+   }
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/phase/skill.ts
 +++ packages/battle/src/v4/phase/skill.ts
 @@ -25,6 +25,8 @@
@@ -1910,7 +2167,20 @@
      )
      context.battle.phaseManager.registerPhase(ragePhase)
      context.battle.phaseManager.executePhase(ragePhase.id)
-@@ -414,6 +416,6 @@
+@@ -322,6 +324,12 @@
+     this.registerPhaseListener()
+   }
+ 
++  /** Rebind the built-in AI listener; user/host callbacks are attached by the host. */
++  public restoreSnapshotRuntime(): void {
++    this.decisionPending = false
++    this.phaseChangeRegistered = false
++    this.registerPhaseListener()
++  }
+   private registerPhaseListener() {
+     if (!this.phaseChangeRegistered) {
+       this.registerListener(this.handleBattleMessage.bind(this))
+@@ -414,6 +422,6 @@
      if (actions.length === 0) {
        throw new Error('No actions available for random selection')
      }
@@ -2140,7 +2410,19 @@
    getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/timer/timerManager.ts
 +++ packages/battle/src/v4/timer/timerManager.ts
-@@ -606,8 +606,8 @@
+@@ -58,6 +58,11 @@
+     this.setupEventHandlers()
+   }
+ 
++  public assertSnapshotSafe(): void {
++    if (this.config.enabled || this.animationTracker.hasActiveAnimations())
++      throw new Error('Snapshot of real-time timers/active animations requires a host adapter')
++  }
++
+   /**
+    * 初始化玩家计时器
+    */
+@@ -606,8 +611,8 @@
      // 发送状态变化事件
      this.battle.emitter.emit('timerStateChange', {
        playerId: event.playerId,
@@ -2151,7 +2433,7 @@
        timestamp: event.timestamp,
      })
    }
-@@ -616,9 +616,10 @@
+@@ -616,9 +621,10 @@
     * 处理计时器超时
     */
    private handleTimerTimeout(event: TimerEvent): void {
@@ -2167,7 +2449,29 @@
      // 处理超时逻辑 - autoSelectOnTimeout 现在是固定启用的
 --- c086289812885e7a4903b181e2b8989e201452b8/packages/battle/src/transformation.ts
 +++ packages/battle/src/v4/transformation.ts
-@@ -290,6 +290,7 @@
+@@ -160,6 +160,21 @@
+     this.registerStrategy(EntityType.Mark, new MarkTransformationStrategy())
+   }
+ 
++  public exportSnapshotState() {
++    const strategies = this.strategyRegistry.getAllStrategies()
++    if (strategies.some(s => ![PetTransformationStrategy.prototype, SkillTransformationStrategy.prototype,
++      MarkTransformationStrategy.prototype].includes(Object.getPrototypeOf(s)))) throw new Error('Custom transformation strategy requires snapshot adapter')
++    const petStrategy = this.strategyRegistry.getStrategyByType(EntityType.Pet) as PetTransformationStrategy
++    return { transformations: this.transformations, temporary: this.temporaryTransformStack,
++      permanent: this.permanentTransforms, nativeMarks: petStrategy.nativeMarks }
++  }
++  public restoreSnapshotState(state: ReturnType<TransformationSystem['exportSnapshotState']>): void {
++    this.transformations = state.transformations; this.temporaryTransformStack = state.temporary
++    this.permanentTransforms = state.permanent
++    const strategy = this.strategyRegistry.getStrategyByType(EntityType.Pet) as PetTransformationStrategy
++    for (const [pet, marks] of state.nativeMarks) strategy.nativeMarks.set(pet, marks)
++  }
++
+   /**
+    * 注册变身策略
+    */
+@@ -290,6 +305,7 @@
        this.applyPermanentTransformation(record, strategy)
      }
  
@@ -2175,7 +2479,7 @@
      // 触发变身后效果
      this.battle.applyEffects(context, EffectTrigger.AfterTransform)
  
-@@ -319,11 +320,12 @@
+@@ -319,11 +335,12 @@
    ): void {
      if (target instanceof Pet) {
        const petStrategy = strategy as TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet>
@@ -2204,7 +2508,7 @@
  export class PetTransformationStrategy implements TransformationStrategy<PetEntity, PetPrototype, EntityType.Pet> {
 +  // Native marks can themselves cause forms. Suspend them, retaining their owner,
 +  // duration and source identity, so source expiry can still revert the form.
-+  private nativeMarks = new WeakMap<PetEntity, Map<string, MarkInstance>>()
++  public readonly nativeMarks = new Map<PetEntity, Map<string, MarkInstance>>()
    canTransform(entity: unknown): entity is PetEntity {
      return entity instanceof Pet
    }
@@ -2483,7 +2787,7 @@
 -} from '@arcadia-eternity/battle'
 -import { Observable, combineLatest, map } from 'rxjs'
 +} from '../../../index'
-+import { ReactiveValue, derived, combineValues } from '../../../reactiveValue'
++import { ReactiveValue, derived, combineValues, describeValue, projectValue, Signal } from '../../../reactiveValue'
  import {
    TurnContext,
    type CanOwnedEntity,
@@ -2521,7 +2825,7 @@
 -                  subscriber.next((target as NonNullable<T>)[prop])
 -                  subscriber.complete()
 -                })
-+                return derived(() => (target as NonNullable<T>)[prop])
++                return describeValue(derived(() => (target as NonNullable<T>)[prop]), { type: 'property', target, key: prop })
                },
                set: (value: NonNullable<T>[K]) => {
                  ;(target as NonNullable<T>)[prop] = value
@@ -2602,7 +2906,7 @@
 -              subscriber.next(0)
 -              subscriber.complete()
 -            }),
-+            derived(() => 0),
++            new Signal(0),
            ]
          }
          if (observables.length === 1) {
@@ -2610,7 +2914,7 @@
          }
          // 使用combineLatest来组合多个Observable并求和
 -        const combined = combineLatest(observables).pipe(map(values => values.reduce((acc, cur) => acc + cur, 0)))
-+        const combined = combineValues(observables).map(values => values.reduce((acc, cur) => acc + cur, 0))
++        const combined = projectValue(combineValues(observables), 'sum')
          return [combined]
        }, 'Observable<number>')
      }
@@ -2636,7 +2940,7 @@
 +        const observables = this.selector(context) as ReactiveValue<number>[]
          const values = GetValueFromSource(context, valueSource)
 -        return observables.map((obs, i) => obs.pipe(map(val => val + (values[i] ?? 0))))
-+        return observables.map((obs, i) => obs.map(val => val + (values[i] ?? 0)))
++        return observables.map((obs, i) => projectValue(obs, 'add', values[i] ?? 0))
        }, 'Observable<number>')
      }
      return this.combine(valueSource, (a, b) => a + b)
@@ -2662,7 +2966,7 @@
 +        const observables = this.selector(context) as ReactiveValue<number>[]
          const values = GetValueFromSource(context, valueSource)
 -        return observables.map((obs, i) => obs.pipe(map(val => Math.floor(val * (values[i] ?? 1)))))
-+        return observables.map((obs, i) => obs.map(val => Math.floor(val * (values[i] ?? 1))))
++        return observables.map((obs, i) => projectValue(obs, 'multiply', values[i] ?? 1))
        }, 'Observable<number>')
      }
      return this.combine(valueSource, (a, b) => Math.floor(a * b))
@@ -2691,7 +2995,7 @@
            const divisor = values[i] ?? 1
            if (divisor === 0) throw new Error('Division by zero in Observable operation')
 -          return obs.pipe(map(val => Math.floor(val / divisor)))
-+          return obs.map(val => Math.floor(val / divisor))
++          return projectValue(obs, 'divide', divisor)
          })
        }, 'Observable<number>')
      }
@@ -2714,7 +3018,7 @@
 +        const observables = this.selector(context) as ReactiveValue<number>[]
          const maxValues = GetValueFromSource(context, max)
 -        return observables.map((obs, i) => obs.pipe(map(val => Math.min(val, maxValues[i] ?? Number.MAX_SAFE_INTEGER))))
-+        return observables.map((obs, i) => obs.map(val => Math.min(val, maxValues[i] ?? Number.MAX_SAFE_INTEGER)))
++        return observables.map((obs, i) => projectValue(obs, 'min', maxValues[i] ?? Number.MAX_SAFE_INTEGER))
        }, 'Observable<number>')
      }
      return this.mapNumber(max, (v, value) => Math.min(v, value))
@@ -2737,7 +3041,7 @@
 +        const observables = this.selector(context) as ReactiveValue<number>[]
          const minValues = GetValueFromSource(context, min)
 -        return observables.map((obs, i) => obs.pipe(map(val => Math.max(val, minValues[i] ?? Number.MIN_SAFE_INTEGER))))
-+        return observables.map((obs, i) => obs.map(val => Math.max(val, minValues[i] ?? Number.MIN_SAFE_INTEGER)))
++        return observables.map((obs, i) => projectValue(obs, 'max', minValues[i] ?? Number.MIN_SAFE_INTEGER))
        }, 'Observable<number>')
      }
      return this.mapNumber(min, (v, value) => Math.max(v, value))

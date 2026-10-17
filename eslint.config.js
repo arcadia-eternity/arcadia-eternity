@@ -70,6 +70,8 @@ export default tseslint.config(
       'packages/battle/src/v4/api.ts',
       'packages/battle/src/v4/reactiveValue.ts',
       'packages/battle/src/v4/rng.ts',
+      'packages/battle/src/v4/snapshot.ts',
+      'packages/battle/src/v4/snapshotBindings.ts',
     ],
     linterOptions: { reportUnusedDisableDirectives: 'off' },
     rules: {

@@ -34,6 +34,10 @@ export class PhaseManager {
 
   constructor(private readonly battle: Battle) {}
 
+  public assertSnapshotSafe(): void {
+    if (this.executionQueue.length || this.dependencies.size) throw new Error('Snapshot does not support queued/dependent phases')
+  }
+
   /**
    * Register a phase for management
    */

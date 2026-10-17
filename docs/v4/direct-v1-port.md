@@ -8,7 +8,7 @@
 
 - `7c70415f` 原始导入 42/42 Battle 源文件，逐字节一致；`58b85316` 继续导入原版 EffectBuilder、parser、DataRepository，后续补齐完整 schema/parser 闭包与历史 YAML。
 - [V1 Port Inventory](./v1-port-inventory.md) 逐文件列原路径、新路径及改动；[provenance](./v1-port-provenance.json) 保存 87 个映射文件的原始 Git blob、原始/当前 SHA256。[源码对照](./v1-compatibility.patch) 包含相对原 commit 的完整改动。
-- 当前 43 个映射文件字节一致、44 个有记录的兼容或现代化修改。没有排除核心文件或删去未知战斗机制。原导入提交仍可独立审查。
+- 当前 42 个映射文件字节一致、45 个有记录的兼容或现代化修改。没有排除核心文件或删去未知战斗机制。原导入提交仍可独立审查。
 - 第一里程碑的兼容修改包括 const 类型/消息差异、具名 Builder 声明生成、monorepo 子入口、JSON import with、浏览器 process 检查和历史 Zod 3 schema。没有重写官方 Effect。
 - 原版跑通后，增加构造器适配、RNG 注入、有限 ActionLog；本轮经用户明确要求修复历史缺陷并替换 RxJS/Prando。逐项原因、前后代码、回归与接口变化见 [V1 现代化报告](./v1-modernization.md)。
 
@@ -32,7 +32,7 @@
 
 使用入口：`@arcadia-eternity/battle/v4`；原 DSL 工具：`@arcadia-eternity/battle/v4/legacy`。`createBattle` 只调用原 Battle 构造器。无需 Redis、数据库或外部 Battle Server。默认 package 入口仍为 V2。
 
-## 验证结果（2026-10-16，本轮更新）
+## 原移植/依赖替换里程碑验证（2026-10-16）
 
 | 验证                                               | 结果                                                                                              | 证据                                                                                                                               |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -65,12 +65,12 @@
 
 `getActionLog()` 记录 Battle.setSelection 接受的输入、回合/阶段/顺序并返回副本；直接 Player.setSelection（含 AI 路径）仍不在范围内，ID 仍是本局实例 ID。Battle Event 沿用原有 BattleMessage/sequenceId。
 
-**没有完整 BattleSnapshot、restore、中途恢复或持久 replay**。同种子/同动作的归一化回归重跑只覆盖已测场景，不能据此宣称 #204 验收完成。
+**2026-10-17 续作已实现正常选择等待点的直接快照/恢复，见 [快照报告](./v1-snapshots.md)**；尚无任意阶段中途恢复或持久 replay。同种子/同动作的归一化回归重跑只覆盖已测场景，不能据此宣称 #204 验收完成。
 
 ## 仍未完成与下一阶段
 
 - 完整官方效果实战等价验收；AfterAttacked/OnTransformEnd 全调用路径、inheritOnFaint 规则、变身所有堆栈组合和计时器竞态仍待确认，保留原机制且不擅自补规则。
-- 稳定对象/效果身份、动态依赖表达、完整状态恢复与持久 replay；不复用 #228 的简化快照。
+- 选择等待点已有状态/引用恢复与动态依赖注册；仍需任意阶段/计时与持久 replay，不复用 #228 的简化快照。
 - 通用 CLI/Web/Electron/Server 产品接入；历史 Rollup/Babel/Node scriptLoader 的宿主热更新链未重建。
 - #202 原类 API/Node/Browser 可运行且等待取消已有回归；#203 直接继承原领域模型并局部修复；#204 有 RNG 注入/状态与有限 ActionLog。三项仍待完整验收，不关闭 Issue。
 

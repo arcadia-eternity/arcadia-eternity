@@ -1,3 +1,4 @@
+import { rememberModifierCleanup, deactivateCleanup, describeCleanup } from './snapshotBindings'
 import type { baseMarkId, baseSkillId, markId, petId, playerId, skillId, speciesId } from '@arcadia-eternity/const'
 import { Signal, ReactiveValue, isReactiveValue } from './reactiveValue'
 import type { Battle } from './battle'
@@ -147,8 +148,8 @@ export class ConfigSystem {
   private modifiers: Map<string, Signal<ConfigModifier[]>> = new Map()
   private modifiersBySource: Map<string, Map<string, ConfigModifier[]>> = new Map()
 
-  private scopedBaseConfigs: WeakMap<ScopeObject, Map<string, Signal<ConfigValue>>> = new WeakMap()
-  private scopedModifiers: WeakMap<ScopeObject, Map<string, ConfigModifier[]>> = new WeakMap()
+  private scopedBaseConfigs: Map<ScopeObject, Map<string, Signal<ConfigValue>>> = new Map()
+  private scopedModifiers: Map<ScopeObject, Map<string, ConfigModifier[]>> = new Map()
 
   // Phase type tracking
   private phaseStack: BattlePhaseBase[] = [] // Current phase execution stack
@@ -209,9 +210,36 @@ export class ConfigSystem {
     return newInstance
   }
 
+  public exportSnapshotState() {
+    if (this.isDestroyed || this.phaseBindings.size || [...this.modifierCleanups.keys()].some(m =>
+      m.durationType === ConfigDurationType.phase || m.durationType === ConfigDurationType.phaseType))
+      throw new Error('Snapshot does not yet support active phase-bound config modifiers')
+    return { base: new Map([...this.baseConfigs].map(([key, value]) => [key, value.value])),
+      global: new Map([...this.modifiers].map(([key, value]) => [key, value.value])),
+      scopedBase: new Map([...this.scopedBaseConfigs].map(([scope, entries]) =>
+        [scope, new Map([...entries].map(([key, value]) => [key, value.value]))])),
+      scopedModifiers: this.scopedModifiers, tags: this.configKeyToTags }
+  }
+  public restoreSnapshotState(state: ReturnType<ConfigSystem['exportSnapshotState']>): void {
+    this.cleanup()
+    for (const [key, value] of state.base) this.registerConfig(key, value)
+    for (const [key, tags] of state.tags) this.addConfigTags(key, [...tags])
+    for (const [scope, entries] of state.scopedBase) for (const [key, value] of entries) this.set(key, value, scope)
+    for (const [key, modifiers] of state.global) for (const modifier of modifiers) this.addScopedConfigModifier(key, modifier)
+    for (const [scope, entries] of state.scopedModifiers) for (const [key, modifiers] of entries)
+      for (const modifier of modifiers) this.addScopedConfigModifier(key, modifier, scope)
+  }
+
   /**
    * Register this instance with a battle for lifecycle management
    */
+  public registerRestoredBattle(battleId: string): void {
+    this.battleId = battleId
+    this.registerWithBattle(battleId)
+  }
+  static unbindRestoredBattle(battle: Battle): void {
+    if (this.battleConfigs.get(battle.id) === battle.configSystem) this.battleConfigs.delete(battle.id)
+  }
   private registerWithBattle(battleId: string): void {
     if (!ConfigSystem.battleRegistry.has(battleId)) {
       ConfigSystem.battleRegistry.set(battleId, new Set())
@@ -700,9 +728,9 @@ export class ConfigSystem {
     )
 
     // Return a single cleanup function that calls all individual cleanups
-    return () => {
-      cleanupFunctions.forEach(cleanup => cleanup())
-    }
+    const cleanup = () => { cleanupFunctions.forEach(cleanup => cleanup()) }
+    describeCleanup(cleanup, { type: 'group', cleanups: cleanupFunctions })
+    return cleanup
   }
 
   /**
@@ -717,10 +745,12 @@ export class ConfigSystem {
     const cleanup = () => {
       if (!active) return
       active = false
+      deactivateCleanup(cleanup)
       this.modifierCleanups.delete(modifier)
       this.phaseBindings.delete(modifier)
       rawCleanup()
     }
+    rememberModifierCleanup(this, modifier, cleanup)
     this.modifierCleanups.set(modifier, cleanup)
     return cleanup
   }
@@ -1048,6 +1078,10 @@ export class ConfigSystem {
     }
 
     // Clear all maps and arrays
+    this.scopedBaseConfigs.clear()
+    this.scopedModifiers.clear()
+    this.tagToConfigKeys.clear()
+    this.configKeyToTags.clear()
     this.baseConfigs.clear()
     this.modifiers.clear()
     this.modifiersBySource.clear()

@@ -324,6 +324,12 @@ export class AIPlayer extends Player {
     this.registerPhaseListener()
   }
 
+  /** Rebind the built-in AI listener; user/host callbacks are attached by the host. */
+  public restoreSnapshotRuntime(): void {
+    this.decisionPending = false
+    this.phaseChangeRegistered = false
+    this.registerPhaseListener()
+  }
   private registerPhaseListener() {
     if (!this.phaseChangeRegistered) {
       this.registerListener(this.handleBattleMessage.bind(this))

@@ -28,11 +28,43 @@ for (const platform of ['node', 'browser']) {
   await build.close()
   graphs[platform] = modules.map(id => id.replace(`${process.cwd()}/`, '')).sort()
 }
-const { verifyV1 } = await import(pathToFileURL(`${dir}/node.mjs`).href)
+const { verifyV1, createCheckpointProbe } = await import(pathToFileURL(`${dir}/node.mjs`).href)
 const result = await verifyV1()
 assert.equal(result.fullBattle.turn, 4)
 assert.equal(result.fullBattle.winner, 'A')
 assert.equal(result.originalDsl.attackRatio, 1.5)
+const payload = await createCheckpointProbe()
+await writeFile(`${dir}/checkpoint.json`, JSON.stringify(payload))
+const { spawn } = await import('node:child_process')
+const isolated = spawn(
+  process.execPath,
+  [
+    '--input-type=module',
+    '-e',
+    `
+import { resumeCheckpointProbe } from ${JSON.stringify(pathToFileURL(`${dir}/node.mjs`).href)};
+let input=''; for await (const part of process.stdin) input += part;
+console.log(JSON.stringify(await resumeCheckpointProbe(JSON.parse(input))));
+`,
+  ],
+  { stdio: ['pipe', 'pipe', 'pipe'] },
+)
+let isolatedOut = '',
+  isolatedError = ''
+isolated.stdout.on('data', data => {
+  isolatedOut += data
+})
+isolated.stderr.on('data', data => {
+  isolatedError += data
+})
+isolated.stdin.end(JSON.stringify(payload))
+const exitCode = await new Promise(resolve => isolated.on('close', resolve))
+assert.equal(exitCode, 0, isolatedError)
+const isolatedResult = JSON.parse(isolatedOut.trim())
+assert.deepEqual(isolatedResult, result.checkpoint)
+await writeFile(`${dir}/isolated-checkpoint-result.json`, JSON.stringify(isolatedResult, null, 2))
+console.log(JSON.stringify({ isolatedProcessRestore: true, checkpoint: isolatedResult }))
+
 await writeFile(`${dir}/graphs.json`, JSON.stringify(graphs, null, 2))
 await writeFile(`${dir}/node-result.json`, JSON.stringify(result, null, 2))
 await writeFile(

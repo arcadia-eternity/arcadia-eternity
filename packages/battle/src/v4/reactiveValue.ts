@@ -59,6 +59,9 @@ export abstract class ReactiveValue<T> {
     for (const listener of [...this.listeners]) if (this.listeners.has(listener)) listener()
   }
 
+  get isComplete(): boolean {
+    return this.ended
+  }
   get observerCount(): number {
     return this.listeners.size
   }
@@ -138,8 +141,56 @@ export function derived<T>(calculate: () => T, dependencies: ReactiveValue<unkno
   })
 }
 export function combineValues<T>(values: ReactiveValue<T>[]): ReactiveValue<T[]> {
-  return derived(() => values.map(value => value.value))
+  return describeValue(
+    derived(() => values.map(value => value.value)),
+    { type: 'combine', inputs: values },
+  )
 }
 export function isReactiveValue(value: unknown): value is ReactiveValue<unknown> {
   return value instanceof ReactiveValue
+}
+
+export interface ValueRecipe {
+  type: string
+  [key: string]: unknown
+}
+const recipes = new WeakMap<ReactiveValue<unknown>, ValueRecipe>()
+export function describeValue<T>(value: ReactiveValue<T>, recipe: ValueRecipe): ReactiveValue<T> {
+  recipes.set(value, recipe)
+  return value
+}
+export function getValueRecipe(value: ReactiveValue<unknown>): ValueRecipe | undefined {
+  return recipes.get(value)
+}
+export type ValueProjection = 'add' | 'multiply' | 'divide' | 'min' | 'max' | 'sum' | 'stage'
+export function projectValue(
+  value: ReactiveValue<unknown>,
+  operation: ValueProjection,
+  operand = 0,
+): ReactiveValue<number> {
+  return describeValue(
+    derived(() => {
+      const input = value.value
+      if (operation === 'sum') return (input as number[]).reduce((a, b) => a + b, 0)
+      const n = Number(input)
+      switch (operation) {
+        case 'add':
+          return n + operand
+        case 'multiply':
+          return Math.floor(n * operand)
+        case 'divide':
+          if (operand === 0) throw new Error('Division by zero')
+          return Math.floor(n / operand)
+        case 'min':
+          return Math.min(n, operand)
+        case 'max':
+          return Math.max(n, operand)
+        case 'stage':
+          return (
+            ([0.25, 0.28, 0.33, 0.4, 0.5, 0.66, 1, 1.5, 2, 2.5, 3, 3.5, 4][Math.max(-6, Math.min(6, n)) + 6] - 1) * 100
+          )
+      }
+    }),
+    { type: 'project', input: value, operation, operand },
+  )
 }

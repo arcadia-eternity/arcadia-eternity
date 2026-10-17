@@ -20,7 +20,7 @@ import {
   Context,
   type BattlePhaseBase,
 } from '../../../index'
-import { ReactiveValue, derived, combineValues } from '../../../reactiveValue'
+import { ReactiveValue, derived, combineValues, describeValue, projectValue, Signal } from '../../../reactiveValue'
 import {
   TurnContext,
   type CanOwnedEntity,
@@ -131,7 +131,7 @@ export class ChainableSelector<T> {
                   return attributeSystem.getAttribute$(prop as string)
                 }
                 // 如果没有attributeSystem，返回一个包含当前值的Observable
-                return derived(() => (target as NonNullable<T>)[prop])
+                return describeValue(derived(() => (target as NonNullable<T>)[prop]), { type: 'property', target, key: prop })
               },
               set: (value: NonNullable<T>[K]) => {
                 ;(target as NonNullable<T>)[prop] = value
@@ -318,14 +318,14 @@ export class ChainableSelector<T> {
         const observables = this.selector(context) as ReactiveValue<number>[]
         if (observables.length === 0) {
           return [
-            derived(() => 0),
+            new Signal(0),
           ]
         }
         if (observables.length === 1) {
           return observables
         }
         // 使用combineLatest来组合多个Observable并求和
-        const combined = combineValues(observables).map(values => values.reduce((acc, cur) => acc + cur, 0))
+        const combined = projectValue(combineValues(observables), 'sum')
         return [combined]
       }, 'Observable<number>')
     }
@@ -349,7 +349,7 @@ export class ChainableSelector<T> {
       return new ChainableSelector<ReactiveValue<number>>(context => {
         const observables = this.selector(context) as ReactiveValue<number>[]
         const values = GetValueFromSource(context, valueSource)
-        return observables.map((obs, i) => obs.map(val => val + (values[i] ?? 0)))
+        return observables.map((obs, i) => projectValue(obs, 'add', values[i] ?? 0))
       }, 'Observable<number>')
     }
     return this.combine(valueSource, (a, b) => a + b)
@@ -369,7 +369,7 @@ export class ChainableSelector<T> {
       return new ChainableSelector<ReactiveValue<number>>(context => {
         const observables = this.selector(context) as ReactiveValue<number>[]
         const values = GetValueFromSource(context, valueSource)
-        return observables.map((obs, i) => obs.map(val => Math.floor(val * (values[i] ?? 1))))
+        return observables.map((obs, i) => projectValue(obs, 'multiply', values[i] ?? 1))
       }, 'Observable<number>')
     }
     return this.combine(valueSource, (a, b) => Math.floor(a * b))
@@ -392,7 +392,7 @@ export class ChainableSelector<T> {
         return observables.map((obs, i) => {
           const divisor = values[i] ?? 1
           if (divisor === 0) throw new Error('Division by zero in Observable operation')
-          return obs.map(val => Math.floor(val / divisor))
+          return projectValue(obs, 'divide', divisor)
         })
       }, 'Observable<number>')
     }
@@ -445,7 +445,7 @@ export class ChainableSelector<T> {
       return new ChainableSelector<ReactiveValue<number>>(context => {
         const observables = this.selector(context) as ReactiveValue<number>[]
         const maxValues = GetValueFromSource(context, max)
-        return observables.map((obs, i) => obs.map(val => Math.min(val, maxValues[i] ?? Number.MAX_SAFE_INTEGER)))
+        return observables.map((obs, i) => projectValue(obs, 'min', maxValues[i] ?? Number.MAX_SAFE_INTEGER))
       }, 'Observable<number>')
     }
     return this.mapNumber(max, (v, value) => Math.min(v, value))
@@ -462,7 +462,7 @@ export class ChainableSelector<T> {
       return new ChainableSelector<ReactiveValue<number>>(context => {
         const observables = this.selector(context) as ReactiveValue<number>[]
         const minValues = GetValueFromSource(context, min)
-        return observables.map((obs, i) => obs.map(val => Math.max(val, minValues[i] ?? Number.MIN_SAFE_INTEGER)))
+        return observables.map((obs, i) => projectValue(obs, 'max', minValues[i] ?? Number.MIN_SAFE_INTEGER))
       }, 'Observable<number>')
     }
     return this.mapNumber(min, (v, value) => Math.max(v, value))

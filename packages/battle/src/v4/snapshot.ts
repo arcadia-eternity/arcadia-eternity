@@ -1,0 +1,644 @@
+import mitt from 'mitt'
+import { BattleStatus, BattlePhase, type EffectTrigger, type Events } from '@arcadia-eternity/const'
+import { Battle } from './battle'
+import { Player, AIPlayer } from './player'
+import { Pet } from './pet'
+import { BaseSkill, SkillInstance } from './skill'
+import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, StatLevelMarkInstanceImpl } from './mark'
+import { Effect } from './effect'
+import {
+  ComposableAttributeSystem,
+  type StatLevelMarkAttributeSet,
+  type SkillAttributeSet,
+  type RageAttributeSet,
+  AttributeSystem,
+  PetAttributeSystem,
+  PlayerAttributeSystem,
+  MarkAttributeSystem,
+  SkillAttributeSystem,
+  createStatLevelMarkAttributeSystem,
+  Modifier,
+  type AttributeData,
+} from './attributeSystem'
+import { ConfigSystem, ConfigModifier } from './config'
+import { PhaseManager, PhaseState } from './phase'
+import { TimerManager } from './timer'
+import { TransformationSystem } from './transformation'
+import { createChildLogger } from './logger'
+import { GameRng } from './rng'
+import {
+  Signal,
+  ReactiveValue,
+  derived,
+  describeValue,
+  getValueRecipe,
+  projectValue,
+  combineValues,
+  type ValueRecipe,
+  type ValueProjection,
+} from './reactiveValue'
+import { getCleanupBinding, getModifierCleanup, describeCleanup } from './snapshotBindings'
+
+type Atom = null | boolean | string | number
+type Encoded = Atom | { ref: number } | { atom: 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' }
+interface Node {
+  kind: string
+  fields: Record<string, Encoded>
+}
+export interface BattleSnapshot {
+  format: 'arcadia.v1.battle-snapshot'
+  version: 1
+  catalog: string
+  root: Encoded
+  nodes: Node[]
+}
+
+/** Effects are executable content, resolved from trusted, revisioned content after loading JSON. */
+export class SnapshotCatalog {
+  private effects = new Map<string, Effect<EffectTrigger>>()
+  private effectKeys = new WeakMap<Effect<EffectTrigger>, string>()
+  private content = new Map<string, object>()
+  private contentKeys = new WeakMap<object, string>()
+  /** Registered prototypes are immutable content supplied by the same revision on each host. */
+  registerContent(key: string, value: object): this {
+    if (
+      !(value instanceof BaseMark) &&
+      !(value instanceof BaseSkill) &&
+      !(Object.getPrototypeOf(value) === Object.prototype && 'baseStats' in value && 'id' in value)
+    )
+      throw new Error('Snapshot content must be a V1 species/skill/mark prototype')
+    if (this.content.has(key) && this.content.get(key) !== value) throw new Error(`Duplicate snapshot content: ${key}`)
+    this.content.set(key, value)
+    this.contentKeys.set(value, key)
+    return this
+  }
+  contentKey(value: object): string | undefined {
+    return this.contentKeys.get(value)
+  }
+  resolveContent(key: string): object {
+    const value = this.content.get(key)
+    if (!value) throw new Error(`Missing snapshot content: ${key}`)
+    return value
+  }
+  assertValue(key: string): void {
+    if (!this.values.has(key)) throw new Error(`Missing snapshot value factory: ${key}`)
+  }
+  private values = new Map<string, (args: unknown) => ReactiveValue<unknown>>()
+  constructor(public readonly revision: string) {
+    if (!revision) throw new Error('Snapshot catalog revision is required')
+  }
+  registerEffect(key: string, effect: Effect<EffectTrigger>): this {
+    if (this.effects.has(key) && this.effects.get(key) !== effect) throw new Error(`Duplicate snapshot effect: ${key}`)
+    this.effects.set(key, effect)
+    this.effectKeys.set(effect, key)
+    return this
+  }
+  registerValue(key: string, restore: (args: unknown) => ReactiveValue<unknown>): this {
+    if (this.values.has(key)) throw new Error(`Duplicate snapshot value: ${key}`)
+    this.values.set(key, restore)
+    return this
+  }
+  describeValue<T>(value: ReactiveValue<T>, key: string, args: unknown): ReactiveValue<T> {
+    if (!this.values.has(key)) throw new Error(`Missing snapshot value factory: ${key}`)
+    return describeValue(value, { type: 'custom', key, args })
+  }
+  effectKey(effect: Effect<EffectTrigger>): string {
+    const key = this.effectKeys.get(effect)
+    if (!key) throw new Error(`Unregistered snapshot effect: ${effect.id}`)
+    return key
+  }
+  resolveEffect(key: string): Effect<EffectTrigger> {
+    const effect = this.effects.get(key)
+    if (!effect) throw new Error(`Missing snapshot effect: ${key}`)
+    return effect
+  }
+  restoreValue(key: string, args: unknown): ReactiveValue<unknown> {
+    const restore = this.values.get(key)
+    if (!restore) throw new Error(`Missing snapshot value factory: ${key}`)
+    return restore(args)
+  }
+}
+
+// The ledger is deliberately explicit: a new own field requires a serialization decision.
+const ledger = {
+  Battle: {
+    ctor: Battle,
+    fields:
+      'type lastStateMessage id allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap sequenceId playerA playerB',
+    runtime:
+      'battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
+  },
+  Player: {
+    ctor: Player,
+    fields: 'lastStateMessage selection activePet attributeSystem name id team',
+    runtime: 'emitter battle owner messageCallbacks',
+  },
+  AIPlayer: {
+    ctor: AIPlayer,
+    fields: 'lastStateMessage selection activePet attributeSystem name id team decisionPending phaseChangeRegistered',
+    runtime: 'emitter battle owner messageCallbacks',
+  },
+  Pet: {
+    ctor: Pet,
+    fields:
+      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes attributeSystem name id originalSpecies level evs ivs nature baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
+    runtime: 'emitter',
+  },
+  SkillInstance: {
+    ctor: SkillInstance,
+    fields: 'owner id category element target multihit sureHit sureCrit ignoreShield tags effects attributeSystem base',
+    runtime: '',
+  },
+  MarkInstanceImpl: {
+    ctor: MarkInstanceImpl,
+    fields: 'base suppression owner id effects config tags attributeSystem attributeModifierCleanups',
+    runtime: 'emitter',
+  },
+  StatLevelMarkInstanceImpl: {
+    ctor: StatLevelMarkInstanceImpl,
+    fields:
+      'base suppression owner id effects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
+    runtime: 'emitter levelAccessors',
+  },
+  BaseSkill: {
+    ctor: BaseSkill,
+    fields:
+      'effects id category element power accuracy rage priority target multihit sureHit sureCrit ignoreShield ignoreOpponentStageStrategy tags',
+    runtime: '',
+  },
+  BaseMark: { ctor: BaseMark, fields: 'id effects config tags', runtime: '' },
+  BaseStatLevelMark: { ctor: BaseStatLevelMark, fields: 'id effects config tags statType initialLevel', runtime: '' },
+  Modifier: {
+    ctor: Modifier,
+    fields: 'durationType id type priority source phaseTypeSpec value minBound maxBound extraCleanups',
+    runtime: '',
+  },
+  ConfigModifier: {
+    ctor: ConfigModifier,
+    fields: 'durationType id type priority source phaseTypeSpec value',
+    runtime: '',
+  },
+} satisfies Record<string, { ctor: { prototype: object }; fields: string; runtime: string }>
+type LedgerKind = keyof typeof ledger
+const restoredClamps = new WeakMap<object, () => void>()
+const kinds = Object.keys(ledger) as LedgerKind[]
+function specFor(object: object): LedgerKind | undefined {
+  return kinds.find(kind => Object.getPrototypeOf(object) === ledger[kind].ctor.prototype)
+}
+function readFields(object: object, kind: LedgerKind): Record<string, unknown> {
+  const spec = ledger[kind],
+    allowed = new Set(`${spec.fields} ${spec.runtime}`.split(' '))
+  for (const key of Object.keys(object))
+    if (!allowed.has(key)) throw new Error(`Unsupported snapshot field ${kind}.${key}`)
+  return Object.fromEntries(
+    spec.fields
+      .split(' ')
+      .filter(key => Object.hasOwn(object, key))
+      .map(key => [key, Reflect.get(object, key)]),
+  )
+}
+function set(object: object, fields: Record<string, unknown>) {
+  for (const [key, value] of Object.entries(fields))
+    Object.defineProperty(object, key, { value, writable: true, enumerable: true, configurable: true })
+}
+function assertBoundary(battle: Battle) {
+  if (!battle.isSnapshotBoundary()) throw new Error('Snapshot requires a settled selection input boundary')
+  battle.timerManager.assertSnapshotSafe()
+  if (
+    battle.phaseManager.getPhasesByState(PhaseState.Pending).length ||
+    battle.phaseManager.getPhasesByState(PhaseState.Failed).length
+  )
+    throw new Error('Snapshot cannot discard pending or failed phases')
+  battle.phaseManager.assertSnapshotSafe()
+}
+
+export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): BattleSnapshot {
+  assertBoundary(battle)
+  const ids = new Map<object, number>(),
+    nodes: Node[] = []
+  const encode = (value: unknown): Encoded => {
+    if (value === undefined) return { atom: 'undefined' }
+    if (value === null || typeof value === 'boolean' || typeof value === 'string') return value
+    if (Object.is(value, -0)) return { atom: '-0' }
+    if (typeof value === 'number')
+      return Number.isFinite(value) ? value : { atom: String(value) as 'Infinity' | '-Infinity' | 'NaN' | '-0' }
+    if (typeof value !== 'object' && typeof value !== 'function') throw new Error('Unsupported snapshot value')
+    const known = ids.get(value)
+    if (known !== undefined) return { ref: known }
+    const id = nodes.length
+    ids.set(value, id)
+    const node: Node = { kind: '', fields: {} }
+    nodes.push(node)
+    const write = (kind: string, fields: Record<string, unknown>) => {
+      node.kind = kind
+      node.fields = Object.fromEntries(Object.entries(fields).map(([key, item]) => [key, encode(item)]))
+    }
+    if (typeof value === 'function') {
+      const binding = getCleanupBinding(value as () => void)
+      if (!binding) throw new Error('Unregistered snapshot function/cleanup')
+      write('cleanup', { binding })
+    } else if (catalog.contentKey(value)) write('content', { key: catalog.contentKey(value) })
+    else if (value instanceof Effect) write('effect', { key: catalog.effectKey(value) })
+    else if (value instanceof Signal && Object.getPrototypeOf(value) === Signal.prototype)
+      write('signal', { value: value.value, complete: value.isComplete })
+    else if (value instanceof ReactiveValue) {
+      const recipe = getValueRecipe(value)
+      if (!recipe) throw new Error('Dynamic value requires a snapshot binding; its current value is insufficient')
+      write('value', { recipe, complete: value.isComplete })
+    } else if (value instanceof AttributeSystem) {
+      if (value.getBattleId() && value.getBattleId() !== battle.id)
+        throw new Error('Cross-Battle attribute reference cannot be snapshotted')
+      if (
+        ![
+          AttributeSystem.prototype,
+          PetAttributeSystem.prototype,
+          PlayerAttributeSystem.prototype,
+          MarkAttributeSystem.prototype,
+          SkillAttributeSystem.prototype,
+          ComposableAttributeSystem.prototype,
+        ].includes(Object.getPrototypeOf(value))
+      )
+        throw new Error('Custom attribute class requires a snapshot adapter')
+      write('attribute', {
+        type: value.constructor.name,
+        accessors: value instanceof ComposableAttributeSystem ? Object.keys(value.getAccessors()).join('|') : '',
+        state: value.exportSnapshotState(),
+      })
+    } else if (value instanceof ConfigSystem) write('config', { state: value.exportSnapshotState() })
+    else if (value instanceof AIPlayer && Reflect.get(value, 'decisionPending'))
+      throw new Error('AI decision is not at a snapshot boundary')
+    else {
+      const kind = specFor(value)
+      if (kind) {
+        const fields = readFields(value, kind)
+        if (value instanceof Battle) {
+          const rng: unknown = Reflect.get(value, 'rng')
+          if (!(rng instanceof GameRng)) throw new Error('Injected RNG requires a snapshot adapter')
+          fields.rngState = rng.getState()
+          fields.timerConfig = value.getTimerConfig()
+          fields.transformations = value.transformationSystem.exportSnapshotState()
+        }
+        write(kind, fields)
+      } else if (Array.isArray(value)) write('array', Object.fromEntries(value.map((item, i) => [String(i), item])))
+      else if (value instanceof Map) write('map', { entries: [...value.entries()] })
+      else if (value instanceof Set) write('set', { values: [...value] })
+      else if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
+        write(Object.getPrototypeOf(value) === null ? 'dictionary' : 'object', value as Record<string, unknown>)
+      else throw new Error(`Unsupported snapshot object: ${value.constructor.name}`)
+    }
+    return { ref: id }
+  }
+  const result: BattleSnapshot = {
+    format: 'arcadia.v1.battle-snapshot',
+    version: 1,
+    catalog: catalog.revision,
+    root: encode(battle),
+    nodes,
+  }
+  validateSnapshot(result, catalog)
+  return result
+}
+
+export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle {
+  const snapshot = validateSnapshot(input, catalog)
+  const objects: unknown[] = [],
+    deferred: (() => void)[] = []
+  const attributes: {
+    object: AttributeSystem<AttributeData>
+    state: ReturnType<AttributeSystem<AttributeData>['exportSnapshotState']>
+  }[] = []
+  const configs: { object: ConfigSystem; state: ReturnType<ConfigSystem['exportSnapshotState']> }[] = []
+  const decode = (value: Encoded): unknown => {
+    if (value === null || typeof value !== 'object') return value
+    if ('atom' in value) return value.atom === 'undefined' ? undefined : Number(value.atom)
+    return objects[value.ref]
+  }
+  let battle: Battle | undefined
+  let bound = false
+  try {
+    // Allocate identities before wiring any references. Domain shells use the actual V1 prototypes.
+    for (const node of snapshot.nodes) {
+      let object: unknown
+      if (node.kind in ledger) object = Object.create(ledger[node.kind as LedgerKind].ctor.prototype)
+      else
+        switch (node.kind) {
+          case 'object':
+            object = {}
+            break
+          case 'dictionary':
+            object = Object.create(null)
+            break
+          case 'array':
+            object = []
+            break
+          case 'map':
+            object = new Map()
+            break
+          case 'set':
+            object = new Set()
+            break
+          case 'signal':
+            object = new Signal<unknown>(undefined)
+            break
+          case 'value': {
+            let restored: ReactiveValue<unknown> | undefined
+            object = derived(() => {
+              restored ??= restoreRecipe(decode(node.fields.recipe) as ValueRecipe, catalog)
+              return restored.value
+            })
+            deferred.push(() => {
+              describeValue(object as ReactiveValue<unknown>, decode(node.fields.recipe) as ValueRecipe)
+              if (node.fields.complete) (object as ReactiveValue<unknown>).complete()
+            })
+            break
+          }
+          case 'cleanup': {
+            const cleanup = () =>
+              runCleanup((getCleanupBinding(cleanup) ?? decode(node.fields.binding)) as Record<string, unknown>)
+            object = cleanup
+            break
+          }
+          case 'effect':
+            object = catalog.resolveEffect(node.fields.key as string)
+            break
+          case 'content':
+            object = catalog.resolveContent(node.fields.key as string)
+            break
+          case 'config':
+            object = new ConfigSystem()
+            break
+          case 'attribute': {
+            const type = node.fields.type as string
+            if (type === 'PetAttributeSystem') object = new PetAttributeSystem()
+            else if (type === 'PlayerAttributeSystem') object = new PlayerAttributeSystem()
+            else if (type === 'MarkAttributeSystem') {
+              const mark = new MarkAttributeSystem()
+              mark.initializeMarkAttributes(0, 0)
+              object = mark
+            } else if (type === 'SkillAttributeSystem') {
+              const skill = new SkillAttributeSystem()
+              skill.initializeSkillAttributes(0, 0, 0, 0)
+              object = skill
+            } else if (type === 'ComposableAttributeSystem') {
+              const system = new ComposableAttributeSystem<
+                StatLevelMarkAttributeSet & SkillAttributeSet & RageAttributeSet
+              >()
+              if (typeof node.fields.accessors !== 'string') throw new Error('Invalid snapshot accessors')
+              const accessors = node.fields.accessors.split('|')
+              if (accessors.includes('getDuration')) system.withBaseMarkAttributes(0, 0)
+              if (accessors.includes('getLevel')) system.withLevelAttributes(0)
+              if (accessors.includes('getPower')) system.withSkillAttributes(0, 0, 0, 0)
+              if (accessors.includes('getCurrentRage')) system.withRageAttributes(0, 0)
+              object = system
+            } else if (type === 'AttributeSystem') object = new AttributeSystem()
+            else throw new Error(`Unsupported snapshot attribute system: ${type}`)
+            break
+          }
+          default:
+            throw new Error(`Unknown snapshot node: ${node.kind}`)
+        }
+      objects.push(object)
+    }
+    snapshot.nodes.forEach((node, index) => {
+      const object = objects[index] as object
+      const fields = Object.fromEntries(Object.entries(node.fields).map(([key, value]) => [key, decode(value)]))
+      if (node.kind in ledger || node.kind === 'object' || node.kind === 'dictionary' || node.kind === 'array')
+        set(object, fields)
+      if (node.kind === 'signal') {
+        ;(object as Signal<unknown>).next(fields.value)
+        if (fields.complete) (object as Signal<unknown>).complete()
+      }
+      if (node.kind === 'attribute')
+        attributes.push({
+          object: object as AttributeSystem<AttributeData>,
+          state: fields.state as (typeof attributes)[number]['state'],
+        })
+      if (node.kind === 'config')
+        configs.push({ object: object as ConfigSystem, state: fields.state as (typeof configs)[number]['state'] })
+    })
+    // Containers must be filled only after their entry arrays/objects have been populated.
+    snapshot.nodes.forEach((node, index) => {
+      if (node.kind === 'map')
+        for (const [key, value] of decode(node.fields.entries) as [unknown, unknown][])
+          (objects[index] as Map<unknown, unknown>).set(key, value)
+      if (node.kind === 'set')
+        for (const value of decode(node.fields.values) as unknown[]) (objects[index] as Set<unknown>).add(value)
+    })
+    battle = decode(snapshot.root) as Battle
+    if (
+      !(battle instanceof Battle) ||
+      battle.status !== BattleStatus.OnBattle ||
+      battle.currentPhase !== BattlePhase.SelectionPhase
+    )
+      throw new Error('Invalid snapshot Battle root/boundary')
+    if (ConfigSystem.getBattleConfig(battle.id))
+      throw new Error('Snapshot Battle is already active; dispose the source before restoring its identity')
+    const data = battle as Battle & {
+      rngState: ReturnType<GameRng['getState']>
+      timerConfig: ReturnType<Battle['getTimerConfig']>
+      transformations: ReturnType<TransformationSystem['exportSnapshotState']>
+    }
+    const emitter = mitt<Events>()
+    set(battle, {
+      parent: null,
+      battle,
+      emitter,
+      logger: createChildLogger('Battle'),
+      rng: GameRng.fromState(data.rngState),
+      phaseManager: new PhaseManager(battle),
+      timerManager: new TimerManager(battle, data.timerConfig),
+      transformationSystem: new TransformationSystem(battle),
+      cancelled: false,
+      _isStarting: false,
+      restoredSelection: true,
+      cleanupPromise: undefined,
+      waitingResolvers: {},
+      messageCallbacks: [],
+    })
+    for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
+    for (const restore of deferred) restore()
+    for (const node of snapshot.nodes)
+      if (node.kind === 'value') {
+        const recipe = decode(node.fields.recipe) as ValueRecipe
+        if (!['attribute', 'project', 'combine', 'property', 'custom'].includes(recipe.type))
+          throw new Error('Unknown snapshot value binding')
+        if (recipe.type === 'custom') catalog.assertValue(recipe.key as string)
+      }
+    for (const { object, state } of attributes) object.restoreSnapshotModifiers(state)
+    for (const { object, state } of configs) object.restoreSnapshotState(state)
+    for (const { object } of configs) object.registerRestoredBattle(battle.id)
+    ConfigSystem.bindBattle(battle)
+    bound = true
+    for (const object of objects) {
+      if (object instanceof Player) {
+        set(object, { battle, owner: battle, emitter, messageCallbacks: [] })
+        battle.registerListener(object.handleMessage.bind(object))
+        if (object instanceof AIPlayer) object.restoreSnapshotRuntime()
+      } else if (object instanceof Pet || object instanceof MarkInstanceImpl) set(object, { emitter })
+      if (object instanceof StatLevelMarkInstanceImpl)
+        set(object, {
+          levelAccessors: (
+            Reflect.get(object, 'statLevelAttributeSystem') as ReturnType<typeof createStatLevelMarkAttributeSystem>
+          ).getAccessors(),
+        })
+    }
+    battle.transformationSystem.restoreSnapshotState(data.transformations)
+    for (const object of objects)
+      if (typeof object === 'function') {
+        // Retain cleanup descriptions so a restored Battle can be saved again.
+        const index = objects.indexOf(object),
+          node = snapshot.nodes[index]
+        const binding = decode(node.fields.binding) as Record<string, unknown>
+        if (binding.type === 'modifier' && binding.active) {
+          const actual = getModifierCleanup(binding.target as object, binding.modifier as object)
+          describeCleanup(object as () => void, getCleanupBinding(actual)!)
+        } else describeCleanup(object as () => void, binding)
+        if (binding.type === 'clamp' && binding.active) {
+          const modifier = binding.modifier as Modifier
+          const min = (binding.min as ReactiveValue<number>).subscribe(value => {
+            modifier.minValue = value
+          })
+          const max = (binding.max as ReactiveValue<number>).subscribe(value => {
+            modifier.maxValue = value
+          })
+          restoredClamps.set(binding, () => {
+            binding.active = false
+            min.unsubscribe()
+            max.unsubscribe()
+          })
+        }
+      }
+    Reflect.deleteProperty(battle, 'rngState')
+    Reflect.deleteProperty(battle, 'timerConfig')
+    Reflect.deleteProperty(battle, 'transformations')
+    return battle
+  } catch (error) {
+    // Do not clean by battle ID: malformed/duplicate saves must not destroy a live source Battle.
+    if (bound && battle) ConfigSystem.unbindRestoredBattle(battle)
+    for (const object of objects) {
+      try {
+        if (object instanceof AttributeSystem || object instanceof ConfigSystem) object.destroy()
+      } catch {
+        /* Retain the original validation error; no host callbacks survive hydration. */
+      }
+    }
+    throw error
+  }
+}
+
+function restoreRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): ReactiveValue<unknown> {
+  switch (recipe.type) {
+    case 'attribute':
+      return (recipe.target as AttributeSystem<AttributeData>).getAttribute$(recipe.key as string)
+    case 'project':
+      return projectValue(
+        recipe.input as ReactiveValue<unknown>,
+        recipe.operation as ValueProjection,
+        recipe.operand as number,
+      )
+    case 'combine':
+      return combineValues(recipe.inputs as ReactiveValue<unknown>[])
+    case 'property':
+      return derived(() => Reflect.get(recipe.target as object, recipe.key as string))
+    case 'custom':
+      return catalog.restoreValue(recipe.key as string, recipe.args)
+    default:
+      throw new Error(`Unknown snapshot value binding: ${recipe.type}`)
+  }
+}
+function runCleanup(binding: Record<string, unknown>): void {
+  if (binding.type === 'noop') return
+  if (binding.type === 'group') {
+    for (const cleanup of binding.cleanups as (() => void)[]) cleanup()
+    return
+  }
+  if (binding.type === 'modifier') {
+    if (!binding.active) return
+    binding.active = false
+    getModifierCleanup(binding.target as object, binding.modifier as object)()
+    return
+  }
+  if (binding.type === 'clamp') {
+    restoredClamps.get(binding)?.()
+    return
+  }
+  throw new Error('Unknown snapshot cleanup binding')
+}
+function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnapshot {
+  if (!input || typeof input !== 'object') throw new Error('Invalid Battle snapshot')
+  const s = input as BattleSnapshot
+  if (
+    s.format !== 'arcadia.v1.battle-snapshot' ||
+    s.version !== 1 ||
+    s.catalog !== catalog.revision ||
+    !Array.isArray(s.nodes) ||
+    s.nodes.length > 100000
+  )
+    throw new Error('Unsupported snapshot format/version/catalog')
+  const valid = new Set([
+    ...kinds,
+    'effect',
+    'content',
+    'signal',
+    'value',
+    'cleanup',
+    'attribute',
+    'config',
+    'object',
+    'dictionary',
+    'array',
+    'map',
+    'set',
+  ])
+  const check = (value: Encoded) => {
+    if (
+      value === null ||
+      typeof value === 'string' ||
+      typeof value === 'boolean' ||
+      (typeof value === 'number' && Number.isFinite(value))
+    )
+      return
+    if (
+      value &&
+      typeof value === 'object' &&
+      'ref' in value &&
+      Number.isInteger(value.ref) &&
+      value.ref >= 0 &&
+      value.ref < s.nodes.length
+    )
+      return
+    if (
+      value &&
+      typeof value === 'object' &&
+      'atom' in value &&
+      ['undefined', 'Infinity', '-Infinity', 'NaN', '-0'].includes(value.atom)
+    )
+      return
+    throw new Error('Invalid snapshot reference/value')
+  }
+  check(s.root)
+  for (const node of s.nodes) {
+    if (!node || !valid.has(node.kind) || !node.fields || typeof node.fields !== 'object' || Array.isArray(node.fields))
+      throw new Error('Invalid snapshot node')
+    for (const [key, value] of Object.entries(node.fields)) {
+      if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error('Invalid snapshot field')
+      check(value)
+    }
+    if (node.kind in ledger) {
+      const spec = ledger[node.kind as LedgerKind]
+      const allowed = new Set([
+        ...spec.fields.split(' '),
+        ...(node.kind === 'Battle' ? ['rngState', 'timerConfig', 'transformations'] : []),
+      ])
+      if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
+      const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem'] : [])
+      if (spec.fields.split(' ').some(key => !optional.has(key) && !Object.hasOwn(node.fields, key)))
+        throw new Error('Missing snapshot domain field')
+    }
+    if ((node.kind === 'signal' || node.kind === 'value') && typeof node.fields.complete !== 'boolean')
+      throw new Error('Invalid snapshot completion flag')
+    if (node.kind === 'effect') catalog.resolveEffect(node.fields.key as string)
+    if (node.kind === 'content') catalog.resolveContent(node.fields.key as string)
+  }
+  return s
+}

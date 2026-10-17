@@ -31,11 +31,11 @@ import {
   DurationType,
   MarkAttributeSystem,
   createStatLevelMarkAttributeSystem,
-  computed,
+
   type BaseMarkAccessors,
   type LevelAccessors,
 } from './attributeSystem'
-import { Signal, type ReactiveValue } from './reactiveValue'
+import { Signal, projectValue, type ReactiveValue } from './reactiveValue'
 
 export interface IBaseMark extends Prototype {
   createInstance(...arg: any[]): MarkInstance
@@ -351,10 +351,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     this.levelAccessors = this.statLevelAttributeSystem.getAccessors() as BaseMarkAccessors & LevelAccessors
 
     // 创建基于attributeSystem level的computed Observable
-    this.stageMultiplier$ = computed(
-      () => this.getStageMultiplier(this.levelAccessors.getLevel()),
-      [this.statLevelAttributeSystem.getAttribute$('level')],
-    )
+    this.stageMultiplier$ = projectValue(this.statLevelAttributeSystem.getAttribute$('level'), 'stage')
   }
 
   override setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {

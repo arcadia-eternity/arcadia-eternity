@@ -58,6 +58,11 @@ export class TimerManager {
     this.setupEventHandlers()
   }
 
+  public assertSnapshotSafe(): void {
+    if (this.config.enabled || this.animationTracker.hasActiveAnimations())
+      throw new Error('Snapshot of real-time timers/active animations requires a host adapter')
+  }
+
   /**
    * 初始化玩家计时器
    */
