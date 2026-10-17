@@ -1,0 +1,62 @@
+
+ RUN  v4.1.11 /Users/yuuinih/GitHub/test_battle/packages/battle
+
+stdout | test/v4/phase-lifecycle.test.ts > suppresses native mark effects and modifiers during Override without losing a form-causing source
+[Transformation] applyTopTransformation for A/lead
+[Transformation] Stack length: 1
+[Transformation] Applying top transform to fixture/good
+
+ ❯ test/v4/phase-lifecycle.test.ts (6 tests | 1 failed | 5 skipped) 51ms
+   × suppresses native mark effects and modifiers during Override without losing a form-causing source 43ms
+ ❯ test/v4/historical-fixes.test.ts (4 tests | 1 failed | 3 skipped) 31ms
+   × honors parsed maxHp and explicit gender through real Pet initialization 28ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/v4/historical-fixes.test.ts > honors parsed maxHp and explicit gender through real Pet initialization
+AssertionError: expected 260 to be 37 // Object.is equality
+
+- Expected
++ Received
+
+- 37
++ 260
+
+ ❯ test/v4/historical-fixes.test.ts:22:26
+     20|     skills: [a.activePet.skills[0].base.id], maxHp: 37, gender: Gender…
+     21|   pet.setOwner(b, battle.emitter)
+     22|   expect(pet.stat.maxHp).toBe(37); expect(pet.currentHp).toBe(37); exp…
+       |                          ^
+     23| })
+     24| it('keeps a stat-stage mark and modifier attached when the level chang…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/v4/phase-lifecycle.test.ts > suppresses native mark effects and modifiers during Override without losing a form-causing source
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/v4/phase-lifecycle.test.ts:78:86
+     76|   battle.transformationSystem.applyTransformation(pet, changed, 'tempo…
+     77|   battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnStart)
+     78|   expect(fired).toBe(0); expect(source.owner).toBe(pet); expect(source…
+       |                                                                                      ^
+     79|   expect(pet.stat.atk).toBe(55)
+     80|   const update = new MarkUpdatePhase(battle, new TurnContext(battle), …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 8 skipped (10)
+   Start at  22:38:18
+   Duration  1.56s (transform 1.27s, setup 0ms, import 1.69s, tests 82ms, environment 1ms)
+
+undefined
+/Users/yuuinih/GitHub/test_battle/packages/battle:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run --config vitest.v4.config.mjs test/v4/historical-fixes.test.ts test/v4/phase-lifecycle.test.ts -t 'honors parsed|maxHp|suppresses native'

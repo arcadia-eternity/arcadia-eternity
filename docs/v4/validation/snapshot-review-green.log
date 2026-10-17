@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /Users/yuuinih/GitHub/test_battle/packages/battle
+
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  12:43:42
+   Duration  1.89s (transform 470ms, setup 0ms, import 409ms, tests 1.23s, environment 0ms)
+

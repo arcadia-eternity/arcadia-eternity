@@ -1,0 +1,144 @@
+
+ RUN  v4.1.11 /Users/yuuinih/GitHub/test_battle/packages/battle
+
+ ❯ test/v4/phase-lifecycle.test.ts (5 tests | 5 failed) 277ms
+   × uses this Battle config and removes concrete-phase config modifiers immediately 99ms
+   × activates an attribute phase modifier synchronously and isolates two simultaneous Battles 44ms
+   × binds Next to the next turn, excluding the turn active at registration, and cleans scoped storage 33ms
+   × preserves the CURRENT HP ratio when reverting a form after taking damage 84ms
+   × propagates failed synchronous phases instead of silently continuing Battle 12ms
+stdout | test/v4/phase-lifecycle.test.ts > preserves the CURRENT HP ratio when reverting a form after taking damage
+[Transformation] applyTopTransformation for A/lead
+[Transformation] Stack length: 1
+[Transformation] Applying top transform to fixture/good
+[Transformation] removeTransformation called for target A/lead, reason: manual
+[Transformation] Current transformations: [
+  {
+    id: '9HW7Kj7PxFYr6ozzuGdAG',
+    type: 'temporary',
+    currentBase: 'fixture/good'
+  }
+]
+[Transformation] Removing transformation: {
+  id: '9HW7Kj7PxFYr6ozzuGdAG',
+  type: 'temporary',
+  currentBase: 'fixture/good'
+}
+[Transformation] applyTopTransformation for A/lead
+[Transformation] Stack length: 0
+[Transformation] No temporary transforms, permanent transform exists: false
+[Transformation] Restoring original base
+[Transformation] restoreOriginalBase for A/lead
+[Transformation] Transformations count: 0
+[Transformation] Restoring to original base using removed record: fixture/good
+[Transformation] Cleaning up transformation records
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/v4/phase-lifecycle.test.ts > uses this Battle config and removes concrete-phase config modifiers immediately
+Error: Config key 'phase-local' is not registered for modifier support. Call registerConfig() first.
+ ❯ TurnPhase.action test/v4/phase-lifecycle.test.ts:24:11
+     22|   const { battle } = fixture(); battle.configSystem.registerConfig('ph…
+     23|   run(battle, phase => {
+     24|     phase.addConfigModifier('phase-local', ConfigModifierType.delta, 5)
+       |           ^
+     25|     expect(battle.configSystem.get('phase-local', battle)).toBe(15)
+     26|   })
+ ❯ TurnPhase.executeOperation test/v4/phase-lifecycle.test.ts:12:39
+ ❯ run test/v4/phase-lifecycle.test.ts:16:38
+ ❯ test/v4/phase-lifecycle.test.ts:23:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  test/v4/phase-lifecycle.test.ts > activates an attribute phase modifier synchronously and isolates two simultaneous Battles
+AssertionError: expected 55 to be 65 // Object.is equality
+
+- Expected
++ Received
+
+- 65
++ 55
+
+ ❯ TurnPhase.action test/v4/phase-lifecycle.test.ts:34:40
+     32|     undefined, undefined, undefined, { phaseType: PhaseType.Turn, scop…
+     33|   run(first.battle, () => {
+     34|     expect(first.a.activePet.stat.atk).toBe(65)
+       |                                        ^
+     35|     run(second.battle, () => { expect(first.a.activePet.stat.atk).toBe…
+     36|     expect(first.a.activePet.stat.atk).toBe(65)
+ ❯ TurnPhase.executeOperation test/v4/phase-lifecycle.test.ts:12:39
+ ❯ run test/v4/phase-lifecycle.test.ts:16:38
+ ❯ test/v4/phase-lifecycle.test.ts:33:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  test/v4/phase-lifecycle.test.ts > binds Next to the next turn, excluding the turn active at registration, and cleans scoped storage
+AssertionError: expected 15 to be 10 // Object.is equality
+
+- Expected
++ Received
+
+- 10
++ 15
+
+ ❯ TurnPhase.action test/v4/phase-lifecycle.test.ts:45:64
+     43|     battle.configSystem.addScopedPhaseTypeConfigModifier('next-value',…
+     44|       'next', 5, ConfigModifierType.delta, 0), { phaseType: PhaseType.…
+     45|     expect(battle.configSystem.get('next-value', a.activePet)).toBe(10)
+       |                                                                ^
+     46|   })
+     47|   run(battle, () => expect(battle.configSystem.get('next-value', a.act…
+ ❯ TurnPhase.executeOperation test/v4/phase-lifecycle.test.ts:12:39
+ ❯ run test/v4/phase-lifecycle.test.ts:16:38
+ ❯ test/v4/phase-lifecycle.test.ts:42:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  test/v4/phase-lifecycle.test.ts > preserves the CURRENT HP ratio when reverting a form after taking damage
+AssertionError: expected 260 to be 101 // Object.is equality
+
+- Expected
++ Received
+
+- 101
++ 260
+
+ ❯ test/v4/phase-lifecycle.test.ts:57:25
+     55|   const ratio = pet.currentHp / pet.stat.maxHp
+     56|   battle.transformationSystem.removeTransformation(pet)
+     57|   expect(pet.currentHp).toBe(Math.floor(260 * ratio))
+       |                         ^
+     58| })
+     59| it('propagates failed synchronous phases instead of silently continuin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  test/v4/phase-lifecycle.test.ts > propagates failed synchronous phases instead of silently continuing Battle
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ test/v4/phase-lifecycle.test.ts:63:60
+     61|   const phase = new TurnPhase(battle, () => { throw new Error('phase f…
+     62|   battle.phaseManager.registerPhase(phase)
+     63|   expect(() => battle.phaseManager.executePhase(phase.id)).toThrow('ph…
+       |                                                            ^
+     64| })
+     65|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  5 failed | 4 passed (9)
+   Start at  22:24:18
+   Duration  2.17s (transform 1.66s, setup 0ms, import 2.72s, tests 408ms, environment 0ms)
+
+undefined
+/Users/yuuinih/GitHub/test_battle/packages/battle:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run --config vitest.v4.config.mjs test/v4/phase-lifecycle.test.ts test/v4/historical-fixes.test.ts

@@ -1,0 +1,103 @@
+
+ RUN  v4.1.11 /Users/yuuinih/GitHub/test_battle/packages/battle
+
+ ❯ test/v4/known-defects.test.ts (1 test | 1 failed) 159ms
+   × V1-BUG-01: damage rage should use the DamagePhase result, not the stale caller context 23ms
+ ❯ test/v4/historical-fixes.test.ts (4 tests | 4 failed) 240ms
+   × honors parsed maxHp and explicit gender through real Pet initialization 86ms
+   × keeps a stat-stage mark and modifier attached when the level changes sign 67ms
+   × does not heal a benched pet just because isActive is a function 83ms
+   × gives a default Builder one hit and 100 percent accuracy 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/v4/historical-fixes.test.ts > honors parsed maxHp and explicit gender through real Pet initialization
+Error: [PetParser] 精灵数据验证失败: Invalid at "species"
+ ❯ test/v4/historical-fixes.test.ts:18:25
+     16|   DataRepository.getInstance().species.set(base.id, base)
+     17|   DataRepository.getInstance().skills.set(a.activePet.skills[0].base.i…
+     18|   const pet = PetParser.parse({ name: 'override', species: base.id, le…
+       |                         ^
+     19|     evs: a.activePet.evs, ivs: a.activePet.ivs, nature: a.activePet.na…
+     20|     skills: [a.activePet.skills[0].base.id], maxHp: 37, gender: Gender…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  test/v4/historical-fixes.test.ts > keeps a stat-stage mark and modifier attached when the level changes sign
+AssertionError: expected 55 to be close to 36.300000000000004, received difference is 18.699999999999996, but expected 0.005
+ ❯ test/v4/historical-fixes.test.ts:29:32
+     27|   a.activePet.addStatStage(ctx, StatTypeWithoutHp.atk, -2)
+     28|   expect(battle.phaseManager.getPhasesByState(PhaseState.Failed)).toHa…
+     29|   expect(a.activePet.stat.atk).toBeCloseTo(55 * 0.66)
+       |                                ^
+     30|   expect(a.activePet.marks[0].owner).toBe(a.activePet)
+     31|   expect(a.activePet.marks[0].baseId).toBe('stat_stage_atk_down')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  test/v4/historical-fixes.test.ts > does not heal a benched pet just because isActive is a function
+AssertionError: expected 30 to be 10 // Object.is equality
+
+- Expected
++ Received
+
+- 10
++ 30
+
+ ❯ test/v4/historical-fixes.test.ts:37:25
+     35|   pet.currentHp = 10
+     36|   pet.heal(new HealContext(context(battle), a.activePet.skills[0], pet…
+     37|   expect(pet.currentHp).toBe(10)
+       |                         ^
+     38| })
+     39| it('gives a default Builder one hit and 100 percent accuracy', () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  test/v4/historical-fixes.test.ts > gives a default Builder one hit and 100 percent accuracy
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/v4/historical-fixes.test.ts:41:26
+     39| it('gives a default Builder one hit and 100 percent accuracy', () => {
+     40|   const skill = new BaseSkill.Builder().withID('default').build()
+     41|   expect(skill.multihit).toBe(1); expect(skill.accuracy).toBe(100)
+       |                          ^
+     42| })
+     43|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  test/v4/known-defects.test.ts > V1-BUG-01: damage rage should use the DamagePhase result, not the stale caller context
+AssertionError: expected 20 to be 22 // Object.is equality
+
+- Expected
++ Received
+
+- 22
++ 20
+
+ ❯ test/v4/known-defects.test.ts:36:22
+     34| })
+     35| it('V1-BUG-01: damage rage should use the DamagePhase result, not the …
+     36|   expect(actualRage).toBe(intendedRage)
+       |                      ^
+     37| })
+     38|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  5 failed (5)
+   Start at  22:21:43
+   Duration  1.55s (transform 842ms, setup 0ms, import 1.62s, tests 398ms, environment 0ms)
+
+undefined
+/Users/yuuinih/GitHub/test_battle/packages/battle:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run --config vitest.v4.config.mjs test/v4/known-defects.test.ts test/v4/historical-fixes.test.ts

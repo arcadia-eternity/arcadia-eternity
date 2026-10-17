@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["./v4.ts", "./src/v4/**/*.ts", "./v4-legacy.ts", "./src/v4/legacy/**/*.json"],
+  "exclude": ["./node_modules", "./dist"]
+}

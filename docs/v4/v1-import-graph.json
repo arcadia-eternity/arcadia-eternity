@@ -1,0 +1,397 @@
+{
+  "attributeSystem.ts": [
+    "rxjs",
+    "rxjs/operators",
+    "nanoid",
+    "@arcadia-eternity/const",
+    "./mark",
+    "./skill",
+    "./config",
+    "./logger"
+  ],
+  "battle.ts": [
+    "@arcadia-eternity/const",
+    "prando",
+    "./config",
+    "./context",
+    "./effect",
+    "./entity",
+    "./mark",
+    "./pet",
+    "./player",
+    "./skill",
+    "./attributeSystem",
+    "jsondiffpatch",
+    "nanoid",
+    "mitt",
+    "./phase",
+    "./phase/effectExecution",
+    "./phase/RemoveMarkPhase",
+    "./phase/AddMarkPhase",
+    "./timer",
+    "./transformation",
+    "./logger"
+  ],
+  "config.ts": [
+    "@arcadia-eternity/const",
+    "rxjs",
+    "rxjs/operators",
+    "./battle",
+    "./mark",
+    "./pet",
+    "./player",
+    "./skill",
+    "./phase",
+    "./logger",
+    "./attributeSystem.js",
+    "./attributeSystem.js"
+  ],
+  "context.ts": [
+    "@arcadia-eternity/const",
+    "./battle",
+    "./entity",
+    "./mark",
+    "./pet",
+    "./player",
+    "./skill",
+    "./effect",
+    "./logger"
+  ],
+  "effect.ts": [
+    "@arcadia-eternity/const",
+    "./context",
+    "./entity",
+    "@arcadia-eternity/const",
+    "./mark"
+  ],
+  "entity.ts": [
+    "@arcadia-eternity/const",
+    "./battle",
+    "./context",
+    "./mark",
+    "./pet",
+    "./player",
+    "./skill",
+    "mitt"
+  ],
+  "index.ts": [
+    "./attributeSystem",
+    "./battle",
+    "./config",
+    "./context",
+    "./effect",
+    "./entity",
+    "./logger",
+    "./mark",
+    "./pet",
+    "./phase",
+    "./player",
+    "./skill",
+    "./timer"
+  ],
+  "logger.ts": [],
+  "mark.ts": [
+    "@arcadia-eternity/const",
+    "nanoid",
+    "./battle",
+    "./context",
+    "./effect",
+    "./entity",
+    "./pet",
+    "mitt",
+    "./attributeSystem",
+    "rxjs"
+  ],
+  "pet.ts": [
+    "@arcadia-eternity/const",
+    "./context",
+    "./entity",
+    "./mark",
+    "./player",
+    "./skill",
+    "./attributeSystem",
+    "./phase/damage",
+    "./phase/heal",
+    "./phase/MarkSwitchOutPhase",
+    "./phase/MarkTransferPhase",
+    "mitt"
+  ],
+  "phase/AddMarkPhase.ts": [
+    "@arcadia-eternity/const",
+    "../battle",
+    "../context",
+    "../entity",
+    "../mark",
+    "../pet",
+    "./base",
+    "./MarkStackPhase"
+  ],
+  "phase/MarkCleanupPhase.ts": [
+    "../battle",
+    "../context",
+    "../pet",
+    "./base"
+  ],
+  "phase/MarkStackPhase.ts": [
+    "@arcadia-eternity/const",
+    "../battle",
+    "../context",
+    "../mark",
+    "../pet",
+    "./base",
+    "./mark",
+    "./RemoveMarkPhase"
+  ],
+  "phase/MarkSwitchOutPhase.ts": [
+    "@arcadia-eternity/const",
+    "../battle",
+    "../context",
+    "../pet",
+    "./base",
+    "./MarkTransferPhase",
+    "./RemoveMarkPhase"
+  ],
+  "phase/MarkTransferPhase.ts": [
+    "@arcadia-eternity/const",
+    "../battle",
+    "../context",
+    "../mark",
+    "../pet",
+    "./base",
+    "./MarkStackPhase"
+  ],
+  "phase/MarkUpdatePhase.ts": [
+    "@arcadia-eternity/const",
+    "../battle",
+    "../context",
+    "../mark",
+    "../pet",
+    "./base",
+    "./RemoveMarkPhase"
+  ],
+  "phase/RemoveMarkPhase.ts": [
+    "@arcadia-eternity/const",
+    "../battle",
+    "../context",
+    "../mark",
+    "../pet",
+    "./base"
+  ],
+  "phase/base.ts": [
+    "@arcadia-eternity/const",
+    "../context",
+    "../battle",
+    "../config"
+  ],
+  "phase/battleLoop.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "./battleSwitch",
+    "./selection",
+    "./turn",
+    "../battle",
+    "../context"
+  ],
+  "phase/battleStart.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../battle",
+    "@arcadia-eternity/const"
+  ],
+  "phase/battleSwitch.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "./switch",
+    "../battle"
+  ],
+  "phase/damage.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle",
+    "../pet",
+    "../mark",
+    "../skill"
+  ],
+  "phase/effect.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle",
+    "../skill",
+    "../mark",
+    "../effect"
+  ],
+  "phase/effectExecution.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle",
+    "../effect",
+    "../logger"
+  ],
+  "phase/heal.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle",
+    "../pet",
+    "../mark",
+    "../skill"
+  ],
+  "phase/index.ts": [
+    "./base",
+    "./battleStart",
+    "./battleLoop",
+    "./battleSwitch",
+    "./damage",
+    "./effect",
+    "./heal",
+    "./manager",
+    "./mark",
+    "./AddMarkPhase",
+    "./RemoveMarkPhase",
+    "./MarkStackPhase",
+    "./MarkUpdatePhase",
+    "./MarkCleanupPhase",
+    "./MarkSwitchOutPhase",
+    "./MarkTransferPhase",
+    "./rage",
+    "./selection",
+    "./skill",
+    "./switch",
+    "./transform",
+    "./turn"
+  ],
+  "phase/manager.ts": [
+    "./base",
+    "../battle",
+    "../logger"
+  ],
+  "phase/mark.ts": [
+    "@arcadia-eternity/const",
+    "../context",
+    "../battle",
+    "../pet",
+    "../mark",
+    "./RemoveMarkPhase"
+  ],
+  "phase/rage.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle",
+    "../player"
+  ],
+  "phase/selection.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle"
+  ],
+  "phase/skill.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "./MarkCleanupPhase",
+    "../battle",
+    "../player",
+    "../pet",
+    "../skill",
+    "@arcadia-eternity/const"
+  ],
+  "phase/switch.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle",
+    "../player",
+    "../pet",
+    "./MarkSwitchOutPhase"
+  ],
+  "phase/transform.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "../battle",
+    "../pet",
+    "../skill",
+    "../mark",
+    "../effect",
+    "../context"
+  ],
+  "phase/turn.ts": [
+    "@arcadia-eternity/const",
+    "./base",
+    "../context",
+    "./skill",
+    "./switch",
+    "./MarkCleanupPhase",
+    "./MarkUpdatePhase",
+    "../battle"
+  ],
+  "player.ts": [
+    "@arcadia-eternity/const",
+    "./battle",
+    "./context",
+    "./pet",
+    "./attributeSystem",
+    "./phase/skill",
+    "./phase/switch",
+    "./phase/rage",
+    "jsondiffpatch",
+    "mitt"
+  ],
+  "skill.ts": [
+    "@arcadia-eternity/const",
+    "nanoid",
+    "./context",
+    "./effect",
+    "./entity",
+    "./pet",
+    "./attributeSystem"
+  ],
+  "timer/animationTracker.ts": [
+    "@arcadia-eternity/const",
+    "mitt",
+    "nanoid",
+    "../logger"
+  ],
+  "timer/battleTimer.ts": [
+    "@arcadia-eternity/const",
+    "mitt",
+    "../logger"
+  ],
+  "timer/index.ts": [
+    "./battleTimer",
+    "./animationTracker",
+    "./timerManager"
+  ],
+  "timer/timerManager.ts": [
+    "@arcadia-eternity/const",
+    "mitt",
+    "./battleTimer",
+    "./animationTracker",
+    "../battle",
+    "../logger"
+  ],
+  "transformation.ts": [
+    "@arcadia-eternity/const",
+    "nanoid",
+    "./battle",
+    "./context",
+    "./entity",
+    "./transformationStrategies",
+    "./pet",
+    "./skill",
+    "./mark",
+    "./effect"
+  ],
+  "transformationStrategies.ts": [
+    "./transformation",
+    "./pet",
+    "./skill",
+    "./mark"
+  ]
+}

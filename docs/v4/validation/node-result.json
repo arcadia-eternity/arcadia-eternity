@@ -1,0 +1,285 @@
+{
+  "fullBattle": {
+    "turn": 4,
+    "winner": "A",
+    "counters": {
+      "created": 1,
+      "expired": 1,
+      "destroyed": 1,
+      "ticked": 2,
+      "hits": 1
+    },
+    "checkpoints": [
+      {
+        "turn": 1,
+        "rage": [
+          35,
+          48
+        ],
+        "hp": [
+          246,
+          260,
+          80,
+          80
+        ],
+        "accuracy": 90,
+        "atk": 82.5
+      },
+      {
+        "turn": 2,
+        "rage": [
+          45,
+          76
+        ],
+        "hp": [
+          246,
+          247,
+          80,
+          80
+        ],
+        "accuracy": 100,
+        "atk": 82.5
+      },
+      {
+        "turn": 3,
+        "rage": [
+          75,
+          100
+        ],
+        "hp": [
+          246,
+          247,
+          0,
+          80
+        ],
+        "accuracy": 100,
+        "atk": 82.5
+      },
+      {
+        "turn": 4,
+        "rage": [
+          100,
+          100
+        ],
+        "hp": [
+          246,
+          247,
+          0,
+          0
+        ],
+        "accuracy": 100,
+        "atk": 82.5
+      }
+    ],
+    "events": [
+      "BATTLE_START",
+      "TURN_ACTION",
+      "TURN_START",
+      "SKILL_USE",
+      "RAGE_CHANGE",
+      "EFFECT_APPLY",
+      "EFFECT_APPLY",
+      "MARK_APPLY",
+      "MARK_APPLY",
+      "RAGE_CHANGE",
+      "SKILL_USE_END",
+      "SKILL_USE",
+      "RAGE_CHANGE",
+      "DAMAGE",
+      "RAGE_CHANGE",
+      "EFFECT_APPLY",
+      "RAGE_CHANGE",
+      "SKILL_USE_END",
+      "EFFECT_APPLY",
+      "RAGE_CHANGE",
+      "RAGE_CHANGE",
+      "MARK_UPDATE",
+      "TURN_END",
+      "TURN_ACTION",
+      "TURN_START",
+      "PET_SWITCH",
+      "SKILL_USE",
+      "RAGE_CHANGE",
+      "DAMAGE",
+      "RAGE_CHANGE",
+      "EFFECT_APPLY",
+      "RAGE_CHANGE",
+      "SKILL_USE_END",
+      "EFFECT_APPLY",
+      "RAGE_CHANGE",
+      "RAGE_CHANGE",
+      "EFFECT_APPLY",
+      "MARK_EXPIRE",
+      "EFFECT_APPLY",
+      "MARK_DESTROY",
+      "TURN_END",
+      "TURN_ACTION",
+      "TURN_START",
+      "SKILL_USE",
+      "RAGE_CHANGE",
+      "DAMAGE",
+      "RAGE_CHANGE",
+      "EFFECT_APPLY",
+      "RAGE_CHANGE",
+      "PET_DEFEATED",
+      "SKILL_USE_END",
+      "SKILL_USE_FAIL",
+      "RAGE_CHANGE",
+      "RAGE_CHANGE",
+      "TURN_END",
+      "FORCED_SWITCH",
+      "FAINT_SWITCH",
+      "PET_SWITCH",
+      "TURN_ACTION",
+      "TURN_START",
+      "SKILL_USE",
+      "RAGE_CHANGE",
+      "DAMAGE",
+      "RAGE_CHANGE",
+      "EFFECT_APPLY",
+      "RAGE_CHANGE",
+      "PET_DEFEATED",
+      "SKILL_USE_END",
+      "SKILL_USE_FAIL",
+      "RAGE_CHANGE",
+      "RAGE_CHANGE",
+      "TURN_END",
+      "BATTLE_END"
+    ],
+    "actions": [
+      {
+        "turn": 0,
+        "type": "use-skill",
+        "player": "A"
+      },
+      {
+        "turn": 0,
+        "type": "use-skill",
+        "player": "B"
+      },
+      {
+        "turn": 1,
+        "type": "switch-pet",
+        "player": "A"
+      },
+      {
+        "turn": 1,
+        "type": "use-skill",
+        "player": "B"
+      },
+      {
+        "turn": 2,
+        "type": "use-skill",
+        "player": "A"
+      },
+      {
+        "turn": 2,
+        "type": "use-skill",
+        "player": "B"
+      },
+      {
+        "turn": 3,
+        "type": "switch-pet",
+        "player": "B"
+      },
+      {
+        "turn": 3,
+        "type": "do-nothing",
+        "player": "A"
+      },
+      {
+        "turn": 3,
+        "type": "use-skill",
+        "player": "A"
+      },
+      {
+        "turn": 3,
+        "type": "use-skill",
+        "player": "B"
+      }
+    ],
+    "end": [
+      {
+        "winner": "A",
+        "reason": "all_pet_fainted"
+      }
+    ],
+    "switches": [
+      {
+        "player": "A",
+        "fromPet": "A/lead",
+        "toPet": "A/reserve",
+        "currentHp": 260
+      },
+      {
+        "player": "B",
+        "fromPet": "B/lead",
+        "toPet": "B/reserve",
+        "currentHp": 80
+      }
+    ],
+    "damage": [
+      {
+        "currentHp": 246,
+        "maxHp": 260,
+        "source": "B/lead",
+        "target": "A/lead",
+        "damage": 14,
+        "isCrit": false,
+        "effectiveness": 1,
+        "damageType": "Physical"
+      },
+      {
+        "currentHp": 247,
+        "maxHp": 260,
+        "source": "B/lead",
+        "target": "A/reserve",
+        "damage": 13,
+        "isCrit": false,
+        "effectiveness": 1,
+        "damageType": "Physical"
+      },
+      {
+        "currentHp": 0,
+        "maxHp": 80,
+        "source": "A/reserve",
+        "target": "B/lead",
+        "damage": 383,
+        "isCrit": false,
+        "effectiveness": 1,
+        "damageType": "Physical"
+      },
+      {
+        "currentHp": 0,
+        "maxHp": 80,
+        "source": "A/reserve",
+        "target": "B/reserve",
+        "damage": 398,
+        "isCrit": false,
+        "effectiveness": 1,
+        "damageType": "Physical"
+      }
+    ]
+  },
+  "originalDsl": {
+    "skill": "skill_qili",
+    "attackRatio": 1.5
+  },
+  "dynamic": {
+    "before": 85.5,
+    "after": 91.5
+  },
+  "rng": {
+    "algorithm": "sfc32-v1",
+    "continuation": [
+      0.9450808772817254,
+      0.17945640650577843,
+      0.9857194977812469,
+      0.599541001021862,
+      0.6793134009931237,
+      0.9695310450624675,
+      0.7686222384218127,
+      0.208312236238271
+    ]
+  }
+}

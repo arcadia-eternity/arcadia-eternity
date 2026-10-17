@@ -1,0 +1,21 @@
+{
+  "first": {
+    "turn": 1,
+    "partial": "switch-pet",
+    "marks": 1,
+    "accuracy": 90
+  },
+  "turn": 4,
+  "winner": "A",
+  "damage": [
+    13,
+    383,
+    398
+  ],
+  "hp": [
+    246,
+    247,
+    0,
+    0
+  ]
+}

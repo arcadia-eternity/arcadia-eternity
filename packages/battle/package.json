@@ -19,6 +19,16 @@
       "types": "./dist/types/node.d.ts",
       "import": "./dist/node.js",
       "default": "./dist/node.js"
+    },
+    "./v4": {
+      "types": "./dist/types/v4.d.ts",
+      "import": "./dist/v4.js",
+      "default": "./dist/v4.js"
+    },
+    "./v4/legacy": {
+      "types": "./dist/types/v4-legacy.d.ts",
+      "import": "./dist/v4-legacy.js",
+      "default": "./dist/v4-legacy.js"
     }
   },
   "scripts": {
@@ -46,8 +56,8 @@
     "jsondiffpatch": "catalog:",
     "mitt": "^3.0.1",
     "nanoid": "catalog:",
-    "prando": "^6.0.1",
-    "rxjs": "catalog:"
+    "zod": "3.25.76",
+    "zod-validation-error": "3.5.4"
   },
   "devDependencies": {
     "vitest": "catalog:"
