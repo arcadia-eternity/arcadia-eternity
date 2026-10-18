@@ -11,7 +11,9 @@ import {
   ParameterCatalog,
   type ParameterDefinition,
 } from './parameters'
-import type { PublicParameterSlot, ParameterLinker } from './capability-parameters'
+import { compileParameterArguments, type PublicParameterSlot, type ParameterLinker } from './capability-parameters'
+import { ConfigModifierType } from '../config'
+import { registerSingleAdmission } from './admission'
 import { freezeContent } from './immutable'
 
 const invocation = Type.Object(
@@ -40,6 +42,18 @@ const ruleSchema = Type.Object(
     ),
     trigger: invocation,
     when: Type.Optional(invocation),
+    roll: Type.Optional(
+      Type.Object(
+        {
+          nodeId: Type.String({ minLength: 1 }),
+          percent: Type.Union([
+            Type.Number({ minimum: 0, maximum: 100 }),
+            Type.Object({ parameter: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
+          ]),
+        },
+        { additionalProperties: false },
+      ),
+    ),
     actions: Type.Array(
       Type.Object(
         {
@@ -120,6 +134,7 @@ export function compileRule(
     for (const parameter of Object.values(rule.parameters)) claim(parameter.nodeId)
     claim(rule.trigger.nodeId)
     if (rule.when) claim(rule.when.nodeId)
+    if (rule.roll) claim(rule.roll.nodeId)
     for (const action of rule.actions) claim(action.stepId)
     nodeId = rule.trigger.nodeId
     field = 'trigger'
@@ -144,6 +159,22 @@ export function compileRule(
     field = 'when'
     const predicate = rule.when
       ? registry.compilePredicate(rule.when.id, rule.when.params, trigger.available, linker)
+      : undefined
+    nodeId = rule.roll?.nodeId
+    field = 'roll'
+    const percentSchema = Type.Number({ minimum: 0, maximum: 100 })
+    const roll = rule.roll
+      ? compileParameterArguments(
+          Type.Object({ percent: percentSchema }, { additionalProperties: false }),
+          {
+            percent: {
+              effectiveSchema: percentSchema,
+              operations: [ConfigModifierType.delta, ConfigModifierType.override],
+            },
+          },
+          { percent: rule.roll.percent },
+          linker,
+        )
       : undefined
     const actions = rule.actions.map(action => {
       nodeId = action.stepId
@@ -180,14 +211,21 @@ export function compileRule(
       triggers: [trigger.trigger],
       priority: rule.priority,
       consumesStacks: rule.consumesStacks,
-      when: context => trigger.matches(context) && (!predicate || predicate.test(trigger.runtime(context))),
+      when: context => {
+        if (!trigger.matches(context) || (predicate && !predicate.test(trigger.runtime(context)))) return false
+        if (!roll) return true
+        const percent = roll.read({ effect: context, capabilities: {} }).percent as number
+        return context.battle.random() * 100 < percent
+      },
       apply: context => {
         for (const action of actions) action.run(trigger.runtime(context))
       },
     })
+    registerSingleAdmission(effect)
     const normalized = freezeContent({
       ...rule,
       trigger: { ...rule.trigger, params: trigger.params },
+      ...(rule.roll && roll ? { roll: { ...rule.roll, ...roll.content } } : {}),
       ...(rule.when && predicate ? { when: { ...rule.when, params: predicate.params } } : {}),
       actions: rule.actions.map((action, index) => ({ ...action, params: actions[index].contentParams })),
     })
