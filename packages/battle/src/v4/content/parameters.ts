@@ -2,14 +2,9 @@ import { Kind, type Static, type TObject, type TSchema } from '@sinclair/typebox
 import { Value } from '@sinclair/typebox/value'
 import { ConfigSystem, ConfigModifier, ConfigModifierType, type ScopeObject } from '../config'
 
+import { freezeContent } from './immutable'
+
 type Scalar = string | number | boolean
-function freeze<T>(value: T): T {
-  if (value && typeof value === 'object') {
-    for (const key of Reflect.ownKeys(value)) freeze(Reflect.get(value, key))
-    Object.freeze(value)
-  }
-  return value
-}
 function assertJson(value: unknown, ancestors = new Set<object>()): void {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return
   if (typeof value === 'number' && Number.isFinite(value)) return
@@ -49,7 +44,7 @@ export function normalizeParams<S extends TObject>(schema: S, input: unknown): R
   const result: unknown = Value.Default(schema, Value.Clone(input))
   assertJson(result)
   if (!Value.Check(schema, result)) throw new Error('Invalid content parameters')
-  return freeze(result)
+  return freezeContent(result)
 }
 
 export function parameterAddress(effectId: string, nodeId: string, parameterId: string): string {
@@ -106,7 +101,7 @@ export function defineParameter<S extends TSchema, E extends TSchema>(input: {
   const value: unknown = input.value === undefined ? input.schema.default : input.value
   if (!scalar(value) || !Value.Check(input.schema, value) || !Value.Check(input.effectiveSchema, value))
     throw new Error(`Invalid base parameter: ${input.address}`)
-  return freeze({
+  return freezeContent({
     ...input,
     schema: Value.Clone(input.schema),
     effectiveSchema: Value.Clone(input.effectiveSchema),
