@@ -1,3 +1,4 @@
+import { normalizeMarkInstanceParams, type MarkInstanceParams } from './content/mark-parameters'
 import {
   AttackTargetOpinion,
   Category,
@@ -492,6 +493,8 @@ export class HealContext extends Context {
 }
 
 export class AddMarkContext extends Context {
+  public readonly instanceParams: MarkInstanceParams | undefined
+  public result?: 'parameter-conflict'
   readonly type = 'add-mark'
   public readonly battle: Battle
   public available: boolean = true
@@ -504,8 +507,10 @@ export class AddMarkContext extends Context {
     stack?: number,
     duration?: number,
     public config?: Partial<MarkInstance['config']>,
+    instanceParams?: MarkInstanceParams,
   ) {
     super(parent)
+    this.instanceParams = normalizeMarkInstanceParams(baseMark, instanceParams)
     this.battle = parent.battle
     //拷贝，因为原值是只读的
     if (!config) this.config = JSON.parse(JSON.stringify(baseMark.config))

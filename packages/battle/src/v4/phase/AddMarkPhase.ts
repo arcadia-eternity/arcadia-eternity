@@ -1,3 +1,4 @@
+import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from '../content/mark-parameters'
 import { EffectTrigger, StackStrategy, BattleMessageType } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { AddMarkContext, RemoveMarkContext, StackContext } from '../context'
@@ -28,7 +29,10 @@ export class AddMarkPhase extends SynchronousPhase<AddMarkContext> {
   }
 
   protected createContext(): AddMarkContext {
-    return this.existingContext ?? new AddMarkContext(this.parentContext, this.target, this.baseMark, this.stack, this.duration, this.config)
+    return (
+      this.existingContext ??
+      new AddMarkContext(this.parentContext, this.target, this.baseMark, this.stack, this.duration, this.config)
+    )
   }
 
   protected executeOperation(): void {
@@ -44,16 +48,30 @@ export class AddMarkPhase extends SynchronousPhase<AddMarkContext> {
  */
 
 export function executeAddMarkOperation(context: AddMarkContext, battle: Battle): void {
+  context.result = undefined
   // Apply OnBeforeAddMark effects
   battle.applyEffects(context, EffectTrigger.OnBeforeAddMark)
   if (!context.available) {
     return
   }
 
+  const contract = markParameterContract(context.baseMark)
+  const instanceParams = normalizeMarkInstanceParams(context.baseMark, context.instanceParams)
+  contract?.assertInstalled(battle.configSystem)
+  const parameterizedExisting = contract
+    ? context.target.marks.find(mark => mark.base.id === context.baseMark.id)
+    : undefined
+  if (parameterizedExisting && !sameMarkInstanceParams(parameterizedExisting.instanceParams, instanceParams)) {
+    context.result = 'parameter-conflict'
+    return
+  }
+
   // Handle mutex group conflicts
   if (context.baseMark.config.mutexGroup) {
     // Get existing marks in the same mutex group
-    const existingMarks = context.target.marks.filter(m => m.config.mutexGroup === context.baseMark.config.mutexGroup)
+    const existingMarks = context.target.marks.filter(
+      m => m !== parameterizedExisting && m.config.mutexGroup === context.baseMark.config.mutexGroup,
+    )
 
     // Remove all conflicting marks using RemoveMarkPhase
     existingMarks.forEach(mark => {
@@ -64,6 +82,7 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
 
   // Create new mark instance
   const config = {
+    instanceParams,
     config: context.config,
     duration: context.duration ?? context.config?.duration,
     stack: context.stack ?? context.config?.maxStacks,

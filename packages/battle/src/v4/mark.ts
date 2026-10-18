@@ -1,3 +1,4 @@
+import { normalizeMarkInstanceParams, markParameterContract, type MarkInstanceParams } from './content/mark-parameters'
 import {
   BattleMessageType,
   EffectTrigger,
@@ -61,6 +62,7 @@ export class BaseMark implements Prototype, IBaseMark {
   ) {}
 
   createInstance(overrides?: {
+    instanceParams?: MarkInstanceParams
     duration?: number
     stack?: number
     config?: Partial<BaseMark['config']>
@@ -81,6 +83,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   readonly tags: string[]
   isSuppressed: boolean
 
+  readonly instanceParams: MarkInstanceParams | undefined
   readonly base: BaseMark
   readonly attributeSystem: MarkAttributeSystem
 
@@ -106,6 +109,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
 }
 
 export class MarkInstanceImpl implements MarkInstance {
+  public readonly instanceParams: MarkInstanceParams | undefined
   private suppression = new Signal(false)
   get isSuppressed(): boolean {
     return this.suppression.value
@@ -131,6 +135,7 @@ export class MarkInstanceImpl implements MarkInstance {
   constructor(
     public readonly base: BaseMark,
     overrides?: {
+      instanceParams?: MarkInstanceParams
       duration?: number
       stack?: number
       config?: Partial<BaseMark['config']>
@@ -138,6 +143,7 @@ export class MarkInstanceImpl implements MarkInstance {
       effects?: Effect<EffectTrigger>[]
     },
   ) {
+    this.instanceParams = normalizeMarkInstanceParams(base, overrides?.instanceParams)
     this.id = nanoid() as markId
     const mergedConfig = {
       ...base.config,
@@ -202,8 +208,15 @@ export class MarkInstanceImpl implements MarkInstance {
 
   OnMarkCreated(target: Battle | Pet, context: AddMarkContext) {
     this.setOwner(target, target.emitter!)
-    context.battle.applyEffects(context, EffectTrigger.OnMarkCreated, this)
-    context.battle.applyEffects(context, EffectTrigger.OnAnyMarkAdded)
+    const parameters = markParameterContract(this.base)
+    try {
+      parameters?.installScope(context.battle.configSystem, this)
+      context.battle.applyEffects(context, EffectTrigger.OnMarkCreated, this)
+      context.battle.applyEffects(context, EffectTrigger.OnAnyMarkAdded)
+    } catch (error) {
+      if (parameters) context.battle.configSystem.releaseScope(this)
+      throw error
+    }
 
     this.attachTo(target)
     target.marks.push(this)

@@ -270,6 +270,7 @@ export class Battle extends Context implements MarkOwner {
     )
     this.phaseManager.registerPhase(addMarkPhase)
     this.phaseManager.executePhase(addMarkPhase.id)
+    return context.result
   }
 
   public removeMark(context: RemoveMarkContext) {

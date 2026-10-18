@@ -28,3 +28,5 @@ export { compileRule, type CompiledRuleData, type CompileDiagnostic, type RuleCo
 export type { PublicParameterSlot } from './capability-parameters'
 export { coreCapabilities, createCoreCapabilityRegistry } from './core-capabilities'
 export { conditionLimits, type ConditionData } from './conditions'
+
+export { defineMarkInstanceParams, type MarkInstanceParams } from './mark-parameters'

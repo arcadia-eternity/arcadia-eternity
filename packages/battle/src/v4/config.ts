@@ -674,6 +674,19 @@ export class ConfigSystem {
     return false
   }
 
+  /** Release data owned by an ended scope without removing shared content definitions. */
+  releaseScope(scope: ScopeObject): void {
+    const modifiers = [...(this.scopedModifiers.get(scope)?.values() ?? [])].flat()
+    for (const modifier of modifiers) this.modifierCleanups.get(modifier)?.()
+    this.scopedModifiers.delete(scope)
+    for (const value of this.scopedBaseConfigs.get(scope)?.values() ?? []) value.complete()
+    this.scopedBaseConfigs.delete(scope)
+  }
+
+  hasScopedConfig(key: string, scope: ScopeObject): boolean {
+    return this.scopedBaseConfigs.get(scope)?.has(key) ?? false
+  }
+
   /**
    * Set config value (updates base value for modifier-enabled configs)
    */

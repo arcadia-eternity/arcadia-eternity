@@ -200,7 +200,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public addMark(context: AddMarkContext) {
-    context.battle.addMark(context)
+    return context.battle.addMark(context)
   }
 
   public removeMark(context: RemoveMarkContext) {

@@ -1,3 +1,4 @@
+import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from './content/mark-parameters'
 import mitt from 'mitt'
 import { BattleStatus, BattlePhase, type EffectTrigger, type Events } from '@arcadia-eternity/const'
 import { Battle } from './battle'
@@ -254,13 +255,13 @@ const ledger = {
   },
   MarkInstanceImpl: {
     ctor: MarkInstanceImpl,
-    fields: 'base suppression owner id effects config tags attributeSystem attributeModifierCleanups',
+    fields: 'base instanceParams suppression owner id effects config tags attributeSystem attributeModifierCleanups',
     runtime: 'emitter',
   },
   StatLevelMarkInstanceImpl: {
     ctor: StatLevelMarkInstanceImpl,
     fields:
-      'base suppression owner id effects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
+      'base instanceParams suppression owner id effects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
     runtime: 'emitter levelAccessors',
   },
   BaseSkill: {
@@ -364,6 +365,13 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
     else {
       const kind = specFor(value)
       if (kind) {
+        if (value instanceof BaseMark && markParameterContract(value))
+          throw new Error('Parameterized mark requires registered snapshot content')
+        if (value instanceof MarkInstanceImpl) {
+          const params = normalizeMarkInstanceParams(value.base, value.instanceParams)
+          if (!sameMarkInstanceParams(params, value.instanceParams)) throw new Error('Invalid mark instance parameters')
+          markParameterContract(value.base)?.validateScope(battle.configSystem.exportSnapshotState(), value)
+        }
         const fields = readFields(value, kind)
         if (value instanceof Battle) {
           const rng: unknown = Reflect.get(value, 'rng')
@@ -614,6 +622,18 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       }
     }
     for (const { object, state } of attributes) object.restoreSnapshotModifiers(state)
+    for (const object of objects)
+      if (object instanceof MarkInstanceImpl) {
+        const params = normalizeMarkInstanceParams(object.base, object.instanceParams)
+        if (!sameMarkInstanceParams(params, object.instanceParams)) throw new Error('Invalid mark instance parameters')
+        const contract = markParameterContract(object.base)
+        if (contract) {
+          const config = configs.find(entry => entry.object === data.configSystem)
+          if (!config) throw new Error('Missing mark parameter config')
+          contract.validateScope(config.state, object)
+        }
+        set(object, { instanceParams: params })
+      }
     for (const { object, state } of configs) object.restoreSnapshotState(state)
     for (const { object } of configs) object.registerRestoredBattle(battle.id)
     ConfigSystem.bindBattle(battle)
