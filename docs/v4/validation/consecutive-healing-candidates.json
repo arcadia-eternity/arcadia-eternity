@@ -1,0 +1,80 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_skill_heal_self_120_hp_if_consecutive_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/349",
+      "definitionSha256": "f5dabde8046318027d6a1bd6a63d99eecd2181cd9c3e39c50eec7843cbeb6bb6",
+      "implementation": "packages/battle/src/v4/official/consecutive-healing.ts",
+      "classification": "U",
+      "candidateDecision": "E",
+      "status": "handwritten-candidate",
+      "decisions": [
+        {
+          "sourcePath": "/condition",
+          "behavior": "Collect-time selfUseSkill; preserve skill identity or mark ownership."
+        },
+        {
+          "sourcePath": "/apply/target",
+          "behavior": "Resolve current source.owner at action execution."
+        },
+        {
+          "sourcePath": "/apply/value",
+          "behavior": "Read current source owner consecutive count and maxHp at action time; preserve > 1 branches, literal values and floor after conditional divisor. Heal hooks do not re-evaluate the chosen value."
+        }
+      ],
+      "test": "packages/battle/test/v4/consecutive-healing.test.ts"
+    },
+    {
+      "id": "effect_skill_heal_self_125_hp_if_consecutive_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/591",
+      "definitionSha256": "4876cd260067937c5eb3d4a357e49f13153c0e6880d5566cb95d03a41d8752ff",
+      "implementation": "packages/battle/src/v4/official/consecutive-healing.ts",
+      "classification": "U",
+      "candidateDecision": "E",
+      "status": "handwritten-candidate",
+      "decisions": [
+        {
+          "sourcePath": "/condition",
+          "behavior": "Collect-time selfUseSkill; preserve skill identity or mark ownership."
+        },
+        {
+          "sourcePath": "/apply/target",
+          "behavior": "Resolve current source.owner at action execution."
+        },
+        {
+          "sourcePath": "/apply/value",
+          "behavior": "Read current source owner consecutive count and maxHp at action time; preserve > 1 branches, literal values and floor after conditional divisor. Heal hooks do not re-evaluate the chosen value."
+        }
+      ],
+      "test": "packages/battle/test/v4/consecutive-healing.test.ts"
+    },
+    {
+      "id": "effect_skill_heal_self_quarter_if_consecutive_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/235",
+      "definitionSha256": "7eb944d78b1d7044ea389ef798daecbd9f8ee7ab2e33601a949abdd66076530f",
+      "implementation": "packages/battle/src/v4/official/consecutive-healing.ts",
+      "classification": "U",
+      "candidateDecision": "E",
+      "status": "handwritten-candidate",
+      "decisions": [
+        {
+          "sourcePath": "/condition",
+          "behavior": "Collect-time selfUseSkill; preserve skill identity or mark ownership."
+        },
+        {
+          "sourcePath": "/apply/target",
+          "behavior": "Resolve current source.owner at action execution."
+        },
+        {
+          "sourcePath": "/apply/value",
+          "behavior": "Read current source owner consecutive count and maxHp at action time; preserve > 1 branches, literal values and floor after conditional divisor. Heal hooks do not re-evaluate the chosen value."
+        }
+      ],
+      "test": "packages/battle/test/v4/consecutive-healing.test.ts"
+    }
+  ]
+}

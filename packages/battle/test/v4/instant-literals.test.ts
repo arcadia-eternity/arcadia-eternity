@@ -290,18 +290,19 @@ async function fullBattle(record: RecordEntry, native: boolean, checkpoint: bool
   await battle.cleanup()
   return result
 }
+const gameModes = [
+  { label: 'native uninterrupted', native: true, checkpoint: false },
+  { label: 'YAML restored', native: false, checkpoint: true },
+  { label: 'native restored', native: true, checkpoint: true },
+] as const
 for (const record of records) {
-  it(`${record.id} completes a real game identically before and after JSON restore`, async () => {
+  it.each(gameModes)(`${record.id} completes a real game identically: $label`, async mode => {
     const expected = await fullBattle(record, false, false)
-    expect(await fullBattle(record, true, false)).toEqual(expected)
-    expect(await fullBattle(record, false, true)).toEqual(expected)
-    expect(await fullBattle(record, true, true)).toEqual(expected)
+    expect(await fullBattle(record, mode.native, mode.checkpoint)).toEqual(expected)
   })
 }
-it('preserves the hit-or-miss candidate through real missed skills and JSON restore', async () => {
+it.each(gameModes)('preserves real missed skills: $label', async mode => {
   const record = records.find(item => item.recipe.triggers.includes('OnMiss'))!
   const expected = await fullBattle(record, false, false, true)
-  expect(await fullBattle(record, true, false, true)).toEqual(expected)
-  expect(await fullBattle(record, false, true, true)).toEqual(expected)
-  expect(await fullBattle(record, true, true, true)).toEqual(expected)
+  expect(await fullBattle(record, mode.native, mode.checkpoint, true)).toEqual(expected)
 })
