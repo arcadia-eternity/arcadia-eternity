@@ -34,7 +34,7 @@
   "scripts": {
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rolldown -c",
+    "build:code": "rolldown -c && node ../../scripts/build-battle-environment.mjs",
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",

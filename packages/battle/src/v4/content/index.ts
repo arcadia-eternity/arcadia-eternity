@@ -40,3 +40,11 @@ export {
   type InstanceParameterPreset,
 } from './content-pack'
 export { copyRule, type RuleCopyResult } from './copy-rule'
+
+export {
+  lockContentEnvironment,
+  contentEnvironmentPolicy,
+  type EnvironmentBuildIdentity,
+  type ContentEnvironmentManifest,
+  type ContentEnvironment,
+} from './environment'

@@ -61,12 +61,23 @@ export interface BattleSnapshot {
 
 /** Effects are executable content, resolved from trusted, revisioned content after loading JSON. */
 export class SnapshotCatalog {
+  private sealed = false
+  /** Prevent registration changes after publishing a content environment. */
+  seal(): this {
+    this.sealed = true
+    Object.freeze(this)
+    return this
+  }
+  private assertWritable(): void {
+    if (this.sealed) throw new Error('Snapshot catalog is sealed')
+  }
   private effects = new Map<string, Effect<EffectTrigger>>()
   private effectKeys = new WeakMap<Effect<EffectTrigger>, string>()
   private content = new Map<string, object>()
   private contentKeys = new WeakMap<object, string>()
   /** Registered prototypes are immutable content supplied by the same revision on each host. */
   registerContent(key: string, value: object): this {
+    this.assertWritable()
     if (
       !(value instanceof BaseMark) &&
       !(value instanceof BaseSkill) &&
@@ -92,6 +103,7 @@ export class SnapshotCatalog {
   private values = new Map<string, (args: unknown) => ReactiveValue<unknown>>()
   private bindings = new Map<string, (args: unknown, state: BindingState, target: BindingTarget) => BoundValue>()
   registerValueBinding<A>(definition: ValueDefinition<A>): this {
+    this.assertWritable()
     if (this.bindings.has(definition.id)) throw new Error(`Duplicate value binding definition: ${definition.id}`)
     this.bindings.set(definition.id, (args, state, target) => bindValue(definition, args as A, target, state, true))
     return this
@@ -108,12 +120,14 @@ export class SnapshotCatalog {
     if (!revision) throw new Error('Snapshot catalog revision is required')
   }
   registerEffect(key: string, effect: Effect<EffectTrigger>): this {
+    this.assertWritable()
     if (this.effects.has(key) && this.effects.get(key) !== effect) throw new Error(`Duplicate snapshot effect: ${key}`)
     this.effects.set(key, effect)
     this.effectKeys.set(effect, key)
     return this
   }
   registerValue(key: string, restore: (args: unknown) => ReactiveValue<unknown>): this {
+    this.assertWritable()
     if (this.values.has(key)) throw new Error(`Duplicate snapshot value: ${key}`)
     this.values.set(key, restore)
     return this
