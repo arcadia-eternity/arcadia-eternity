@@ -39,3 +39,4 @@ export {
   type ContentPackResult,
   type InstanceParameterPreset,
 } from './content-pack'
+export { copyRule, type RuleCopyResult } from './copy-rule'

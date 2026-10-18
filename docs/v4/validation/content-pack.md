@@ -14,4 +14,6 @@ The host still attaches a compiled skill rule to its skill by ID, installs pack 
 
 Twenty-six tests cover the real skill-to-mark-to-heal flow, normalization and independent recompilation, immutable copied data, empty fields, 17 invalid candidate classes, old-content preservation, atomic parameter installation, trusted string-enum extension, malformed/oversized input, fresh-catalog restoration, cross-mark application, and declared effect ordering. Standards review found no blocking issue. Independent Spec review remains pending reviewer availability; local checks cover #223 E/G and the all-or-nothing candidate rule.
 
-Remaining: skill/species content declarations, multi-pack environment composition and revision hashing, full value presets/captures, templates and copies, editor integration, structured action results, official catalog conversion and behavioral acceptance. This loader does not publish to the production content loader or satisfy those remaining gates.
+Single-rule copies can now be added to a candidate using [copyRule](rule-copy.md); destination collisions remain subject to whole-pack validation.
+
+Remaining: skill/species content declarations, multi-pack environment composition and revision hashing, full value presets/captures, preset expansion and wider graph copying, editor integration, structured action results, official catalog conversion and behavioral acceptance. This loader does not publish to the production content loader or satisfy those remaining gates.

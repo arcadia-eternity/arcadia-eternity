@@ -6,6 +6,8 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 
 ## Evidence as of 2026-10-18
 
+- Single-rule copying now creates independent effect/parameter identities while preserving local shared references and external capabilities/marks. Copies recompile and publish through the existing all-or-nothing pack path. See [copy evidence](validation/rule-copy.md). Complete preset expansion and wider graph cloning remain pending.
+
 - Bounded UGC packs now load mark declarations, trusted scalar parameter presets, generated application actions and stable rule references as one isolated candidate. Failed candidates never expose a partial catalog; a unified parameter catalog preflights installation. Freshly recompiled packs restore and execute saved marks. See [pack evidence](validation/content-pack.md).
 
 - Bound mark rules now read source-instance parameters in conditions, probability and actions, including nested arguments. Saved skill application and mark healing rules survive checkpoint restoration together. Actual values enforce receiving effective ranges independently of preview defaults. See [reader evidence](validation/mark-parameter-readers.md). Standards review passes; independent Spec review remains pending.
@@ -28,7 +30,7 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 - [Oracle diagnostics](validation/effect-oracle-diagnostics.md) distinguish 390 schema rejections from 33 post-schema parser failures; a selector-spelling experiment is recorded separately from acceptance.
 - Built-in UGC healing now provides self-skill-hit, owner HP threshold, fixed healing and maximum-HP-ratio healing with editable/shared parameters. A saved JSON example executes through real HealPhase; see [authoring evidence](validation/core-healing-capabilities.md).
 - Bounded condition trees now compose registered predicates with all/any/not, preserve identities/references and validate every branch before runtime short-circuiting. See [condition evidence](validation/condition-trees.md).
-- 241 tests across all 25 V4 files pass. V4 typecheck/lint, source provenance and existing Node/Chrome host/checkpoint checks pass. Both read-only review axes passed the runtime slice after reported defects were repaired; parameter-layer review also passes after correcting nested object closure.
+- 251 tests across all 26 V4 files pass. V4 typecheck/lint, source provenance and existing Node/Chrome host/checkpoint checks pass. Both read-only review axes passed the runtime slice after reported defects were repaired; parameter-layer review also passes after correcting nested object closure.
 - [Per-ID inventory](validation/effect-migration-inventory.json) records source revision/hashes, node paths/types, config declarations/references, callers, parser acceptance and unverified migration status. Reproduce with `node scripts/effect-migration/inventory.mjs`; use `--check` to detect drift. Build the battle public package first.
 - Historical fixtures: 666 definitions, 666 accepted by the legacy V4 parser, 859 direct references. Current production: 1065 definitions, 642 accepted, 423 rejected, 1437 direct references. Neither dataset has duplicate Effect IDs or dangling direct skill/mark Effect references.
 - Relative to historical fixtures, production has 422 new IDs, 23 removed IDs, 251 changed definitions and 392 structurally identical definitions. These are structural facts, not behavioral equivalence results.
