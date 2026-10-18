@@ -141,3 +141,50 @@ it('preflights all registrations and snapshots mutable definition inputs', async
   await battle.cleanup()
   expect(() => conflict.install(battle.configSystem)).toThrow('disposed')
 })
+
+it('rejects operations incompatible with the entire effective scalar domain', () => {
+  const make = (schema: ReturnType<typeof Type.Boolean>, operations: ConfigModifierType[]) =>
+    defineParameter({ address: 'flag', schema, effectiveSchema: schema, value: false, operations })
+  expect(() => make(Type.Boolean(), [ConfigModifierType.delta])).toThrow('operation')
+  expect(() => make(Type.Boolean(), [ConfigModifierType.append])).toThrow('operation')
+  expect(() => make(Type.Boolean(), [ConfigModifierType.override])).not.toThrow()
+  expect(() =>
+    defineParameter({
+      address: 'mixed',
+      schema: Type.Number(),
+      effectiveSchema: Type.Union([Type.Number(), Type.Boolean()]),
+      value: 1,
+      operations: [ConfigModifierType.delta],
+    }),
+  ).toThrow('operation')
+  expect(() =>
+    defineParameter({
+      address: 'text',
+      schema: Type.Literal('a'),
+      effectiveSchema: Type.String(),
+      value: 'a',
+      operations: [ConfigModifierType.append, ConfigModifierType.prepend],
+    }),
+  ).not.toThrow()
+  expect(() =>
+    defineParameter({
+      address: 'literal',
+      schema: Type.Literal(1),
+      effectiveSchema: Type.Union([Type.Literal(1), Type.Literal(2)]),
+      operations: [ConfigModifierType.delta],
+      value: 1,
+    }),
+  ).not.toThrow()
+})
+
+it('requires explicit closed nested objects, including inside arrays and unions', () => {
+  const open = Type.Object({ ratio: Type.Number({ default: 0.1 }) })
+  for (const nested of [open, Type.Array(open), Type.Union([Type.String(), open])]) {
+    const schema = Type.Object({ nested }, { additionalProperties: false })
+    expect(() => normalizeParams(schema, { nested: { typo: 2 } })).toThrow('reject unknown fields')
+  }
+  const closed = Type.Object({ ratio: Type.Number({ default: 0.1 }) }, { additionalProperties: false })
+  const schema = Type.Object({ nested: closed }, { additionalProperties: false })
+  expect(normalizeParams(schema, { nested: {} })).toEqual({ nested: { ratio: 0.1 } })
+  expect(() => normalizeParams(schema, { nested: { typo: 2 } })).toThrow('Invalid content parameters')
+})

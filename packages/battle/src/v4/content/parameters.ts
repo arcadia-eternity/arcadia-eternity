@@ -1,6 +1,6 @@
 import { Kind, type Static, type TObject, type TSchema } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
-import { ConfigSystem, ConfigModifier, type ConfigModifierType, type ScopeObject } from '../config'
+import { ConfigSystem, ConfigModifier, ConfigModifierType, type ScopeObject } from '../config'
 
 type Scalar = string | number | boolean
 function freeze<T>(value: T): T {
@@ -29,9 +29,22 @@ function assertJson(value: unknown, ancestors = new Set<object>()): void {
   ancestors.delete(value)
 }
 
+function assertClosedObjects(schema: TObject): void {
+  const visited = new WeakSet<object>()
+  const visit = (node: unknown): void => {
+    if (!node || typeof node !== 'object' || visited.has(node)) return
+    visited.add(node)
+    if (Reflect.get(node, Kind) === 'Object' && Reflect.get(node, 'additionalProperties') !== false)
+      throw new Error('Parameter object schemas must reject unknown fields')
+    // Walk schema compositions and property maps, without interpreting their types.
+    for (const child of Object.values(node)) visit(child)
+  }
+  visit(schema)
+}
+
 /** One schema controls defaults, validation, editor metadata and the inferred TS shape. */
 export function normalizeParams<S extends TObject>(schema: S, input: unknown): Readonly<Static<S>> {
-  if (schema.additionalProperties !== false) throw new Error('Parameter object schemas must reject unknown fields')
+  assertClosedObjects(schema)
   assertJson(input)
   const result: unknown = Value.Default(schema, Value.Clone(input))
   assertJson(result)
@@ -66,6 +79,15 @@ function scalar(value: unknown): value is Scalar {
     typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))
   )
 }
+/** A finite operation-domain check, not schema subtyping or range inference. */
+function supportsOperation(schema: TSchema, operation: ConfigModifierType): boolean {
+  if (operation === ConfigModifierType.override) return true
+  if (schema[Kind] === 'Union') return (schema.anyOf as TSchema[]).every(member => supportsOperation(member, operation))
+  const kind = schema[Kind] === 'Literal' ? typeof schema.const : schema.type
+  if (operation === ConfigModifierType.delta) return kind === 'number' || kind === 'integer'
+  if (operation === ConfigModifierType.append || operation === ConfigModifierType.prepend) return kind === 'string'
+  return false
+}
 export function defineParameter<S extends TSchema, E extends TSchema>(input: {
   address: string
   schema: S
@@ -78,6 +100,9 @@ export function defineParameter<S extends TSchema, E extends TSchema>(input: {
   if (!input.address) throw new Error('Missing parameter address')
   assertScalarSchema(input.schema)
   assertScalarSchema(input.effectiveSchema)
+  for (const operation of input.operations)
+    if (!supportsOperation(input.effectiveSchema, operation))
+      throw new Error(`Incompatible parameter operation: ${operation} for ${input.address}`)
   const value: unknown = input.value === undefined ? input.schema.default : input.value
   if (!scalar(value) || !Value.Check(input.schema, value) || !Value.Check(input.effectiveSchema, value))
     throw new Error(`Invalid base parameter: ${input.address}`)
