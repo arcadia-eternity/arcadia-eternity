@@ -25,6 +25,7 @@ import { PhaseManager, PhaseState } from './phase'
 import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
 import { createChildLogger } from './logger'
+import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
 import {
   Signal,
@@ -228,7 +229,7 @@ const ledger = {
     fields:
       'type lastStateMessage id allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap sequenceId playerA playerB',
     runtime:
-      'battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
+      'executionBudget battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
   },
   Player: {
     ctor: Player,
@@ -367,6 +368,7 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
         if (value instanceof Battle) {
           const rng: unknown = Reflect.get(value, 'rng')
           if (!(rng instanceof GameRng)) throw new Error('Injected RNG requires a snapshot adapter')
+          fields.executionBudgetState = value.executionBudget.exportState()
           fields.rngState = rng.getState()
           fields.timerConfig = value.getTimerConfig()
           fields.transformations = value.transformationSystem.exportSnapshotState()
@@ -554,6 +556,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     if (ConfigSystem.getBattleConfig(battle.id))
       throw new Error('Snapshot Battle is already active; dispose the source before restoring its identity')
     const data = battle as Battle & {
+      executionBudgetState: ReturnType<ExecutionBudget['exportState']>
       rngState: ReturnType<GameRng['getState']>
       timerConfig: ReturnType<Battle['getTimerConfig']>
       transformations: ReturnType<TransformationSystem['exportSnapshotState']>
@@ -561,6 +564,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     if (!data.timerConfig || data.timerConfig.enabled) throw new Error('Snapshot does not support enabled timers')
     const emitter = mitt<Events>()
     set(battle, {
+      executionBudget: new ExecutionBudget(() => battle!.stopForExecutionFault()),
       parent: null,
       battle,
       emitter,
@@ -576,6 +580,8 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       waitingResolvers: {},
       messageCallbacks: [],
     })
+    battle.executionBudget.restoreState(data.executionBudgetState)
+    if (data.executionBudgetState.turn !== battle.currentTurn) throw new Error('Execution budget turn mismatch')
     for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
     for (const restore of deferred) restore()
     const ownedValues = new Set<ReactiveValue<unknown>>()
@@ -651,6 +657,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
           })
         }
       }
+    Reflect.deleteProperty(battle, 'executionBudgetState')
     Reflect.deleteProperty(battle, 'rngState')
     Reflect.deleteProperty(battle, 'timerConfig')
     Reflect.deleteProperty(battle, 'transformations')
@@ -776,7 +783,7 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
       const spec = ledger[node.kind as LedgerKind]
       const allowed = new Set([
         ...spec.fields.split(' '),
-        ...(node.kind === 'Battle' ? ['rngState', 'timerConfig', 'transformations'] : []),
+        ...(node.kind === 'Battle' ? ['rngState', 'timerConfig', 'transformations', 'executionBudgetState'] : []),
       ])
       if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
       const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem'] : [])

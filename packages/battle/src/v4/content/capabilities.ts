@@ -169,7 +169,9 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
             }),
             readMaxHp: (target: Pet) => target.stat.maxHp,
           }) as ActionContext<N[number]>
-          execute(context, argumentsPlan.read(runtime) as Readonly<Static<S>>)
+          runtime.effect.battle.executionBudget.action(runtime.effect.battle.currentTurn, () => {
+            execute(context, argumentsPlan.read(runtime) as Readonly<Static<S>>)
+          })
         },
       })
     },

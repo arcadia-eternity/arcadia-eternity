@@ -8,3 +8,5 @@ export * from './src/v4/rng'
 export * from './src/v4/snapshot'
 export * from './src/v4/values'
 export * from './src/v4/content'
+
+export { ExecutionBudgetExceeded, executionBudgetPolicy } from './src/v4/execution/budget'

@@ -14,6 +14,7 @@ import {
   type skillId,
   type TimerConfig,
 } from '@arcadia-eternity/const'
+import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
 import { ConfigSystem } from './config'
 import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
@@ -65,6 +66,13 @@ export class Battle extends Context implements MarkOwner {
   public readonly emitter = mitt<Events>()
   private readonly rng: BattleRng
   private actionLog: BattleActionRecord[] = []
+
+  public readonly executionBudget = new ExecutionBudget(() => this.stopForExecutionFault())
+
+  public stopForExecutionFault(): void {
+    this.timerManager.stopAllTimers()
+    this.resolveWaiting()
+  }
 
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
@@ -225,22 +233,27 @@ export class Battle extends Context implements MarkOwner {
 
   // 发送消息给所有回调
   public emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
-    const currentState = this.toMessage('' as playerId, this.showHidden)
-    const stateDelta = jsondiffpatch.diff(this.lastStateMessage, currentState)
+    return this.executionBudget.run(this.currentTurn, () => {
+      const currentState = this.toMessage('' as playerId, this.showHidden)
+      const stateDelta = jsondiffpatch.diff(this.lastStateMessage, currentState)
 
-    const message: BaseBattleMessage<T> = {
-      battleId: this.id,
-      type,
-      data,
-      sequenceId: this.sequenceId++,
-      stateDelta: stateDelta,
-    }
+      const message: BaseBattleMessage<T> = {
+        battleId: this.id,
+        type,
+        data,
+        sequenceId: this.sequenceId++,
+        stateDelta: stateDelta,
+      }
 
-    // 更新 lastStateMessage 为当前状态
-    this.lastStateMessage = currentState
+      // 更新 lastStateMessage 为当前状态
+      this.lastStateMessage = currentState
 
-    // 调用所有包装器（每个包装器会使用自己的 lastState）
-    this.messageCallbacks.forEach(cb => cb.wrapped(jsondiffpatch.clone(message) as BattleMessage))
+      // 调用所有包装器（每个包装器会使用自己的 lastState）
+      this.messageCallbacks.forEach(cb => {
+        cb.wrapped(jsondiffpatch.clone(message) as BattleMessage)
+        this.executionBudget.assertActive()
+      })
+    })
   }
 
   public addMark(context: AddMarkContext) {
@@ -296,20 +309,22 @@ export class Battle extends Context implements MarkOwner {
     trigger: T,
     ...target: EffectContainer[]
   ) {
-    let effectContainers = [...target]
-    if (target.length == 0)
-      effectContainers = [
-        ...this.marks,
-        ...this.playerA.team.map(p => p.marks).flat(),
-        ...this.playerB.team.map(p => p.marks).flat(),
-        ...this.playerA.team.map(p => p.skills).flat(),
-        ...this.playerB.team.map(p => p.skills).flat(),
-      ]
+    return this.executionBudget.dispatch(this.currentTurn, () => {
+      let effectContainers = [...target]
+      if (target.length == 0)
+        effectContainers = [
+          ...this.marks,
+          ...this.playerA.team.map(p => p.marks).flat(),
+          ...this.playerB.team.map(p => p.marks).flat(),
+          ...this.playerA.team.map(p => p.skills).flat(),
+          ...this.playerB.team.map(p => p.skills).flat(),
+        ]
 
-    // Use EffectExecutionPhase managed by PhaseManager
-    const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
-    this.phaseManager.registerPhase(effectExecutionPhase)
-    this.phaseManager.executePhase(effectExecutionPhase.id)
+      // Use EffectExecutionPhase managed by PhaseManager
+      const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
+      this.phaseManager.registerPhase(effectExecutionPhase)
+      this.phaseManager.executePhase(effectExecutionPhase.id)
+    })
   }
 
   // Turn execution logic has been moved to TurnPhase
@@ -386,8 +401,12 @@ export class Battle extends Context implements MarkOwner {
   /** Continue a hydrated selection checkpoint without replaying start/turn effects. */
   public async resumeBattle(): Promise<void> {
     this.assertRunning()
-    if (this._isStarting || this.status !== BattleStatus.OnBattle ||
-      this.currentPhase !== BattlePhase.SelectionPhase || !this.restoredSelection)
+    if (
+      this._isStarting ||
+      this.status !== BattleStatus.OnBattle ||
+      this.currentPhase !== BattlePhase.SelectionPhase ||
+      !this.restoredSelection
+    )
       throw new Error('Battle is not a restored selection checkpoint')
     this.restoredSelection = false
     this._isStarting = true
@@ -398,13 +417,22 @@ export class Battle extends Context implements MarkOwner {
     } catch (error) {
       this.assertRunning()
       throw error
-    } finally { this._isStarting = false }
+    } finally {
+      this._isStarting = false
+    }
   }
   private restoredSelection = false
   public isSnapshotBoundary(): boolean {
-    return !this.cancelled && this.status === BattleStatus.OnBattle && this.currentPhase === BattlePhase.SelectionPhase && (this.restoredSelection ||
-      (!!this.waitingResolvers.bothPlayersReady && this.currentPhase === BattlePhase.SelectionPhase &&
-       this.phaseManager.getCurrentPhase() instanceof SelectionPhase))
+    return (
+      !this.executionBudget.fault &&
+      !this.cancelled &&
+      this.status === BattleStatus.OnBattle &&
+      this.currentPhase === BattlePhase.SelectionPhase &&
+      (this.restoredSelection ||
+        (!!this.waitingResolvers.bothPlayersReady &&
+          this.currentPhase === BattlePhase.SelectionPhase &&
+          this.phaseManager.getCurrentPhase() instanceof SelectionPhase))
+    )
   }
 
   // Legacy generator method removed - use startBattlePhased() instead
@@ -427,12 +455,17 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public setSelection(selection: PlayerSelection): boolean {
+    this.assertRunning()
     const player = [this.playerA, this.playerB].find(p => p.id === selection.player)
     if (!player) return false
     const result = player.setSelection(selection)
     if (result) {
-      this.actionLog.push({ sequence: this.actionLog.length, turn: this.currentTurn, phase: this.currentPhase,
-        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection })
+      this.actionLog.push({
+        sequence: this.actionLog.length,
+        turn: this.currentTurn,
+        phase: this.currentPhase,
+        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection,
+      })
       this.checkWaitingResolvers()
 
       // 通知TimerManager玩家选择状态变化
@@ -540,6 +573,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public abandonPlayer(playerId: playerId) {
+    this.assertRunning()
     const abandonPlayer = [this.playerA, this.playerB].find(v => v.id === playerId)
     if (!abandonPlayer) return
     this.victor = this.getOpponent(abandonPlayer)
@@ -672,7 +706,10 @@ export class Battle extends Context implements MarkOwner {
     }
   }
 
-  public assertRunning(): void { if (this.cancelled) throw new Error('Battle cancelled') }
+  public assertRunning(): void {
+    this.executionBudget.assertActive()
+    if (this.cancelled) throw new Error('Battle cancelled')
+  }
 
   private resolveWaiting(): void {
     const waiting = this.waitingResolvers

@@ -25,7 +25,7 @@ export class TurnPhase extends InteractivePhase<TurnContext> {
 
     // Execute the turn operation logic (extracted from performTurn)
     // Note: executeTurnOperation is synchronous but we wrap it in async
-    executeTurnOperation(context, this.battle)
+    this.battle.executionBudget.run(this.battle.currentTurn + 1, () => executeTurnOperation(context, this.battle))
   }
 }
 

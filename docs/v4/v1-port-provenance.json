@@ -15,7 +15,7 @@
       "destination": "packages/battle/src/v4/battle.ts",
       "sourceBlob": "4447676e5e03cf1f816690453a5eaa6117798de5",
       "sourceSha256": "43a0c245e88c00c6d10ea023283d8a30aef60ba63560654d30a95a33aa30d24c",
-      "portedSha256": "4f699affdb47168913a948bae8fc9325de8c2e15306483396ddb83b1d3ec7a04",
+      "portedSha256": "e78deff3bb4725c363d986bb8fae4b5fbf3cad8208b950b85c3b1c07df37bd57",
       "changed": true
     },
     {
@@ -143,7 +143,7 @@
       "destination": "packages/battle/src/v4/phase/base.ts",
       "sourceBlob": "b4187fb6981fa1047645cffe214600ab22a539b6",
       "sourceSha256": "3783574d34c88ce884bb7ba359a032ab425fdc288ca3b3c25cfc8d54d33a1426",
-      "portedSha256": "c500d735ec5ea3be899102cd698f4c7f922124522da42b79c6923ae2b8170ef2",
+      "portedSha256": "5322a6edfb34006cd370fad8d4fe9d827524f5cb73cbdf2fc2e8084cbd3cc91e",
       "changed": true
     },
     {
@@ -183,15 +183,15 @@
       "destination": "packages/battle/src/v4/phase/effect.ts",
       "sourceBlob": "c3954cc773aea1b43aaa0870f4136c1e3cbde17c",
       "sourceSha256": "f8480cb3678d5e591b6fd1f59fedfd8bed32bc07fc981bad648e8c15c16da4ee",
-      "portedSha256": "f8480cb3678d5e591b6fd1f59fedfd8bed32bc07fc981bad648e8c15c16da4ee",
-      "changed": false
+      "portedSha256": "a27ad936cf8acc7fb0e0dbe64e865b23592d16fcd0e0ad0dd16c35c9d202078b",
+      "changed": true
     },
     {
       "original": "packages/battle/src/phase/effectExecution.ts",
       "destination": "packages/battle/src/v4/phase/effectExecution.ts",
       "sourceBlob": "9225c751f7a60f07aac6a5ef99e85cb11f9a0a89",
       "sourceSha256": "fb7ce115c3d944a701f29e4cfba46623f9be552c1c24f3e6203f33172c099c4f",
-      "portedSha256": "545ebedb7451915706e981dd324f8cba9dae7f213faeb0967c9396f250cb7fc5",
+      "portedSha256": "5fe7a5de69557c35edf3272aadfa8b25e74f2337703547554c97b0af9bd913e0",
       "changed": true
     },
     {
@@ -215,7 +215,7 @@
       "destination": "packages/battle/src/v4/phase/manager.ts",
       "sourceBlob": "bad2048f991bd6b50821c975b5273363b4f7dd18",
       "sourceSha256": "41bdf1e393e3218dc5d4ec7065ee8ca9411a91b2974043b02824b4159c8bde77",
-      "portedSha256": "7aa24f7ce342cbaefd3813407ad166294889bc40d320c031e41fb832aeddbdba",
+      "portedSha256": "1ff7546609fbf6bff2e573e05a9f0a8b79494e6e129b98cd3e74a7657bb52a8e",
       "changed": true
     },
     {
@@ -271,7 +271,7 @@
       "destination": "packages/battle/src/v4/phase/turn.ts",
       "sourceBlob": "df372109f42b01008e42e1d0097dbc8e2e5df64a",
       "sourceSha256": "7f494f587940e3758844a8145686d23daac2ad2f094930d59614a38b16ecabfe",
-      "portedSha256": "cdae92b6d8bf3d7a160fed2508bf2c91bfaaf8bb0caeaa7f143c51d7b95f985c",
+      "portedSha256": "ee146de84bd286326cbb9740b749991b531143d81186959463804c6023df30b7",
       "changed": true
     },
     {

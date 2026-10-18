@@ -102,6 +102,7 @@ export function executeEffectExecutionOperation<T extends EffectTrigger>(
       // Apply AfterEffect effects
       battle.applyEffects(context, EffectTrigger.AfterEffect)
     } catch (error) {
+      battle.executionBudget.assertActive()
       logger.error(`Effect Error ${effect.id}:`, error)
       context.success = false
 
@@ -161,6 +162,7 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
               }
             }
           } catch (err) {
+            parentContext.battle.executionBudget.assertActive()
             console.error('Error in effect condition:', err)
           }
         })
