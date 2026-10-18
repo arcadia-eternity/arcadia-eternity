@@ -1,0 +1,605 @@
+{
+  "formatVersion": 1,
+  "scope": "Single literal heal/addRage action with selfUseSkill or petIsActive only. Unsupported records are not emitted. All candidates remain U.",
+  "records": [
+    {
+      "id": "effect_emblem_guangming_heal_20_per_turn",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/27",
+      "definitionSha256": "168deb71bfe8d8bcb56bc6aaf558951fe927912b9c5fb990f2086b31b01fdbbd",
+      "recipe": {
+        "id": "effect_emblem_guangming_heal_20_per_turn",
+        "triggers": ["TurnEnd"],
+        "priority": 0,
+        "action": "heal",
+        "target": "self",
+        "value": 20,
+        "condition": "sourcePetIsActive"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_rage_10_per_turn",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/74",
+      "definitionSha256": "89f6678f384bca2e6ca02f7f76a1ff319bc710189fad0e7be4877b7ece0e185d",
+      "recipe": {
+        "id": "effect_mark_add_rage_10_per_turn",
+        "triggers": ["TurnEnd"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 10,
+        "condition": "sourcePetIsActive"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_rage_35_per_turn",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/178",
+      "definitionSha256": "0db2ce88fa9ea3fc6b58eb6b79f7f4b3867118f4e5d4c8c919d07c75dc5c41f5",
+      "recipe": {
+        "id": "effect_mark_add_rage_35_per_turn",
+        "triggers": ["TurnEnd"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 35,
+        "condition": "sourcePetIsActive"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_rage_5_per_turn",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/188",
+      "definitionSha256": "d48b93d42e174a35ca7840eaecff68dad4b6360a7c4848829664dd5946a42595",
+      "recipe": {
+        "id": "effect_mark_add_rage_5_per_turn",
+        "triggers": ["TurnEnd"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 5,
+        "condition": "sourcePetIsActive"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_heal_40_per_turn",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/153",
+      "definitionSha256": "61291c959dc21b1b76d39c1cb66961cadcab2e3288578ca00f39e5052b7d4fa0",
+      "recipe": {
+        "id": "effect_mark_heal_40_per_turn",
+        "triggers": ["TurnEnd"],
+        "priority": 0,
+        "action": "heal",
+        "target": "self",
+        "value": 40,
+        "condition": "sourcePetIsActive"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_heal_self_50_turn_end",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/83",
+      "definitionSha256": "d75952afa66c40f2be7d9b2b7446808983021a3b5e6e4fc1dd0223245456be10",
+      "recipe": {
+        "id": "effect_mark_heal_self_50_turn_end",
+        "triggers": ["TurnEnd"],
+        "priority": 0,
+        "action": "heal",
+        "target": "self",
+        "value": 50,
+        "condition": "sourcePetIsActive"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_rage_10",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/614",
+      "definitionSha256": "ffcede12316bfe3eec2beb576c68dd40333a1e1a03ab5eea3e8d4f38905d8338",
+      "recipe": {
+        "id": "effect_skill_add_rage_10",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 10,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_rage_15",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/267",
+      "definitionSha256": "fa5a48d694247f7176860dd3ef143158aad3b2829b387be878c7ddb6ed547085",
+      "recipe": {
+        "id": "effect_skill_add_rage_15",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 15,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_rage_20",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/502",
+      "definitionSha256": "ed7209a422dac8a54c5e3b4b91971a213905a57ec2aba785371b83dc8d70e60c",
+      "recipe": {
+        "id": "effect_skill_add_rage_20",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 20,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_rage_25",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/285",
+      "definitionSha256": "ab0d1514f6a6dd9b7f9dffa70653eb13fbe4a15cf62a0dfe6380e368dc13c761",
+      "recipe": {
+        "id": "effect_skill_add_rage_25",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 25,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_rage_30_hit_or_miss",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/387",
+      "definitionSha256": "e384be9a1212c5e1bf49bffad852b85447e90689e81a99833977dca20285cf83",
+      "recipe": {
+        "id": "effect_skill_add_rage_30_hit_or_miss",
+        "triggers": ["OnHit", "OnMiss"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 30,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_rage_35",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/63",
+      "definitionSha256": "da6632da85cce8b68bb65baab741e1bf3d9d4576dea58d044d77959dc77ca70d",
+      "recipe": {
+        "id": "effect_skill_add_rage_35",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "self",
+        "value": 35,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_heal_self_120_hp",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/146",
+      "definitionSha256": "056350d8515d91d658286cff5353c1aa9bef49de4c733f3fdda1f7bcd9e1655a",
+      "recipe": {
+        "id": "effect_skill_heal_self_120_hp",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "heal",
+        "target": "self",
+        "value": 120,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_heal_self_90_hp",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/128",
+      "definitionSha256": "3e78d527935b580c40e70026f2e14397fe2f675e0e8aa41c7e2534f2e6ccea84",
+      "recipe": {
+        "id": "effect_skill_heal_self_90_hp",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "heal",
+        "target": "self",
+        "value": 90,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "handwritten-override-retained"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_rage_15",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/525",
+      "definitionSha256": "e0d4411b1778384002d2221755904607ce41f7b9b6a14f612a7ad355fd2888f0",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_rage_15",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "opponent",
+        "value": -15,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_rage_20",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/46",
+      "definitionSha256": "72425a38a2bfeb507f6cab2e5298ffb5d1109802dc8717adcea53e6b5c840410",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_rage_20",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "opponent",
+        "value": -20,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_rage_5",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/612",
+      "definitionSha256": "a4f65e2d1db5b38bcef1f186cc5082da02b864692c06b9abda6e8b12538e0a7a",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_rage_5",
+        "triggers": ["OnHit"],
+        "priority": 0,
+        "action": "addRage",
+        "target": "opponent",
+        "value": -5,
+        "condition": "selfUsesSkill"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "effect_ability_add_20_rage_when_use_fly_skill_twice",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/37",
+      "definitionSha256": "7db5106ec92a573ad884ab9c9b43b46255e633aba4e64a4b285fcc9e17cc0f37",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/75",
+      "definitionSha256": "67790006c1185c5fed66bacd53b26dcc3157ad3f5e99c4c7283826dd8ea1437e",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_ability_add_rage_5_when_attack_opponent_has_tongjiling",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/79",
+      "definitionSha256": "c87ba7d06e4f481d84835db1be184bceccd86e2afc73f8c829afe1b40615294d",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_ability_add_rage_5_when_first_attack",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/70",
+      "definitionSha256": "aacd731ab2f0eb89eee73595642749a20ac2ca5c1c8ae5fc1567091a74c8a0c5",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_ability_heal_1_16_when_qingtian",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/3",
+      "definitionSha256": "f9ae40343f62043215a86c9618bcf10f69e09e63049da54343b65dc42c32f212",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_ability_heal_1_8_max_hp_when_rage_gt_opponent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/27",
+      "definitionSha256": "07afa84c2c8bc36e11dddadad85d7a830ea9a87acfb5f8055905b9d9faf00f4c",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_ability_heal_half_damage_when_rage_lt_opponent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/26",
+      "definitionSha256": "01d8d50a0d83c6a34aa0d9a4f09ababb98e596bb9cee41501f13fc0db2107832",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/80",
+      "definitionSha256": "3b6f7453797331bd3ad70aab105b4d87bc08d737ff8794b54d96e0765c2b23d0",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_emblem_add_rage_5_when_use_feixuanzhiguang",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/64",
+      "definitionSha256": "b27b70d7f50f56ca5f87eadc1da2ee3b40cf335a47c34de6959b9af6046661ec",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_emblem_add_rage_on_hit_if_has_shunliu",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/56",
+      "definitionSha256": "4262fe0edf5edbae8d7e952c1f8ffbb5fb98820bc3b823066982b77a94b293db",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_heal_1_16_max_hp_per_stack_if_has_niliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/548",
+      "definitionSha256": "9984486f7b4dfc17ed4cab6a181547544a90a988099e25a598eb9e5411d40a63",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_heal_self_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/65",
+      "definitionSha256": "92b5944deaa27f7583e7cc40d2cbcc926c1b1546ebf287c9eef3f7c829eb8a36",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_heal_self_onethird",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/66",
+      "definitionSha256": "92127dcc7d5173ca0f52483cac9f907bd89d308d50817e0dcd3fb1c7144a04e8",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_mark_heal_all_hp_on_expire",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/72",
+      "definitionSha256": "e0eca0ea06fe49005f328f093afcd283d5daa9686a80491d04a697dd3318d052",
+      "reason": "unsupported definition fields"
+    },
+    {
+      "id": "effect_mark_reduce_opponent_rage_15_if_damage_below_75",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/169",
+      "definitionSha256": "10cbfa2007529a9b72bee07eb520b90157f0acd03fde250b31d7df30c74c5fd4",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_rage_15_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/542",
+      "definitionSha256": "8cfaca097b9e1d4cdbf1ebb5779f4c4291449d8bc0b4a7470c07add4d464e9a7",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_rage_20_if_rage_below_40",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/282",
+      "definitionSha256": "71dbd173fa5e8da78d68832fa097f8d3c3c3febca67754374beafdc509bd944b",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_add_rage_25_if_damage_over_100",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/520",
+      "definitionSha256": "d3385f64a6e9bd672b88f5d76a2c5e7093fabd094a3bc44a15fa96531577d360",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_rage_25_if_opponent_shaoshang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/563",
+      "definitionSha256": "8ef1ab840f2ebf7470c56353b1033980cae2ee1cc2c5d7528f6c7a428e248c90",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_rage_30_if_guzhanchang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/639",
+      "definitionSha256": "d1c34bd98ab518105b91e76a711ea32381ff1d4a1681c164e4484d1ce80e1549",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_rage_30_if_hp_below_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/408",
+      "definitionSha256": "acd329dea442f54c42771013f6e7385f6b9550351add29c7bb8152e9ebfec8aa",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_rage_40_if_feikonglingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/621",
+      "definitionSha256": "b944072216c45da2345adaadcb323cff2f8a0a647e61bc251a7f6de68dba8706",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_rage_opponent_45_if_opponent_has_kaowen",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/687",
+      "definitionSha256": "48b9658ca4af5ea0a69caecd31c0ce66f7d113b896caafd976e7d04429925d1e",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_add_self_40_rage_if_opponent_mabi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/557",
+      "definitionSha256": "2ae547b371ac29e4fc7095da3b6ba2bb1516bc208edb5f8a7cf2889f0e28d525",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_crit_gain_rage_20",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/455",
+      "definitionSha256": "ec10b585f86713e5bf2270d439996b8de3cff84b3c820a6ebfee5950b3a4b394",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_heal_125_if_aideminyi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/213",
+      "definitionSha256": "eabcc2c417aee4bca17b734b05fd8ba525cf38ed6b421db0423d9b797369c598",
+      "reason": "unsupported condition/trigger combination"
+    },
+    {
+      "id": "effect_skill_heal_25_percent_damage_dealt",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/406",
+      "definitionSha256": "7612e9c63d4b496e3445bc843c0c9334589aba0981c723bbade7945b3e6e6eef",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/441",
+      "definitionSha256": "3b854b22b031e0f48d161537d4501de091ef005b903b58c693d2a78cae0f3433",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_70_double_if_field_yemu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/420",
+      "definitionSha256": "cecf36f9367889e89bffedea6a34cdce6235e78b7a27cbee2f991e77b3deb165",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_by_damage_25_zhongzinengliang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/71",
+      "definitionSha256": "acc176ac8554abb1c05a4844433e82f53192209988ebe1897ecbc8728ea65f33",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_half_damage_dealt_if_3_hits",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/628",
+      "definitionSha256": "20d894a66f5337698fe14be638cb84d3e81146e89b614a9db6ed1400bf10ff08",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_quarter_if_guanghuilingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/304",
+      "definitionSha256": "7836e1f2be9a614fed548964d9f9f5f46b74ff3d05c5bc08fd9bee33abd4ba78",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_1_16_if_aideminyi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/216",
+      "definitionSha256": "6e866320d24ebc1c2e0dfd6fdada60c8f2800ca15c21b6b87f08384855714fe4",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_1_6_max_hp",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/301",
+      "definitionSha256": "8686b01ce3f76ee73c2f799a7b0df274947b93ff72db263471eef5450b5900db",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_1_6_max_hp_on_defeat_opponent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/526",
+      "definitionSha256": "a29539df4649263b60c75c2a78be45fa9c006a6535f8674deed6ff978d4b05b9",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_120_hp_if_consecutive_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/349",
+      "definitionSha256": "f5dabde8046318027d6a1bd6a63d99eecd2181cd9c3e39c50eec7843cbeb6bb6",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_125_hp_if_consecutive_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/591",
+      "definitionSha256": "4876cd260067937c5eb3d4a357e49f13153c0e6880d5566cb95d03a41d8752ff",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_by_kongqi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/170",
+      "definitionSha256": "860b3d2917d00e5767ba979afd563edd0287bdddb3ed1fa27209e2bbb015f21e",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_def_quarter_hit_or_miss",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/380",
+      "definitionSha256": "f676d71b30f6b2f7bc4e7ce6088db8adeaabfdeab465636ca0817c07679c9157",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_eighth",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/169",
+      "definitionSha256": "26a896580fd61c0610ca29b2eaec583c2e36e5aa42b112bc05033bea5acae7d3",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_quarter",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/67",
+      "definitionSha256": "feea4cc890d2ec156db7163f1dc337d14c4ab6a93465fb14c9c0dd2c315a5f7a",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_quarter_if_consecutive_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/235",
+      "definitionSha256": "7eb944d78b1d7044ea389ef798daecbd9f8ee7ab2e33601a949abdd66076530f",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_heal_self_quarter_if_opponent_has_kaowen_on_defeat_opponent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/698",
+      "definitionSha256": "82704f2830881b8e74b30e1eec25963ee8fa3003bb14c58e2c9609efaaca2a7b",
+      "reason": "requires one literal heal/addRage action and a finite target preset"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_rage_30_if_opponent_has_tongjiling",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/685",
+      "definitionSha256": "51c0a7874bfe2123aa12c367774ee4b2baaef0cc47c765a70ca6ba35c7033bb4",
+      "reason": "unsupported condition/trigger combination"
+    }
+  ]
+}
