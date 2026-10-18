@@ -13,3 +13,4 @@ export { ExecutionBudgetExceeded, executionBudgetPolicy } from './src/v4/executi
 export { officialHealingEffects } from './src/v4/official/healing'
 export { officialRageCandidate } from './src/v4/official/rage'
 export { createOfficialWaterShieldCandidate } from './src/v4/official/shield'
+export { createOfficialWaterShieldContent } from './src/v4/official/water-shield-content'
