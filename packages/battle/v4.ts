@@ -21,3 +21,5 @@ export {
   createGeneratedMarkApplications,
   generatedMarkApplicationDependencies,
 } from './src/v4/official/mark-applications.generated'
+
+export { generatedStatStageCandidates } from './src/v4/official/stat-stages.generated'
