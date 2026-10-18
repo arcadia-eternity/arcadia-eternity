@@ -7,6 +7,12 @@ import {
   generatedInstantLiteralEffects,
   defineNativeEffect,
   BaseMark,
+  SkillInstance,
+  SnapshotCatalog,
+  snapshotBattle,
+  restoreBattle,
+  PhaseState,
+  type BattleMessage,
   AddMarkContext,
   EffectContext,
   EffectTrigger,
@@ -168,4 +174,134 @@ it('covers exactly the emitted IDs and pins current source definitions', () => {
         .update(JSON.stringify(normalize(definitions.get(record.id))))
         .digest('hex'),
     ).toBe(record.definitionSha256)
+})
+
+// Exercise the real selection/skill/turn lifecycle, not synthetic effect dispatch.
+async function fullBattle(record: RecordEntry, native: boolean, checkpoint: boolean, miss = false) {
+  const f = makeScenario(262)
+  let battle = f.battle
+  battles.push(battle)
+  const effect = native ? generatedInstantLiteralEffects[record.id] : EffectParser.parse(definitions.get(record.id))
+  const owner = f.a.activePet
+  owner.currentHp = 150
+  const oldSkill = owner.skills[0]
+  const skill = new SkillInstance(oldSkill.base, { sureHit: !miss, accuracy: miss ? 0 : 100 })
+  skill.effects.splice(0)
+  skill.setOwner(owner)
+  owner.skills.splice(0, 1, skill)
+  battle.skillMap.delete(oldSkill.id)
+  battle.skillMap.set(skill.id, skill)
+  const turnEnd = record.recipe.triggers.includes('TurnEnd')
+  const mark = new BaseMark('fixture/instant-persistent' as baseMarkId, [effect], {
+    ...f.debuff.config,
+    persistent: true,
+    keepOnSwitchOut: true,
+  })
+  if (!turnEnd) skill.effects.push(effect)
+  const catalog = () => {
+    const result = new SnapshotCatalog('instant-literals-game/1')
+    result.registerEffect(effect.id, effect)
+    result.registerContent(mark.id, mark)
+    for (const pet of [...f.a.team, ...f.b.team])
+      for (const source of pet.skills)
+        for (const item of [...source.base.effects, ...source.effects]) result.registerEffect(item.id, item)
+    for (const item of f.debuff.effects) result.registerEffect(item.id, item)
+    return result
+  }
+  const trace: unknown[] = []
+  let applications = 0
+  const observe = (current: Battle) =>
+    current.registerListener(message => {
+      if (message.type === BattleMessageType.EffectApply && message.data.effect === record.id) applications++
+      if ([BattleMessageType.EffectApplyFail, BattleMessageType.Error].includes(message.type))
+        throw new Error('Full-game candidate emitted an execution error')
+      // Instance IDs are random; state and event ordering are compared without them.
+      trace.push(message.type)
+      if (message.type === BattleMessageType.TurnEnd)
+        trace.push({
+          turn: current.currentTurn,
+          hp: [...current.playerA.team, ...current.playerB.team].map(pet => pet.currentHp),
+          rage: [current.playerA.currentRage, current.playerB.currentRage],
+          active: [current.playerA.activePet.id, current.playerB.activePet.id],
+        })
+    })
+  observe(battle)
+  const waitForTurn = (current: Battle, turn: number) =>
+    new Promise<void>(resolve => {
+      const listener = (message: BattleMessage) => {
+        if (message.type === BattleMessageType.TurnAction && current.currentTurn === turn) {
+          current.unregisterListener(listener)
+          resolve()
+        }
+      }
+      current.registerListener(listener)
+    })
+  const submit = (current: Battle, id: Battle['playerA']['id'], type: 'use-skill' | 'switch-pet' | 'do-nothing') => {
+    const choice = current.getAvailableSelection(id).find(selection => selection.type === type)
+    if (!choice || !current.setSelection(choice)) throw new Error('Candidate game selection rejected')
+  }
+  const chooseTurn = (current: Battle) => {
+    if (current.currentTurn > 8) throw new Error('Candidate game exceeded turn bound')
+    submit(current, current.playerA.id, current.currentTurn === 2 ? 'switch-pet' : 'use-skill')
+    submit(current, current.playerB.id, 'use-skill')
+  }
+  const ready = waitForTurn(battle, 0)
+  let run = battle.startBattle().catch(error => {
+    if (error.message !== 'Battle cancelled') throw error
+  })
+  await ready
+  if (turnEnd)
+    battle.addMark(
+      new AddMarkContext(new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, skill), owner, mark),
+    )
+  const second = waitForTurn(battle, 1)
+  chooseTurn(battle)
+  await second
+  expect(applications).toBe(1)
+  if (checkpoint) {
+    const data = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog())))
+    await battle.cleanup()
+    await run
+    battle = restoreBattle(data, catalog())
+    battles.push(battle)
+    observe(battle)
+  }
+  battle.registerListener(message => {
+    if (message.type === BattleMessageType.TurnAction) chooseTurn(battle)
+    if (message.type === BattleMessageType.ForcedSwitch)
+      for (const id of message.data.player) submit(battle, id, 'switch-pet')
+    if (message.type === BattleMessageType.FaintSwitch) submit(battle, message.data.player, 'do-nothing')
+  })
+  if (checkpoint) run = battle.resumeBattle()
+  chooseTurn(battle)
+  await run
+  expect(battle.phaseManager.getPhasesByState(PhaseState.Failed)).toEqual([])
+  expect(battle.victor?.id).toBe('A')
+  expect(applications).toBe(2)
+  const result = {
+    trace,
+    applications,
+    winner: battle.victor?.id,
+    turn: battle.currentTurn,
+    hp: [...battle.playerA.team, ...battle.playerB.team].map(pet => pet.currentHp),
+    rage: [battle.playerA.currentRage, battle.playerB.currentRage],
+    nextRandom: battle.random(),
+  }
+  await battle.cleanup()
+  return result
+}
+for (const record of records) {
+  it(`${record.id} completes a real game identically before and after JSON restore`, async () => {
+    const expected = await fullBattle(record, false, false)
+    expect(await fullBattle(record, true, false)).toEqual(expected)
+    expect(await fullBattle(record, false, true)).toEqual(expected)
+    expect(await fullBattle(record, true, true)).toEqual(expected)
+  })
+}
+it('preserves the hit-or-miss candidate through real missed skills and JSON restore', async () => {
+  const record = records.find(item => item.recipe.triggers.includes('OnMiss'))!
+  const expected = await fullBattle(record, false, false, true)
+  expect(await fullBattle(record, true, false, true)).toEqual(expected)
+  expect(await fullBattle(record, false, true, true)).toEqual(expected)
+  expect(await fullBattle(record, true, true, true)).toEqual(expected)
 })

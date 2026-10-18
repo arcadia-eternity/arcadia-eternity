@@ -6,7 +6,7 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 
 ## Evidence as of 2026-10-18
 
-- The first offline mechanism generator emits 16 native literal heal/rage candidates, preserves the handwritten healing override, and records 44 unsupported single-action definitions without emitting them. Exact regeneration and 307 per-ID differential tests cover the batch. See [batch evidence](validation/instant-literals.md). All candidates remain U; production is unchanged.
+- The first offline mechanism generator emits 16 native literal heal/rage candidates, preserves the handwritten healing override, and records 44 unsupported single-action definitions without emitting them. Exact regeneration, 307 per-ID differential tests and 17 full-game/JSON-restore comparisons cover the batch. See [batch evidence](validation/instant-literals.md). All candidates remain U; production is unchanged.
 
 - The water-shield native candidate now includes all three effects and both mark definitions, with real damage absorption/exhaustion and fresh-catalog checkpoint continuation. Its amplifier is compared to an explicit legacy builder recipe because current YAML still rejects its selector spelling. Source hashes cover the complete graph; all records remain U. See [dependency-closure evidence](validation/water-shield-content.md).
 
@@ -38,7 +38,7 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 - [Oracle diagnostics](validation/effect-oracle-diagnostics.md) distinguish 390 schema rejections from 33 post-schema parser failures; a selector-spelling experiment is recorded separately from acceptance.
 - Built-in UGC healing now provides self-skill-hit, owner HP threshold, fixed healing and maximum-HP-ratio healing with editable/shared parameters. A saved JSON example executes through real HealPhase; see [authoring evidence](validation/core-healing-capabilities.md).
 - Bounded condition trees now compose registered predicates with all/any/not, preserve identities/references and validate every branch before runtime short-circuiting. See [condition evidence](validation/condition-trees.md).
-- 645 tests across all 30 V4 files pass. V4 typecheck/lint, source provenance and existing Node/Chrome host/checkpoint checks pass. Both read-only review axes passed the runtime slice after reported defects were repaired; parameter-layer review also passes after correcting nested object closure.
+- 662 tests across all 30 V4 files pass. V4 typecheck/lint, source provenance and existing Node/Chrome host/checkpoint checks pass. Both read-only review axes passed the runtime slice after reported defects were repaired; parameter-layer review also passes after correcting nested object closure.
 - [Per-ID inventory](validation/effect-migration-inventory.json) records source revision/hashes, node paths/types, config declarations/references, callers, parser acceptance and unverified migration status. Reproduce with `node scripts/effect-migration/inventory.mjs`; use `--check` to detect drift. Build the battle public package first.
 - Historical fixtures: 666 definitions, 666 accepted by the legacy V4 parser, 859 direct references. Current production: 1065 definitions, 642 accepted, 423 rejected, 1437 direct references. Neither dataset has duplicate Effect IDs or dangling direct skill/mark Effect references.
 - Relative to historical fixtures, production has 422 new IDs, 23 removed IDs, 251 changed definitions and 392 structurally identical definitions. These are structural facts, not behavioral equivalence results.
