@@ -5,6 +5,12 @@ import { HealContext, type DamageContext, type EffectContext } from '../context'
 import type { Pet } from '../pet'
 import { normalizeParams } from './parameters'
 import { freezeContent } from './immutable'
+import {
+  compileActionParameters,
+  validateParameterSlots,
+  type PublicParameterSlot,
+  type ParameterLinker,
+} from './action-parameters'
 import { isRegisteredTrigger, type RegisteredTrigger, type EffectSourceKind, type CompiledTrigger } from './triggers'
 
 /** Finite contextual guarantees; conditions do not add guarantees in the first compiler. */
@@ -25,13 +31,15 @@ export interface ActionRuntime {
 export interface CompiledAction<P = unknown> {
   readonly id: string
   readonly params: P
+  readonly contentParams: unknown
   readonly run: (runtime: ActionRuntime) => void
 }
 export interface RegisteredAction {
+  readonly publicParams: Readonly<Record<string, PublicParameterSlot>>
   readonly id: string
   readonly params: TObject
   readonly needs: readonly CapabilityNeed[]
-  readonly compile: (input: unknown, available: readonly CapabilityNeed[]) => CompiledAction
+  readonly compile: (input: unknown, available: readonly CapabilityNeed[], linker?: ParameterLinker) => CompiledAction
 }
 
 const registeredActions = new WeakSet<RegisteredAction>()
@@ -101,9 +109,14 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
   readonly id: string
   readonly params: S
   readonly needs: N
+  readonly publicParams?: Readonly<Partial<Record<keyof Static<S> & string, PublicParameterSlot>>>
   readonly execute: (context: ActionContext<N[number]>, params: Readonly<Static<S>>) => void
 }): Omit<RegisteredAction, 'compile'> & {
-  readonly compile: (input: unknown, available: readonly CapabilityNeed[]) => CompiledAction<Readonly<Static<S>>>
+  readonly compile: (
+    input: unknown,
+    available: readonly CapabilityNeed[],
+    linker?: ParameterLinker,
+  ) => CompiledAction<Readonly<Static<S>>>
 } {
   if (!definition.id) throw new Error('Action needs an ID')
   if (
@@ -115,16 +128,23 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
   const params = freezeContent(Value.Clone(definition.params))
   const needs = Object.freeze([...definition.needs])
   const execute = definition.execute
+  const publicParams = freezeContent(Value.Clone(definition.publicParams ?? {})) as Readonly<
+    Record<string, PublicParameterSlot>
+  >
+  validateParameterSlots(params, publicParams)
   const action = Object.freeze({
     id,
     params,
     needs,
-    compile(input: unknown, available: readonly CapabilityNeed[]) {
+    publicParams,
+    compile(input: unknown, available: readonly CapabilityNeed[], linker?: ParameterLinker) {
       for (const need of needs)
         if (!available.includes(need)) throw new Error(`CAPABILITY_MISMATCH: ${id} requires ${need}`)
-      const args = normalizeParams(params, input)
+      const argumentsPlan = compileActionParameters(params, publicParams, input, linker)
+      const args = argumentsPlan.base as Readonly<Static<S>>
       return Object.freeze({
         id,
+        contentParams: argumentsPlan.content,
         params: args,
         run(runtime: ActionRuntime) {
           const selected = selectCapabilities(runtime, needs)
@@ -138,7 +158,7 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
             }),
             readMaxHp: (target: Pet) => target.stat.maxHp,
           }) as ActionContext<N[number]>
-          execute(context, args)
+          execute(context, argumentsPlan.read(runtime) as Readonly<Static<S>>)
         },
       })
     },
@@ -177,6 +197,7 @@ export class CapabilityRegistry {
           params: freezeContent(Value.Clone(action.params)),
           needs: Object.freeze([...action.needs]),
           compile: action.compile,
+          publicParams: action.publicParams,
         }),
       )
     }
@@ -205,12 +226,19 @@ export class CapabilityRegistry {
   }
   describeActions(): readonly Omit<RegisteredAction, 'compile'>[] {
     return Object.freeze(
-      [...this.actions.values()].map(({ id, params, needs }) => Object.freeze({ id, params, needs })),
+      [...this.actions.values()].map(({ id, params, needs, publicParams }) =>
+        Object.freeze({ id, params, needs, publicParams }),
+      ),
     )
   }
-  compileAction(id: string, input: unknown, available: readonly CapabilityNeed[]): CompiledAction {
+  compileAction(
+    id: string,
+    input: unknown,
+    available: readonly CapabilityNeed[],
+    linker?: ParameterLinker,
+  ): CompiledAction {
     const action = this.actions.get(id)
     if (!action) throw new Error(`UNKNOWN_CAPABILITY: ${id}`)
-    return action.compile(input, available)
+    return action.compile(input, available, linker)
   }
 }

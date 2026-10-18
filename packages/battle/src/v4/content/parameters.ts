@@ -63,8 +63,9 @@ export interface ParameterDefinition<S extends TSchema = TSchema, E extends TSch
 }
 function assertScalarSchema(schema: TSchema): void {
   if (['Number', 'Integer', 'String', 'Boolean', 'Literal'].includes(schema[Kind])) return
-  if (schema[Kind] === 'Union' && Array.isArray(schema.anyOf)) {
-    for (const member of schema.anyOf) assertScalarSchema(member as TSchema)
+  const members = schema[Kind] === 'Union' ? schema.anyOf : schema[Kind] === 'Intersect' ? schema.allOf : undefined
+  if (Array.isArray(members)) {
+    for (const member of members) assertScalarSchema(member as TSchema)
     return
   }
   throw new Error('Public battle parameters require scalar schemas')
@@ -77,11 +78,23 @@ function scalar(value: unknown): value is Scalar {
 /** A finite operation-domain check, not schema subtyping or range inference. */
 function supportsOperation(schema: TSchema, operation: ConfigModifierType): boolean {
   if (operation === ConfigModifierType.override) return true
-  if (schema[Kind] === 'Union') return (schema.anyOf as TSchema[]).every(member => supportsOperation(member, operation))
+  const members = schema[Kind] === 'Union' ? schema.anyOf : schema[Kind] === 'Intersect' ? schema.allOf : undefined
+  if (Array.isArray(members)) return members.every(member => supportsOperation(member as TSchema, operation))
   const kind = schema[Kind] === 'Literal' ? typeof schema.const : schema.type
   if (operation === ConfigModifierType.delta) return kind === 'number' || kind === 'integer'
   if (operation === ConfigModifierType.append || operation === ConfigModifierType.prepend) return kind === 'string'
   return false
+}
+export function validateParameterContract(
+  schema: TSchema,
+  effectiveSchema: TSchema,
+  operations: readonly ConfigModifierType[],
+): void {
+  assertScalarSchema(schema)
+  assertScalarSchema(effectiveSchema)
+  for (const operation of operations)
+    if (!supportsOperation(effectiveSchema, operation))
+      throw new Error(`Incompatible parameter operation: ${operation}`)
 }
 export function defineParameter<S extends TSchema, E extends TSchema>(input: {
   address: string
@@ -93,11 +106,7 @@ export function defineParameter<S extends TSchema, E extends TSchema>(input: {
   tags?: readonly string[]
 }): ParameterDefinition<S, E> {
   if (!input.address) throw new Error('Missing parameter address')
-  assertScalarSchema(input.schema)
-  assertScalarSchema(input.effectiveSchema)
-  for (const operation of input.operations)
-    if (!supportsOperation(input.effectiveSchema, operation))
-      throw new Error(`Incompatible parameter operation: ${operation} for ${input.address}`)
+  validateParameterContract(input.schema, input.effectiveSchema, input.operations)
   const value: unknown = input.value === undefined ? input.schema.default : input.value
   if (!scalar(value) || !Value.Check(input.schema, value) || !Value.Check(input.effectiveSchema, value))
     throw new Error(`Invalid base parameter: ${input.address}`)

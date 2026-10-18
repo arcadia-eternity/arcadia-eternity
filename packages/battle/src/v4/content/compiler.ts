@@ -1,10 +1,17 @@
-import { Type, type Static } from '@sinclair/typebox'
+import { Type, type Static, type TSchema } from '@sinclair/typebox'
 import type { effectId, EffectTrigger } from '@arcadia-eternity/const'
 import type { Effect } from '../effect'
 import { CapabilityRegistry } from './capabilities'
 import type { EffectSourceKind } from './triggers'
 import { defineNativeEffect } from './native-effect'
-import { normalizeParams } from './parameters'
+import {
+  normalizeParams,
+  defineParameter,
+  parameterAddress,
+  ParameterCatalog,
+  type ParameterDefinition,
+} from './parameters'
+import type { PublicParameterSlot, ParameterLinker } from './action-parameters'
 import { freezeContent } from './immutable'
 
 const invocation = Type.Object(
@@ -19,6 +26,18 @@ const ruleSchema = Type.Object(
   {
     formatVersion: Type.Literal(1),
     id: Type.String({ minLength: 1 }),
+    parameters: Type.Record(
+      Type.String({ minLength: 1 }),
+      Type.Object(
+        {
+          nodeId: Type.String({ minLength: 1 }),
+          kind: Type.Union([Type.Literal('number'), Type.Literal('string'), Type.Literal('boolean')]),
+          value: Type.Union([Type.Number(), Type.String(), Type.Boolean()]),
+        },
+        { additionalProperties: false },
+      ),
+      { default: {}, maxProperties: 64 },
+    ),
     trigger: invocation,
     when: Type.Optional(invocation),
     actions: Type.Array(
@@ -47,7 +66,13 @@ export interface CompileDiagnostic {
   readonly message: string
 }
 export type RuleCompileResult =
-  | { readonly ok: true; readonly rule: CompiledRuleData; readonly effect: Effect<EffectTrigger> }
+  | {
+      readonly ok: true
+      readonly rule: CompiledRuleData
+      readonly effect: Effect<EffectTrigger>
+      readonly parameters: ParameterCatalog
+      readonly parameterDefinitions: readonly ParameterDefinition[]
+    }
   | { readonly ok: false; readonly diagnostics: readonly CompileDiagnostic[] }
 
 /** Structural admission only; nested battle execution budgets are a separate runtime gate. */
@@ -92,6 +117,7 @@ export function compileRule(
       if (ids.has(id)) throw new Error(`DUPLICATE_ID: ${id}`)
       ids.add(id)
     }
+    for (const parameter of Object.values(rule.parameters)) claim(parameter.nodeId)
     claim(rule.trigger.nodeId)
     if (rule.when) claim(rule.when.nodeId)
     for (const action of rule.actions) claim(action.stepId)
@@ -103,11 +129,52 @@ export function compileRule(
     const predicate = rule.when
       ? registry.compilePredicate(rule.when.id, rule.when.params, trigger.available)
       : undefined
+    const links = new Map<string, { schemas: TSchema[]; slots: PublicParameterSlot[] }>()
+    const linker: ParameterLinker = (id, schema, slot) => {
+      if (!Object.hasOwn(rule.parameters, id)) throw new Error(`MISSING_REFERENCE: ${id}`)
+      const parameter = rule.parameters[id]
+      if (typeof parameter.value !== parameter.kind)
+        throw new Error(`INVALID_PARAMETERS: ${id} kind does not match value`)
+      const usage = links.get(id) ?? { schemas: [], slots: [] }
+      usage.schemas.push(schema)
+      usage.slots.push(slot)
+      links.set(id, usage)
+      const address = parameterAddress(rule.id, parameter.nodeId, id)
+      return {
+        base: parameter.value,
+        read: runtime => parameters.read(runtime.effect.battle.configSystem, address, runtime.effect.source),
+      }
+    }
     const actions = rule.actions.map(action => {
       nodeId = action.stepId
       field = 'actions'
-      return registry.compileAction(action.id, action.params, trigger.available)
+      return registry.compileAction(action.id, action.params, trigger.available, linker)
     })
+    const parameterDefinitions = Object.entries(rule.parameters).map(([id, parameter]) => {
+      nodeId = parameter.nodeId
+      field = 'parameters'
+      if (typeof parameter.value !== parameter.kind)
+        throw new Error(`INVALID_PARAMETERS: ${id} kind does not match value`)
+      const kindSchema =
+        parameter.kind === 'number' ? Type.Number() : parameter.kind === 'boolean' ? Type.Boolean() : Type.String()
+      const usage = links.get(id)
+      const schemas = usage?.schemas ?? []
+      const slots = usage?.slots ?? []
+      const operations = (slots[0]?.operations ?? []).filter(operation =>
+        slots.every(slot => slot.operations.includes(operation)),
+      )
+      return defineParameter({
+        address: parameterAddress(rule.id, parameter.nodeId, id),
+        schema: schemas.length ? Type.Intersect([kindSchema, ...schemas]) : kindSchema,
+        effectiveSchema: slots.length
+          ? Type.Intersect([kindSchema, ...slots.map(slot => slot.effectiveSchema)])
+          : kindSchema,
+        value: parameter.value,
+        operations,
+        tags: [...new Set(slots.flatMap(slot => slot.tags ?? []))],
+      })
+    })
+    const parameters = new ParameterCatalog(parameterDefinitions)
     const effect = defineNativeEffect({
       id: rule.id as effectId,
       triggers: [trigger.trigger],
@@ -122,13 +189,19 @@ export function compileRule(
       ...rule,
       trigger: { ...rule.trigger, params: trigger.params },
       ...(rule.when && predicate ? { when: { ...rule.when, params: predicate.params } } : {}),
-      actions: rule.actions.map((action, index) => ({ ...action, params: actions[index].params })),
+      actions: rule.actions.map((action, index) => ({ ...action, params: actions[index].contentParams })),
     })
-    return Object.freeze({ ok: true, rule: normalized, effect })
+    return Object.freeze({
+      ok: true,
+      rule: normalized,
+      effect,
+      parameters,
+      parameterDefinitions: Object.freeze(parameterDefinitions),
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected content compilation failure'
     const code =
-      ['LIMIT_EXCEEDED', 'DUPLICATE_ID', 'UNKNOWN_CAPABILITY', 'CAPABILITY_MISMATCH'].find(code =>
+      ['LIMIT_EXCEEDED', 'DUPLICATE_ID', 'UNKNOWN_CAPABILITY', 'CAPABILITY_MISMATCH', 'MISSING_REFERENCE'].find(code =>
         message.startsWith(`${code}:`),
       ) ?? 'INVALID_PARAMETERS'
     return freezeContent({
