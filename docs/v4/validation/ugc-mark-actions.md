@@ -20,6 +20,6 @@ Seventeen tests cover action-time reads, source independence through SkillUseEnd
 
 Independent Standards review identified the editor/effective-range mismatch; it was fixed and re-reviewed without remaining blocking findings. Independent Spec review remains pending the existing reviewer availability limit. Local checks follow #223 G. Full test and host results are recorded in the migration ledger.
 
-Remaining: author-defined mark content loading, general value presets, templates, editor integration, structured execution records, and complete official catalog migration/acceptance.
+The [pack compiler](content-pack.md) now loads author-defined marks. Remaining: general value presets, templates, editor integration, structured execution records, and complete official catalog migration/acceptance.
 
 The action-budget regression retains its 4096 successful writes and rejection of the next action, across real nested effect contexts. It now places 64 actions in each compiled effect instead of creating 4097 single-action effect contexts. This removes repeated phase setup from the assertion workload without lowering the policy, mocking the runtime, changing the expected count, or raising the explicit 15-second timeout.

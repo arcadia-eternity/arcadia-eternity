@@ -32,3 +32,10 @@ export { conditionLimits, type ConditionData } from './conditions'
 export { defineMarkInstanceParams, type MarkInstanceParams } from './mark-parameters'
 
 export { defineAddMarkAction } from './mark-actions'
+export {
+  compileContentPack,
+  coreInstanceParameterPresets,
+  type ContentPackData,
+  type ContentPackResult,
+  type InstanceParameterPreset,
+} from './content-pack'

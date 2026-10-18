@@ -19,7 +19,7 @@ function createContract<S extends TObject>(
   if (
     fields.length > 64 ||
     fields.some(field => !Object.hasOwn(slots, field)) ||
-    schema.required?.length !== fields.length
+    (schema.required?.length ?? 0) !== fields.length
   )
     throw new Error('Mark instance parameters require at most 64 required public scalar slots')
   validateParameterSlots(schema, slots)
@@ -60,6 +60,7 @@ function createContract<S extends TObject>(
     schema: freezeContent(Value.Clone(schema)),
     publicParams: freezeContent(Value.Clone(slots)),
     parameters,
+    parameterDefinitions: Object.freeze(definitions),
     normalize,
     capture,
     address(field: keyof Static<S> & string): string {

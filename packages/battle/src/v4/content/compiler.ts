@@ -25,7 +25,7 @@ import { registerSingleAdmission } from './admission'
 import { freezeContent } from './immutable'
 import { predicateInvocationSchema, conditionSchema, validateConditionTree, compileConditionTree } from './conditions'
 
-const ruleSchema = Type.Object(
+export const ruleSchema = Type.Object(
   {
     formatVersion: Type.Literal(1),
     id: Type.String({ minLength: 1 }),
