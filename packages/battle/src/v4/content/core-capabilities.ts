@@ -36,6 +36,21 @@ const selfSkillHitTarget = defineTrigger({
   }),
 })
 
+const markOwnerTurnEnd = defineTrigger({
+  id: 'core.markOwnerTurnEnd',
+  trigger: EffectTrigger.TurnEnd,
+  params: Type.Object({}, { additionalProperties: false }),
+  provides: { petMark: ['ownerPet'] },
+  resolve: context => (context.source.owner instanceof Pet ? { ownerPet: context.source.owner } : {}),
+})
+const markCreated = defineTrigger({
+  id: 'core.markCreated',
+  trigger: EffectTrigger.OnMarkCreated,
+  params: Type.Object({}, { additionalProperties: false }),
+  provides: { petMark: ['ownerPet'] },
+  resolve: context => (context.source.owner instanceof Pet ? { ownerPet: context.source.owner } : {}),
+})
+
 const healOwner = defineAction({
   id: 'core.healOwner',
   needs: ['ownerPet'],
@@ -61,7 +76,7 @@ const ownerHpBelowRatio = definePredicate({
 
 /** Finite authoring vocabulary. Trusted hosts can combine these definitions with their own registry entries. */
 export const coreCapabilities = Object.freeze({
-  triggers: Object.freeze([selfSkillHit, selfSkillHitTarget]),
+  triggers: Object.freeze([selfSkillHit, selfSkillHitTarget, markOwnerTurnEnd, markCreated]),
   actions: Object.freeze([healOwner, healOwnerByMaxHp]),
   predicates: Object.freeze([ownerHpBelowRatio]),
 })

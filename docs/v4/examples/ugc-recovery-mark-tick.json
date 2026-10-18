@@ -1,0 +1,13 @@
+{
+  "formatVersion": 1,
+  "id": "ugc_recovery_mark_tick",
+  "sourceMarkId": "ugc/recovery",
+  "trigger": { "nodeId": "turn-end", "id": "core.markOwnerTurnEnd" },
+  "actions": [
+    {
+      "stepId": "recover",
+      "id": "core.healOwnerByMaxHp",
+      "params": { "ratio": { "instanceParameter": "ratio" } }
+    }
+  ]
+}

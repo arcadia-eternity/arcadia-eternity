@@ -1,3 +1,5 @@
+import { BaseMark, MarkInstanceImpl } from '../mark'
+import { markParameterContract } from './mark-parameters'
 import { Type, type Static, type TSchema } from '@sinclair/typebox'
 import type { effectId, EffectTrigger } from '@arcadia-eternity/const'
 import type { Effect } from '../effect'
@@ -11,7 +13,13 @@ import {
   ParameterCatalog,
   type ParameterDefinition,
 } from './parameters'
-import { compileParameterArguments, type PublicParameterSlot, type ParameterLinker } from './capability-parameters'
+import {
+  compileParameterArguments,
+  parameterReferenceSchema,
+  instanceParameterReferenceSchema,
+  type PublicParameterSlot,
+  type ParameterLinker,
+} from './capability-parameters'
 import { ConfigModifierType } from '../config'
 import { registerSingleAdmission } from './admission'
 import { freezeContent } from './immutable'
@@ -21,6 +29,7 @@ const ruleSchema = Type.Object(
   {
     formatVersion: Type.Literal(1),
     id: Type.String({ minLength: 1 }),
+    sourceMarkId: Type.Optional(Type.String({ minLength: 1 })),
     parameters: Type.Record(
       Type.String({ minLength: 1 }),
       Type.Object(
@@ -41,7 +50,8 @@ const ruleSchema = Type.Object(
           nodeId: Type.String({ minLength: 1 }),
           percent: Type.Union([
             Type.Number({ minimum: 0, maximum: 100 }),
-            Type.Object({ parameter: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
+            parameterReferenceSchema,
+            instanceParameterReferenceSchema,
           ]),
         },
         { additionalProperties: false },
@@ -111,6 +121,7 @@ export function compileRule(
   options: {
     readonly contentId: string
     readonly sourceKind: EffectSourceKind
+    readonly sourceMark?: BaseMark
   },
 ): RuleCompileResult {
   let ruleId: string | undefined, nodeId: string | undefined, field: string | undefined
@@ -118,6 +129,14 @@ export function compileRule(
     checkSize(input)
     const rule = normalizeParams(ruleSchema, input)
     ruleId = rule.id
+    const sourceMark = options.sourceMark
+    field = 'sourceMarkId'
+    if (sourceMark && options.sourceKind === 'skill')
+      throw new Error('CAPABILITY_MISMATCH: skill rules cannot bind a source mark')
+    if (rule.sourceMarkId && (!sourceMark || sourceMark.id !== rule.sourceMarkId))
+      throw new Error(`MISSING_REFERENCE: source mark ${rule.sourceMarkId}`)
+    const acceptsSource = (source: unknown): boolean =>
+      !sourceMark || (source instanceof MarkInstanceImpl && source.base === sourceMark)
     const ids = new Set<string>()
     const claim = (id: string) => {
       nodeId = id
@@ -138,7 +157,30 @@ export function compileRule(
     field = 'trigger'
     const trigger = registry.compileTrigger(rule.trigger.id, rule.trigger.params, options.sourceKind)
     const links = new Map<string, { schemas: TSchema[]; slots: PublicParameterSlot[] }>()
-    const linker: ParameterLinker = (id, schema, slot) => {
+    const linker: ParameterLinker = (id, schema, slot, kind = 'parameter') => {
+      if (kind === 'instanceParameter') {
+        if (!sourceMark) throw new Error('CAPABILITY_MISMATCH: instance parameters require a bound source mark')
+        const contract = markParameterContract(sourceMark)
+        if (!contract || !Object.hasOwn(contract.schema.properties, id))
+          throw new Error(`MISSING_REFERENCE: instance parameter ${id}`)
+        const receivingType = Type.Extends(
+          contract.publicParams[id].effectiveSchema,
+          slot.effectiveSchema,
+          Type.Literal(true),
+          Type.Literal(false),
+        )
+        if (!('const' in receivingType) || receivingType.const !== true)
+          throw new Error(`INVALID_PARAMETERS: incompatible instance parameter ${id}`)
+        return {
+          base: contract.normalize({})[id],
+          read(runtime) {
+            const source = runtime.effect.source
+            if (!(source instanceof MarkInstanceImpl) || source.base !== sourceMark)
+              throw new Error('Mismatched instance parameter source')
+            return contract.read(runtime.effect.battle.configSystem, source, id)
+          },
+        }
+      }
       if (!Object.hasOwn(rule.parameters, id)) throw new Error(`MISSING_REFERENCE: ${id}`)
       const parameter = rule.parameters[id]
       if (typeof parameter.value !== parameter.kind)
@@ -212,18 +254,25 @@ export function compileRule(
       priority: rule.priority,
       consumesStacks: rule.consumesStacks,
       when: context => {
-        if (!trigger.matches(context) || (predicate && !predicate.test(() => trigger.runtime(context)))) return false
+        if (
+          !acceptsSource(context.source) ||
+          !trigger.matches(context) ||
+          (predicate && !predicate.test(() => trigger.runtime(context)))
+        )
+          return false
         if (!roll) return true
         const percent = roll.read({ effect: context, capabilities: {} }).percent as number
         return context.battle.random() * 100 < percent
       },
       apply: context => {
+        if (!acceptsSource(context.source)) throw new Error('Mismatched rule source mark')
         for (const action of actions) action.run(trigger.runtime(context))
       },
     })
     registerSingleAdmission(effect)
     const normalized = freezeContent({
       ...rule,
+      ...(sourceMark ? { sourceMarkId: sourceMark.id } : {}),
       trigger: { ...rule.trigger, params: trigger.params },
       ...(rule.roll && roll ? { roll: { ...rule.roll, ...roll.content } } : {}),
       ...(rule.when && predicate ? { when: predicate.data } : {}),

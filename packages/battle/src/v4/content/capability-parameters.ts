@@ -23,11 +23,20 @@ export type ParameterLinker = (
   id: string,
   schema: TSchema,
   slot: PublicParameterSlot,
+  kind?: 'parameter' | 'instanceParameter',
 ) => {
   readonly base: unknown
   readonly read: (runtime: ActionRuntime) => unknown
 }
-const referenceSchema = Type.Object({ parameter: Type.String({ minLength: 1 }) }, { additionalProperties: false })
+export const parameterReferenceSchema = Type.Object(
+  { parameter: Type.String({ minLength: 1 }) },
+  { additionalProperties: false },
+)
+
+export const instanceParameterReferenceSchema = Type.Object(
+  { instanceParameter: Type.String({ minLength: 1 }) },
+  { additionalProperties: false },
+)
 
 export function validateParameterSlots(schema: TObject, slots: PublicParameterBindings): void {
   let nodes = 0
@@ -52,6 +61,7 @@ export function validateParameterSlots(schema: TObject, slots: PublicParameterBi
 }
 
 interface ArgumentPlan {
+  readonly validationSchema: TObject
   readonly base: Readonly<Record<string, unknown>>
   readonly content: Readonly<Record<string, unknown>>
   readonly read: (runtime: ActionRuntime) => Readonly<Record<string, unknown>>
@@ -68,6 +78,7 @@ export function compileParameterArguments(
   )
   const raw = normalizeParams(rawSchema, input)
   const baseInput = { ...raw }
+  const validationProperties = { ...schema.properties }
   const readers = new Map<string, (runtime: ActionRuntime) => unknown>()
   const linkedContent = new Map<string, unknown>()
   for (const [field, slot] of Object.entries(slots)) {
@@ -83,13 +94,21 @@ export function compileParameterArguments(
         linker,
       )
       baseInput[field] = child.base
+      validationProperties[field] = child.validationSchema
       linkedContent.set(field, child.content)
       readers.set(field, child.read)
-    } else if (value && typeof value === 'object' && 'parameter' in value) {
-      const reference = normalizeParams(referenceSchema, value)
-      if (!linker) throw new Error(`MISSING_REFERENCE: ${reference.parameter}`)
-      const linked = linker(reference.parameter, schema.properties[field], slot)
+    } else if (value && typeof value === 'object' && ('parameter' in value || 'instanceParameter' in value)) {
+      const kind = 'parameter' in value ? 'parameter' : 'instanceParameter'
+      const id =
+        kind === 'parameter'
+          ? normalizeParams(parameterReferenceSchema, value).parameter
+          : normalizeParams(instanceParameterReferenceSchema, value).instanceParameter
+      if (!linker) throw new Error(`MISSING_REFERENCE: ${id}`)
+      const linked = linker(id, schema.properties[field], slot, kind)
       baseInput[field] = linked.base
+      // An instance default is a preview, not an authored receiving value. Both effective
+      // contracts are checked when the actual source is read; do not range-check the preview.
+      if (kind === 'instanceParameter') validationProperties[field] = Type.Unknown()
       linkedContent.set(field, value)
       readers.set(field, runtime => {
         const result = linked.read(runtime)
@@ -99,10 +118,12 @@ export function compileParameterArguments(
       })
     }
   }
-  const base = normalizeParams(schema, baseInput)
+  const validationSchema = { ...schema, properties: validationProperties }
+  const base = normalizeParams(validationSchema, baseInput)
   const content = { ...base }
   for (const [field, value] of linkedContent) content[field] = value
   return {
+    validationSchema,
     base,
     content: freezeContent(content),
     read(runtime: ActionRuntime) {
