@@ -1,0 +1,22 @@
+{
+  "formatVersion": 1,
+  "id": "effect_skill_add_rage_20_if_rage_below_40",
+  "sourceFile": "packs/base/data/effect_skill.yaml",
+  "sourcePath": "/282",
+  "definitionSha256": "71dbd173fa5e8da78d68832fa097f8d3c3c3febca67754374beafdc509bd944b",
+  "implementation": "packages/battle/src/v4/official/rage.ts",
+  "classification": "U",
+  "candidateDecision": "E",
+  "status": "handwritten-candidate",
+  "parameter": {
+    "sourcePath": "/apply/value",
+    "address": "ae:param:[\"effect_skill_add_rage_20_if_rage_below_40\",\"add-rage\",\"value\"]",
+    "alias": "effect_skill_add_rage_20_if_rage_below_40.add_rage_value"
+  },
+  "decisions": [
+    "Preserve collect-time selfUseSkill and selfPlayer rage < 40.",
+    "Read scoped parameter and current source owner at apply time.",
+    "Preserve raw finite numeric values including negative and fractional; RagePhase performs floor and clamp.",
+    "No production registration or automatic old-key migration."
+  ]
+}

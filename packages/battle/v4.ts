@@ -11,3 +11,4 @@ export * from './src/v4/content'
 
 export { ExecutionBudgetExceeded, executionBudgetPolicy } from './src/v4/execution/budget'
 export { officialHealingEffects } from './src/v4/official/healing'
+export { officialRageCandidate } from './src/v4/official/rage'
