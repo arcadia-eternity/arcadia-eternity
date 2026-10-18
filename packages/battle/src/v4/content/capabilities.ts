@@ -5,6 +5,7 @@ import { HealContext, type DamageContext, type EffectContext } from '../context'
 import type { Pet } from '../pet'
 import { normalizeParams } from './parameters'
 import { freezeContent } from './immutable'
+import { isRegisteredTrigger, type RegisteredTrigger, type EffectSourceKind, type CompiledTrigger } from './triggers'
 
 /** Finite contextual guarantees; conditions do not add guarantees in the first compiler. */
 export interface ActionCapabilities {
@@ -35,6 +36,65 @@ export interface RegisteredAction {
 
 const registeredActions = new WeakSet<RegisteredAction>()
 const needsSet = new Set<CapabilityNeed>(['ownerPet', 'skillTarget', 'pendingDamage'])
+export function isCapabilityNeed(value: unknown): value is CapabilityNeed {
+  return typeof value === 'string' && needsSet.has(value as CapabilityNeed)
+}
+
+function selectCapabilities<N extends CapabilityNeed>(
+  runtime: ActionRuntime,
+  needs: readonly N[],
+): Pick<ActionCapabilities, N> {
+  const selected: Partial<ActionCapabilities> = {}
+  for (const need of needs) {
+    const value = runtime.capabilities[need]
+    if (value === undefined) throw new Error(`Missing runtime capability: ${need}`)
+    Object.defineProperty(selected, need, { value, enumerable: true })
+  }
+  return selected as Pick<ActionCapabilities, N>
+}
+export interface CompiledPredicate {
+  readonly params: unknown
+  readonly test: (runtime: ActionRuntime) => boolean
+}
+export interface RegisteredPredicate {
+  readonly id: string
+  readonly params: TObject
+  readonly needs: readonly CapabilityNeed[]
+  readonly compile: (input: unknown, available: readonly CapabilityNeed[]) => CompiledPredicate
+}
+const registeredPredicates = new WeakSet<RegisteredPredicate>()
+export function definePredicate<S extends TObject, const N extends readonly CapabilityNeed[]>(definition: {
+  readonly id: string
+  readonly params: S
+  readonly needs: N
+  readonly test: (context: Readonly<Pick<ActionCapabilities, N[number]>>, params: Readonly<Static<S>>) => boolean
+}): RegisteredPredicate {
+  if (
+    !definition.id ||
+    definition.needs.some(need => !isCapabilityNeed(need)) ||
+    new Set(definition.needs).size !== definition.needs.length
+  )
+    throw new Error('Invalid predicate definition')
+  const { id, test } = definition
+  const params = freezeContent(Value.Clone(definition.params))
+  const needs = Object.freeze([...definition.needs])
+  const predicate: RegisteredPredicate = Object.freeze({
+    id,
+    params,
+    needs,
+    compile(input: unknown, available: readonly CapabilityNeed[]) {
+      for (const need of needs)
+        if (!available.includes(need)) throw new Error(`CAPABILITY_MISMATCH: ${id} requires ${need}`)
+      const args = normalizeParams(params, input)
+      return Object.freeze({
+        params: args,
+        test: (runtime: ActionRuntime) => test(Object.freeze(selectCapabilities(runtime, needs)), args),
+      })
+    },
+  })
+  registeredPredicates.add(predicate)
+  return predicate
+}
 
 /** A trusted implementation has one schema for both its editor contract and TS parameters. */
 export function defineAction<S extends TObject, const N extends readonly CapabilityNeed[]>(definition: {
@@ -46,7 +106,10 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
   readonly compile: (input: unknown, available: readonly CapabilityNeed[]) => CompiledAction<Readonly<Static<S>>>
 } {
   if (!definition.id) throw new Error('Action needs an ID')
-  if (definition.needs.some(need => !needsSet.has(need)) || new Set(definition.needs).size !== definition.needs.length)
+  if (
+    definition.needs.some(need => !isCapabilityNeed(need)) ||
+    new Set(definition.needs).size !== definition.needs.length
+  )
     throw new Error('Invalid action capability needs')
   const id = definition.id
   const params = freezeContent(Value.Clone(definition.params))
@@ -64,12 +127,7 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
         id,
         params: args,
         run(runtime: ActionRuntime) {
-          const selected: Partial<ActionCapabilities> = {}
-          for (const need of needs) {
-            const value = runtime.capabilities[need]
-            if (value === undefined) throw new Error(`Missing runtime capability: ${need}`)
-            Object.defineProperty(selected, need, { value, enumerable: true })
-          }
+          const selected = selectCapabilities(runtime, needs)
           const context = Object.freeze({
             ...selected,
             ops: Object.freeze({
@@ -92,7 +150,22 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
 /** Immutable trusted definitions only; compiled uses hold their own normalized arguments. */
 export class CapabilityRegistry {
   private readonly actions = new Map<string, RegisteredAction>()
-  constructor(actions: readonly RegisteredAction[]) {
+  private readonly triggers = new Map<string, RegisteredTrigger>()
+  private readonly predicates = new Map<string, RegisteredPredicate>()
+  constructor(
+    actions: readonly RegisteredAction[],
+    options: { triggers?: readonly RegisteredTrigger[]; predicates?: readonly RegisteredPredicate[] } = {},
+  ) {
+    for (const trigger of options.triggers ?? []) {
+      if (!isRegisteredTrigger(trigger)) throw new Error('Trigger must be created by defineTrigger')
+      if (this.triggers.has(trigger.id)) throw new Error(`Duplicate trigger capability: ${trigger.id}`)
+      this.triggers.set(trigger.id, trigger)
+    }
+    for (const predicate of options.predicates ?? []) {
+      if (!registeredPredicates.has(predicate)) throw new Error('Predicate must be created by definePredicate')
+      if (this.predicates.has(predicate.id)) throw new Error(`Duplicate predicate capability: ${predicate.id}`)
+      this.predicates.set(predicate.id, predicate)
+    }
     for (const action of actions) {
       if (!registeredActions.has(action)) throw new Error('Action must be created by defineAction')
       if (this.actions.has(action.id)) throw new Error(`Duplicate action capability: ${action.id}`)
@@ -107,6 +180,28 @@ export class CapabilityRegistry {
         }),
       )
     }
+  }
+  compileTrigger(id: string, input: unknown, sourceKind: EffectSourceKind): CompiledTrigger {
+    const trigger = this.triggers.get(id)
+    if (!trigger) throw new Error(`UNKNOWN_CAPABILITY: ${id}`)
+    return trigger.compile(input, sourceKind)
+  }
+  compilePredicate(id: string, input: unknown, available: readonly CapabilityNeed[]): CompiledPredicate {
+    const predicate = this.predicates.get(id)
+    if (!predicate) throw new Error(`UNKNOWN_CAPABILITY: ${id}`)
+    return predicate.compile(input, available)
+  }
+  describeTriggers(): readonly Omit<RegisteredTrigger, 'compile'>[] {
+    return Object.freeze(
+      [...this.triggers.values()].map(({ id, trigger, params, provides }) =>
+        Object.freeze({ id, trigger, params, provides }),
+      ),
+    )
+  }
+  describePredicates(): readonly Omit<RegisteredPredicate, 'compile'>[] {
+    return Object.freeze(
+      [...this.predicates.values()].map(({ id, params, needs }) => Object.freeze({ id, params, needs })),
+    )
   }
   describeActions(): readonly Omit<RegisteredAction, 'compile'>[] {
     return Object.freeze(
