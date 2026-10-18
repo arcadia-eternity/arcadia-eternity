@@ -8,7 +8,7 @@ This implements the first connected rule path in #223 B–E: unknown content →
 
 `compileRule` returns a frozen successful candidate with normalized rule data and one native Effect, or frozen diagnostics without a partial Effect. All nodes compile before effect construction. It creates no Battle and runs no gameplay callback during compilation. Each action resolves its runtime immediately before that action, so earlier actions can change what a later relational resolver returns. Static action arguments remain separate per use.
 
-Current content supports formatVersion/id, trigger, optional when, ordered actions, priority and optional consumesStacks. Trigger/condition nodeId and action stepId must be unique in the rule. Structural admission limits are 16 levels, 2048 visited values, 65536 text characters and 64 actions; these are not the shared runtime execution budget. Unsupported fields fail validation rather than being ignored.
+Current content supports formatVersion/id, trigger, optional when, ordered actions, priority and optional consumesStacks. Trigger/condition nodeId and action stepId must be unique in the rule. Structural admission limits are 32 raw JSON levels (to accommodate the separately bounded condition tree), 2048 visited values, 65536 text characters and 64 actions; these are not the shared runtime execution budget. Unsupported fields fail validation rather than being ignored.
 
 Diagnostics currently identify content/rule/node/field and distinguish LIMIT_EXCEEDED, DUPLICATE_ID, UNKNOWN_CAPABILITY and CAPABILITY_MISMATCH. Other invalid parameter/schema cases use INVALID_PARAMETERS. Full type/range/reference/lifetime diagnostics remain pending.
 

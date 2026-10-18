@@ -15,15 +15,8 @@ import { compileParameterArguments, type PublicParameterSlot, type ParameterLink
 import { ConfigModifierType } from '../config'
 import { registerSingleAdmission } from './admission'
 import { freezeContent } from './immutable'
+import { predicateInvocationSchema, conditionSchema, validateConditionTree, compileConditionTree } from './conditions'
 
-const invocation = Type.Object(
-  {
-    nodeId: Type.String({ minLength: 1 }),
-    id: Type.String({ minLength: 1 }),
-    params: Type.Unknown({ default: {} }),
-  },
-  { additionalProperties: false },
-)
 const ruleSchema = Type.Object(
   {
     formatVersion: Type.Literal(1),
@@ -40,8 +33,8 @@ const ruleSchema = Type.Object(
       ),
       { default: {}, maxProperties: 64 },
     ),
-    trigger: invocation,
-    when: Type.Optional(invocation),
+    trigger: predicateInvocationSchema,
+    when: Type.Optional(conditionSchema),
     roll: Type.Optional(
       Type.Object(
         {
@@ -95,7 +88,7 @@ function checkSize(input: unknown): void {
     characters = 0
   const ancestors = new Set<object>()
   const walk = (value: unknown, depth: number) => {
-    if (++nodes > 2048 || depth > 16) throw new Error('LIMIT_EXCEEDED: rule size or depth')
+    if (++nodes > 2048 || depth > 32) throw new Error('LIMIT_EXCEEDED: rule size or depth')
     if (typeof value === 'string') characters += value.length
     if (characters > 65536) throw new Error('LIMIT_EXCEEDED: rule text size')
     if (value && typeof value === 'object') {
@@ -131,10 +124,15 @@ export function compileRule(
       if (ids.has(id)) throw new Error(`DUPLICATE_ID: ${id}`)
       ids.add(id)
     }
+    field = 'parameters'
     for (const parameter of Object.values(rule.parameters)) claim(parameter.nodeId)
+    field = 'trigger'
     claim(rule.trigger.nodeId)
-    if (rule.when) claim(rule.when.nodeId)
+    field = 'when'
+    if (rule.when) validateConditionTree(rule.when, claim)
+    field = 'roll'
     if (rule.roll) claim(rule.roll.nodeId)
+    field = 'actions'
     for (const action of rule.actions) claim(action.stepId)
     nodeId = rule.trigger.nodeId
     field = 'trigger'
@@ -158,7 +156,9 @@ export function compileRule(
     nodeId = rule.when?.nodeId
     field = 'when'
     const predicate = rule.when
-      ? registry.compilePredicate(rule.when.id, rule.when.params, trigger.available, linker)
+      ? compileConditionTree(rule.when, registry, trigger.available, linker, id => {
+          nodeId = id
+        })
       : undefined
     nodeId = rule.roll?.nodeId
     field = 'roll'
@@ -212,7 +212,7 @@ export function compileRule(
       priority: rule.priority,
       consumesStacks: rule.consumesStacks,
       when: context => {
-        if (!trigger.matches(context) || (predicate && !predicate.test(trigger.runtime(context)))) return false
+        if (!trigger.matches(context) || (predicate && !predicate.test(() => trigger.runtime(context)))) return false
         if (!roll) return true
         const percent = roll.read({ effect: context, capabilities: {} }).percent as number
         return context.battle.random() * 100 < percent
@@ -226,7 +226,7 @@ export function compileRule(
       ...rule,
       trigger: { ...rule.trigger, params: trigger.params },
       ...(rule.roll && roll ? { roll: { ...rule.roll, ...roll.content } } : {}),
-      ...(rule.when && predicate ? { when: { ...rule.when, params: predicate.params } } : {}),
+      ...(rule.when && predicate ? { when: predicate.data } : {}),
       actions: rule.actions.map((action, index) => ({ ...action, params: actions[index].contentParams })),
     })
     return Object.freeze({

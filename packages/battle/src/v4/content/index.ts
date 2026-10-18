@@ -27,3 +27,4 @@ export { definePredicate, type RegisteredPredicate, type CompiledPredicate } fro
 export { compileRule, type CompiledRuleData, type CompileDiagnostic, type RuleCompileResult } from './compiler'
 export type { PublicParameterSlot } from './capability-parameters'
 export { coreCapabilities, createCoreCapabilityRegistry } from './core-capabilities'
+export { conditionLimits, type ConditionData } from './conditions'

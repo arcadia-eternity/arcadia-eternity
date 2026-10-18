@@ -1,0 +1,64 @@
+{
+  "formatVersion": 1,
+  "id": "ugc_heal_in_hp_band",
+  "parameters": {
+    "threshold": {
+      "nodeId": "hp-threshold",
+      "kind": "number",
+      "value": 0.5
+    },
+    "healing": {
+      "nodeId": "healing-ratio",
+      "kind": "number",
+      "value": 0.25
+    },
+    "minimum": {
+      "nodeId": "minimum-hp",
+      "kind": "number",
+      "value": 0.1
+    }
+  },
+  "trigger": {
+    "nodeId": "hit",
+    "id": "core.selfSkillHit"
+  },
+  "when": {
+    "nodeId": "in-band",
+    "kind": "all",
+    "conditions": [
+      {
+        "nodeId": "hurt",
+        "id": "core.ownerHpBelowRatio",
+        "params": {
+          "ratio": {
+            "parameter": "threshold"
+          }
+        }
+      },
+      {
+        "nodeId": "not-critical",
+        "kind": "not",
+        "condition": {
+          "nodeId": "critical",
+          "id": "core.ownerHpBelowRatio",
+          "params": {
+            "ratio": {
+              "parameter": "minimum"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "actions": [
+    {
+      "stepId": "heal",
+      "id": "core.healOwnerByMaxHp",
+      "params": {
+        "ratio": {
+          "parameter": "healing"
+        }
+      }
+    }
+  ]
+}

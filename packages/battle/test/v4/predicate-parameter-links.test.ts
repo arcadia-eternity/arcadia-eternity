@@ -86,7 +86,9 @@ it('shares one Config address while keeping predicate and action read times inde
   const result = compileRule(content(), registry(events), { contentId: 'test', sourceKind: 'skill' })
   if (!result.ok) throw new Error(JSON.stringify(result.diagnostics))
   expect(result.parameterDefinitions).toHaveLength(1)
-  expect(result.rule.when?.params).toEqual({ threshold: { parameter: 'ratio' } })
+  expect(result.rule.when && 'id' in result.rule.when ? result.rule.when.params : undefined).toEqual({
+    threshold: { parameter: 'ratio' },
+  })
   result.parameters.install(battle.configSystem)
   const source = a.activePet.skills[0]
   source.effects.push(

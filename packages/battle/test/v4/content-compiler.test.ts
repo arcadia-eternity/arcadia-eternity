@@ -82,7 +82,7 @@ it('compiles unknown content into a real ordered conditional effect with normali
   expect(a.activePet.currentHp).toBe(1)
   if (!result.ok) throw new Error(JSON.stringify(result.diagnostics))
   expect(result.rule.actions.map(action => action.params)).toEqual([{ amount: 10 }, { amount: 20 }])
-  expect(result.rule.when?.params).toEqual({ ratio: 0.5 })
+  expect(result.rule.when && 'id' in result.rule.when ? result.rule.when.params : undefined).toEqual({ ratio: 0.5 })
   expect(result.rule.priority).toBe(0)
   input.actions[1].params!.amount = 99
   const source = a.activePet.skills[0]
