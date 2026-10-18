@@ -3,14 +3,13 @@ import type { Static, TObject } from '@sinclair/typebox'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import { HealContext, type DamageContext, type EffectContext } from '../context'
 import type { Pet } from '../pet'
-import { normalizeParams } from './parameters'
 import { freezeContent } from './immutable'
 import {
-  compileActionParameters,
+  compileParameterArguments,
   validateParameterSlots,
   type PublicParameterSlot,
   type ParameterLinker,
-} from './action-parameters'
+} from './capability-parameters'
 import { isRegisteredTrigger, type RegisteredTrigger, type EffectSourceKind, type CompiledTrigger } from './triggers'
 
 /** Finite contextual guarantees; conditions do not add guarantees in the first compiler. */
@@ -65,16 +64,22 @@ export interface CompiledPredicate {
   readonly test: (runtime: ActionRuntime) => boolean
 }
 export interface RegisteredPredicate {
+  readonly publicParams: Readonly<Record<string, PublicParameterSlot>>
   readonly id: string
   readonly params: TObject
   readonly needs: readonly CapabilityNeed[]
-  readonly compile: (input: unknown, available: readonly CapabilityNeed[]) => CompiledPredicate
+  readonly compile: (
+    input: unknown,
+    available: readonly CapabilityNeed[],
+    linker?: ParameterLinker,
+  ) => CompiledPredicate
 }
 const registeredPredicates = new WeakSet<RegisteredPredicate>()
 export function definePredicate<S extends TObject, const N extends readonly CapabilityNeed[]>(definition: {
   readonly id: string
   readonly params: S
   readonly needs: N
+  readonly publicParams?: Readonly<Partial<Record<keyof Static<S> & string, PublicParameterSlot>>>
   readonly test: (context: Readonly<Pick<ActionCapabilities, N[number]>>, params: Readonly<Static<S>>) => boolean
 }): RegisteredPredicate {
   if (
@@ -86,17 +91,23 @@ export function definePredicate<S extends TObject, const N extends readonly Capa
   const { id, test } = definition
   const params = freezeContent(Value.Clone(definition.params))
   const needs = Object.freeze([...definition.needs])
+  const publicParams = freezeContent(Value.Clone(definition.publicParams ?? {})) as Readonly<
+    Record<string, PublicParameterSlot>
+  >
+  validateParameterSlots(params, publicParams)
   const predicate: RegisteredPredicate = Object.freeze({
     id,
     params,
     needs,
-    compile(input: unknown, available: readonly CapabilityNeed[]) {
+    publicParams,
+    compile(input: unknown, available: readonly CapabilityNeed[], linker?: ParameterLinker) {
       for (const need of needs)
         if (!available.includes(need)) throw new Error(`CAPABILITY_MISMATCH: ${id} requires ${need}`)
-      const args = normalizeParams(params, input)
+      const argumentsPlan = compileParameterArguments(params, publicParams, input, linker)
       return Object.freeze({
-        params: args,
-        test: (runtime: ActionRuntime) => test(Object.freeze(selectCapabilities(runtime, needs)), args),
+        params: argumentsPlan.content,
+        test: (runtime: ActionRuntime) =>
+          test(Object.freeze(selectCapabilities(runtime, needs)), argumentsPlan.read(runtime) as Readonly<Static<S>>),
       })
     },
   })
@@ -140,7 +151,7 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
     compile(input: unknown, available: readonly CapabilityNeed[], linker?: ParameterLinker) {
       for (const need of needs)
         if (!available.includes(need)) throw new Error(`CAPABILITY_MISMATCH: ${id} requires ${need}`)
-      const argumentsPlan = compileActionParameters(params, publicParams, input, linker)
+      const argumentsPlan = compileParameterArguments(params, publicParams, input, linker)
       const args = argumentsPlan.base as Readonly<Static<S>>
       return Object.freeze({
         id,
@@ -207,10 +218,15 @@ export class CapabilityRegistry {
     if (!trigger) throw new Error(`UNKNOWN_CAPABILITY: ${id}`)
     return trigger.compile(input, sourceKind)
   }
-  compilePredicate(id: string, input: unknown, available: readonly CapabilityNeed[]): CompiledPredicate {
+  compilePredicate(
+    id: string,
+    input: unknown,
+    available: readonly CapabilityNeed[],
+    linker?: ParameterLinker,
+  ): CompiledPredicate {
     const predicate = this.predicates.get(id)
     if (!predicate) throw new Error(`UNKNOWN_CAPABILITY: ${id}`)
-    return predicate.compile(input, available)
+    return predicate.compile(input, available, linker)
   }
   describeTriggers(): readonly Omit<RegisteredTrigger, 'compile'>[] {
     return Object.freeze(
@@ -221,7 +237,9 @@ export class CapabilityRegistry {
   }
   describePredicates(): readonly Omit<RegisteredPredicate, 'compile'>[] {
     return Object.freeze(
-      [...this.predicates.values()].map(({ id, params, needs }) => Object.freeze({ id, params, needs })),
+      [...this.predicates.values()].map(({ id, params, needs, publicParams }) =>
+        Object.freeze({ id, params, needs, publicParams }),
+      ),
     )
   }
   describeActions(): readonly Omit<RegisteredAction, 'compile'>[] {

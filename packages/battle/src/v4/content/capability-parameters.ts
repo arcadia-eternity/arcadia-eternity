@@ -28,11 +28,11 @@ export function validateParameterSlots(schema: TObject, slots: Readonly<Record<s
     // Delegate structural type assignability to TypeBox. Range limits remain separate runtime contracts.
     const compatible = Type.Extends(slot.effectiveSchema, property, Type.Literal(true), Type.Literal(false))
     if (!('const' in compatible) || compatible.const !== true)
-      throw new Error(`Effective parameter type widens action argument: ${field}`)
+      throw new Error(`Effective parameter type widens capability argument: ${field}`)
   }
 }
 
-export function compileActionParameters(
+export function compileParameterArguments(
   schema: TObject,
   slots: Readonly<Record<string, PublicParameterSlot>>,
   input: unknown,
@@ -67,7 +67,7 @@ export function compileActionParameters(
       for (const [field, reader] of readers) {
         const value = reader.read(runtime)
         if (!Value.Check(slots[field].effectiveSchema, value))
-          throw new Error(`Invalid effective action parameter: ${field}`)
+          throw new Error(`Invalid effective capability parameter: ${field}`)
         result[field] = value
       }
       return freezeContent(result)

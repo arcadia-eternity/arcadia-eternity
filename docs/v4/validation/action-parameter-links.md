@@ -20,4 +20,12 @@ Evidence in `content-parameter-links.test.ts`:
 
 Review status: Standards review found no actionable issues. The independent Spec reviewer checked the shared-address/scope/read/reference paths and raised the constant-versus-reader distinction, then hit a usage limit before a terminal review result. The distinction is now documented and tested; no independent Spec pass is claimed for this slice.
 
-Remaining: shared predicate/trigger/value slots, finite value presets, apply-time captures, continuous Config dependency/cycle tracking, template expansion/copy mappings, Mark instance parameters, catalog manifests/restoration, full diagnostics and production conversion/behavioral acceptance.
+Remaining: shared trigger/value slots, finite value presets, apply-time captures, continuous Config dependency/cycle tracking, template expansion/copy mappings, Mark instance parameters, catalog manifests/restoration, full diagnostics and production conversion/behavioral acceptance.
+
+## Predicate parameter extension
+
+Registered predicates now opt scalar slots into the same `publicParams` contract. Compilation links predicate references before action references, so a shared parameter obeys both receivers' constraints and keeps one stable address. Both implementations reuse `capability-parameters.ts`; this avoids a second reader/normalization policy. Predicate descriptors expose the public slots for authoring.
+
+The predicate reads linked Config values during collect-time condition evaluation. An admitted effect does not re-evaluate its condition after BeforeEffect; actions read their own arguments when they begin. `predicate-parameter-links.test.ts` proves this with a shared 0.5 threshold/ratio: the condition passes, BeforeEffect changes Config to zero, and the action runs with zero. The next dispatch evaluates the condition with zero and does not apply. A second test covers JSON recompilation and a missing predicate reference localized to the `when` node.
+
+The independent Spec review remains pending due to its recorded usage limit. This extension has been self-reviewed against #223 D/E and the exact condition/action timing contract, with real Battle integration evidence above.

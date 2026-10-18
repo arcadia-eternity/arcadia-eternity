@@ -25,4 +25,4 @@ export {
 export { defineTrigger, type EffectSourceKind, type RegisteredTrigger, type CompiledTrigger } from './triggers'
 export { definePredicate, type RegisteredPredicate, type CompiledPredicate } from './capabilities'
 export { compileRule, type CompiledRuleData, type CompileDiagnostic, type RuleCompileResult } from './compiler'
-export type { PublicParameterSlot } from './action-parameters'
+export type { PublicParameterSlot } from './capability-parameters'

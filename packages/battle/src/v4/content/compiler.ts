@@ -11,7 +11,7 @@ import {
   ParameterCatalog,
   type ParameterDefinition,
 } from './parameters'
-import type { PublicParameterSlot, ParameterLinker } from './action-parameters'
+import type { PublicParameterSlot, ParameterLinker } from './capability-parameters'
 import { freezeContent } from './immutable'
 
 const invocation = Type.Object(
@@ -124,11 +124,6 @@ export function compileRule(
     nodeId = rule.trigger.nodeId
     field = 'trigger'
     const trigger = registry.compileTrigger(rule.trigger.id, rule.trigger.params, options.sourceKind)
-    nodeId = rule.when?.nodeId
-    field = 'when'
-    const predicate = rule.when
-      ? registry.compilePredicate(rule.when.id, rule.when.params, trigger.available)
-      : undefined
     const links = new Map<string, { schemas: TSchema[]; slots: PublicParameterSlot[] }>()
     const linker: ParameterLinker = (id, schema, slot) => {
       if (!Object.hasOwn(rule.parameters, id)) throw new Error(`MISSING_REFERENCE: ${id}`)
@@ -145,6 +140,11 @@ export function compileRule(
         read: runtime => parameters.read(runtime.effect.battle.configSystem, address, runtime.effect.source),
       }
     }
+    nodeId = rule.when?.nodeId
+    field = 'when'
+    const predicate = rule.when
+      ? registry.compilePredicate(rule.when.id, rule.when.params, trigger.available, linker)
+      : undefined
     const actions = rule.actions.map(action => {
       nodeId = action.stepId
       field = 'actions'
