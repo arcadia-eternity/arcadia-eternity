@@ -10,6 +10,16 @@ Selection snapshots preserve the accumulated turn count and restore a fresh runt
 
 Evidence: execution-budget.test.ts covers recursive triggers, exact action limits, separate root/turn accounting, permanent fault, room isolation, unchanged inputs/logs after fault, swallowed listener errors and release of an actual startBattle selection wait. The existing full JSON checkpoint/continuation test now checks a nonzero budget and rejects missing/mismatched saved state. The wait fixture has timers disabled; timer shutdown currently has implementation evidence only, not an enabled-timer acceptance test.
 
-Remaining before #218 is complete: dependency evaluation/retry budgets, selection/binding counts, expanded structural limits, immutable environment policy/digest, domain-specific recursive mark/damage scenarios, exact Node/Browser fault-position comparison and full execution records. Legacy callback bodies are not counted as registered actions. Existing host continuation checks are compatibility evidence, not proof of these remaining limits.
+Remaining before #218 is complete: legacy/Config dependency evaluation accounting, selection/binding counts, expanded structural limits, immutable environment policy/digest, domain-specific recursive mark/damage scenarios, exact Node/Browser fault-position comparison and full execution records. Legacy callback bodies are not counted as registered actions. Existing host continuation checks are compatibility evidence, not proof of these remaining limits.
 
 Review: Standards identified faulted input acceptance and missing snapshot budget validation; both were repaired with regressions. Independent Spec review remains pending the reviewer's usage limit.
+
+## Typed value computation accounting
+
+The new ValuePlan evaluation path now charges each uncached node attempt before running it, including failed attempts. A shared successful node is memoized within one Evaluation and charged once; failed retries remain chargeable. Limits are 50000 computations per root and 500000 per turn. Continuous binding recalculations enter the owning Battle scope, so recalculations during an effect share its allowance. Budget errors bypass capture-failure storage, eager-sibling recovery, binding fault withdrawal and attribute fallback handling.
+
+Snapshots persist turnComputations as a required validated count. Hydration rebuilds subscriptions under a separate finite controller, then publishes the untouched saved gameplay allowance. A real capture/follow binding checkpoint at the exact per-turn computation limit restores and saves again without spending gameplay credit; subsequent same-turn switching faults on live computation. Starting a new turn grants the next turn's allowance.
+
+Tests also exercise a graph above the root limit, repeated missing-target recalculations, shared-node memoization, aggregate counts across roots, malformed saved counts and post-exhaustion propagation. All 126 V4 tests, typecheck/lint, provenance and Node/Chrome continuation checks pass. Standards review identified the initial hydration double-charge and it was repaired with the checkpoint regression.
+
+This counts new typed ValuePlan nodes. Legacy ReactiveValue internals and future Config/preset graph nodes still require explicit accounting integration; the entire #218 gate remains open. Signal updates performed directly by trusted code outside a phase each establish their binding evaluation scope and remain subject to cumulative per-turn limits.

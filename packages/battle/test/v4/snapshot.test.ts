@@ -63,7 +63,7 @@ it('round trips a real V1 turn checkpoint including partial input and completes 
   battle.setSelection(choose(battle, battle.playerB.id))
   await ready
   battle.setSelection(choose(battle, battle.playerA.id))
-  battle.executionBudget.action(battle.currentTurn, () => {})
+  battle.executionBudget.action(battle.currentTurn, () => battle.executionBudget.chargeComputation())
   const budgetState = battle.executionBudget.exportState()
   const data = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog)))
   expect(data.format).toBe('arcadia.v1.battle-snapshot')

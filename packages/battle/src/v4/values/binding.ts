@@ -1,3 +1,4 @@
+import { ExecutionBudgetExceeded } from '../execution/budget'
 import { derived, ReactiveValue, describeValue, checkValueRead, getValueRecipe } from '../reactiveValue'
 import { Modifier, DurationType } from '../attributeSystem'
 import type { MarkInstance } from '../mark'
@@ -66,16 +67,23 @@ export function bindValue<A>(
   restoring = false,
 ): BoundValue {
   if (!target.pet.attributeSystem.hasAttribute(target.attribute)) throw new Error('Invalid binding target attribute')
+  const battle = target.pet.owner?.battle
+  if (!battle) throw new Error('Value binding requires a Battle')
   const plan = definition.build(args)
   const dependencies = new Set<ReactiveValue<unknown>>()
   const bound = new BoundValue(
     derived((): Result => {
       dependencies.clear()
       try {
-        const value = traceReads(target, dependencies, () => plan.evaluate(new Evaluation(state, restoring)))
+        const value = battle.executionBudget.run(battle.currentTurn, () =>
+          traceReads(target, dependencies, () =>
+            plan.evaluate(new Evaluation(state, restoring, () => battle.executionBudget.chargeComputation())),
+          ),
+        )
         if (!Number.isFinite(value)) throw new Error('Non-finite bound value')
         return { ok: true, value }
       } catch (error) {
+        if (error instanceof ExecutionBudgetExceeded) throw error
         if (restoring && error instanceof BindingStateError) throw error
         return {
           ok: false,

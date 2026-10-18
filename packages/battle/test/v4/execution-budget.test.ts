@@ -197,3 +197,22 @@ it('releases a live selection wait with the original fault instead of choosing a
   expect(await running).toBe(battle.executionBudget.fault)
   expect(battle.victor).toBeUndefined()
 })
+
+it('preserves cumulative computation limits across roots and rejects malformed saved counts', () => {
+  const { battle } = setup()
+  for (let root = 0; root < 10; root++) {
+    battle.executionBudget.run(0, () => {
+      for (let i = 0; i < executionBudgetPolicy.computations; i++) battle.executionBudget.chargeComputation()
+    })
+  }
+  const state = battle.executionBudget.exportState()
+  expect(state.turnComputations).toBe(executionBudgetPolicy.turnComputations)
+  const restored = setup().battle.executionBudget
+  restored.restoreState(state)
+  expect(() => restored.run(0, () => restored.chargeComputation())).toThrow(
+    'Execution budget exceeded: turnComputations',
+  )
+  const invalid = setup().battle.executionBudget
+  expect(() => invalid.restoreState({ ...state, turnComputations: -1 })).toThrow('Invalid execution budget state')
+  expect(() => invalid.restoreState({ turn: 0, turnActions: 0 })).toThrow('Invalid execution budget state')
+})

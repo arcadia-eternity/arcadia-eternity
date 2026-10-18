@@ -1,3 +1,4 @@
+import { ExecutionBudgetExceeded } from '../execution/budget'
 import type { StatTypeOnBattle } from '@arcadia-eternity/const'
 import { captureReads } from './dependencies'
 import type { Player } from '../player'
@@ -31,6 +32,7 @@ export class Evaluation {
   private readonly memoized = new Map<object, unknown>()
   memo<T>(node: object, read: () => T): T {
     if (this.memoized.has(node)) return this.memoized.get(node) as T
+    this.beforeCompute?.()
     const value = read()
     this.memoized.set(node, value)
     return value
@@ -38,6 +40,7 @@ export class Evaluation {
   constructor(
     readonly state: BindingState,
     readonly restoring = false,
+    private readonly beforeCompute?: () => void,
   ) {}
   node(key: string, kind: string): void {
     if (!key || this.used.has(key)) throw new BindingStateError(`Duplicate value node: ${key}`)
@@ -55,6 +58,7 @@ export class Evaluation {
       this.state.captures.set(key, { anchor, value })
       return value
     } catch (error) {
+      if (error instanceof ExecutionBudgetExceeded) throw error
       this.state.captures.set(key, {
         anchor,
         error: error instanceof Error ? error.message : typeof error === 'string' ? error : 'Value evaluation failed',
@@ -158,6 +162,7 @@ export const values = {
         try {
           results.push([key, plan.evaluate(frame)])
         } catch (error) {
+          if (error instanceof ExecutionBudgetExceeded) throw error
           failures.push(error)
         }
       }

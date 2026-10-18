@@ -562,9 +562,13 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       transformations: ReturnType<TransformationSystem['exportSnapshotState']>
     }
     if (!data.timerConfig || data.timerConfig.enabled) throw new Error('Snapshot does not support enabled timers')
+    const savedBudget = new ExecutionBudget(() => battle!.stopForExecutionFault())
+    savedBudget.restoreState(data.executionBudgetState)
+    if (data.executionBudgetState.turn !== battle.currentTurn) throw new Error('Execution budget turn mismatch')
     const emitter = mitt<Events>()
     set(battle, {
-      executionBudget: new ExecutionBudget(() => battle!.stopForExecutionFault()),
+      // Rebuilding subscriptions has its own finite allowance; never spend saved gameplay credit.
+      executionBudget: new ExecutionBudget(() => {}),
       parent: null,
       battle,
       emitter,
@@ -580,8 +584,6 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       waitingResolvers: {},
       messageCallbacks: [],
     })
-    battle.executionBudget.restoreState(data.executionBudgetState)
-    if (data.executionBudgetState.turn !== battle.currentTurn) throw new Error('Execution budget turn mismatch')
     for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
     for (const restore of deferred) restore()
     const ownedValues = new Set<ReactiveValue<unknown>>()
@@ -657,6 +659,8 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
           })
         }
       }
+    battle.executionBudget.assertActive()
+    set(battle, { executionBudget: savedBudget })
     Reflect.deleteProperty(battle, 'executionBudgetState')
     Reflect.deleteProperty(battle, 'rngState')
     Reflect.deleteProperty(battle, 'timerConfig')

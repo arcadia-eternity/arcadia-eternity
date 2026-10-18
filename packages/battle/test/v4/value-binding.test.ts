@@ -203,6 +203,10 @@ it('restores captures and structural tracking before any read, without replaying
     for (const skill of pet.skills) for (const effect of skill.effects) catalog.registerEffect(effect.id, effect)
   for (const effect of debuff.effects) catalog.registerEffect(effect.id, effect)
   const payload = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog)))
+  const budgetRef = payload.nodes.find((node: { kind: string }) => node.kind === 'Battle').fields.executionBudgetState
+    .ref
+  // A legitimate checkpoint can already have spent all computation credit for this turn.
+  payload.nodes[budgetRef].fields.turnComputations = 500000
   const expectedDraw = battle.random()
   await battle.cleanup()
   await run
@@ -232,8 +236,18 @@ it('restores captures and structural tracking before any read, without replaying
   const recipe = wrongTarget.nodes.find((node: { fields: { type?: string } }) => node.fields.type === 'bound')
   wrongTarget.nodes[recipe.fields.target.ref].fields.attribute = 'def'
   expect(() => restoreBattle(wrongTarget, catalog)).toThrow('Invalid bound contribution ownership')
+  const exhausted = restoreBattle(payload, catalog)
+  expect(() => switchTo(exhausted, exhausted.playerB, 1)).toThrow('Execution budget exceeded: turnComputations')
+  await exhausted.cleanup()
   const restored = restoreBattle(payload, catalog)
   battles.push(restored)
+  expect(restored.executionBudget.exportState().turnComputations).toBe(500000)
+  const unchanged = JSON.parse(JSON.stringify(snapshotBattle(restored, catalog)))
+  const unchangedRef = unchanged.nodes.find((node: { kind: string }) => node.kind === 'Battle').fields
+    .executionBudgetState.ref
+  expect(unchanged.nodes[unchangedRef].fields.turnComputations).toBe(500000)
+  // Move into a new turn before exercising further live invalidation.
+  restored.currentTurn++
   expect(restored.random()).toBe(expectedDraw)
   expect(restored.playerA.activePet.stat.atk).toBe(40)
   switchTo(restored, restored.playerB, 1)
@@ -560,4 +574,89 @@ it('rolls back a failed replacement publication and releases the prepared candid
   stop()
   await battle.cleanup()
   expect(oldInput.observerCount).toBe(0)
+})
+
+it('faults the battle when a value graph exceeds the shared computation budget', () => {
+  const { battle, a, source } = fixture()
+  const definition = defineValue('test/oversized-value', () =>
+    values.combine(
+      Object.fromEntries(Array.from({ length: 50001 }, (_, index) => [String(index), values.constant(1)])),
+      () => 1,
+    ),
+  )
+  expect(() =>
+    installValueModifier({
+      definition,
+      args: undefined,
+      source,
+      effectId: 'test/budget',
+      bindingKey: 'large',
+      target: a.activePet,
+      attribute: 'atk',
+      operation: 'override',
+    }),
+  ).toThrow('Execution budget exceeded: computations')
+  expect(battle.executionBudget.fault?.dimension).toBe('computations')
+  expect(
+    a.activePet.attributeSystem.findModifier(
+      'atk',
+      JSON.stringify([source.id, 'test/budget', 'large', a.activePet.id]),
+    ),
+  ).toBeUndefined()
+})
+
+it('charges failed reactive retries and propagates exhaustion instead of withdrawing only the contribution', () => {
+  const { battle, a, source } = fixture()
+  const input = new Signal(0)
+  let attempts = 0
+  const definition = defineValue('test/retry-budget', () =>
+    values.reactive(input).map(value => {
+      attempts++
+      if (value > 0) throw new Error('Missing target')
+      return 1
+    }),
+  )
+  const handle = installValueModifier({
+    definition,
+    args: undefined,
+    source,
+    effectId: 'test/budget',
+    bindingKey: 'retry',
+    target: a.activePet,
+    attribute: 'atk',
+    operation: 'override',
+  })
+  expect(() =>
+    battle.executionBudget.run(battle.currentTurn, () => {
+      for (let i = 1; i <= 50001; i++) input.next(i)
+    }),
+  ).toThrow('Execution budget exceeded: computations')
+  expect(attempts).toBeLessThan(50001)
+  expect(battle.executionBudget.fault?.dimension).toBe('computations')
+  // The ordinary missing-target failure is not rewritten as a recoverable budget fault.
+  expect(handle.fault?.message).toBe('Missing target')
+  expect(() => input.next(50002)).toThrow('Execution budget exceeded: computations')
+})
+
+it('charges one computation for a shared successful node within an evaluation', () => {
+  const { battle, a, source } = fixture()
+  const input = new Signal(1)
+  const shared = values.reactive(input)
+  const definition = defineValue('test/shared-computation', () =>
+    values.combine({ left: shared, right: shared }, ({ left, right }) => left + right),
+  )
+  const handle = installValueModifier({
+    definition,
+    args: undefined,
+    source,
+    effectId: 'test/budget',
+    bindingKey: 'shared',
+    target: a.activePet,
+    attribute: 'atk',
+    operation: 'override',
+  })
+  const before = battle.executionBudget.exportState().turnComputations
+  input.next(2)
+  expect(handle.value).toBe(4)
+  expect(battle.executionBudget.exportState().turnComputations - before).toBe(2)
 })

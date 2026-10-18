@@ -1,3 +1,4 @@
+import { ExecutionBudgetExceeded } from './execution/budget'
 import { rememberModifierCleanup, describeCleanup, deactivateCleanup, noopCleanup } from './snapshotBindings'
 // attribute-system.ts
 import { Signal, ReactiveValue, derived, isReactiveValue, describeValue, isStrictValueRead } from './reactiveValue'
@@ -649,7 +650,7 @@ export class AttributeSystem<T extends AttributeData> {
 
       return result
     } catch (error) {
-      if (isStrictValueRead()) throw error
+      if (error instanceof ExecutionBudgetExceeded || isStrictValueRead()) throw error
       this.logger.warn(`Error calculating attribute '${String(key)}':`, error)
       return this.getFallbackValue(key)
     } finally {
@@ -686,7 +687,7 @@ export class AttributeSystem<T extends AttributeData> {
           result = modifier.apply(result)
         }
       } catch (error) {
-        if (isStrictValueRead()) throw error
+        if (error instanceof ExecutionBudgetExceeded || isStrictValueRead()) throw error
         this.logger.warn(`Error applying modifier '${modifier.id}' to attribute '${String(key)}':`, error)
         // Continue with other modifiers instead of failing completely
         continue
@@ -759,7 +760,7 @@ export class AttributeSystem<T extends AttributeData> {
       try {
         return subject.value
       } catch (error) {
-        if (isStrictValueRead()) throw error
+        if (error instanceof ExecutionBudgetExceeded || isStrictValueRead()) throw error
         this.logger.warn(`Error getting current value for '${String(key)}':`, error)
         return this.getFallbackValue(key)
       }
