@@ -2,6 +2,7 @@ import { type Static, type TObject } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { BaseMark, type MarkInstance } from '../mark'
 import type { ConfigSystem } from '../config'
+import { freezeContent } from './immutable'
 import { defineParameter, normalizeParams, ParameterCatalog } from './parameters'
 import { validateParameterSlots, type PublicParameterSlot } from './capability-parameters'
 
@@ -34,6 +35,21 @@ function createContract<S extends TObject>(
     }),
   )
   const parameters = new ParameterCatalog(definitions)
+  const captureSchema = {
+    ...schema,
+    properties: Object.fromEntries(
+      fields.map(field => [
+        field,
+        {
+          ...Value.Clone(slots[field].effectiveSchema),
+          default: defaults[field],
+        },
+      ]),
+    ),
+  } as TObject
+  // Runtime transfer captures evaluated values, which may exceed the authoring range.
+  const capture = (input: unknown): MarkInstanceParams => normalizeParams(captureSchema, input) as MarkInstanceParams
+
   const normalize = (input: unknown): Readonly<Static<S>> => {
     const values = normalizeParams(schema, input)
     for (const field of fields)
@@ -41,8 +57,11 @@ function createContract<S extends TObject>(
     return values
   }
   return Object.freeze({
+    schema: freezeContent(Value.Clone(schema)),
+    publicParams: freezeContent(Value.Clone(slots)),
     parameters,
     normalize,
+    capture,
     address(field: keyof Static<S> & string): string {
       const index = fields.indexOf(field)
       if (index < 0) throw new Error(`Unknown mark parameter: ${field}`)
@@ -54,12 +73,12 @@ function createContract<S extends TObject>(
     },
     installScope(config: ConfigSystem, mark: MarkInstance): void {
       this.assertInstalled(config)
-      const values = normalize(mark.instanceParams)
+      const values = capture(mark.instanceParams)
       for (const [index, field] of fields.entries())
         config.set(definitions[index].address, values[field] as string | number | boolean, mark)
     },
     validateScope(state: ReturnType<ConfigSystem['exportSnapshotState']>, mark: MarkInstance): void {
-      const values = normalize(mark.instanceParams)
+      const values = capture(mark.instanceParams)
       const saved = state.scopedBase.get(mark)
       for (const [index, field] of fields.entries())
         if (!state.base.has(definitions[index].address) || saved?.get(definitions[index].address) !== values[field])
@@ -95,7 +114,7 @@ export function markParameterContract(base: BaseMark) {
 }
 export function normalizeMarkInstanceParams(base: BaseMark, input?: unknown): MarkInstanceParams | undefined {
   const contract = contracts.get(base)
-  if (contract) return contract.normalize(input === undefined ? {} : input) as MarkInstanceParams
+  if (contract) return contract.capture(input === undefined ? {} : input)
   if (input !== undefined) throw new Error('Mark does not declare instance parameters')
   return undefined
 }

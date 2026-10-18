@@ -25,8 +25,10 @@ export {
 export { defineTrigger, type EffectSourceKind, type RegisteredTrigger, type CompiledTrigger } from './triggers'
 export { definePredicate, type RegisteredPredicate, type CompiledPredicate } from './capabilities'
 export { compileRule, type CompiledRuleData, type CompileDiagnostic, type RuleCompileResult } from './compiler'
-export type { PublicParameterSlot } from './capability-parameters'
+export type { PublicParameterSlot, PublicParameterBindings, ParameterBindingsFor } from './capability-parameters'
 export { coreCapabilities, createCoreCapabilityRegistry } from './core-capabilities'
 export { conditionLimits, type ConditionData } from './conditions'
 
 export { defineMarkInstanceParams, type MarkInstanceParams } from './mark-parameters'
+
+export { defineAddMarkAction } from './mark-actions'

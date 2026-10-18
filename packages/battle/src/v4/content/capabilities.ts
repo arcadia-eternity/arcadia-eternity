@@ -1,13 +1,16 @@
 import { Value } from '@sinclair/typebox/value'
 import type { Static, TObject } from '@sinclair/typebox'
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { HealContext, type DamageContext, type EffectContext } from '../context'
+import { AddMarkContext, HealContext, type DamageContext, type EffectContext } from '../context'
 import type { Pet } from '../pet'
+import type { BaseMark } from '../mark'
+import type { MarkInstanceParams } from './mark-parameters'
 import { freezeContent } from './immutable'
 import {
   compileParameterArguments,
   validateParameterSlots,
-  type PublicParameterSlot,
+  type PublicParameterBindings,
+  type ParameterBindingsFor,
   type ParameterLinker,
 } from './capability-parameters'
 import { isRegisteredTrigger, type RegisteredTrigger, type EffectSourceKind, type CompiledTrigger } from './triggers'
@@ -20,7 +23,18 @@ export interface ActionCapabilities {
 }
 export type CapabilityNeed = keyof ActionCapabilities
 export type ActionContext<N extends CapabilityNeed> = Readonly<Pick<ActionCapabilities, N>> & {
-  readonly ops: { readonly heal: (target: Pet, amount: number) => void }
+  readonly ops: {
+    readonly heal: (target: Pet, amount: number) => void
+    readonly addMark: (
+      target: Pet,
+      base: BaseMark,
+      options: {
+        stack: number
+        duration: number
+        instanceParams?: MarkInstanceParams
+      },
+    ) => 'parameter-conflict' | undefined
+  }
   readonly readMaxHp: (target: Pet) => number
 }
 export interface ActionRuntime {
@@ -34,7 +48,7 @@ export interface CompiledAction<P = unknown> {
   readonly run: (runtime: ActionRuntime) => void
 }
 export interface RegisteredAction {
-  readonly publicParams: Readonly<Record<string, PublicParameterSlot>>
+  readonly publicParams: PublicParameterBindings
   readonly id: string
   readonly params: TObject
   readonly needs: readonly CapabilityNeed[]
@@ -64,7 +78,7 @@ export interface CompiledPredicate {
   readonly test: (runtime: ActionRuntime) => boolean
 }
 export interface RegisteredPredicate {
-  readonly publicParams: Readonly<Record<string, PublicParameterSlot>>
+  readonly publicParams: PublicParameterBindings
   readonly id: string
   readonly params: TObject
   readonly needs: readonly CapabilityNeed[]
@@ -79,7 +93,7 @@ export function definePredicate<S extends TObject, const N extends readonly Capa
   readonly id: string
   readonly params: S
   readonly needs: N
-  readonly publicParams?: Readonly<Partial<Record<keyof Static<S> & string, PublicParameterSlot>>>
+  readonly publicParams?: ParameterBindingsFor<S>
   readonly test: (context: Readonly<Pick<ActionCapabilities, N[number]>>, params: Readonly<Static<S>>) => boolean
 }): RegisteredPredicate {
   if (
@@ -91,9 +105,7 @@ export function definePredicate<S extends TObject, const N extends readonly Capa
   const { id, test } = definition
   const params = freezeContent(Value.Clone(definition.params))
   const needs = Object.freeze([...definition.needs])
-  const publicParams = freezeContent(Value.Clone(definition.publicParams ?? {})) as Readonly<
-    Record<string, PublicParameterSlot>
-  >
+  const publicParams = freezeContent(Value.Clone(definition.publicParams ?? {})) as PublicParameterBindings
   validateParameterSlots(params, publicParams)
   const predicate: RegisteredPredicate = Object.freeze({
     id,
@@ -120,7 +132,7 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
   readonly id: string
   readonly params: S
   readonly needs: N
-  readonly publicParams?: Readonly<Partial<Record<keyof Static<S> & string, PublicParameterSlot>>>
+  readonly publicParams?: ParameterBindingsFor<S>
   readonly execute: (context: ActionContext<N[number]>, params: Readonly<Static<S>>) => void
 }): Omit<RegisteredAction, 'compile'> & {
   readonly compile: (
@@ -139,9 +151,7 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
   const params = freezeContent(Value.Clone(definition.params))
   const needs = Object.freeze([...definition.needs])
   const execute = definition.execute
-  const publicParams = freezeContent(Value.Clone(definition.publicParams ?? {})) as Readonly<
-    Record<string, PublicParameterSlot>
-  >
+  const publicParams = freezeContent(Value.Clone(definition.publicParams ?? {})) as PublicParameterBindings
   validateParameterSlots(params, publicParams)
   const action = Object.freeze({
     id,
@@ -162,6 +172,30 @@ export function defineAction<S extends TObject, const N extends readonly Capabil
           const context = Object.freeze({
             ...selected,
             ops: Object.freeze({
+              addMark(
+                target: Pet,
+                base: BaseMark,
+                options: { stack: number; duration: number; instanceParams?: MarkInstanceParams },
+              ) {
+                if (
+                  !Number.isInteger(options.stack) ||
+                  options.stack < 1 ||
+                  !Number.isInteger(options.duration) ||
+                  options.duration < 1
+                )
+                  throw new Error('Invalid mark stack or duration')
+                return runtime.effect.battle.addMark(
+                  new AddMarkContext(
+                    runtime.effect,
+                    target,
+                    base,
+                    options.stack,
+                    options.duration,
+                    undefined,
+                    options.instanceParams,
+                  ),
+                )
+              },
               heal(target: Pet, amount: number) {
                 if (!Number.isFinite(amount) || amount < 0) throw new Error('Invalid healing amount')
                 target.heal(new HealContext(runtime.effect, runtime.effect.source, target, amount))

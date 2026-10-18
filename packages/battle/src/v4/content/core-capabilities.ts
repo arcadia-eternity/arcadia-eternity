@@ -21,6 +21,21 @@ const selfSkillHit = defineTrigger({
   resolve: context => (context.source.owner instanceof Pet ? { ownerPet: context.source.owner } : {}),
 })
 
+const selfSkillHitTarget = defineTrigger({
+  id: 'core.selfSkillHitTarget',
+  trigger: EffectTrigger.OnHit,
+  params: Type.Object({}, { additionalProperties: false }),
+  provides: { skill: ['ownerPet', 'skillTarget'], petMark: ['ownerPet', 'skillTarget'] },
+  matches: context =>
+    context.source.owner === context.parent.pet &&
+    (!(context.source instanceof SkillInstance) || context.source === context.parent.skill) &&
+    context.parent.actualTarget instanceof Pet,
+  resolve: context => ({
+    ownerPet: context.source.owner instanceof Pet ? context.source.owner : undefined,
+    skillTarget: context.parent.actualTarget,
+  }),
+})
+
 const healOwner = defineAction({
   id: 'core.healOwner',
   needs: ['ownerPet'],
@@ -46,7 +61,7 @@ const ownerHpBelowRatio = definePredicate({
 
 /** Finite authoring vocabulary. Trusted hosts can combine these definitions with their own registry entries. */
 export const coreCapabilities = Object.freeze({
-  triggers: Object.freeze([selfSkillHit]),
+  triggers: Object.freeze([selfSkillHit, selfSkillHitTarget]),
   actions: Object.freeze([healOwner, healOwnerByMaxHp]),
   predicates: Object.freeze([ownerHpBelowRatio]),
 })

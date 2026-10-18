@@ -94,7 +94,7 @@ it('counts registered action invocations across nested contexts and stops before
       formatVersion: 1,
       id: 'writes',
       trigger: { nodeId: 'trigger', id: 'turn' },
-      actions: [{ stepId: 'write', id: 'write' }],
+      actions: Array.from({ length: 64 }, (_, index) => ({ stepId: `write-${index}`, id: 'write' })),
     },
     registry,
     { contentId: 'budget', sourceKind: 'skill' },
@@ -103,7 +103,8 @@ it('counts registered action invocations across nested contexts and stops before
   source.effects.push(result.effect)
   expect(() =>
     battle.executionBudget.run(battle.currentTurn, () => {
-      for (let i = 0; i <= executionBudgetPolicy.actions; i++) {
+      // Exercise the real action boundary across multiple effect contexts without 4097 phase setups.
+      for (let i = 0; i <= Math.floor(executionBudgetPolicy.actions / 64); i++) {
         battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)
       }
     }),
