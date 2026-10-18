@@ -17,3 +17,7 @@ export { createOfficialWaterShieldContent } from './src/v4/official/water-shield
 export { generatedInstantLiteralEffects } from './src/v4/official/instant-literals.generated'
 export { officialConsecutiveHealingEffects } from './src/v4/official/consecutive-healing'
 export { officialDamageBenefitEffects } from './src/v4/official/damage-benefits'
+export {
+  createGeneratedMarkApplications,
+  generatedMarkApplicationDependencies,
+} from './src/v4/official/mark-applications.generated'
