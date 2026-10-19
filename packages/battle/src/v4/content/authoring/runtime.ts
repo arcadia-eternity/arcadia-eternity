@@ -323,6 +323,10 @@ export const conditions: typeof C.conditions = {
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
   ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
+  ownerIsSkillTarget: ctx => {
+    const pet = owner(ctx)
+    return pet !== undefined && ctx.event instanceof UseSkillContext && pet === ctx.event.actualTarget
+  },
   ownerSwitchesIn: ctx => ctx.event instanceof SwitchPetContext && owner(ctx) === ctx.event.switchInPet,
   ownerIsActive: ctx => owner(ctx)?.isActive() ?? false,
   firstSkillThisTurn: skillOrder('first'),

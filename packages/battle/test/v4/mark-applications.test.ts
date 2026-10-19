@@ -66,8 +66,10 @@ const allRecords: RecordEntry[] = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/mark-applications-candidates.json', import.meta.url), 'utf8'),
 ).records.filter((record: RecordEntry) => record.status === 'generated-candidate')
 type SkillRecord = RecordEntry & { recipe: RecordEntry['recipe'] & { triggers: ('BeforeHit' | 'OnHit' | 'OnMiss')[] } }
-const records = allRecords.filter((record): record is SkillRecord =>
-  record.recipe.triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)),
+const records = allRecords.filter(
+  (record): record is SkillRecord =>
+    record.recipe.triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) &&
+    !record.recipe.when.includes('conditions.ownerIsSkillTarget'),
 )
 const files = new Map<string, { id: string; effect?: string[] }[]>()
 for (const record of allRecords)

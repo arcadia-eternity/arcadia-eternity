@@ -1248,3 +1248,38 @@ it('entry predicates distinguish the direct incoming pet from the current active
   expect(entry.condition!(direct)).toBe(false)
   expect(active.condition!(direct)).toBe(true)
 })
+
+it('target admission uses the direct skill actual target and follows it between evaluations', () => {
+  const f = fixture()
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/target-admission',
+      on: ['OnMiss', 'BeforeEffect'],
+      when: conditions.ownerIsSkillTarget,
+      execute() {},
+    }),
+  )
+  const direct = new EffectContext(f.use, EffectTrigger.OnMiss, f.skill)
+  f.use.actualTarget = f.owner
+  expect(effect.condition!(direct)).toBe(true)
+  expect(effect.condition!(new EffectContext(direct, EffectTrigger.BeforeEffect, f.skill))).toBe(false)
+  f.use.actualTarget = f.b.activePet
+  expect(effect.condition!(direct)).toBe(false)
+  f.skill.owner = f.b.activePet
+  expect(effect.condition!(direct)).toBe(true)
+})
+
+it('target admission rejects non-pet sources when the actual target is missing', () => {
+  const f = fixture()
+  const mark = new BaseMark('test/non-pet-target-source' as baseMarkId, []).createInstance()
+  const effect = compileEffect(
+    defineEffect({ id: 'test/missing-actual-target', on: 'OnMiss', when: conditions.ownerIsSkillTarget, execute() {} }),
+  )
+  f.use.actualTarget = undefined
+  for (const owner of [f.battle, null, f.owner]) {
+    mark.owner = owner
+    expect(effect.condition!(new EffectContext(f.use, EffectTrigger.OnMiss, mark))).toBe(false)
+  }
+  f.skill.owner = null
+  expect(effect.condition!(new EffectContext(f.use, EffectTrigger.OnMiss, f.skill))).toBe(false)
+})

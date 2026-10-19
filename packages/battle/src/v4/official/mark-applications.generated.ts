@@ -66,6 +66,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_huanxiang',
   'mark_huifu',
   'mark_huifu_1_16',
+  'mark_huifu_50_per_turn',
   'mark_huijiachifan',
   'mark_hunmi',
   'mark_hunzhuoshuiyu',
@@ -331,6 +332,21 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, conditions.chance(50)),
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+      }),
+    ),
+    effect_mark_yingfeng_heal_50_on_evasion_in_yemu: compileEffect(
+      defineEffect({
+        id: 'effect_mark_yingfeng_heal_50_on_evasion_in_yemu',
+        on: ['OnMiss'],
+        priority: 0,
+        when: conditions.all(
+          conditions.ownerIsSkillTarget,
+          contexts.battle
+            .flatMap(battle => battle.marks)
+            .where(mark => mark.baseId === 'mark_global_yemu')
+            .condition(checks.exists()),
+        ),
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_50_per_turn')!, { duration: 3 })),
       }),
     ),
     effect_skill_add_first_turn_mark_on_switch_in: compileEffect(

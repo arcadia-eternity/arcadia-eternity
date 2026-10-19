@@ -229,13 +229,19 @@ function number(v, parameters, path, domain = 'damage') {
 }
 function condition(c, domain = 'damage', parameters, path = 'condition') {
   if (fields(c, ['type'])) {
-    if (domain === 'skill' && c.type === 'selfSwitchIn') return 'conditions.ownerSwitchesIn'
+    if (domain === 'switch' && c.type === 'selfSwitchIn') return 'conditions.ownerSwitchesIn'
     if (domain === 'skill' && c.type === 'petIsActive') return 'conditions.ownerIsActive'
     if (domain === 'skill' && c.type === 'isFirstSkillUsedThisTurn') return 'conditions.firstSkillThisTurn'
     if (domain === 'skill' && c.type === 'isLastSkillUsedThisTurn') return 'conditions.lastSkillThisTurn'
     if (c.type === 'selfUseSkill') return 'conditions.selfUsesSkill'
-    // This emitter accepts only the two DamageContext stages, where checkSelf is target ownership.
-    if (c.type === 'checkSelf') return domain === 'skill' ? 'conditions.ownerUsesSkill' : 'conditions.selfBeDamaged'
+    // checkSelf refers to a different event subject in each supported stage family.
+    if (c.type === 'checkSelf')
+      return domain === 'switch'
+        ? 'conditions.ownerSwitchesIn'
+        : domain === 'skill'
+          ? 'conditions.ownerUsesSkill'
+          : 'conditions.selfBeDamaged'
+    if (domain === 'skill' && c.type === 'selfBeSkillTarget') return 'conditions.ownerIsSkillTarget'
     if (c.type === 'selfBeDamaged' && domain === 'damage') return 'conditions.selfBeDamaged'
   }
   if (

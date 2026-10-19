@@ -59,7 +59,7 @@ export function classifyMarkApplication(definition) {
     return { reason: 'requires a fixed base mark reference' }
   const triggers = Array.isArray(definition.trigger) ? definition.trigger : [definition.trigger]
   const damageStage = triggers.every(trigger => ['OnDamage', 'PostDamage'].includes(trigger))
-  const domain = damageStage ? 'damage' : 'skill'
+  const domain = damageStage ? 'damage' : triggers.every(trigger => trigger === 'OnSwitchIn') ? 'switch' : 'skill'
   const parameters = []
   const when = 'condition' in definition ? condition(definition.condition, domain, parameters) : '() => true'
   const options = {}
@@ -79,7 +79,8 @@ export function classifyMarkApplication(definition) {
       ['OnMarkDestroy', 'OnMarkDurationEnd'].includes(triggers[0]) &&
       !('condition' in definition)) ||
     (triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) &&
-      requiredCondition(definition.condition, 'selfUseSkill')) ||
+      (requiredCondition(definition.condition, 'selfUseSkill') ||
+        requiredCondition(definition.condition, 'selfBeSkillTarget'))) ||
     (triggers.length === 1 &&
       triggers[0] === 'OnSwitchIn' &&
       fields(definition.condition, ['type']) &&

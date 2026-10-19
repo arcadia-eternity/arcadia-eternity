@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 267,
+    generated: 268,
     protected: 2,
-    dependencies: 180,
-    rejected: 18,
+    dependencies: 181,
+    rejected: 17,
   })
 })
 
@@ -296,4 +296,17 @@ test('damage-stage checkSelf retains target ownership in nested admission and op
     }).when,
     'conditions.all(conditions.selfUsesSkill,conditions.ownerUsesSkill)',
   )
+})
+
+test('switch option checkSelf queries the direct incoming pet', () => {
+  const d = { ...source(), trigger: 'OnSwitchIn', condition: { type: 'selfSwitchIn' } }
+  d.apply.stack = { type: 'conditional', condition: { type: 'checkSelf' }, trueValue: 2, falseValue: 1 }
+  assert.equal(classifyMarkApplication(d).stackValue, 'values.choose(conditions.ownerSwitchesIn,2,1)')
+})
+
+test('target-side skill admission requires a positive mandatory guard', () => {
+  const d = { ...source(), trigger: 'OnMiss', condition: { type: 'selfBeSkillTarget' } }
+  assert.equal(classifyMarkApplication(d).when, 'conditions.ownerIsSkillTarget')
+  assert.ok(classifyMarkApplication({ ...d, condition: { type: 'not', condition: d.condition } }).reason)
+  assert.ok(classifyMarkApplication({ ...d, trigger: 'PostDamage' }).reason)
 })
