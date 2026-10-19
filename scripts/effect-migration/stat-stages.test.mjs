@@ -53,7 +53,7 @@ test('rejects unsupported semantics and ambiguous parameter aliases', () => {
     assert.ok(classifyStatStage(bad).reason)
 })
 test('all emitted source and ledger reproduce exactly', async () =>
-  assert.deepEqual(await generateStatStages({ check: true }), { generated: 101, parameters: 42, rejected: 1 }))
+  assert.deepEqual(await generateStatStages({ check: true }), { generated: 102, parameters: 42, rejected: 0 }))
 
 test('shared authored conditions preserve stat identity and ordered admission', () => {
   const d = source()
@@ -251,6 +251,40 @@ test('mark-stage correction is exact and preserves its dynamic read', async () =
     },
     x => {
       x.apply.target = 'opponent'
+    },
+  ]) {
+    const altered = structuredClone(d)
+    change(altered)
+    assert.ok(classifyStatStage(altered).reason)
+  }
+})
+
+test('the named ignored set field preserves additive behavior and missing-value zero', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { parse } = await import('yaml')
+  const d = parse(await readFile('packs/base/data/effect_skill.yaml', 'utf8'), { merge: true }).find(
+    d => d.id === 'effect_skill_set_self_spa_to_atk',
+  )
+  const before = structuredClone(d),
+    r = classifyStatStage(d)
+  assert.deepEqual(d, before)
+  assert.deepEqual(r.legacyIgnoredFields, [{ path: '/apply/strategy', value: 'set', behavior: 'additive' }])
+  assert.match(r.valueCode, /amounts\[0\] \?\? 0/)
+  for (const change of [
+    x => {
+      x.apply.strategy = 'unknown'
+    },
+    x => {
+      delete x.apply.strategy
+    },
+    x => {
+      x.apply.value.selector.chain.reverse()
+    },
+    x => {
+      x.condition.conditions[1].baseId = 'other'
+    },
+    x => {
+      x.id = 'unreviewed'
     },
   ]) {
     const altered = structuredClone(d)

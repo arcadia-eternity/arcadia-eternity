@@ -1821,5 +1821,26 @@ export const generatedStatStageCandidates = Object.freeze({
         }),
       )
     })(),
+    effect_skill_set_self_spa_to_atk: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_self_spa_to_atk',
+        on: ['BeforeHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').condition(checks.exists()),
+        ),
+        execute: targets.ownerPet.apply(
+          ops.changeStatStage(
+            'spa',
+            targets.ownerMarks
+              .where(mark => mark.baseId === 'stat_stage_atk_up')
+              .select(mark => mark.stack)
+              .all()
+              .map(amounts => amounts[0] ?? 0),
+          ),
+        ),
+      }),
+    ),
   }),
 })

@@ -2259,15 +2259,30 @@
         ]
       },
       "classification": "U"
-    }
-  ],
-  "rejected": [
+    },
     {
       "id": "effect_skill_set_self_spa_to_atk",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/458",
       "definitionSha256": "1d4622573f46cb2e6a32c0bfc4dd64329e8aaaf9646b0590d8d3e1c33a713267",
-      "reason": "requires literal stat/value and self/opponent target"
+      "recipe": {
+        "id": "effect_skill_set_self_spa_to_atk",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "valueCode": "targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').select(mark => mark.stack).all().map(amounts => amounts[0] ?? 0)",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').condition(checks.exists()))",
+        "legacyIgnoredFields": [
+          {
+            "path": "/apply/strategy",
+            "value": "set",
+            "behavior": "additive"
+          }
+        ]
+      },
+      "classification": "U"
     }
-  ]
+  ],
+  "rejected": []
 }

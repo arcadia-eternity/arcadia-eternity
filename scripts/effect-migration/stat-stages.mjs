@@ -74,6 +74,50 @@ export function classifyStatStage(original) {
     !Number.isFinite(d.priority)
   )
     return { reason: 'unsupported definition fields' }
+  if (d.id === 'effect_skill_set_self_spa_to_atk') {
+    const expected = {
+      id: d.id,
+      trigger: 'BeforeHit',
+      priority: d.priority,
+      apply: {
+        type: 'statStageBuff',
+        target: 'self',
+        statType: 'spa',
+        strategy: 'set',
+        value: {
+          type: 'dynamic',
+          selector: {
+            base: 'selfMarks',
+            chain: [
+              {
+                type: 'whereAttr',
+                extractor: { type: 'base', arg: 'baseId' },
+                evaluator: { type: 'same', value: 'stat_stage_atk_up' },
+              },
+              { type: 'select', arg: { type: 'base', arg: 'stack' } },
+            ],
+          },
+        },
+      },
+      condition: {
+        type: 'every',
+        conditions: [{ type: 'selfUseSkill' }, { type: 'selfHasMark', baseId: 'stat_stage_atk_up' }],
+      },
+    }
+    if (JSON.stringify(normalize(d)) !== JSON.stringify(normalize(expected)))
+      return { reason: 'unsupported legacy additive stage mapping' }
+    return {
+      id: d.id,
+      priority: d.priority,
+      triggers: [d.trigger],
+      target: 'self',
+      stat: 'spa',
+      valueCode:
+        "targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').select(mark => mark.stack).all().map(amounts => amounts[0] ?? 0)",
+      when: "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').condition(checks.exists()))",
+      legacyIgnoredFields: [{ path: '/apply/strategy', value: 'set', behavior: 'additive' }],
+    }
+  }
   if (d.id === 'effect_ability_enhance_atk_when_spa_enhanced') {
     const expected = {
       id: d.id,

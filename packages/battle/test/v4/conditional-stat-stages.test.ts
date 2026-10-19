@@ -37,9 +37,10 @@ interface Entry {
 const records: Entry[] = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/stat-stages-candidates.json', import.meta.url), 'utf8'),
 ).records.filter(
-  (r: Entry & { recipe: { additionalDecisions?: string[] } }) =>
+  (r: Entry & { recipe: { additionalDecisions?: string[]; valueCode?: string } }) =>
     r.recipe.when &&
     !r.recipe.additionalDecisions &&
+    !r.recipe.valueCode &&
     r.recipe.triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)),
 )
 const definitions = new Map<string, Record<string, unknown>>()
