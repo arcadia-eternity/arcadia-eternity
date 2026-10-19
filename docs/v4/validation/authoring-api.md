@@ -11,7 +11,7 @@
 
 ## Behavior evidence
 
-`pnpm test:effect-authoring-design` runs 26 authoring scenarios and the existing 19 value-binding tests against the source implementation. Scenarios include collection versus execution time, independent actions, lazy branches, one numeric read per operator, direct HP assignment without healing, `spe` versus `spd`, captured instance/followed stack, followed instance/per-entry captures, removal, replacement, same-instance re-entry without intermediate reads, initial absence, source cleanup, real switching, duplicate keys and self-dependency rejection.
+`pnpm test:effect-authoring-design` runs 29 authoring scenarios and the existing 19 value-binding tests against the source implementation. Scenarios include collection versus execution time, independent actions, lazy branches, one numeric read per operator, direct HP assignment without healing, `spe` versus `spd`, captured instance/followed stack, followed instance/per-entry captures, removal, replacement, same-instance re-entry without intermediate reads, initial absence, source cleanup, real switching, duplicate keys and self-dependency rejection.
 
 `official-authored.test.ts` compares three non-persistent candidates against current production YAML through the legacy parser and real V4 dispatch: skill/mark sources, missing prerequisite, wrong owner, cancellation, late HP/maxHP/owner changes, consumption hooks, and twelve exact HP threshold values. It compares state, modifier results, effect success/hooks and subsequent RNG. Sixty-six behavioral cases and a four-ID source-hash check pass. This does not constitute full-game or checkpoint acceptance.
 
@@ -20,6 +20,8 @@ Existing `official-healing.test.ts` still passes all 33 cases after adopting the
 Per-ID source hashes and remaining gates are recorded in `authoring-api-candidates.json`; all four remain U. The main production migration inventory has not been reclassified based on these bounded checks.
 
 The damage-modifier batch adds shared `contexts.damage`, `ops.modifyDamage` and ordered condition combinators. Runtime checks cover ancestor reselection, numeric read order, missing values, cross-battle contexts and short-circuiting; type assertions reject using damage operators on pets and passing persistent plans as instant amounts. See [batch evidence](damage-modifiers.md).
+
+The healing-modifier batch adds `contexts.heal`, `ops.modifyHeal`, direct-target healing admission and an ordered probability condition. Damage and healing share numeric reads and ownership enforcement, including rechecking targets after value callbacks. See [healing evidence](heal-modifiers.md).
 
 ## Review boundaries
 
@@ -35,4 +37,4 @@ Relation observation now initializes with Pet, Mark and Skill construction and s
 
 ## Final validation
 
-Final rebuilt artifacts pass all 6,700 V4 tests across 41 files, plus 45 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.
+Final rebuilt artifacts pass all 7,027 V4 tests across 42 files, plus 48 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.

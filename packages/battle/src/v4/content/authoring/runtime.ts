@@ -266,6 +266,10 @@ export const contexts: typeof C.contexts = {
     const event = nearestContext(ctx, DamageContext)
     return event ? [event] : []
   }),
+  heal: selector(ctx => {
+    const event = nearestContext(ctx, HealContext)
+    return event ? [event] : []
+  }),
   nearestSkillUse: ctx => nearestContext(ctx, UseSkillContext),
 }
 export const conditions: typeof C.conditions = {
@@ -284,6 +288,11 @@ export const conditions: typeof C.conditions = {
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
   selfBeDamaged: ctx => ctx.event instanceof DamageContext && owner(ctx) === ctx.event.target,
+  selfBeHealed: ctx => ctx.event instanceof HealContext && owner(ctx) === ctx.event.target,
+  chance: percent => {
+    if (!Number.isFinite(percent)) throw new Error('Expected finite probability')
+    return ctx => engine(ctx).battle.random() < percent / 100
+  },
 }
 export const checks: typeof C.checks = { exists: () => (_ctx, selected) => selected.length > 0 }
 export const actions: typeof C.actions = {
@@ -373,20 +382,29 @@ function numeric<T>(
     }
   }
 }
-export const ops: typeof C.ops = {
-  modifyDamage: input => {
-    const { percent, delta } = input
-    return (ctx, selected) => {
-      for (const event of selected)
-        if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
-      const p = read(ctx, percent)
-      const d = read(ctx, delta)
-      if (p === undefined || d === undefined) return
-      if (typeof p !== 'number' || !Number.isFinite(p) || typeof d !== 'number' || !Number.isFinite(d))
-        throw new Error('Expected finite numeric input')
-      for (const event of selected) ctx.ops.modifyDamage(event, { percent: p, delta: d })
+/** Both modifiers share ordering, missing-input and battle ownership rules. */
+function modifyContext<T extends DamageContext | HealContext>(
+  input: { percent: number | C.Value<number, C.Presence>; delta: number | C.Value<number, C.Presence> },
+  kind: string,
+): C.Operator<T> {
+  const { percent, delta } = input
+  return (ctx, selected) => {
+    for (const event of selected)
+      if (event.battle !== engine(ctx).battle) throw new Error(`Cross-battle ${kind} context`)
+    const p = read(ctx, percent)
+    const d = read(ctx, delta)
+    if (p === undefined || d === undefined) return
+    if (typeof p !== 'number' || !Number.isFinite(p) || typeof d !== 'number' || !Number.isFinite(d))
+      throw new Error('Expected finite numeric input')
+    for (const event of selected) {
+      if (event.battle !== engine(ctx).battle) throw new Error(`Cross-battle ${kind} context`)
+      event.addModified(p, d)
     }
-  },
+  }
+}
+export const ops: typeof C.ops = {
+  modifyDamage: input => modifyContext(input, 'damage'),
+  modifyHeal: input => modifyContext(input, 'heal'),
   heal: amount =>
     numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)

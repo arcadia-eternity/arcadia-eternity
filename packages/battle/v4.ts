@@ -30,3 +30,5 @@ export {
   generatedDamageModifierEffects,
   createGeneratedDamageModifierEffects,
 } from './src/v4/official/damage-modifiers.generated'
+
+export { officialHealModifierEffects, createOfficialHealModifierEffects } from './src/v4/official/heal-modifiers'

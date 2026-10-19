@@ -223,3 +223,7 @@ const optionalSum = values.combine(
 exact<Equal<typeof optionalSum, Value<number, 'optional'>>>(true)
 // @ts-expect-error Persistent plans must not be consumed as immediate inputs.
 values.combine(capturedInstancePenalty, numberParam({ default: 3 }), (a, b) => b)
+
+contexts.heal.apply(ops.modifyHeal({ percent: 20, delta: 0 }))
+// @ts-expect-error Healing modifiers require heal contexts.
+contexts.damage.apply(ops.modifyHeal({ percent: 20, delta: 0 }))

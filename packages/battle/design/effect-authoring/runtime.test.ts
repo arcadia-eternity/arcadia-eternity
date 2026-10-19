@@ -3,6 +3,7 @@ import {
   AddMarkContext,
   BaseMark,
   DamageContext,
+  HealContext,
   Signal,
   ConfigModifier,
   ConfigModifierType,
@@ -651,4 +652,102 @@ it('uses engine-owned consumption before action reads and still executes after t
   expect(last.modified).toEqual([5, 0])
   f.battle.applyEffects(last, EffectTrigger.OnBeforeCalculateDamage, source)
   expect(observed).toEqual([2, 0])
+})
+
+it('queries nested heal contexts per action and reads both modifier inputs even when percent is missing', () => {
+  const f = fixture(),
+    trace: string[] = []
+  let missing = false
+  const percent = targets.ownerPet
+    .where(() => {
+      trace.push('percent')
+      return !missing
+    })
+    .select(() => 20)
+    .first()
+  const delta = targets.ownerPet
+    .select(() => {
+      trace.push('delta')
+      return 3
+    })
+    .first()
+  const heal = new HealContext(f.ctx, f.skill, f.owner, 83)
+  const nested = new EffectContext(heal, EffectTrigger.OnBeforeHeal, f.skill)
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/heal-query',
+      on: 'BeforeEffect',
+      execute: contexts.heal.apply(ops.modifyHeal({ percent, delta })),
+    }),
+  )
+  const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  missing = true
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  expect(heal.modified).toEqual([20, 3])
+  expect(trace).toEqual(['percent', 'delta', 'percent', 'delta'])
+})
+it('probability conditions use one ordered battle draw, including certain outcomes, and short-circuit', () => {
+  const f = fixture(),
+    control = fixture(),
+    observed: boolean[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/probability',
+      on: 'BeforeHit',
+      execute(ctx) {
+        observed.push(conditions.chance(0)(ctx), conditions.chance(100)(ctx))
+        observed.push(conditions.all(() => false, conditions.chance(50))(ctx))
+        observed.push(conditions.any(() => true, conditions.chance(50))(ctx))
+      },
+    }),
+  )
+  effect.innerApply(f.ctx)
+  control.battle.random()
+  control.battle.random()
+  expect(f.battle.random()).toBe(control.battle.random())
+  expect(observed).toEqual([false, true, false, true])
+  expect(() => conditions.chance(NaN)).toThrow('finite probability')
+})
+
+it('rechecks damage and healing ownership after value callbacks mutate the selected array', () => {
+  const f = fixture(),
+    foreign = fixture()
+  const ownDamage = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  const otherDamage = new DamageContext(foreign.use, foreign.owner, foreign.b.activePet, 100)
+  const ownHeal = new HealContext(f.ctx, f.skill, f.owner, 100)
+  const otherHeal = new HealContext(foreign.ctx, foreign.skill, foreign.owner, 100)
+  const damageTargets = [ownDamage],
+    healTargets = [ownHeal]
+  const damagePercent = targets.ownerPet
+    .select(() => {
+      damageTargets.push(otherDamage)
+      return 25
+    })
+    .first()
+  const healPercent = targets.ownerPet
+    .select(() => {
+      healTargets.push(otherHeal)
+      return 25
+    })
+    .first()
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/mutated-contexts',
+      on: 'BeforeHit',
+      execute(ctx) {
+        expect(() => ops.modifyDamage({ percent: damagePercent, delta: 0 })(ctx, damageTargets)).toThrow(
+          'Cross-battle damage context',
+        )
+        expect(() => ops.modifyHeal({ percent: healPercent, delta: 0 })(ctx, healTargets)).toThrow(
+          'Cross-battle heal context',
+        )
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(ownDamage.modified).toEqual([25, 0])
+  expect(ownHeal.modified).toEqual([25, 0])
+  expect(otherDamage.modified).toEqual([0, 0])
+  expect(otherHeal.modified).toEqual([0, 0])
 })

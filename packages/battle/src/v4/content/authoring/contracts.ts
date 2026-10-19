@@ -1,5 +1,5 @@
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
-import type { DamageContext, TriggerContextMap, UseSkillContext } from '../../context'
+import type { DamageContext, HealContext, TriggerContextMap, UseSkillContext } from '../../context'
 import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
@@ -115,6 +115,7 @@ export declare const targets: {
 export declare const contexts: {
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
+  readonly heal: Selector<HealContext>
   /** Searches ancestry; unlike event, a matching ancestor is not guaranteed. */
   readonly nearestSkillUse: (ctx: EffectFrame) => UseSkillContext | undefined
 }
@@ -124,6 +125,9 @@ export declare const conditions: {
   readonly not: <T extends Trigger = Trigger>(item: Condition<T>) => Condition<T>
   readonly selfUsesSkill: Condition
   readonly selfBeDamaged: Condition
+  readonly selfBeHealed: Condition
+  /** One battle RNG draw on each call, including 0 and 100; short-circuiting is owned by the caller. */
+  readonly chance: (percent: number) => Condition
 }
 export declare const checks: {
   readonly exists: <T>() => Evaluator<T>
@@ -146,6 +150,7 @@ export declare const values: {
 type NumericInput = number | Value<number, Presence>
 export declare const ops: {
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
+  readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
   /** Evaluate amount once per operator invocation, then apply to its selected targets. Missing skips. */
   readonly heal: (amount: NumericInput) => Operator<Pet>
