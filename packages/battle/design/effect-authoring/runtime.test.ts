@@ -16,7 +16,18 @@ import {
   type effectId,
 } from '../../v4'
 import { makeScenario } from '../../test/v4/scenario'
-import { compileEffect, defineEffect, targets, ops, values, type BindingValue, type Presence } from './api'
+import {
+  compileEffect,
+  defineEffect,
+  targets,
+  contexts,
+  actions,
+  conditions,
+  ops,
+  values,
+  type BindingValue,
+  type Presence,
+} from './api'
 import { consumeFantasyForDefense } from './examples/fantasy-defense'
 import { damageBoostByHp } from './examples/damage-by-hp'
 import { timeRebirth } from './examples/time-rebirth'
@@ -335,4 +346,102 @@ it('takes ownership of assigned membership instead of retaining an unobservable 
   mark.stack = 4
   current.push(mark)
   expect(f.owner.stat.spe).toBe(200)
+})
+
+it('re-queries the nearest damage context between actions and reads percent then delta once each', () => {
+  const f = fixture()
+  const first = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  const second = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  const nested = new EffectContext(first, EffectTrigger.OnDamage, f.skill)
+  const reads: string[] = []
+  const amount = (name: string, n: number) =>
+    targets.ownerPet.first().map(() => {
+      reads.push(name)
+      return n
+    })
+  const apply = contexts.damage.apply(ops.modifyDamage({ percent: amount('percent', 10), delta: amount('delta', 3) }))
+  const effect = compileEffect(
+    defineEffect({
+      id: 'nested-damage',
+      on: 'BeforeEffect',
+      execute: actions.sequence(
+        apply,
+        () => {
+          Reflect.set(nested, 'parent', second)
+        },
+        apply,
+      ),
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () =>
+    effect.innerApply(new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill, effect)),
+  )
+  expect(first.modified).toEqual([10, 3])
+  expect(second.modified).toEqual([10, 3])
+  expect(reads).toEqual(['percent', 'delta', 'percent', 'delta'])
+})
+it('skips missing damage inputs and rejects foreign contexts before writing', () => {
+  const f = fixture(),
+    other = fixture()
+  const damage = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  let deltaReads = 0
+  const missing = targets.ownerMarks
+    .where(() => false)
+    .select(mark => mark.stack)
+    .first()
+  const delta = targets.ownerPet.first().map(() => {
+    deltaReads++
+    return 5
+  })
+  const effect = compileEffect(
+    defineEffect({
+      id: 'missing-damage',
+      on: 'OnDamage',
+      execute: contexts.damage.apply(ops.modifyDamage({ percent: missing, delta })),
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () =>
+    effect.innerApply(new EffectContext(damage, EffectTrigger.OnDamage, f.skill, effect)),
+  )
+  expect(damage.modified).toEqual([0, 0])
+  expect(deltaReads).toBe(1)
+  const foreign = new DamageContext(other.use, other.owner, other.b.activePet, 100)
+  const cross = compileEffect(
+    defineEffect({
+      id: 'foreign-damage',
+      on: 'OnDamage',
+      execute: contexts.damage.select(() => foreign).apply(ops.modifyDamage({ percent: 10, delta: 5 })),
+    }),
+  )
+  expect(() =>
+    f.battle.executionBudget.run(f.battle.currentTurn, () =>
+      cross.innerApply(new EffectContext(damage, EffectTrigger.OnDamage, f.skill, cross)),
+    ),
+  ).toThrow('Cross-battle')
+  expect(foreign.modified).toEqual([0, 0])
+})
+it('composes condition predicates in order with short-circuiting', () => {
+  const f = fixture(),
+    trace: string[] = []
+  const yes = () => {
+      trace.push('yes')
+      return true
+    },
+    no = () => {
+      trace.push('no')
+      return false
+    }
+  const effect = compileEffect(
+    defineEffect({
+      id: 'condition-order',
+      on: 'BeforeHit',
+      when: conditions.all(yes, conditions.not(no), conditions.any(yes, no), no, yes),
+      execute: () => {
+        throw new Error('must not execute')
+      },
+    }),
+  )
+  f.skill.effects.splice(0, f.skill.effects.length, effect)
+  f.battle.applyEffects(f.use, EffectTrigger.BeforeHit, f.skill)
+  expect(trace).toEqual(['yes', 'no', 'yes', 'no'])
 })

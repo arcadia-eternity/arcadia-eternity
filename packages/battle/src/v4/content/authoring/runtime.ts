@@ -239,17 +239,31 @@ export const targets: typeof C.targets = {
     return source instanceof MarkInstanceImpl ? [source] : []
   }),
 }
+function nearestContext<T extends AllContext>(ctx: Frame, kind: abstract new (...args: never[]) => T): T | undefined {
+  let event: AllContext | null = engine(ctx).parent
+  while (event) {
+    if (event instanceof kind) return event
+    event = event.parent
+  }
+  return undefined
+}
 export const contexts: typeof C.contexts = {
-  nearestSkillUse(ctx) {
-    let event: AllContext | null = engine(ctx).parent
-    while (event) {
-      if (event instanceof UseSkillContext) return event
-      event = event.parent
-    }
-    return undefined
-  },
+  damage: selector(ctx => {
+    const event = nearestContext(ctx, DamageContext)
+    return event ? [event] : []
+  }),
+  nearestSkillUse: ctx => nearestContext(ctx, UseSkillContext),
 }
 export const conditions: typeof C.conditions = {
+  all:
+    (...items) =>
+    ctx =>
+      items.every(item => item(ctx)),
+  any:
+    (...items) =>
+    ctx =>
+      items.some(item => item(ctx)),
+  not: item => ctx => !item(ctx),
   selfUsesSkill(ctx) {
     const skill = contexts.nearestSkillUse(ctx)
     const source = engine(ctx).source
@@ -326,6 +340,19 @@ function numeric<T>(
   }
 }
 export const ops: typeof C.ops = {
+  modifyDamage: input => {
+    const { percent, delta } = input
+    return (ctx, selected) => {
+      for (const event of selected)
+        if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
+      const p = read(ctx, percent)
+      const d = read(ctx, delta)
+      if (p === undefined || d === undefined) return
+      if (typeof p !== 'number' || !Number.isFinite(p) || typeof d !== 'number' || !Number.isFinite(d))
+        throw new Error('Expected finite numeric input')
+      for (const event of selected) ctx.ops.modifyDamage(event, { percent: p, delta: d })
+    }
+  },
   heal: amount =>
     numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)

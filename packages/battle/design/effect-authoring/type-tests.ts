@@ -205,3 +205,10 @@ ops.changeStatStage('spe', 1)
 const capturedMark = targets.sourceMark.first().capture({ key: 'source', scope: 'binding' })
 // @ts-expect-error Entity property reads must pass through an explicit temporal step.
 capturedMark.map(mark => mark.stack)
+
+exact<Equal<typeof contexts.damage, Selector<DamageContext>>>(true)
+contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: targets.ownerPet.first().attribute('maxHp') }))
+// @ts-expect-error Damage operations require contexts, not pets.
+targets.ownerPet.apply(ops.modifyDamage({ percent: 10, delta: 0 }))
+// @ts-expect-error A persistent plan is not an action-time damage amount.
+ops.modifyDamage({ percent: capturedInstancePenalty, delta: 0 })

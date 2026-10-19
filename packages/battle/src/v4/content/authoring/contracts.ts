@@ -106,10 +106,15 @@ export declare const targets: {
   readonly sourceMark: Selector<MarkInstance>
 }
 export declare const contexts: {
+  /** Nearest damage ancestor, queried independently on each use. */
+  readonly damage: Selector<DamageContext>
   /** Searches ancestry; unlike event, a matching ancestor is not guaranteed. */
   readonly nearestSkillUse: (ctx: EffectFrame) => UseSkillContext | undefined
 }
 export declare const conditions: {
+  readonly all: <T extends Trigger = Trigger>(...items: readonly Condition<T>[]) => Condition<T>
+  readonly any: <T extends Trigger = Trigger>(...items: readonly Condition<T>[]) => Condition<T>
+  readonly not: <T extends Trigger = Trigger>(item: Condition<T>) => Condition<T>
   readonly selfUsesSkill: Condition
   readonly selfBeDamaged: Condition
 }
@@ -127,6 +132,8 @@ export declare const values: {
 
 type NumericInput = number | Value<number, Presence>
 export declare const ops: {
+  /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
+  readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
   /** Evaluate amount once per operator invocation, then apply to its selected targets. Missing skips. */
   readonly heal: (amount: NumericInput) => Operator<Pet>
   readonly consumeStacks: (amount: NumericInput) => Operator<MarkInstance>

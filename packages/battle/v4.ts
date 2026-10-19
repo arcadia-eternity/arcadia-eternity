@@ -26,3 +26,7 @@ export { generatedStatStageCandidates } from './src/v4/official/stat-stages.gene
 
 export * as effectAuthoring from './src/v4/content/authoring'
 export { officialAuthoredEffects, createOfficialAuthoredEffects } from './src/v4/official/authored'
+export {
+  generatedDamageModifierEffects,
+  createGeneratedDamageModifierEffects,
+} from './src/v4/official/damage-modifiers.generated'

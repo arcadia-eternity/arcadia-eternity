@@ -40,6 +40,8 @@ pnpm test:effect-authoring-design
 
 ## 执行契约与已验证行为
 
+`contexts.damage` 每次查询最近的伤害祖先，和 `nearestSkillUse` 共用祖先查找。`ops.modifyDamage` 先读 percent 再读 delta，各读一次，缺失时跳过整次操作；条件的 all/any/not 按顺序短路。
+
 `.condition()` 在条件调用时查询；`.apply()` 在动作调用时查询。`actions.sequence()` 不预先缓存后续选择，也不隐式要求前一步成功。`values.choose()` 只读取选中分支。效果收集与动作执行不会共享隐式参数或目标快照。
 
 `ops.heal()` 的值按一次操作求值后用于目标集合；它的可缺失值使本次操作跳过。本试验的 consumeStacks、changeStatStage、assign 也按一次操作取值，已有多目标消耗测试；未来新增操作必须独立声明取值时机。
