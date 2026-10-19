@@ -42,9 +42,9 @@ export function classifyMarkApplication(definition) {
   if (
     !fields(action, ['type', 'target', 'mark'], ['stack', 'duration']) ||
     action.type !== 'addMark' ||
-    !['self', 'opponent'].includes(action.target)
+    !['self', 'opponent', 'battle'].includes(action.target)
   )
-    return { reason: 'requires one addMark action on self/opponent' }
+    return { reason: 'requires one addMark action on self/opponent/battle' }
   if (
     !fields(action.mark, ['type', 'value']) ||
     action.mark.type !== 'entity:baseMark' ||
@@ -53,8 +53,10 @@ export function classifyMarkApplication(definition) {
   )
     return { reason: 'requires a fixed base mark reference' }
   const parameters = []
+  const when = condition(definition.condition, 'skill', parameters)
   const options = {}
-  for (const key of ['stack', 'duration']) {
+  // Match legacy declaration order; runtime consumption remains stack then duration.
+  for (const key of ['duration', 'stack']) {
     if (!Object.hasOwn(action, key)) continue
     const value = number(action[key], parameters, key, 'skill')
     if (!value) return { reason: 'unsupported stack/duration value' }
@@ -63,12 +65,11 @@ export function classifyMarkApplication(definition) {
       if (action[key]) options[key] = action[key]
     } else options[`${key}Value`] = value.code
   }
-  const when = condition(definition.condition, 'skill')
   const triggers = Array.isArray(definition.trigger) ? definition.trigger : [definition.trigger]
   if (
     !triggers.length ||
     new Set(triggers).size !== triggers.length ||
-    !triggers.every(trigger => ['OnHit', 'OnMiss'].includes(trigger)) ||
+    !triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) ||
     !selfCondition(definition.condition) ||
     !when
   )
@@ -102,7 +103,7 @@ export function renderMarkApplications(recipes, dependencies) {
       .join(',')
     const compiled = `compileEffect(defineEffect({
       id: ${JSON.stringify(r.id)}, on: ${JSON.stringify(r.triggers)}, priority: ${r.priority}, ${params ? 'parameters,' : ''} when: ${r.when},
-      execute: targets.${r.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.addMark(resolved.get(${JSON.stringify(r.markId)})!${options.length ? `, {${options.join(',')}}` : ''})),
+      execute: ${r.target === 'battle' ? 'contexts.battle' : r.target === 'self' ? 'targets.ownerPet' : 'targets.opponentActive'}.apply(ops.addMark(resolved.get(${JSON.stringify(r.markId)})!${options.length ? `, {${options.join(',')}}` : ''})),
     }))`
     return `${JSON.stringify(r.id)}: ${params ? `(() => {const parameters = {${params}};return ${compiled}})()` : compiled}`
   })

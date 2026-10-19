@@ -10,6 +10,8 @@ import {
   BaseMark,
   Pet,
   Gender,
+  Element,
+  GameRng,
   ConfigModifier,
   ConfigDurationType,
   ConfigModifierType,
@@ -37,14 +39,14 @@ interface RecordEntry {
   recipe: {
     when: string
     additionalDecisions?: string[]
-    target: 'self' | 'opponent'
+    target: 'self' | 'opponent' | 'battle'
     markId: string
     stackValue?: string
     durationValue?: string
     parameters?: { name: string; value: number; configId?: string; tags?: string[] }[]
     stack?: number
     duration?: number
-    triggers: ('OnHit' | 'OnMiss')[]
+    triggers: ('BeforeHit' | 'OnHit' | 'OnMiss')[]
   }
   dependency: { id: string; sourceFile: string; definitionSha256: string; effectIds: string[] }
 }
@@ -76,14 +78,27 @@ afterEach(async () => {
 })
 
 const valueRecords = records.filter(record => record.recipe.stackValue || record.recipe.durationValue)
+const probabilityRecords = records.filter(record =>
+  record.recipe.parameters?.some(parameter => parameter.name.startsWith('condition_')),
+)
+const branchingProbabilityId = 'effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying'
+const elementRecords = records.filter(record => record.recipe.when.includes('pets[0]?.element'))
 const conditionalRecords = records.filter(
   record =>
     !valueRecords.includes(record) &&
+    !elementRecords.includes(record) &&
+    !probabilityRecords.includes(record) &&
     record.recipe.when !== 'conditions.selfUsesSkill' &&
     record.recipe.when !== 'conditions.all(conditions.selfUsesSkill)',
 )
 const probabilityId = 'effect_skill_add_mark_opponent_haipa_10_if_heavier_40'
 const supportMarks: Record<string, ['self' | 'opponent', string]> = {
+  effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu: ['self', 'mark_shunliu'],
+  effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi: ['opponent', 'mark_mabi'],
+  effect_skill_add_mark_opponent_haipa_if_has_cuimian_10_percent: ['opponent', 'mark_cuimian'],
+  effect_skill_add_mark_opponent_haipa_if_has_cuimian_15_percent: ['opponent', 'mark_cuimian'],
+  effect_skill_add_mark_opponent_taobi_60_percent_if_opponent_has_kaowen: ['opponent', 'mark_kaowen'],
+  effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying: ['self', 'mark_xukongganying'],
   effect_skill_add_mark_huifu_1_16_if_aideminyi: ['self', 'mark_aideminyi'],
   effect_skill_add_mark_opponent_liuxie_40_if_pofang: ['opponent', 'mark_pofang'],
   effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao: ['self', 'mark_jinbao'],
@@ -102,6 +117,7 @@ function admissionState(
 ) {
   const self = battle.playerA.team[0],
     opponent = battle.playerB.team[0]
+  if (elementRecords.includes(record)) opponent.element = Element.Fire
   const support = supportMarks[record.id]
   if (support) {
     const pet = support[0] === 'self' ? self : opponent
@@ -176,6 +192,17 @@ const valueVariants = [
   'tag-config',
   'missing-at-collection',
 ] as const
+const probabilityVariants = [
+  'prob-default',
+  'prob-zero',
+  'prob-hundred',
+  'prob-foreign',
+  'prob-removed',
+  'prob-late',
+  'prob-tag',
+  'prob-alias',
+  'prob-no-support',
+] as const
 const variants = [
   'normal',
   'wrong-skill',
@@ -190,14 +217,19 @@ function run(
   record: RecordEntry,
   native: boolean,
   kind: 'skill' | 'mark',
-  trigger: 'OnHit' | 'OnMiss',
+  trigger: 'BeforeHit' | 'OnHit' | 'OnMiss',
   variant:
     | (typeof variants)[number]
     | 'wrong-condition'
     | 'late-condition'
     | 'missing-weight'
-    | (typeof valueVariants)[number],
+    | 'other-weather'
+    | 'cancel-other-weather'
+    | (typeof valueVariants)[number]
+    | (typeof probabilityVariants)[number],
   seed = record.id === probabilityId ? 1 : 269,
+  probabilityOverrides?: readonly number[],
+  elementCase?: { immune: boolean; lateImmune?: boolean; uses?: number },
 ) {
   const f = makeScenario(seed),
     { battle, a, b } = f
@@ -246,9 +278,17 @@ function run(
     if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
     const configKey = (name: string) => {
       if (native) return parameterAddress(record.id, 'parameters', name)
-      const keys = battle.configSystem.getRegisteredKeys().filter(key => key.startsWith(`${record.id}.`))
-      if (keys.length !== 1) throw new Error('Expected one anonymous mark option parameter')
-      return keys[0]
+      const parameter = record.recipe.parameters!.find(parameter => parameter.name === name)!
+      if (parameter.configId) return `${record.id}.${parameter.configId}`
+      const anonymous = record.recipe.parameters!.filter(parameter => !parameter.configId)
+      const aliases = record.recipe
+        .parameters!.filter(parameter => parameter.configId)
+        .map(parameter => `${record.id}.${parameter.configId}`)
+      const keys = battle.configSystem
+        .getRegisteredKeys()
+        .filter(key => key.startsWith(`${record.id}.`) && !aliases.includes(key))
+      if (keys.length !== anonymous.length) throw new Error('Ambiguous anonymous mark parameters')
+      return keys[anonymous.indexOf(parameter)]
     }
     const changeConfig = (amount: number, foreign = false, remove = false) => {
       for (const parameter of record.recipe.parameters ?? []) {
@@ -260,6 +300,65 @@ function run(
         if (remove) cleanup()
       }
     }
+    if (probabilityRecords.includes(record)) {
+      const explicitProbabilityVariant = probabilityVariants.includes(variant as (typeof probabilityVariants)[number])
+      const initial =
+        !explicitProbabilityVariant || variant === 'prob-late'
+          ? 100
+          : variant === 'prob-default' || variant === 'prob-no-support'
+            ? undefined
+            : 0
+      if (initial !== undefined)
+        for (const parameter of record.recipe.parameters!) battle.configSystem.set(configKey(parameter.name), initial)
+      if (variant === 'prob-hundred') changeConfig(100)
+      if (variant === 'prob-zero') changeConfig(0)
+      if (variant === 'prob-foreign') changeConfig(100, true)
+      if (variant === 'prob-removed') changeConfig(100, false, true)
+      if (variant === 'prob-alias')
+        for (const parameter of record.recipe.parameters!)
+          if (native)
+            effectAuthoring
+              .effectParameters(effect)
+              .modify(
+                battle.configSystem,
+                parameter.configId ? `${record.id}.${parameter.configId}` : configKey(parameter.name),
+                new ConfigModifier(
+                  ConfigDurationType.binding,
+                  'fixture/legacy-alias',
+                  100,
+                  ConfigModifierType.override,
+                  0,
+                ),
+                source,
+              )
+          else
+            battle.configSystem.addScopedConfigModifier(
+              configKey(parameter.name),
+              new ConfigModifier(
+                ConfigDurationType.binding,
+                'fixture/legacy-alias',
+                100,
+                ConfigModifierType.override,
+                0,
+              ),
+              source,
+            )
+      if (variant === 'prob-tag')
+        for (const tag of new Set(record.recipe.parameters!.flatMap(parameter => parameter.tags ?? [])))
+          battle.configSystem.addTaggedConfigModifier(
+            tag,
+            ConfigModifierType.override,
+            100,
+            0,
+            ConfigDurationType.binding,
+            undefined,
+            source,
+          )
+    }
+    if (probabilityOverrides)
+      record.recipe.parameters!.forEach((parameter, index) =>
+        battle.configSystem.set(configKey(parameter.name), probabilityOverrides[index]),
+      )
     if (variant === 'config-zero') changeConfig(0)
     if (variant === 'config-custom') changeConfig(11)
     if (variant === 'foreign-config') changeConfig(11, true)
@@ -306,7 +405,21 @@ function run(
     if (valueRecords.includes(record)) setValues(7, variant === 'missing-at-collection')
     source.effects.push(effect)
     if (variant === 'existing')
-      battle.addMark(new AddMarkContext(setup, record.recipe.target === 'self' ? owner : b.activePet, mark, 1))
+      battle.addMark(
+        new AddMarkContext(
+          setup,
+          record.recipe.target === 'battle' ? battle : record.recipe.target === 'self' ? owner : b.activePet,
+          mark,
+          1,
+        ),
+      )
+    let previousWeather: (typeof battle.marks)[number] | undefined
+    if (variant === 'other-weather' || variant === 'cancel-other-weather') {
+      const previous = new BaseMark('fixture/previous-weather' as baseMarkId, [], base.config)
+      battle.addMark(new AddMarkContext(setup, battle, previous))
+      previousWeather = battle.marks.find(instance => instance.base === previous)!
+      if (!previousWeather) throw new Error('Previous weather was not installed')
+    }
     events.length = 0
     skill.effects.push(
       defineNativeEffect({
@@ -317,6 +430,8 @@ function run(
           (context.parent instanceof EffectContext && context.parent.effect?.id === record.id),
         apply(context) {
           if (context.trigger === EffectTrigger.BeforeEffect && context.parent instanceof EffectContext) {
+            if (elementCase?.lateImmune)
+              b.activePet.element = record.id.includes('dongshang') ? Element.Ice : Element.Water
             if (variant === 'late-values') setValues(11)
             if (variant === 'empty-values') setValues(7, true)
             if (variant === 'multi-values') setValues(7, false, true)
@@ -324,6 +439,7 @@ function run(
               setValues(11, false, false, b.team[1])
               parent.actualTarget = b.team[1]
             }
+            if (variant === 'prob-late') changeConfig(0)
             if (variant === 'late-config') changeConfig(11)
             if (variant === 'late-condition') admissionState(record, battle, parent, false)
             if (variant === 'cancel-effect') context.parent.available = false
@@ -336,7 +452,7 @@ function run(
               stack: context.parent.stack,
               duration: context.parent.duration,
             })
-            if (variant === 'cancel-add') context.parent.available = false
+            if (variant === 'cancel-add' || variant === 'cancel-other-weather') context.parent.available = false
             if (variant === 'modify') {
               context.parent.setStack(2)
               context.parent.setDuration(7)
@@ -353,13 +469,27 @@ function run(
       variant === 'wrong-skill' ? b.activePet.skills[0] : skill,
     )
     parent.updateActualTarget()
-    admissionState(record, battle, parent, variant !== 'wrong-condition', variant === 'missing-weight')
-    const beforeStacks = [...a.team, ...b.team].flatMap(pet =>
+    admissionState(
+      record,
+      battle,
+      parent,
+      variant !== 'wrong-condition' && variant !== 'prob-no-support',
+      variant === 'missing-weight',
+    )
+    if (elementCase) {
+      b.activePet.element = elementCase.immune
+        ? record.id.includes('dongshang')
+          ? Element.Ice
+          : Element.Water
+        : Element.Fire
+      if (elementCase.uses !== undefined) owner.lastSkillUsedTimes = elementCase.uses
+    }
+    const beforeStacks = [...a.team, ...b.team, battle].flatMap(pet =>
       pet.marks.filter(m => m.baseId === mark.id).map(m => m.stack),
     )
     battle.applyEffects(parent, EffectTrigger[trigger], source)
     return {
-      marks: [...a.team, ...b.team].map(pet =>
+      marks: [...a.team, ...b.team, battle].map(pet =>
         pet.marks
           .filter(m => m.baseId === mark.id)
           .map(m => ({
@@ -367,9 +497,11 @@ function run(
             stack: m.stack,
             duration: m.duration,
             active: m.isActive,
-            owner: m.owner instanceof Pet ? m.owner.id : undefined,
+            owner: m.owner instanceof Pet ? m.owner.id : m.owner === battle ? 'battle' : undefined,
           })),
       ),
+      fieldMarks: battle.marks.map(mark => ({ id: mark.baseId, active: mark.isActive })),
+      previousWeatherActive: previousWeather?.isActive,
       inputs,
       beforeStacks,
       events,
@@ -387,10 +519,10 @@ for (const record of records)
         const actual = run(record, true, kind, trigger, variant)
         expect(actual).toEqual(run(record, false, kind, trigger, variant))
         if (variant === 'normal') {
-          const target = record.recipe.target === 'self' ? 0 : 2
+          const target = record.recipe.target === 'battle' ? 4 : record.recipe.target === 'self' ? 0 : 2
           expect(actual.inputs).toEqual([
             {
-              target: target === 0 ? 'A/lead' : 'B/lead',
+              target: target === 4 ? 'battle' : target === 0 ? 'A/lead' : 'B/lead',
               stack: defaultAmount(record, 'stack'),
               duration: defaultAmount(record, 'duration'),
             },
@@ -537,3 +669,113 @@ it('covers dynamic/parameterized options while retaining the handwritten shield 
     false,
   )
 })
+
+// Exercise both sides within one percentage point of the declared threshold.
+function thresholdSeeds(percent: number): number[] {
+  const result: (number | undefined)[] = [undefined, undefined]
+  for (let seed = 0; seed < 10000 && result.some(value => value === undefined); seed++) {
+    const draw = new GameRng(seed).next() * 100
+    if (Math.abs(draw - percent) < 1) result[draw < percent ? 0 : 1] ??= seed
+  }
+  if (result.some(value => value === undefined)) throw new Error(`Cannot bracket probability ${percent}`)
+  return result as number[]
+}
+
+for (const record of probabilityRecords)
+  for (const kind of ['skill', 'mark'] as const)
+    it.each(probabilityVariants)(`${record.id} ${kind} preserves probability admission: %s`, variant => {
+      const defaultPercent =
+        record.recipe.parameters![record.id === branchingProbabilityId && variant !== 'prob-no-support' ? 1 : 0].value
+      const seeds =
+        variant === 'prob-default' || variant === 'prob-no-support' ? thresholdSeeds(defaultPercent) : [28, 269]
+      for (const seed of seeds)
+        for (const trigger of record.recipe.triggers) {
+          const actual = run(record, true, kind, trigger, variant, seed)
+          expect(actual).toEqual(run(record, false, kind, trigger, variant, seed))
+          const rng = new GameRng(seed)
+          const draw = rng.next()
+          const guarded = Boolean(supportMarks[record.id]) && record.id !== branchingProbabilityId
+          if (variant === 'prob-no-support' && guarded) {
+            expect(actual.inputs).toEqual([])
+            expect(actual.nextRandom).toBe(draw)
+            continue
+          }
+          const defaults = record.recipe.parameters!
+          const percent =
+            variant === 'prob-default' || variant === 'prob-no-support'
+              ? defaults[record.id === branchingProbabilityId && variant !== 'prob-no-support' ? 1 : 0].value
+              : ['prob-hundred', 'prob-late', 'prob-tag', 'prob-alias'].includes(variant)
+                ? 100
+                : 0
+          expect(actual.inputs).toHaveLength(draw < percent / 100 ? 1 : 0)
+          expect(actual.nextRandom).toBe(rng.next())
+        }
+    })
+it('covers probability parameters and both pre-hit definitions', () => {
+  expect(probabilityRecords).toHaveLength(33)
+  expect(
+    probabilityRecords
+      .filter(record => record.recipe.triggers.includes('BeforeHit'))
+      .map(record => record.id)
+      .sort(),
+  ).toEqual([
+    'effect_skill_add_mark_opponent_shuimian_10_percent',
+    'effect_skill_add_mark_opponent_shuimian_40_percent',
+  ])
+})
+
+for (const kind of ['skill', 'mark'] as const)
+  it(`${kind} keeps the two conditional probability parameters independent`, () => {
+    const record = probabilityRecords.find(record => record.id === branchingProbabilityId)!
+    for (const variant of ['prob-default', 'prob-no-support'] as const)
+      for (const overrides of [
+        [100, 0],
+        [0, 100],
+      ])
+        for (const trigger of record.recipe.triggers) {
+          const actual = run(record, true, kind, trigger, variant, 28, overrides)
+          expect(actual).toEqual(run(record, false, kind, trigger, variant, 28, overrides))
+          expect(actual.inputs).toHaveLength(overrides[variant === 'prob-no-support' ? 0 : 1] === 100 ? 1 : 0)
+          const rng = new GameRng(28)
+          rng.next()
+          expect(actual.nextRandom).toBe(rng.next())
+        }
+  })
+
+for (const record of elementRecords)
+  for (const kind of ['skill', 'mark'] as const)
+    it(`${record.id} ${kind} preserves element exclusion and admission timing`, () => {
+      const consecutive = record.id.endsWith('when_reused')
+      for (const uses of consecutive ? [0, 1, 2, 3] : [2])
+        for (const elementCase of [{ immune: false }, { immune: true }, { immune: false, lateImmune: true }])
+          for (const trigger of record.recipe.triggers) {
+            const options = { ...elementCase, uses }
+            const actual = run(record, true, kind, trigger, 'normal', 28, undefined, options)
+            expect(actual).toEqual(run(record, false, kind, trigger, 'normal', 28, undefined, options))
+            expect(actual.inputs).toHaveLength(!elementCase.immune && (!consecutive || uses >= 2) ? 1 : 0)
+            const rng = new GameRng(28)
+            if (record.recipe.parameters?.length) rng.next()
+            expect(actual.nextRandom).toBe(rng.next())
+          }
+    })
+it('covers seven element exclusions and seven battle-target applications', () => {
+  expect(elementRecords).toHaveLength(7)
+  expect(records.filter(record => record.recipe.target === 'battle')).toHaveLength(7)
+})
+
+for (const record of records.filter(record => record.recipe.target === 'battle'))
+  for (const kind of ['skill', 'mark'] as const)
+    it.each(['other-weather', 'cancel-other-weather'] as const)(
+      `${record.id} ${kind} preserves weather replacement: %s`,
+      variant => {
+        for (const trigger of record.recipe.triggers) {
+          const actual = run(record, true, kind, trigger, variant)
+          expect(actual).toEqual(run(record, false, kind, trigger, variant))
+          const cancelled = variant === 'cancel-other-weather'
+          expect(actual.fieldMarks).toEqual([
+            { id: cancelled ? 'fixture/previous-weather' : record.recipe.markId, active: true },
+          ])
+          expect(actual.previousWeatherActive).toBe(cancelled)
+        }
+      },
+    )

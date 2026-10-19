@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 209,
+    generated: 251,
     protected: 1,
-    dependencies: 161,
-    rejected: 77,
+    dependencies: 175,
+    rejected: 35,
   })
 })
 
@@ -169,4 +169,45 @@ test('imports contexts used only by an option expression', () => {
       )
     assert.ok(imported)
   }
+})
+
+test('declares probability parameters in condition order before action parameters', () => {
+  const d = source()
+  const chance = {
+    type: 'evaluate',
+    target: 'self',
+    evaluator: {
+      type: 'probability',
+      percent: { type: 'raw:number', value: 40, configId: 'chance', tags: ['chance_tag'] },
+    },
+  }
+  const recipe = classifyMarkApplication({
+    ...d,
+    trigger: 'BeforeHit',
+    condition: { type: 'every', conditions: [d.condition, chance] },
+    apply: { ...d.apply, stack: { type: 'raw:number', value: 3, configId: 'layers' } },
+  })
+  assert.ok(!recipe.reason)
+  assert.deepEqual(
+    recipe.parameters.map(p => p.name),
+    ['condition_1_percent', 'stack'],
+  )
+  assert.match(recipe.when, /conditions.chance\(parameters.condition_1_percent\)/)
+  assert.ok(
+    classifyMarkApplication({
+      ...d,
+      condition: { type: 'every', conditions: [d.condition, chance] },
+      apply: { ...d.apply, stack: { type: 'raw:number', value: 3, configId: 'chance' } },
+    }).reason,
+  )
+})
+
+test('battle targets use the shared current-battle query', async () => {
+  const d = source()
+  d.apply.target = 'battle'
+  const recipe = classifyMarkApplication(d)
+  assert.equal(recipe.target, 'battle')
+  const code = renderMarkApplications([recipe], [recipe.markId])
+  assert.ok(code.includes('contexts.battle.apply(ops.addMark('))
+  assert.ok(code.includes('contexts,'))
 })

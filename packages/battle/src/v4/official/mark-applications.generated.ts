@@ -9,6 +9,7 @@ import {
   ops,
   values,
   checks,
+  contexts,
   type EffectFrame,
 } from '../content/authoring'
 export const generatedMarkApplicationDependencies = Object.freeze([
@@ -16,6 +17,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_anhunqu',
   'mark_anyingzhiguang',
   'mark_bileiyanshen',
+  'mark_bingdong',
   'mark_bingningzhiqi',
   'mark_bingshuangzhixing',
   'mark_bizhong',
@@ -31,12 +33,21 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_dianhe',
   'mark_dianxizengqiang',
   'mark_dongqifuti',
+  'mark_dongshang',
+  'mark_exin',
   'mark_fanshe',
   'mark_fansheguike',
   'mark_fantan',
   'mark_fasibilei',
   'mark_feixuanzhen',
   'mark_fenshen',
+  'mark_global_chongqun',
+  'mark_global_guzhanchang',
+  'mark_global_leibaotian',
+  'mark_global_qingtian',
+  'mark_global_yanre',
+  'mark_global_yemu',
+  'mark_global_yutian',
   'mark_gongshoujianbei',
   'mark_guanghua',
   'mark_guanghuizhiying',
@@ -54,6 +65,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_huifu',
   'mark_huifu_1_16',
   'mark_huijiachifan',
+  'mark_hunmi',
   'mark_hunzhuoshuiyu',
   'mark_huohuanzhixin',
   'mark_huoxing',
@@ -68,6 +80,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_judushenti',
   'mark_jueying',
   'mark_kaowen',
+  'mark_kongju',
   'mark_kongjuzhinian',
   'mark_kongqichuliang',
   'mark_kongqihudun',
@@ -91,6 +104,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_mingzhongtisheng',
   'mark_mingzhongxiajiang',
   'mark_niandongfanshe',
+  'mark_nishui',
   'mark_penti',
   'mark_pofang',
   'mark_qianggong',
@@ -127,6 +141,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_shuiwenzhenji',
   'mark_suijixianzhi',
   'mark_taitanzhihu',
+  'mark_tanhuan',
   'mark_tanxingzhifang',
   'mark_taobi',
   'mark_teshushanghaizengjia',
@@ -318,6 +333,25 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dongqifuti')!)),
       }),
     ),
+    effect_skill_add_mark_exin_opponent_50: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({
+          default: 50,
+          tags: ['skill_effect_probability'],
+          legacyAliases: ['effect_skill_add_mark_exin_opponent_50.probability'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_exin_opponent_50',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_exin')!, { stack: 50 })),
+        }),
+      )
+    })(),
     effect_skill_add_mark_fanshe: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fanshe',
@@ -517,6 +551,31 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huijiachifan')!)),
       }),
     ),
+    effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi: (() => {
+      const parameters = {
+        condition_2_percent: numberParam({
+          default: 50,
+          tags: ['skill_effect_probability'],
+          legacyAliases: ['effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi.probability'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.opponentActive.condition((_ctx, pets) =>
+              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
+            ),
+            conditions.chance(parameters.condition_2_percent),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_hunzhuoshuiyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_hunzhuoshuiyu',
@@ -806,6 +865,25 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_anhunqu')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_bingdong_40_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({
+          default: 40,
+          tags: ['skill_effect_probability'],
+          legacyAliases: ['effect_skill_add_mark_opponent_bingdong_40_percent.bingdong_probability'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_bingdong_40_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_bingdong')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_bingningzhiqi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_bingningzhiqi',
@@ -851,6 +929,41 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_cuimian')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_dongshang_10_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_dongshang_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+            targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice'),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_dongshang_when_reused: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_opponent_dongshang_when_reused',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          conditions.all(
+            conditions.ownerUsesSkill,
+            contexts.skillUse.condition((_ctx, events) => (events[0]?.skill.owner?.lastSkillUsedTimes ?? 0) >= 2),
+          ),
+          targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice'),
+        ),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
+      }),
+    ),
     effect_skill_add_mark_opponent_guanghuizhiying: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_guanghuizhiying',
@@ -891,6 +1004,93 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_haipa_10_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_haipa_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_haipa_15_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 15, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_haipa_15_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_haipa_5_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 5, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_haipa_5_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_haipa_if_has_cuimian_10_percent: (() => {
+      const parameters = {
+        condition_2_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_haipa_if_has_cuimian_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.opponentActive.condition((_ctx, pets) =>
+              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
+            ),
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_2_1_percent)),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_haipa_if_has_cuimian_15_percent: (() => {
+      const parameters = {
+        condition_2_percent: numberParam({ default: 15, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_haipa_if_has_cuimian_15_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.opponentActive.condition((_ctx, pets) =>
+              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
+            ),
+            conditions.chance(parameters.condition_2_percent),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_heianwuzhi_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_heianwuzhi_1',
@@ -909,6 +1109,42 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hongbaoshi')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_hunmi_10_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_hunmi_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_hunmi_5_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 5, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_hunmi_5_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_jiguang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_jiguang',
@@ -963,6 +1199,21 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kaowen')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_kongju_20_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 20, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_kongju_20_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kongju')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_kongjuzhinian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_kongjuzhinian',
@@ -1008,6 +1259,21 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
       }),
     ),
+    effect_skill_add_mark_opponent_liuxie_30_30_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 30, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_liuxie_30_30_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent',
@@ -1112,6 +1378,82 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_mabi_10_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({
+          default: 10,
+          tags: ['skill_effect_probability', 'mark_mabi_chance'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_mabi_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_mabi_15_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({
+          default: 15,
+          tags: ['skill_effect_probability', 'mark_mabi_chance'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_mabi_15_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_mabi_20_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({
+          default: 20,
+          tags: ['skill_effect_probability', 'mark_mabi_chance'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_mabi_20_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_mabi_70_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({
+          default: 70,
+          tags: ['skill_effect_probability', 'mark_mabi_chance'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_mabi_70_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_maimaijinzhen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_maimaijinzhen',
@@ -1139,6 +1481,21 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 5 })),
       }),
     ),
+    effect_skill_add_mark_opponent_manxingduyao_70_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 70, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_manxingduyao_70_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 1 })),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_mihuo: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mihuo',
@@ -1235,6 +1592,103 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
           execute: targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: parameters.stack }),
           ),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_nishui: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_opponent_nishui',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
+        ),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+      }),
+    ),
+    effect_skill_add_mark_opponent_nishui_10_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_nishui_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+            targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_nishui_30_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 30, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_nishui_30_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.chance(parameters.condition_1_percent),
+            targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_nishui_50_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({
+          default: 50,
+          tags: ['skill_effect_probability'],
+          legacyAliases: ['effect_skill_add_mark_opponent_nishui_50_percent.probability'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_nishui_50_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.chance(parameters.condition_1_percent),
+            targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu: (() => {
+      const parameters = {
+        condition_2_percent: numberParam({
+          default: 50,
+          tags: ['skill_effect_probability'],
+          legacyAliases: ['effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu.probability'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
+            conditions.chance(parameters.condition_2_percent),
+            targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
         }),
       )
     })(),
@@ -1342,6 +1796,90 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_shuimian_10_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_shuimian_10_percent',
+          on: ['BeforeHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_shuimian_40_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 40, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_shuimian_40_percent',
+          on: ['BeforeHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_tanhuan_10_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_tanhuan_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanhuan')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_tanhuan_30_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 30, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_tanhuan_30_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanhuan')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_taobi_60_percent_if_opponent_has_kaowen: (() => {
+      const parameters = {
+        condition_2_percent: numberParam({ default: 60, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_taobi_60_percent_if_opponent_has_kaowen',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.opponentActive.condition((_ctx, pets) =>
+              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
+            ),
+            conditions.chance(parameters.condition_2_percent),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_taobi')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_tongjiling: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_tongjiling',
@@ -1554,6 +2092,69 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying: (() => {
+      const parameters = {
+        condition_1_0_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+        condition_1_1_1_percent: numberParam({ default: 40, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.any(
+              conditions.all(
+                conditions.not(
+                  targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
+                ),
+                conditions.chance(parameters.condition_1_0_1_percent),
+              ),
+              conditions.all(
+                targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
+                conditions.chance(parameters.condition_1_1_1_percent),
+              ),
+            ),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_zhixi_40_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 40, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_zhixi_40_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_zhixi_5_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 5, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_zhixi_5_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_zhongdu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zhongdu',
@@ -1563,6 +2164,39 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_zhongdu_10_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_zhongdu_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_zhongdu_5_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 5, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_zhongdu_5_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+          ),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_zhongdu_consecutive_2_times: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zhongdu_consecutive_2_times',
@@ -1878,6 +2512,21 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shijianhudun')!)),
       }),
     ),
+    effect_skill_add_mark_shiming_10_percent: (() => {
+      const parameters = {
+        condition_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_shiming_10_percent',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
+          execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiming')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_shiyanzhiyue: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shiyanzhiyue',
@@ -2337,6 +2986,69 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
               .map(n => Math.floor(n * 2)),
           }),
         ),
+      }),
+    ),
+    effect_skill_set_field_chongqun: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_field_chongqun',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_chongqun')!)),
+      }),
+    ),
+    effect_skill_set_field_guzhanchang: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_field_guzhanchang',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_guzhanchang')!)),
+      }),
+    ),
+    effect_skill_set_field_leibaotian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_field_leibaotian',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
+      }),
+    ),
+    effect_skill_set_field_qingtian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_field_qingtian',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_qingtian')!)),
+      }),
+    ),
+    effect_skill_set_field_yanre: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_field_yanre',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yanre')!)),
+      }),
+    ),
+    effect_skill_set_field_yemu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_field_yemu',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yemu')!)),
+      }),
+    ),
+    effect_skill_set_field_yutian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_field_yutian',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yutian')!)),
       }),
     ),
   })

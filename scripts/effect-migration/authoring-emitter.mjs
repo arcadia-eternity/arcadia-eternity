@@ -235,6 +235,17 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
   )
     return `conditions.everyNthUse(${c.times})`
   if (
+    domain === 'skill' &&
+    c?.type === 'continuousUseSkill' &&
+    Object.keys(c).every(key => ['type', 'times', 'strategy'].includes(key)) &&
+    (!Object.hasOwn(c, 'times') || Number.isSafeInteger(c.times)) &&
+    (c.times ?? 2) > 0 &&
+    (!Object.hasOwn(c, 'strategy') || ['Once', 'Continuous'].includes(c.strategy))
+  ) {
+    const comparison = c.strategy === 'Once' ? '===' : '>='
+    return `conditions.all(conditions.ownerUsesSkill,contexts.skillUse.condition((_ctx,events) => (events[0]?.skill.owner?.lastSkillUsedTimes ?? 0) ${comparison} ${c.times ?? 2}))`
+  }
+  if (
     fields(c, ['type', 'conditions']) &&
     ['every', 'some'].includes(c.type) &&
     Array.isArray(c.conditions) &&
@@ -277,6 +288,17 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
         ['Male', 'Female', 'NoGender'].includes(evaluator.value)
       )
         return `${root(target.base)}.condition((_ctx,pets) => pets.some(pet => pet.gender === ${q(evaluator.value)}))`
+      if (
+        fields(step, ['type', 'arg']) &&
+        step.type === 'select' &&
+        fields(step.arg, ['type', 'arg']) &&
+        step.arg.type === 'base' &&
+        step.arg.arg === 'element' &&
+        fields(evaluator, ['type', 'value']) &&
+        ['same', 'notSame'].includes(evaluator.type) &&
+        typeof evaluator.value === 'string'
+      )
+        return `${root(target.base)}.condition((_ctx,pets) => pets[0]?.element ${evaluator.type === 'same' ? '===' : '!=='} ${q(evaluator.value)})`
       if (
         fields(step, ['type', 'arg']) &&
         step.type === 'select' &&
