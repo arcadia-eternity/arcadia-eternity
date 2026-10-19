@@ -46,3 +46,8 @@ export {
   generatedSkillOutcomeEffects,
   createGeneratedSkillOutcomeEffects,
 } from './src/v4/official/skill-outcomes.generated'
+
+export {
+  generatedSkillOutcomeSequences,
+  createGeneratedSkillOutcomeSequences,
+} from './src/v4/official/skill-outcome-sequences.generated'

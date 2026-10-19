@@ -360,6 +360,17 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
       const [skill, property, flat] = t.chain
       if (fields(skill, ['type', 'arg']) && skill.type === 'selectPath' && skill.arg === 'skill') {
         if (
+          options.skillCategory &&
+          t.chain.length === 2 &&
+          fields(property, ['type', 'arg']) &&
+          property.type === 'selectPath' &&
+          property.arg === 'category' &&
+          fields(e, ['type', 'value']) &&
+          ['same', 'notSame'].includes(e.type) &&
+          ['Physical', 'Special', 'Status'].includes(e.value)
+        )
+          return `contexts.skillUse.condition((_ctx,events) => events[0]?.skill.category ${e.type === 'same' ? '===' : '!=='} ${q(e.value)})`
+        if (
           t.chain.length === 2 &&
           fields(property, ['type', 'arg']) &&
           property.type === 'select' &&
@@ -468,4 +479,4 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
   }
 }
 
-export { fields, normalize, number, condition, selectedNumber }
+export { fields, normalize, number, condition, selectedNumber, members }

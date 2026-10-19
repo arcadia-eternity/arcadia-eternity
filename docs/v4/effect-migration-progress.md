@@ -102,6 +102,8 @@ All 65 current single-action hit/critical definitions now have candidates. The f
 
 Action-list continuation: the source inventory contains 93 top-level action lists. Shared [mark removal](validation/remove-mark-operator.md) now uses the existing lifecycle and passes 20 public checks, including subsequent selector/value requery after destruction callbacks. This runtime prerequisite adds no candidate IDs; ordered list conversion and per-ID evidence remain unfinished.
 
+The first [ordered outcome list batch](validation/skill-outcome-sequences.md) adds eight complete definitions, covering every current top-level list that contains a hit/critical outcome action. Actions are emitted in source order under one condition and consumption lifecycle; no partial lists are accepted. These eight are additional to the 65 single-action outcome candidates. One precise C09 skill-category path is recorded. All 265 public checks, 82 generator checks, 69 design checks, typechecking, lint, declarations and provenance pass; both review axes closed their findings. Complete-game/checkpoint acceptance and production admission remain pending.
+
 The complete migration goal remains active. Remaining work includes unmigrated mechanisms, dependency closure, per-ID acceptance and production cutover.
 
 ## Remaining work and proof required
