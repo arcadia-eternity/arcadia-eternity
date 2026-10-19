@@ -20,6 +20,8 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_mark_baiyapo_add_damage_based_on_stack: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
+  effect_mark_heiyapao_add_damage_based_on_stack: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_mark_self_damage_50_percent_once: [['/condition/conditions/2/target/chain/0/arg', 'sourceId', 'source']],
   effect_mark_self_damage_50_percent_once_when_special: [
     ['/condition/conditions/2/target/chain/0/arg', 'sourceId', 'source'],

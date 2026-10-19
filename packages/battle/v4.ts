@@ -58,3 +58,4 @@ export {
 } from './src/v4/official/stat-stage-sequences.generated'
 
 export { generatedVitalSequences, createGeneratedVitalSequences } from './src/v4/official/vital-sequences.generated'
+export { generatedDamageSequences, createGeneratedDamageSequences } from './src/v4/official/damage-sequences.generated'

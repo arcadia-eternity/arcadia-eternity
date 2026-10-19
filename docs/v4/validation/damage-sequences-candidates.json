@@ -1,0 +1,324 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_mark_add_damage_taken_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/143",
+      "definitionSha256": "33711772a72a5d24e4eab3782a271d6e61df7f7572ffa5e856bbbf0983718f8c",
+      "recipe": {
+        "id": "effect_mark_add_damage_taken_with_stack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:targets.sourceMark.select(mark => mark.stack).first(),delta:0}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_damage_with_stack_and_consume",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/167",
+      "definitionSha256": "a41130124410b77499285275715b06e9d6a5de6b97c035de563d7b7688f97079",
+      "recipe": {
+        "id": "effect_mark_add_damage_with_stack_and_consume",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.sourceMark.select(mark => mark.stack).first());const right=1;return left!==undefined && right!==undefined && left > right}))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:targets.sourceMark.select(mark => mark.stack).first()}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_amplify_next_physical_damage_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/63",
+      "definitionSha256": "a377b030ef07e019b6f2a278d6418360550c9af707cf94ae787582dc8e7fa472",
+      "recipe": {
+        "id": "effect_mark_amplify_next_physical_damage_with_stack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.damage.condition((_ctx,events) => events[0]?.damageType === \"Physical\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:targets.sourceMark.select(mark => mark.stack).first(),delta:0}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_amplify_next_special_damage_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/64",
+      "definitionSha256": "ee62b8c5b0273c21aa6fd06cb075c6959ab5ac35158d54df309a5a4c7b4af3bd",
+      "recipe": {
+        "id": "effect_mark_amplify_next_special_damage_with_stack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.damage.condition((_ctx,events) => events[0]?.damageType === \"Special\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:targets.sourceMark.select(mark => mark.stack).first(),delta:0}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_baiyapo_add_damage_based_on_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/129",
+      "definitionSha256": "dcdea14f9f769a28cf1babed92f7f08686d09f1f90c25367d142c0e756f0cf13",
+      "recipe": {
+        "id": "effect_mark_baiyapo_add_damage_based_on_stack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_baiyapo\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:targets.sourceMark.select(mark => mark.stack).first()}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [{ "path": "/condition/conditions/1/target/chain/0/arg", "before": "skillId", "after": "skill" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_block_climax_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/170",
+      "definitionSha256": "121c85a13c38321a5a174049dc91049b5ccb35f220ae3b382e22c260ffade1f6",
+      "recipe": {
+        "id": "effect_mark_block_climax_damage",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Climax\"))",
+        "actions": [{ "sourcePath": "/apply/0", "code": "contexts.damage.apply(ops.preventDamage())" }],
+        "repairedPaths": ["/condition/conditions/1/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_block_next_special_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/119",
+      "definitionSha256": "8738ea301cd8555279eef249171e4408a6482452753c917fa8daf464b4a23541",
+      "recipe": {
+        "id": "effect_mark_block_next_special_damage",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.damage.condition((_ctx,events) => events[0]?.damageType === \"Special\"))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.damage.apply(ops.preventDamage())" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_heiyapao_add_damage_based_on_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/130",
+      "definitionSha256": "de45289d5e849fac1cb23c2905efabaf8ab9adb85a5fbc1c9479d6901f1b27b2",
+      "recipe": {
+        "id": "effect_mark_heiyapao_add_damage_based_on_stack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_heiyapo\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:targets.sourceMark.select(mark => mark.stack).first()}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [{ "path": "/condition/conditions/1/target/chain/0/arg", "before": "skillId", "after": "skill" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_once",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/27",
+      "definitionSha256": "c6df40a78e7583c66c1ae7db86f6b5c01563bd935ee70ba5ba3bf65e610daa9e",
+      "recipe": {
+        "id": "effect_mark_increase_damage_taken_once",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:targets.sourceMark.select(mark => mark.stack).first(),delta:0}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_taken_damage_30_xstack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/69",
+      "definitionSha256": "96e46e76287e84b50197ca184a42aa03ca96f74f3630ceecdd8037518d69352c",
+      "recipe": {
+        "id": "effect_mark_increase_taken_damage_30_xstack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:targets.sourceMark.select(mark => mark.stack).first().map(n => Math.floor(n * 30))}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_mihuo_reduce_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/40",
+      "definitionSha256": "5de600d8c8b8e711c6146a0c92dd10ee3e19c292dafae62de84c57f3594007b9",
+      "recipe": {
+        "id": "effect_mark_mihuo_reduce_damage",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:-50}))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_damage_15_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/44",
+      "definitionSha256": "cd218684e0c265a7ee3da01f9c9f6a2c72666288daf143605f079a9668dcdbf8",
+      "recipe": {
+        "id": "effect_mark_reduce_damage_15_percent",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.damage.apply(ops.modifyDamage({percent:-15,delta:0}))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_damage_30_percent_xstack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/68",
+      "definitionSha256": "5dc4a84277f64949d506a470d9849c5c555a0ad0556cf4ce19b5c63e15a98db7",
+      "recipe": {
+        "id": "effect_mark_reduce_damage_30_percent_xstack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:targets.sourceMark.select(mark => mark.stack).first().map(n => Math.floor(n * -30))}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_once",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/26",
+      "definitionSha256": "49a8223149d0a58d3c401c734cc8b258b1f8415a23b064daef528fc64d414748",
+      "recipe": {
+        "id": "effect_mark_reduce_damage_taken_once",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:targets.sourceMark.select(mark => mark.stack).first().map(n => Math.floor(n * -1)),delta:0}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_deal_damage_once_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/102",
+      "definitionSha256": "3ce4fbee64e8975b0efa15890a52e5ebccaa71c7e2d12999bc703fb0ba72bd5d",
+      "recipe": {
+        "id": "effect_mark_reduce_deal_damage_once_per_stack",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:targets.sourceMark.select(mark => mark.stack).first().map(n => Math.floor(n * -1))}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

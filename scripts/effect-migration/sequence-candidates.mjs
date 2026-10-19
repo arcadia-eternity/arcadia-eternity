@@ -35,14 +35,17 @@ export function classifySequence(original, profile) {
   if (!profile.triggers.includes(d.trigger)) return { reason: 'unsupported trigger' }
   if (!Array.isArray(d.apply) || !d.apply.length || !d.apply.some(a => profile.actionTypes.includes(a?.type)))
     return { reason: 'requires a supported action list' }
+  if (d.apply.some(a => profile.excludeActionTypes?.includes(a?.type)))
+    return { reason: 'action list belongs to another sequence catalog' }
   if ('consumesStacks' in d && (!Number.isSafeInteger(d.consumesStacks) || d.consumesStacks < 0))
     return { reason: 'invalid stack consumption' }
   if ('tags' in d && (!Array.isArray(d.tags) || !d.tags.every(x => typeof x === 'string')))
     return { reason: 'invalid tags' }
   if (/isFirstSkillUsedThisTurn|isLastSkillUsedThisTurn/.test(JSON.stringify(d)))
     return { reason: 'order correction needs a source mapping' }
+  const domain = profile.domain ?? (d.trigger === 'OnDamage' ? 'damage' : 'skill')
   const parameters = []
-  const when = condition(d.condition, d.trigger === 'OnDamage' ? 'damage' : 'skill', parameters, 'condition', {
+  const when = condition(d.condition, domain, parameters, 'condition', {
     eventOwnership: true,
     collectionCompare: true,
     defensiveSkill: true,
@@ -51,7 +54,7 @@ export function classifySequence(original, profile) {
   if (!when || parameters.length) return { reason: 'condition needs a separate mapping' }
   const actions = d.apply.map((a, i) => ({
     sourcePath: `/apply/${i}`,
-    code: sequenceAction(a, d.trigger, d.trigger === 'OnDamage' ? 'damage' : 'skill', parameters, `action${i}_value`),
+    code: sequenceAction(a, d.trigger, domain, parameters, `action${i}_value`),
   }))
   if (parameters.length && !profile.parameters) return { reason: 'action parameters need a separate mapping' }
   if (actions.some(a => !a.code)) return { reason: 'unsupported sequence action or parameter' }
@@ -79,6 +82,7 @@ export async function generateSequences(profile, { check = false } = {}) {
       if (seen.has(d.id)) throw new Error(`Duplicate effect ${d.id}`)
       seen.add(d.id)
       if (!Array.isArray(d.apply) || !d.apply.some(a => profile.actionTypes.includes(a?.type))) continue
+      if (d.apply.some(a => profile.excludeActionTypes?.includes(a?.type))) continue
       const source = {
         id: d.id,
         sourceFile,
