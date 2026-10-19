@@ -43,10 +43,10 @@ Relation observation now initializes with Pet, Mark and Skill construction and s
 
 ## Final validation
 
-Final rebuilt artifacts pass all 9,780 V4 tests across 43 files, plus 60 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.
+Final rebuilt artifacts pass all 10,125 V4 tests across 43 files, plus 60 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.
 
 Conditional power list tests verify lazy nested branches at each action: an empty list causes no write, while `[0]` causes a zero write. The existing generic `values.choose` interface handles these lists without a new runtime API.
 
 `conditions.chance` accepts an immediate number or a required numeric Value. Parameters are read at condition time before one RNG draw, including probability 0 and 100; later actions do not implicitly recheck admission. Nonfinite parameter-derived values are rejected before drawing.
 
-`ops.addMark` centralizes fixed/dynamic BaseMark application, ordered once-per-action numeric reads, mark defaults and battle ownership checks. The 173 fixed mark candidates now reuse it with shared selectors and ownership admission; see [mark application integration](mark-applications.md).
+`ops.addMark` centralizes fixed/dynamic BaseMark application, ordered once-per-action numeric reads, mark defaults and battle ownership checks. The 190 fixed mark candidates now reuse it with shared selectors and ownership admission; see [mark application integration](mark-applications.md).

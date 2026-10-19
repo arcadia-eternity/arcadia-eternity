@@ -12,6 +12,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xukongtizhi",
         "stack": 10
       },
@@ -35,6 +36,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_liuxie",
         "stack": 50
       },
@@ -58,6 +60,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_aideminyi"
       },
       "classification": "U",
@@ -80,6 +83,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_anyingzhiguang"
       },
       "classification": "U",
@@ -105,6 +109,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_bileiyanshen"
       },
       "classification": "U",
@@ -127,6 +132,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_bizhong"
       },
       "classification": "U",
@@ -149,6 +155,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_busi"
       },
       "classification": "U",
@@ -171,6 +178,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_chaojipenti"
       },
       "classification": "U",
@@ -193,6 +201,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_chihuan",
         "stack": 1
       },
@@ -216,6 +225,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_chongqunzhen"
       },
       "classification": "U",
@@ -238,6 +248,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_chuansuoweilai"
       },
       "classification": "U",
@@ -260,6 +271,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_dadizhiyou",
         "stack": 1
       },
@@ -283,6 +295,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_dianhe",
         "stack": 1
       },
@@ -306,6 +319,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_dianxizengqiang"
       },
       "classification": "U",
@@ -328,6 +342,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_dongqifuti"
       },
       "classification": "U",
@@ -350,6 +365,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_fanshe"
       },
       "classification": "U",
@@ -372,6 +388,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_fantan"
       },
       "classification": "U",
@@ -394,6 +411,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_fasibilei"
       },
       "classification": "U",
@@ -416,6 +434,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_feixuanzhen"
       },
       "classification": "U",
@@ -438,6 +457,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_fenshen"
       },
       "classification": "U",
@@ -460,6 +480,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_gongshoujianbei"
       },
       "classification": "U",
@@ -482,6 +503,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_guanghua"
       },
       "classification": "U",
@@ -504,6 +526,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_guangwulingtong",
         "stack": 1
       },
@@ -527,6 +550,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_guangwushentong",
         "stack": 1
       },
@@ -550,6 +574,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_hanbingjia"
       },
       "classification": "U",
@@ -572,6 +597,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_houkongfan"
       },
       "classification": "U",
@@ -594,6 +620,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_huafenmiman",
         "stack": 1
       },
@@ -617,6 +644,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_huanxiang"
       },
       "classification": "U",
@@ -639,6 +667,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_huifu"
       },
       "classification": "U",
@@ -661,6 +690,30 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_huifu_1_16"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_huifu_1_16",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/106",
+        "definitionSha256": "7752f54115a8e9a9ca74e99e58f376bb9a908a32d8f336ab29f5fb0e45f8ae27",
+        "effectIds": ["effect_mark_heal_self_1_16_turnEnd"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_huifu_1_16_if_aideminyi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/222",
+      "definitionSha256": "97ed34c70e2b744c2f26056ed0725266afce48025b81fe081c0b84095532ce46",
+      "recipe": {
+        "id": "effect_skill_add_mark_huifu_1_16_if_aideminyi",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_aideminyi\").condition(checks.exists()))",
         "markId": "mark_huifu_1_16"
       },
       "classification": "U",
@@ -683,6 +736,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_huijiachifan"
       },
       "classification": "U",
@@ -705,6 +759,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_hunzhuoshuiyu"
       },
       "classification": "U",
@@ -727,6 +782,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_huoxing"
       },
       "classification": "U",
@@ -749,6 +805,7 @@
         "priority": 0,
         "triggers": ["OnHit", "OnMiss"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_jieli"
       },
       "classification": "U",
@@ -771,6 +828,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jingshenshikong"
       },
       "classification": "U",
@@ -793,6 +851,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jingyangshengxi"
       },
       "classification": "U",
@@ -815,6 +874,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jinzhenwayi"
       },
       "classification": "U",
@@ -837,6 +897,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_bizhong"
       },
       "classification": "U",
@@ -859,6 +920,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_judushenti"
       },
       "classification": "U",
@@ -881,6 +943,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_kongqichuliang",
         "stack": 100
       },
@@ -904,6 +967,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_leishenjuexing"
       },
       "classification": "U",
@@ -926,6 +990,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_lianji"
       },
       "classification": "U",
@@ -948,6 +1013,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_lingqiao"
       },
       "classification": "U",
@@ -970,6 +1036,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_lingtongchuanda"
       },
       "classification": "U",
@@ -992,6 +1059,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_liuxingdun"
       },
       "classification": "U",
@@ -1014,6 +1082,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_longlinjia"
       },
       "classification": "U",
@@ -1036,6 +1105,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_mianyibuliang"
       },
       "classification": "U",
@@ -1058,6 +1128,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_mianyiruohua"
       },
       "classification": "U",
@@ -1080,6 +1151,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_mianyiyichang"
       },
       "classification": "U",
@@ -1102,6 +1174,7 @@
         "priority": 0,
         "triggers": ["OnHit", "OnMiss"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_mianyiyichang"
       },
       "classification": "U",
@@ -1124,6 +1197,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_mingzhongtisheng",
         "stack": 10
       },
@@ -1147,6 +1221,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_mingzhongtisheng",
         "stack": 15
       },
@@ -1170,6 +1245,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_niandongfanshe"
       },
       "classification": "U",
@@ -1192,6 +1268,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_anhunqu"
       },
       "classification": "U",
@@ -1214,6 +1291,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_bingningzhiqi",
         "stack": 1
       },
@@ -1237,6 +1315,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_bingshuangzhixing",
         "stack": 60
       },
@@ -1260,6 +1339,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_chenmo"
       },
       "classification": "U",
@@ -1282,6 +1362,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_chongzhuangzhenci"
       },
       "classification": "U",
@@ -1304,6 +1385,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_cuimian"
       },
       "classification": "U",
@@ -1326,6 +1408,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_guanghuizhiying"
       },
       "classification": "U",
@@ -1348,6 +1431,30 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_haipa"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_haipa",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/11",
+        "definitionSha256": "43be6eb80d30fd2be578a622a14c883512950be563b939e3b6259f50b66ac95e",
+        "effectIds": ["effect_mark_stun", "effect_mark_cant_evasion"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_haipa_10_if_heavier_40",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/117",
+      "definitionSha256": "94ab2c0a16cd36542f96fa6aa4d7796546bd854b19fcdb08ef24cc85acd40176",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_haipa_10_if_heavier_40",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.chance(values.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.weight).first());const right=ctx.read(targets.opponentActive.select(pet => pet.weight).first());return left!==undefined && right!==undefined && left > right}),40,10)))",
         "markId": "mark_haipa"
       },
       "classification": "U",
@@ -1370,6 +1477,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_heianwuzhi",
         "stack": 1
       },
@@ -1393,6 +1501,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_hongbaoshi"
       },
       "classification": "U",
@@ -1415,6 +1524,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jiguang"
       },
       "classification": "U",
@@ -1437,6 +1547,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jingshencuoluan"
       },
       "classification": "U",
@@ -1459,6 +1570,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jisheng"
       },
       "classification": "U",
@@ -1481,6 +1593,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jishengzhadan"
       },
       "classification": "U",
@@ -1503,6 +1616,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_jueying"
       },
       "classification": "U",
@@ -1525,6 +1639,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_kaowen"
       },
       "classification": "U",
@@ -1547,6 +1662,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_kongjuzhinian",
         "stack": 1
       },
@@ -1570,6 +1686,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_kuihuazhongzi"
       },
       "classification": "U",
@@ -1592,6 +1709,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_lache",
         "stack": 35
       },
@@ -1615,6 +1733,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_lanbaoshi"
       },
       "classification": "U",
@@ -1637,8 +1756,130 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_liuxie",
         "stack": 30
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/572",
+      "definitionSha256": "724b456552f2f6d743cdccf647c90cd3cef78c432b73156d81f3fbc56bb37ef9",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first());const right=ctx.read(targets.opponentActive.select(pet => pet.stat.maxHp).first());return left!==undefined && right!==undefined && left > right}))",
+        "markId": "mark_liuxie",
+        "stack": 30
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/693",
+      "definitionSha256": "8231bfc3ee213d852c6e6946b17e6d9b2ccd332ed2980d1a3e6d074e3050fb48",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.lastSkillThisTurn)",
+        "additionalDecisions": ["C08"],
+        "markId": "mark_liuxie",
+        "stack": 40
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_40_if_pofang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/331",
+      "definitionSha256": "0636cd25ec4c55bf75a8702bf74b0681405f84b4d27152e1f6f92f246897f84f",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_liuxie_40_if_pofang",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_pofang\"))))",
+        "markId": "mark_liuxie",
+        "stack": 40
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/605",
+      "definitionSha256": "94c0ab489d7e3a1c6c61c4e56777250c2cab8a492fb01a7b9d36f01ac6eb0bc6",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_cuimian\"))))",
+        "markId": "mark_liuxie",
+        "stack": 50
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/407",
+      "definitionSha256": "0b93f163592c8be3c94267d80680b3f42f6425746b22089c970a67f835a956f5",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n * 0.5)));return left!==undefined && right!==undefined && left > right}))",
+        "markId": "mark_liuxie",
+        "stack": 50
       },
       "classification": "U",
       "status": "generated-candidate",
@@ -1660,6 +1901,7 @@
         "priority": 0,
         "triggers": ["OnHit", "OnMiss"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_liuxie",
         "stack": 60
       },
@@ -1683,6 +1925,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_mabi"
       },
       "classification": "U",
@@ -1705,6 +1948,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_maimaijinzhen"
       },
       "classification": "U",
@@ -1727,6 +1971,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_manxingduyao",
         "stack": 1
       },
@@ -1750,6 +1995,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_manxingduyao",
         "stack": 5
       },
@@ -1773,6 +2019,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_mihuo"
       },
       "classification": "U",
@@ -1786,6 +2033,55 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/466",
+      "definitionSha256": "0cb9d2943874d92866b0a27abf5f08316eb1924df512c17f42dcde10bc854be5",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_jinbao\").condition(checks.exists()))",
+        "markId": "mark_mingzhongxiajiang",
+        "stack": 15
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_mingzhongxiajiang",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/65",
+        "definitionSha256": "4e6619dbe01759597d3c94f94d7bc2c364f57b7f19c6228e5201238b2dd3a830",
+        "effectIds": ["effect_mark_reduce_accuracy_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/690",
+      "definitionSha256": "6ea27fb01ff7cf4ff1ea1ff4df4db8b8f3ddfdf7e32dfc486ef881a76a86e80c",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kaowen\"))),conditions.lastSkillThisTurn)",
+        "additionalDecisions": ["C08"],
+        "markId": "mark_mingzhongxiajiang",
+        "stack": 15
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_mingzhongxiajiang",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/65",
+        "definitionSha256": "4e6619dbe01759597d3c94f94d7bc2c364f57b7f19c6228e5201238b2dd3a830",
+        "effectIds": ["effect_mark_reduce_accuracy_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_opponent_pofang_50",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/329",
@@ -1795,6 +2091,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_pofang",
         "stack": 50
       },
@@ -1818,6 +2115,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_ruodianjihao",
         "stack": 1
       },
@@ -1841,6 +2139,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_ruodianjihao",
         "stack": 2
       },
@@ -1864,6 +2163,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shadu"
       },
       "classification": "U",
@@ -1886,6 +2186,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shaduhongxue"
       },
       "classification": "U",
@@ -1911,6 +2212,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shanguangboji"
       },
       "classification": "U",
@@ -1933,6 +2235,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shihua"
       },
       "classification": "U",
@@ -1946,6 +2249,54 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_opponent_shiming_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/299",
+      "definitionSha256": "f09dec729a8b2f62146742350f044cf31a7f49377131d418ac6fed33daf2e366",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shiming_if_first",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "additionalDecisions": ["C08"],
+        "markId": "mark_shiming"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shiming",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/38",
+        "definitionSha256": "27d0bcca74807af7b959b8ee0e9c36ba5c44bb5db25159f687b036d8335383da",
+        "effectIds": ["effect_mark_reduce_accuracy_50"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/688",
+      "definitionSha256": "f91b9b3ee821131e15d2e6bf4a2ad995061d6a8a2a596ad085bc0d33ffd7f142",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kaowen\"))))",
+        "markId": "mark_shoudaoshanghaizengjia",
+        "stack": 50
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shoudaoshanghaizengjia",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/93",
+        "definitionSha256": "19c2ce692c4657395165aae72ae198c1a39e423698120cf9fc44624698a3124a",
+        "effectIds": ["effect_mark_add_damage_taken_with_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_opponent_shuanghunxuanlv",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/533",
@@ -1955,6 +2306,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shuanghunxuanlv"
       },
       "classification": "U",
@@ -1977,6 +2329,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shuimian"
       },
       "classification": "U",
@@ -1999,6 +2352,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_tongjiling"
       },
       "classification": "U",
@@ -2021,6 +2375,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_wulicao"
       },
       "classification": "U",
@@ -2043,6 +2398,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_wuzhezhixin",
         "stack": 1
       },
@@ -2069,6 +2425,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xinlingzhiyue"
       },
       "classification": "U",
@@ -2091,6 +2448,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xinzhiyinji"
       },
       "classification": "U",
@@ -2113,6 +2471,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xuanyun"
       },
       "classification": "U",
@@ -2135,6 +2494,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xuehongyinji"
       },
       "classification": "U",
@@ -2157,6 +2517,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xueruoshuipao",
         "stack": 1
       },
@@ -2180,6 +2541,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xuruoshuipao",
         "stack": 1
       },
@@ -2203,6 +2565,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yingzhidouqi"
       },
       "classification": "U",
@@ -2225,6 +2588,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yinzhiwang"
       },
       "classification": "U",
@@ -2247,6 +2611,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yishang"
       },
       "classification": "U",
@@ -2269,6 +2634,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_zhixi"
       },
       "classification": "U",
@@ -2291,6 +2657,30 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_zhongdu"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_zhongdu",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/35",
+        "definitionSha256": "c05f250d15e2fc7c0044e1eceb3d336ce5b6766cc24330a65f5999f508b49db1",
+        "effectIds": ["effect_mark_turn_damage", "effect_mark_decrease_heal"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_zhongdu_consecutive_2_times",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/400",
+      "definitionSha256": "5ac2972df8c8a1abc0fbff3e9965002abefe7f5d4fc9d8b3c2a08df8262d47b7",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_zhongdu_consecutive_2_times",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))",
         "markId": "mark_zhongdu"
       },
       "classification": "U",
@@ -2313,6 +2703,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "opponent",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_zisun"
       },
       "classification": "U",
@@ -2335,6 +2726,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_penti"
       },
       "classification": "U",
@@ -2357,6 +2749,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_qianggong",
         "stack": 1
       },
@@ -2380,6 +2773,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_qianglipenti"
       },
       "classification": "U",
@@ -2402,6 +2796,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_qiliuyongdong",
         "stack": 2
       },
@@ -2425,6 +2820,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_renzhezhixin",
         "stack": 1
       },
@@ -2448,6 +2844,31 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "markId": "mark_rouhua",
+        "stack": 50
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_rouhua",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/79",
+        "definitionSha256": "248cbe8feffddf423e8c1c918d8515cf1d2927f1624a9b13d218b7496e6f0170",
+        "effectIds": ["effect_mark_reduce_special_damage_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_rouhua_50_if_female",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/658",
+      "definitionSha256": "f4ad369c51f0ab0520a7a950b216d36a5e28aeb765737ced35cd15fea4b99fac",
+      "recipe": {
+        "id": "effect_skill_add_mark_rouhua_50_if_female",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))",
         "markId": "mark_rouhua",
         "stack": 50
       },
@@ -2471,6 +2892,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_hanshuangpingzhang"
       },
       "classification": "U",
@@ -2493,6 +2915,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yihuopingzhang"
       },
       "classification": "U",
@@ -2515,6 +2938,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shabaozhen"
       },
       "classification": "U",
@@ -2537,6 +2961,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shabaozhili",
         "stack": 1
       },
@@ -2560,6 +2985,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shaduzhixue"
       },
       "classification": "U",
@@ -2582,6 +3008,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shahezhili"
       },
       "classification": "U",
@@ -2604,6 +3031,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shanbi",
         "stack": 1
       },
@@ -2627,6 +3055,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shanbi",
         "stack": 2
       },
@@ -2641,6 +3070,78 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_shanbi_below_1_8_hp",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/647",
+      "definitionSha256": "dd245d79282a5fd2329bccc00a3d54fe4a90e0dc4b24e3c2d234462604d3ae8e",
+      "recipe": {
+        "id": "effect_skill_add_mark_shanbi_below_1_8_hp",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 8)));return left!==undefined && right!==undefined && left <= right}))",
+        "markId": "mark_shanbi",
+        "stack": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shanbi",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/75",
+        "definitionSha256": "f6f27b8e07beeb08d5196a8bcdc5d3a3c24588d5be60ee371de1829a01a45a35",
+        "effectIds": ["effect_mark_evade_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_shanbi_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/217",
+      "definitionSha256": "b2a294b3615cbddc1df34b2c51cd70c179be1acee3cda25bb89d5f387ff08ba9",
+      "recipe": {
+        "id": "effect_skill_add_mark_shanbi_if_first",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "additionalDecisions": ["C08"],
+        "markId": "mark_shanbi"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shanbi",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/75",
+        "definitionSha256": "f6f27b8e07beeb08d5196a8bcdc5d3a3c24588d5be60ee371de1829a01a45a35",
+        "effectIds": ["effect_mark_evade_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_shanbiwugong_if_shabaolingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/626",
+      "definitionSha256": "38c37da922ff05636d148e54d841c951ff759e8ebe54afc5c75b917bed8381b3",
+      "recipe": {
+        "id": "effect_skill_add_mark_shanbiwugong_if_shabaolingyu",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shabaolingyu\").condition(checks.exists()))",
+        "markId": "mark_shanbiwugong",
+        "stack": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shanbiwugong",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/241",
+        "definitionSha256": "3b176c34287aee580a62682624c8690489b381c7c5d45e237b5b0ec49bab485f",
+        "effectIds": ["effect_mark_evade_physical_with_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_shandianshoushu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/433",
@@ -2650,6 +3151,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shandianshoushu",
         "stack": 150
       },
@@ -2673,6 +3175,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shandianwaiyi"
       },
       "classification": "U",
@@ -2695,6 +3198,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shanghaizengjia",
         "stack": 100
       },
@@ -2718,6 +3222,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shanghaizengjia",
         "stack": 150
       },
@@ -2741,6 +3246,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_shanghaizengjia",
         "stack": 75
       },
@@ -2764,6 +3270,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shazhidanke"
       },
       "classification": "U",
@@ -2786,6 +3293,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shazhiwang",
         "stack": 30
       },
@@ -2809,6 +3317,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shijianfaze"
       },
       "classification": "U",
@@ -2831,6 +3340,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shijianhudun"
       },
       "classification": "U",
@@ -2853,6 +3363,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shiyanzhiyue"
       },
       "classification": "U",
@@ -2875,6 +3386,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shoudaoshanghaijianshao",
         "stack": 50
       },
@@ -2898,6 +3410,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shoudaoshanghaijianshao",
         "stack": 75
       },
@@ -2921,6 +3434,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shoudaoshanghaizengjia",
         "stack": 50
       },
@@ -2944,6 +3458,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shuiliangbaohe"
       },
       "classification": "U",
@@ -2966,6 +3481,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shuiliangchongzu"
       },
       "classification": "U",
@@ -2988,6 +3504,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shuimian"
       },
       "classification": "U",
@@ -3010,6 +3527,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_shuiwenzhenji"
       },
       "classification": "U",
@@ -3032,6 +3550,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_suijixianzhi"
       },
       "classification": "U",
@@ -3054,6 +3573,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_taitanzhihu"
       },
       "classification": "U",
@@ -3076,6 +3596,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_tanxingzhifang"
       },
       "classification": "U",
@@ -3098,6 +3619,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_taobi"
       },
       "classification": "U",
@@ -3120,6 +3642,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_teshushanghaizengjia",
         "stack": 100
       },
@@ -3143,6 +3666,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_teshushanghaizengjia",
         "stack": 35
       },
@@ -3166,6 +3690,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_teshushanghaizengjia",
         "stack": 50
       },
@@ -3189,6 +3714,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_wanan"
       },
       "classification": "U",
@@ -3211,6 +3737,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_weilibianhua",
         "stack": 50
       },
@@ -3234,6 +3761,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_weilifanbei"
       },
       "classification": "U",
@@ -3256,6 +3784,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_wulishanghaizengjia",
         "stack": 100
       },
@@ -3279,6 +3808,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_wulishanghaizengjia",
         "stack": 35
       },
@@ -3302,6 +3832,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_wulishanghaizengjia",
         "stack": 50
       },
@@ -3325,6 +3856,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xingzhihui",
         "stack": 20
       },
@@ -3348,6 +3880,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xingzhihui",
         "stack": 50
       },
@@ -3371,6 +3904,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xingzhili"
       },
       "classification": "U",
@@ -3393,6 +3927,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xishoucao"
       },
       "classification": "U",
@@ -3415,6 +3950,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xudian"
       },
       "classification": "U",
@@ -3437,6 +3973,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xuli",
         "stack": 1
       },
@@ -3460,6 +3997,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xuli",
         "stack": 5
       },
@@ -3483,6 +4021,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xulichongji"
       },
       "classification": "U",
@@ -3505,6 +4044,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_xunjie",
         "stack": 1
       },
@@ -3528,6 +4068,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yanggong"
       },
       "classification": "U",
@@ -3550,6 +4091,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yanhuo"
       },
       "classification": "U",
@@ -3572,6 +4114,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yingfeng"
       },
       "classification": "U",
@@ -3598,6 +4141,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_yinghua",
         "stack": 25
       },
@@ -3621,6 +4165,31 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_yinghua",
+        "stack": 50
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_yinghua",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/110",
+        "definitionSha256": "2207951d810587149a2ff3d9057a92290d3b494c85f8f7e316b61208f6ec7aeb",
+        "effectIds": ["effect_mark_reduce_physical_damage_with_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_yinghua_50_if_male",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/659",
+      "definitionSha256": "8d9cb336b7af2449a77f459dafab11a0622c51ad8c086ca9b585890bff75fd5c",
+      "recipe": {
+        "id": "effect_skill_add_mark_yinghua_50_if_male",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))",
         "markId": "mark_yinghua",
         "stack": 50
       },
@@ -3644,6 +4213,7 @@
         "priority": 0,
         "triggers": ["OnHit", "OnMiss"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yinghua",
         "stack": 65
       },
@@ -3667,6 +4237,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yingyongyizhi"
       },
       "classification": "U",
@@ -3689,6 +4260,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yitelingyu"
       },
       "classification": "U",
@@ -3711,6 +4283,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yuecuoyueyong"
       },
       "classification": "U",
@@ -3733,6 +4306,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_yurenfantan"
       },
       "classification": "U",
@@ -3755,6 +4329,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_zengzhong",
         "stack": 1
       },
@@ -3778,6 +4353,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
         "markId": "mark_zengzhong",
         "stack": 2
       },
@@ -3801,6 +4377,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_zhenkongzhixin"
       },
       "classification": "U",
@@ -3823,6 +4400,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_zhenshihuanxiang"
       },
       "classification": "U",
@@ -3845,6 +4423,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_zhongzinengliang",
         "stack": 4
       },
@@ -3868,6 +4447,7 @@
         "priority": 0,
         "triggers": ["OnHit"],
         "target": "self",
+        "when": "conditions.selfUsesSkill",
         "markId": "mark_zhunbeidongzuo"
       },
       "classification": "U",
@@ -4093,13 +4673,6 @@
       "reason": "requires finite literal stack/duration, without Config or dynamic values"
     },
     {
-      "id": "effect_skill_add_mark_huifu_1_16_if_aideminyi",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/222",
-      "definitionSha256": "97ed34c70e2b744c2f26056ed0725266afce48025b81fe081c0b84095532ce46",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
       "id": "effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/434",
@@ -4153,13 +4726,6 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/583",
       "definitionSha256": "eef181dbbdcc9156132007724eac4e3d1813c0cf8bfd4fc0ba1831bb74b1eb06",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_haipa_10_if_heavier_40",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/117",
-      "definitionSha256": "94ab2c0a16cd36542f96fa6aa4d7796546bd854b19fcdb08ef24cc85acd40176",
       "reason": "unsupported condition/trigger combination"
     },
     {
@@ -4226,45 +4792,10 @@
       "reason": "unsupported condition/trigger combination"
     },
     {
-      "id": "effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/572",
-      "definitionSha256": "724b456552f2f6d743cdccf647c90cd3cef78c432b73156d81f3fbc56bb37ef9",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/693",
-      "definitionSha256": "8231bfc3ee213d852c6e6946b17e6d9b2ccd332ed2980d1a3e6d074e3050fb48",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_liuxie_40_if_pofang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/331",
-      "definitionSha256": "0636cd25ec4c55bf75a8702bf74b0681405f84b4d27152e1f6f92f246897f84f",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
       "id": "effect_skill_add_mark_opponent_liuxie_50_if_field_yemu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/419",
       "definitionSha256": "f8c6baaa9943b527f3e495df21b093dd92a5b46e38e6cd21a0645d6f494757d3",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/605",
-      "definitionSha256": "94c0ab489d7e3a1c6c61c4e56777250c2cab8a492fb01a7b9d36f01ac6eb0bc6",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/407",
-      "definitionSha256": "0b93f163592c8be3c94267d80680b3f42f6425746b22089c970a67f835a956f5",
       "reason": "unsupported condition/trigger combination"
     },
     {
@@ -4279,7 +4810,7 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/633",
       "definitionSha256": "9c2d18727239e17c6a426922eedc728b64be3ca7e29f35537d686926bb85b8b7",
-      "reason": "unsupported condition/trigger combination"
+      "reason": "Missing mark dependency: mark_liuxue"
     },
     {
       "id": "effect_skill_add_mark_opponent_mabi_10_percent",
@@ -4322,20 +4853,6 @@
       "sourcePath": "/72",
       "definitionSha256": "1f621bb6b5d34f356cd7e207eeef0ad4b14c155b17a3632099001491a09d6a6d",
       "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/466",
-      "definitionSha256": "0cb9d2943874d92866b0a27abf5f08316eb1924df512c17f42dcde10bc854be5",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/690",
-      "definitionSha256": "6ea27fb01ff7cf4ff1ea1ff4df4db8b8f3ddfdf7e32dfc486ef881a76a86e80c",
-      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_25",
@@ -4384,20 +4901,6 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/543",
       "definitionSha256": "df7dff66704a890c986e60860a3a58f896c288345d20ddede2484c0c52981c8e",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_shiming_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/299",
-      "definitionSha256": "f09dec729a8b2f62146742350f044cf31a7f49377131d418ac6fed33daf2e366",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/688",
-      "definitionSha256": "f91b9b3ee821131e15d2e6bf4a2ad995061d6a8a2a596ad085bc0d33ffd7f142",
       "reason": "unsupported condition/trigger combination"
     },
     {
@@ -4520,13 +5023,6 @@
       "reason": "unsupported condition/trigger combination"
     },
     {
-      "id": "effect_skill_add_mark_opponent_zhongdu_consecutive_2_times",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/400",
-      "definitionSha256": "5ac2972df8c8a1abc0fbff3e9965002abefe7f5d4fc9d8b3c2a08df8262d47b7",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
       "id": "effect_skill_add_mark_opponent_zhongdu_duration_2",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/108",
@@ -4538,34 +5034,6 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/631",
       "definitionSha256": "ed2540e6ac8891c8a970eab4453cfd2cb563bbb0f2d0eead385cbe946fa91545",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_rouhua_50_if_female",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/658",
-      "definitionSha256": "f4ad369c51f0ab0520a7a950b216d36a5e28aeb765737ced35cd15fea4b99fac",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_shanbi_below_1_8_hp",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/647",
-      "definitionSha256": "dd245d79282a5fd2329bccc00a3d54fe4a90e0dc4b24e3c2d234462604d3ae8e",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_shanbi_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/217",
-      "definitionSha256": "b2a294b3615cbddc1df34b2c51cd70c179be1acee3cda25bb89d5f387ff08ba9",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_shanbiwugong_if_shabaolingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/626",
-      "definitionSha256": "38c37da922ff05636d148e54d841c951ff759e8ebe54afc5c75b917bed8381b3",
       "reason": "unsupported condition/trigger combination"
     },
     {
@@ -4588,13 +5056,6 @@
       "sourcePath": "/182",
       "definitionSha256": "fc68939202c5a4742c854c496371c9bc85f7a72c6563d6f9dbd8876e5d7df009",
       "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_yinghua_50_if_male",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/659",
-      "definitionSha256": "8d9cb336b7af2449a77f459dafab11a0622c51ad8c086ca9b585890bff75fd5c",
-      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_skill_add_mark_zhaocai_or_jinbao",

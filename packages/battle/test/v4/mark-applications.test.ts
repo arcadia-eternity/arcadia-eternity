@@ -9,6 +9,7 @@ import {
   defineNativeEffect,
   BaseMark,
   Pet,
+  Gender,
   AddMarkContext,
   EffectContext,
   EffectTrigger,
@@ -29,6 +30,8 @@ interface RecordEntry {
   sourceFile: string
   definitionSha256: string
   recipe: {
+    when: string
+    additionalDecisions?: string[]
     target: 'self' | 'opponent'
     markId: string
     stack?: number
@@ -59,6 +62,71 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
+
+const conditionalRecords = records.filter(
+  record =>
+    record.recipe.when !== 'conditions.selfUsesSkill' &&
+    record.recipe.when !== 'conditions.all(conditions.selfUsesSkill)',
+)
+const probabilityId = 'effect_skill_add_mark_opponent_haipa_10_if_heavier_40'
+const supportMarks: Record<string, ['self' | 'opponent', string]> = {
+  effect_skill_add_mark_huifu_1_16_if_aideminyi: ['self', 'mark_aideminyi'],
+  effect_skill_add_mark_opponent_liuxie_40_if_pofang: ['opponent', 'mark_pofang'],
+  effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao: ['self', 'mark_jinbao'],
+  effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian: ['opponent', 'mark_cuimian'],
+  effect_skill_add_mark_shanbiwugong_if_shabaolingyu: ['self', 'mark_shabaolingyu'],
+  effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen: ['opponent', 'mark_kaowen'],
+  effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last: ['opponent', 'mark_kaowen'],
+}
+// Independent scenario inputs, not an evaluator for the source condition tree.
+function admissionState(
+  record: RecordEntry,
+  battle: Battle,
+  use: UseSkillContext,
+  valid: boolean,
+  missingWeight = false,
+) {
+  const self = battle.playerA.team[0],
+    opponent = battle.playerB.team[0]
+  const support = supportMarks[record.id]
+  if (support) {
+    const pet = support[0] === 'self' ? self : opponent
+    pet.marks.splice(0, pet.marks.length, ...pet.marks.filter(mark => mark.baseId !== support[1]))
+    if (valid) {
+      const instance = new BaseMark(support[1] as baseMarkId, []).createInstance()
+      instance.owner = pet
+      pet.marks.push(instance)
+    }
+  }
+  self.gender = valid === record.id.endsWith('_female') ? Gender.Female : Gender.Male
+  if (record.id.includes('_if_hp_above_half')) self.currentHp = valid ? self.stat.maxHp : 1
+  if (record.id.includes('_below_1_8_hp')) self.currentHp = valid ? 1 : self.stat.maxHp
+  if (record.id.includes('_if_max_hp_gt_opponent')) self.attributeSystem.updateBaseValue('maxHp', valid ? 9999 : 1)
+  if (record.id === probabilityId) {
+    Object.defineProperty(self, 'weight', {
+      value: missingWeight ? undefined : valid ? 200 : 10,
+      writable: true,
+      configurable: true,
+    })
+    Object.defineProperty(opponent, 'weight', {
+      value: missingWeight ? undefined : 100,
+      writable: true,
+      configurable: true,
+    })
+    self.attributeSystem.updateBaseValue('weight', 1)
+    opponent.attributeSystem.updateBaseValue('weight', 999)
+  }
+  self.lastSkill = use.skill
+  self.lastSkillUsedTimes = valid ? 2 : 3
+  const turn = use.parent
+  turn.appledContexts.splice(0)
+  turn.contexts.splice(0)
+  if (valid) {
+    turn.appledContexts.push(use)
+    turn.contexts.push(use)
+  }
+}
+
 const variants = [
   'normal',
   'wrong-skill',
@@ -74,9 +142,10 @@ function run(
   native: boolean,
   kind: 'skill' | 'mark',
   trigger: 'OnHit' | 'OnMiss',
-  variant: (typeof variants)[number],
+  variant: (typeof variants)[number] | 'wrong-condition' | 'late-condition' | 'missing-weight',
+  seed = record.id === probabilityId ? 1 : 269,
 ) {
-  const f = makeScenario(269),
+  const f = makeScenario(seed),
     { battle, a, b } = f
   battles.push(battle)
   const owner = a.activePet,
@@ -135,6 +204,7 @@ function run(
           (context.parent instanceof EffectContext && context.parent.effect?.id === record.id),
         apply(context) {
           if (context.trigger === EffectTrigger.BeforeEffect && context.parent instanceof EffectContext) {
+            if (variant === 'late-condition') admissionState(record, battle, parent, false)
             if (variant === 'cancel-effect') context.parent.available = false
             if (variant === 'late-owner') source.owner = b.activePet
             if (variant === 'late-opponent') b.activePet = b.team[1]
@@ -161,6 +231,7 @@ function run(
       AttackTargetOpinion.opponent,
       variant === 'wrong-skill' ? b.activePet.skills[0] : skill,
     )
+    admissionState(record, battle, parent, variant !== 'wrong-condition', variant === 'missing-weight')
     battle.applyEffects(parent, EffectTrigger[trigger], source)
     return {
       marks: [...a.team, ...b.team].map(pet =>
@@ -241,3 +312,39 @@ it('pins each effect and its entire mark dependency definition to current source
     [...new Set(records.map(record => record.recipe.markId))].sort(),
   )
 })
+
+for (const record of conditionalRecords)
+  for (const kind of ['skill', 'mark'] as const)
+    it.each(['wrong-condition', 'late-condition'] as const)(
+      `${record.id} ${kind} checks admission once: %s`,
+      variant => {
+        for (const trigger of record.recipe.triggers) {
+          const actual = run(record, true, kind, trigger, variant)
+          expect(actual).toEqual(run(record, false, kind, trigger, variant))
+          expect(actual.inputs).toHaveLength(variant === 'wrong-condition' ? 0 : 1)
+        }
+      },
+    )
+it('covers exactly seventeen additional conditional definitions and records turn-order corrections', () => {
+  expect(conditionalRecords).toHaveLength(17)
+  const corrected = conditionalRecords.filter(record => record.recipe.additionalDecisions?.includes('C08'))
+  expect(corrected.map(record => record.id).sort()).toEqual(
+    [
+      'effect_skill_add_mark_shanbi_if_first',
+      'effect_skill_add_mark_opponent_shiming_if_first',
+      'effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last',
+      'effect_skill_add_mark_opponent_liuxie_40_if_last',
+    ].sort(),
+  )
+})
+for (const seed of [1, 2, 6, 11])
+  it(`weight probability preserves both thresholds and subsequent RNG: seed ${seed}`, () => {
+    const record = records.find(record => record.id === probabilityId)!
+    for (const variant of ['normal', 'wrong-condition', 'missing-weight', 'late-condition'] as const) {
+      const actual = run(record, true, 'skill', 'OnHit', variant, seed)
+      expect(actual).toEqual(run(record, false, 'skill', 'OnHit', variant, seed))
+      expect(actual.inputs).toHaveLength(
+        seed === 11 ? 1 : seed === 2 || variant === 'wrong-condition' || variant === 'missing-weight' ? 0 : 1,
+      )
+    }
+  })
