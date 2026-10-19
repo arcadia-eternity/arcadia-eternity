@@ -5,6 +5,10 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   SkillInstance,
+  ConfigModifier,
+  ConfigDurationType,
+  ConfigModifierType,
+  parameterAddress,
   BaseSkill,
   SnapshotCatalog,
   effectAuthoring,
@@ -41,6 +45,7 @@ interface RecordEntry {
     operation: 'addPower' | 'amplifyPower'
     amount?: number
     value?: string
+    parameters?: { name: string; value: number; configId?: string; tags?: string[] }[]
     consumesStacks?: number
     repairedPaths: string[]
   }
@@ -99,6 +104,24 @@ function supportIds(nodes: { [key: string]: unknown }[]) {
 const branchVariants = ['lower-branch', 'no-branch', 'late-lower-branch', 'late-no-branch'] as const
 function conditionalPower(r: RecordEntry) {
   return definitions.get(r.id).apply.value?.type === 'conditional'
+}
+const parameterVariants = [
+  'default-config',
+  'config-zero',
+  'config-custom',
+  'foreign-config',
+  'removed-config',
+  'late-config',
+  'late-duration',
+] as const
+const probabilityId = 'effect_skill_power_4x_10_percent'
+function parameterKey(r: RecordEntry, battle: Battle, native: boolean, name: string) {
+  if (native) return parameterAddress(r.id, 'parameters', name)
+  const p = r.recipe.parameters!.find(p => p.name === name)!
+  if (p.configId) return `${r.id}.${p.configId}`
+  const keys = battle.configSystem.getRegisteredKeys().filter(key => key.startsWith(`${r.id}.`))
+  if (keys.length !== 1) throw new Error('Ambiguous anonymous parameter oracle')
+  return keys[0]
 }
 const fieldVariants = ['wrong-fields', 'missing-fields', 'late-fields'] as const
 const fieldIds = new Set([
@@ -171,7 +194,8 @@ function run(
     | (typeof dynamicVariants)[number]
     | (typeof orderVariants)[number]
     | (typeof fieldVariants)[number]
-    | (typeof branchVariants)[number],
+    | (typeof branchVariants)[number]
+    | (typeof parameterVariants)[number],
 ) {
   const f = makeScenario(328),
     { battle, a, b } = f
@@ -184,7 +208,9 @@ function run(
   const add = (owner: typeof pet | Battle, id: string) => {
     const base = new BaseMark(id as baseMarkId, [], { ...f.debuff.config, maxStacks: 5, stackable: true })
     battle.addMark(new AddMarkContext(setup, owner, base, 3))
-    return owner.marks.find(m => m.base === base)!
+    const mark = owner.marks.find(m => m.base === base)!
+    if (r.id === 'effect_skill_add_power_20_per_pofang_turn') mark.duration = 3
+    return mark
   }
   if (variant !== 'missing-marks' && variant !== 'empty-values') {
     for (const id of supportIds(nodes)) {
@@ -213,7 +239,26 @@ function run(
   }
   if (fieldIds.has(r.id)) fieldsFor(r, battle, variant !== 'wrong-fields', variant === 'missing-fields')
   const source = kind === 'skill' ? skill : add(kind === 'global' ? battle : pet, 'fixture/power')
-  source.effects.push(native ? generatedSkillPowerEffects[r.id] : oracles.get(r.id)!)
+  const effect = native ? generatedSkillPowerEffects[r.id] : oracles.get(r.id)!
+  if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
+  for (const p of r.recipe.parameters ?? [])
+    if (r.id === probabilityId && variant !== 'default-config')
+      battle.configSystem.set(parameterKey(r, battle, native, p.name), 100)
+  source.effects.push(effect)
+  const changeConfig = (amount: number, foreign = false, remove = false) => {
+    for (const p of r.recipe.parameters ?? []) {
+      const cleanup = battle.configSystem.addScopedConfigModifier(
+        parameterKey(r, battle, native, p.name),
+        new ConfigModifier(ConfigDurationType.binding, 'fixture/power-config', amount, ConfigModifierType.override, 0),
+        foreign ? a.team[1].skills[0] : source,
+      )
+      if (remove) cleanup()
+    }
+  }
+  if (variant === 'config-zero') changeConfig(0)
+  if (variant === 'config-custom') changeConfig(r.id === probabilityId ? 100 : 7.5)
+  if (variant === 'foreign-config' || variant === 'removed-config')
+    changeConfig(0, variant === 'foreign-config', variant === 'removed-config')
   const otherSkill = new SkillInstance(skill.base)
   otherSkill.setOwner(pet)
   const use = new UseSkillContext(
@@ -233,6 +278,7 @@ function run(
       for (const mark of [...owner.marks]) {
         if (!supportIds(nodes).includes(mark.baseId)) continue
         const duplicate = mark.base.createInstance({ stack: 2 })
+        if (r.id === 'effect_skill_add_power_20_per_pofang_turn') duplicate.duration = 2
         duplicate.owner = owner
         owner.marks.push(duplicate)
       }
@@ -268,6 +314,8 @@ function run(
         }
         if (variant === 'late-lower-branch' || variant === 'late-no-branch')
           selectBranch(variant === 'late-lower-branch')
+        if (variant === 'late-config') changeConfig(r.id === probabilityId ? 0 : 7.5)
+        if (variant === 'late-duration') for (const mark of b.activePet.marks) mark.duration = 1
         if (variant === 'late-fields') fieldsFor(r, battle, false)
         if (variant === 'late-order') {
           use.parent.appledContexts.reverse()
@@ -305,6 +353,7 @@ function run(
 }
 // Explicit expected contributions, independent of the emitted expression and legacy interpreter.
 function expectedDynamic(id: Id, kind: 'skill' | 'mark' | 'global', phase: boolean): number {
+  if (id === 'effect_skill_add_power_20_per_pofang_turn') return 60
   if (id.startsWith('effect_skill_power_100_if_')) return 150
   if (id === 'effect_skill_consume_xinzhiyinji_power_2x') return 83
   if (id === 'effect_skill_add_power_10_per_opponent_manxingduyao') return 30
@@ -361,6 +410,7 @@ for (const r of records) {
       ...(hasOrderCondition(r) ? orderVariants : []),
       ...(fieldIds.has(r.id) ? fieldVariants : []),
       ...(conditionalPower(r) ? branchVariants : []),
+      ...(r.recipe.parameters ? parameterVariants : []),
     ])(`${r.id} ${kind}: %s`, variant => {
       const actual = run(r, true, kind, variant)
       expect(actual).toEqual(run(r, false, kind, variant))
@@ -372,6 +422,25 @@ for (const r of records) {
       if (conditionalPower(r) && (branchVariants as readonly string[]).includes(variant)) {
         expect(actual.trace).toContain('admitted')
         expect(actual.power).toBe(variant.includes('lower') ? 133 : 83)
+      }
+      if (
+        r.recipe.parameters &&
+        variant !== 'default-config' &&
+        (parameterVariants as readonly string[]).includes(variant)
+      ) {
+        const contribution =
+          r.id === probabilityId
+            ? variant === 'config-zero'
+              ? 0
+              : 249
+            : variant === 'config-zero'
+              ? 0
+              : variant === 'config-custom' || variant === 'late-config'
+                ? 22
+                : variant === 'late-duration'
+                  ? 20
+                  : 60
+        expect(actual.power).toBe(83 + contribution)
       }
       if (variant === 'normal' || variant === 'phase' || variant === 'late-fields') {
         expect(actual.trace).toContain('admitted')
@@ -398,6 +467,9 @@ async function game(r: RecordEntry, native: boolean, checkpoint: boolean) {
     Category.Physical) as Category
   const candidate = () => (native ? createGeneratedSkillPowerEffects()[r.id] : oracles.get(r.id)!)
   const effect = candidate()
+  if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
+  for (const p of r.recipe.parameters ?? [])
+    battle.configSystem.set(parameterKey(r, battle, native, p.name), r.id === probabilityId ? 100 : 7.5)
   for (const pet of pets) {
     if (nodes.some(n => n.type === 'isFirstSkillUsedThisTurn'))
       pet.attributeSystem.updateBaseValue('spe', pet.owner === a ? 200 : 100)

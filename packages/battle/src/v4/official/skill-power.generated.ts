@@ -2,6 +2,7 @@
 import {
   compileEffect,
   defineEffect,
+  numberParam,
   conditions,
   contexts,
   targets,
@@ -328,6 +329,30 @@ export function createGeneratedSkillPowerEffects() {
         ),
       }),
     ),
+    effect_skill_add_power_20_per_pofang_turn: (() => {
+      const parameters = { amount_step2: numberParam({ default: 20, tags: [], legacyAliases: [] }) }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_power_20_per_pofang_turn',
+          on: 'AfterUseSkillCheck',
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: contexts.skillUse.apply(
+            ops.addPower(
+              values.combine(
+                targets.opponentMarks
+                  .where(mark => mark.baseId === 'mark_pofang')
+                  .select(mark => mark.duration)
+                  .all(),
+                parameters.amount_step2,
+                (items, factor) => items.map((n, index) => Math.floor(n * (index === 0 ? factor : 0))),
+              ),
+            ),
+          ),
+        }),
+      )
+    })(),
     effect_skill_add_power_25_if_has_field: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_25_if_has_field',
@@ -1297,6 +1322,24 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
+    effect_skill_power_4x_10_percent: (() => {
+      const parameters = {
+        condition_1_1_percent: numberParam({ default: 10, tags: ['skill_effect_probability'], legacyAliases: [] }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_power_4x_10_percent',
+          on: 'AfterUseSkillCheck',
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
+          ),
+          execute: contexts.skillUse.apply(ops.amplifyPower(4)),
+        }),
+      )
+    })(),
     effect_skill_power_4x_below_1_6_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_4x_below_1_6_hp',

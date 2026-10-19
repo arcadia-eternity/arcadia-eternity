@@ -144,7 +144,7 @@ export declare const conditions: {
   readonly selfBeDamaged: Condition
   readonly selfBeHealed: Condition
   /** One battle RNG draw on each call, including 0 and 100; short-circuiting is owned by the caller. */
-  readonly chance: (percent: number) => Condition
+  readonly chance: (percent: number | Value<number>) => Condition
 }
 export declare const checks: {
   readonly exists: <T>() => Evaluator<T>

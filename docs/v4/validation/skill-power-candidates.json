@@ -399,6 +399,25 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_add_power_20_per_pofang_turn",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/330",
+      "definitionSha256": "c522c10a422630ac3e29b43b6d8a897254581d0001d8e3a09222d90f67d2dbb0",
+      "recipe": {
+        "id": "effect_skill_add_power_20_per_pofang_turn",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "values.combine(targets.opponentMarks.where(mark => mark.baseId === \"mark_pofang\").select(mark => mark.duration).all(),parameters.amount_step2,(items,factor) => items.map((n,index) => Math.floor(n * (index === 0 ? factor : 0))))",
+        "when": "conditions.selfUsesSkill",
+        "parameters": [{ "name": "amount_step2", "value": 20 }],
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_add_power_25_if_has_field",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/635",
@@ -1573,6 +1592,25 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power_4x_10_percent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/558",
+      "definitionSha256": "899afa9cff2a33a3c3879160bdba0c9d7ceadb7f9d7bb68e368c2f9e11d964ec",
+      "recipe": {
+        "id": "effect_skill_power_4x_10_percent",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 4,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_1_percent)))",
+        "parameters": [{ "name": "condition_1_1_percent", "value": 10, "tags": ["skill_effect_probability"] }],
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power_4x_below_1_6_hp",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/64",
@@ -1806,24 +1844,10 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_skill_add_power_20_per_pofang_turn",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/330",
-      "definitionSha256": "c522c10a422630ac3e29b43b6d8a897254581d0001d8e3a09222d90f67d2dbb0",
-      "reason": "unsupported power value"
-    },
-    {
       "id": "effect_skill_add_power_35_if_opponent_spa_gt_atk",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/529",
       "definitionSha256": "a49a810cddb50ea0df6800bb5563ddc36a308e72dd9b0e2fe458f72d8b90177d",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_4x_10_percent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/558",
-      "definitionSha256": "899afa9cff2a33a3c3879160bdba0c9d7ceadb7f9d7bb68e368c2f9e11d964ec",
       "reason": "condition needs a separate mapping"
     }
   ]

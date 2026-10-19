@@ -332,8 +332,12 @@ export const conditions: typeof C.conditions = {
   selfBeDamaged: ctx => ctx.event instanceof DamageContext && owner(ctx) === ctx.event.target,
   selfBeHealed: ctx => ctx.event instanceof HealContext && owner(ctx) === ctx.event.target,
   chance: percent => {
-    if (!Number.isFinite(percent)) throw new Error('Expected finite probability')
-    return ctx => engine(ctx).battle.random() < percent / 100
+    if (typeof percent === 'number' && !Number.isFinite(percent)) throw new Error('Expected finite probability')
+    return ctx => {
+      const amount = typeof percent === 'number' ? percent : read(ctx, percent)
+      if (typeof amount !== 'number' || !Number.isFinite(amount)) throw new Error('Expected finite probability')
+      return engine(ctx).battle.random() < amount / 100
+    }
   },
 }
 export const checks: typeof C.checks = { exists: () => (_ctx, selected) => selected.length > 0 }

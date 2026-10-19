@@ -953,3 +953,34 @@ it('conditional power lists distinguish no branch from zero and read only the se
   expect(writes).toEqual([150, 50, 0])
   expect(f.use.power).toBe(283)
 })
+
+it('parameterized probability rereads at admission and keeps one draw for zero and certainty', () => {
+  const f = fixture()
+  const percent = numberParam({ default: 10, tags: ['skill_effect_probability'] })
+  const outcomes: boolean[] = []
+  let draws = 0
+  f.battle.random = () => {
+    draws++
+    return 0.5
+  }
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/parameter-probability',
+      on: 'BeforeHit',
+      parameters: { percent },
+      execute(ctx) {
+        const chance = conditions.chance(percent)
+        outcomes.push(chance(ctx))
+        f.battle.configSystem.set(parameterAddress('test/parameter-probability', 'parameters', 'percent'), 100)
+        outcomes.push(chance(ctx))
+        f.battle.configSystem.set(parameterAddress('test/parameter-probability', 'parameters', 'percent'), 0)
+        outcomes.push(chance(ctx))
+        expect(() => conditions.chance(percent.map(() => Infinity))(ctx)).toThrow('finite probability')
+      },
+    }),
+  )
+  effectParameters(effect).install(f.battle.configSystem)
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(outcomes).toEqual([false, true, false])
+  expect(draws).toBe(3)
+})

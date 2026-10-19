@@ -104,7 +104,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         fields(e, ['type', 'arg']) &&
         e.type === 'dynamic' &&
         (e.arg === 'lastSkillUsedTimes' ||
-          (domain === 'skill' && ['weight', 'height', 'level', 'maxRage', 'currentTurn'].includes(e.arg)))
+          (domain === 'skill' && ['weight', 'height', 'level', 'maxRage', 'currentTurn', 'duration'].includes(e.arg)))
       )
         name = e.arg
       else if (
@@ -112,8 +112,11 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         (step.arg === 'stack' || (collection && s.base === 'usingSkillContext' && step.arg === 'power'))
       )
         name = step.arg
-      if (['mark', 'selfMarks', 'opponentMarks'].includes(s.base) && name === 'stack')
-        code += `.select(mark => mark.stack)${terminal}`
+      if (
+        ['mark', 'selfMarks', 'opponentMarks'].includes(s.base) &&
+        (name === 'stack' || (domain === 'skill' && name === 'duration'))
+      )
+        code += `.select(mark => mark.${name})${terminal}`
       else if (['self', 'opponent'].includes(s.base) && ['currentHp', 'maxHp', 'lastSkillUsedTimes'].includes(name))
         code += `.select(pet => pet.${name === 'maxHp' ? 'stat.maxHp' : name})${terminal}`
       else if (
@@ -137,13 +140,19 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
       const parameter = !Number.isFinite(step.arg)
         ? rawParameter(step.arg, parameters, `${path}_step${index}`)
         : undefined
-      if (!Number.isFinite(step.arg) && (!parameter || collection)) return
+      if (!Number.isFinite(step.arg) && !parameter) return
       // A configured divisor may become zero. Keep it out until the zero contract is mapped.
       if (parameter && step.type === 'divide') return
       // Literal numeric sources contain one item; legacy pairs by index and uses zero for missing RHS.
       // Multi-member division therefore produces nonfinite values and needs a separate decision.
       if (collection && ['selfMarks', 'opponentMarks'].includes(s.base) && step.type === 'divide') return
-      const n = parameter ? 'factor' : collection ? `(index === 0 ? ${q(step.arg)} : 0)` : q(step.arg)
+      const n = parameter
+        ? collection
+          ? '(index === 0 ? factor : 0)'
+          : 'factor'
+        : collection
+          ? `(index === 0 ? ${q(step.arg)} : 0)`
+          : q(step.arg)
       const expression = {
         multiply: `Math.floor(n * ${n})`,
         divide: `Math.floor(n / ${n})`,
@@ -153,7 +162,9 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
       }[step.type]
       if (!expression || (step.type === 'divide' && step.arg === 0)) return
       code = parameter
-        ? `values.combine(${code},${parameter.code},(n,factor) => ${expression})`
+        ? collection
+          ? `values.combine(${code},${parameter.code},(items,factor) => items.map((n,index) => ${expression}))`
+          : `values.combine(${code},${parameter.code},(n,factor) => ${expression})`
         : collection
           ? `${code}.map(items => items.map((n,index) => ${expression}))`
           : `${code}.map(n => ${expression})`
@@ -196,7 +207,7 @@ function number(v, parameters, path, domain = 'damage') {
       return { code: `values.choose(${c},${yes.code},${no.code})`, literal: false, required: true }
   }
 }
-function condition(c, domain = 'damage') {
+function condition(c, domain = 'damage', parameters, path = 'condition') {
   if (fields(c, ['type'])) {
     if (domain === 'skill' && c.type === 'isFirstSkillUsedThisTurn') return 'conditions.firstSkillThisTurn'
     if (domain === 'skill' && c.type === 'isLastSkillUsedThisTurn') return 'conditions.lastSkillThisTurn'
@@ -220,11 +231,11 @@ function condition(c, domain = 'damage') {
     Array.isArray(c.conditions) &&
     c.conditions.length
   ) {
-    const items = c.conditions.map(item => condition(item, domain))
+    const items = c.conditions.map((item, index) => condition(item, domain, parameters, `${path}_${index}`))
     if (items.every(Boolean)) return `conditions.${c.type === 'every' ? 'all' : 'any'}(${items.join(',')})`
   }
   if (fields(c, ['type', 'condition']) && c.type === 'not') {
-    const inner = condition(c.condition, domain)
+    const inner = condition(c.condition, domain, parameters, `${path}_not`)
     if (inner) return `conditions.not(${inner})`
   }
   if (fields(c, ['type', 'baseId']) && typeof c.baseId === 'string') {
@@ -236,6 +247,10 @@ function condition(c, domain = 'damage') {
   if (domain === 'skill' && fields(c, ['type', 'target', 'evaluator']) && c.type === 'evaluate') {
     const target = c.target,
       evaluator = c.evaluator
+    if (target === 'self' && fields(evaluator, ['type', 'percent']) && evaluator.type === 'probability') {
+      const percent = number(evaluator.percent, parameters, `${path}_percent`, domain)
+      if (percent && (percent.literal || percent.required)) return `conditions.chance(${percent.code})`
+    }
     if (
       fields(target, ['base', 'chain']) &&
       ['self', 'opponent'].includes(target.base) &&

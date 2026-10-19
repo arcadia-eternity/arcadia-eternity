@@ -50,7 +50,7 @@ test('rejects unsupported action shapes instead of emitting partial effects', ()
     assert.ok(classifySkillPower(bad).reason)
 })
 test('deterministically reproduces every candidate and rejected record', async () => {
-  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 99, rejected: 5 })
+  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 101, rejected: 3 })
 })
 
 test('preserves skill ownership throughout nested conditional comparison values', () => {
@@ -195,4 +195,48 @@ test('conditional power values preserve absent false-zero and lazy list branches
     invalid.apply.value.falseValue = bad
     assert.ok(classifySkillPower(invalid).reason)
   }
+})
+
+test('parameterized duration lists preserve indexed pairing and reject invalid extractors', () => {
+  const d = source()
+  d.apply.value = {
+    type: 'dynamic',
+    selector: {
+      base: 'opponentMarks',
+      chain: [
+        { type: 'select', arg: { type: 'dynamic', arg: 'duration' } },
+        { type: 'multiply', arg: { type: 'raw:number', value: 20, configId: 'factor', tags: ['power'] } },
+      ],
+    },
+  }
+  const r = classifySkillPower(d)
+  assert.deepEqual(r.parameters, [{ name: 'amount_step1', value: 20, configId: 'factor', tags: ['power'] }])
+  assert.equal(
+    r.value,
+    'values.combine(targets.opponentMarks.select(mark => mark.duration).all(),parameters.amount_step1,(items,factor) => items.map((n,index) => Math.floor(n * (index === 0 ? factor : 0))))',
+  )
+  d.apply.value.selector.chain[0].arg.type = 'base'
+  assert.ok(classifySkillPower(d).reason)
+})
+test('parameterized probability preserves nested condition order and parameter tags', () => {
+  const d = source()
+  d.condition = {
+    type: 'every',
+    conditions: [
+      { type: 'selfUseSkill' },
+      {
+        type: 'evaluate',
+        target: 'self',
+        evaluator: {
+          type: 'probability',
+          percent: { type: 'raw:number', value: 10, tags: ['skill_effect_probability'] },
+        },
+      },
+    ],
+  }
+  const r = classifySkillPower(d)
+  assert.equal(r.when, 'conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_percent))')
+  assert.deepEqual(r.parameters, [{ name: 'condition_1_percent', value: 10, tags: ['skill_effect_probability'] }])
+  d.condition.conditions[1].evaluator.percent.tags = [123]
+  assert.ok(classifySkillPower(d).reason)
 })
