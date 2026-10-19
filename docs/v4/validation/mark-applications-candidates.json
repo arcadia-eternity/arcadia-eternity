@@ -379,6 +379,30 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_fansheguike",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/573",
+      "definitionSha256": "1368f09ae254d53de6d0d3c445e6f6a092cb4d30d90abfa759cca2306df2c75d",
+      "recipe": {
+        "id": "effect_skill_add_mark_fansheguike",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first());const right=500;return left!==undefined && right!==undefined && left > right}))",
+        "markId": "mark_fansheguike",
+        "stackValue": "targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => n + -500).map(n => Math.max(n, 0))"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_fansheguike",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/226",
+        "definitionSha256": "517ceec83c232631e69cb1667e3b033598a4fa220ce96789a967eff885682e6c",
+        "effectIds": ["effect_mark_reflect_special_damage_max_with_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_fantan",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/185",
@@ -562,6 +586,30 @@
         "sourcePath": "/211",
         "definitionSha256": "f474b232ea0eb5a3900d1c7482661dd01b4dae2443a9a82458f7457de436414d",
         "effectIds": ["effect_mark_stack_mark_with_damage", "effect_mark_add_damage_with_stack_and_consume"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/577",
+      "definitionSha256": "1f9088f2fe8e627d7dfc7556c0c26c102f6431514a79029f9a45a5a34676474f",
+      "recipe": {
+        "id": "effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first());const right=500;return left!==undefined && right!==undefined && left > right}))",
+        "markId": "mark_hanbinghujia",
+        "stackValue": "targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => n + -500).map(n => Math.max(n, 0)).map(n => Math.floor(n * 2))"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_hanbinghujia",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/225",
+        "definitionSha256": "1a74d50043d7b93cb3b1eef7ef32b6047e60bdd321b6ba2cc012cd1aa0bbc094",
+        "effectIds": []
       }
     },
     {
@@ -773,6 +821,99 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_huohuanzhixin_1",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/514",
+      "definitionSha256": "30e64467ce5d11c673be9c5f751c9906156dd36e2daf201adb6d1a6a2d28d8b1",
+      "recipe": {
+        "id": "effect_skill_add_mark_huohuanzhixin_1",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_huohuanzhixin",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 1,
+            "tags": ["skill_effect_stack", "skill_effect_huohuanzhixin_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_huohuanzhixin",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/209",
+        "definitionSha256": "58b8cf5f36461c2f816abead403c976f0f105d68dc9f3735579a9e8bb08dfb1f",
+        "effectIds": ["effect_mark_increase_damage_10_percent_per_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_huohuanzhixin_2",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/513",
+      "definitionSha256": "e5922c13a7ed4b39ea691f4e8110f79ba3c5d988a37e0d6569d7214e85e4ee94",
+      "recipe": {
+        "id": "effect_skill_add_mark_huohuanzhixin_2",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_huohuanzhixin",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 2,
+            "tags": ["skill_effect_stack", "skill_effect_huohuanzhixin_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_huohuanzhixin",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/209",
+        "definitionSha256": "58b8cf5f36461c2f816abead403c976f0f105d68dc9f3735579a9e8bb08dfb1f",
+        "effectIds": ["effect_mark_increase_damage_10_percent_per_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_huohuanzhixin_3",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/512",
+      "definitionSha256": "5be3199e704acf57680911810a68b121237102ea365bb7a793f44dbd2de65688",
+      "recipe": {
+        "id": "effect_skill_add_mark_huohuanzhixin_3",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_huohuanzhixin",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 3,
+            "tags": ["skill_effect_stack", "skill_effect_huohuanzhixin_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_huohuanzhixin",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/209",
+        "definitionSha256": "58b8cf5f36461c2f816abead403c976f0f105d68dc9f3735579a9e8bb08dfb1f",
+        "effectIds": ["effect_mark_increase_damage_10_percent_per_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_huoxing",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/205",
@@ -954,6 +1095,30 @@
         "sourceFile": "packs/base/data/mark.yaml",
         "sourcePath": "/99",
         "definitionSha256": "14ef7c503f1f7e915041a62f69595401f446cc4f2641d60cd6f7e9e6978cb4ec",
+        "effectIds": []
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/165",
+      "definitionSha256": "da7007fa97e23df19bcb5485ecb2af03d4a4ddac39444acf6b3d9c75dab087ce",
+      "recipe": {
+        "id": "effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").condition(checks.exists()))",
+        "markId": "mark_kongqihudun",
+        "stackValue": "targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").select(mark => mark.stack).first()"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_kongqihudun",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/111",
+        "definitionSha256": "39e55e0590eff0959b6001d26bdb27f03bf036082b68a08f72b05e52b3bc1322",
         "effectIds": []
       }
     },
@@ -1916,6 +2081,31 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/80",
+      "definitionSha256": "36866104dc22bcda91a3e7a0acaf96b62efa07542d9f81f82bb814a6bcc95e77",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_liuxie",
+        "stack": 50,
+        "durationValue": "targets.ownerMarks.where(mark => mark.baseId === \"mark_zhongzinengliang\").select(mark => mark.stack).first().map(n => n + 3)"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_opponent_mabi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/554",
@@ -2033,6 +2223,37 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/72",
+      "definitionSha256": "1f621bb6b5d34f356cd7e207eeef0ad4b14c155b17a3632099001491a09d6a6d",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_mingzhongxiajiang",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 15,
+            "tags": ["skill_effect_stack", "skill_effect_mingzhongxiajiang_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_mingzhongxiajiang",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/65",
+        "definitionSha256": "4e6619dbe01759597d3c94f94d7bc2c364f57b7f19c6228e5201238b2dd3a830",
+        "effectIds": ["effect_mark_reduce_accuracy_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/466",
@@ -2070,6 +2291,68 @@
         "additionalDecisions": ["C08"],
         "markId": "mark_mingzhongxiajiang",
         "stack": 15
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_mingzhongxiajiang",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/65",
+        "definitionSha256": "4e6619dbe01759597d3c94f94d7bc2c364f57b7f19c6228e5201238b2dd3a830",
+        "effectIds": ["effect_mark_reduce_accuracy_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_25",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/341",
+      "definitionSha256": "3d1a125fee4e4d4774679b5d160f4fed4059435f3c05545316ffab7d9aeb0349",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_25",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_mingzhongxiajiang",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 25,
+            "tags": ["skill_effect_stack", "skill_effect_mingzhongxiajiang_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_mingzhongxiajiang",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/65",
+        "definitionSha256": "4e6619dbe01759597d3c94f94d7bc2c364f57b7f19c6228e5201238b2dd3a830",
+        "effectIds": ["effect_mark_reduce_accuracy_stack"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_5",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/233",
+      "definitionSha256": "ee741d8bc6d73bd15c38293c792ee645deb21a5d6ba9ac980949da2812ddea71",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_5",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_mingzhongxiajiang",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 5,
+            "tags": ["skill_effect_stack", "skill_effect_mingzhongxiajiang_stack"]
+          }
+        ]
       },
       "classification": "U",
       "status": "generated-candidate",
@@ -2556,6 +2839,161 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_opponent_yinbo_10",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/322",
+      "definitionSha256": "15f9e3480fbdd1e76571be6f42cc3bc48b706a47f9c9b28f93100c9eba538a32",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_yinbo_10",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_yinbo",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 10,
+            "tags": ["skill_effect_stack", "skill_effect_yinbo_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_yinbo",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/100",
+        "definitionSha256": "774728cf218bf7a11b4eaeebb2a1c001636cbca3dbb6213135880fbb7ffe82c7",
+        "effectIds": ["effect_mark_explode_on_stack_over_100"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_yinbo_30",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/321",
+      "definitionSha256": "3d32eca6d8b41a50bcc651869753c278d47e53279889f6137ae50af4657bec5c",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_yinbo_30",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_yinbo",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 30,
+            "tags": ["skill_effect_stack", "skill_effect_yinbo_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_yinbo",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/100",
+        "definitionSha256": "774728cf218bf7a11b4eaeebb2a1c001636cbca3dbb6213135880fbb7ffe82c7",
+        "effectIds": ["effect_mark_explode_on_stack_over_100"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_yinbo_35",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/320",
+      "definitionSha256": "71ec51f836e693895e9d428745a787729b8789cd918ff07e0ff2a51096f4c16a",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_yinbo_35",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_yinbo",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 35,
+            "tags": ["skill_effect_stack", "skill_effect_yinbo_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_yinbo",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/100",
+        "definitionSha256": "774728cf218bf7a11b4eaeebb2a1c001636cbca3dbb6213135880fbb7ffe82c7",
+        "effectIds": ["effect_mark_explode_on_stack_over_100"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_yinbo_40",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/319",
+      "definitionSha256": "10aa129a5ac9d5deee12b0737283af6e98ad2fa58f42f7ad3f2e458315c27ac3",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_yinbo_40",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_yinbo",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 40,
+            "tags": ["skill_effect_stack", "skill_effect_yinbo_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_yinbo",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/100",
+        "definitionSha256": "774728cf218bf7a11b4eaeebb2a1c001636cbca3dbb6213135880fbb7ffe82c7",
+        "effectIds": ["effect_mark_explode_on_stack_over_100"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_yinbo_45",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/318",
+      "definitionSha256": "60592226d71feccbf575ceb607fa8cb1597beea4e67d83b1588b074fe536af72",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_yinbo_45",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_yinbo",
+        "stackValue": "parameters.stack",
+        "parameters": [
+          {
+            "name": "stack",
+            "value": 45,
+            "tags": ["skill_effect_stack", "skill_effect_yinbo_stack"]
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_yinbo",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/100",
+        "definitionSha256": "774728cf218bf7a11b4eaeebb2a1c001636cbca3dbb6213135880fbb7ffe82c7",
+        "effectIds": ["effect_mark_explode_on_stack_over_100"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_opponent_yingzhidouqi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/355",
@@ -2682,6 +3120,30 @@
         "target": "opponent",
         "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))",
         "markId": "mark_zhongdu"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_zhongdu",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/35",
+        "definitionSha256": "c05f250d15e2fc7c0044e1eceb3d336ce5b6766cc24330a65f5999f508b49db1",
+        "effectIds": ["effect_mark_turn_damage", "effect_mark_decrease_heal"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_zhongdu_duration_2",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/108",
+      "definitionSha256": "6693c7fbb6ab7801d4d96c9f6a06e30d5f202bbb35734052ce0ac9022b40b73d",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_zhongdu_duration_2",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_zhongdu\"))))",
+        "markId": "mark_zhongdu",
+        "durationValue": "targets.opponentMarks.where(mark => mark.baseId === \"mark_zhongdu\").select(mark => mark.stack).first().map(n => n + 2)"
       },
       "classification": "U",
       "status": "generated-candidate",
@@ -3261,6 +3723,30 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/122",
+      "definitionSha256": "2007c5416944f0ccbc2a09f0769de2d4699a3495a0456566f5f9fede7f0ff71f",
+      "recipe": {
+        "id": "effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "markId": "mark_shanghaizengjia",
+        "stackValue": "targets.ownerMarks.where(mark => mark.baseId === \"mark_zengzhong\").select(mark => mark.stack).first().map(n => Math.floor(n * 75))"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shanghaizengjia",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/90",
+        "definitionSha256": "873ac0a7453374f908f672f7f1d5b64a76df54401176fbcdfa3808f7daff9afe",
+        "effectIds": ["effect_mark_amplify_next_damage_skill_power_with_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_shazhidanke",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/345",
@@ -3515,6 +4001,37 @@
         "sourcePath": "/15",
         "definitionSha256": "e1042c9d08be8c2274c1bc0e9710f70236ecfb6fe563573fd8a5e36740f56727",
         "effectIds": ["effect_mark_stun", "effect_mark_onDamage_recovery"]
+      }
+    },
+    {
+      "id": "effect_skill_add_mark_shuiwenpingzhang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/182",
+      "definitionSha256": "fc68939202c5a4742c854c496371c9bc85f7a72c6563d6f9dbd8876e5d7df009",
+      "recipe": {
+        "id": "effect_skill_add_mark_shuiwenpingzhang",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.selfUsesSkill",
+        "markId": "mark_shuiwenpingzhang",
+        "stackValue": "values.combine(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 4)),parameters.stack_step2,(n,factor) => Math.floor(n * factor))",
+        "parameters": [
+          {
+            "name": "stack_step2",
+            "value": 1,
+            "configId": "multiply_value"
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "handwritten-override-retained",
+      "dependency": {
+        "id": "mark_shuiwenpingzhang",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/115",
+        "definitionSha256": "bb908974fb5fe417628565217838e5c3cf48676f146da80ae35c3be52e429f79",
+        "effectIds": ["effect_mark_onDestroy_add_mark_shanghaizengjia"]
       }
     },
     {
@@ -4414,6 +4931,30 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_zhifanghudun_stack_with_weight",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/113",
+      "definitionSha256": "7d38ca9544c7d31733609a6493f1316e2f15a70662fe6cb5a1b40fcca7f341fa",
+      "recipe": {
+        "id": "effect_skill_add_mark_zhifanghudun_stack_with_weight",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "markId": "mark_zhifanghudun",
+        "stackValue": "targets.ownerPet.select(pet => pet.weight).first()"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_zhifanghudun",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/108",
+        "definitionSha256": "4cc7a90d58d8aacf1a4ab1ed40b1a0e2ed2f24582a85a73f980aac9b155aaf51",
+        "effectIds": []
+      }
+    },
+    {
       "id": "effect_skill_add_mark_zhongzinengliang",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/68",
@@ -4458,6 +4999,30 @@
         "sourcePath": "/123",
         "definitionSha256": "2431639444903175555c9598eeaaebcdbf2d45430ad6a2df8d62e7defea68122",
         "effectIds": ["effect_mark_next_attack_damage_increase_50_percent_sure_hit"]
+      }
+    },
+    {
+      "id": "effect_skill_double_mark_liuxie_stack",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/133",
+      "definitionSha256": "caf43f97cf7de120b3da3214d316f255bb7927f9e5fe447a35beff84966454cf",
+      "recipe": {
+        "id": "effect_skill_double_mark_liuxie_stack",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_liuxie\"))))",
+        "markId": "mark_liuxie",
+        "stackValue": "targets.opponentMarks.where(mark => mark.baseId === \"mark_liuxie\").select(mark => mark.stack).first().map(n => Math.floor(n * 2))"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
       }
     }
   ],
@@ -4659,53 +5224,11 @@
       "reason": "unsupported condition/trigger combination"
     },
     {
-      "id": "effect_skill_add_mark_fansheguike",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/573",
-      "definitionSha256": "1368f09ae254d53de6d0d3c445e6f6a092cb4d30d90abfa759cca2306df2c75d",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/577",
-      "definitionSha256": "1f9088f2fe8e627d7dfc7556c0c26c102f6431514a79029f9a45a5a34676474f",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
       "id": "effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/434",
       "definitionSha256": "c2c63b7573977e7a64be2c5a6d3b403242c5b33dad68bc44f717b5324d86a6de",
       "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_huohuanzhixin_1",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/514",
-      "definitionSha256": "30e64467ce5d11c673be9c5f751c9906156dd36e2daf201adb6d1a6a2d28d8b1",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_huohuanzhixin_2",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/513",
-      "definitionSha256": "e5922c13a7ed4b39ea691f4e8110f79ba3c5d988a37e0d6569d7214e85e4ee94",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_huohuanzhixin_3",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/512",
-      "definitionSha256": "5be3199e704acf57680911810a68b121237102ea365bb7a793f44dbd2de65688",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/165",
-      "definitionSha256": "da7007fa97e23df19bcb5485ecb2af03d4a4ddac39444acf6b3d9c75dab087ce",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
     },
     {
       "id": "effect_skill_add_mark_opponent_bingdong_40_percent",
@@ -4799,13 +5322,6 @@
       "reason": "unsupported condition/trigger combination"
     },
     {
-      "id": "effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/80",
-      "definitionSha256": "36866104dc22bcda91a3e7a0acaf96b62efa07542d9f81f82bb814a6bcc95e77",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
       "id": "effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/633",
@@ -4846,27 +5362,6 @@
       "sourcePath": "/145",
       "definitionSha256": "b2fa8a8a7f895e4fdae00ce9c1fb3bf86487cb21da2ead5b4be545c639e670bc",
       "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/72",
-      "definitionSha256": "1f621bb6b5d34f356cd7e207eeef0ad4b14c155b17a3632099001491a09d6a6d",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_25",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/341",
-      "definitionSha256": "3d1a125fee4e4d4774679b5d160f4fed4059435f3c05545316ffab7d9aeb0349",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_5",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/233",
-      "definitionSha256": "ee741d8bc6d73bd15c38293c792ee645deb21a5d6ba9ac980949da2812ddea71",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
     },
     {
       "id": "effect_skill_add_mark_opponent_nishui",
@@ -4953,41 +5448,6 @@
       "reason": "unsupported condition/trigger combination"
     },
     {
-      "id": "effect_skill_add_mark_opponent_yinbo_10",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/322",
-      "definitionSha256": "15f9e3480fbdd1e76571be6f42cc3bc48b706a47f9c9b28f93100c9eba538a32",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_yinbo_30",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/321",
-      "definitionSha256": "3d32eca6d8b41a50bcc651869753c278d47e53279889f6137ae50af4657bec5c",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_yinbo_35",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/320",
-      "definitionSha256": "71ec51f836e693895e9d428745a787729b8789cd918ff07e0ff2a51096f4c16a",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_yinbo_40",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/319",
-      "definitionSha256": "10aa129a5ac9d5deee12b0737283af6e98ad2fa58f42f7ad3f2e458315c27ac3",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_yinbo_45",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/318",
-      "definitionSha256": "60592226d71feccbf575ceb607fa8cb1597beea4e67d83b1588b074fe536af72",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
       "id": "effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/258",
@@ -5023,25 +5483,11 @@
       "reason": "unsupported condition/trigger combination"
     },
     {
-      "id": "effect_skill_add_mark_opponent_zhongdu_duration_2",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/108",
-      "definitionSha256": "6693c7fbb6ab7801d4d96c9f6a06e30d5f202bbb35734052ce0ac9022b40b73d",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
       "id": "effect_skill_add_mark_opponent_zhongdu_if_3_hits",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/631",
       "definitionSha256": "ed2540e6ac8891c8a970eab4453cfd2cb563bbb0f2d0eead385cbe946fa91545",
       "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/122",
-      "definitionSha256": "2007c5416944f0ccbc2a09f0769de2d4699a3495a0456566f5f9fede7f0ff71f",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
     },
     {
       "id": "effect_skill_add_mark_shiming_10_percent",
@@ -5051,13 +5497,6 @@
       "reason": "unsupported condition/trigger combination"
     },
     {
-      "id": "effect_skill_add_mark_shuiwenpingzhang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/182",
-      "definitionSha256": "fc68939202c5a4742c854c496371c9bc85f7a72c6563d6f9dbd8876e5d7df009",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
       "id": "effect_skill_add_mark_zhaocai_or_jinbao",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/462",
@@ -5065,25 +5504,11 @@
       "reason": "requires a fixed base mark reference"
     },
     {
-      "id": "effect_skill_add_mark_zhifanghudun_stack_with_weight",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/113",
-      "definitionSha256": "7d38ca9544c7d31733609a6493f1316e2f15a70662fe6cb5a1b40fcca7f341fa",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
-    },
-    {
       "id": "effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/172",
       "definitionSha256": "6c2d17c5a3878464f9eea3eebfb4388aa00381c008fe6b9f7a49f8c01157f119",
       "reason": "unsupported definition fields or identity/priority"
-    },
-    {
-      "id": "effect_skill_double_mark_liuxie_stack",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/133",
-      "definitionSha256": "caf43f97cf7de120b3da3214d316f255bb7927f9e5fe447a35beff84966454cf",
-      "reason": "requires finite literal stack/duration, without Config or dynamic values"
     },
     {
       "id": "effect_skill_set_field_chongqun",

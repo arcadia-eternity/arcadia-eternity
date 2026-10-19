@@ -29,7 +29,7 @@ test('rejects extra semantics rather than silently dropping them', () => {
     { ...d, condition: { type: 'some', conditions: [d.condition, { type: 'isFirstSkillUsedThisTurn' }] } },
     { ...d, condition: { type: 'not', condition: d.condition } },
     { ...d, apply: { ...d.apply, config: { duration: 1 } } },
-    { ...d, apply: { ...d.apply, stack: { type: 'raw:number', value: 2 } } },
+    { ...d, apply: { ...d.apply, stack: { type: 'raw:number', value: 2, unknown: true } } },
     { ...d, apply: { ...d.apply, duration: Infinity } },
     { ...d, apply: { ...d.apply, target: 'selfTeam' } },
     { ...d, apply: { ...d.apply, mark: { ...d.apply.mark, configId: 'dynamic' } } },
@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 190,
-    protected: 0,
-    dependencies: 155,
-    rejected: 97,
+    generated: 209,
+    protected: 1,
+    dependencies: 161,
+    rejected: 77,
   })
 })
 
@@ -100,5 +100,73 @@ test('rendered imports cover shared-emitter context expressions beyond current c
     assert.ok(imports.includes('contexts'))
     assert.equal(file.parseDiagnostics.length, 0)
     assert.ok(code.includes(recipe.when))
+  }
+})
+
+test('preserves queried zero, optional first reads and configurable option identity', () => {
+  const d = source()
+  const configurable = classifyMarkApplication({
+    ...d,
+    apply: { ...d.apply, stack: { type: 'raw:number', value: 0, configId: 'layers', tags: ['layer_tag'] } },
+  })
+  assert.equal(configurable.stack, undefined)
+  assert.equal(configurable.stackValue, 'parameters.stack')
+  assert.deepEqual(configurable.parameters, [{ name: 'stack', value: 0, configId: 'layers', tags: ['layer_tag'] }])
+  const rendered = renderMarkApplications([configurable], [configurable.markId])
+  assert.match(rendered, /example.layers/)
+  assert.match(rendered, /layer_tag/)
+  const dynamic = classifyMarkApplication({
+    ...d,
+    apply: {
+      ...d.apply,
+      stack: {
+        type: 'dynamic',
+        selector: { base: 'self', chain: [{ type: 'select', arg: { type: 'dynamic', arg: 'weight' } }] },
+      },
+    },
+  })
+  assert.equal(dynamic.stackValue, 'targets.ownerPet.select(pet => pet.weight).first()')
+  const duplicateAliases = {
+    ...d,
+    apply: {
+      ...d.apply,
+      stack: { type: 'raw:number', value: 2, configId: 'shared' },
+      duration: { type: 'raw:number', value: 3, configId: 'shared' },
+    },
+  }
+  assert.ok(classifyMarkApplication(duplicateAliases).reason)
+})
+
+test('imports contexts used only by an option expression', () => {
+  for (const key of ['stack', 'duration']) {
+    const d = source()
+    const recipe = classifyMarkApplication({
+      ...d,
+      apply: {
+        ...d.apply,
+        [key]: {
+          type: 'dynamic',
+          selector: { base: 'battle', chain: [{ type: 'select', arg: { type: 'dynamic', arg: 'currentTurn' } }] },
+        },
+      },
+    })
+    assert.ok(!recipe.reason)
+    assert.match(recipe[`${key}Value`], /contexts\.battle/)
+    const file = ts.createSourceFile(
+      'candidate.ts',
+      renderMarkApplications([recipe], [recipe.markId]),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    )
+    const imported = file.statements
+      .filter(ts.isImportDeclaration)
+      .some(
+        node =>
+          node.importClause?.namedBindings &&
+          ts.isNamedImports(node.importClause.namedBindings) &&
+          node.importClause.namedBindings.elements.some(item => item.name.text === 'contexts'),
+      )
+    assert.ok(imported)
   }
 })

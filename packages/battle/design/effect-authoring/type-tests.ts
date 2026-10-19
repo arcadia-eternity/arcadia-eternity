@@ -246,3 +246,7 @@ ops.addMark(targets.sourceMark.first())
 contexts.skillUse.apply(ops.addMark(selectedBaseMark))
 // @ts-expect-error Persistent plans are not instant stack inputs.
 ops.addMark(selectedBaseMark, { stack: capturedInstancePenalty })
+
+ops.addMark(selectedBaseMark, { stack: targets.ownerPet.select(pet => pet.weight).first() })
+// @ts-expect-error A nullable property is not a numeric mark option.
+ops.addMark(selectedBaseMark, { stack: targets.ownerPet.select(() => null).first() })

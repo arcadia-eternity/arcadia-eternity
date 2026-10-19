@@ -10,6 +10,11 @@ import {
   BaseMark,
   Pet,
   Gender,
+  ConfigModifier,
+  ConfigDurationType,
+  ConfigModifierType,
+  parameterAddress,
+  effectAuthoring,
   AddMarkContext,
   EffectContext,
   EffectTrigger,
@@ -34,6 +39,9 @@ interface RecordEntry {
     additionalDecisions?: string[]
     target: 'self' | 'opponent'
     markId: string
+    stackValue?: string
+    durationValue?: string
+    parameters?: { name: string; value: number; configId?: string; tags?: string[] }[]
     stack?: number
     duration?: number
     triggers: ('OnHit' | 'OnMiss')[]
@@ -57,14 +65,20 @@ for (const record of records)
     const definition = files.get(record.dependency.sourceFile)!.find(d => d.id === record.recipe.markId)!
     baseMarks.set(record.recipe.markId, MarkParser.parse({ ...definition, effect: [] }))
   }
+// Parse once before battle construction so legacy literal configurations exist in each battle.
+const oracles = new Map(
+  records.map(record => [record.id, EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id))]),
+)
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
 
+const valueRecords = records.filter(record => record.recipe.stackValue || record.recipe.durationValue)
 const conditionalRecords = records.filter(
   record =>
+    !valueRecords.includes(record) &&
     record.recipe.when !== 'conditions.selfUsesSkill' &&
     record.recipe.when !== 'conditions.all(conditions.selfUsesSkill)',
 )
@@ -127,6 +141,41 @@ function admissionState(
   }
 }
 
+const valueSupport: Record<string, ['self' | 'opponent', string]> = {
+  effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack: ['self', 'mark_kongqichuliang'],
+  effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang: ['self', 'mark_zhongzinengliang'],
+  effect_skill_add_mark_opponent_zhongdu_duration_2: ['opponent', 'mark_zhongdu'],
+  effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75: ['self', 'mark_zengzhong'],
+  effect_skill_double_mark_liuxie_stack: ['opponent', 'mark_liuxie'],
+}
+function defaultAmount(record: RecordEntry, key: 'stack' | 'duration') {
+  const dynamic: Record<string, number> = {
+    effect_skill_add_mark_fansheguike: 301,
+    effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500: 602,
+    effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack: 7,
+    effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang: 10,
+    effect_skill_add_mark_opponent_zhongdu_duration_2: 9,
+    effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75: 525,
+    effect_skill_double_mark_liuxie_stack: 14,
+    effect_skill_add_mark_zhifanghudun_stack_with_weight: 231,
+  }
+  return record.recipe[`${key}Value`]
+    ? (record.recipe.parameters?.find(parameter => parameter.name === key)?.value ?? dynamic[record.id])
+    : (record.recipe[key] ?? baseMarks.get(record.recipe.markId)!.config[key === 'stack' ? 'maxStacks' : 'duration'])
+}
+const valueVariants = [
+  'late-values',
+  'empty-values',
+  'multi-values',
+  'late-actual-target',
+  'config-zero',
+  'config-custom',
+  'foreign-config',
+  'late-config',
+  'removed-config',
+  'tag-config',
+  'missing-at-collection',
+] as const
 const variants = [
   'normal',
   'wrong-skill',
@@ -142,7 +191,12 @@ function run(
   native: boolean,
   kind: 'skill' | 'mark',
   trigger: 'OnHit' | 'OnMiss',
-  variant: (typeof variants)[number] | 'wrong-condition' | 'late-condition' | 'missing-weight',
+  variant:
+    | (typeof variants)[number]
+    | 'wrong-condition'
+    | 'late-condition'
+    | 'missing-weight'
+    | (typeof valueVariants)[number],
   seed = record.id === probabilityId ? 1 : 269,
 ) {
   const f = makeScenario(seed),
@@ -181,9 +235,7 @@ function run(
   try {
     const candidates = native ? createGeneratedMarkApplications(dependencies) : undefined
     dependencies.clear() // Published candidates retain the exact validated dependency objects.
-    const effect = candidates
-      ? candidates[record.id]
-      : EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id))
+    const effect = candidates ? candidates[record.id] : oracles.get(record.id)!
     const setup = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, skill)
     let source: typeof skill | (typeof owner.marks)[number] = skill
     if (kind === 'mark') {
@@ -191,6 +243,67 @@ function run(
       battle.addMark(new AddMarkContext(setup, owner, sourceMark))
       source = owner.marks.find(m => m.base === sourceMark)!
     }
+    if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
+    const configKey = (name: string) => {
+      if (native) return parameterAddress(record.id, 'parameters', name)
+      const keys = battle.configSystem.getRegisteredKeys().filter(key => key.startsWith(`${record.id}.`))
+      if (keys.length !== 1) throw new Error('Expected one anonymous mark option parameter')
+      return keys[0]
+    }
+    const changeConfig = (amount: number, foreign = false, remove = false) => {
+      for (const parameter of record.recipe.parameters ?? []) {
+        const cleanup = battle.configSystem.addScopedConfigModifier(
+          configKey(parameter.name),
+          new ConfigModifier(ConfigDurationType.binding, 'fixture/mark-option', amount, ConfigModifierType.override, 0),
+          foreign ? a.team[1].skills[0] : source,
+        )
+        if (remove) cleanup()
+      }
+    }
+    if (variant === 'config-zero') changeConfig(0)
+    if (variant === 'config-custom') changeConfig(11)
+    if (variant === 'foreign-config') changeConfig(11, true)
+    if (variant === 'removed-config') changeConfig(11, false, true)
+    if (variant === 'tag-config')
+      for (const parameter of record.recipe.parameters ?? []) {
+        for (const tag of parameter.tags ?? [])
+          battle.configSystem.addTaggedConfigModifier(
+            tag,
+            ConfigModifierType.override,
+            13,
+            0,
+            ConfigDurationType.binding,
+            undefined,
+            source,
+          )
+      }
+    const support = valueSupport[record.id]
+    const setValues = (amount: number, empty = false, duplicate = false, onlyPet?: Pet) => {
+      for (const player of [a, b])
+        for (const pet of player.team) {
+          if (onlyPet && pet !== onlyPet) continue
+          if (record.recipe.stackValue?.includes('maxHp'))
+            pet.attributeSystem.updateBaseValue('maxHp', empty ? 500 : amount === 7 ? 801 : 901)
+          if (record.id === 'effect_skill_add_mark_zhifanghudun_stack_with_weight')
+            Object.defineProperty(pet, 'weight', {
+              value: empty ? undefined : amount === 7 ? 231 : 321,
+              configurable: true,
+              writable: true,
+            })
+          if (support) {
+            pet.marks.splice(0, pet.marks.length, ...pet.marks.filter(mark => mark.baseId !== support[1]))
+            if (!empty && player === (support[0] === 'self' ? a : b)) {
+              for (const count of duplicate ? [amount, 23] : [amount]) {
+                const base = support[1] === mark.id ? mark : new BaseMark(support[1] as baseMarkId, [])
+                const instance = base.createInstance({ stack: count, config: { maxStacks: 10000 } })
+                instance.owner = pet
+                pet.marks.push(instance)
+              }
+            }
+          }
+        }
+    }
+    if (valueRecords.includes(record)) setValues(7, variant === 'missing-at-collection')
     source.effects.push(effect)
     if (variant === 'existing')
       battle.addMark(new AddMarkContext(setup, record.recipe.target === 'self' ? owner : b.activePet, mark, 1))
@@ -204,6 +317,14 @@ function run(
           (context.parent instanceof EffectContext && context.parent.effect?.id === record.id),
         apply(context) {
           if (context.trigger === EffectTrigger.BeforeEffect && context.parent instanceof EffectContext) {
+            if (variant === 'late-values') setValues(11)
+            if (variant === 'empty-values') setValues(7, true)
+            if (variant === 'multi-values') setValues(7, false, true)
+            if (variant === 'late-actual-target') {
+              setValues(11, false, false, b.team[1])
+              parent.actualTarget = b.team[1]
+            }
+            if (variant === 'late-config') changeConfig(11)
             if (variant === 'late-condition') admissionState(record, battle, parent, false)
             if (variant === 'cancel-effect') context.parent.available = false
             if (variant === 'late-owner') source.owner = b.activePet
@@ -231,7 +352,11 @@ function run(
       AttackTargetOpinion.opponent,
       variant === 'wrong-skill' ? b.activePet.skills[0] : skill,
     )
+    parent.updateActualTarget()
     admissionState(record, battle, parent, variant !== 'wrong-condition', variant === 'missing-weight')
+    const beforeStacks = [...a.team, ...b.team].flatMap(pet =>
+      pet.marks.filter(m => m.baseId === mark.id).map(m => m.stack),
+    )
     battle.applyEffects(parent, EffectTrigger[trigger], source)
     return {
       marks: [...a.team, ...b.team].map(pet =>
@@ -246,6 +371,7 @@ function run(
           })),
       ),
       inputs,
+      beforeStacks,
       events,
       nextRandom: battle.random(),
     }
@@ -261,21 +387,20 @@ for (const record of records)
         const actual = run(record, true, kind, trigger, variant)
         expect(actual).toEqual(run(record, false, kind, trigger, variant))
         if (variant === 'normal') {
-          const base = baseMarks.get(record.recipe.markId)!,
-            target = record.recipe.target === 'self' ? 0 : 2
+          const target = record.recipe.target === 'self' ? 0 : 2
           expect(actual.inputs).toEqual([
             {
               target: target === 0 ? 'A/lead' : 'B/lead',
-              stack: record.recipe.stack ?? base.config.maxStacks,
-              duration: record.recipe.duration ?? base.config.duration,
+              stack: defaultAmount(record, 'stack'),
+              duration: defaultAmount(record, 'duration'),
             },
           ])
           expect(actual.marks[target]).toHaveLength(1)
-          expect(actual.events.length).toBeGreaterThan(0)
+          if (valueSupport[record.id]?.[1] !== record.recipe.markId) expect(actual.events.length).toBeGreaterThan(0)
         }
         if (variant === 'cancel-effect' || (variant === 'wrong-skill' && kind === 'skill'))
           expect(actual.inputs).toEqual([])
-        if (variant === 'cancel-add') expect(actual.marks.flat()).toEqual([])
+        if (variant === 'cancel-add') expect(actual.marks.flat().map(mark => mark.stack)).toEqual(actual.beforeStacks)
       }
     })
 it('requires all exact dependencies before publishing any candidate and captures the supplied catalog', () => {
@@ -348,3 +473,67 @@ for (const seed of [1, 2, 6, 11])
       )
     }
   })
+
+for (const record of valueRecords)
+  for (const kind of ['skill', 'mark'] as const)
+    it.each(valueVariants)(`${record.id} ${kind} reads options at execution: %s`, variant => {
+      const actual = run(record, true, kind, 'OnHit', variant)
+      expect(actual).toEqual(run(record, false, kind, 'OnHit', variant))
+      const gated = [
+        'effect_skill_add_mark_fansheguike',
+        'effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500',
+        'effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack',
+        'effect_skill_double_mark_liuxie_stack',
+        'effect_skill_add_mark_opponent_zhongdu_duration_2',
+      ].includes(record.id)
+      if (variant === 'missing-at-collection' && gated) {
+        expect(actual.inputs).toEqual([])
+        return
+      }
+      expect(actual.inputs).toHaveLength(1)
+      expect(actual.inputs[0].target).toBe(record.recipe.target === 'self' ? 'A/lead' : 'B/lead')
+      for (const key of ['stack', 'duration'] as const) {
+        if (!record.recipe[`${key}Value`] || record.recipe.parameters) continue
+        const late: Record<string, number> = {
+          effect_skill_add_mark_fansheguike: 401,
+          effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500: 802,
+          effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack: 11,
+          effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang: 14,
+          effect_skill_add_mark_opponent_zhongdu_duration_2: 13,
+          effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75: 825,
+          effect_skill_double_mark_liuxie_stack: 22,
+          effect_skill_add_mark_zhifanghudun_stack_with_weight: 321,
+        }
+        const empty = record.recipe[`${key}Value`]?.includes('maxHp')
+          ? 0
+          : baseMarks.get(record.recipe.markId)!.config[key === 'stack' ? 'maxStacks' : 'duration']
+        expect(actual.inputs[0][key]).toBe(
+          variant === 'late-values' ||
+            (variant === 'late-actual-target' &&
+              ['effect_skill_double_mark_liuxie_stack', 'effect_skill_add_mark_opponent_zhongdu_duration_2'].includes(
+                record.id,
+              ))
+            ? late[record.id]
+            : variant === 'empty-values' || variant === 'missing-at-collection'
+              ? empty
+              : defaultAmount(record, key),
+        )
+      }
+      for (const parameter of record.recipe.parameters ?? []) {
+        expect(actual.inputs[0][parameter.name as 'stack' | 'duration']).toBe(
+          variant === 'tag-config'
+            ? 13
+            : variant === 'config-zero'
+              ? 0
+              : variant === 'config-custom' || variant === 'late-config'
+                ? 11
+                : parameter.value,
+        )
+      }
+    })
+it('covers dynamic/parameterized options while retaining the handwritten shield override', () => {
+  expect(valueRecords).toHaveLength(19)
+  expect(records.some(record => record.id === ('effect_skill_add_mark_shuiwenpingzhang' as keyof Candidates))).toBe(
+    false,
+  )
+})

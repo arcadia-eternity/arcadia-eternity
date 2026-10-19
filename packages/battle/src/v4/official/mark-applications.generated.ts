@@ -3,6 +3,7 @@ import { BaseMark } from '../mark'
 import {
   compileEffect,
   defineEffect,
+  numberParam,
   conditions,
   targets,
   ops,
@@ -31,6 +32,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_dianxizengqiang',
   'mark_dongqifuti',
   'mark_fanshe',
+  'mark_fansheguike',
   'mark_fantan',
   'mark_fasibilei',
   'mark_feixuanzhen',
@@ -41,6 +43,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_guangwulingtong',
   'mark_guangwushentong',
   'mark_haipa',
+  'mark_hanbinghujia',
   'mark_hanbingjia',
   'mark_hanshuangpingzhang',
   'mark_heianwuzhi',
@@ -52,6 +55,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_huifu_1_16',
   'mark_huijiachifan',
   'mark_hunzhuoshuiyu',
+  'mark_huohuanzhixin',
   'mark_huoxing',
   'mark_jieli',
   'mark_jiguang',
@@ -66,6 +70,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_kaowen',
   'mark_kongjuzhinian',
   'mark_kongqichuliang',
+  'mark_kongqihudun',
   'mark_kuihuazhongzi',
   'mark_lache',
   'mark_lanbaoshi',
@@ -149,6 +154,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_yanggong',
   'mark_yanhuo',
   'mark_yihuopingzhang',
+  'mark_yinbo',
   'mark_yingfeng',
   'mark_yinghua',
   'mark_yingyongyizhi',
@@ -161,6 +167,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_zengzhong',
   'mark_zhenkongzhixin',
   'mark_zhenshihuanxiang',
+  'mark_zhifanghudun',
   'mark_zhixi',
   'mark_zhongdu',
   'mark_zhongzinengliang',
@@ -320,6 +327,27 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fanshe')!)),
       }),
     ),
+    effect_skill_add_mark_fansheguike: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_fansheguike',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
+          const right = 500
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: targets.ownerPet.apply(
+          ops.addMark(resolved.get('mark_fansheguike')!, {
+            stack: targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => n + -500)
+              .map(n => Math.max(n, 0)),
+          }),
+        ),
+      }),
+    ),
     effect_skill_add_mark_fantan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fantan',
@@ -390,6 +418,28 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.selfUsesSkill,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guangwushentong')!, { stack: 1 })),
+      }),
+    ),
+    effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
+          const right = 500
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: targets.ownerPet.apply(
+          ops.addMark(resolved.get('mark_hanbinghujia')!, {
+            stack: targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => n + -500)
+              .map(n => Math.max(n, 0))
+              .map(n => Math.floor(n * 2)),
+          }),
+        ),
       }),
     ),
     effect_skill_add_mark_hanbingjia: compileEffect(
@@ -476,6 +526,69 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_hunzhuoshuiyu')!)),
       }),
     ),
+    effect_skill_add_mark_huohuanzhixin_1: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 1,
+          tags: ['skill_effect_stack', 'skill_effect_huohuanzhixin_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_huohuanzhixin_1',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.ownerPet.apply(
+            ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack }),
+          ),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_huohuanzhixin_2: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 2,
+          tags: ['skill_effect_stack', 'skill_effect_huohuanzhixin_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_huohuanzhixin_2',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.ownerPet.apply(
+            ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack }),
+          ),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_huohuanzhixin_3: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 3,
+          tags: ['skill_effect_stack', 'skill_effect_huohuanzhixin_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_huohuanzhixin_3',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.ownerPet.apply(
+            ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack }),
+          ),
+        }),
+      )
+    })(),
     effect_skill_add_mark_huoxing: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huoxing',
@@ -546,6 +659,25 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_kongqichuliang')!, { stack: 100 })),
+      }),
+    ),
+    effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
+        ),
+        execute: targets.ownerPet.apply(
+          ops.addMark(resolved.get('mark_kongqihudun')!, {
+            stack: targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_kongqichuliang')
+              .select(mark => mark.stack)
+              .first(),
+          }),
+        ),
       }),
     ),
     effect_skill_add_mark_leishenjuexing: compileEffect(
@@ -953,6 +1085,24 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 60 })),
       }),
     ),
+    effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: targets.opponentActive.apply(
+          ops.addMark(resolved.get('mark_liuxie')!, {
+            stack: 50,
+            duration: targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_zhongzinengliang')
+              .select(mark => mark.stack)
+              .first()
+              .map(n => n + 3),
+          }),
+        ),
+      }),
+    ),
     effect_skill_add_mark_opponent_mabi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mabi',
@@ -998,6 +1148,27 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mihuo')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_mingzhongxiajiang_15: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 15,
+          tags: ['skill_effect_stack', 'skill_effect_mingzhongxiajiang_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_15',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(
+            ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: parameters.stack }),
+          ),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao',
@@ -1025,6 +1196,48 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: 15 })),
       }),
     ),
+    effect_skill_add_mark_opponent_mingzhongxiajiang_25: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 25,
+          tags: ['skill_effect_stack', 'skill_effect_mingzhongxiajiang_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_25',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(
+            ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: parameters.stack }),
+          ),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_mingzhongxiajiang_5: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 5,
+          tags: ['skill_effect_stack', 'skill_effect_mingzhongxiajiang_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_5',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(
+            ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: parameters.stack }),
+          ),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_pofang_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_pofang_50',
@@ -1210,6 +1423,101 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xuruoshuipao')!, { stack: 1 })),
       }),
     ),
+    effect_skill_add_mark_opponent_yinbo_10: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 10,
+          tags: ['skill_effect_stack', 'skill_effect_yinbo_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_yinbo_10',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_yinbo_30: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 30,
+          tags: ['skill_effect_stack', 'skill_effect_yinbo_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_yinbo_30',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_yinbo_35: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 35,
+          tags: ['skill_effect_stack', 'skill_effect_yinbo_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_yinbo_35',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_yinbo_40: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 40,
+          tags: ['skill_effect_stack', 'skill_effect_yinbo_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_yinbo_40',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_yinbo_45: (() => {
+      const parameters = {
+        stack: numberParam({
+          default: 45,
+          tags: ['skill_effect_stack', 'skill_effect_yinbo_stack'],
+          legacyAliases: [],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_yinbo_45',
+          on: ['OnHit'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_yingzhidouqi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_yingzhidouqi',
@@ -1262,6 +1570,28 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+      }),
+    ),
+    effect_skill_add_mark_opponent_zhongdu_duration_2: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_opponent_zhongdu_duration_2',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
+          ),
+        ),
+        execute: targets.opponentActive.apply(
+          ops.addMark(resolved.get('mark_zhongdu')!, {
+            duration: targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_zhongdu')
+              .select(mark => mark.stack)
+              .first()
+              .map(n => n + 2),
+          }),
+        ),
       }),
     ),
     effect_skill_add_mark_opponent_zisun: compileEffect(
@@ -1493,6 +1823,23 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 75 })),
+      }),
+    ),
+    effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill),
+        execute: targets.ownerPet.apply(
+          ops.addMark(resolved.get('mark_shanghaizengjia')!, {
+            stack: targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_zengzhong')
+              .select(mark => mark.stack)
+              .first()
+              .map(n => Math.floor(n * 75)),
+          }),
+        ),
       }),
     ),
     effect_skill_add_mark_shazhidanke: compileEffect(
@@ -1939,6 +2286,19 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhenshihuanxiang')!)),
       }),
     ),
+    effect_skill_add_mark_zhifanghudun_stack_with_weight: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_zhifanghudun_stack_with_weight',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill),
+        execute: targets.ownerPet.apply(
+          ops.addMark(resolved.get('mark_zhifanghudun')!, {
+            stack: targets.ownerPet.select(pet => pet.weight).first(),
+          }),
+        ),
+      }),
+    ),
     effect_skill_add_mark_zhongzinengliang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhongzinengliang',
@@ -1955,6 +2315,28 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.selfUsesSkill,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhunbeidongzuo')!)),
+      }),
+    ),
+    effect_skill_double_mark_liuxie_stack: compileEffect(
+      defineEffect({
+        id: 'effect_skill_double_mark_liuxie_stack',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_liuxie')),
+          ),
+        ),
+        execute: targets.opponentActive.apply(
+          ops.addMark(resolved.get('mark_liuxie')!, {
+            stack: targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_liuxie')
+              .select(mark => mark.stack)
+              .first()
+              .map(n => Math.floor(n * 2)),
+          }),
+        ),
       }),
     ),
   })

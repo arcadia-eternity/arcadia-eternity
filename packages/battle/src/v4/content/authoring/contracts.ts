@@ -165,12 +165,14 @@ export declare const values: {
 }
 
 type NumericInput = number | Value<number, Presence>
+// Mark options treat an absent queried property as a request for the mark default.
+type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
   /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */
   readonly addMark: (
     mark: BaseMark | Value<BaseMark, Presence>,
-    options?: { stack?: NumericInput; duration?: NumericInput },
+    options?: { stack?: DefaultedNumericInput; duration?: DefaultedNumericInput },
   ) => Operator<Pet | Battle>
   /** Read once per selected context; apply every number in order, with no rounding. */
   readonly addPower: (amount: PowerInput) => Operator<UseSkillContext>
