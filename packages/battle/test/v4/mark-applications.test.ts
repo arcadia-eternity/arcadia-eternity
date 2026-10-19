@@ -47,15 +47,19 @@ interface RecordEntry {
     parameters?: { name: string; value: number; configId?: string; tags?: string[] }[]
     stack?: number
     duration?: number
-    triggers: ('BeforeHit' | 'OnHit' | 'OnMiss')[]
+    triggers: ('BeforeHit' | 'OnHit' | 'OnMiss' | 'OnSwitchIn' | 'OnBattleStart')[]
   }
   dependency: { id: string; sourceFile: string; definitionSha256: string; effectIds: string[] }
 }
-const records: RecordEntry[] = JSON.parse(
+const allRecords: RecordEntry[] = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/mark-applications-candidates.json', import.meta.url), 'utf8'),
 ).records.filter((record: RecordEntry) => record.status === 'generated-candidate')
+type SkillRecord = RecordEntry & { recipe: RecordEntry['recipe'] & { triggers: ('BeforeHit' | 'OnHit' | 'OnMiss')[] } }
+const records = allRecords.filter((record): record is SkillRecord =>
+  record.recipe.triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)),
+)
 const files = new Map<string, { id: string; effect?: string[] }[]>()
-for (const record of records)
+for (const record of allRecords)
   for (const path of [record.sourceFile, record.dependency.sourceFile]) {
     if (!files.has(path))
       files.set(path, parse(readFileSync(new URL(`../../../../${path}`, import.meta.url), 'utf8'), { merge: true }))
@@ -63,14 +67,17 @@ for (const record of records)
 // Explicit dependency test doubles: preserve official normalized config/tags, replace downstream
 // mark behavior with an observable creation hook. No downstream effect migration is claimed here.
 const baseMarks = new Map<string, BaseMark>()
-for (const record of records)
+for (const record of allRecords)
   if (!baseMarks.has(record.recipe.markId)) {
     const definition = files.get(record.dependency.sourceFile)!.find(d => d.id === record.recipe.markId)!
     baseMarks.set(record.recipe.markId, MarkParser.parse({ ...definition, effect: [] }))
   }
 // Parse once before battle construction so legacy literal configurations exist in each battle.
 const oracles = new Map(
-  records.map(record => [record.id, EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id))]),
+  allRecords.map(record => [
+    record.id,
+    EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id)),
+  ]),
 )
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -114,7 +121,7 @@ const supportMarks: Record<string, ['self' | 'opponent', string]> = {
 }
 // Independent scenario inputs, not an evaluator for the source condition tree.
 function admissionState(
-  record: RecordEntry,
+  record: SkillRecord,
   battle: Battle,
   use: UseSkillContext,
   valid: boolean,
@@ -228,7 +235,7 @@ const variants = [
   'existing',
 ] as const
 function run(
-  record: RecordEntry,
+  record: SkillRecord,
   native: boolean,
   kind: 'skill' | 'mark',
   trigger: 'BeforeHit' | 'OnHit' | 'OnMiss',
@@ -557,7 +564,7 @@ it('requires all exact dependencies before publishing any candidate and captures
   invalid.set(generatedMarkApplicationDependencies[0], baseMarks.get(generatedMarkApplicationDependencies[1])!)
   expect(() => createGeneratedMarkApplications(invalid)).toThrow('Missing or mismatched')
   const candidates = createGeneratedMarkApplications(baseMarks)
-  expect(Object.keys(candidates).sort()).toEqual(records.map(record => record.id).sort())
+  expect(Object.keys(candidates).sort()).toEqual(allRecords.map(record => record.id).sort())
   expect(Object.isFrozen(candidates)).toBe(true)
 })
 it('pins each effect and its entire mark dependency definition to current sources', () => {
@@ -575,14 +582,14 @@ it('pins each effect and its entire mark dependency definition to current source
     createHash('sha256')
       .update(JSON.stringify(normalize(value)))
       .digest('hex')
-  for (const record of records) {
+  for (const record of allRecords) {
     expect(hash(files.get(record.sourceFile)!.find(d => d.id === record.id))).toBe(record.definitionSha256)
     const mark = files.get(record.dependency.sourceFile)!.find(d => d.id === record.dependency.id)!
     expect(hash(mark)).toBe(record.dependency.definitionSha256)
     expect(record.dependency.effectIds).toEqual(mark.effect ?? [])
   }
   expect([...generatedMarkApplicationDependencies].sort()).toEqual(
-    [...new Set(records.map(record => record.recipe.markId))].sort(),
+    [...new Set(allRecords.map(record => record.recipe.markId))].sort(),
   )
 })
 

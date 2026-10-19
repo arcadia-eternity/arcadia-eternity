@@ -22,6 +22,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_bingshuangzhixing',
   'mark_bizhong',
   'mark_busi',
+  'mark_buxieanguang',
   'mark_chaojipenti',
   'mark_chenmo',
   'mark_chihuan',
@@ -41,6 +42,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_fasibilei',
   'mark_feixuanzhen',
   'mark_fenshen',
+  'mark_first_turn_after_switch',
   'mark_global_chongqun',
   'mark_global_guzhanchang',
   'mark_global_leibaotian',
@@ -134,6 +136,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_shiyanzhiyue',
   'mark_shoudaoshanghaijianshao',
   'mark_shoudaoshanghaizengjia',
+  'mark_shoufashanghaizengjia',
   'mark_shuanghunxuanlv',
   'mark_shuiliangbaohe',
   'mark_shuiliangchongzu',
@@ -199,6 +202,33 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     resolved.set(id, mark)
   }
   return Object.freeze({
+    effect_ability_add_mark_buxieanguang_on_switch: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_mark_buxieanguang_on_switch',
+        on: ['OnSwitchIn'],
+        priority: 0,
+        when: conditions.ownerSwitchesIn,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_buxieanguang')!)),
+      }),
+    ),
+    effect_ability_add_shoufashanghaizengjia_on_lead: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_shoufashanghaizengjia_on_lead',
+        on: ['OnBattleStart'],
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoufashanghaizengjia')!)),
+      }),
+    ),
+    effect_ability_add_shoufashanghaizengjia_on_switch_in: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_shoufashanghaizengjia_on_switch_in',
+        on: ['OnSwitchIn'],
+        priority: 0,
+        when: conditions.ownerSwitchesIn,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoufashanghaizengjia')!)),
+      }),
+    ),
     effect_ability_add_xukongtizhi_on_skill_hit: compileEffect(
       defineEffect({
         id: 'effect_ability_add_xukongtizhi_on_skill_hit',
@@ -206,6 +236,51 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.selfUsesSkill,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 10 })),
+      }),
+    ),
+    effect_ability_set_field_leibaotian_on_lead: compileEffect(
+      defineEffect({
+        id: 'effect_ability_set_field_leibaotian_on_lead',
+        on: ['OnBattleStart'],
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
+      }),
+    ),
+    effect_ability_set_field_leibaotian_on_switch: compileEffect(
+      defineEffect({
+        id: 'effect_ability_set_field_leibaotian_on_switch',
+        on: ['OnSwitchIn'],
+        priority: 0,
+        when: conditions.ownerSwitchesIn,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
+      }),
+    ),
+    effect_ability_set_field_yemu_on_switch: compileEffect(
+      defineEffect({
+        id: 'effect_ability_set_field_yemu_on_switch',
+        on: ['OnSwitchIn'],
+        priority: 0,
+        when: conditions.ownerSwitchesIn,
+        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yemu')!)),
+      }),
+    ),
+    effect_emblem_add_mark_aideminyi: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_add_mark_aideminyi',
+        on: ['OnBattleStart'],
+        priority: 0,
+        when: () => true,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
+      }),
+    ),
+    effect_skill_add_first_turn_mark_on_switch_in: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_first_turn_mark_on_switch_in',
+        on: ['OnSwitchIn'],
+        priority: 0,
+        when: conditions.ownerSwitchesIn,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_first_turn_after_switch')!)),
       }),
     ),
     effect_skill_add_liuxie_50_opponent: compileEffect(

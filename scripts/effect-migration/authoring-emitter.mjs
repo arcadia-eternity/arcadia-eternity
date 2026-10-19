@@ -229,6 +229,8 @@ function number(v, parameters, path, domain = 'damage') {
 }
 function condition(c, domain = 'damage', parameters, path = 'condition') {
   if (fields(c, ['type'])) {
+    if (domain === 'skill' && c.type === 'selfSwitchIn') return 'conditions.ownerSwitchesIn'
+    if (domain === 'skill' && c.type === 'petIsActive') return 'conditions.ownerIsActive'
     if (domain === 'skill' && c.type === 'isFirstSkillUsedThisTurn') return 'conditions.firstSkillThisTurn'
     if (domain === 'skill' && c.type === 'isLastSkillUsedThisTurn') return 'conditions.lastSkillThisTurn'
     if (c.type === 'selfUseSkill') return 'conditions.selfUsesSkill'

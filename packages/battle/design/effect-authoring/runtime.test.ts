@@ -16,6 +16,7 @@ import {
   UseSkillContext,
   AttackTargetOpinion,
   SwitchPetPhase,
+  SwitchPetContext,
   setGlobalLogger,
   type Battle,
   type baseMarkId,
@@ -1218,4 +1219,32 @@ it('flatMap requeries membership and preserves ordered snapshots through later o
   )
   f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
   expect(results).toEqual([[2, 3, 7, 8], [11, 12], []])
+})
+
+it('entry predicates distinguish the direct incoming pet from the current active position', () => {
+  const f = fixture()
+  const incoming = f.a.team[1]
+  const switchContext = new SwitchPetContext(new TurnContext(f.battle), f.a, incoming)
+  const skill = incoming.skills[0]
+  const direct = new EffectContext(switchContext, EffectTrigger.OnSwitchIn, skill)
+  const nested = new EffectContext(direct, EffectTrigger.BeforeEffect, skill)
+  const entry = compileEffect(
+    defineEffect({
+      id: 'test/direct-entry',
+      on: ['OnSwitchIn', 'BeforeEffect'],
+      when: conditions.ownerSwitchesIn,
+      execute() {},
+    }),
+  )
+  expect(entry.condition!(direct)).toBe(true)
+  expect(entry.condition!(nested)).toBe(false)
+  const active = compileEffect(
+    defineEffect({ id: 'test/current-active', on: 'OnSwitchIn', when: conditions.ownerIsActive, execute() {} }),
+  )
+  expect(active.condition!(direct)).toBe(false)
+  f.a.activePet = incoming
+  expect(active.condition!(direct)).toBe(true)
+  skill.owner = f.b.activePet
+  expect(entry.condition!(direct)).toBe(false)
+  expect(active.condition!(direct)).toBe(true)
 })

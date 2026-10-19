@@ -4,6 +4,7 @@ import {
   DamageContext,
   HealContext,
   UseSkillContext,
+  SwitchPetContext,
   TurnContext,
   type AllContext,
   type EffectContext,
@@ -322,6 +323,8 @@ export const conditions: typeof C.conditions = {
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
   ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
+  ownerSwitchesIn: ctx => ctx.event instanceof SwitchPetContext && owner(ctx) === ctx.event.switchInPet,
+  ownerIsActive: ctx => owner(ctx)?.isActive() ?? false,
   firstSkillThisTurn: skillOrder('first'),
   lastSkillThisTurn: skillOrder('last'),
   everyNthUse: times => {

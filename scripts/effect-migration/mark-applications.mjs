@@ -32,7 +32,7 @@ const selfCondition = condition =>
     condition.conditions.some(selfCondition))
 export function classifyMarkApplication(definition) {
   if (
-    !fields(definition, ['id', 'trigger', 'priority', 'apply', 'condition'], ['tags']) ||
+    !fields(definition, ['id', 'trigger', 'priority', 'apply'], ['condition', 'tags']) ||
     typeof definition.id !== 'string' ||
     !definition.id ||
     !Number.isFinite(definition.priority)
@@ -58,7 +58,7 @@ export function classifyMarkApplication(definition) {
   )
     return { reason: 'requires a fixed base mark reference' }
   const parameters = []
-  const when = condition(definition.condition, 'skill', parameters)
+  const when = 'condition' in definition ? condition(definition.condition, 'skill', parameters) : '() => true'
   const options = {}
   // Match legacy declaration order; runtime consumption remains stack then duration.
   for (const key of ['duration', 'stack']) {
@@ -71,13 +71,18 @@ export function classifyMarkApplication(definition) {
     } else options[`${key}Value`] = value.code
   }
   const triggers = Array.isArray(definition.trigger) ? definition.trigger : [definition.trigger]
-  if (
-    !triggers.length ||
-    new Set(triggers).size !== triggers.length ||
-    !triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) ||
-    !selfCondition(definition.condition) ||
-    !when
-  )
+  const supportedStage =
+    (triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) &&
+      selfCondition(definition.condition)) ||
+    (triggers.length === 1 &&
+      triggers[0] === 'OnSwitchIn' &&
+      fields(definition.condition, ['type']) &&
+      definition.condition.type === 'selfSwitchIn') ||
+    (triggers.length === 1 &&
+      triggers[0] === 'OnBattleStart' &&
+      (!('condition' in definition) ||
+        (fields(definition.condition, ['type']) && definition.condition.type === 'petIsActive')))
+  if (!triggers.length || new Set(triggers).size !== triggers.length || !supportedStage || !when)
     return { reason: 'unsupported condition/trigger combination' }
   return {
     id: definition.id,

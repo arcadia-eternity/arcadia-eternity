@@ -3,6 +3,75 @@
   "scope": "Fixed addMark application boundary; downstream mark effects are explicit dependencies and not claimed migrated.",
   "records": [
     {
+      "id": "effect_ability_add_mark_buxieanguang_on_switch",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/45",
+      "definitionSha256": "d1406aab968f9127c4ac6baae696a556233842d9432b5f377661b5b3ac0071b0",
+      "recipe": {
+        "id": "effect_ability_add_mark_buxieanguang_on_switch",
+        "priority": 0,
+        "triggers": ["OnSwitchIn"],
+        "target": "self",
+        "when": "conditions.ownerSwitchesIn",
+        "markId": "mark_buxieanguang"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_buxieanguang",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/185",
+        "definitionSha256": "b8b2ac336b5bce4ae5e1ae5d023fc6c5de30fd544999bc5bb88f938a12f3a9e8",
+        "effectIds": ["effect_mark_buxieanguang_reduce_light_damage_half"]
+      }
+    },
+    {
+      "id": "effect_ability_add_shoufashanghaizengjia_on_lead",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/16",
+      "definitionSha256": "84576da40623010b6a799ab4903e84bb8d3dd2d73bdb2ccd1dde79ea9484b20f",
+      "recipe": {
+        "id": "effect_ability_add_shoufashanghaizengjia_on_lead",
+        "priority": 0,
+        "triggers": ["OnBattleStart"],
+        "target": "self",
+        "when": "conditions.ownerIsActive",
+        "markId": "mark_shoufashanghaizengjia"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shoufashanghaizengjia",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/119",
+        "definitionSha256": "04a82a4b15c4a42c70a904379d722bbe020f319f0c2f71fad0c0a525c1bf1439",
+        "effectIds": ["effect_mark_amplify_skill_10"]
+      }
+    },
+    {
+      "id": "effect_ability_add_shoufashanghaizengjia_on_switch_in",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/20",
+      "definitionSha256": "8db31f80f62334f513c47cc5e113e2794c7fb9cc97d3b772698043de82f7f9a9",
+      "recipe": {
+        "id": "effect_ability_add_shoufashanghaizengjia_on_switch_in",
+        "priority": 0,
+        "triggers": ["OnSwitchIn"],
+        "target": "self",
+        "when": "conditions.ownerSwitchesIn",
+        "markId": "mark_shoufashanghaizengjia"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shoufashanghaizengjia",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/119",
+        "definitionSha256": "04a82a4b15c4a42c70a904379d722bbe020f319f0c2f71fad0c0a525c1bf1439",
+        "effectIds": ["effect_mark_amplify_skill_10"]
+      }
+    },
+    {
       "id": "effect_ability_add_xukongtizhi_on_skill_hit",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/21",
@@ -24,6 +93,121 @@
         "sourcePath": "/113",
         "definitionSha256": "e76eacdfd15e9a02d4f634fb2488477908d2524f114a27179f32fcb77c2e6c84",
         "effectIds": ["effect_mark_xukongtizhi_evasion", "effect_mark_xukongtizhi_consume_on_evasion"]
+      }
+    },
+    {
+      "id": "effect_ability_set_field_leibaotian_on_lead",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/63",
+      "definitionSha256": "ffc80a0304da1387343722fd69d5c7740cfa56d9bd51a261e1dc951fd7c8172b",
+      "recipe": {
+        "id": "effect_ability_set_field_leibaotian_on_lead",
+        "priority": 0,
+        "triggers": ["OnBattleStart"],
+        "target": "battle",
+        "when": "conditions.ownerIsActive",
+        "markId": "mark_global_leibaotian"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_global_leibaotian",
+        "sourceFile": "packs/base/data/mark_global.yaml",
+        "sourcePath": "/6",
+        "definitionSha256": "b406adb326f643a6c700e2334a6ba7fb6a3aa44edba6354ca6baca615e3f0c6f",
+        "effectIds": ["effect_global_power_35_percent_electric"]
+      }
+    },
+    {
+      "id": "effect_ability_set_field_leibaotian_on_switch",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/62",
+      "definitionSha256": "23f8024bdef7d765cb0106b03cf0107f4d8d31af3c9ca75f5dabe96e48f4e19f",
+      "recipe": {
+        "id": "effect_ability_set_field_leibaotian_on_switch",
+        "priority": 0,
+        "triggers": ["OnSwitchIn"],
+        "target": "battle",
+        "when": "conditions.ownerSwitchesIn",
+        "markId": "mark_global_leibaotian"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_global_leibaotian",
+        "sourceFile": "packs/base/data/mark_global.yaml",
+        "sourcePath": "/6",
+        "definitionSha256": "b406adb326f643a6c700e2334a6ba7fb6a3aa44edba6354ca6baca615e3f0c6f",
+        "effectIds": ["effect_global_power_35_percent_electric"]
+      }
+    },
+    {
+      "id": "effect_ability_set_field_yemu_on_switch",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/44",
+      "definitionSha256": "8281931b65b5adf0a1a67dfc28ac0c2396427085f32d295cc3f0c9c29d1d278a",
+      "recipe": {
+        "id": "effect_ability_set_field_yemu_on_switch",
+        "priority": 0,
+        "triggers": ["OnSwitchIn"],
+        "target": "battle",
+        "when": "conditions.ownerSwitchesIn",
+        "markId": "mark_global_yemu"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_global_yemu",
+        "sourceFile": "packs/base/data/mark_global.yaml",
+        "sourcePath": "/8",
+        "definitionSha256": "78cb0bc1152d99411b601a0a46d33d6c6369aeb9d43bd90acb9b958cb4dc1c41",
+        "effectIds": ["effect_global_power_35_percent_shadow_trait"]
+      }
+    },
+    {
+      "id": "effect_emblem_add_mark_aideminyi",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/2",
+      "definitionSha256": "92c9362452d35b1bafde92568920451134f402558c02b3b2f14c8b410402d5dc",
+      "recipe": {
+        "id": "effect_emblem_add_mark_aideminyi",
+        "priority": 0,
+        "triggers": ["OnBattleStart"],
+        "target": "self",
+        "when": "() => true",
+        "markId": "mark_aideminyi"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_aideminyi",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/102",
+        "definitionSha256": "8aedce53ba0bf2fc0117a0112f74bc99389516e5de3995eb3c899232dd8ec76c",
+        "effectIds": ["effect_mark_skill_sure_hit"]
+      }
+    },
+    {
+      "id": "effect_skill_add_first_turn_mark_on_switch_in",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/254",
+      "definitionSha256": "1f95653f43067e58206c592595ce447da8143404c491bf60800b141c00e291a3",
+      "recipe": {
+        "id": "effect_skill_add_first_turn_mark_on_switch_in",
+        "priority": 0,
+        "triggers": ["OnSwitchIn"],
+        "target": "self",
+        "when": "conditions.ownerSwitchesIn",
+        "markId": "mark_first_turn_after_switch"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_first_turn_after_switch",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/131",
+        "definitionSha256": "072706f536ccdc7ab358545175443c4b9ab13ebdc434d57d7e4fd466c5af271c",
+        "effectIds": ["effect_mark_remove_after_use_skill"]
       }
     },
     {
@@ -6287,31 +6471,10 @@
   ],
   "rejected": [
     {
-      "id": "effect_ability_add_mark_buxieanguang_on_switch",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/45",
-      "definitionSha256": "d1406aab968f9127c4ac6baae696a556233842d9432b5f377661b5b3ac0071b0",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
       "id": "effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/76",
       "definitionSha256": "277e5ec5fce83f6ac3b1c3c52eac7a17a1876f97bfb4241400373b0da7509a52",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_add_shoufashanghaizengjia_on_lead",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/16",
-      "definitionSha256": "84576da40623010b6a799ab4903e84bb8d3dd2d73bdb2ccd1dde79ea9484b20f",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_add_shoufashanghaizengjia_on_switch_in",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/20",
-      "definitionSha256": "8db31f80f62334f513c47cc5e113e2794c7fb9cc97d3b772698043de82f7f9a9",
       "reason": "unsupported condition/trigger combination"
     },
     {
@@ -6326,27 +6489,6 @@
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/61",
       "definitionSha256": "4a96a1c021ab4659b53e0cc5b496bcdd96199659de97965bd0f20c6a7dd5df59",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_set_field_leibaotian_on_lead",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/63",
-      "definitionSha256": "ffc80a0304da1387343722fd69d5c7740cfa56d9bd51a261e1dc951fd7c8172b",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_set_field_leibaotian_on_switch",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/62",
-      "definitionSha256": "23f8024bdef7d765cb0106b03cf0107f4d8d31af3c9ca75f5dabe96e48f4e19f",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_set_field_yemu_on_switch",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/44",
-      "definitionSha256": "8281931b65b5adf0a1a67dfc28ac0c2396427085f32d295cc3f0c9c29d1d278a",
       "reason": "unsupported condition/trigger combination"
     },
     {
@@ -6369,13 +6511,6 @@
       "sourcePath": "/60",
       "definitionSha256": "6c388e7e1c6a97b1653c91ccea4f6b4b0de704c78c2b926ae56ee103fc076d67",
       "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_emblem_add_mark_aideminyi",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/2",
-      "definitionSha256": "92c9362452d35b1bafde92568920451134f402558c02b3b2f14c8b410402d5dc",
-      "reason": "unsupported definition fields or identity/priority"
     },
     {
       "id": "effect_emblem_add_mark_fenshenhying_when_use_fenshenshu",
@@ -6417,35 +6552,35 @@
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/7",
       "definitionSha256": "7273ebc23abbc88ddd8ba740b1c9ec99093417e5a0bda91d8453c440f7948b08",
-      "reason": "unsupported definition fields or identity/priority"
+      "reason": "requires a fixed base mark reference"
     },
     {
       "id": "effect_mark_on_duration_end_add_mark_penti",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/183",
       "definitionSha256": "70b7328fd481136ac8024128cfce33fc09c68df5d9266b17f80d3a54adf2d1e7",
-      "reason": "unsupported definition fields or identity/priority"
+      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_mark_on_duration_end_add_mark_qianglipenti",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/184",
       "definitionSha256": "33482c0f47bb7005d8739399cde795c9c1f540620a71cbc47faeca7393001ea2",
-      "reason": "unsupported definition fields or identity/priority"
+      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_mark_onDestroy_add_mark_shanghaizengjia",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/57",
       "definitionSha256": "b1fd8000a0a30bb281387c9c243a4c43a943660ae621fc7b5e591c8e32d13153",
-      "reason": "unsupported definition fields or identity/priority"
+      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_mark_onDestroy_add_mark_tizhongjiangdi",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/51",
       "definitionSha256": "02c1c8199a84a65dea6c43e4fc2840293c6a5fc97cd2e37e249eff565fe5b15c",
-      "reason": "unsupported definition fields or identity/priority"
+      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_mark_paralyze_on_physical_50_percent",
@@ -6466,13 +6601,6 @@
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/145",
       "definitionSha256": "d9b793f007d0fac4bb35e96909244dce11969c2cc720595521f4e8bcfee13c0e",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_skill_add_first_turn_mark_on_switch_in",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/254",
-      "definitionSha256": "1f95653f43067e58206c592595ce447da8143404c491bf60800b141c00e291a3",
       "reason": "unsupported condition/trigger combination"
     },
     {

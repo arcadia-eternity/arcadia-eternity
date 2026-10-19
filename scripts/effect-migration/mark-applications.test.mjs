@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 253,
+    generated: 261,
     protected: 1,
-    dependencies: 176,
-    rejected: 33,
+    dependencies: 179,
+    rejected: 25,
   })
 })
 
@@ -221,4 +221,21 @@ test('preserves effect tags without accepting unknown metadata', () => {
   assert.ok(renderMarkApplications([recipe], [recipe.markId]).includes('tags: ["xingzhili"]'))
   assert.ok(classifyMarkApplication({ ...source(), tags: [1] }).reason)
   assert.ok(classifyMarkApplication({ ...source(), tags: 'xingzhili' }).reason)
+})
+
+test('keeps entry-stage recognition separate from mandatory skill guards', () => {
+  const d = source()
+  assert.equal(
+    classifyMarkApplication({ ...d, trigger: 'OnSwitchIn', condition: { type: 'selfSwitchIn' } }).when,
+    'conditions.ownerSwitchesIn',
+  )
+  assert.equal(
+    classifyMarkApplication({ ...d, trigger: 'OnBattleStart', condition: { type: 'petIsActive' } }).when,
+    'conditions.ownerIsActive',
+  )
+  const { condition, ...unconditional } = d
+  assert.equal(classifyMarkApplication({ ...unconditional, trigger: 'OnBattleStart' }).when, '() => true')
+  assert.ok(classifyMarkApplication({ ...unconditional, trigger: 'OnHit' }).reason)
+  assert.ok(classifyMarkApplication({ ...unconditional, trigger: 'OnSwitchIn' }).reason)
+  assert.ok(classifyMarkApplication({ ...d, trigger: ['OnHit', 'OnSwitchIn'] }).reason)
 })
