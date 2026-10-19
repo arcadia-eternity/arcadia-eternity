@@ -8,9 +8,10 @@ import { repairSkillSelector, repairSkillPaths } from './skill-context-correctio
 import { classifySkillOutcome } from './skill-outcomes.mjs'
 import { classifySkillPower } from './skill-power.mjs'
 const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss', 'setSureCrit']
+const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 function action(a, trigger) {
   if (a?.value?.type === 'conditional') return
-  if (outcomeTypes.includes(a?.type) || ['addPower', 'amplifyPower'].includes(a?.type)) {
+  if (skillActionTypes.includes(a?.type)) {
     const classifier = outcomeTypes.includes(a.type) ? classifySkillOutcome : classifySkillPower
     const recipe = classifier({ id: 'sequence-node', trigger, priority: 0, apply: a })
     if (recipe.reason || recipe.parameters?.length) return
@@ -49,8 +50,8 @@ export function classifySkillOutcomeSequence(original) {
     return { reason: 'unsupported definition fields' }
   if (!['BeforeUseSkillCheck', 'AfterUseSkillCheck', 'BeforeHit'].includes(d.trigger))
     return { reason: 'unsupported trigger' }
-  if (!Array.isArray(d.apply) || !d.apply.length || !d.apply.some(a => outcomeTypes.includes(a?.type)))
-    return { reason: 'requires an outcome action list' }
+  if (!Array.isArray(d.apply) || !d.apply.length || !d.apply.some(a => skillActionTypes.includes(a?.type)))
+    return { reason: 'requires a skill outcome or power action list' }
   if ('consumesStacks' in d && (!Number.isSafeInteger(d.consumesStacks) || d.consumesStacks < 0))
     return { reason: 'invalid stack consumption' }
   if ('tags' in d && (!Array.isArray(d.tags) || !d.tags.every(x => typeof x === 'string')))
@@ -88,7 +89,7 @@ export async function generateSkillOutcomeSequences({ check = false } = {}) {
     for (const [index, d] of parse(await readFile(sourceFile, 'utf8'), { merge: true }).entries()) {
       if (seen.has(d.id)) throw new Error(`Duplicate effect ${d.id}`)
       seen.add(d.id)
-      if (!Array.isArray(d.apply) || !d.apply.some(a => outcomeTypes.includes(a?.type))) continue
+      if (!Array.isArray(d.apply) || !d.apply.some(a => skillActionTypes.includes(a?.type))) continue
       const source = {
         id: d.id,
         sourceFile,

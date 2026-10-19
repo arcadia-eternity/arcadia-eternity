@@ -99,7 +99,13 @@ const variants = [
   'repeat',
   'redirect',
 ] as const
-function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (typeof variants)[number]) {
+const powerVariants = ['stack-99', 'stack-100', 'stack-199', 'stack-200', 'wrong-element', 'late-element'] as const
+function run(
+  r: RecordEntry,
+  native: boolean,
+  kind: 'skill' | 'mark',
+  variant: (typeof variants)[number] | (typeof powerVariants)[number],
+) {
   const { battle, a, b, debuff } = makeScenario(421)
   battles.push(battle)
   for (const p of [...a.team, ...b.team]) for (const s of p.skills) s.effects.splice(0)
@@ -107,7 +113,7 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
     new BaseSkill(
       'fixture/sequence' as baseSkillId,
       variant === 'skill-status' ? Category.Status : Category.Physical,
-      Element.Normal,
+      r.id === 'effect_mark_amplify_next_electric_skill' ? Element.Electric : Element.Normal,
       100,
       50,
       0,
@@ -120,19 +126,20 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
   battle.skillMap.set(skill.id, skill)
   const support: typeof a.activePet.marks = []
   const add = (owner: typeof a.activePet, id: string, stack = 3) => {
-    const mark = new BaseMark(id as baseMarkId, [], { ...debuff.config, maxStacks: 10, duration: -1 }).createInstance()
+    const mark = new BaseMark(id as baseMarkId, [], { ...debuff.config, maxStacks: 300, duration: -1 }).createInstance()
     mark.owner = owner
     mark.stack = stack
     owner.marks.push(mark)
     return mark
   }
   const sourceMark = add(a.activePet, 'fixture/source', variant === 'one-layer' || variant === 'redirect' ? 1 : 3)
+  if (variant.startsWith('stack-')) sourceMark.stack = Number(variant.slice(6))
   const source = kind === 'mark' ? sourceMark : skill
   const supportId = r.id.includes('shuiwenzhenji')
     ? 'mark_shuiwenzhenji'
     : r.id.includes('shazhidanke')
       ? 'mark_shazhidanke'
-      : r.id.includes('heimowuzhi')
+      : r.id.includes('heimowuzhi') || r.id.includes('heianwuzhi')
         ? 'mark_heianwuzhi'
         : r.id.includes('huanxiang')
           ? 'mark_huanxiang'
@@ -145,7 +152,7 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
         add(
           owner,
           supportId,
-          variant === 'one-layer' || variant === 'redirect' ? (supportId === 'mark_heianwuzhi' ? 2 : 1) : 3,
+          variant === 'one-layer' || variant === 'redirect' ? (r.id.includes('heimowuzhi') ? 2 : 1) : 3,
         ),
       )
       if (variant === 'multi-mark') support.push(add(owner, supportId, 2))
@@ -162,6 +169,7 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
   use.accuracy = 50
   use.critRate = 10
   use.category = variant === 'event-status' ? Category.Status : Category.Physical
+  if (variant === 'wrong-element') use.element = Element.Normal
   let outer: EffectContext<EffectTrigger> | undefined
   const admitted: number[] = []
   const destruction: { id: string; hit: number; crit: number; power: number; accuracy: number }[] = []
@@ -195,7 +203,9 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
         if (variant === 'late-support') clearSupports()
         if (variant === 'late-owner') source.owner = a.team[1]
         if (variant === 'late-target') use.actualTarget = b.team[1]
-        if (variant === 'late-stack') sourceMark.stack = 7
+        if (variant === 'late-stack')
+          sourceMark.stack = r.id === 'effect_mark_amplify_next_damage_skill_power_with_stack' ? 150 : 7
+        if (variant === 'late-element') use.element = Element.Normal
         if (variant === 'cancel') outer.available = false
       },
     }),
@@ -307,6 +317,14 @@ for (const r of records) {
       )
         expect(actual.admitted).toHaveLength(1)
       if (variant === 'normal') {
+        if (r.id === 'effect_mark_amplify_next_electric_skill') expect(actual.use.power).toBe(200)
+        if (r.id === 'effect_mark_amplify_next_damage_skill_power_with_stack') expect(actual.use.power).toBe(100)
+        if (r.id === 'effect_skill_add_power_10_consume_shazhidanke') expect(actual.use.power).toBe(110)
+        if (r.id === 'effect_skill_add_power_50_consume_heianwuzhi') {
+          expect(actual.use.power).toBe(150)
+          expect(actual.support.map(m => m.stack)).toEqual([3, 2])
+        }
+        if (kind === 'mark' && r.id.startsWith('effect_mark_amplify_next')) expect(actual.source.active).toBe(false)
         if (r.id.includes('add_crit_rate')) expect(actual.use.critRate).toBe(15)
         if (r.id.includes('damage_increase')) {
           expect(actual.use.power).toBe(150)
@@ -319,7 +337,8 @@ for (const r of records) {
         if (r.id.includes('sure_crit'))
           expect(actual.use.crit).toEqual([{ willCrit: true, priority: r.id.includes('dongqifuti') ? 0 : 1 }])
         if (r.id.includes('huanxiang')) expect(actual.use.hit).toEqual([{ willHit: true, priority: 99 }])
-        if (r.id.includes('shazhidanke')) expect(actual.use.hit).toEqual([{ willHit: true, priority: 2 }])
+        if (r.id === 'effect_skill_sure_hit_consume_shazhidanke')
+          expect(actual.use.hit).toEqual([{ willHit: true, priority: 2 }])
         if (r.id.includes('dongqifuti')) expect(actual.support.map(m => m.active)).toEqual([true, false])
         if (r.id.includes('heimowuzhi')) expect(actual.support.map(m => m.stack)).toEqual([3, 1])
         if (r.id.includes('huanxiang') || r.id.includes('shazhidanke'))
@@ -327,14 +346,21 @@ for (const r of records) {
       }
       if (variant === 'missing-support')
         expect(actual.admitted).toHaveLength(
-          /shuiwenzhenji|shazhidanke|heimowuzhi|huanxiang|dongqifuti/.test(r.id) ? 0 : 1,
+          /shuiwenzhenji|shazhidanke|heimowuzhi|heianwuzhi|huanxiang|dongqifuti/.test(r.id) ? 0 : 1,
         )
       if (r.id.includes('dongqifuti') && ['normal', 'one-layer', 'phase', 'turn'].includes(variant)) {
         expect(actual.destruction).toHaveLength(1)
         expect(actual.destruction[0].crit).toBe(1)
       }
+      if (variant === 'late-stack' && r.id === 'effect_mark_amplify_next_damage_skill_power_with_stack')
+        expect(actual.use.power).toBe(kind === 'mark' ? 200 : 100)
       if (variant === 'one-layer') {
-        if (/shazhidanke|huanxiang|heimowuzhi/.test(r.id)) {
+        if (r.id.includes('add_power')) {
+          expect(actual.destruction).toHaveLength(1)
+          expect(actual.destruction[0].power).toBe(r.id.includes('power_10') ? 110 : 150)
+          expect(actual.destruction[0].hit).toBe(0)
+        }
+        if (/shazhidanke|huanxiang|heimowuzhi/.test(r.id) && !r.id.includes('add_power')) {
           expect(actual.destruction).toHaveLength(1)
           expect(actual.destruction[0].hit).toBe(r.id.includes('shazhidanke') ? 1 : 0)
           expect(actual.destruction[0].crit).toBe(0)
@@ -352,7 +378,8 @@ for (const r of records) {
         }
         if (kind === 'mark' && r.id.includes('reduce_accuracy')) expect(actual.destruction[0].accuracy).toBe(49)
       }
-      if (variant === 'event-status') expect(actual.admitted).toHaveLength(r.id.includes('damage_increase') ? 0 : 1)
+      if (variant === 'event-status')
+        expect(actual.admitted).toHaveLength(/damage_increase|damage_skill_power/.test(r.id) ? 0 : 1)
       if (variant === 'skill-status') expect(actual.admitted).toHaveLength(r.id.includes('non_status') ? 0 : 1)
       if (variant === 'cancel') {
         expect(actual.use.hit).toEqual([])
@@ -364,3 +391,31 @@ for (const r of records) {
 }
 it('audits exact generated sequence ID coverage', () =>
   expect(Object.keys(generatedSkillOutcomeSequences).sort()).toEqual(records.map(r => r.id).sort()))
+
+for (const kind of ['skill', 'mark'] as const) {
+  for (const variant of powerVariants) {
+    const id = variant.includes('element')
+      ? 'effect_mark_amplify_next_electric_skill'
+      : 'effect_mark_amplify_next_damage_skill_power_with_stack'
+    const r = records.find(r => r.id === id)!
+    it(`${id} ${kind} power boundary: ${variant}`, () => {
+      const actual = run(r, true, kind, variant)
+      expect(actual).toEqual(run(r, false, kind, variant))
+      const admitted = variant !== 'wrong-element'
+      expect(actual.admitted).toHaveLength(admitted ? 1 : 0)
+      const expected =
+        variant === 'wrong-element'
+          ? 100
+          : variant === 'late-element'
+            ? 200
+            : kind === 'skill'
+              ? 100
+              : 100 * (Math.floor(Number(variant.slice(6)) * 0.01) + 1)
+      expect(actual.use.power).toBe(expected)
+      if (kind === 'mark') {
+        expect(actual.source.active).toBe(!admitted)
+        if (admitted) expect(actual.destruction[0].power).toBe(expected)
+      }
+    })
+  }
+}

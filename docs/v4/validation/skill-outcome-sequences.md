@@ -1,6 +1,6 @@
-# Ordered outcome action-list candidates
+# Ordered skill outcome and power action-list candidates
 
-All eight current top-level action lists containing a hit/critical outcome action now have native candidates. These are eight additional definitions, separate from the 65 single-action outcome definitions. Every list is emitted as one effect with `actions.sequence`, preserving one collect-time condition, source metadata, automatic consumption and every ordered action. They remain U candidates with no production registration.
+All twelve current top-level action lists containing a hit/critical outcome or power action now have native candidates. Eight contain hit/critical actions; four additional lists contain only power actions and mark removal/consumption. These are additional complete definitions, separate from the 65 single-action outcome and 104 single-action power definitions. Every list is emitted as one effect with `actions.sequence`, preserving one collect-time condition, source metadata, automatic consumption and every ordered action. They remain U candidates with no production registration.
 
 The offline generator reuses the existing outcome/power action classifiers, condition emitter and mark selection emitter. Unsupported actions reject the complete list; no action is dropped and no partial effect is admitted. Conditional action values and unassigned turn-order corrections are explicitly rejected. This scope does not accept the other action-list mechanisms, arbitrary parameters or nested conditional actions implicitly.
 
@@ -27,3 +27,13 @@ Review found and repaired two verification boundaries: reusing the power classif
 Reproduce generation with `node scripts/effect-migration/skill-outcome-sequences.mjs --check`. After building the battle package, run `test/v4/skill-outcome-sequences.test.ts` with the V4 Vitest configuration. Complete-game/fresh-catalog checkpoint acceptance and production cutover remain pending.
 
 Final verification passes all 265 public checks, all 82 offline generator checks, all 69 authoring design checks, V4 typechecking and lint, declaration generation and source provenance. Both review axes closed their findings. Strengthened turn assertions initially exposed two trace-count failures from unrelated turn cleanup; restricting traces to removal contexts parented by the candidate effect keeps the independent ordering assertions while excluding that cleanup.
+
+## Power-only list extension
+
+Four candidates extend the shared sequence generator: `effect_mark_amplify_next_damage_skill_power_with_stack`, `effect_mark_amplify_next_electric_skill`, `effect_skill_add_power_10_consume_shazhidanke` and `effect_skill_add_power_50_consume_heianwuzhi`. Each retains C07 correction metadata and ordered node paths. The preceding eight recipes remain unchanged.
+
+The stack multiplier keeps the legacy per-step rounding: `floor(stack * 0.01) + 1`, rather than a fractional multiplier. Independent boundary assertions cover 99/100/199/200 layers and an execution-time change to 150 layers. The electric-skill case checks a mismatched element and an element changed after admission. Removal callbacks independently verify that the updated power is present before source destruction or last-layer consumption. All source-selection, late-value, cancellation and real-phase/turn scenarios apply to these four as well.
+
+The first expanded run passed 407 checks and failed two single-layer fixtures: the new one-layer consumer incorrectly inherited the two-layer initial value needed by the existing dark-matter critical effect. The fixture now assigns two layers only to that critical effect; production source and expected consumption remain unchanged.
+
+Final power-extension integration passes all 409 public checks in two disjoint ID groups (211 + 198), all 83 generator checks, typechecking, lint, declarations and provenance. Both review axes found no production issues; the fixture correction is verified by the rerun. These results remain candidate evidence, not full-game/checkpoint acceptance.

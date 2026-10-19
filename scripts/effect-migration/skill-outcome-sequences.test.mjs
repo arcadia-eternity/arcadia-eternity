@@ -56,8 +56,8 @@ test('rejects the whole definition when any action or metadata is unsupported', 
     assert.ok(classifySkillOutcomeSequence(d).reason)
   }
 })
-test('reproduces all eight current outcome action lists', async () =>
-  assert.deepEqual(await generateSkillOutcomeSequences({ check: true }), { generated: 8, rejected: 0 }))
+test('reproduces all twelve current outcome and power action lists', async () =>
+  assert.deepEqual(await generateSkillOutcomeSequences({ check: true }), { generated: 12, rejected: 0 }))
 
 test('does not inherit conditional power ownership or hidden turn-order corrections', () => {
   for (const type of ['checkSelf', 'isFirstSkillUsedThisTurn']) {
@@ -99,4 +99,34 @@ test('the named C09 node reads skill category independently of use-context categ
   ])
   d.condition.conditions[2].target.chain[0].arg = 'unknown'
   assert.match(classifySkillOutcomeSequence(d).reason, /C09 source node changed/)
+})
+
+test('power-only sequences reuse numeric steps and preserve removal order', () => {
+  const d = source()
+  d.apply = [
+    {
+      type: 'amplifyPower',
+      target: 'useSkillContext',
+      value: {
+        type: 'dynamic',
+        selector: {
+          base: 'mark',
+          chain: [
+            { type: 'select', arg: { type: 'base', arg: 'stack' } },
+            { type: 'multiply', arg: 0.01 },
+            { type: 'add', arg: 1 },
+          ],
+        },
+      },
+    },
+    { type: 'destroyMark', target: 'mark' },
+  ]
+  const r = classifySkillOutcomeSequence(d)
+  assert.ok(!r.reason, r.reason)
+  assert.match(r.actions[0].code, /ops.amplifyPower/)
+  assert.match(r.actions[0].code, /Math.floor/)
+  assert.match(r.actions[0].code, /\.all\(\)/)
+  assert.equal(r.actions[1].code, 'targets.sourceMark.apply(ops.removeMark())')
+  d.apply.shift()
+  assert.ok(classifySkillOutcomeSequence(d).reason)
 })

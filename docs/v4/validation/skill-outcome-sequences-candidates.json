@@ -19,6 +19,49 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_mark_amplify_next_damage_skill_power_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/32",
+      "definitionSha256": "dac584118224940f53d784ca9865492c5437a4f01a70ad29e7add59e320170ae",
+      "recipe": {
+        "id": "effect_mark_amplify_next_damage_skill_power_with_stack",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,contexts.skillUse.condition((_ctx,events) => events[0]?.category !== \"Status\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.skillUse.apply(ops.amplifyPower(targets.sourceMark.select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 0.01 : 0)))).map(items => items.map((n,index) => n + (index === 0 ? 1 : 0)))))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/condition/conditions/1/target/base", "/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_amplify_next_electric_skill",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/177",
+      "definitionSha256": "93503bf57128f05a4e5ea920d84fa014f5dc2d0344efdc86f4546d0815fb9d65",
+      "recipe": {
+        "id": "effect_mark_amplify_next_electric_skill",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.element === \"Electric\"))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.amplifyPower(2))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/apply/0/target", "/condition/conditions/1/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_mark_next_attack_damage_increase_50_percent_sure_hit",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/75",
@@ -77,6 +120,52 @@
             "code": "contexts.skillUse.apply(ops.addAccuracy(targets.sourceMark.select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? -1 : 0))))))"
           },
           { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_10_consume_shazhidanke",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/347",
+      "definitionSha256": "dad7288ebbe24910987215e19260e0414062e4d53e4de75ceaa204a522b907c2",
+      "recipe": {
+        "id": "effect_skill_add_power_10_consume_shazhidanke",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addPower(10))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_50_consume_heianwuzhi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/418",
+      "definitionSha256": "6e87ac210a1c6cfcfd9795971416d2249c31ed47a4d06dc7eef6122dfaa94563",
+      "recipe": {
+        "id": "effect_skill_add_power_50_consume_heianwuzhi",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").select(mark => mark.stack).all());const right=0;return right!==undefined && left.some(value => value > right)}))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addPower(50))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").apply(ops.consumeStacks(1))"
+          }
         ],
         "repairedPaths": ["/apply/0/target"]
       },

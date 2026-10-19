@@ -104,6 +104,8 @@ Action-list continuation: the source inventory contains 93 top-level action list
 
 The first [ordered outcome list batch](validation/skill-outcome-sequences.md) adds eight complete definitions, covering every current top-level list that contains a hit/critical outcome action. Actions are emitted in source order under one condition and consumption lifecycle; no partial lists are accepted. These eight are additional to the 65 single-action outcome candidates. One precise C09 skill-category path is recorded. All 265 public checks, 82 generator checks, 69 design checks, typechecking, lint, declarations and provenance pass; both review axes closed their findings. Complete-game/checkpoint acceptance and production admission remain pending.
 
+Four power-only lists extend the ordered skill sequence catalog to 12 complete candidates. The new cases preserve per-step floor rounding, element admission timing and power-before-consumption/destruction ordering. Previous eight recipes remain unchanged; the single-action power and outcome counts are separate. All 409 public checks pass in two disjoint groups, along with 83 generator checks, typechecking, lint, declarations and provenance; both reviews found no production issues.
+
 The complete migration goal remains active. Remaining work includes unmigrated mechanisms, dependency closure, per-ID acceptance and production cutover.
 
 ## Remaining work and proof required
