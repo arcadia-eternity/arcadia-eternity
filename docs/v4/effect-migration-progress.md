@@ -100,6 +100,8 @@ Four further path/collection candidates bring hit/critical coverage to 60 of 65.
 
 All 65 current single-action hit/critical definitions now have candidates. The final five defensive effects use shared nearest-skill actor/owner inequality, independently composed with direct-target checks, and retain automatic mark consumption. Dedicated tests cover late suppression, exhaustion and real phase/turn dispatch: 186 new checks plus three event-ownership matrices pass, as do the 66 source/ID checks, all 77 generator checks, 69 design checks, typechecking, lint, declarations and provenance. This count excludes embedded action-list operations and does not establish full-game/checkpoint acceptance or production cutover.
 
+Action-list continuation: the source inventory contains 93 top-level action lists. Shared [mark removal](validation/remove-mark-operator.md) now uses the existing lifecycle and passes 20 public checks, including subsequent selector/value requery after destruction callbacks. This runtime prerequisite adds no candidate IDs; ordered list conversion and per-ID evidence remain unfinished.
+
 The complete migration goal remains active. Remaining work includes unmigrated mechanisms, dependency closure, per-ID acceptance and production cutover.
 
 ## Remaining work and proof required

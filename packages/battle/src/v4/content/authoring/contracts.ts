@@ -226,6 +226,8 @@ export declare const ops: {
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
   /** Evaluate amount once per operator invocation, then apply to its selected targets. Missing skips. */
   readonly heal: (amount: NumericInput) => Operator<Pet>
+  /** Remove through the mark lifecycle in selection order; already inactive marks are no-ops. */
+  readonly removeMark: () => Operator<MarkInstance>
   readonly consumeStacks: (amount: NumericInput) => Operator<MarkInstance>
   readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
   readonly assign: (value: NumericInput) => Operator<WritableRef<number>>

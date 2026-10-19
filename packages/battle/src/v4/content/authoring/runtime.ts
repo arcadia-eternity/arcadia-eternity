@@ -10,6 +10,7 @@ import {
   EffectContext,
   RageContext,
   StackContext,
+  RemoveMarkContext,
 } from '../../context'
 import { Pet } from '../../pet'
 import { SkillInstance } from '../../skill'
@@ -594,6 +595,15 @@ export const ops: typeof C.ops = {
       const source = engine(ctx)
       pet.heal(new HealContext(source, source.source, pet, n))
     }),
+  removeMark: () => (ctx, selected) => {
+    for (const mark of selected) if (mark.isActive) assertWriteTarget(ctx, mark)
+    for (const mark of selected) {
+      if (!mark.isActive) continue
+      assertWriteTarget(ctx, mark)
+      const source = engine(ctx)
+      source.battle.removeMark(new RemoveMarkContext(source, mark))
+    }
+  },
   consumeStacks: amount => numeric(amount, (ctx, mark, n) => mark.consumeStack(engine(ctx), n)),
   changeStatStage: (stat, amount) =>
     numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
