@@ -43,6 +43,14 @@ export function classifyMarkApplication(original) {
   const repaired = repairSkillPaths(spelling)
   if (repaired.reason) return repaired
   const definition = repaired.definition
+  const markReferenceRepairs = []
+  if (definition.id === 'effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu') {
+    const mark = definition.apply?.mark
+    if (!fields(mark, ['type', 'value']) || mark.type !== 'entity:baseMark' || mark.value !== 'mark_liuxue')
+      return { reason: 'C12 mark reference source node changed' }
+    mark.value = 'mark_liuxie'
+    markReferenceRepairs.push({ path: '/apply/mark/value', before: 'mark_liuxue', after: 'mark_liuxie' })
+  }
   const switchTargetRepairs = []
   if (switchTargetIds.has(definition.id)) {
     const target = definition.apply?.target
@@ -144,10 +152,12 @@ export function classifyMarkApplication(original) {
     ...(paths.length ? ['C07'] : []),
     ...(repaired.changes.length ? ['C09'] : []),
     ...(switchTargetRepairs.length ? ['C11'] : []),
+    ...(markReferenceRepairs.length ? ['C12'] : []),
     ...(/conditions\.(first|last)SkillThisTurn/.test(when) ? ['C08'] : []),
   ]
   return {
     ...(paths.length ? { selectorRepairs: paths } : {}),
+    ...(markReferenceRepairs.length ? { markReferenceRepairs } : {}),
     ...(switchTargetRepairs.length ? { switchTargetRepairs } : {}),
     ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
     id: definition.id,

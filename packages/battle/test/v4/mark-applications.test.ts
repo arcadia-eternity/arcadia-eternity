@@ -9,6 +9,7 @@ import {
   defineNativeEffect,
   BaseMark,
   Pet,
+  SkillPhase,
   Gender,
   Element,
   GameRng,
@@ -41,6 +42,7 @@ interface RecordEntry {
     when: string
     selectorRepairs?: string[]
     switchTargetRepairs?: unknown[]
+    markReferenceRepairs?: { path: string; before: string; after: string }[]
     tags?: string[]
     additionalDecisions?: string[]
     target: 'self' | 'opponent' | 'battle' | 'switchIn'
@@ -94,7 +96,15 @@ for (const record of allRecords)
 const oracles = new Map(
   allRecords
     .filter(record => !record.recipe.selectorRepairs && !record.recipe.switchTargetRepairs)
-    .map(record => [record.id, EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id))]),
+    .map(record => {
+      const definition = structuredClone(files.get(record.sourceFile)!.find(d => d.id === record.id))
+      if (record.id === 'effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu') {
+        const mark = (definition as unknown as { apply: { mark: { value: string } } }).apply.mark
+        expect(mark.value).toBe('mark_liuxue')
+        mark.value = 'mark_liuxie' // Independent C12 reference, never changes source YAML.
+      }
+      return [record.id, EffectParser.parse(definition)]
+    }),
 )
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -122,6 +132,7 @@ const conditionalRecords = records.filter(
 )
 const probabilityId = 'effect_skill_add_mark_opponent_haipa_10_if_heavier_40'
 const supportMarks: Record<string, ['self' | 'opponent', string]> = {
+  effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu: ['self', 'mark_chongqunlingyu'],
   effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu: ['self', 'mark_shunliu'],
   effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi: ['opponent', 'mark_mabi'],
   effect_skill_add_mark_opponent_haipa_if_has_cuimian_10_percent: ['opponent', 'mark_cuimian'],
@@ -258,6 +269,7 @@ function run(
   trigger: 'BeforeHit' | 'OnHit' | 'OnMiss',
   variant:
     | (typeof variants)[number]
+    | 'real-skill'
     | 'wrong-condition'
     | 'late-condition'
     | 'missing-weight'
@@ -527,7 +539,14 @@ function run(
     const beforeStacks = [...a.team, ...b.team, battle].flatMap(pet =>
       pet.marks.filter(m => m.baseId === mark.id).map(m => m.stack),
     )
-    battle.applyEffects(parent, EffectTrigger[trigger], source)
+    if (variant === 'real-skill') {
+      a.currentRage = a.maxRage
+      parent.hitOverrides.push({ willHit: true, priority: 0 })
+      parent.critOverrides.push({ willCrit: false, priority: 0 })
+      const phase = new SkillPhase(battle, a, owner, AttackTargetOpinion.opponent, skill, parent.parent, parent)
+      phase.initialize()
+      phase.execute()
+    } else battle.applyEffects(parent, EffectTrigger[trigger], source)
     return {
       marks: [...a.team, ...b.team, battle].map(pet =>
         pet.marks
@@ -554,27 +573,30 @@ function run(
 }
 for (const record of records)
   for (const kind of ['skill', 'mark'] as const)
-    it.each(variants)(`${record.id} ${kind} matches YAML for %s`, variant => {
-      for (const trigger of record.recipe.triggers) {
-        const actual = run(record, true, kind, trigger, variant)
-        expect(actual).toEqual(run(record, false, kind, trigger, variant))
-        if (variant === 'normal') {
-          const target = record.recipe.target === 'battle' ? 4 : record.recipe.target === 'self' ? 0 : 2
-          expect(actual.inputs).toEqual([
-            {
-              target: target === 4 ? 'battle' : target === 0 ? 'A/lead' : 'B/lead',
-              stack: defaultAmount(record, 'stack'),
-              duration: defaultAmount(record, 'duration'),
-            },
-          ])
-          expect(actual.marks[target]).toHaveLength(1)
-          if (valueSupport[record.id]?.[1] !== record.recipe.markId) expect(actual.events.length).toBeGreaterThan(0)
+    it.each(variants)(
+      `${record.id} ${kind} matches ${record.recipe.markReferenceRepairs ? 'C12 corrected reference' : 'YAML'} for %s`,
+      variant => {
+        for (const trigger of record.recipe.triggers) {
+          const actual = run(record, true, kind, trigger, variant)
+          expect(actual).toEqual(run(record, false, kind, trigger, variant))
+          if (variant === 'normal') {
+            const target = record.recipe.target === 'battle' ? 4 : record.recipe.target === 'self' ? 0 : 2
+            expect(actual.inputs).toEqual([
+              {
+                target: target === 4 ? 'battle' : target === 0 ? 'A/lead' : 'B/lead',
+                stack: defaultAmount(record, 'stack'),
+                duration: defaultAmount(record, 'duration'),
+              },
+            ])
+            expect(actual.marks[target]).toHaveLength(1)
+            if (valueSupport[record.id]?.[1] !== record.recipe.markId) expect(actual.events.length).toBeGreaterThan(0)
+          }
+          if (variant === 'cancel-effect' || (variant === 'wrong-skill' && kind === 'skill'))
+            expect(actual.inputs).toEqual([])
+          if (variant === 'cancel-add') expect(actual.marks.flat().map(mark => mark.stack)).toEqual(actual.beforeStacks)
         }
-        if (variant === 'cancel-effect' || (variant === 'wrong-skill' && kind === 'skill'))
-          expect(actual.inputs).toEqual([])
-        if (variant === 'cancel-add') expect(actual.marks.flat().map(mark => mark.stack)).toEqual(actual.beforeStacks)
-      }
-    })
+      },
+    )
 it('requires all exact dependencies before publishing any candidate and captures the supplied catalog', () => {
   expect(() => createGeneratedMarkApplications(new Map())).toThrow('Missing or mismatched')
   const invalid = new Map(baseMarks)
@@ -622,8 +644,8 @@ for (const record of conditionalRecords)
         }
       },
     )
-it('covers exactly seventeen additional conditional definitions and records turn-order corrections', () => {
-  expect(conditionalRecords).toHaveLength(18)
+it('covers nineteen conditional definitions and records turn-order corrections', () => {
+  expect(conditionalRecords).toHaveLength(19)
   const corrected = conditionalRecords.filter(record => record.recipe.additionalDecisions?.includes('C08'))
   expect(corrected.map(record => record.id).sort()).toEqual(
     [
@@ -840,3 +862,32 @@ for (const kind of ['skill', 'mark'] as const)
       expect(actual.inputs[0].stack).toBe(lateUses === 1 ? 0 : 20)
     }
   })
+
+it('C12 records the missing dependency and preserves real-skill bleeding application', () => {
+  const id = 'effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu'
+  const record = records.find(r => r.id === id)!
+  expect(record.recipe.markReferenceRepairs).toEqual([
+    { path: '/apply/mark/value', before: 'mark_liuxue', after: 'mark_liuxie' },
+  ])
+  expect(record.recipe.additionalDecisions).toEqual(['C12'])
+  expect([...files.values()].flat().some(d => d.id === 'mark_liuxue')).toBe(false)
+  const { battle, a } = makeScenario(269)
+  battles.push(battle)
+  const original = EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === id))
+  const event = new UseSkillContext(
+    new TurnContext(battle),
+    a,
+    a.activePet,
+    AttackTargetOpinion.opponent,
+    a.activePet.skills[0],
+  )
+  event.updateActualTarget()
+  const ctx = new EffectContext(event, EffectTrigger.OnHit, a.activePet.skills[0])
+  expect(() => battle.executionBudget.run(battle.currentTurn, () => original.innerApply(ctx))).toThrow(/mark_liuxue/)
+  for (const kind of ['skill', 'mark'] as const) {
+    const actual = run(record, true, kind, 'OnHit', 'real-skill')
+    expect(actual).toEqual(run(record, false, kind, 'OnHit', 'real-skill'))
+    expect(actual.inputs[0]).toMatchObject({ target: 'B/lead', stack: 60 })
+    expect(actual.marks[2][0]).toMatchObject({ id: 'mark_liuxie', stack: 60 })
+  }
+})

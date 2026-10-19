@@ -3209,6 +3209,38 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/633",
+      "definitionSha256": "9c2d18727239e17c6a426922eedc728b64be3ca7e29f35537d686926bb85b8b7",
+      "recipe": {
+        "markReferenceRepairs": [
+          {
+            "path": "/apply/mark/value",
+            "before": "mark_liuxue",
+            "after": "mark_liuxie"
+          }
+        ],
+        "id": "effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_chongqunlingyu\").condition(checks.exists()))",
+        "additionalDecisions": ["C12"],
+        "markId": "mark_liuxie",
+        "stack": 60
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_liuxie",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/36",
+        "definitionSha256": "b18cb653a369f3e1ad306ffa61bb2b8224b8fee0d26a825f61c39d328fd737f6",
+        "effectIds": ["effect_mark_damage_with_stack"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_opponent_mabi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/554",
@@ -7036,13 +7068,6 @@
       "sourcePath": "/7",
       "definitionSha256": "7273ebc23abbc88ddd8ba740b1c9ec99093417e5a0bda91d8453c440f7948b08",
       "reason": "requires a fixed base mark reference"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/633",
-      "definitionSha256": "9c2d18727239e17c6a426922eedc728b64be3ca7e29f35537d686926bb85b8b7",
-      "reason": "Missing mark dependency: mark_liuxue"
     },
     {
       "id": "effect_skill_add_mark_zhaocai_or_jinbao",

@@ -1659,6 +1659,18 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         ),
       }),
     ),
+    effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_chongqunlingyu').condition(checks.exists()),
+        ),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 60 })),
+      }),
+    ),
     effect_skill_add_mark_opponent_mabi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mabi',

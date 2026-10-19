@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 281,
+    generated: 282,
     protected: 2,
     dependencies: 188,
-    rejected: 4,
+    rejected: 3,
   })
 })
 
@@ -472,4 +472,25 @@ test('C11 repairs only named switch target nodes and preserves stage and ownersh
     ])
       assert.match(classifyMarkApplication({ ...d, apply: { ...d.apply, target } }).reason, /C11/)
   }
+})
+
+test('C12 repairs only the named missing bleeding dependency without mutating input', () => {
+  const d = source()
+  d.id = 'effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu'
+  d.apply.mark.value = 'mark_liuxue'
+  const original = structuredClone(d)
+  const recipe = classifyMarkApplication(d)
+  assert.equal(recipe.markId, 'mark_liuxie')
+  assert.deepEqual(recipe.markReferenceRepairs, [
+    { path: '/apply/mark/value', before: 'mark_liuxue', after: 'mark_liuxie' },
+  ])
+  assert.deepEqual(recipe.additionalDecisions, ['C12'])
+  assert.deepEqual(d, original)
+  assert.equal(classifyMarkApplication({ ...d, id: 'unreviewed' }).markId, 'mark_liuxue')
+  for (const mark of [
+    { type: 'entity:baseMark', value: 'mark_liuxie' },
+    { ...d.apply.mark, unknown: true },
+    { type: 'raw:string', value: 'mark_liuxue' },
+  ])
+    assert.match(classifyMarkApplication({ ...d, apply: { ...d.apply, mark } }).reason, /C12/)
 })
