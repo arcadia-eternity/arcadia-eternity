@@ -5,6 +5,18 @@ const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss',
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional') return
+  if (a?.type === 'addModified') {
+    if (a.percent?.type === 'conditional' || a.delta?.type === 'conditional') return
+    if (
+      !fields(a, ['type', 'target', 'percent', 'delta']) ||
+      !(a.target === 'damageContext' || (fields(a.target, ['base']) && a.target.base === 'damageContext'))
+    )
+      return
+    const percent = number(a.percent, parameters, `${path}_percent`, domain)
+    const delta = number(a.delta, parameters, `${path}_delta`, domain)
+    if (!percent || !delta) return
+    return `contexts.damage.apply(ops.modifyDamage({percent:${percent.code},delta:${delta.code}}))`
+  }
   if (['heal', 'dealDamage', 'addRage'].includes(a?.type)) {
     if (!fields(a, ['type', 'target', 'value'])) return
     const target = typeof a.target === 'string' ? a.target : fields(a.target, ['base']) ? a.target.base : undefined

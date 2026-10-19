@@ -201,6 +201,32 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_skill_clear_rage_add_fixed_damage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/638",
+      "definitionSha256": "535dd3fc710e68ad69d39ecdcff76cf34cb050d7646448d45904980a7d89ea5a",
+      "recipe": {
+        "id": "effect_skill_clear_rage_add_fixed_damage",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.damage.apply(ops.modifyDamage({percent:0,delta:values.combine(targets.selfPlayer.select(player => player.currentRage).first(),parameters.action0_value_delta_step1,(n,factor) => Math.floor(n * factor))}))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.selfPlayer.apply(ops.addRage(targets.selfPlayer.select(player => player.currentRage).first().map(n => Math.floor(n * -1))))"
+          }
+        ],
+        "parameters": [{ "name": "action0_value_delta_step1", "value": 1, "configId": "multiply_value" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_skill_consume_dongqifuti_heal_self_quarter_max_hp",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/567",
@@ -350,13 +376,6 @@
       "sourcePath": "/200",
       "definitionSha256": "ee1f997518c42abc2bf371b6c35542f0afd7d43f0bf20bc0256dfe7210ede06b",
       "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_clear_rage_add_fixed_damage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/638",
-      "definitionSha256": "535dd3fc710e68ad69d39ecdcff76cf34cb050d7646448d45904980a7d89ea5a",
-      "reason": "unsupported trigger"
     }
   ]
 }

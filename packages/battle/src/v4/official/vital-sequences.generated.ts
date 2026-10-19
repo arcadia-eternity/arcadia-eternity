@@ -201,6 +201,44 @@ export function createGeneratedVitalSequences() {
         ),
       }),
     ),
+    effect_skill_clear_rage_add_fixed_damage: (() => {
+      const parameters = {
+        action0_value_delta_step1: numberParam({
+          default: 1,
+          tags: [],
+          legacyAliases: ['effect_skill_clear_rage_add_fixed_damage.multiply_value'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_clear_rage_add_fixed_damage',
+          on: 'OnBeforeCalculateDamage',
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: actions.sequence(
+            contexts.damage.apply(
+              ops.modifyDamage({
+                percent: 0,
+                delta: values.combine(
+                  targets.selfPlayer.select(player => player.currentRage).first(),
+                  parameters.action0_value_delta_step1,
+                  (n, factor) => Math.floor(n * factor),
+                ),
+              }),
+            ),
+            targets.selfPlayer.apply(
+              ops.addRage(
+                targets.selfPlayer
+                  .select(player => player.currentRage)
+                  .first()
+                  .map(n => Math.floor(n * -1)),
+              ),
+            ),
+          ),
+        }),
+      )
+    })(),
     effect_skill_consume_dongqifuti_heal_self_quarter_max_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_dongqifuti_heal_self_quarter_max_hp',

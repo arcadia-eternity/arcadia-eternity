@@ -167,3 +167,11 @@ The TurnEnd HP-absorption list brings vital candidates to 14, with five remainin
 All 376 combined public vital tests pass, including 38 new source/timing/boundary checks. All 94 offline generator tests, V4 typechecking/lint, declarations and provenance pass; both review axes pass. Tests include real TurnEnd, repeated/nested execution, source detachment and changes to HP, maxHp, owner or opposing active slot between the two actions, with independent amount/state assertions and zero runtime error logs. Logs: `/tmp/absorb-{final,tests,generators,types,lint,declarations,provenance}.log`. See [dynamic clamp and absorption evidence](validation/vital-sequences.md).
 
 This candidate remains U. Full-game/checkpoint acceptance and production admission are still pending; scoped validation does not replace the recorded non-green full V4 regression.
+
+## Rage conversion before damage (2026-10-20)
+
+`effect_skill_clear_rage_add_fixed_damage` brings vital candidates to 15, with four rejected lists remaining. Damage modification and subsequent negative rage addition perform independent execution-time queries. The latter retains OnRageGain cancellation/modification semantics, including changes to owner or rage after the first write. The multiplier remains editable at its canonical authored parameter address, with the original configId retained as a catalog alias. No runtime or production-loading changes are included.
+
+All 419 combined public vital checks pass, including 43 new source/parameter/timing cases and real DamagePhase/SkillPhase probes. All 96 generator tests, V4 typechecking/lint, declarations and provenance pass. Review identified that the shared addModified emitter could accept unsupported conditional percent/delta inputs; these are now explicitly rejected with regression coverage. Prior fourteen records remain unchanged and both other sequence catalogs reproduce unchanged. Logs: `/tmp/rage-damage-{final,tests,generators,types,lint,declarations,provenance}.log`.
+
+The candidate remains U; full-game/checkpoint acceptance and production admission remain pending. These scoped checks do not replace the recorded non-green full V4 regression result. See [rage conversion evidence](validation/vital-sequences.md).

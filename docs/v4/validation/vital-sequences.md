@@ -1,6 +1,6 @@
 # Ordered healing, damage and rage candidates
 
-Fourteen complete lists emit ordinary authored TypeScript: six OnHit skill lists, three TurnEnd healing lists, one TurnEnd HP-absorption list, three OnDamage reflection lists and one PostDamage self-damage list. All remain U pending complete-game/checkpoint acceptance and production admission. The generator inventories five other vital action lists as unsupported; it never emits a supported fragment of an unsupported list. Production YAML and the parser remain unchanged.
+Fifteen complete lists emit ordinary authored TypeScript: six OnHit skill lists, three TurnEnd healing lists, one TurnEnd HP-absorption list, three OnDamage reflection lists one PostDamage self-damage list and one OnBeforeCalculateDamage rage-conversion list. All remain U pending complete-game/checkpoint acceptance and production admission. The generator inventories four other vital action lists as unsupported; it never emits a supported fragment of an unsupported list. Production YAML and the parser remain unchanged.
 
 - `effect_skill_ignite_opponent_mark_jishengzhadan` and `effect_skill_ignite_opponent_mark_shaoshang` remove selected opponent marks, then requery the opposing active pet and deal 300/150 damage.
 - `effect_skill_consume_opponent_yinbo_damage_2x` and `effect_skill_consume_opponent_yinbo_heal_self_2x` read the first selected mark's stack at execution, multiply by the editable default factor 2 with the existing floor, apply damage/healing, then requery marks for removal.
@@ -36,3 +36,11 @@ The numeric emitter supports dynamic clampMin/clampMax only with an explicit dyn
 Thirty-eight public comparisons cover skill/mark sources, real TurnEnd dispatch, inactive owners, cancellation, changes before execution, changes to HP/maxHp/source ownership after the damage, owner detachment, an opposing active-slot switch, repeated dispatch, nested contexts, integer boundaries and the maximum-HP cap. Independent expected amounts and post-action states establish the second query's timing; all runs assert no swallowed runtime errors. A separate emitter test checks both clamp directions, scalar/collection results, absent limits and explicit opt-in.
 
 Both review axes pass. All prior thirteen records remain unchanged. Complete games/checkpoints and production admission remain pending.
+
+## Rage conversion before damage calculation
+
+`effect_skill_clear_rage_add_fixed_damage` first adds `floor(current owner player rage * multiply_value)` to the damage delta, then independently requeries the owner player and adds `floor(current rage * -1)`. The second action uses the original negative `add` operation and therefore dispatches OnRageGain. Cancelling or modifying that phase affects rage removal after the damage modifier has already been written. Owner or rage changes between the actions affect only the second query; detachment leaves its target empty.
+
+The editable factor has canonical parameter identity `action0_value_delta_step1` and legacy alias `effect_skill_clear_rage_add_fixed_damage.multiply_value`. Native configuration writes use `parameterAddress`; aliases resolve through ParameterCatalog, not direct ConfigSystem writes. The shared action emitter accepts only an unchained damageContext target for addModified. No runtime changes were needed.
+
+Forty-three public checks compare the original YAML against skill and mark sources, including real DamagePhase and SkillPhase probes, repeated and nested dispatch, late parameters, owner/rage changes between actions, cancellation, negative-zero and existing damage modifiers. Independent amounts and ordered event traces supplement differential assertions; runtime error logs must remain empty. Prior fourteen candidate records remain unchanged. Full-game/checkpoint acceptance and production admission remain pending.
