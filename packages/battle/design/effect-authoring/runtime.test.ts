@@ -581,3 +581,40 @@ it('owns parameter metadata and isolates a shared declaration between effects an
     ),
   ).toThrow('Unknown parameter')
 })
+
+it('combines values left-to-right once and reads the right input even when the left is absent', () => {
+  const f = fixture(),
+    trace: string[] = [],
+    results: unknown[] = []
+  let missing = false
+  const left = targets.ownerPet
+    .select(() => {
+      trace.push('left')
+      return missing ? undefined : 5
+    })
+    .first()
+  const right = targets.ownerPet
+    .select(() => {
+      trace.push('right')
+      return 2
+    })
+    .first()
+  const combined = values.combine(left, right, (a, b) => {
+    trace.push('project')
+    return a! + b
+  })
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/combine',
+      on: 'BeforeHit',
+      execute(ctx) {
+        results.push(ctx.read(combined))
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  missing = true
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(results).toEqual([7, undefined])
+  expect(trace).toEqual(['left', 'right', 'project', 'left', 'right'])
+})

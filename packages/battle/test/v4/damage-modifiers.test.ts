@@ -5,6 +5,10 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   generatedDamageModifierEffects,
+  ConfigModifier,
+  ConfigModifierType,
+  ConfigDurationType,
+  parameterAddress,
   createGeneratedDamageModifierEffects,
   effectAuthoring,
   BaseSkill,
@@ -38,7 +42,10 @@ interface Entry {
   sourceFile: string
   definitionSha256: string
   status: string
-  recipe: { triggers: ('OnBeforeCalculateDamage' | 'OnDamage')[] }
+  recipe: {
+    triggers: ('OnBeforeCalculateDamage' | 'OnDamage')[]
+    parameters?: { name: string; value: number; configId?: string }[]
+  }
 }
 interface Definition {
   id: string
@@ -56,6 +63,18 @@ for (const r of records)
       r.sourceFile,
       parse(readFileSync(new URL(`../../../../${r.sourceFile}`, import.meta.url), 'utf8'), { merge: true }),
     )
+// Parse once before constructing battles: raw parameters belong to the oracle's global content registry.
+const oracles = new Map(
+  records.map(r => [r.id, EffectParser.parse(files.get(r.sourceFile)!.find(d => d.id === r.id)!)]),
+)
+function parameterKey(r: Entry, battle: Battle, native: boolean, name: string) {
+  if (native) return parameterAddress(r.id, 'parameters', name)
+  const p = r.recipe.parameters!.find(p => p.name === name)!
+  if (p.configId) return `${r.id}.${p.configId}`
+  const keys = battle.configSystem.getRegisteredKeys().filter(key => key.startsWith(`${r.id}.`))
+  if (keys.length !== 1) throw new Error('Anonymous parameter oracle needs an unambiguous key')
+  return keys[0]
+}
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
@@ -78,7 +97,15 @@ const variants = [
   'alternate-type',
   'phase',
 ] as const
-type Variant = (typeof variants)[number]
+const parameterVariants = [
+  'config-zero',
+  'config-negative',
+  'config-fractional',
+  'late-config',
+  'foreign-config',
+  'removed-config',
+] as const
+type Variant = (typeof variants)[number] | (typeof parameterVariants)[number]
 function run(
   r: Entry,
   native: boolean,
@@ -128,8 +155,36 @@ function run(
     for (const n of nodes)
       if (n.type === 'contain' && typeof n.tag === 'string') add(owner, 'fixture/tag').tags.push(n.tag)
   const source = kind === 'skill' ? skill : add(owner, 'fixture/modifier', 3)
-  const effect = native ? generatedDamageModifierEffects[r.id] : EffectParser.parse(d)
+  const effect = native ? generatedDamageModifierEffects[r.id] : oracles.get(r.id)!
+  if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
   source.effects.push(effect)
+  const changeConfig = (amount: number, foreign = false) => {
+    for (const p of r.recipe.parameters ?? []) {
+      const modifier = new ConfigModifier(
+        ConfigDurationType.binding,
+        'fixture/config',
+        amount,
+        ConfigModifierType.override,
+        0,
+      )
+      const scope = foreign ? owner.owner!.team[1].skills[0] : source
+      const cleanup = native
+        ? effectAuthoring
+            .effectParameters(effect)
+            .modify(
+              battle.configSystem,
+              p.configId ? `${r.id}.${p.configId}` : parameterKey(r, battle, true, p.name),
+              modifier,
+              scope,
+            )
+        : battle.configSystem.addScopedConfigModifier(parameterKey(r, battle, false, p.name), modifier, scope)
+      if (variant === 'removed-config') cleanup()
+    }
+  }
+  if (variant === 'config-zero') changeConfig(0)
+  if (variant === 'config-negative') changeConfig(-0.375)
+  if (variant === 'config-fractional' || variant === 'removed-config') changeConfig(0.375)
+  if (variant === 'foreign-config') changeConfig(1000, true)
   const trace: unknown[] = []
   const hook = defineNativeEffect({
     id: 'fixture/modifier-hook' as effectId,
@@ -142,6 +197,7 @@ function run(
         return
       }
       trace.push('admitted')
+      if (variant === 'late-config') changeConfig(0.375)
       if (variant === 'cancel') ctx.parent.available = false
       if (variant === 'late-values') {
         owner.currentHp = 801
@@ -189,15 +245,18 @@ for (const r of records)
   for (const kind of ['skill', 'mark'] as const)
     for (const name of r.recipe.triggers) {
       const trigger = EffectTrigger[name]
-      it.each(variants)(`${r.id} ${kind} ${name}: %s`, variant => {
-        const actual = run(r, true, kind, variant, trigger)
-        expect(actual).toEqual(run(r, false, kind, variant, trigger))
-        expect(actual.trace).not.toContainEqual({ success: false })
-        if (variant === 'normal' && kind === 'mark') {
-          expect(actual.trace).toContain('admitted')
-          expect(actual.modified.some(n => n !== 0)).toBe(true)
-        }
-      })
+      it.each(r.recipe.parameters ? [...variants, ...parameterVariants] : variants)(
+        `${r.id} ${kind} ${name}: %s`,
+        variant => {
+          const actual = run(r, true, kind, variant, trigger)
+          expect(actual).toEqual(run(r, false, kind, variant, trigger))
+          expect(actual.trace).not.toContainEqual({ success: false })
+          if (variant === 'normal' && kind === 'mark') {
+            expect(actual.trace).toContain('admitted')
+            expect(actual.modified.some(n => n !== 0)).toBe(true)
+          }
+        },
+      )
     }
 it('pins every emitted ID and definition to current YAML and excludes the handwritten override', () => {
   const normalize = (v: unknown): unknown =>
@@ -226,7 +285,10 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
   battles.push(battle)
   const definition = files.get(r.sourceFile)!.find(d => d.id === r.id)!
   const nodes = objects(definition.condition)
-  const effect = native ? createGeneratedDamageModifierEffects()[r.id] : EffectParser.parse(definition)
+  const effect = native ? createGeneratedDamageModifierEffects()[r.id] : oracles.get(r.id)!
+  if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
+  for (const p of r.recipe.parameters ?? [])
+    battle.configSystem.set(parameterKey(r, battle, native, p.name), p.value * 0.5)
   const allPets = [...f.a.team, ...f.b.team]
   const originalEffects = allPets.flatMap(p => p.baseSkills.flatMap(s => s.effects))
   for (const pet of allPets) {
@@ -255,11 +317,7 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
     const c = new SnapshotCatalog(`damage-modifier/${r.id}`)
     for (const e of originalEffects) c.registerEffect(e.id, e)
     for (const e of f.debuff.effects) c.registerEffect(e.id, e)
-    const registered = fresh
-      ? native
-        ? createGeneratedDamageModifierEffects()[r.id]
-        : EffectParser.parse(definition)
-      : effect
+    const registered = fresh ? (native ? createGeneratedDamageModifierEffects()[r.id] : oracles.get(r.id)!) : effect
     if (native) effectAuthoring.registerEffect(c, registered)
     else c.registerEffect(registered.id, registered)
     return c

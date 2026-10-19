@@ -57,12 +57,12 @@ function members(s) {
   return code
 }
 /** Static TS emitter for explicitly understood numeric steps; no runtime interpreter is emitted. */
-function selectedNumber(s) {
+function selectedNumber(s, parameters, path) {
   if (!fields(s, ['base', 'chain']) || !Array.isArray(s.chain)) return
   let code = root(s.base),
     numeric = false
   if (!code) return
-  for (const step of s.chain) {
+  for (const [index, step] of s.chain.entries()) {
     if (!numeric && s.base === 'selfMarks') {
       const filter = markFilter(step)
       if (filter) {
@@ -89,8 +89,13 @@ function selectedNumber(s) {
       else return
       numeric = true
     } else {
-      if (!Number.isFinite(step.arg)) return
-      const n = q(step.arg)
+      const parameter = !Number.isFinite(step.arg)
+        ? rawParameter(step.arg, parameters, `${path}_step${index}`)
+        : undefined
+      if (!Number.isFinite(step.arg) && !parameter) return
+      // A configured divisor may become zero. Keep it out until the zero contract is mapped.
+      if (parameter && step.type === 'divide') return
+      const n = parameter ? 'factor' : q(step.arg)
       const expression = {
         multiply: `Math.floor(n * ${n})`,
         divide: `Math.floor(n / ${n})`,
@@ -99,15 +104,33 @@ function selectedNumber(s) {
         clampMax: `Math.min(n, ${n})`,
       }[step.type]
       if (!expression || (step.type === 'divide' && step.arg === 0)) return
-      code += `.map(n => ${expression})`
+      code = parameter
+        ? `values.combine(${code},${parameter.code},(n,factor) => ${expression})`
+        : `${code}.map(n => ${expression})`
     }
   }
   return numeric ? code : undefined
 }
-function number(v) {
+function rawParameter(v, parameters, name) {
+  if (!parameters || !v || typeof v !== 'object' || v.type !== 'raw:number') return
+  if (!Object.keys(v).every(k => ['type', 'value', 'configId', 'tags'].includes(k)) || !Number.isFinite(v.value)) return
+  if ('configId' in v && (typeof v.configId !== 'string' || !v.configId)) return
+  if ('tags' in v && (!Array.isArray(v.tags) || !v.tags.every(t => typeof t === 'string'))) return
+  // Repeated legacy aliases share configuration, so reject them pending an explicit shared declaration mapping.
+  if (v.configId && parameters.some(p => p.configId === v.configId)) return
+  parameters.push({
+    name,
+    value: v.value,
+    ...(v.configId ? { configId: v.configId } : {}),
+    ...(v.tags ? { tags: [...v.tags] } : {}),
+  })
+  return { code: `parameters.${name}`, literal: false, required: true }
+}
+function number(v, parameters, path) {
   if (Number.isFinite(v)) return { code: q(v), literal: true }
+  if (v?.type === 'raw:number') return rawParameter(v, parameters, path)
   if (fields(v, ['type', 'selector']) && v.type === 'dynamic') {
-    const code = selectedNumber(v.selector)
+    const code = selectedNumber(v.selector, parameters, path)
     if (code) return { code, literal: false }
   }
   if (fields(v, ['type', 'condition', 'trueValue', 'falseValue']) && v.type === 'conditional') {
@@ -202,12 +225,21 @@ export function classifyDamageModifier(d) {
     !(a.target === 'damageContext' || (fields(a.target, ['base']) && a.target.base === 'damageContext'))
   )
     return { reason: 'requires an unchained damage-context target' }
+  const parameters = []
   const when = condition(d.condition),
-    percent = number(a.percent),
-    delta = number(a.delta)
+    percent = number(a.percent, parameters, 'percent'),
+    delta = number(a.delta, parameters, 'delta')
   if (!when) return { reason: 'condition requires a separate semantic mapping' }
   if (!percent || !delta) return { reason: 'numeric value or parameter requires a separate semantic mapping' }
-  return { id: d.id, priority: d.priority, triggers, when, percent: percent.code, delta: delta.code }
+  return {
+    id: d.id,
+    priority: d.priority,
+    triggers,
+    when,
+    percent: percent.code,
+    delta: delta.code,
+    ...(parameters.length ? { parameters } : {}),
+  }
 }
 const protectedIds = new Set(['effect_mark_damage_boost_based_on_hp_percentage'])
 export async function generateDamageModifiers({ check = false } = {}) {
@@ -247,12 +279,18 @@ export async function generateDamageModifiers({ check = false } = {}) {
   rejected.sort((a, b) => a.id.localeCompare(b.id, 'en'))
   const entries = records
     .filter(r => r.status === 'generated-candidate')
-    .map(
-      ({ recipe: r }) =>
-        `${q(r.id)}:compileEffect(defineEffect({id:${q(r.id)},on:${q(r.triggers)},priority:${r.priority},when:${r.when},execute:contexts.damage.apply(ops.modifyDamage({percent:${r.percent},delta:${r.delta}}))}))`,
-    )
+    .map(({ recipe: r }) => {
+      const params = r.parameters
+        ?.map(
+          p =>
+            `${p.name}:numberParam({default:${q(p.value)},tags:${q(p.tags ?? [])},legacyAliases:${q(p.configId ? [`${r.id}.${p.configId}`] : [])}})`,
+        )
+        .join(',')
+      const compiled = `compileEffect(defineEffect({id:${q(r.id)},on:${q(r.triggers)},priority:${r.priority},${params ? 'parameters,' : ''}when:${r.when},execute:contexts.damage.apply(ops.modifyDamage({percent:${r.percent},delta:${r.delta}}))}))`
+      return `${q(r.id)}:${params ? `(()=>{const parameters={${params}};return ${compiled}})()` : compiled}`
+    })
   const code = `// Generated by scripts/effect-migration/damage-modifiers.mjs. Candidates only.
-import {compileEffect,defineEffect,conditions,contexts,targets,checks,ops,values,type EffectFrame} from '../content/authoring'
+import {compileEffect,defineEffect,numberParam,conditions,contexts,targets,checks,ops,values,type EffectFrame} from '../content/authoring'
 export function createGeneratedDamageModifierEffects(){return Object.freeze({${entries.join(',\n')}})}
 export const generatedDamageModifierEffects=createGeneratedDamageModifierEffects()
 `

@@ -2,6 +2,7 @@
 import {
   compileEffect,
   defineEffect,
+  numberParam,
   conditions,
   contexts,
   targets,
@@ -399,6 +400,36 @@ export function createGeneratedDamageModifierEffects() {
         ),
       }),
     ),
+    effect_mark_increase_damage_taken_15_percent_per_stack: (() => {
+      const parameters = {
+        percent_step1: numberParam({
+          default: 15,
+          tags: [],
+          legacyAliases: [
+            'effect_mark_increase_damage_taken_15_percent_per_stack.mark_increase_damage_taken_per_stack',
+          ],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_increase_damage_taken_15_percent_per_stack',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.selfBeDamaged,
+          execute: contexts.damage.apply(
+            ops.modifyDamage({
+              percent: values.combine(
+                targets.sourceMark.select(mark => mark.stack).first(),
+                parameters.percent_step1,
+                (n, factor) => Math.floor(n * factor),
+              ),
+              delta: 0,
+            }),
+          ),
+        }),
+      )
+    })(),
     effect_mark_increase_damage_taken_40: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_taken_40',
@@ -447,6 +478,34 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
       }),
     ),
+    effect_mark_reduce_damage_15_percent_per_stack: (() => {
+      const parameters = {
+        percent_step1: numberParam({
+          default: -15,
+          tags: [],
+          legacyAliases: ['effect_mark_reduce_damage_15_percent_per_stack.mark_reduce_damage_per_stack'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_reduce_damage_15_percent_per_stack',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.selfBeDamaged,
+          execute: contexts.damage.apply(
+            ops.modifyDamage({
+              percent: values.combine(
+                targets.sourceMark.select(mark => mark.stack).first(),
+                parameters.percent_step1,
+                (n, factor) => Math.floor(n * factor),
+              ),
+              delta: 0,
+            }),
+          ),
+        }),
+      )
+    })(),
     effect_mark_reduce_damage_30_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_30_percent',
@@ -483,6 +542,34 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
+    effect_mark_reduce_damage_taken_15_percent_per_stack: (() => {
+      const parameters = {
+        percent_step1: numberParam({
+          default: 15,
+          tags: [],
+          legacyAliases: ['effect_mark_reduce_damage_taken_15_percent_per_stack.mark_reduce_damage_taken_per_stack'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_reduce_damage_taken_15_percent_per_stack',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.selfBeDamaged,
+          execute: contexts.damage.apply(
+            ops.modifyDamage({
+              percent: values
+                .combine(targets.sourceMark.select(mark => mark.stack).first(), parameters.percent_step1, (n, factor) =>
+                  Math.floor(n * factor),
+                )
+                .map(n => Math.floor(n * -1)),
+              delta: 0,
+            }),
+          ),
+        }),
+      )
+    })(),
     effect_mark_reduce_damage_taken_20_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_taken_20_percent',
@@ -655,6 +742,24 @@ export function createGeneratedDamageModifierEffects() {
         ),
       }),
     ),
+    effect_skill_add_damage_80_if_opponent_has_mark_zhongdu: (() => {
+      const parameters = { delta: numberParam({ default: 80, tags: [], legacyAliases: [] }) }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_damage_80_if_opponent_has_mark_zhongdu',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.opponentActive.condition((_ctx, pets) =>
+              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
+            ),
+          ),
+          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+        }),
+      )
+    })(),
     effect_skill_add_damage_by_kongqichuliang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_by_kongqichuliang',
@@ -724,6 +829,34 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 55 })),
       }),
     ),
+    effect_skill_add_fixed_damage_6_percent_max_hp: (() => {
+      const parameters = {
+        delta_step1: numberParam({
+          default: 0.06,
+          tags: [],
+          legacyAliases: ['effect_skill_add_fixed_damage_6_percent_max_hp.fixed_damage_percent'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_fixed_damage_6_percent_max_hp',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: contexts.damage.apply(
+            ops.modifyDamage({
+              percent: 0,
+              delta: values.combine(
+                targets.opponentActive.select(pet => pet.stat.maxHp).first(),
+                parameters.delta_step1,
+                (n, factor) => Math.floor(n * factor),
+              ),
+            }),
+          ),
+        }),
+      )
+    })(),
     effect_skill_damage_increase_50_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_increase_50_if_has_jinbao',
@@ -808,6 +941,28 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
       }),
     ),
+    effect_skill_fixed_damage_7_percent_max_hp: (() => {
+      const parameters = { delta_step1: numberParam({ default: 0.07, tags: [], legacyAliases: [] }) }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_fixed_damage_7_percent_max_hp',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.selfUsesSkill,
+          execute: contexts.damage.apply(
+            ops.modifyDamage({
+              percent: 0,
+              delta: values.combine(
+                targets.opponentActive.select(pet => pet.stat.maxHp).first(),
+                parameters.delta_step1,
+                (n, factor) => Math.floor(n * factor),
+              ),
+            }),
+          ),
+        }),
+      )
+    })(),
     effect_skill_fixed_damage_by_self_max_hp_minus_500: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_by_self_max_hp_minus_500',

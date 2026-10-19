@@ -299,6 +299,17 @@ export const actions: typeof C.actions = {
   },
 }
 export const values: typeof C.values = {
+  combine<A, B, R, PA extends C.Presence, PB extends C.Presence>(
+    left: C.Value<A, PA>,
+    right: C.Value<B, PB>,
+    project: (a: A, b: B) => R,
+  ) {
+    return value<R, 'optional' extends PA | PB ? 'optional' : 'required'>(ctx => {
+      const a = read(ctx, left) as A | undefined,
+        b = read(ctx, right) as B | undefined
+      return a === undefined || b === undefined ? undefined : project(a, b)
+    })
+  },
   choose: (condition, yes, no) =>
     value(ctx => {
       const selected = condition(ctx) ? yes : no

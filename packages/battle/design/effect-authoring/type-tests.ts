@@ -212,3 +212,14 @@ contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: targets.ownerPet.fi
 targets.ownerPet.apply(ops.modifyDamage({ percent: 10, delta: 0 }))
 // @ts-expect-error A persistent plan is not an action-time damage amount.
 ops.modifyDamage({ percent: capturedInstancePenalty, delta: 0 })
+
+const requiredSum = values.combine(numberParam({ default: 2 }), numberParam({ default: 3 }), (a, b) => a + b)
+exact<Equal<typeof requiredSum, Value<number>>>(true)
+const optionalSum = values.combine(
+  targets.ownerPet.select(p => p.currentHp).first(),
+  numberParam({ default: 3 }),
+  (a, b) => a + b,
+)
+exact<Equal<typeof optionalSum, Value<number, 'optional'>>>(true)
+// @ts-expect-error Persistent plans must not be consumed as immediate inputs.
+values.combine(capturedInstancePenalty, numberParam({ default: 3 }), (a, b) => b)

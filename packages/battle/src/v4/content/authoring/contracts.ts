@@ -130,6 +130,12 @@ export declare const actions: {
   readonly sequence: <T extends Trigger = Trigger>(...actions: readonly Action<T>[]) => Action<T>
 }
 export declare const values: {
+  /** Read left then right once, including an absent left; project only when both exist. */
+  readonly combine: <A, B, R, PA extends Presence, PB extends Presence>(
+    left: Value<A, PA>,
+    right: Value<B, PB>,
+    project: (left: A, right: B) => R,
+  ) => Value<R, 'optional' extends PA | PB ? 'optional' : 'required'>
   /** Lazy branches, freshly evaluated at the consumer's read. */
   readonly choose: <T>(condition: Condition, yes: T | Value<T>, no: T | Value<T>) => Value<T>
 }

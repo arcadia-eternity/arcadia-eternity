@@ -44,7 +44,7 @@ test('preserves ordered admission and late damage stage rather than rewriting it
   assert.deepEqual(r.triggers, ['OnDamage'])
   assert.match(r.when, /conditions.all\(conditions.selfBeDamaged,conditions.not/)
 })
-test('rejects unhandled fields, raw parameters, target chains, nonfinite numbers and unsupported stages', () => {
+test('rejects unhandled fields, invalid parameters, target chains, nonfinite numbers and unsupported stages', () => {
   const d = source()
   for (const bad of [
     { ...d, consumesStacks: 1 },
@@ -53,7 +53,7 @@ test('rejects unhandled fields, raw parameters, target chains, nonfinite numbers
     { ...d, trigger: ['OnDamage', 'OnDamage'] },
     { ...d, trigger: 'BeforeRageGain' },
     { ...d, apply: { ...d.apply, delta: Infinity } },
-    { ...d, apply: { ...d.apply, delta: { type: 'raw:number', value: 2 } } },
+    { ...d, apply: { ...d.apply, delta: { type: 'raw:number', value: 2, unknown: true } } },
     { ...d, apply: { ...d.apply, target: { base: 'damageContext', chain: [] } } },
     { ...d, condition: { type: 'selfUseSkill', extra: true } },
     {
@@ -77,7 +77,7 @@ test('rejects unhandled fields, raw parameters, target chains, nonfinite numbers
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 66, protected: 1, rejected: 50 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 72, protected: 1, rejected: 44 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -102,4 +102,55 @@ test('rejects false-zero branch absence and multi-member compare instead of chan
       },
     }).reason,
   )
+})
+
+test('preserves raw parameters, stable names, aliases and separate negative multiplication floors', () => {
+  const d = source()
+  d.apply.percent = {
+    type: 'dynamic',
+    selector: {
+      base: 'mark',
+      chain: [
+        { type: 'select', arg: { type: 'base', arg: 'stack' } },
+        { type: 'multiply', arg: { type: 'raw:number', value: 15, configId: 'per_stack', tags: ['damage'] } },
+        { type: 'multiply', arg: -1 },
+      ],
+    },
+  }
+  const r = classifyDamageModifier(d)
+  assert.deepEqual(r.parameters, [{ name: 'percent_step1', value: 15, configId: 'per_stack', tags: ['damage'] }])
+  assert.match(r.percent, /values.combine.*Math.floor\(n \* factor\).*map\(n => Math.floor\(n \* -1\)\)/)
+  for (const bad of [
+    { type: 'raw:number', value: Infinity },
+    { type: 'raw:number', value: 2, configId: '' },
+    { type: 'raw:number', value: 2, tags: [2] },
+    { type: 'raw:number', value: 2, extra: true },
+  ])
+    assert.ok(classifyDamageModifier({ ...source(), apply: { ...source().apply, delta: bad } }).reason)
+  const duplicate = { type: 'raw:number', value: 2, configId: 'shared' }
+  assert.ok(
+    classifyDamageModifier({ ...source(), apply: { ...source().apply, percent: duplicate, delta: duplicate } }).reason,
+  )
+})
+
+test('rejects configured divisors and unmapped nested parameter branches', () => {
+  const d = source()
+  d.apply.delta = {
+    type: 'dynamic',
+    selector: {
+      base: 'opponent',
+      chain: [
+        { type: 'select', arg: { type: 'base', arg: 'maxHp' } },
+        { type: 'divide', arg: { type: 'raw:number', value: 2 } },
+      ],
+    },
+  }
+  assert.ok(classifyDamageModifier(d).reason)
+  d.apply.delta = {
+    type: 'conditional',
+    condition: { type: 'selfUseSkill' },
+    trueValue: { type: 'raw:number', value: 2 },
+    falseValue: 3,
+  }
+  assert.ok(classifyDamageModifier(d).reason)
 })
