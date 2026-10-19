@@ -4,6 +4,7 @@ import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 import { fields, normalize, condition } from './authoring-emitter.mjs'
 import { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
+import { turnOrderReferences } from './turn-order.mjs'
 import { sequenceAction } from './sequence-actions.mjs'
 export function classifySequence(original, profile) {
   if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
@@ -47,8 +48,9 @@ export function classifySequence(original, profile) {
     return { reason: 'invalid stack consumption' }
   if ('tags' in d && (!Array.isArray(d.tags) || !d.tags.every(x => typeof x === 'string')))
     return { reason: 'invalid tags' }
-  if (/isFirstSkillUsedThisTurn|isLastSkillUsedThisTurn/.test(JSON.stringify(d)))
-    return { reason: 'order correction needs a source mapping' }
+  const orderConditions = turnOrderReferences(d)
+  if (JSON.stringify(orderConditions) !== JSON.stringify(profile.orderConditions?.[d.id] ?? []))
+    return { reason: 'order correction needs an exact source mapping' }
   const domain = profile.domain ?? (d.trigger === 'OnDamage' ? 'damage' : 'skill')
   const parameters = []
   const when = condition(d.condition, domain, parameters, 'condition', {
@@ -72,6 +74,7 @@ export function classifySequence(original, profile) {
     actions,
     ...(parameters.length ? { parameters } : {}),
     repairedPaths: paths,
+    ...(orderConditions.length ? { orderConditions } : {}),
     ...(valueRepairs.length ? { valueRepairs } : {}),
     ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
     ...('consumesStacks' in d ? { consumesStacks: d.consumesStacks } : {}),
@@ -125,11 +128,17 @@ export async function generateSequences(profile, { check = false } = {}) {
           recipe,
           classification: 'U',
           ...(recipe.repairedPaths.length ? { decision: 'C07' } : {}),
-          ...(recipe.pathRepairs || recipe.valueRepairs
-            ? { additionalDecisions: [...(recipe.pathRepairs ? ['C09'] : []), ...(recipe.valueRepairs ? ['C10'] : [])] }
+          ...(recipe.pathRepairs || recipe.valueRepairs || recipe.orderConditions
+            ? {
+                additionalDecisions: [
+                  ...(recipe.orderConditions ? ['C08'] : []),
+                  ...(recipe.pathRepairs ? ['C09'] : []),
+                  ...(recipe.valueRepairs ? ['C10'] : []),
+                ],
+              }
             : {}),
           status:
-            recipe.repairedPaths.length || recipe.pathRepairs || recipe.valueRepairs
+            recipe.repairedPaths.length || recipe.pathRepairs || recipe.valueRepairs || recipe.orderConditions
               ? 'generated-correction-candidate'
               : 'generated-candidate',
         })

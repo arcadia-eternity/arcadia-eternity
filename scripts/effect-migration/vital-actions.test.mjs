@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 32, rejected: 18, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 35, rejected: 15, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')
@@ -65,4 +65,24 @@ test('dynamic multiplication preserves indexed factors and rejects unsupported f
   assert.match(recipe.actions[0].code, /\.all\(\).*factors\[0\] \?\? 0/)
   d.apply.value.selector.chain[2].arg.selector.chain[0].arg.arg = 'unknown'
   assert.ok(classifyVitalAction(d).reason)
+})
+
+test('turn-order corrections accept only the exact named source nodes', () => {
+  const d = source()
+  d.id = 'effect_ability_add_rage_5_when_first_attack'
+  d.condition = { type: 'every', conditions: [{ type: 'selfUseSkill' }, { type: 'isFirstSkillUsedThisTurn' }] }
+  assert.deepEqual(classifyVitalAction(d).orderConditions, [
+    { path: '/condition/conditions/1', condition: 'isFirstSkillUsedThisTurn' },
+  ])
+  for (const change of [
+    x => x.condition.conditions.push({ type: 'isFirstSkillUsedThisTurn' }),
+    x => x.condition.conditions.reverse(),
+    x => (x.condition.conditions[1].type = 'isLastSkillUsedThisTurn'),
+    x => (x.id = 'unmapped'),
+    x => x.condition.conditions.pop(),
+  ]) {
+    const changed = structuredClone(d)
+    change(changed)
+    assert.ok(classifyVitalAction(changed).reason)
+  }
 })

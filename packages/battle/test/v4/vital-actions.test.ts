@@ -55,6 +55,9 @@ const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
   }),
 )
 const expected: Record<Id, number> = {
+  effect_ability_add_rage_5_when_first_attack: 5,
+  effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen: -5,
+  effect_skill_add_rage_15_if_first: 15,
   effect_heal_1_16_max_hp_per_stack_if_has_niliu: 375,
   effect_skill_heal_by_damage_25_zhongzinengliang: 75,
   effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end: 15,
@@ -124,7 +127,7 @@ function run(
   id: Id,
   native: boolean,
   kind: 'skill' | 'mark',
-  variant: (typeof variants)[number],
+  variant: (typeof variants)[number] | 'turn-first' | 'turn-second',
   options: {
     damageResult?: number
     multihit?: number
@@ -133,6 +136,7 @@ function run(
     opponentRage?: number
     maxHp?: number
     supportStacks?: readonly number[]
+    order?: 'wrong' | 'empty' | 'non-skill' | 'late'
   } = {},
 ) {
   const d = definitions.get(id)!,
@@ -212,6 +216,17 @@ function run(
       AttackTargetOpinion.opponent,
       attacker.activePet.skills[0],
     )
+  const isOrderEffect = /isFirstSkillUsedThisTurn|isLastSkillUsedThisTurn/.test(JSON.stringify(d.condition))
+  const rival = new UseSkillContext(turn, b, b.activePet, AttackTargetOpinion.opponent, b.activePet.skills[0])
+  if (isOrderEffect) {
+    const order = options.order === 'empty' ? [] : options.order === 'wrong' ? [rival, use] : [use, rival]
+    turn.appledContexts.push(...order)
+    turn.contexts.push(...order)
+    if (options.order === 'non-skill') {
+      turn.appledContexts.unshift(new EffectContext(turn, EffectTrigger.BeforeEffect, source))
+      turn.contexts.unshift(new EffectContext(turn, EffectTrigger.BeforeEffect, source))
+    }
+  }
   use.updateActualTarget()
   use.multihitResult = options.multihit ?? 3
   let damage = new DamageContext(
@@ -237,6 +252,10 @@ function run(
       when: c => c.parent instanceof EffectContext && c.parent.effect?.id === id,
       apply(c) {
         admitted++
+        if (options.order === 'late') {
+          turn.appledContexts.splice(0, turn.appledContexts.length, rival, use)
+          turn.contexts.splice(0, turn.contexts.length, rival, use)
+        }
         const outer = c.parent as EffectContext<EffectTrigger>
         if (outer.parent instanceof DamageContext) damage = outer.parent
         if (variant === 'cancel') outer.available = false
@@ -271,7 +290,21 @@ function run(
       },
     }),
   )
-  if (variant === 'phase') {
+  if (variant === 'turn-first' || variant === 'turn-second') {
+    const other = new SkillInstance(skill.base)
+    other.setOwner(b.activePet)
+    b.activePet.skills[0] = other
+    battle.skillMap.set(other.id, other)
+    a.activePet.attributeSystem.updateBaseValue('spe', variant === 'turn-first' ? 200 : 50)
+    b.activePet.attributeSystem.updateBaseValue('spe', 100)
+    a.selection = { player: a.id, type: 'use-skill', skill: skill.id, target: skill.target }
+    b.selection = { player: b.id, type: 'use-skill', skill: other.id, target: other.target }
+    turn.appledContexts.splice(0)
+    turn.contexts.splice(0)
+    executeTurnOperation(turn, battle)
+    const actors = turn.appledContexts.filter((c): c is UseSkillContext => c instanceof UseSkillContext).map(c => c.pet)
+    expect(actors).toEqual(variant === 'turn-first' ? [a.activePet, b.activePet] : [b.activePet, a.activePet])
+  } else if (variant === 'phase') {
     if (d.trigger === 'TurnEnd') {
       a.selection = { player: a.id, type: 'do-nothing' }
       b.selection = { player: b.id, type: 'do-nothing' }
@@ -436,6 +469,43 @@ for (const id of [
       it(`factor and dividend read at execution ${id}/${kind}/${native}`, () => {
         const result = run(id, native, kind, 'late-value')
         expect(result.events.map(e => e.amount)).toEqual([id.includes('niliu') ? 62 * 7 : 11 * 7])
+      })
+    }
+  }
+}
+
+for (const id of [
+  'effect_ability_add_rage_5_when_first_attack',
+  'effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen',
+  'effect_skill_add_rage_15_if_first',
+] as const) {
+  it(`C08 exact source record ${id}`, () => {
+    const record = ledger.records.find((r: { id: string }) => r.id === id)
+    expect(record.additionalDecisions).toEqual(['C08'])
+    expect(record.recipe.orderConditions).toEqual([
+      {
+        path: '/condition/conditions/1',
+        condition: id.includes('last_attack') ? 'isLastSkillUsedThisTurn' : 'isFirstSkillUsedThisTurn',
+      },
+    ])
+  })
+  for (const kind of ['skill', 'mark'] as const) {
+    for (const order of ['wrong', 'empty', 'non-skill', 'late'] as const) {
+      it(`order boundary ${id}/${kind}/${order}`, () => {
+        const actual = run(id, true, kind, 'normal', { order })
+        expect(actual).toEqual(run(id, false, kind, 'normal', { order }))
+        const admitted = order === 'non-skill' || order === 'late'
+        expect(actual.admitted).toBe(Number(admitted))
+        expect(actual.events.map(e => e.amount)).toEqual(admitted ? [expected[id]] : [])
+      })
+    }
+    for (const variant of ['turn-first', 'turn-second'] as const) {
+      it(`real executor order ${id}/${kind}/${variant}`, () => {
+        const actual = run(id, true, kind, variant)
+        expect(actual).toEqual(run(id, false, kind, variant))
+        const admitted = id.includes('last_attack') ? variant === 'turn-second' : variant === 'turn-first'
+        expect(actual.admitted).toBe(Number(admitted))
+        expect(actual.events.map(e => e.amount)).toEqual(admitted ? [expected[id]] : [])
       })
     }
   }

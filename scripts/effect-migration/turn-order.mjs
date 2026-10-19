@@ -5,8 +5,8 @@ import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 import { normalize } from './authoring-emitter.mjs'
 
-function references(value, path = '') {
-  if (Array.isArray(value)) return value.flatMap((v, i) => references(v, `${path}/${i}`))
+export function turnOrderReferences(value, path = '') {
+  if (Array.isArray(value)) return value.flatMap((v, i) => turnOrderReferences(v, `${path}/${i}`))
   if (!value || typeof value !== 'object') return []
   const own = ['isFirstSkillUsedThisTurn', 'isLastSkillUsedThisTurn'].includes(value.type)
     ? [{ path, condition: value.type }]
@@ -14,7 +14,7 @@ function references(value, path = '') {
   return [
     ...own,
     ...Object.entries(value).flatMap(([k, v]) =>
-      references(v, `${path}/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`),
+      turnOrderReferences(v, `${path}/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`),
     ),
   ]
 }
@@ -23,7 +23,7 @@ export async function generateTurnOrder({ check = false } = {}) {
   for (const name of ['global', 'ability', 'emblem', 'mark', 'skill']) {
     const sourceFile = `packs/base/data/effect_${name}.yaml`
     for (const [index, definition] of parse(await readFile(sourceFile, 'utf8'), { merge: true }).entries()) {
-      const nodes = references(definition)
+      const nodes = turnOrderReferences(definition)
       if (!nodes.length) continue
       records.push({
         id: definition.id,

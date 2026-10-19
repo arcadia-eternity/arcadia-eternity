@@ -225,3 +225,9 @@ All 959 public single-vital tests, 73 design tests, 39 binding/boundary/checkpoi
 Two more healing effects now use typed queries for dynamic stack factors. The single-vital catalog contains 32 candidates, 18 rejected and 27 retained definitions. The shared emitter reuses values.combine, preserving left-before-right reads, positional pairing, missing factors as zero and division rounding before multiplication. No runtime or production-loading changes are included.
 
 All 1,081 public single-vital checks, 110 generator tests, 73 design tests, types/lint, declarations and provenance pass. Independent cases distinguish floor ordering, absent/zero factors, multiple same-ID marks in different orders and late changes after admission. See [dynamic-factor evidence](validation/vital-actions.md). All-effect completion, full-game/checkpoint gates and production admission remain pending; scoped results do not supersede the prior full V4 regression status.
+
+## First/last skill rage effects (2026-10-20)
+
+Three additional single-vital effects reuse the existing C08 executor semantics. The catalog contains 35 emitted, 15 rejected and 27 retained definitions. Each named source condition is pinned by ID, path and type; all old records and the C08 scope artifact reproduce unchanged. No runtime or production-loader changes are included.
+
+All 1,207 public single-vital checks pass, including twelve real double-skill turns with independently asserted actor order, admission and rage values. All 111 generator tests, 73 design tests, V4 types/lint, declarations and provenance pass. See [C08 single-rage evidence](validation/vital-actions.md). Full-game/checkpoint acceptance, production cutover and overall migration remain pending.

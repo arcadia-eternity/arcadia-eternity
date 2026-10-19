@@ -34,6 +34,24 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_ability_add_rage_5_when_first_attack",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/70",
+      "definitionSha256": "aacd731ab2f0eb89eee73595642749a20ac2ca5c1c8ae5fc1567091a74c8a0c5",
+      "recipe": {
+        "id": "effect_ability_add_rage_5_when_first_attack",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.addRage(5))" }],
+        "repairedPaths": [],
+        "orderConditions": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_ability_heal_1_16_when_qingtian",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/3",
@@ -111,6 +129,24 @@
       },
       "classification": "U",
       "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/80",
+      "definitionSha256": "3b6f7453797331bd3ad70aab105b4d87bc08d737ff8794b54d96e0765c2b23d0",
+      "recipe": {
+        "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.lastSkillThisTurn,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kaowen\"))))",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.opponentActive.apply(ops.addRage(-5))" }],
+        "repairedPaths": [],
+        "orderConditions": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
     },
     {
       "id": "effect_emblem_add_rage_on_hit_if_has_shunliu",
@@ -290,6 +326,24 @@
       },
       "classification": "U",
       "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_rage_15_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/542",
+      "definitionSha256": "8cfaca097b9e1d4cdbf1ebb5779f4c4291449d8bc0b4a7470c07add4d464e9a7",
+      "recipe": {
+        "id": "effect_skill_add_rage_15_if_first",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.addRage(15))" }],
+        "repairedPaths": [],
+        "orderConditions": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
     },
     {
       "id": "effect_skill_add_rage_25_if_opponent_shaoshang",
@@ -619,20 +673,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_ability_add_rage_5_when_first_attack",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/70",
-      "definitionSha256": "aacd731ab2f0eb89eee73595642749a20ac2ca5c1c8ae5fc1567091a74c8a0c5",
-      "reason": "order correction needs a source mapping"
-    },
-    {
-      "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/80",
-      "definitionSha256": "3b6f7453797331bd3ad70aab105b4d87bc08d737ff8794b54d96e0765c2b23d0",
-      "reason": "order correction needs a source mapping"
-    },
-    {
       "id": "effect_emblem_add_rage_5_when_use_feixuanzhiguang",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/64",
@@ -687,13 +727,6 @@
       "sourcePath": "/161",
       "definitionSha256": "4fa34b391d6408e563b684f273dfd92a0cb6b5f3c8637a9a585b24d11fa37fc0",
       "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_skill_add_rage_15_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/542",
-      "definitionSha256": "8cfaca097b9e1d4cdbf1ebb5779f4c4291449d8bc0b4a7470c07add4d464e9a7",
-      "reason": "order correction needs a source mapping"
     },
     {
       "id": "effect_skill_deal_damage_spa_sixth_on_miss",

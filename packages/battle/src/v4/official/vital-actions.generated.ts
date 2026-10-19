@@ -40,6 +40,15 @@ export function createGeneratedVitalActions() {
         execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       }),
     ),
+    effect_ability_add_rage_5_when_first_attack: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_rage_5_when_first_attack',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
+      }),
+    ),
     effect_ability_heal_1_16_when_qingtian: compileEffect(
       defineEffect({
         id: 'effect_ability_heal_1_16_when_qingtian',
@@ -118,6 +127,21 @@ export function createGeneratedVitalActions() {
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huafenmiman').condition(checks.exists()),
         ),
         execute: actions.sequence(targets.opponentActive.apply(ops.dealDamage(25))),
+      }),
+    ),
+    effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen: compileEffect(
+      defineEffect({
+        id: 'effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          conditions.lastSkillThisTurn,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
+          ),
+        ),
+        execute: actions.sequence(targets.opponentActive.apply(ops.addRage(-5))),
       }),
     ),
     effect_emblem_add_rage_on_hit_if_has_shunliu: compileEffect(
@@ -275,6 +299,15 @@ export function createGeneratedVitalActions() {
             ),
           ),
         ),
+      }),
+    ),
+    effect_skill_add_rage_15_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_rage_15_if_first',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(15))),
       }),
     ),
     effect_skill_add_rage_25_if_opponent_shaoshang: compileEffect(

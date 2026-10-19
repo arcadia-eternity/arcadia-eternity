@@ -3,6 +3,15 @@ import { classifySequence, generateSequences } from './sequence-candidates.mjs'
 const profile = {
   slug: 'vital-actions',
   singleAction: true,
+  orderConditions: {
+    effect_ability_add_rage_5_when_first_attack: [
+      { path: '/condition/conditions/1', condition: 'isFirstSkillUsedThisTurn' },
+    ],
+    effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen: [
+      { path: '/condition/conditions/1', condition: 'isLastSkillUsedThisTurn' },
+    ],
+    effect_skill_add_rage_15_if_first: [{ path: '/condition/conditions/1', condition: 'isFirstSkillUsedThisTurn' }],
+  },
   actionTypes: ['heal', 'dealDamage', 'addRage'],
   triggers: ['OnHit', 'OnMiss', 'BeforeHit', 'TurnEnd', 'OnDamage', 'PostDamage', 'OnDefeat'],
   retainedLedgers: [

@@ -40,3 +40,7 @@ Both independent review axes approved the core change before its provenance dige
 ## Hit and critical candidate extension
 
 Five first-skill outcome candidates now pin `/condition/conditions/1` and record C08 in [their ledger](skill-outcomes-candidates.json). Their [205-check evidence](skill-outcomes.md#first-skill-extension-c08) includes 20 actual executor turns, both actor orderings and both skill/mark sources. This extends candidate evidence; complete-game/checkpoint acceptance for these five remains pending.
+
+## Single rage action extension
+
+Three single-vital candidates pin their first/last condition at /condition/conditions/1: effect_ability_add_rage_5_when_first_attack, effect_skill_add_rage_15_if_first, and effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen. The last one retains its opponent-kaowen condition. Their ledger records C08 explicitly and rejects any change to the mapped condition nodes. Twelve real double-skill turns cover both actor orders and both source kinds, alongside empty/wrong/late/non-skill schedule boundaries. Full-game/checkpoint and production admission remain pending; see [single-vital evidence](vital-actions.md).
