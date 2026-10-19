@@ -5,6 +5,10 @@ const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss',
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional') return
+  if (a?.type === 'preventDamage') {
+    if (!fields(a, ['type', 'target']) || a.target !== 'damageContext') return
+    return 'contexts.damage.apply(ops.preventDamage())'
+  }
   if (a?.type === 'addModified') {
     if (a.percent?.type === 'conditional' || a.delta?.type === 'conditional') return
     if (
@@ -26,7 +30,7 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
       ...(a.type === 'addRage' ? { selfPlayer: 'selfPlayer' } : {}),
     }
     if (!Object.hasOwn(roots, target)) return
-    const value = number(a.value, parameters, path, domain, { dynamicClamp: true })
+    const value = number(a.value, parameters, path, domain, { dynamicClamp: true, conditionalDivisor: true })
     if (!value) return
     return `targets.${roots[target]}.apply(ops.${a.type}(${value.code}))`
   }

@@ -39,7 +39,8 @@ const allRecords = JSON.parse(
 ).records
 const records: RecordEntry[] = allRecords.filter(
   (r: { id: string; recipe: { trigger: string } }) =>
-    ['TurnEnd', 'OnDamage', 'PostDamage'].includes(r.recipe.trigger) && r.id !== 'effect_mark_absorb_hp_to_opponent',
+    ['TurnEnd', 'OnDamage', 'PostDamage'].includes(r.recipe.trigger) &&
+    !['effect_mark_absorb_hp_to_opponent', 'effect_mark_absorb_damage_to_heal'].includes(r.id),
 )
 const definitions = new Map<string, { id: string; apply: unknown[] }>()
 for (const file of new Set(records.map(r => r.sourceFile)))

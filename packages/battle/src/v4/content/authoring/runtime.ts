@@ -596,6 +596,14 @@ export const ops: typeof C.ops = {
   setSureMiss: (priority = -1) => skillOverride(priority, (event, p) => event.setSureMiss(p)),
   setSureCrit: (priority = 0) => skillOverride(priority, (event, p) => event.setSureCrit(p)),
   setSureNoCrit: (priority = -1) => skillOverride(priority, (event, p) => event.setSureNoCrit(p)),
+  preventDamage: () => (ctx, selected) => {
+    for (const event of selected)
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
+    for (const event of selected) {
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
+      event.available = false
+    }
+  },
   modifyDamage: input => modifyContext(input, 'damage'),
   modifyHeal: input => modifyContext(input, 'heal'),
   heal: amount =>

@@ -46,8 +46,8 @@ test('keeps raw numeric parameters as editable authored parameters', () => {
   assert.deepEqual(r.parameters, [{ name: 'action0_value', value: 3, configId: 'amount', tags: ['heal'] }])
   assert.match(r.actions[0].code, /parameters.action0_value/)
 })
-test('reproduces fifteen vital candidates and four unsupported lists', async () =>
-  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 15, rejected: 4 }))
+test('reproduces sixteen vital candidates and three unsupported lists', async () =>
+  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 16, rejected: 3 }))
 
 test('turn-end and damage queries retain their distinct admission and value sources', () => {
   const d = source()
@@ -114,4 +114,43 @@ test('rejects conditional damage inputs without guessing condition ownership', (
     ]
     assert.ok(classifyVitalSequence(d).reason)
   }
+})
+
+test('conditional divisors only admit finite nonzero branches and opponent mark existence', () => {
+  const d = source()
+  d.trigger = 'OnDamage'
+  const divisor = {
+    type: 'conditional',
+    trueValue: 2,
+    falseValue: 4,
+    condition: { type: 'evaluate', target: { base: 'opponentMarks', chain: [] }, evaluator: { type: 'exist' } },
+  }
+  d.apply = [
+    { type: 'preventDamage', target: 'damageContext' },
+    {
+      type: 'heal',
+      target: 'self',
+      value: {
+        type: 'dynamic',
+        selector: {
+          base: 'damageContext',
+          chain: [
+            { type: 'selectPath', arg: 'damageResult' },
+            { type: 'divide', arg: divisor },
+          ],
+        },
+      },
+    },
+  ]
+  const r = classifyVitalSequence(d)
+  assert.ok(!r.reason, r.reason)
+  assert.match(r.actions[0].code, /ops.preventDamage/)
+  assert.match(r.actions[1].code, /values.combine.*values.choose.*Math.floor/)
+  for (const value of [0, Infinity, { type: 'raw:number', value: 2 }]) {
+    divisor.trueValue = value
+    assert.ok(classifyVitalSequence(d).reason)
+  }
+  divisor.trueValue = 2
+  divisor.condition = { type: 'checkSelf' }
+  assert.ok(classifyVitalSequence(d).reason)
 })

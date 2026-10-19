@@ -13,6 +13,31 @@ import {
 } from '../content/authoring'
 export function createGeneratedVitalSequences() {
   return Object.freeze({
+    effect_mark_absorb_damage_to_heal: compileEffect(
+      defineEffect({
+        id: 'effect_mark_absorb_damage_to_heal',
+        on: 'OnDamage',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.selfBeDamaged,
+        execute: actions.sequence(
+          contexts.damage.apply(ops.preventDamage()),
+          targets.ownerPet.apply(
+            ops.heal(
+              values.combine(
+                contexts.damage.select(event => event.damageResult).first(),
+                values.choose(
+                  targets.opponentMarks.where(mark => mark.baseId === 'mark_kuihuazhongzi').condition(checks.exists()),
+                  2,
+                  4,
+                ),
+                (n, divisor) => Math.floor(n / divisor),
+              ),
+            ),
+          ),
+        ),
+      }),
+    ),
     effect_mark_absorb_hp_to_opponent: compileEffect(
       defineEffect({
         id: 'effect_mark_absorb_hp_to_opponent',

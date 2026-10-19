@@ -221,6 +221,8 @@ export declare const ops: {
   readonly setSureMiss: (priority?: number) => Operator<UseSkillContext>
   readonly setSureCrit: (priority?: number) => Operator<UseSkillContext>
   readonly setSureNoCrit: (priority?: number) => Operator<UseSkillContext>
+  /** Mark unavailable at execution time; does not undo damage already applied. */
+  readonly preventDamage: () => Operator<DamageContext>
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
   readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>

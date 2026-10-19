@@ -178,6 +178,24 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
           : `values.combine(${code},${limits},(n,limits) => Math.${operation}(n,limits[0] ?? 0))`
         continue
       }
+      if (options.conditionalDivisor && step.type === 'divide' && !collection) {
+        const v = step.arg
+        if (fields(v, ['type', 'condition', 'trueValue', 'falseValue']) && v.type === 'conditional') {
+          const c = v.condition
+          const selected =
+            fields(c, ['type', 'target', 'evaluator']) &&
+            c.type === 'evaluate' &&
+            fields(c.evaluator, ['type']) &&
+            c.evaluator.type === 'exist' &&
+            c.target?.base === 'opponentMarks'
+              ? members(c.target, 'skill')
+              : undefined
+          if (!selected || ![v.trueValue, v.falseValue].every(n => Number.isFinite(n) && n !== 0)) return
+          const divisor = `values.choose(${selected}.condition(checks.exists()),${q(v.trueValue)},${q(v.falseValue)})`
+          code = `values.combine(${code},${divisor},(n,divisor) => Math.floor(n / divisor))`
+          continue
+        }
+      }
       const parameter = !Number.isFinite(step.arg)
         ? rawParameter(step.arg, parameters, `${path}_step${index}`)
         : undefined
