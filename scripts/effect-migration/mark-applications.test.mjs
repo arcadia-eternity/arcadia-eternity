@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 278,
+    generated: 281,
     protected: 2,
     dependencies: 188,
-    rejected: 7,
+    rejected: 4,
   })
 })
 
@@ -434,4 +434,42 @@ test('before-multihit admission reads the computed result and requires the skill
   assert.ok(classifyMarkApplication({ ...d, trigger: ['BeforeMultiHit', 'OnDamage'] }).reason)
   d.condition.conditions[1].target.chain[0].arg = 'currentHitCount'
   assert.ok(classifyMarkApplication(d).reason)
+})
+
+test('C11 repairs only named switch target nodes and preserves stage and ownership guards', () => {
+  const ids = [
+    ['effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin', 'selfSwitchIn', 'ownerSwitchesIn'],
+    ['effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout', 'selfSwitchOut', 'ownerSwitchesOut'],
+    ['effect_mark_add_damage_increase_25_on_switch_in', 'selfSwitchOut', 'ownerSwitchesOut'],
+  ]
+  for (const [id, guard, predicate] of ids) {
+    const d = source()
+    d.id = id
+    d.trigger = 'OnSwitchOut'
+    d.condition = { type: guard }
+    d.apply.target = { base: 'switchPetContext', chain: [{ type: 'selectPath', arg: 'switchInPetId' }] }
+    const original = structuredClone(d)
+    const recipe = classifyMarkApplication(d)
+    assert.equal(recipe.target, 'switchIn')
+    assert.equal(recipe.when, `conditions.${predicate}`)
+    assert.deepEqual(recipe.triggers, ['OnSwitchOut'])
+    assert.deepEqual(recipe.additionalDecisions, ['C11'])
+    assert.deepEqual(recipe.switchTargetRepairs, [
+      { path: '/apply/target/chain/0/arg', before: 'switchInPetId', after: 'switchInPet' },
+    ])
+    assert.deepEqual(d, original)
+    assert.match(
+      renderMarkApplications([recipe], [recipe.markId]),
+      /contexts\.switchPet\.select\(event => event\.switchInPet\)\.apply/,
+    )
+    assert.ok(classifyMarkApplication({ ...d, id: 'unknown' }).reason)
+    assert.ok(classifyMarkApplication({ ...d, condition: { type: 'selfUseSkill' } }).reason)
+    assert.ok(classifyMarkApplication({ ...d, trigger: ['OnSwitchOut', 'OnHit'] }).reason)
+    for (const target of [
+      { base: 'switchPetContext', chain: [{ type: 'selectPath', arg: 'switchOutPet' }] },
+      { base: 'switchPetContext', chain: [...d.apply.target.chain, { type: 'limit', arg: 1 }] },
+      { ...d.apply.target, unknown: true },
+    ])
+      assert.match(classifyMarkApplication({ ...d, apply: { ...d.apply, target } }).reason, /C11/)
+  }
 })

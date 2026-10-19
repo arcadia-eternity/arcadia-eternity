@@ -367,6 +367,28 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fenshenhying')!)),
       }),
     ),
+    effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin',
+        on: ['OnSwitchOut'],
+        priority: 0,
+        when: conditions.ownerSwitchesIn,
+        execute: contexts.switchPet
+          .select(event => event.switchInPet)
+          .apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 15 })),
+      }),
+    ),
+    effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout',
+        on: ['OnSwitchOut'],
+        priority: 0,
+        when: conditions.ownerSwitchesOut,
+        execute: contexts.switchPet
+          .select(event => event.switchInPet)
+          .apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 25 })),
+      }),
+    ),
     effect_emblem_add_xukongtizhi_when_opponent_hit_self: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_xukongtizhi_when_opponent_hit_self',
@@ -374,6 +396,17 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.selfBeDamaged,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 5 })),
+      }),
+    ),
+    effect_mark_add_damage_increase_25_on_switch_in: compileEffect(
+      defineEffect({
+        id: 'effect_mark_add_damage_increase_25_on_switch_in',
+        on: ['OnSwitchOut'],
+        priority: 0,
+        when: conditions.ownerSwitchesOut,
+        execute: contexts.switchPet
+          .select(event => event.switchInPet)
+          .apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 25 })),
       }),
     ),
     effect_mark_on_duration_end_add_mark_penti: compileEffect(

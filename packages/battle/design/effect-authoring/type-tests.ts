@@ -271,3 +271,9 @@ const randomMarks = targets.ownerMarks
 ops.addMark(randomMarks)
 // @ts-expect-error A fixed selector needs a collection.
 selectFrom(3)
+
+const incomingPet = contexts.switchPet.select(event => event.switchInPet)
+exact<Equal<typeof incomingPet, Selector<Pet>>>(true)
+incomingPet.apply(ops.addMark(selectedBaseMark))
+// @ts-expect-error Switch contexts are not mark owners; select the incoming pet first.
+contexts.switchPet.apply(ops.addMark(selectedBaseMark))

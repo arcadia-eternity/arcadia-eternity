@@ -40,9 +40,10 @@ interface RecordEntry {
   recipe: {
     when: string
     selectorRepairs?: string[]
+    switchTargetRepairs?: unknown[]
     tags?: string[]
     additionalDecisions?: string[]
-    target: 'self' | 'opponent' | 'battle'
+    target: 'self' | 'opponent' | 'battle' | 'switchIn'
     markId: string
     stackValue?: string
     durationValue?: string
@@ -55,6 +56,7 @@ interface RecordEntry {
       | 'OnHit'
       | 'OnMiss'
       | 'OnSwitchIn'
+      | 'OnSwitchOut'
       | 'OnBattleStart'
       | 'OnMarkDestroy'
       | 'OnMarkDurationEnd'
@@ -91,7 +93,7 @@ for (const record of allRecords)
 // Parse once before battle construction so legacy literal configurations exist in each battle.
 const oracles = new Map(
   allRecords
-    .filter(record => !record.recipe.selectorRepairs)
+    .filter(record => !record.recipe.selectorRepairs && !record.recipe.switchTargetRepairs)
     .map(record => [record.id, EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id))]),
 )
 const battles: Battle[] = []

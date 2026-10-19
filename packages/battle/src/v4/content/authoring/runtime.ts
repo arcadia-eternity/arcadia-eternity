@@ -302,6 +302,10 @@ export const contexts: typeof C.contexts = {
     const event = nearestContext(ctx, UseSkillContext)
     return event ? [event] : []
   }),
+  switchPet: selector(ctx => {
+    const event = nearestContext(ctx, SwitchPetContext)
+    return event ? [event] : []
+  }),
   nearestSkillUse: ctx => nearestContext(ctx, UseSkillContext),
 }
 function skillOrder(position: 'first' | 'last'): C.Condition {
@@ -333,6 +337,10 @@ export const conditions: typeof C.conditions = {
     return pet !== undefined && ctx.event instanceof UseSkillContext && pet === ctx.event.actualTarget
   },
   ownerSwitchesIn: ctx => ctx.event instanceof SwitchPetContext && owner(ctx) === ctx.event.switchInPet,
+  ownerSwitchesOut: ctx => {
+    const pet = owner(ctx)
+    return pet !== undefined && ctx.event instanceof SwitchPetContext && pet === ctx.event.switchOutPet
+  },
   ownerIsActive: ctx => owner(ctx)?.isActive() ?? false,
   firstSkillThisTurn: skillOrder('first'),
   lastSkillThisTurn: skillOrder('last'),

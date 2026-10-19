@@ -382,6 +382,70 @@
       }
     },
     {
+      "id": "effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/39",
+      "definitionSha256": "607507eb16e36672470b032c17be60c50fc0c650efe38cc452d08b26039289af",
+      "recipe": {
+        "switchTargetRepairs": [
+          {
+            "path": "/apply/target/chain/0/arg",
+            "before": "switchInPetId",
+            "after": "switchInPet"
+          }
+        ],
+        "id": "effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin",
+        "priority": 0,
+        "triggers": ["OnSwitchOut"],
+        "target": "switchIn",
+        "when": "conditions.ownerSwitchesIn",
+        "additionalDecisions": ["C11"],
+        "markId": "mark_shoudaoshanghaijianshao",
+        "stack": 15
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shoudaoshanghaijianshao",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/116",
+        "definitionSha256": "6a5e993e487c082c801c5938e16faf8da809575d3b0e1990dbf7523442c3661b",
+        "effectIds": ["effect_mark_reduce_damage_taken_once"]
+      }
+    },
+    {
+      "id": "effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/38",
+      "definitionSha256": "d5e3ba93d365e0bae422a646c91ef120e08b4a0e7c452c9aba2d531761d56f8c",
+      "recipe": {
+        "switchTargetRepairs": [
+          {
+            "path": "/apply/target/chain/0/arg",
+            "before": "switchInPetId",
+            "after": "switchInPet"
+          }
+        ],
+        "id": "effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout",
+        "priority": 0,
+        "triggers": ["OnSwitchOut"],
+        "target": "switchIn",
+        "when": "conditions.ownerSwitchesOut",
+        "additionalDecisions": ["C11"],
+        "markId": "mark_shoudaoshanghaijianshao",
+        "stack": 25
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shoudaoshanghaijianshao",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/116",
+        "definitionSha256": "6a5e993e487c082c801c5938e16faf8da809575d3b0e1990dbf7523442c3661b",
+        "effectIds": ["effect_mark_reduce_damage_taken_once"]
+      }
+    },
+    {
       "id": "effect_emblem_add_xukongtizhi_when_opponent_hit_self",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/21",
@@ -403,6 +467,38 @@
         "sourcePath": "/113",
         "definitionSha256": "e76eacdfd15e9a02d4f634fb2488477908d2524f114a27179f32fcb77c2e6c84",
         "effectIds": ["effect_mark_xukongtizhi_evasion", "effect_mark_xukongtizhi_consume_on_evasion"]
+      }
+    },
+    {
+      "id": "effect_mark_add_damage_increase_25_on_switch_in",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/136",
+      "definitionSha256": "d95b7d6ba87bab610aa116b6546ceeddd8baa84fdd33b3d2c2595b6af551635d",
+      "recipe": {
+        "switchTargetRepairs": [
+          {
+            "path": "/apply/target/chain/0/arg",
+            "before": "switchInPetId",
+            "after": "switchInPet"
+          }
+        ],
+        "id": "effect_mark_add_damage_increase_25_on_switch_in",
+        "priority": 0,
+        "triggers": ["OnSwitchOut"],
+        "target": "switchIn",
+        "when": "conditions.ownerSwitchesOut",
+        "additionalDecisions": ["C11"],
+        "markId": "mark_shanghaizengjia",
+        "stack": 25
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shanghaizengjia",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/90",
+        "definitionSha256": "873ac0a7453374f908f672f7f1d5b64a76df54401176fbcdfa3808f7daff9afe",
+        "effectIds": ["effect_mark_amplify_next_damage_skill_power_with_stack"]
       }
     },
     {
@@ -6934,27 +7030,6 @@
     }
   ],
   "rejected": [
-    {
-      "id": "effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/39",
-      "definitionSha256": "607507eb16e36672470b032c17be60c50fc0c650efe38cc452d08b26039289af",
-      "reason": "requires one addMark action on self/opponent/battle"
-    },
-    {
-      "id": "effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/38",
-      "definitionSha256": "d5e3ba93d365e0bae422a646c91ef120e08b4a0e7c452c9aba2d531761d56f8c",
-      "reason": "requires one addMark action on self/opponent/battle"
-    },
-    {
-      "id": "effect_mark_add_damage_increase_25_on_switch_in",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/136",
-      "definitionSha256": "d95b7d6ba87bab610aa116b6546ceeddd8baa84fdd33b3d2c2595b6af551635d",
-      "reason": "requires one addMark action on self/opponent/battle"
-    },
     {
       "id": "effect_mark_curse_add_random_status",
       "sourceFile": "packs/base/data/effect_mark.yaml",

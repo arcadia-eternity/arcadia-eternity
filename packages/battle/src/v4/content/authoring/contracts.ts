@@ -1,5 +1,5 @@
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
-import type { DamageContext, HealContext, TriggerContextMap, UseSkillContext } from '../../context'
+import type { DamageContext, HealContext, TriggerContextMap, UseSkillContext, SwitchPetContext } from '../../context'
 import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { BaseMark, MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
@@ -133,6 +133,8 @@ export declare const contexts: {
   readonly damage: Selector<DamageContext>
   readonly heal: Selector<HealContext>
   readonly skillUse: Selector<UseSkillContext>
+  /** Nearest switch ancestor, requeried independently on each use. */
+  readonly switchPet: Selector<SwitchPetContext>
   /** Searches ancestry; unlike event, a matching ancestor is not guaranteed. */
   readonly nearestSkillUse: (ctx: EffectFrame) => UseSkillContext | undefined
 }
@@ -147,6 +149,8 @@ export declare const conditions: {
   readonly ownerIsSkillTarget: Condition
   /** Source pet is the incoming pet of the direct switch context. */
   readonly ownerSwitchesIn: Condition
+  /** Source pet is the outgoing pet of the direct switch context. */
+  readonly ownerSwitchesOut: Condition
   /** Source pet currently occupies its player's active position. */
   readonly ownerIsActive: Condition
   /** Direct skill + turn ancestry; first executed skill / last planned skill in queue order. */

@@ -1359,3 +1359,37 @@ it.each(['capture', 'follow'] as const)(
     expect(f.battle.random()).toBe(new GameRng(201).next())
   },
 )
+
+it('switch queries requery nearest context while the outgoing predicate requires the direct event', () => {
+  const f = fixture()
+  const event = new SwitchPetContext(new TurnContext(f.battle), f.a, f.a.team[1])
+  const direct = new EffectContext(event, EffectTrigger.OnSwitchOut, f.skill)
+  const nested = new EffectContext(direct, EffectTrigger.BeforeEffect, f.skill)
+  const predicate = compileEffect(
+    defineEffect({
+      id: 'test/outgoing',
+      on: ['OnSwitchOut', 'BeforeEffect'],
+      when: conditions.ownerSwitchesOut,
+      execute() {},
+    }),
+  )
+  expect(predicate.condition!(direct)).toBe(true)
+  expect(predicate.condition!(nested)).toBe(false)
+  event.switchOutPet = null
+  expect(predicate.condition!(direct)).toBe(false)
+  const results: unknown[] = []
+  const target = contexts.switchPet.select(ctx => ctx.switchInPet).first()
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/switch-target-query',
+      on: 'BeforeEffect',
+      execute(ctx) {
+        results.push(ctx.read(target)?.id)
+        event.switchInPet = f.owner
+        results.push(ctx.read(target)?.id)
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(nested))
+  expect(results).toEqual(['A/reserve', 'A/lead'])
+})

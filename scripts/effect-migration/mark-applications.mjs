@@ -31,12 +31,34 @@ const requiredCondition = (condition, type) =>
     condition.type === 'every' &&
     Array.isArray(condition.conditions) &&
     condition.conditions.some(item => requiredCondition(item, type)))
+// C11 applies only to these reviewed switch-target nodes; stage/guard remain unchanged.
+const switchTargetIds = new Set([
+  'effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin',
+  'effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout',
+  'effect_mark_add_damage_increase_25_on_switch_in',
+])
 export function classifyMarkApplication(original) {
   if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
   const { definition: spelling, paths } = repairSkillSelector(original)
   const repaired = repairSkillPaths(spelling)
   if (repaired.reason) return repaired
   const definition = repaired.definition
+  const switchTargetRepairs = []
+  if (switchTargetIds.has(definition.id)) {
+    const target = definition.apply?.target
+    if (
+      !fields(target, ['base', 'chain']) ||
+      target.base !== 'switchPetContext' ||
+      !Array.isArray(target.chain) ||
+      target.chain.length !== 1 ||
+      !fields(target.chain[0], ['type', 'arg']) ||
+      target.chain[0].type !== 'selectPath' ||
+      target.chain[0].arg !== 'switchInPetId'
+    )
+      return { reason: 'C11 switch target source node changed' }
+    target.chain[0].arg = 'switchInPet'
+    switchTargetRepairs.push({ path: '/apply/target/chain/0/arg', before: 'switchInPetId', after: 'switchInPet' })
+  }
   if (
     !fields(definition, ['id', 'trigger', 'priority', 'apply'], ['condition', 'tags']) ||
     typeof definition.id !== 'string' ||
@@ -50,10 +72,18 @@ export function classifyMarkApplication(original) {
   )
     return { reason: 'invalid effect tags' }
   const action = definition.apply
+  const switchTarget =
+    fields(action?.target, ['base', 'chain']) &&
+    action.target.base === 'switchPetContext' &&
+    Array.isArray(action.target.chain) &&
+    action.target.chain.length === 1 &&
+    fields(action.target.chain[0], ['type', 'arg']) &&
+    action.target.chain[0].type === 'selectPath' &&
+    action.target.chain[0].arg === 'switchInPet'
   if (
     !fields(action, ['type', 'target', 'mark'], ['stack', 'duration']) ||
     action.type !== 'addMark' ||
-    !['self', 'opponent', 'battle'].includes(action.target)
+    (!['self', 'opponent', 'battle'].includes(action.target) && !switchTarget)
   )
     return { reason: 'requires one addMark action on self/opponent/battle' }
   if (
@@ -65,7 +95,11 @@ export function classifyMarkApplication(original) {
     return { reason: 'requires a fixed base mark reference' }
   const triggers = Array.isArray(definition.trigger) ? definition.trigger : [definition.trigger]
   const damageStage = triggers.every(trigger => ['OnDamage', 'PostDamage'].includes(trigger))
-  const domain = damageStage ? 'damage' : triggers.every(trigger => trigger === 'OnSwitchIn') ? 'switch' : 'skill'
+  const domain = damageStage
+    ? 'damage'
+    : triggers.every(trigger => ['OnSwitchIn', 'OnSwitchOut'].includes(trigger))
+      ? 'switch'
+      : 'skill'
   const parameters = []
   const when = 'condition' in definition ? condition(definition.condition, domain, parameters) : '() => true'
   const options = {}
@@ -80,6 +114,10 @@ export function classifyMarkApplication(original) {
     } else options[`${key}Value`] = value.code
   }
   const supportedStage =
+    (triggers.length === 1 &&
+      triggers[0] === 'OnSwitchOut' &&
+      fields(definition.condition, ['type']) &&
+      ['selfSwitchIn', 'selfSwitchOut'].includes(definition.condition.type)) ||
     (damageStage &&
       (requiredCondition(definition.condition, 'selfBeDamaged') ||
         requiredCondition(definition.condition, 'selfUseSkill'))) ||
@@ -105,16 +143,18 @@ export function classifyMarkApplication(original) {
   const decisions = [
     ...(paths.length ? ['C07'] : []),
     ...(repaired.changes.length ? ['C09'] : []),
+    ...(switchTargetRepairs.length ? ['C11'] : []),
     ...(/conditions\.(first|last)SkillThisTurn/.test(when) ? ['C08'] : []),
   ]
   return {
     ...(paths.length ? { selectorRepairs: paths } : {}),
+    ...(switchTargetRepairs.length ? { switchTargetRepairs } : {}),
     ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
     id: definition.id,
     priority: definition.priority,
     ...(definition.tags ? { tags: [...definition.tags] } : {}),
     triggers,
-    target: action.target,
+    target: switchTarget ? 'switchIn' : action.target,
     when,
     ...(decisions.length ? { additionalDecisions: decisions } : {}),
     markId: action.mark.value,
@@ -139,7 +179,7 @@ export function renderMarkApplications(recipes, dependencies) {
       .join(',')
     const compiled = `compileEffect(defineEffect({
       id: ${JSON.stringify(r.id)}, on: ${JSON.stringify(r.triggers)}, priority: ${r.priority}, ${params ? 'parameters,' : ''} ${r.tags ? `tags: ${JSON.stringify(r.tags)},` : ''} when: ${r.when},
-      execute: ${r.target === 'battle' ? 'contexts.battle' : r.target === 'self' ? 'targets.ownerPet' : 'targets.opponentActive'}.apply(ops.addMark(resolved.get(${JSON.stringify(r.markId)})!${options.length ? `, {${options.join(',')}}` : ''})),
+      execute: ${r.target === 'switchIn' ? 'contexts.switchPet.select(event => event.switchInPet)' : r.target === 'battle' ? 'contexts.battle' : r.target === 'self' ? 'targets.ownerPet' : 'targets.opponentActive'}.apply(ops.addMark(resolved.get(${JSON.stringify(r.markId)})!${options.length ? `, {${options.join(',')}}` : ''})),
     }))`
     return `${JSON.stringify(r.id)}: ${params ? `(() => {const parameters = {${params}};return ${compiled}})()` : compiled}`
   })
