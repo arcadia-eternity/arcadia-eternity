@@ -193,7 +193,7 @@ function applySelectorStep(
       }
 
       case 'selectProp': {
-        if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+        if (typeof process === 'undefined' || process.env.NODE_ENV !== 'production') {
           validatePath(selector, step.arg)
         }
 
@@ -1048,6 +1048,10 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.selfSwitchOut()
     case 'selfBeSkillTarget':
       return Conditions.selfBeSkillTarget()
+    case 'selfHasMark':
+      return Conditions.selfHasMark(parseValue(effectId, dsl.baseId) as ValueSource<string>)
+    case 'opponentHasMark':
+      return Conditions.opponentHasMark(parseValue(effectId, dsl.baseId) as ValueSource<string>)
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)
