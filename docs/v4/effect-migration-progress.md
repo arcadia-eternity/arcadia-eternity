@@ -90,6 +90,8 @@ All 102 current single-action stat-stage definitions now have generated candidat
 
 Final stat-stage integration passes 2,281 tests across six public-artifact suites, all 67 offline generator checks, typechecking, lint, declarations and provenance. Both reviews pass. The next source inventory contains 65 single-action hit/critical definitions: 26 sure-hit, seven sure-miss, nine sure-critical, 18 critical-rate and five accuracy additions, across BeforeUseSkillCheck, AfterUseSkillCheck and BeforeHit. These are not yet migrated or accepted.
 
+The shared [hit/critical operators](validation/skill-outcome-operators.md) are implemented and pass 136 dedicated public tests plus 69 authoring design tests. They preserve first-value accuracy reads, per-context/all-value critical-rate reads, priority ties and RNG bypass. This is a runtime prerequisite; it adds no official candidate IDs yet.
+
 The complete migration goal remains active. Remaining work includes unmigrated mechanisms, dependency closure, per-ID acceptance and production cutover.
 
 ## Remaining work and proof required

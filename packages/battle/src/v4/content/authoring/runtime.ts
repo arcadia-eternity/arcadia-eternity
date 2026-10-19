@@ -486,8 +486,8 @@ function modifyContext<T extends DamageContext | HealContext>(
     }
   }
 }
-/** Legacy power actions consume the complete value list separately for every target. */
-function modifyPower(
+/** Power and critical-rate actions consume the complete value list separately for every target. */
+function modifySkillValues(
   input: Parameters<typeof C.ops.addPower>[0],
   apply: (event: UseSkillContext, amount: number) => void,
 ): C.Operator<UseSkillContext> {
@@ -503,6 +503,31 @@ function modifyPower(
         apply(event, amount)
       })
     })
+  }
+}
+/** Accuracy consumes the first value once, even when more than one context is selected. */
+function modifyAccuracy(input: Parameters<typeof C.ops.addAccuracy>[0], set: boolean): C.Operator<UseSkillContext> {
+  return (ctx, selected) => {
+    for (const event of selected) if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+    const result = read(ctx, input)
+    const amount = Array.isArray(result) ? result[0] : result
+    if (amount === undefined) return
+    if (typeof amount !== 'number' || !Number.isFinite(amount)) throw new Error('Expected finite numeric input')
+    for (const event of selected) {
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+      if (set) event.setAccuracy(amount)
+      else event.addAccuracy(amount)
+    }
+  }
+}
+function skillOverride(
+  priority: number,
+  apply: (event: UseSkillContext, priority: number) => void,
+): C.Operator<UseSkillContext> {
+  if (!Number.isFinite(priority)) throw new Error('Expected finite override priority')
+  return (ctx, selected) => {
+    for (const event of selected) if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+    for (const event of selected) apply(event, priority)
   }
 }
 export const ops: typeof C.ops = {
@@ -530,8 +555,15 @@ export const ops: typeof C.ops = {
       }
     }
   },
-  addPower: input => modifyPower(input, (event, amount) => event.addPower(amount)),
-  amplifyPower: input => modifyPower(input, (event, amount) => event.amplifyPower(amount)),
+  addPower: input => modifySkillValues(input, (event, amount) => event.addPower(amount)),
+  amplifyPower: input => modifySkillValues(input, (event, amount) => event.amplifyPower(amount)),
+  addCritRate: input => modifySkillValues(input, (event, amount) => event.addCritRate(amount)),
+  addAccuracy: input => modifyAccuracy(input, false),
+  setAccuracy: input => modifyAccuracy(input, true),
+  setSureHit: (priority = 0) => skillOverride(priority, (event, p) => event.setSureHit(p)),
+  setSureMiss: (priority = -1) => skillOverride(priority, (event, p) => event.setSureMiss(p)),
+  setSureCrit: (priority = 0) => skillOverride(priority, (event, p) => event.setSureCrit(p)),
+  setSureNoCrit: (priority = -1) => skillOverride(priority, (event, p) => event.setSureNoCrit(p)),
   modifyDamage: input => modifyContext(input, 'damage'),
   modifyHeal: input => modifyContext(input, 'heal'),
   heal: amount =>

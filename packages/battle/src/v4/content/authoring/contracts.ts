@@ -207,6 +207,16 @@ export declare const ops: {
   /** Read once per selected context; apply every number in order, with no rounding. */
   readonly addPower: (amount: PowerInput) => Operator<UseSkillContext>
   readonly amplifyPower: (amount: PowerInput) => Operator<UseSkillContext>
+  /** Read once per selected skill context and apply every supplied value in order, clamping each update. */
+  readonly addCritRate: (amount: PowerInput) => Operator<UseSkillContext>
+  /** Read once per invocation; the first value applies to all selected contexts. Empty input skips. */
+  readonly addAccuracy: (amount: PowerInput) => Operator<UseSkillContext>
+  readonly setAccuracy: (amount: PowerInput) => Operator<UseSkillContext>
+  /** Append an override; existing context resolution chooses highest priority, last entry on ties. */
+  readonly setSureHit: (priority?: number) => Operator<UseSkillContext>
+  readonly setSureMiss: (priority?: number) => Operator<UseSkillContext>
+  readonly setSureCrit: (priority?: number) => Operator<UseSkillContext>
+  readonly setSureNoCrit: (priority?: number) => Operator<UseSkillContext>
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
   readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
