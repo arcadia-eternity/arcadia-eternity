@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 import { condition, number } from './authoring-emitter.mjs'
+import { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
 function normalize(value) {
   if (Array.isArray(value)) return value.map(normalize)
   if (value && typeof value === 'object')
@@ -30,7 +31,12 @@ const requiredCondition = (condition, type) =>
     condition.type === 'every' &&
     Array.isArray(condition.conditions) &&
     condition.conditions.some(item => requiredCondition(item, type)))
-export function classifyMarkApplication(definition) {
+export function classifyMarkApplication(original) {
+  if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
+  const { definition: spelling, paths } = repairSkillSelector(original)
+  const repaired = repairSkillPaths(spelling)
+  if (repaired.reason) return repaired
+  const definition = repaired.definition
   if (
     !fields(definition, ['id', 'trigger', 'priority', 'apply'], ['condition', 'tags']) ||
     typeof definition.id !== 'string' ||
@@ -91,14 +97,21 @@ export function classifyMarkApplication(definition) {
         (fields(definition.condition, ['type']) && definition.condition.type === 'petIsActive')))
   if (!triggers.length || new Set(triggers).size !== triggers.length || !supportedStage || !when)
     return { reason: 'unsupported condition/trigger combination' }
+  const decisions = [
+    ...(paths.length ? ['C07'] : []),
+    ...(repaired.changes.length ? ['C09'] : []),
+    ...(/conditions\.(first|last)SkillThisTurn/.test(when) ? ['C08'] : []),
+  ]
   return {
+    ...(paths.length ? { selectorRepairs: paths } : {}),
+    ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
     id: definition.id,
     priority: definition.priority,
     ...(definition.tags ? { tags: [...definition.tags] } : {}),
     triggers,
     target: action.target,
     when,
-    ...(/conditions\.(first|last)SkillThisTurn/.test(when) ? { additionalDecisions: ['C08'] } : {}),
+    ...(decisions.length ? { additionalDecisions: decisions } : {}),
     markId: action.mark.value,
     ...options,
     ...(parameters.length ? { parameters } : {}),

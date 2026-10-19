@@ -42,6 +42,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_fasibilei',
   'mark_feixuanzhen',
   'mark_fenshen',
+  'mark_fenshenhying',
   'mark_first_turn_after_switch',
   'mark_global_chongqun',
   'mark_global_guzhanchang',
@@ -107,6 +108,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_mingzhongtisheng',
   'mark_mingzhongxiajiang',
   'mark_niandongfanshe',
+  'mark_niliu',
   'mark_nishui',
   'mark_penti',
   'mark_pofang',
@@ -130,6 +132,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_shanguangboji',
   'mark_shazhidanke',
   'mark_shazhiwang',
+  'mark_shiguangchongsheng',
   'mark_shihua',
   'mark_shijianfaze',
   'mark_shijianhudun',
@@ -143,6 +146,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_shuiliangchongzu',
   'mark_shuimian',
   'mark_shuiwenzhenji',
+  'mark_shunliu',
   'mark_suijixianzhi',
   'mark_taitanzhihu',
   'mark_tanhuan',
@@ -157,6 +161,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_wulicao',
   'mark_wulishanghaizengjia',
   'mark_wuzhezhixin',
+  'mark_xifamihuo',
   'mark_xingzhihui',
   'mark_xingzhili',
   'mark_xinlingzhiyue',
@@ -213,6 +218,18 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_buxieanguang')!)),
       }),
     ),
+    effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('xifa'))),
+        ),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xifamihuo')!, { stack: 1 })),
+      }),
+    ),
     effect_ability_add_shoufashanghaizengjia_on_lead: compileEffect(
       defineEffect({
         id: 'effect_ability_add_shoufashanghaizengjia_on_lead',
@@ -238,6 +255,30 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.selfUsesSkill,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 10 })),
+      }),
+    ),
+    effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss: compileEffect(
+      defineEffect({
+        id: 'effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss',
+        on: ['OnHit', 'OnMiss'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shabaozhili')!, { stack: 1 })),
+      }),
+    ),
+    effect_ability_atk_skill_add_shunliu_1: compileEffect(
+      defineEffect({
+        id: 'effect_ability_atk_skill_add_shunliu_1',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shunliu')!, { stack: 1 })),
       }),
     ),
     effect_ability_set_field_leibaotian_on_lead: compileEffect(
@@ -267,6 +308,42 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yemu')!)),
       }),
     ),
+    effect_ability_shiguang_climax_add_mark_shiguangchongsheng: compileEffect(
+      defineEffect({
+        id: 'effect_ability_shiguang_climax_add_mark_shiguangchongsheng',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
+        ),
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiguangchongsheng')!)),
+      }),
+    ),
+    effect_ability_spa_skill_add_dadizhi_1_hit_or_miss: compileEffect(
+      defineEffect({
+        id: 'effect_ability_spa_skill_add_dadizhi_1_hit_or_miss',
+        on: ['OnHit', 'OnMiss'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
+        ),
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dadizhiyou')!, { stack: 1 })),
+      }),
+    ),
+    effect_ability_spa_skill_add_niliu_1: compileEffect(
+      defineEffect({
+        id: 'effect_ability_spa_skill_add_niliu_1',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
+        ),
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_niliu')!, { stack: 1 })),
+      }),
+    ),
     effect_emblem_add_mark_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_mark_aideminyi',
@@ -274,6 +351,18 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: () => true,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
+      }),
+    ),
+    effect_emblem_add_mark_fenshenhying_when_use_fenshenshu: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_add_mark_fenshenhying_when_use_fenshenshu',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_fenshenshu'),
+        ),
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fenshenhying')!)),
       }),
     ),
     effect_emblem_add_xukongtizhi_when_opponent_hit_self: compileEffect(

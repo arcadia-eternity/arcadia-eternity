@@ -39,6 +39,7 @@ interface RecordEntry {
   definitionSha256: string
   recipe: {
     when: string
+    selectorRepairs?: string[]
     tags?: string[]
     additionalDecisions?: string[]
     target: 'self' | 'opponent' | 'battle'
@@ -69,7 +70,8 @@ type SkillRecord = RecordEntry & { recipe: RecordEntry['recipe'] & { triggers: (
 const records = allRecords.filter(
   (record): record is SkillRecord =>
     record.recipe.triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) &&
-    !record.recipe.when.includes('conditions.ownerIsSkillTarget'),
+    !record.recipe.when.includes('conditions.ownerIsSkillTarget') &&
+    !record.recipe.selectorRepairs,
 )
 const files = new Map<string, { id: string; effect?: string[] }[]>()
 for (const record of allRecords)
@@ -87,10 +89,9 @@ for (const record of allRecords)
   }
 // Parse once before battle construction so legacy literal configurations exist in each battle.
 const oracles = new Map(
-  allRecords.map(record => [
-    record.id,
-    EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id)),
-  ]),
+  allRecords
+    .filter(record => !record.recipe.selectorRepairs)
+    .map(record => [record.id, EffectParser.parse(files.get(record.sourceFile)!.find(d => d.id === record.id))]),
 )
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))

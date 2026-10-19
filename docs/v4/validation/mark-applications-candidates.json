@@ -26,6 +26,39 @@
       }
     },
     {
+      "id": "effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/76",
+      "definitionSha256": "277e5ec5fce83f6ac3b1c3c52eac7a17a1876f97bfb4241400373b0da7509a52",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [
+          {
+            "path": "/condition/conditions/1/target/chain/0/arg",
+            "before": "skillId",
+            "after": "skill"
+          }
+        ],
+        "id": "effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events.some(event => event.skill.tags.includes(\"xifa\"))))",
+        "additionalDecisions": ["C07", "C09"],
+        "markId": "mark_xifamihuo",
+        "stack": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_xifamihuo",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/248",
+        "definitionSha256": "7db082a40a14f1a33a4c71afb437a90d1467b82ba083b365eb81842c6e830c3a",
+        "effectIds": ["effect_mark_hunluan_consume_stacks_at_2"]
+      }
+    },
+    {
       "id": "effect_ability_add_shoufashanghaizengjia_on_lead",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/16",
@@ -93,6 +126,58 @@
         "sourcePath": "/113",
         "definitionSha256": "e76eacdfd15e9a02d4f634fb2488477908d2524f114a27179f32fcb77c2e6c84",
         "effectIds": ["effect_mark_xukongtizhi_evasion", "effect_mark_xukongtizhi_consume_on_evasion"]
+      }
+    },
+    {
+      "id": "effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/39",
+      "definitionSha256": "95ef6950a2bfe9e8543a6914c2efcb92453aceb57ab34fa62a7125c9490b0e50",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "id": "effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss",
+        "priority": 0,
+        "triggers": ["OnHit", "OnMiss"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Physical\"))",
+        "additionalDecisions": ["C07"],
+        "markId": "mark_shabaozhili",
+        "stack": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shabaozhili",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/179",
+        "definitionSha256": "dc1f49c8e52f7c408269c871d5b868bef820612e944dabe158b61788721e1d7b",
+        "effectIds": ["effect_mark_spa_boost_25_per_stack"]
+      }
+    },
+    {
+      "id": "effect_ability_atk_skill_add_shunliu_1",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/61",
+      "definitionSha256": "4a96a1c021ab4659b53e0cc5b496bcdd96199659de97965bd0f20c6a7dd5df59",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "id": "effect_ability_atk_skill_add_shunliu_1",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Physical\"))",
+        "additionalDecisions": ["C07"],
+        "markId": "mark_shunliu",
+        "stack": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shunliu",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/220",
+        "definitionSha256": "346643d07f58f2d260a1bbcf6bca1c535b4f30a479c8503743404fce42ffb43e",
+        "effectIds": ["effect_mark_raise_spe_by_25_per_stack"]
       }
     },
     {
@@ -165,6 +250,83 @@
       }
     },
     {
+      "id": "effect_ability_shiguang_climax_add_mark_shiguangchongsheng",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/52",
+      "definitionSha256": "dab6c083c25a988bbfe56c9ba4b99cf1ae6bc690714614b49dde527876e1a632",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "id": "effect_ability_shiguang_climax_add_mark_shiguangchongsheng",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Climax\"))",
+        "additionalDecisions": ["C07"],
+        "markId": "mark_shiguangchongsheng"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_shiguangchongsheng",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/205",
+        "definitionSha256": "a92b5815e2d25cd21497c30559c994758e69a7dbd13925014eb0397bf8b8cd82",
+        "effectIds": ["effect_mark_shiguangchongsheng"]
+      }
+    },
+    {
+      "id": "effect_ability_spa_skill_add_dadizhi_1_hit_or_miss",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/38",
+      "definitionSha256": "b476decba65281515a0e3646e251d38d036a1e760ed27ced6de67401cd542e4f",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "id": "effect_ability_spa_skill_add_dadizhi_1_hit_or_miss",
+        "priority": 0,
+        "triggers": ["OnHit", "OnMiss"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Special\"))",
+        "additionalDecisions": ["C07"],
+        "markId": "mark_dadizhiyou",
+        "stack": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_dadizhiyou",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/178",
+        "definitionSha256": "0d23bdcefb8908f25e69c1729bd4eec0244d8b5ab6ba52a276a761b98ec27b77",
+        "effectIds": ["effect_mark_def_boost_25_per_stack"]
+      }
+    },
+    {
+      "id": "effect_ability_spa_skill_add_niliu_1",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/60",
+      "definitionSha256": "6c388e7e1c6a97b1653c91ccea4f6b4b0de704c78c2b926ae56ee103fc076d67",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "id": "effect_ability_spa_skill_add_niliu_1",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Special\"))",
+        "additionalDecisions": ["C07"],
+        "markId": "mark_niliu",
+        "stack": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_niliu",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/221",
+        "definitionSha256": "b788383d838a899234b0684cc184847b9e0d7bd8b9505de20d17d753b9ce6850",
+        "effectIds": ["effect_mark_reduce_damage_taken_by_25_per_stack"]
+      }
+    },
+    {
       "id": "effect_emblem_add_mark_aideminyi",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/2",
@@ -185,6 +347,38 @@
         "sourcePath": "/102",
         "definitionSha256": "8aedce53ba0bf2fc0117a0112f74bc99389516e5de3995eb3c899232dd8ec76c",
         "effectIds": ["effect_mark_skill_sure_hit"]
+      }
+    },
+    {
+      "id": "effect_emblem_add_mark_fenshenhying_when_use_fenshenshu",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/37",
+      "definitionSha256": "fd4e1a19ad76b03425863e6e65bc1708c9da7b542a05c28d8b01b3a43250acb4",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [
+          {
+            "path": "/condition/conditions/1/target/chain/0/arg",
+            "before": "skillId",
+            "after": "skill"
+          }
+        ],
+        "id": "effect_emblem_add_mark_fenshenhying_when_use_fenshenshu",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_fenshenshu\"))",
+        "additionalDecisions": ["C07", "C09"],
+        "markId": "mark_fenshenhying"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_fenshenhying",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/176",
+        "definitionSha256": "75aaa16ae1cda79dc1ec97ca5bdcf7c494d3caccb742ef4fba532c63ab97f211",
+        "effectIds": ["effect_mark_increase_evasion_10_percent"]
       }
     },
     {
@@ -6657,55 +6851,6 @@
     }
   ],
   "rejected": [
-    {
-      "id": "effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/76",
-      "definitionSha256": "277e5ec5fce83f6ac3b1c3c52eac7a17a1876f97bfb4241400373b0da7509a52",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/39",
-      "definitionSha256": "95ef6950a2bfe9e8543a6914c2efcb92453aceb57ab34fa62a7125c9490b0e50",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_atk_skill_add_shunliu_1",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/61",
-      "definitionSha256": "4a96a1c021ab4659b53e0cc5b496bcdd96199659de97965bd0f20c6a7dd5df59",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_shiguang_climax_add_mark_shiguangchongsheng",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/52",
-      "definitionSha256": "dab6c083c25a988bbfe56c9ba4b99cf1ae6bc690714614b49dde527876e1a632",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_spa_skill_add_dadizhi_1_hit_or_miss",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/38",
-      "definitionSha256": "b476decba65281515a0e3646e251d38d036a1e760ed27ced6de67401cd542e4f",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_ability_spa_skill_add_niliu_1",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/60",
-      "definitionSha256": "6c388e7e1c6a97b1653c91ccea4f6b4b0de704c78c2b926ae56ee103fc076d67",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_emblem_add_mark_fenshenhying_when_use_fenshenshu",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/37",
-      "definitionSha256": "fd4e1a19ad76b03425863e6e65bc1708c9da7b542a05c28d8b01b3a43250acb4",
-      "reason": "unsupported condition/trigger combination"
-    },
     {
       "id": "effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin",
       "sourceFile": "packs/base/data/effect_emblem.yaml",

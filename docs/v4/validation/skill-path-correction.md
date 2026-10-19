@@ -1,6 +1,6 @@
-# C09: three skill-power path corrections
+# C09: explicit skill and attribute path corrections
 
-C09 is scoped to three current single-action power definitions, in addition to their C07 selector-spelling repair. Source YAML and the production parser remain unchanged. Each candidate records its source hash and exact before/after node values. The correction helper refuses changed node values or non-selectPath nodes and does not alias unknown paths in other effects.
+The initial C09 scope covers three current single-action power definitions, in addition to their C07 selector-spelling repair. The mark-application extension below lists two additional exact nodes. Source YAML and the production parser remain unchanged. Each candidate records its source hash and exact before/after node values. The correction helper refuses changed node values or non-selectPath nodes and does not alias unknown paths in other effects.
 
 | Effect                                             | Corrected node(s)                                                                                                                                    | Meaning                                                                                                                                                           |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -21,3 +21,14 @@ These checks validate the selected correction, not equivalence with the original
 Both independent review axes pass. Standards review found and closed inherited-property lookup for IDs such as `constructor`; the correction table now checks own membership, with explicit regression cases for `toString`, `constructor` and `__proto__`. All 24 combined skill/damage generator tests pass and the generated artifacts remain deterministic.
 
 Final validation: 9,780 V4 tests across 43 files pass, including all 104 power full-game/checkpoint cases. V4 typecheck, declaration build, lint and source provenance checks pass. No production cutover is implied.
+
+## Mark-application extension
+
+Two additional definitions require the same entity-selection repair at `/condition/conditions/1/target/chain/0/arg`: `skillId` → `skill`.
+
+| Effect                                                           | Following query                                                                                        |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill` | Read skill tags, flatten, require `xifa`; add one `mark_xifamihuo` to the current opposing active pet. |
+| `effect_emblem_add_mark_fenshenhying_when_use_fenshenshu`        | Read skill base ID, require `skill_fenshenshu`; add `mark_fenshenhying` to the current source owner.   |
+
+The shared offline helper refuses a changed value or a non-selectPath node at either exact path. Unknown IDs receive no C09 repair. Neither definition becomes a runtime alias. The mark ledger records both C07 and C09, and public tests prove that C07 alone still fails on skillId. Corrected-reference scenarios include positive and negative admission, changes after admission, skill/mark source identity, cancellation, merging and real SkillPhase execution. Application-level checks do not accept the downstream marks' effects; see [mark evidence](mark-applications.md).

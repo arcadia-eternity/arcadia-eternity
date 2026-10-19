@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 268,
+    generated: 275,
     protected: 2,
-    dependencies: 181,
-    rejected: 17,
+    dependencies: 186,
+    rejected: 10,
   })
 })
 
@@ -309,4 +309,70 @@ test('target-side skill admission requires a positive mandatory guard', () => {
   assert.equal(classifyMarkApplication(d).when, 'conditions.ownerIsSkillTarget')
   assert.ok(classifyMarkApplication({ ...d, condition: { type: 'not', condition: d.condition } }).reason)
   assert.ok(classifyMarkApplication({ ...d, trigger: 'PostDamage' }).reason)
+})
+
+test('skill selector corrections retain source paths without mutating input', () => {
+  const d = {
+    ...source(),
+    condition: {
+      type: 'every',
+      conditions: [
+        { type: 'selfUseSkill' },
+        {
+          type: 'evaluate',
+          target: { base: 'useSkillContext', chain: [{ type: 'selectPath', arg: 'category' }] },
+          evaluator: { type: 'same', value: 'Physical' },
+        },
+      ],
+    },
+  }
+  const before = structuredClone(d)
+  const recipe = classifyMarkApplication(d)
+  assert.deepEqual(d, before)
+  assert.deepEqual(recipe.selectorRepairs, ['/condition/conditions/1/target/base'])
+  assert.deepEqual(recipe.additionalDecisions, ['C07'])
+  assert.match(recipe.when, /events\[0\]\?\.category/)
+})
+
+test('named mark skill paths require the reviewed source node and retain a C09 record', () => {
+  for (const id of [
+    'effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill',
+    'effect_emblem_add_mark_fenshenhying_when_use_fenshenshu',
+  ]) {
+    const d = {
+      ...source(),
+      id,
+      condition: {
+        type: 'every',
+        conditions: [
+          { type: 'selfUseSkill' },
+          {
+            type: 'evaluate',
+            target: {
+              base: 'useSkillContext',
+              chain: [
+                { type: 'selectPath', arg: 'skillId' },
+                { type: 'select', arg: { type: 'base', arg: 'baseId' } },
+              ],
+            },
+            evaluator: { type: 'same', value: 'skill/example' },
+          },
+        ],
+      },
+    }
+    const before = structuredClone(d)
+    const recipe = classifyMarkApplication(d)
+    assert.deepEqual(d, before)
+    assert.deepEqual(recipe.pathRepairs, [
+      { path: '/condition/conditions/1/target/chain/0/arg', before: 'skillId', after: 'skill' },
+    ])
+    assert.deepEqual(recipe.additionalDecisions, ['C07', 'C09'])
+    d.condition.conditions[1].target.chain[0].arg = 'unreviewed'
+    assert.match(classifyMarkApplication(d).reason, /C09 source node changed/)
+    d.condition.conditions[1].target.chain[0].arg = 'skillId'
+    d.condition.conditions[1].target.chain[0].type = 'select'
+    assert.match(classifyMarkApplication(d).reason, /C09 source node changed/)
+    d.condition.conditions[1].target.chain[0].type = 'selectPath'
+    assert.ok(classifyMarkApplication({ ...d, id: 'unreviewed-effect' }).reason)
+  }
 })

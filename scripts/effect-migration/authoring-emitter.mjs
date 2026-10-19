@@ -347,7 +347,8 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
           t.chain.length === 2 &&
           fields(property, ['type', 'arg']) &&
           property.type === 'select' &&
-          property.arg === 'baseId' &&
+          (property.arg === 'baseId' ||
+            (fields(property.arg, ['type', 'arg']) && property.arg.type === 'base' && property.arg.arg === 'baseId')) &&
           fields(e, ['type', 'value']) &&
           ['same', 'notSame'].includes(e.type) &&
           typeof e.value === 'string'
