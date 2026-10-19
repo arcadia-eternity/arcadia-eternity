@@ -4,6 +4,10 @@ import { Pet } from '../../pet'
 import { SkillInstance } from '../../skill'
 import { MarkInstanceImpl } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
+import type { SnapshotCatalog } from '../../snapshot'
+import type { Effect } from '../../effect'
+import type { Battle } from '../../battle'
+import type { ValueDefinition } from '../../values/plan'
 import { Evaluation, ValuePlan, defineValue } from '../../values/plan'
 import { BindingInputUnavailable, installValueModifier } from '../../values/binding'
 import { observeMarks, observeOwner } from './relations'
@@ -15,17 +19,95 @@ type BoundReader = (ctx: Frame, evaluation: Evaluation) => { value: unknown; anc
 const readers = new WeakMap<object, Reader>()
 const plans = new WeakMap<object, BoundReader>()
 const engines = new WeakMap<Frame, EffectContext<EffectTrigger>>()
+interface BindingArgs {
+  source: MarkInstanceImpl
+}
+interface BindingDeclaration {
+  key: string
+  value: C.BindingValue<number, C.Presence>
+}
+interface CompiledBinding extends BindingDeclaration {
+  definition: ValueDefinition<BindingArgs>
+}
+const scopes = new WeakMap<Frame, { source: EffectContext<EffectTrigger>['source']; battle: Battle }>()
+const actionBindings = new WeakMap<object, readonly BindingDeclaration[]>()
+const frameBindings = new WeakMap<Frame, ReadonlyMap<string, CompiledBinding>>()
+const effectBindings = new WeakMap<Effect<EffectTrigger>, readonly CompiledBinding[]>()
+function scope(ctx: Frame) {
+  const result = scopes.get(ctx)
+  if (!result) throw new Error('Foreign authoring scope')
+  return result
+}
+/** Persistent evaluation carries only domain identity, never a transient trigger context. */
+function bindingFrame(source: MarkInstanceImpl): Frame {
+  if (!(source instanceof MarkInstanceImpl)) throw new Error('Invalid authored binding source')
+  const battle = source.owner instanceof Pet ? source.owner.owner?.battle : source.owner
+  if (!battle) throw new Error('Authored binding source requires a Battle')
+  const unavailable = () => {
+    throw new Error('Persistent queries cannot access a trigger event or perform actions')
+  }
+  const frame = {
+    get on() {
+      return unavailable()
+    },
+    get event() {
+      return unavailable()
+    },
+    read: (input: unknown) => read(frame as Frame, input),
+    ops: { modifyDamage: unavailable },
+  } as Frame
+  scopes.set(frame, { source, battle })
+  return frame
+}
+function compileBindings(effectId: string, declarations: readonly BindingDeclaration[]): Map<string, CompiledBinding> {
+  const result = new Map<string, CompiledBinding>()
+  for (const declaration of declarations) {
+    const previous = result.get(declaration.key)
+    if (previous) {
+      if (previous.value !== declaration.value) throw new Error(`Conflicting authored binding: ${declaration.key}`)
+      continue
+    }
+    if (!declaration.key) throw new Error('Binding needs a stable key')
+    const plan = plans.get(declaration.value)
+    if (!plan) throw new Error('Expected a persistent plan')
+    const definition = defineValue(
+      `authoring/${JSON.stringify([effectId, declaration.key])}`,
+      (args: BindingArgs) => {
+        const frame = bindingFrame(args.source)
+        return new ValuePlan(evaluation => {
+          const value = plan(frame, evaluation).value
+          if (value === undefined) throw new BindingInputUnavailable('Missing bound input')
+          if (typeof value !== 'number') throw new Error('Expected numeric bound input')
+          return value
+        })
+      },
+      { source: args => args?.source },
+    )
+    result.set(declaration.key, { ...declaration, definition })
+  }
+  return result
+}
+/** Register code identity and its static value factories together in a host-owned catalog. */
+export function registerEffect(catalog: SnapshotCatalog, effect: Effect<EffectTrigger>): SnapshotCatalog {
+  const bindings = effectBindings.get(effect)
+  if (!bindings) throw new Error('Expected an authored effect')
+  return catalog.registerEffectWithBindings(
+    effect.id,
+    effect,
+    bindings.map(binding => binding.definition),
+  )
+}
 const writes = new WeakMap<object, { target: Pet; set: (value: number) => void }>()
 function engine(ctx: Frame) {
   const result = engines.get(ctx)
-  if (!result) throw new Error('Foreign authoring frame')
+  if (!result) throw new Error('Persistent queries cannot access a trigger event or perform actions')
   return result
 }
 function read(ctx: Frame, input: unknown): unknown {
   if (input !== null && typeof input === 'object') {
     const reader = readers.get(input)
     if (!reader) throw new Error('Expected an immediate value')
-    engine(ctx).battle.executionBudget.chargeComputation()
+    scope(ctx).battle.executionBudget.chargeComputation()
     return reader(ctx)
   }
   return input
@@ -110,9 +192,13 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
     select: project => selector(ctx => query(ctx).map(project)),
     first: () => value(ctx => query(ctx)[0]),
     condition: evaluate => ctx => evaluate(ctx, query(ctx as Frame)),
-    apply: operator => ctx => {
-      engine(ctx as Frame).battle.executionBudget.chargeComputation()
-      operator(ctx, query(ctx as Frame))
+    apply: operator => {
+      const action = (ctx: Parameters<typeof operator>[0]) => {
+        engine(ctx as Frame).battle.executionBudget.chargeComputation()
+        operator(ctx, query(ctx as Frame))
+      }
+      actionBindings.set(action, actionBindings.get(operator) ?? [])
+      return action
     },
     property: function (key) {
       return selector(ctx =>
@@ -132,7 +218,7 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
   }
 }
 function owner(ctx: Frame): Pet | undefined {
-  const source = engine(ctx).source
+  const source = scope(ctx).source
   observeOwner(source)
   return source.owner instanceof Pet ? source.owner : undefined
 }
@@ -143,7 +229,7 @@ export const targets: typeof C.targets = {
   }),
   opponentActive: selector(ctx => {
     const player = owner(ctx)?.owner
-    return player ? [engine(ctx).battle.getOpponent(player).activePet] : []
+    return player ? [scope(ctx).battle.getOpponent(player).activePet] : []
   }),
   ownerMarks: selector(ctx => {
     const pet = owner(ctx)
@@ -152,7 +238,7 @@ export const targets: typeof C.targets = {
     return [...pet.marks]
   }),
   sourceMark: selector(ctx => {
-    const source = engine(ctx).source
+    const source = scope(ctx).source
     return source instanceof MarkInstanceImpl ? [source] : []
   }),
 }
@@ -176,11 +262,16 @@ export const conditions: typeof C.conditions = {
 }
 export const checks: typeof C.checks = { exists: () => (_ctx, selected) => selected.length > 0 }
 export const actions: typeof C.actions = {
-  sequence:
-    (...actions) =>
-    ctx => {
-      for (const action of actions) action(ctx)
-    },
+  sequence: (...actions) => {
+    const action = (ctx: Parameters<(typeof actions)[number]>[0]) => {
+      for (const apply of actions) apply(ctx)
+    }
+    actionBindings.set(
+      action,
+      actions.flatMap(item => actionBindings.get(item) ?? []),
+    )
+    return action
+  },
 }
 export const values: typeof C.values = {
   choose: (condition, yes, no) =>
@@ -194,6 +285,7 @@ export const defineEffect: typeof C.defineEffect = definition =>
     ...definition,
     on: Array.isArray(definition.on) ? Object.freeze([...definition.on]) : definition.on,
     parameters: definition.parameters ? Object.freeze({ ...definition.parameters }) : undefined,
+    bindings: definition.bindings ? Object.freeze({ ...definition.bindings }) : undefined,
   })
 export const numberParam: typeof C.numberParam = options => {
   if (!Number.isFinite(options.default)) throw new Error('Non-finite parameter default')
@@ -253,28 +345,18 @@ export const ops: typeof C.ops = {
     }),
   bindAttribute: input => {
     const options = { ...input }
-    return (ctx, selected) => {
+    const operator: ReturnType<typeof C.ops.bindAttribute> = (ctx, selected) => {
       const source = engine(ctx)
       for (const target of selected) assertWriteTarget(ctx, target)
       if (!(source.source instanceof MarkInstanceImpl)) throw new Error('Binding requires a source mark')
-      const plan = plans.get(options.value)
-      if (!plan) throw new Error('Expected a persistent plan')
-      const definition = defineValue(
-        `authoring-prototype/${source.effect?.id}/${options.key}`,
-        () =>
-          new ValuePlan(evaluation => {
-            const result = plan(ctx, evaluation).value
-            if (result === undefined) throw new BindingInputUnavailable('Missing bound input')
-            if (typeof result !== 'number') throw new Error('Expected numeric bound input')
-            return result
-          }),
-      )
+      const binding = frameBindings.get(ctx)?.get(options.key)
+      if (!binding || binding.value !== options.value) throw new Error('Undeclared authored binding')
       for (const target of selected)
         installValueModifier({
-          definition,
-          args: undefined,
+          definition: binding.definition,
+          args: { source: source.source },
           source: source.source,
-          effectId: source.effect?.id ?? 'prototype',
+          effectId: source.effect?.id ?? binding.definition.id,
           bindingKey: options.key,
           target,
           attribute: options.attribute,
@@ -282,6 +364,8 @@ export const ops: typeof C.ops = {
           allowInitialMissing: true,
         })
     }
+    actionBindings.set(operator, [{ key: options.key, value: options.value }])
+    return operator
   },
 }
 /** Explicit opt-in adapter; does not register examples or change the production catalog. */
@@ -289,6 +373,10 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
   input: C.EffectDefinition<T, P>,
 ) {
   const definition = defineEffect(input)
+  const bindings = compileBindings(definition.id, [
+    ...(actionBindings.get(definition.execute) ?? []),
+    ...Object.entries(definition.bindings ?? {}).map(([key, value]) => ({ key, value })),
+  ])
   const frame = (source: EffectContext<EffectTrigger>): C.EffectFrame<T> => {
     const result = {
       on: source.trigger,
@@ -302,14 +390,18 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
       },
     } as C.EffectFrame<T>
     engines.set(result as Frame, source)
+    scopes.set(result as Frame, source)
+    frameBindings.set(result as Frame, bindings)
     return result
   }
   const parameters = definition.parameters ?? ({} as P)
-  return defineNativeEffect({
+  const effect = defineNativeEffect({
     id: definition.id as effectId,
     triggers: (Array.isArray(definition.on) ? definition.on : [definition.on]) as NativeEffectTrigger[],
     priority: definition.priority,
     when: definition.when ? ctx => definition.when!(frame(ctx), parameters) : undefined,
     apply: ctx => definition.execute(frame(ctx), parameters),
   })
+  effectBindings.set(effect, [...bindings.values()])
+  return effect
 }

@@ -12,4 +12,5 @@ export {
   values,
   ops,
   compileEffect,
+  registerEffect,
 } from './runtime'

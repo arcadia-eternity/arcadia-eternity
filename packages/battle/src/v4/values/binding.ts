@@ -219,6 +219,8 @@ function bindingHandle(bound: BoundValue, remove: () => void): ValueModifierBind
 }
 export function installValueModifier<A>(options: InstallValueModifier<A>): ValueModifierBinding {
   if (!options.source.isActive || !options.source.owner) throw new Error('Inactive binding source')
+  if (options.definition.source && options.definition.source(options.args) !== options.source)
+    throw new Error('Invalid bound contribution source')
   const sourceBattle = options.source.owner instanceof Pet ? options.source.owner.owner?.battle : options.source.owner
   if (!sourceBattle || options.target.owner?.battle !== sourceBattle) throw new Error('Cross-battle value binding')
   const bound = bindValue(

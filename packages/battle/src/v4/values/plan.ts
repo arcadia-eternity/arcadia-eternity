@@ -3,6 +3,7 @@ import type { StatTypeOnBattle } from '@arcadia-eternity/const'
 import { captureReads } from './dependencies'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
+import type { MarkInstance } from '../mark'
 import { type ReactiveValue, untracked } from '../reactiveValue'
 
 export type ReadMode = { mode: 'follow' } | { mode: 'capture'; captureScope: 'binding' | 'input' }
@@ -178,8 +179,14 @@ export const values = {
 export interface ValueDefinition<A> {
   readonly id: string
   readonly build: (args: A) => ValuePlan<number>
+  /** If present, the argument source must equal the contribution owner at installation and restoration. */
+  readonly source?: (args: A) => MarkInstance
 }
-export function defineValue<A>(id: string, build: (args: A) => ValuePlan<number>): ValueDefinition<A> {
+export function defineValue<A>(
+  id: string,
+  build: (args: A) => ValuePlan<number>,
+  options?: { source: (args: A) => MarkInstance },
+): ValueDefinition<A> {
   if (!id) throw new Error('Value definition needs a stable ID')
-  return Object.freeze({ id, build })
+  return Object.freeze({ id, build, ...(options ? { source: options.source } : {}) })
 }

@@ -90,6 +90,8 @@ export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly on: T | readonly T[]
   readonly priority?: number
   readonly parameters?: P
+  /** Declare plans used inside custom execute callbacks; composed actions are discovered automatically. */
+  readonly bindings?: Readonly<Record<string, BindingValue<number, Presence>>>
   readonly when?: (ctx: NoInfer<EffectFrame<T>>, params: P) => boolean
   readonly execute: (ctx: NoInfer<EffectFrame<T>>, params: P) => void
 }

@@ -52,8 +52,11 @@
       "implementation": "packages/battle/src/v4/official/authored/weakness-speed.ts",
       "classification": "U",
       "status": "native-candidate",
-      "evidence": "mechanism tests only; snapshot restore and legacy removal policy not accepted",
-      "tests": ["packages/battle/design/effect-authoring/runtime.test.ts"]
+      "evidence": "mechanism and fresh-catalog JSON checkpoint tests pass; legacy removal policy, full-game comparison and production admission remain unaccepted",
+      "tests": [
+        "packages/battle/design/effect-authoring/runtime.test.ts",
+        "packages/battle/test/v4/authoring-snapshot.test.ts"
+      ]
     }
   ]
 }

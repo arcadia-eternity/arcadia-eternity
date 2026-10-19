@@ -5,7 +5,7 @@ import { Battle } from './battle'
 import { Player, AIPlayer } from './player'
 import { Pet } from './pet'
 import { BaseSkill, SkillInstance } from './skill'
-import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, StatLevelMarkInstanceImpl } from './mark'
+import { type MarkInstance, BaseMark, BaseStatLevelMark, MarkInstanceImpl, StatLevelMarkInstanceImpl } from './mark'
 import { Effect } from './effect'
 import {
   ComposableAttributeSystem,
@@ -102,11 +102,41 @@ export class SnapshotCatalog {
   }
   private values = new Map<string, (args: unknown) => ReactiveValue<unknown>>()
   private bindings = new Map<string, (args: unknown, state: BindingState, target: BindingTarget) => BoundValue>()
+  private bindingDefinitions = new Map<string, object>()
+  private bindingSources = new Map<string, (args: unknown) => MarkInstance>()
   registerValueBinding<A>(definition: ValueDefinition<A>): this {
     this.assertWritable()
     if (this.bindings.has(definition.id)) throw new Error(`Duplicate value binding definition: ${definition.id}`)
     this.bindings.set(definition.id, (args, state, target) => bindValue(definition, args as A, target, state, true))
+    this.bindingDefinitions.set(definition.id, definition)
+    const source = definition.source
+    if (source) this.bindingSources.set(definition.id, args => source(args as A))
     return this
+  }
+  /** Preflight a trusted effect and all its factories before mutating this catalog. */
+  registerEffectWithBindings<A>(
+    key: string,
+    effect: Effect<EffectTrigger>,
+    definitions: readonly ValueDefinition<A>[],
+  ): this {
+    this.assertWritable()
+    if (this.effects.has(key) && this.effects.get(key) !== effect) throw new Error(`Duplicate snapshot effect: ${key}`)
+    const unique = new Map<string, ValueDefinition<A>>()
+    for (const definition of definitions) {
+      const previous = unique.get(definition.id) ?? this.bindingDefinitions.get(definition.id)
+      if (previous && previous !== definition) throw new Error(`Duplicate value binding definition: ${definition.id}`)
+      unique.set(definition.id, definition)
+    }
+    this.registerEffect(key, effect)
+    for (const definition of unique.values()) {
+      if (!this.bindingDefinitions.has(definition.id)) this.registerValueBinding(definition)
+    }
+    return this
+  }
+  assertValueBindingSource(key: string, args: unknown, source: unknown): void {
+    this.assertValueBinding(key)
+    const expected = this.bindingSources.get(key)
+    if (expected && expected(args) !== source) throw new Error('Invalid bound contribution source')
   }
   assertValueBinding(key: string): void {
     if (!this.bindings.has(key)) throw new Error(`Missing value binding definition: ${key}`)
@@ -379,6 +409,11 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
     else {
       const kind = specFor(value)
       if (kind) {
+        if (value instanceof Modifier) {
+          const recipe = getValueRecipe(value.value)
+          if (recipe?.type === 'bound')
+            catalog.assertValueBindingSource(recipe.key as string, recipe.args, value.source)
+        }
         if (value instanceof BaseMark && markParameterContract(value))
           throw new Error('Parameterized mark requires registered snapshot content')
         if (value instanceof MarkInstanceImpl) {
@@ -631,6 +666,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
             (owner !== battle && (!(owner instanceof Pet) || !owner.owner || !players.includes(owner.owner)))
           )
             throw new Error('Invalid bound contribution ownership')
+          catalog.assertValueBindingSource(recipe.key as string, recipe.args, source)
           ownedValues.add(modifier.value)
         }
       }

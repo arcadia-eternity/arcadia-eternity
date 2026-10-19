@@ -25,4 +25,4 @@ export {
 export { generatedStatStageCandidates } from './src/v4/official/stat-stages.generated'
 
 export * as effectAuthoring from './src/v4/content/authoring'
-export { officialAuthoredEffects } from './src/v4/official/authored'
+export { officialAuthoredEffects, createOfficialAuthoredEffects } from './src/v4/official/authored'
