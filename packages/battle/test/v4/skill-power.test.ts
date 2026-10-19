@@ -82,14 +82,24 @@ function supportIds(nodes: { [key: string]: unknown }[]) {
   return [
     ...new Set(
       nodes.flatMap(n =>
-        typeof n.baseId === 'string'
-          ? [n.baseId]
-          : n.type === 'same' && typeof n.value === 'string' && /^(mark_|stat_stage_)/.test(n.value)
-            ? [n.value]
-            : [],
+        n.type === 'anyOf' && Array.isArray(n.value)
+          ? n.value.filter((v): v is string => typeof v === 'string' && /^(mark_|stat_stage_)/.test(v))
+          : typeof n.baseId === 'string'
+            ? [n.baseId]
+            : (n.type === 'same' || n.type === 'anyOf') &&
+                typeof n.value === 'string' &&
+                /^(mark_|stat_stage_)/.test(n.value)
+              ? [n.value]
+              : [],
       ),
     ),
   ]
+}
+const orderVariants = ['wrong-order', 'wrong-count', 'late-order'] as const
+function hasOrderCondition(r: RecordEntry) {
+  return objects(definitions.get(r.id).condition).some(n =>
+    ['isFirstSkillUsedThisTurn', 'isLastSkillUsedThisTurn', 'continuousUseSkill'].includes(n.type as string),
+  )
 }
 const dynamicVariants = ['late-target', 'late-stack', 'multi-mark', 'empty-values', 'retarget-self'] as const
 const variants = [
@@ -108,7 +118,7 @@ function run(
   r: RecordEntry,
   native: boolean,
   kind: 'skill' | 'mark' | 'global',
-  variant: (typeof variants)[number] | (typeof dynamicVariants)[number],
+  variant: (typeof variants)[number] | (typeof dynamicVariants)[number] | (typeof orderVariants)[number],
 ) {
   const f = makeScenario(328),
     { battle, a, b } = f
@@ -129,11 +139,15 @@ function run(
       add(b.activePet, id)
     }
     for (const node of nodes) {
-      if (node.type === 'contain' && typeof node.tag === 'string') add(pet, 'fixture/tag').tags.push(node.tag)
+      if (node.type === 'contain' && typeof node.tag === 'string') {
+        add(pet, 'fixture/tag').tags.push(node.tag)
+        add(b.activePet, 'fixture/tag').tags.push(node.tag)
+      }
     }
   }
   pet.lastSkill = skill
-  pet.lastSkillUsedTimes = 3
+  const periodic = nodes.some(n => n.type === 'continuousUseSkill')
+  pet.lastSkillUsedTimes = periodic ? (variant === 'phase' ? 1 : variant === 'wrong-count' ? 3 : 2) : 3
   for (const owner of [pet, b.activePet]) {
     owner.attributeSystem.updateBaseValue('maxHp', 801)
     owner.currentHp = nodes.some(n => n.operator === '==') ? 801 : nodes.some(n => n.operator === '>') ? 700 : 10
@@ -149,6 +163,9 @@ function run(
     AttackTargetOpinion.opponent,
     variant === 'other-skill' ? otherSkill : skill,
   )
+  const rival = new UseSkillContext(use.parent, b, b.activePet, AttackTargetOpinion.opponent, b.activePet.skills[0])
+  use.parent.appledContexts.push(...(variant === 'wrong-order' ? [rival, use] : [use, rival]))
+  use.parent.contexts.push(...(variant === 'wrong-order' ? [rival, use] : [use, rival]))
   use.actualTarget = variant === 'retarget-self' ? pet : b.activePet
   if (variant === 'retarget-self') for (const mark of pet.marks) mark.stack = 2
   if (variant === 'multi-mark')
@@ -189,6 +206,11 @@ function run(
           use.power = 101
           use.element = Element.Trait
         }
+        if (variant === 'late-order') {
+          use.parent.appledContexts.reverse()
+          use.parent.contexts.reverse()
+          pet.lastSkillUsedTimes = 3
+        }
         if (variant === 'late-target') use.actualTarget = b.team[1]
         if (variant === 'late-stack') {
           for (const mark of [...pet.marks, ...b.activePet.marks]) mark.stack = 1
@@ -220,6 +242,8 @@ function run(
 }
 // Explicit expected contributions, independent of the emitted expression and legacy interpreter.
 function expectedDynamic(id: Id, kind: 'skill' | 'mark' | 'global', phase: boolean): number {
+  if (id === 'effect_skill_consume_xinzhiyinji_power_2x') return 83
+  if (id === 'effect_skill_add_power_10_per_opponent_manxingduyao') return 30
   if (id === 'effect_mark_add_power_stack') return kind === 'skill' ? 0 : 3
   if (id === 'effect_skill_add_power_30_per_usetime') return phase ? 90 : 60
   if (id === 'effect_skill_reduce_power_on_consecutive_hits_10_max_20') return -20
@@ -267,19 +291,22 @@ for (const r of records) {
     | 'mark'
     | 'global'
   )[])
-    it.each(r.recipe.value ? [...variants, ...dynamicVariants] : variants)(`${r.id} ${kind}: %s`, variant => {
-      const actual = run(r, true, kind, variant)
-      expect(actual).toEqual(run(r, false, kind, variant))
-      expect(actual.trace).not.toContainEqual({ success: false })
-      if (variant === 'normal' || variant === 'phase') {
-        expect(actual.trace).toContain('admitted')
-        expect(actual.power).toBeCloseTo(
-          r.recipe.operation === 'addPower'
-            ? 83 + (r.recipe.amount ?? expectedDynamic(r.id, kind, variant === 'phase'))
-            : 83 * r.recipe.amount!,
-        )
-      }
-    })
+    it.each([...variants, ...(r.recipe.value ? dynamicVariants : []), ...(hasOrderCondition(r) ? orderVariants : [])])(
+      `${r.id} ${kind}: %s`,
+      variant => {
+        const actual = run(r, true, kind, variant)
+        expect(actual).toEqual(run(r, false, kind, variant))
+        expect(actual.trace).not.toContainEqual({ success: false })
+        if (variant === 'normal' || variant === 'phase') {
+          expect(actual.trace).toContain('admitted')
+          expect(actual.power).toBeCloseTo(
+            r.recipe.operation === 'addPower'
+              ? 83 + (r.recipe.amount ?? expectedDynamic(r.id, kind, variant === 'phase'))
+              : 83 * r.recipe.amount!,
+          )
+        }
+      },
+    )
 }
 it('exports exactly the recorded candidate IDs', () =>
   expect(Object.keys(generatedSkillPowerEffects).sort()).toEqual(records.map(r => r.id).sort()))
@@ -297,6 +324,10 @@ async function game(r: RecordEntry, native: boolean, checkpoint: boolean) {
   const candidate = () => (native ? createGeneratedSkillPowerEffects()[r.id] : oracles.get(r.id)!)
   const effect = candidate()
   for (const pet of pets) {
+    if (nodes.some(n => n.type === 'isFirstSkillUsedThisTurn'))
+      pet.attributeSystem.updateBaseValue('spe', pet.owner === a ? 200 : 100)
+    if (nodes.some(n => n.type === 'isLastSkillUsedThisTurn'))
+      pet.attributeSystem.updateBaseValue('spe', pet.owner === a ? 10 : 100)
     pet.attributeSystem.updateBaseValue('maxHp', 801)
     pet.currentHp = nodes.some(n => n.operator === '==') ? 801 : nodes.some(n => n.operator === '>') ? 700 : 10
     const base = new BaseSkill(
@@ -316,6 +347,10 @@ async function game(r: RecordEntry, native: boolean, checkpoint: boolean) {
     for (const old of pet.skills) battle.skillMap.delete(old.id)
     pet.skills.splice(0, pet.skills.length, skill)
     battle.skillMap.set(skill.id, skill)
+    if (nodes.some(n => n.type === 'continuousUseSkill')) {
+      pet.lastSkill = skill
+      pet.lastSkillUsedTimes = 1
+    }
   }
   return playCandidateGame({
     battle,

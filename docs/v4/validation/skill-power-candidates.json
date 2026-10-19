@@ -273,6 +273,24 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_add_power_10_per_opponent_manxingduyao",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/151",
+      "definitionSha256": "84ca5f5ffd0d45b16b575962f6be1d8f3145b16f96d3620aaf6062195d3c9337",
+      "recipe": {
+        "id": "effect_skill_add_power_10_per_opponent_manxingduyao",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.opponentMarks.where(mark => mark.baseId === \"mark_manxingduyao\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 10 : 0))))",
+        "when": "() => true",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_add_power_15_each_huohuanzhixin",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/515",
@@ -417,6 +435,44 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_add_power_40_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/473",
+      "definitionSha256": "3fa6ed7822ce128af8a4883dea660da49cc6e3ec422fb74134cf4e188bd8c845",
+      "recipe": {
+        "id": "effect_skill_add_power_40_if_first",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "amount": 40,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_40_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/474",
+      "definitionSha256": "85ec2de0e81526a70e1fb22341d6a19ea197954f989b512c76c8dfbd0c39761a",
+      "recipe": {
+        "id": "effect_skill_add_power_40_if_last",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "amount": 40,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.lastSkillThisTurn)",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/444",
@@ -519,6 +575,24 @@
         "value": "targets.opponentMarks.where(mark => mark.baseId === \"stat_stage_spe_up\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 40 : 0))))",
         "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"stat_stage_spe_up\"))))",
         "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_50_consecutive_2_times",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/668",
+      "definitionSha256": "15efe3e5a111c8935d955e32bb49540f8f81ffa752afc322612c7e213c634201",
+      "recipe": {
+        "id": "effect_skill_add_power_50_consecutive_2_times",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "amount": 50,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))",
+        "repairedPaths": ["/apply/target/base"]
       },
       "classification": "C",
       "decision": "C07",
@@ -633,6 +707,24 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_consume_xinzhiyinji_power_2x",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/232",
+      "definitionSha256": "3510cd0304843ebe07e433d4716ff00a79648513eb5dfc5c51408a512fba98df",
+      "recipe": {
+        "id": "effect_skill_consume_xinzhiyinji_power_2x",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "contexts.skillUse.select(event => event.power).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 1 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentMarks.where(mark => mark.tags.includes(\"xinzhiyinji_tag\")).condition(checks.exists()))",
+        "repairedPaths": ["/apply/target/base", "/apply/value/selector/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power_2x_below_quarter_hp",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/75",
@@ -666,6 +758,25 @@
       },
       "classification": "C",
       "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_2x_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/203",
+      "definitionSha256": "a96519799eaad5f9b8c4c004e46519e6900e2661295a9ff34ad7335afc7ff90a",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_first",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 1,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
       "status": "generated-correction-candidate"
     },
     {
@@ -921,6 +1032,25 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power_2x_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/289",
+      "definitionSha256": "fa88be307b8147c58d1e14faf1c4261e0cb3faf4bbea394b5452403bedefe731",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_last",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.lastSkillThisTurn)",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power_2x_if_oppoent_has_yinzhiwang",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/586",
@@ -1011,6 +1141,24 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power_2x_if_opponent_has_shield",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/559",
+      "definitionSha256": "621a34d8db168ba9599fec515d6895b00e521e2ce37127208c8a0511118e8356",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_opponent_has_shield",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentMarks.where(mark => mark.tags.includes(\"shield\")).condition(checks.exists()))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power_2x_if_opponent_hunluan",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/646",
@@ -1076,6 +1224,24 @@
         "operation": "amplifyPower",
         "amount": 2,
         "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_shuimian\"))))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_2x_if_opponent_shuimian_or_mabi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/401",
+      "definitionSha256": "2e3dd28da243f2a92d0f3a5adeb4529951a14912957dd652a7faa26ea3ab999d",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_opponent_shuimian_or_mabi",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentMarks.where(mark => ([\"mark_shuimian\",\"mark_mabi\"] as string[]).includes(mark.baseId)).condition(checks.exists()))",
         "repairedPaths": ["/apply/target"]
       },
       "classification": "C",
@@ -1149,6 +1315,24 @@
         "amount": 2,
         "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.opponentActive.select(pet => pet.stat.maxHp).first());const right=ctx.read(targets.opponentActive.select(pet => pet.currentHp).first());return left!==undefined && right!==undefined && left === right}))",
         "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_2x_opponent_shaoshang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/186",
+      "definitionSha256": "e8798c989fddb180ab2cefb0a831b43968c04c977df79c8fe77294f552047be3",
+      "recipe": {
+        "id": "effect_skill_power_2x_opponent_shaoshang",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentMarks.where(mark => mark.baseId === \"mark_shaoshang\").condition(checks.exists()))",
+        "repairedPaths": ["/apply/target"]
       },
       "classification": "C",
       "decision": "C07",
@@ -1245,6 +1429,24 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power2x_if_opponent_has_exceptional",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/684",
+      "definitionSha256": "f581402d44529726e0aea0cfef92c7a8f4cc89cffacff6b28df7a573385b57fd",
+      "recipe": {
+        "id": "effect_skill_power2x_if_opponent_has_exceptional",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentMarks.where(mark => mark.tags.includes(\"exceptional\")).condition(checks.exists()))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power2x_if_opponent_has_tongjiling_and_below_half_hp",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/677",
@@ -1326,13 +1528,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_skill_add_power_10_per_opponent_manxingduyao",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/151",
-      "definitionSha256": "84ca5f5ffd0d45b16b575962f6be1d8f3145b16f96d3620aaf6062195d3c9337",
-      "reason": "unsupported definition fields"
-    },
-    {
       "id": "effect_skill_add_power_20_per_pofang_turn",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/330",
@@ -1361,34 +1556,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_skill_add_power_40_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/473",
-      "definitionSha256": "3fa6ed7822ce128af8a4883dea660da49cc6e3ec422fb74134cf4e188bd8c845",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_add_power_40_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/474",
-      "definitionSha256": "85ec2de0e81526a70e1fb22341d6a19ea197954f989b512c76c8dfbd0c39761a",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_add_power_50_consecutive_2_times",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/668",
-      "definitionSha256": "15efe3e5a111c8935d955e32bb49540f8f81ffa752afc322612c7e213c634201",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_consume_xinzhiyinji_power_2x",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/232",
-      "definitionSha256": "3510cd0304843ebe07e433d4716ff00a79648513eb5dfc5c51408a512fba98df",
-      "reason": "unsupported power value"
-    },
-    {
       "id": "effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/280",
@@ -1408,13 +1575,6 @@
       "sourcePath": "/284",
       "definitionSha256": "a31d2d24f9066b5abb4f929285af53f07ce5107d5abaf1cb4f6c5623b645ccbf",
       "reason": "unsupported power value"
-    },
-    {
-      "id": "effect_skill_power_2x_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/203",
-      "definitionSha256": "a96519799eaad5f9b8c4c004e46519e6900e2661295a9ff34ad7335afc7ff90a",
-      "reason": "condition needs a separate mapping"
     },
     {
       "id": "effect_skill_power_2x_if_first_round",
@@ -1445,34 +1605,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_skill_power_2x_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/289",
-      "definitionSha256": "fa88be307b8147c58d1e14faf1c4261e0cb3faf4bbea394b5452403bedefe731",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_2x_if_opponent_has_shield",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/559",
-      "definitionSha256": "621a34d8db168ba9599fec515d6895b00e521e2ce37127208c8a0511118e8356",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_2x_if_opponent_shuimian_or_mabi",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/401",
-      "definitionSha256": "2e3dd28da243f2a92d0f3a5adeb4529951a14912957dd652a7faa26ea3ab999d",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_2x_opponent_shaoshang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/186",
-      "definitionSha256": "e8798c989fddb180ab2cefb0a831b43968c04c977df79c8fe77294f552047be3",
-      "reason": "condition needs a separate mapping"
-    },
-    {
       "id": "effect_skill_power_4x_10_percent",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/558",
@@ -1491,13 +1623,6 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/114",
       "definitionSha256": "f410b68a5f2944a453c916a0a8ddfa43ae2b19cd2de576269445443fa9a45420",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power2x_if_opponent_has_exceptional",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/684",
-      "definitionSha256": "f581402d44529726e0aea0cfef92c7a8f4cc89cffacff6b28df7a573385b57fd",
       "reason": "condition needs a separate mapping"
     },
     {

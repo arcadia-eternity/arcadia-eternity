@@ -17,11 +17,24 @@ function root(s) {
   if (s === 'opponent') return 'targets.opponentActive'
   if (s === 'mark') return 'targets.sourceMark'
   if (s === 'selfMarks') return 'targets.ownerMarks'
+  if (s === 'usingSkillContext') return 'contexts.skillUse'
   if (s === 'opponentMarks') return 'targets.opponentMarks'
 }
-function markFilter(step) {
+function markFilter(step, domain = 'damage') {
   if (!fields(step, ['type', 'extractor', 'evaluator']) || step.type !== 'whereAttr') return
-  const { extractor: e, evaluator: v } = step
+  const { extractor, evaluator: v } = step
+  const e = domain === 'skill' && typeof extractor === 'string' ? { type: 'base', arg: extractor } : extractor
+  if (
+    domain === 'skill' &&
+    fields(e, ['type', 'arg']) &&
+    e.type === 'base' &&
+    e.arg === 'baseId' &&
+    fields(v, ['type', 'value']) &&
+    v.type === 'anyOf' &&
+    Array.isArray(v.value) &&
+    v.value.every(x => typeof x === 'string')
+  )
+    return `mark => (${q(v.value)} as string[]).includes(mark.baseId)`
   if (
     fields(e, ['type', 'arg']) &&
     e.type === 'base' &&
@@ -41,11 +54,16 @@ function markFilter(step) {
   )
     return `mark => mark.tags.includes(${q(v.tag)})`
 }
-function members(s) {
-  if (!fields(s, ['base', 'chain']) || s.base !== 'selfMarks' || !Array.isArray(s.chain)) return
+function members(s, domain = 'damage') {
+  if (
+    !fields(s, ['base', 'chain']) ||
+    !(s.base === 'selfMarks' || (domain === 'skill' && s.base === 'opponentMarks')) ||
+    !Array.isArray(s.chain)
+  )
+    return
   let code = root(s.base)
   for (const step of s.chain) {
-    const filter = markFilter(step)
+    const filter = markFilter(step, domain)
     if (!filter) return
     code += `.where(${filter})`
   }
@@ -79,11 +97,17 @@ function selectedNumber(s, parameters, path, consumption = 'first') {
         e.arg === 'lastSkillUsedTimes'
       )
         name = e.arg
-      else if (step.type === 'selectPath' && step.arg === 'stack') name = step.arg
+      else if (
+        step.type === 'selectPath' &&
+        (step.arg === 'stack' || (collection && s.base === 'usingSkillContext' && step.arg === 'power'))
+      )
+        name = step.arg
       if (['mark', 'selfMarks', 'opponentMarks'].includes(s.base) && name === 'stack')
         code += `.select(mark => mark.stack)${terminal}`
       else if (['self', 'opponent'].includes(s.base) && ['currentHp', 'maxHp', 'lastSkillUsedTimes'].includes(name))
         code += `.select(pet => pet.${name === 'maxHp' ? 'stat.maxHp' : name})${terminal}`
+      else if (collection && s.base === 'usingSkillContext' && name === 'power')
+        code += `.select(event => event.power)${terminal}`
       else return
       numeric = true
     } else {
@@ -151,11 +175,22 @@ function number(v, parameters, path, domain = 'damage') {
 }
 function condition(c, domain = 'damage') {
   if (fields(c, ['type'])) {
+    if (domain === 'skill' && c.type === 'isFirstSkillUsedThisTurn') return 'conditions.firstSkillThisTurn'
+    if (domain === 'skill' && c.type === 'isLastSkillUsedThisTurn') return 'conditions.lastSkillThisTurn'
     if (c.type === 'selfUseSkill') return 'conditions.selfUsesSkill'
     // This emitter accepts only the two DamageContext stages, where checkSelf is target ownership.
     if (c.type === 'checkSelf') return domain === 'skill' ? 'conditions.ownerUsesSkill' : 'conditions.selfBeDamaged'
     if (c.type === 'selfBeDamaged' && domain === 'damage') return 'conditions.selfBeDamaged'
   }
+  if (
+    domain === 'skill' &&
+    fields(c, ['type', 'times', 'strategy']) &&
+    c.type === 'continuousUseSkill' &&
+    c.strategy === 'Periodic' &&
+    Number.isSafeInteger(c.times) &&
+    c.times > 0
+  )
+    return `conditions.everyNthUse(${c.times})`
   if (
     fields(c, ['type', 'conditions']) &&
     ['every', 'some'].includes(c.type) &&
@@ -205,7 +240,7 @@ function condition(c, domain = 'damage') {
   if (!fields(c, ['type', 'target', 'evaluator']) || c.type !== 'evaluate') return
   const e = c.evaluator
   if (fields(e, ['type']) && e.type === 'exist') {
-    const ms = members(c.target)
+    const ms = members(c.target, domain)
     if (ms) return `${ms}.condition(checks.exists())`
   }
   if (

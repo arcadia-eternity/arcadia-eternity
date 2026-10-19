@@ -833,3 +833,43 @@ it('opponent mark queries follow the direct skill target and requery after targe
   f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(nested))
   expect(results).toEqual([[2], [2]])
 })
+
+it('skill-order and periodic conditions keep direct ancestry, queue order and ownership', () => {
+  const f = fixture()
+  const turn = f.use.parent
+  const other = new UseSkillContext(turn, f.b, f.b.activePet, AttackTargetOpinion.opponent, f.b.activePet.skills[0])
+  const answers: boolean[][] = []
+  const everySecond = conditions.everyNthUse(2)
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/skill-admission',
+      on: ['BeforeHit', 'BeforeEffect'],
+      execute(ctx) {
+        answers.push([conditions.firstSkillThisTurn(ctx), conditions.lastSkillThisTurn(ctx), everySecond(ctx)])
+      },
+    }),
+  )
+  const read = (ctx = f.ctx) => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  f.owner.lastSkillUsedTimes = 2
+  read()
+  turn.appledContexts.push(f.use, other)
+  turn.contexts.push(other, f.use)
+  read()
+  turn.appledContexts.reverse()
+  turn.contexts.reverse()
+  f.owner.lastSkillUsedTimes = 3
+  read()
+  f.battle.executionBudget.run(f.battle.currentTurn, () =>
+    effect.innerApply(new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
+  )
+  f.owner.lastSkillUsedTimes = 0
+  read()
+  expect(answers).toEqual([
+    [false, false, true],
+    [true, false, true],
+    [false, true, false],
+    [false, false, false],
+    [false, true, true],
+  ])
+  for (const invalid of [0, -1, 0.5, NaN, Infinity]) expect(() => conditions.everyNthUse(invalid)).toThrow()
+})

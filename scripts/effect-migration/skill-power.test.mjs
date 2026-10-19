@@ -50,7 +50,7 @@ test('rejects unsupported action shapes instead of emitting partial effects', ()
     assert.ok(classifySkillPower(bad).reason)
 })
 test('deterministically reproduces every candidate and rejected record', async () => {
-  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 71, rejected: 33 })
+  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 82, rejected: 22 })
 })
 
 test('preserves skill ownership throughout nested conditional comparison values', () => {
@@ -114,4 +114,29 @@ test('power dynamic collections pair operands by index, with missing RHS zero', 
     unsupported.apply.value.selector.chain.push(step)
     assert.ok(classifySkillPower(unsupported).reason)
   }
+})
+
+test('maps ordered and periodic admission without admitting malformed conditions', () => {
+  const d = source()
+  for (const [type, code] of [
+    ['isFirstSkillUsedThisTurn', 'conditions.firstSkillThisTurn'],
+    ['isLastSkillUsedThisTurn', 'conditions.lastSkillThisTurn'],
+  ]) {
+    assert.equal(classifySkillPower({ ...d, condition: { type } }).when, code)
+  }
+  assert.equal(
+    classifySkillPower({ ...d, condition: { type: 'continuousUseSkill', times: 2, strategy: 'Periodic' } }).when,
+    'conditions.everyNthUse(2)',
+  )
+  assert.ok(
+    classifySkillPower({ ...d, condition: { type: 'continuousUseSkill', times: 0, strategy: 'Periodic' } }).reason,
+  )
+  delete d.condition
+  assert.equal(classifySkillPower(d).when, '() => true')
+  assert.ok(classifySkillPower({ ...d, condition: null }).reason)
+})
+
+test('pins the complete C08 potential reference scope independently of converted candidates', async () => {
+  const { generateTurnOrder } = await import('./turn-order.mjs')
+  assert.deepEqual(await generateTurnOrder({ check: true }), { references: 27 })
 })

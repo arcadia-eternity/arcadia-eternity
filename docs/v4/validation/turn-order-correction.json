@@ -1,0 +1,224 @@
+{
+  "formatVersion": 1,
+  "decision": "C08",
+  "previousRevision": "cdf6fdf4",
+  "scope": "Potential source references, not per-ID behavioral acceptance. Direct skill ancestry remains required.",
+  "records": [
+    {
+      "id": "effect_ability_add_rage_5_when_first_attack",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/70",
+      "definitionSha256": "aacd731ab2f0eb89eee73595642749a20ac2ca5c1c8ae5fc1567091a74c8a0c5",
+      "trigger": "OnHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_ability_damage_boost_10_percent_when_first",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/49",
+      "definitionSha256": "c20a7918b36bbafab082d0a58063044301ab835a775e6c41ebfc1b63eb2d5222",
+      "trigger": "OnBeforeCalculateDamage",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_ability_damage_reduction_10_percent_when_last",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/50",
+      "definitionSha256": "a4a2c2a6fa82c103edc9748260c5cabfe80147640640c62657da8c0d205c0b96",
+      "trigger": "OnBeforeCalculateDamage",
+      "nodes": [{ "path": "/condition/conditions/1/condition", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/80",
+      "definitionSha256": "3b6f7453797331bd3ad70aab105b4d87bc08d737ff8794b54d96e0765c2b23d0",
+      "trigger": "OnHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_emblem_xianzhi_crit_rate_5_percent_if_first",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/49",
+      "definitionSha256": "b43fe91a311adb3772507118210057e08fed8c0cd5811b30c5ba81bd89e64a5c",
+      "trigger": "BeforeHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_crit_rate_50_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/496",
+      "definitionSha256": "6babbb6fba0b1bcbd4a2e6f2d9d239b0a4fbd1c0435645ea9979289f2696d2b6",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_crit_rate_65_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/500",
+      "definitionSha256": "84eb0d7e3b848c0130ba3ff67e03e586b503f5097d5f8caf104dc5dcfd429a36",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_damage_50_percent_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/689",
+      "definitionSha256": "69cd9e2db20d9f1b8026a908bce89d23d2ac5dee51cf697f07b613d6b10c1cfe",
+      "trigger": "OnBeforeCalculateDamage",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_50_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/481",
+      "definitionSha256": "00a89811348c5cb512b33e26a750010feb11340c472fc8d31038db370dc3fd37",
+      "trigger": "OnBeforeCalculateDamage",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_50_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/482",
+      "definitionSha256": "1b8f0f17315e38c7ed18461a7f753e9b845820d82375d706dec788a2055d4f30",
+      "trigger": "OnBeforeCalculateDamage",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/693",
+      "definitionSha256": "8231bfc3ee213d852c6e6946b17e6d9b2ccd332ed2980d1a3e6d074e3050fb48",
+      "trigger": "OnHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/690",
+      "definitionSha256": "6ea27fb01ff7cf4ff1ea1ff4df4db8b8f3ddfdf7e32dfc486ef881a76a86e80c",
+      "trigger": "OnHit",
+      "nodes": [{ "path": "/condition/conditions/2", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shiming_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/299",
+      "definitionSha256": "f09dec729a8b2f62146742350f044cf31a7f49377131d418ac6fed33daf2e366",
+      "trigger": "OnHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_mark_shanbi_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/217",
+      "definitionSha256": "b2a294b3615cbddc1df34b2c51cd70c179be1acee3cda25bb89d5f387ff08ba9",
+      "trigger": "OnHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_power_40_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/473",
+      "definitionSha256": "3fa6ed7822ce128af8a4883dea660da49cc6e3ec422fb74134cf4e188bd8c845",
+      "trigger": "BeforeHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_power_40_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/474",
+      "definitionSha256": "85ec2de0e81526a70e1fb22341d6a19ea197954f989b512c76c8dfbd0c39761a",
+      "trigger": "BeforeHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_add_rage_15_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/542",
+      "definitionSha256": "8cfaca097b9e1d4cdbf1ebb5779f4c4291449d8bc0b4a7470c07add4d464e9a7",
+      "trigger": "BeforeHit",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_crit_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/305",
+      "definitionSha256": "5166747fc5afd5706a7dcdbeb74bfe26c0406a48c893c9982b96f89d0a908989",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/477",
+      "definitionSha256": "44e5fc77556b791b15db4b1d6b70f832f281d247c7380e685f4d94919105675f",
+      "trigger": "OnBeforeCalculateDamage",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/478",
+      "definitionSha256": "74bab362ecb11c3601e3ea3a88616de89b608f4b8fdde7e8c7951c61cb137815",
+      "trigger": "OnBeforeCalculateDamage",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_multihit_4_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/475",
+      "definitionSha256": "8630c4b37db56602c9e9e22f3007cd2f5283b5b5a926d9dee3bd896e36ee8b77",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_multihit_4_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/476",
+      "definitionSha256": "4830d2dc53c7a23084a443d4b2cc057e2dda4a79f8afbbcf71b09ec7e0a2fe3e",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_multihit_4_times_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/695",
+      "definitionSha256": "3ae43a24cdb7efd2f1e104f180d689fe1dd8ce790f6ee3f7e9f4f3e518018722",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_power_2x_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/203",
+      "definitionSha256": "a96519799eaad5f9b8c4c004e46519e6900e2661295a9ff34ad7335afc7ff90a",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_power_2x_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/289",
+      "definitionSha256": "fa88be307b8147c58d1e14faf1c4261e0cb3faf4bbea394b5452403bedefe731",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/692",
+      "definitionSha256": "f25ee3df13b444a57c3256c442c54afc614847ec27c0c4b8e441a751461e8b34",
+      "trigger": "BeforeHit",
+      "nodes": [{ "path": "/condition/conditions/2", "condition": "isLastSkillUsedThisTurn" }]
+    },
+    {
+      "id": "effect_skill_sure_hit_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/495",
+      "definitionSha256": "09ee4f0a3e47c21c93989260fd0610bed5538a56e353a143b4ab52f0171f7f98",
+      "trigger": "AfterUseSkillCheck",
+      "nodes": [{ "path": "/condition/conditions/1", "condition": "isFirstSkillUsedThisTurn" }]
+    }
+  ]
+}

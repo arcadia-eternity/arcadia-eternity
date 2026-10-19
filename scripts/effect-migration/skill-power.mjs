@@ -33,7 +33,7 @@ export function classifySkillPower(original) {
       'id',
       'trigger',
       'priority',
-      'condition',
+      ...('condition' in d ? ['condition'] : []),
       'apply',
       ...['tags', 'consumesStacks'].filter(k => Object.hasOwn(d, k)),
     ]) ||
@@ -59,7 +59,7 @@ export function classifySkillPower(original) {
       ? selectedNumber(a.value.selector, undefined, undefined, 'all')
       : undefined
   if (amount === undefined && !value) return { reason: 'unsupported power value' }
-  const when = condition(d.condition, 'skill')
+  const when = 'condition' in d ? condition(d.condition, 'skill') : '() => true'
   if (!when) return { reason: 'condition needs a separate mapping' }
   return {
     id: d.id,
@@ -99,6 +99,9 @@ export async function generateSkillPower({ check = false } = {}) {
           recipe,
           classification: 'C',
           decision: 'C07',
+          ...(/conditions\.(firstSkillThisTurn|lastSkillThisTurn)/.test(recipe.when)
+            ? { additionalDecisions: ['C08'] }
+            : {}),
           status: 'generated-correction-candidate',
         })
     }

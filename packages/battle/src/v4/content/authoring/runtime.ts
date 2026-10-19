@@ -1,5 +1,12 @@
 import { type effectId, type EffectTrigger, type StatTypeWithoutHp } from '@arcadia-eternity/const'
-import { DamageContext, HealContext, UseSkillContext, type AllContext, type EffectContext } from '../../context'
+import {
+  DamageContext,
+  HealContext,
+  UseSkillContext,
+  TurnContext,
+  type AllContext,
+  type EffectContext,
+} from '../../context'
 import { Pet } from '../../pet'
 import { SkillInstance } from '../../skill'
 import { MarkInstanceImpl } from '../../mark'
@@ -283,6 +290,14 @@ export const contexts: typeof C.contexts = {
   }),
   nearestSkillUse: ctx => nearestContext(ctx, UseSkillContext),
 }
+function skillOrder(position: 'first' | 'last'): C.Condition {
+  return ctx => {
+    const skill = ctx.event
+    if (!(skill instanceof UseSkillContext) || !(skill.parent instanceof TurnContext)) return false
+    const entries = position === 'first' ? skill.parent.appledContexts : skill.parent.contexts
+    return entries.find(entry => entry instanceof UseSkillContext) === skill
+  }
+}
 export const conditions: typeof C.conditions = {
   all:
     (...items) =>
@@ -299,6 +314,15 @@ export const conditions: typeof C.conditions = {
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
   ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
+  firstSkillThisTurn: skillOrder('first'),
+  lastSkillThisTurn: skillOrder('last'),
+  everyNthUse: times => {
+    if (!Number.isSafeInteger(times) || times <= 0) throw new Error('Expected positive consecutive-use interval')
+    return ctx =>
+      ctx.event instanceof UseSkillContext &&
+      owner(ctx) === ctx.event.pet &&
+      (ctx.event.skill.owner?.lastSkillUsedTimes ?? 0) % times === 0
+  },
   selfBeDamaged: ctx => ctx.event instanceof DamageContext && owner(ctx) === ctx.event.target,
   selfBeHealed: ctx => ctx.event instanceof HealContext && owner(ctx) === ctx.event.target,
   chance: percent => {

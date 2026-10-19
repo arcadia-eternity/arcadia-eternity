@@ -205,6 +205,23 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(0.5)),
       }),
     ),
+    effect_skill_add_power_10_per_opponent_manxingduyao: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_10_per_opponent_manxingduyao',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: () => true,
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_manxingduyao')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 10 : 0)))),
+          ),
+        ),
+      }),
+    ),
     effect_skill_add_power_15_each_huohuanzhixin: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_15_each_huohuanzhixin',
@@ -341,6 +358,24 @@ export function createGeneratedSkillPowerEffects() {
         ),
       }),
     ),
+    effect_skill_add_power_40_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_40_if_first',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addPower(40)),
+      }),
+    ),
+    effect_skill_add_power_40_if_last: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_40_if_last',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addPower(40)),
+      }),
+    ),
     effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan',
@@ -465,6 +500,15 @@ export function createGeneratedSkillPowerEffects() {
         ),
       }),
     ),
+    effect_skill_add_power_50_consecutive_2_times: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_50_consecutive_2_times',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
+        execute: contexts.skillUse.apply(ops.addPower(50)),
+      }),
+    ),
     effect_skill_add_power_50_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_50_if_aideminyi',
@@ -555,6 +599,25 @@ export function createGeneratedSkillPowerEffects() {
         ),
       }),
     ),
+    effect_skill_consume_xinzhiyinji_power_2x: compileEffect(
+      defineEffect({
+        id: 'effect_skill_consume_xinzhiyinji_power_2x',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            contexts.skillUse
+              .select(event => event.power)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 1 : 0)))),
+          ),
+        ),
+      }),
+    ),
     effect_skill_power_2x_below_quarter_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_below_quarter_hp',
@@ -585,6 +648,15 @@ export function createGeneratedSkillPowerEffects() {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_anyinglingyu').condition(checks.exists()),
           ),
         ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power_2x_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 1,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
@@ -783,6 +855,15 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
+    effect_skill_power_2x_if_last: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_last',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
     effect_skill_power_2x_if_oppoent_has_yinzhiwang: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_oppoent_has_yinzhiwang',
@@ -856,6 +937,18 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
+    effect_skill_power_2x_if_opponent_has_shield: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_opponent_has_shield',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.tags.includes('shield')).condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
     effect_skill_power_2x_if_opponent_hunluan: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_hunluan',
@@ -908,6 +1001,20 @@ export function createGeneratedSkillPowerEffects() {
           targets.opponentActive.condition((_ctx, pets) =>
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shuimian')),
           ),
+        ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power_2x_if_opponent_shuimian_or_mabi: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_opponent_shuimian_or_mabi',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks
+            .where(mark => (['mark_shuimian', 'mark_mabi'] as string[]).includes(mark.baseId))
+            .condition(checks.exists()),
         ),
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
@@ -967,6 +1074,18 @@ export function createGeneratedSkillPowerEffects() {
           const right = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
           return left !== undefined && right !== undefined && left === right
         }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power_2x_opponent_shaoshang: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_opponent_shaoshang',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.baseId === 'mark_shaoshang').condition(checks.exists()),
+        ),
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
@@ -1042,6 +1161,18 @@ export function createGeneratedSkillPowerEffects() {
           ),
         ),
         execute: contexts.skillUse.apply(ops.addPower(50)),
+      }),
+    ),
+    effect_skill_power2x_if_opponent_has_exceptional: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power2x_if_opponent_has_exceptional',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.tags.includes('exceptional')).condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power2x_if_opponent_has_tongjiling_and_below_half_hp: compileEffect(

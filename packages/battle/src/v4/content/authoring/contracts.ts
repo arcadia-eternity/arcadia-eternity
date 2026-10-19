@@ -131,6 +131,11 @@ export declare const conditions: {
   readonly selfUsesSkill: Condition
   /** Direct skill event owned by this source; unlike selfUsesSkill, no skill identity restriction. */
   readonly ownerUsesSkill: Condition
+  /** Direct skill + turn ancestry; first executed skill / last planned skill in queue order. */
+  readonly firstSkillThisTurn: Condition
+  readonly lastSkillThisTurn: Condition
+  /** Direct source ownership; the skill owner's consecutive count is divisible by this positive integer. */
+  readonly everyNthUse: (times: number) => Condition
   readonly selfBeDamaged: Condition
   readonly selfBeHealed: Condition
   /** One battle RNG draw on each call, including 0 and 100; short-circuiting is owned by the caller. */

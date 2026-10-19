@@ -45,7 +45,7 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
   })
 
   // Process player selections and create phases for queuing
-  const phases: (SkillPhase | SwitchPetPhase)[] = []
+  const scheduled: { phase: SkillPhase | SwitchPetPhase; context: UseSkillContext | SwitchPetContext }[] = []
 
   for (const selection of [battle.playerA.selection, battle.playerB.selection]) {
     const player = battle.getPlayerByID(selection.player)
@@ -67,7 +67,7 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
           context,
           useSkillContext,
         )
-        phases.push(skillPhase)
+        scheduled.push({ phase: skillPhase, context: useSkillContext })
         break
       }
       case 'switch-pet': {
@@ -77,7 +77,7 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
 
         // Create SwitchPetPhase with the context
         const switchPhase = new SwitchPetPhase(battle, player, pet, context, switchPetContext)
-        phases.push(switchPhase)
+        scheduled.push({ phase: switchPhase, context: switchPetContext })
         break
       }
       case 'do-nothing':
@@ -99,13 +99,20 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
   }
 
   // Sort phases directly
-  phases.sort(phaseSort)
+  scheduled.sort((a, b) => phaseSort(a.phase, b.phase))
+
+  // Keep the legacy context views aligned with the actual phase schedule.
+  // Planned contexts use pop order; applied contexts use dispatch order, including the current attempt.
+  context.contexts.push(...scheduled.map(entry => entry.context).reverse())
+  context.contextQueue = [...context.contexts]
 
   try {
     battle.applyEffects(context, EffectTrigger.TurnStart)
 
     // Execute all phases in sorted order
-    for (const phase of phases) {
+    for (const { phase, context: actionContext } of scheduled) {
+      context.contextQueue.pop()
+      context.appledContexts.push(actionContext)
       // Register and execute the phase
       battle.phaseManager.registerPhase(phase)
       battle.phaseManager.executePhase(phase.id)
