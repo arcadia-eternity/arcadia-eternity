@@ -11,6 +11,7 @@ import type { ValueDefinition } from '../../values/plan'
 import { Evaluation, ValuePlan, defineValue } from '../../values/plan'
 import { BindingInputUnavailable, installValueModifier } from '../../values/binding'
 import type * as C from './contracts'
+import { AuthoringParameters, declareParameter } from './parameters'
 
 type Frame = C.EffectFrame
 type Reader = (ctx: Frame) => unknown
@@ -32,13 +33,15 @@ const scopes = new WeakMap<Frame, { source: EffectContext<EffectTrigger>['source
 const actionBindings = new WeakMap<object, readonly BindingDeclaration[]>()
 const frameBindings = new WeakMap<Frame, ReadonlyMap<string, CompiledBinding>>()
 const effectBindings = new WeakMap<Effect<EffectTrigger>, readonly CompiledBinding[]>()
+const frameParameters = new WeakMap<Frame, AuthoringParameters>()
+const compiledParameters = new WeakMap<Effect<EffectTrigger>, AuthoringParameters>()
 function scope(ctx: Frame) {
   const result = scopes.get(ctx)
   if (!result) throw new Error('Foreign authoring scope')
   return result
 }
 /** Persistent evaluation carries only domain identity, never a transient trigger context. */
-function bindingFrame(source: MarkInstanceImpl): Frame {
+function bindingFrame(source: MarkInstanceImpl, parameters: AuthoringParameters): Frame {
   if (!(source instanceof MarkInstanceImpl)) throw new Error('Invalid authored binding source')
   const battle = source.owner instanceof Pet ? source.owner.owner?.battle : source.owner
   if (!battle) throw new Error('Authored binding source requires a Battle')
@@ -56,9 +59,14 @@ function bindingFrame(source: MarkInstanceImpl): Frame {
     ops: { modifyDamage: unavailable },
   } as Frame
   scopes.set(frame, { source, battle })
+  frameParameters.set(frame, parameters)
   return frame
 }
-function compileBindings(effectId: string, declarations: readonly BindingDeclaration[]): Map<string, CompiledBinding> {
+function compileBindings(
+  effectId: string,
+  declarations: readonly BindingDeclaration[],
+  parameters: AuthoringParameters,
+): Map<string, CompiledBinding> {
   const result = new Map<string, CompiledBinding>()
   for (const declaration of declarations) {
     const previous = result.get(declaration.key)
@@ -72,7 +80,7 @@ function compileBindings(effectId: string, declarations: readonly BindingDeclara
     const definition = defineValue(
       `authoring/${JSON.stringify([effectId, declaration.key])}`,
       (args: BindingArgs) => {
-        const frame = bindingFrame(args.source)
+        const frame = bindingFrame(args.source, parameters)
         return new ValuePlan(evaluation => {
           const value = plan(frame, evaluation).value
           if (value === undefined) throw new BindingInputUnavailable('Missing bound input')
@@ -95,6 +103,12 @@ export function registerEffect(catalog: SnapshotCatalog, effect: Effect<EffectTr
     effect,
     bindings.map(binding => binding.definition),
   )
+}
+/** Install in each new battle; restored configuration already contains the saved parameter state. */
+export function effectParameters(effect: Effect<EffectTrigger>) {
+  const parameters = compiledParameters.get(effect)
+  if (!parameters) throw new Error('Expected an authored effect')
+  return parameters.catalog
 }
 const writes = new WeakMap<object, { target: Pet; set: (value: number) => void }>()
 function engine(ctx: Frame) {
@@ -300,22 +314,30 @@ export const defineEffect: typeof C.defineEffect = definition =>
   })
 export const numberParam: typeof C.numberParam = options => {
   if (!Number.isFinite(options.default)) throw new Error('Non-finite parameter default')
-  const initial = options.default
-  return Object.freeze(
-    Object.assign(
-      value<number>(() => initial),
-      { parameter: true as const },
-    ),
-  )
+  return parameter<number>(options)
 }
 export const booleanParam: typeof C.booleanParam = options => {
-  const initial = options.default
-  return Object.freeze(
+  if (typeof options.default !== 'boolean') throw new Error('Expected boolean parameter default')
+  return parameter<boolean>(options)
+}
+function parameter<T extends number | boolean>(options: {
+  default: T
+  tags?: readonly string[]
+  legacyAliases?: readonly string[]
+}): C.Parameter<T> {
+  const result: C.Parameter<T> = Object.freeze(
     Object.assign(
-      value<boolean>(() => initial),
+      value<T>(ctx => {
+        const parameters = frameParameters.get(ctx)
+        if (!parameters) throw new Error('Missing authored parameter context')
+        const { battle, source } = scope(ctx)
+        return parameters.read(result, battle.configSystem, source)
+      }),
       { parameter: true as const },
     ),
   )
+  declareParameter(result, options)
+  return result
 }
 
 function assertWriteTarget(ctx: Frame, input: unknown): void {
@@ -397,10 +419,15 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
   input: C.EffectDefinition<T, P>,
 ) {
   const definition = defineEffect(input)
-  const bindings = compileBindings(definition.id, [
-    ...(actionBindings.get(definition.execute) ?? []),
-    ...Object.entries(definition.bindings ?? {}).map(([key, value]) => ({ key, value })),
-  ])
+  const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {})
+  const bindings = compileBindings(
+    definition.id,
+    [
+      ...(actionBindings.get(definition.execute) ?? []),
+      ...Object.entries(definition.bindings ?? {}).map(([key, value]) => ({ key, value })),
+    ],
+    parameterSet,
+  )
   const frame = (source: EffectContext<EffectTrigger>): C.EffectFrame<T> => {
     const result = {
       on: source.trigger,
@@ -416,6 +443,7 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
     engines.set(result as Frame, source)
     scopes.set(result as Frame, source)
     frameBindings.set(result as Frame, bindings)
+    frameParameters.set(result as Frame, parameterSet)
     return result
   }
   const parameters = definition.parameters ?? ({} as P)
@@ -427,5 +455,6 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
     apply: ctx => definition.execute(frame(ctx), parameters),
   })
   effectBindings.set(effect, [...bindings.values()])
+  compiledParameters.set(effect, parameterSet)
   return effect
 }

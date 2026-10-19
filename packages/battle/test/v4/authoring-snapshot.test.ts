@@ -8,6 +8,13 @@ import {
   snapshotBattle,
   restoreBattle,
   AddMarkContext,
+  ConfigModifier,
+  ConfigModifierType,
+  ConfigDurationType,
+  PhaseType,
+  PhaseScope,
+  SwitchPetPhase,
+  parameterAddress,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -24,8 +31,32 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
-type Mode = 'capture' | 'follow' | 'entry' | 'official'
+type Mode = 'capture' | 'follow' | 'entry' | 'official' | 'parameter-capture' | 'parameter-follow'
 function definition(mode: Mode, custom = false) {
+  if (mode === 'parameter-capture' || mode === 'parameter-follow') {
+    const amount = effectAuthoring.numberParam({ default: -25, legacyAliases: ['snapshot.amount'] })
+    const value =
+      mode === 'parameter-capture'
+        ? amount.capture({ key: 'amount', scope: 'binding' })
+        : amount.follow({ key: 'amount' })
+    return compileEffect(
+      defineEffect({
+        id: 'snapshot/parameter',
+        on: 'OnMarkCreated',
+        parameters: { amount },
+        execute: targets.ownerPet.apply(
+          ops.bindAttribute({
+            key: 'speed',
+            attribute: 'spe',
+            operation: 'delta',
+            value,
+            lifetime: 'sourceMark',
+            missing: 'detach',
+          }),
+        ),
+      }),
+    )
+  }
   if (mode === 'official') return createOfficialAuthoredEffects().effect_mark_reduce_speed_ruodian
   const root = targets.ownerMarks.where(mark => mark.baseId === 'mark_ruodianjihao').first()
   const selected = mode === 'capture' ? root.capture({ key: 'mark', scope: 'binding' }) : root.follow({ key: 'mark' })
@@ -80,6 +111,7 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
   })
   if (!missing) f.battle.addMark(new AddMarkContext(setup, pet, markBase, 2))
   const effect = definition(mode, custom)
+  effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
   const sourceBase = new BaseMark('snapshot/source' as baseMarkId, [effect], {
     ...f.debuff.config,
     persistent: true,
@@ -94,6 +126,11 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
   const run = f.battle.startBattle().catch(() => {})
   await ready
   pet.attributeSystem.updateBaseValue('spe', 300)
+  if (mode === 'parameter-capture' || mode === 'parameter-follow') {
+    const source = pet.marks.find(m => m.baseId === 'snapshot/source')!
+    f.battle.configSystem.set(parameterAddress(effect.id, 'parameters', 'amount'), -35, source)
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 265)
+  }
   const original = catalog(mode, custom)
   // The export catalog must register the actual live effect identity; use its static plans.
   const exportCatalog = new SnapshotCatalog(original.revision)
@@ -252,3 +289,58 @@ it('checkpoints the actual weakness-speed candidate with a fresh compiled catalo
   battles.push(twice)
   expect(twice.playerA.activePet.stat.spe).toBe(225)
 })
+
+it.each(['parameter-capture', 'parameter-follow'] as const)(
+  'restores %s with fresh parameter identities and later scoped changes',
+  async mode => {
+    const { restored } = await checkpoint(mode)
+    const pet = restored.playerA.activePet
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 265)
+    const source = pet.marks.find(m => m.baseId === 'snapshot/source')!
+    const effect = source.effects.find(e => e.id === 'snapshot/parameter')!
+    const catalog = effectAuthoring.effectParameters(effect)
+    const remove = catalog.modify(
+      restored.configSystem,
+      'snapshot.amount',
+      new ConfigModifier(ConfigDurationType.binding, 'amount-change', -50, ConfigModifierType.override, 0),
+      source,
+    )
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 250)
+    remove()
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 265)
+    const address = parameterAddress(effect.id, 'parameters', 'amount')
+    restored.configSystem.set(address, -40, source)
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 260)
+    restored.configSystem.releaseScope(source)
+    expect(pet.stat.spe).toBe(275)
+    const phase = new SwitchPetPhase(restored, restored.playerB, restored.playerB.team[1], new TurnContext(restored))
+    const phaseModifier = new ConfigModifier(
+      ConfigDurationType.phaseType,
+      'phase-amount',
+      -60,
+      ConfigModifierType.override,
+      0,
+    )
+    const cleanup = restored.configSystem.addScopedPhaseTypeConfigModifier(
+      address,
+      phaseModifier,
+      { phaseType: PhaseType.Switch, scope: PhaseScope.Any },
+      source,
+    )
+    expect(pet.stat.spe).toBe(275)
+    restored.configSystem.pushPhase(phase)
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 240)
+    const removeDuringPhase = restored.configSystem.addScopedPhaseTypeConfigModifier(
+      address,
+      new ConfigModifier(ConfigDurationType.phaseType, 'during-phase', -70, ConfigModifierType.override, -1),
+      { phaseType: PhaseType.Switch, scope: PhaseScope.Current },
+      source,
+    )
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 230)
+    removeDuringPhase()
+    expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 240)
+    restored.configSystem.popPhase(phase)
+    expect(pet.stat.spe).toBe(275)
+    cleanup()
+  },
+)

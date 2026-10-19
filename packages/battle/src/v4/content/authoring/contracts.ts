@@ -82,7 +82,11 @@ export declare function numberParam(options: {
   tags?: readonly string[]
   legacyAliases?: readonly string[]
 }): Parameter<number>
-export declare function booleanParam(options: { default: boolean }): Parameter<boolean>
+export declare function booleanParam(options: {
+  default: boolean
+  tags?: readonly string[]
+  legacyAliases?: readonly string[]
+}): Parameter<boolean>
 
 type Parameters = Readonly<Record<string, Parameter<unknown>>>
 export interface EffectDefinition<T extends Trigger, P extends Parameters> {

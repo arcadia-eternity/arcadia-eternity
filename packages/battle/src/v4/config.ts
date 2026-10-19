@@ -1,6 +1,6 @@
 import { rememberModifierCleanup, deactivateCleanup, describeCleanup } from './snapshotBindings'
 import type { baseMarkId, baseSkillId, markId, petId, playerId, skillId, speciesId } from '@arcadia-eternity/const'
-import { Signal, ReactiveValue, isReactiveValue } from './reactiveValue'
+import { Signal, ReactiveValue, isReactiveValue, untracked } from './reactiveValue'
 import type { Battle } from './battle'
 import { AttributeSystem } from './attributeSystem'
 import type { MarkInstance } from './mark'
@@ -150,6 +150,12 @@ export class ConfigSystem {
   private baseConfigs: Map<string, Signal<ConfigValue>> = new Map()
   private modifiers: Map<string, Signal<ConfigModifier[]>> = new Map()
   private modifiersBySource: Map<string, Map<string, ConfigModifier[]>> = new Map()
+
+  // Scoped map membership is observable even before a particular scope has a value/modifier.
+  private scopeRevision = new Signal(0)
+  private publishScopes(): void {
+    this.scopeRevision.next(untracked(() => this.scopeRevision.value) + 1)
+  }
 
   private scopedBaseConfigs: Map<ScopeObject, Map<string, Signal<ConfigValue>>> = new Map()
   private scopedModifiers: Map<ScopeObject, Map<string, ConfigModifier[]>> = new Map()
@@ -434,6 +440,7 @@ export class ConfigSystem {
    * Get config value with modifier support
    */
   get(key: string, scope?: ScopeObject): ConfigValue | undefined {
+    void this.scopeRevision.value
     if (this.isDestroyed) {
       this.logger.warn(`Attempted to get config '${key}' from destroyed ConfigSystem`)
       return undefined
@@ -681,6 +688,7 @@ export class ConfigSystem {
     this.scopedModifiers.delete(scope)
     for (const value of this.scopedBaseConfigs.get(scope)?.values() ?? []) value.complete()
     this.scopedBaseConfigs.delete(scope)
+    this.publishScopes()
   }
 
   hasScopedConfig(key: string, scope: ScopeObject): boolean {
@@ -715,6 +723,7 @@ export class ConfigSystem {
       } else {
         // Create a new Signal for this key within this scope.
         scopeConfigs.set(key, new Signal(value))
+        this.publishScopes()
       }
     } else {
       // Setting the global base value.
@@ -828,6 +837,7 @@ export class ConfigSystem {
       }
 
       scopeModifiers.get(key)!.push(modifier)
+      this.publishScopes()
 
       // Return cleanup function for scoped modifier
       return () => {
@@ -840,6 +850,7 @@ export class ConfigSystem {
             if (modifierList.length === 0) {
               scopeModifiers.delete(key)
             }
+            this.publishScopes()
           }
         }
         modifier.cleanup()
@@ -949,6 +960,7 @@ export class ConfigSystem {
    * Notify AttributeSystem of phase changes
    */
   private notifyAttributeSystemPhaseChange(): void {
+    this.publishScopes()
     AttributeSystem.notifyPhaseChange()
   }
 
@@ -1077,7 +1089,11 @@ export class ConfigSystem {
       excluded: new Set(spec.scope === PhaseScope.Next ? active.map(p => p.id) : []),
       cleanup,
     })
-    return () => this.phaseBindings.delete(modifier)
+    this.publishScopes()
+    return () => {
+      this.phaseBindings.delete(modifier)
+      this.publishScopes()
+    }
   }
 
   isPhaseModifierApplicable(modifier: object): boolean {

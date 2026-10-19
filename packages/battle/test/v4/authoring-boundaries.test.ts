@@ -40,6 +40,7 @@ it('snapshots declaration defaults and parameter tables before compilation', () 
   numberOptions.default = Infinity
   booleanOptions.default = false
   const effect = compileEffect(definition)
+  effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
   const source = f.a.activePet.skills[0]
   source.effects.splice(0, source.effects.length, effect)
   f.battle.applyEffects(new TurnContext(f.battle), EffectTrigger.TurnStart, source)

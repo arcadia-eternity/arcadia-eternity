@@ -58,6 +58,6 @@ TypeScript 无法证明任意回调纯净，也无法保证节点 key 在运行�
 
 四个示例不需要显式泛型、类型断言、`instanceof` 或父链遍历。查询、分支、动作与绑定策略能分开阅读。事件、实体和属性类型由 TypeScript 推导；没有增加字符串类型解析器或运行时 DSL。
 
-这次证明静态接口及上述运行时场景，不宣称与全部旧效果等价。持续计划已通过 `registerEffect(catalog, compiledEffect)` 与效果整批注册；计划身份由 effect ID 与 binding key 决定。组合动作自动收集绑定声明，自定义 execute 回调须在 `bindings` 中显式列出。恢复只持有来源印记引用，不保留旧触发上下文；持续查询不能访问触发事件或执行动作。尚未提供 UGC 参数覆盖/校验，参数当前只读取声明默认值；候选效果仍需完整验收才能发布。
+这次证明静态接口及上述运行时场景，不宣称与全部旧效果等价。持续计划已通过 `registerEffect(catalog, compiledEffect)` 与效果整批注册；计划身份由 effect ID 与 binding key 决定。组合动作自动收集绑定声明，自定义 execute 回调须在 `bindings` 中显式列出。恢复只持有来源印记引用，不保留旧触发上下文；持续查询不能访问触发事件或执行动作。参数已通过 `effectParameters(compiledEffect)` 接入现有 ParameterCatalog：新战斗需显式安装，读取使用当前来源作用域；恢复保留存档中的参数值。参数同样支持 capture/follow，仍未提供完整 UGC 编辑界面；候选效果需完整验收才能发布。
 
 关系通知现位于 `src/v4/values/relations.ts`，由 Pet、Mark、Skill 构造器及存档恢复初始化，作者 API 不再按需改写领域对象。提前保留的 `pet.marks` 句柄也能通知选择器；整表赋值复制成员数组，之后应通过 `pet.marks` 修改集合，原始传入数组和已替换的旧句柄都不能影响或通知当前集合。列表方法完成后通知一次，直接索引与 length 修改也会通知。其余同步依赖、预算、capture 状态、modifier 及清理均复用现有 V4 实现，没有引入 RxJS。详见 [领域关系验证](../../../../docs/v4/validation/domain-relations.md)。

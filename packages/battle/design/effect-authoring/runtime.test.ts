@@ -3,6 +3,11 @@ import {
   AddMarkContext,
   BaseMark,
   DamageContext,
+  Signal,
+  ConfigModifier,
+  ConfigModifierType,
+  ConfigDurationType,
+  parameterAddress,
   Effect,
   EffectContext,
   EffectTrigger,
@@ -18,6 +23,9 @@ import {
 import { makeScenario } from '../../test/v4/scenario'
 import {
   compileEffect,
+  effectParameters,
+  numberParam,
+  booleanParam,
   defineEffect,
   targets,
   contexts,
@@ -444,4 +452,132 @@ it('composes condition predicates in order with short-circuiting', () => {
   f.skill.effects.splice(0, f.skill.effects.length, effect)
   f.battle.applyEffects(f.use, EffectTrigger.BeforeHit, f.skill)
   expect(trace).toEqual(['yes', 'no', 'yes', 'no'])
+})
+
+it('reads declared parameters from the current source scope on each action', () => {
+  const f = fixture()
+  const observed: unknown[] = []
+  const amount = numberParam({ default: 15, legacyAliases: ['test.amount'] })
+  const enabled = booleanParam({ default: true })
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/parameters',
+      on: 'BeforeHit',
+      parameters: { amount, enabled },
+      execute(ctx, p) {
+        observed.push([ctx.read(p.amount), ctx.read(p.enabled)])
+      },
+    }),
+  )
+  const catalog = effectParameters(effect)
+  catalog.install(f.battle.configSystem)
+  const run = (source = f.skill) =>
+    f.battle.executionBudget.run(f.battle.currentTurn, () =>
+      effect.innerApply(new EffectContext(f.use, EffectTrigger.BeforeHit, source, effect)),
+    )
+  run()
+  const amountSignal = new Signal(7)
+  const modifier = new ConfigModifier(
+    ConfigDurationType.binding,
+    'test/amount',
+    amountSignal,
+    ConfigModifierType.override,
+    0,
+  )
+  const remove = catalog.modify(f.battle.configSystem, 'test.amount', modifier, f.skill)
+  run()
+  amountSignal.next(9)
+  run()
+  run(f.a.team[1].skills[0])
+  catalog.modify(
+    f.battle.configSystem,
+    parameterAddress(effect.id, 'parameters', 'enabled'),
+    new ConfigModifier(ConfigDurationType.binding, 'test/enabled', false, ConfigModifierType.override, 0),
+    f.skill,
+  )
+  remove()
+  run()
+  expect(observed).toEqual([
+    [15, true],
+    [7, true],
+    [9, true],
+    [15, true],
+    [15, false],
+  ])
+})
+it('rejects missing installation, undeclared references and ambiguous parameter identities', () => {
+  const f = fixture()
+  const amount = numberParam({ default: 5 })
+  const definition = defineEffect({
+    id: 'test/missing-parameter',
+    on: 'BeforeHit',
+    parameters: { amount },
+    execute(ctx) {
+      ctx.read(amount)
+    },
+  })
+  const effect = compileEffect(definition)
+  const run = () => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(run).toThrow('Invalid effective parameter')
+  effectParameters(effect).install(f.battle.configSystem)
+  expect(run).not.toThrow()
+  const undeclared = compileEffect(
+    defineEffect({
+      id: 'test/undeclared',
+      on: 'BeforeHit',
+      execute(ctx) {
+        ctx.read(amount)
+      },
+    }),
+  )
+  expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => undeclared.innerApply(f.ctx))).toThrow(
+    'not declared',
+  )
+  expect(() =>
+    compileEffect(
+      defineEffect({ id: definition.id, on: 'BeforeHit', parameters: { first: amount, second: amount }, execute() {} }),
+    ),
+  ).toThrow('multiple names')
+})
+it('owns parameter metadata and isolates a shared declaration between effects and battles', () => {
+  const f = fixture(),
+    other = fixture()
+  const options = { default: 4, tags: ['original'], legacyAliases: ['original.alias'] }
+  const amount = numberParam(options)
+  options.default = 100
+  options.tags.push('changed')
+  options.legacyAliases[0] = 'changed.alias'
+  const observed: number[] = []
+  const make = (id: string) =>
+    compileEffect(
+      defineEffect({
+        id,
+        on: 'BeforeHit',
+        parameters: { amount },
+        execute(ctx) {
+          observed.push(ctx.read(amount))
+        },
+      }),
+    )
+  const first = make('parameter/a'),
+    second = make('parameter/b')
+  effectParameters(first).install(f.battle.configSystem)
+  effectParameters(second).install(other.battle.configSystem)
+  effectParameters(second).install(f.battle.configSystem)
+  effectParameters(first).modify(
+    f.battle.configSystem,
+    'original.alias',
+    new ConfigModifier(ConfigDurationType.binding, 'change', 2, ConfigModifierType.delta, 0),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => first.innerApply(f.ctx))
+  other.battle.executionBudget.run(other.battle.currentTurn, () => second.innerApply(other.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => second.innerApply(f.ctx))
+  expect(observed).toEqual([6, 4, 4])
+  expect(() =>
+    effectParameters(first).modify(
+      f.battle.configSystem,
+      'changed.alias',
+      new ConfigModifier(ConfigDurationType.binding, 'bad', 1, ConfigModifierType.delta, 0),
+    ),
+  ).toThrow('Unknown parameter')
 })

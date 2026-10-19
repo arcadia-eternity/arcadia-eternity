@@ -13,4 +13,5 @@ export {
   ops,
   compileEffect,
   registerEffect,
+  effectParameters,
 } from './runtime'

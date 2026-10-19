@@ -7,11 +7,11 @@
 - `packages/battle/src/v4/content/authoring` contains the typed contracts and shared runtime. `effectAuthoring` is a namespace export, avoiding collisions with the existing ValuePlan `values` API.
 - `packages/battle/src/v4/official/authored` contains the four readable effect definitions. `officialAuthoredEffects` explicitly compiles them as candidates. Design example files re-export these same definitions; there is no second implementation to drift.
 - Existing four `officialHealingEffects` now use the same context lookup, owner query, attribute readers and operators. Their IDs and prior source hashes remain unchanged.
-- No official loader switch or bulk fallback was added. The bounded UGC compiler remains separate; the authoring parameter helpers currently read defaults only.
+- No official loader switch or bulk fallback was added. The bounded UGC compiler remains separate; authoring parameter helpers now use the existing ParameterCatalog and current source scope; see [parameter evidence](authoring-parameters.md).
 
 ## Behavior evidence
 
-`pnpm test:effect-authoring-design` runs 21 authoring scenarios and the existing 19 value-binding tests against the source implementation. Scenarios include collection versus execution time, independent actions, lazy branches, one numeric read per operator, direct HP assignment without healing, `spe` versus `spd`, captured instance/followed stack, followed instance/per-entry captures, removal, replacement, same-instance re-entry without intermediate reads, initial absence, source cleanup, real switching, duplicate keys and self-dependency rejection.
+`pnpm test:effect-authoring-design` runs 24 authoring scenarios and the existing 19 value-binding tests against the source implementation. Scenarios include collection versus execution time, independent actions, lazy branches, one numeric read per operator, direct HP assignment without healing, `spe` versus `spd`, captured instance/followed stack, followed instance/per-entry captures, removal, replacement, same-instance re-entry without intermediate reads, initial absence, source cleanup, real switching, duplicate keys and self-dependency rejection.
 
 `official-authored.test.ts` compares three non-persistent candidates against current production YAML through the legacy parser and real V4 dispatch: skill/mark sources, missing prerequisite, wrong owner, cancellation, late HP/maxHP/owner changes, consumption hooks, and twelve exact HP threshold values. It compares state, modifier results, effect success/hooks and subsequent RNG. Sixty-six behavioral cases and a four-ID source-hash check pass. This does not constitute full-game or checkpoint acceptance.
 
@@ -35,4 +35,4 @@ Relation observation now initializes with Pet, Mark and Skill construction and s
 
 ## Final validation
 
-Final rebuilt artifacts pass all 6,414 V4 tests across 41 files, plus 40 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.
+Final rebuilt artifacts pass all 6,416 V4 tests across 41 files, plus 43 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.
