@@ -20,6 +20,12 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_emblem_raise_spd_1_stage_when_baonuan_20_percent: [
+    ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
+  ],
+  effect_emblem_raise_spd_1_stage_when_rouruan_20_percent: [
+    ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
+  ],
   effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill: [
     ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
   ],

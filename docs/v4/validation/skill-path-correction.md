@@ -32,3 +32,7 @@ Two additional definitions require the same entity-selection repair at `/conditi
 | `effect_emblem_add_mark_fenshenhying_when_use_fenshenshu`        | Read skill base ID, require `skill_fenshenshu`; add `mark_fenshenhying` to the current source owner.   |
 
 The shared offline helper refuses a changed value or a non-selectPath node at either exact path. Unknown IDs receive no C09 repair. Neither definition becomes a runtime alias. The mark ledger records both C07 and C09, and public tests prove that C07 alone still fails on skillId. Corrected-reference scenarios include positive and negative admission, changes after admission, skill/mark source identity, cancellation, merging and real SkillPhase execution. Application-level checks do not accept the downstream marks' effects; see [mark evidence](mark-applications.md).
+
+## Stat-stage extension
+
+`effect_emblem_raise_spd_1_stage_when_baonuan_20_percent` and `effect_emblem_raise_spd_1_stage_when_rouruan_20_percent` each repair `/condition/conditions/1/target/chain/0/arg` from `skillId` to `skill`, after C07. The following query reads the selected skill's base ID, then the ordered condition draws the 20% probability. The action raises special defense (`spd`) by one stage. Exact-node refusal, original parse failure, positive/negative RNG and real skill execution are covered by the stat-stage timing suite. No global path alias is added.

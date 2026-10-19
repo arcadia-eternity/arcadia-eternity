@@ -37,7 +37,11 @@ interface Entry {
   }
 }
 type LedgerEntry = Omit<Entry, 'recipe'> & {
-  recipe: Omit<Entry['recipe'], 'clauses'> & { clauses?: Entry['recipe']['clauses']; when?: string }
+  recipe: Omit<Entry['recipe'], 'clauses' | 'triggers'> & {
+    triggers: string[]
+    clauses?: Entry['recipe']['clauses']
+    when?: string
+  }
 }
 const allRecords: LedgerEntry[] = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/stat-stages-candidates.json', import.meta.url), 'utf8'),

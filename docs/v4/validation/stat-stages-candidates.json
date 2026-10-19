@@ -18,6 +18,88 @@
       "classification": "U"
     },
     {
+      "id": "effect_emblem_raise_spd_1_stage_when_baonuan_20_percent",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/61",
+      "definitionSha256": "b5e46562c3fa63e2d159b6b60fc9ad62f5783ef06f7ea84c1c4773a4f4cbd05a",
+      "recipe": {
+        "id": "effect_emblem_raise_spd_1_stage_when_baonuan_20_percent",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_baonuan\"),conditions.chance(20))",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [
+          {
+            "path": "/condition/conditions/1/target/chain/0/arg",
+            "before": "skillId",
+            "after": "skill"
+          }
+        ],
+        "additionalDecisions": ["C07", "C09"]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_emblem_raise_spd_1_stage_when_rouruan_20_percent",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/69",
+      "definitionSha256": "a45e449758ea88c0bc2cecbb91ab8bcf3d9e40c90445adef8aec91c0c7f2980d",
+      "recipe": {
+        "id": "effect_emblem_raise_spd_1_stage_when_rouruan_20_percent",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_rouruan\"),conditions.chance(20))",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [
+          {
+            "path": "/condition/conditions/1/target/chain/0/arg",
+            "before": "skillId",
+            "after": "skill"
+          }
+        ],
+        "additionalDecisions": ["C07", "C09"]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_mark_reduce_opponent_atk_1_stage_when_fainted",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/205",
+      "definitionSha256": "082fe903a4c1517ed02a8d8bf2277bc6e44de7b2790c8d5e907e972e9cff6e1f",
+      "recipe": {
+        "id": "effect_mark_reduce_opponent_atk_1_stage_when_fainted",
+        "priority": 0,
+        "triggers": ["OnDefeat"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "when": "conditions.ownerIsSkillTarget"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_mark_reduce_opponent_spe_1_stage_when_fainted",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/204",
+      "definitionSha256": "3866676e65adc0fca235d0612f93b3146f0ca146619065adc62aa5df543298be",
+      "recipe": {
+        "id": "effect_mark_reduce_opponent_spe_1_stage_when_fainted",
+        "priority": 0,
+        "triggers": ["OnDefeat"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -1,
+        "when": "conditions.ownerIsSkillTarget"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_raise_atk_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/14",
@@ -219,6 +301,22 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_raise_atk_1_stage_on_crit",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/268",
+      "definitionSha256": "cbe39c074f406d7661e803c66344652034f779d1c6c10265aa0e99713a825ef9",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_on_crit",
+        "priority": 0,
+        "triggers": ["OnCritPreDamage"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.selfUsesSkill"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_raise_atk_2_stage_if_male",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/661",
@@ -414,6 +512,24 @@
             "path": "condition"
           }
         ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_self_spa_1_stage_if_3_hits",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/627",
+      "definitionSha256": "b5a7c7d4f74acda04cbd8ffdb4411a06d916bbd8a5d4845bc5676eba1692d9d3",
+      "recipe": {
+        "id": "effect_skill_raise_self_spa_1_stage_if_3_hits",
+        "priority": 0,
+        "triggers": ["BeforeMultiHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(contexts.skillUse.select(event => event.multihitResult).first());const right=3;return left!==undefined && right!==undefined && left === right}))",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"]
       },
       "classification": "U"
     },
@@ -948,6 +1064,22 @@
         "stat": "spe",
         "value": 1,
         "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/680",
+      "definitionSha256": "e5bfbd6d4cd5cc2279a2a6a0a560211e656f7c14bc3cb54edb3b32aef3e83fa2",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated",
+        "priority": 0,
+        "triggers": ["OnDefeat"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_tongjiling\"))))"
       },
       "classification": "U"
     },
@@ -1645,6 +1777,23 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/692",
+      "definitionSha256": "f25ee3df13b444a57c3256c442c54afc614847ec27c0c4b8e441a751461e8b34",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kaowen\"))),conditions.lastSkillThisTurn)",
+        "additionalDecisions": ["C08"]
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_reduce_opponent_spd_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/38",
@@ -2072,62 +2221,6 @@
       "sourcePath": "/67",
       "definitionSha256": "601f12569ac823fe547dec73e57f52472852cc0901e713ed87699e202a120aad",
       "reason": "requires literal stat/value and self/opponent target"
-    },
-    {
-      "id": "effect_emblem_raise_spd_1_stage_when_baonuan_20_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/61",
-      "definitionSha256": "b5e46562c3fa63e2d159b6b60fc9ad62f5783ef06f7ea84c1c4773a4f4cbd05a",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_emblem_raise_spd_1_stage_when_rouruan_20_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/69",
-      "definitionSha256": "a45e449758ea88c0bc2cecbb91ab8bcf3d9e40c90445adef8aec91c0c7f2980d",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_mark_reduce_opponent_atk_1_stage_when_fainted",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/205",
-      "definitionSha256": "082fe903a4c1517ed02a8d8bf2277bc6e44de7b2790c8d5e907e972e9cff6e1f",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_mark_reduce_opponent_spe_1_stage_when_fainted",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/204",
-      "definitionSha256": "3866676e65adc0fca235d0612f93b3146f0ca146619065adc62aa5df543298be",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_atk_1_stage_on_crit",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/268",
-      "definitionSha256": "cbe39c074f406d7661e803c66344652034f779d1c6c10265aa0e99713a825ef9",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_self_spa_1_stage_if_3_hits",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/627",
-      "definitionSha256": "b5a7c7d4f74acda04cbd8ffdb4411a06d916bbd8a5d4845bc5676eba1692d9d3",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/680",
-      "definitionSha256": "e5bfbd6d4cd5cc2279a2a6a0a560211e656f7c14bc3cb54edb3b32aef3e83fa2",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/692",
-      "definitionSha256": "f25ee3df13b444a57c3256c442c54afc614847ec27c0c4b8e441a751461e8b34",
-      "reason": "unsupported trigger or admission condition"
     },
     {
       "id": "effect_skill_reduce_stat_5_percent",

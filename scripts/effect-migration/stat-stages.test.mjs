@@ -53,7 +53,7 @@ test('rejects unsupported semantics and ambiguous parameter aliases', () => {
     assert.ok(classifyStatStage(bad).reason)
 })
 test('all emitted source and ledger reproduce exactly', async () =>
-  assert.deepEqual(await generateStatStages({ check: true }), { generated: 91, parameters: 42, rejected: 11 }))
+  assert.deepEqual(await generateStatStages({ check: true }), { generated: 99, parameters: 42, rejected: 3 }))
 
 test('shared authored conditions preserve stat identity and ordered admission', () => {
   const d = source()
@@ -80,17 +80,118 @@ test('shared authored conditions preserve stat identity and ordered admission', 
     'conditions.ownerIsSkillTarget',
   )
 })
-test('shared authored conditions do not silently admit corrections or new parameters', () => {
+test('shared authored conditions reject unmapped turn order and new parameters', () => {
   const d = source()
   for (const extra of [
     { type: 'isLastSkillUsedThisTurn' },
     { type: 'not', condition: { type: 'isFirstSkillUsedThisTurn' } },
-    {
-      type: 'evaluate',
-      target: { base: 'useSkillContext', chain: [{ type: 'selectPath', arg: 'multihitResult' }] },
-      evaluator: { type: 'compare', operator: '==', value: 3 },
-    },
     { type: 'every', conditions: [{ type: 'selfHasMark', baseId: 'mark_example' }, roll] },
   ])
     assert.ok(classifyStatStage({ ...d, condition: { type: 'every', conditions: [d.condition, extra] } }).reason)
+})
+
+test('additional skill stages record C07 without mutating the source', () => {
+  const d = {
+    ...source(),
+    trigger: 'BeforeMultiHit',
+    condition: {
+      type: 'every',
+      conditions: [
+        source().condition,
+        {
+          type: 'evaluate',
+          target: { base: 'useSkillContext', chain: [{ type: 'selectPath', arg: 'multihitResult' }] },
+          evaluator: { type: 'compare', operator: '==', value: 3 },
+        },
+      ],
+    },
+  }
+  const before = structuredClone(d),
+    r = classifyStatStage(d)
+  assert.deepEqual(d, before)
+  assert.deepEqual(r.selectorRepairs, ['/condition/conditions/1/target/base'])
+  assert.deepEqual(r.additionalDecisions, ['C07'])
+  assert.match(r.when, /contexts.skillUse/)
+  for (const trigger of ['OnCritPreDamage', 'OnDefeat'])
+    assert.equal(classifyStatStage({ ...source(), trigger }).when, 'conditions.selfUsesSkill')
+})
+
+test('C09 skill path fixes are restricted to exact stat-stage source nodes', () => {
+  for (const id of [
+    'effect_emblem_raise_spd_1_stage_when_baonuan_20_percent',
+    'effect_emblem_raise_spd_1_stage_when_rouruan_20_percent',
+  ]) {
+    const d = {
+      ...source(),
+      id,
+      condition: {
+        type: 'every',
+        conditions: [
+          source().condition,
+          {
+            type: 'evaluate',
+            target: {
+              base: 'useSkillContext',
+              chain: [
+                { type: 'selectPath', arg: 'skillId' },
+                { type: 'select', arg: { type: 'base', arg: 'baseId' } },
+              ],
+            },
+            evaluator: { type: 'same', value: 'skill_baonuan' },
+          },
+        ],
+      },
+    }
+    const before = structuredClone(d),
+      r = classifyStatStage(d)
+    assert.deepEqual(d, before)
+    assert.deepEqual(r.additionalDecisions, ['C07', 'C09'])
+    assert.deepEqual(r.pathRepairs, [
+      { path: '/condition/conditions/1/target/chain/0/arg', before: 'skillId', after: 'skill' },
+    ])
+    assert.ok(classifyStatStage({ ...d, id: 'unreviewed' }).reason)
+    d.condition.conditions[1].target.chain[0].arg = 'unknown'
+    assert.match(classifyStatStage(d).reason, /C09 source node changed/)
+  }
+})
+test('C08 last-skill admission is explicit and rejects moved correction nodes', () => {
+  const d = {
+    ...source(),
+    id: 'effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last',
+    condition: {
+      type: 'every',
+      conditions: [
+        source().condition,
+        { type: 'opponentHasMark', baseId: 'mark_kaowen' },
+        { type: 'isLastSkillUsedThisTurn' },
+      ],
+    },
+  }
+  assert.deepEqual(classifyStatStage(d).additionalDecisions, ['C08'])
+  assert.match(classifyStatStage(d).when, /conditions.lastSkillThisTurn/)
+  for (const extra of [
+    { type: 'isFirstSkillUsedThisTurn' },
+    { type: 'isLastSkillUsedThisTurn' },
+    { type: 'not', condition: { type: 'isFirstSkillUsedThisTurn' } },
+    {
+      type: 'evaluate',
+      target: 'self',
+      evaluator: {
+        type: 'compare',
+        operator: '==',
+        value: {
+          type: 'conditional',
+          condition: { type: 'isFirstSkillUsedThisTurn' },
+          trueValue: 1,
+          falseValue: 0,
+        },
+      },
+    },
+  ]) {
+    const duplicate = structuredClone(d)
+    duplicate.condition.conditions.push(extra)
+    assert.match(classifyStatStage(duplicate).reason, /turn-order correction/)
+  }
+  d.condition.conditions.reverse()
+  assert.ok(classifyStatStage(d).reason)
 })

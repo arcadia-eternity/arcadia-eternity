@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 import { condition as authoredCondition } from './authoring-emitter.mjs'
+import { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
 const fields = (v, required, optional = []) =>
   v &&
   typeof v === 'object' &&
@@ -51,15 +52,21 @@ function condition(c, path = 'condition') {
     },
   ]
 }
-function hasTurnOrderCondition(c) {
-  if (!c || typeof c !== 'object') return false
-  return (
-    ['isFirstSkillUsedThisTurn', 'isLastSkillUsedThisTurn'].includes(c.type) ||
-    hasTurnOrderCondition(c.condition) ||
-    (Array.isArray(c.conditions) && c.conditions.some(hasTurnOrderCondition))
+function turnOrderConditionPaths(value, path = '/condition') {
+  if (!value || typeof value !== 'object') return []
+  const own = ['isFirstSkillUsedThisTurn', 'isLastSkillUsedThisTurn'].includes(value.type) ? [path] : []
+  return own.concat(
+    Object.entries(value).flatMap(([key, child]) =>
+      turnOrderConditionPaths(child, `${path}/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`),
+    ),
   )
 }
-export function classifyStatStage(d) {
+export function classifyStatStage(original) {
+  if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
+  const { definition: spelling, paths } = repairSkillSelector(original)
+  const repaired = repairSkillPaths(spelling)
+  if (repaired.reason) return repaired
+  const d = repaired.definition
   if (
     !fields(d, ['id', 'trigger', 'priority', 'apply', 'condition']) ||
     typeof d.id !== 'string' ||
@@ -78,21 +85,54 @@ export function classifyStatStage(d) {
   )
     return { reason: 'requires literal stat/value and self/opponent target' }
   const triggers = Array.isArray(d.trigger) ? d.trigger : [d.trigger]
-  const clauses = condition(d.condition)
+  const initialStages = triggers.every(t => ['BeforeHit', 'OnHit', 'OnMiss'].includes(t))
+  const clauses = initialStages ? condition(d.condition) : undefined
+  const turnOrderPaths = turnOrderConditionPaths(d.condition)
+  const turnOrder = turnOrderPaths.length > 0
+  if (
+    turnOrder &&
+    (d.id !== 'effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last' ||
+      turnOrderPaths.length !== 1 ||
+      turnOrderPaths[0] !== '/condition/conditions/2' ||
+      !fields(d.condition.conditions?.[2], ['type']) ||
+      d.condition.conditions[2].type !== 'isLastSkillUsedThisTurn')
+  )
+    return { reason: 'turn-order correction needs an explicit source mapping' }
   // Keep the established parameter addresses for the initial batch. New conditions
   // use the shared authoring API; turn-order repairs need their own C08 evidence.
   const parameters = []
-  const when =
-    !clauses && !hasTurnOrderCondition(d.condition) ? authoredCondition(d.condition, 'skill', parameters) : undefined
+  const when = !clauses ? authoredCondition(d.condition, 'skill', parameters) : undefined
   if (
     !triggers.length ||
     new Set(triggers).size !== triggers.length ||
-    !triggers.every(t => ['BeforeHit', 'OnHit', 'OnMiss'].includes(t)) ||
+    !triggers.every(t =>
+      ['BeforeHit', 'OnHit', 'OnMiss', 'BeforeMultiHit', 'OnCritPreDamage', 'OnDefeat'].includes(t),
+    ) ||
     (clauses ? !clauses.some(c => c.kind === 'self') : !when) ||
     parameters.length > 0
   )
     return { reason: 'unsupported trigger or admission condition' }
-  if (when) return { id: d.id, priority: d.priority, triggers, target, stat: a.statType, value: a.value, when }
+  if (when)
+    return {
+      id: d.id,
+      priority: d.priority,
+      triggers,
+      target,
+      stat: a.statType,
+      value: a.value,
+      when,
+      ...(paths.length ? { selectorRepairs: paths } : {}),
+      ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
+      ...(paths.length || repaired.changes.length || turnOrder
+        ? {
+            additionalDecisions: [
+              ...(paths.length ? ['C07'] : []),
+              ...(turnOrder ? ['C08'] : []),
+              ...(repaired.changes.length ? ['C09'] : []),
+            ],
+          }
+        : {}),
+    }
   const aliases = clauses.filter(c => c.alias).map(c => c.alias)
   if (new Set(aliases).size !== aliases.length) return { reason: 'shared legacy aliases require explicit mapping' }
   return { id: d.id, priority: d.priority, triggers, target, stat: a.statType, value: a.value, clauses }
