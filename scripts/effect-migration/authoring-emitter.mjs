@@ -84,7 +84,7 @@ function members(s, domain = 'damage') {
   return code
 }
 /** Static TS emitter for explicitly understood numeric steps; no runtime interpreter is emitted. */
-function selectedNumber(s, parameters, path, consumption = 'first', domain = 'damage') {
+function selectedNumber(s, parameters, path, consumption = 'first', domain = 'damage', options = {}) {
   const collection = consumption === 'all'
   const terminal = collection ? '.all()' : '.first()'
   if (!fields(s, ['base', 'chain']) || !Array.isArray(s.chain)) return
@@ -164,6 +164,20 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
       numeric = true
     } else {
       if (optional) return
+      if (
+        options.dynamicClamp &&
+        ['clampMin', 'clampMax'].includes(step.type) &&
+        fields(step.arg, ['type', 'selector']) &&
+        step.arg.type === 'dynamic'
+      ) {
+        const limits = selectedNumber(step.arg.selector, parameters, `${path}_step${index}`, 'all', domain, options)
+        if (!limits) return
+        const operation = step.type === 'clampMax' ? 'min' : 'max'
+        code = collection
+          ? `values.combine(${code},${limits},(items,limits) => items.map((n,index) => Math.${operation}(n,limits[index] ?? 0)))`
+          : `values.combine(${code},${limits},(n,limits) => Math.${operation}(n,limits[0] ?? 0))`
+        continue
+      }
       const parameter = !Number.isFinite(step.arg)
         ? rawParameter(step.arg, parameters, `${path}_step${index}`)
         : undefined
@@ -218,7 +232,7 @@ function number(v, parameters, path, domain = 'damage', options = {}) {
   if (Number.isFinite(v)) return { code: q(v), literal: true }
   if (v?.type === 'raw:number') return rawParameter(v, parameters, path)
   if (fields(v, ['type', 'selector']) && v.type === 'dynamic') {
-    const code = selectedNumber(v.selector, parameters, path, 'first', domain)
+    const code = selectedNumber(v.selector, parameters, path, 'first', domain, options)
     if (code) return { code, literal: false }
   }
   if (fields(v, ['type', 'condition', 'trueValue', 'falseValue']) && v.type === 'conditional') {

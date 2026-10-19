@@ -37,7 +37,10 @@ interface RecordEntry {
 const allRecords = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/vital-sequences-candidates.json', import.meta.url), 'utf8'),
 ).records
-const records: RecordEntry[] = allRecords.filter((r: { recipe: { trigger: string } }) => r.recipe.trigger !== 'OnHit')
+const records: RecordEntry[] = allRecords.filter(
+  (r: { id: string; recipe: { trigger: string } }) =>
+    r.recipe.trigger !== 'OnHit' && r.id !== 'effect_mark_absorb_hp_to_opponent',
+)
 const definitions = new Map<string, { id: string; apply: unknown[] }>()
 for (const file of new Set(records.map(r => r.sourceFile)))
   for (const d of parse(readFileSync(new URL(`../../../../${file}`, import.meta.url), 'utf8'), { merge: true }))

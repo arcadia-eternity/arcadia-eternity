@@ -46,8 +46,8 @@ test('keeps raw numeric parameters as editable authored parameters', () => {
   assert.deepEqual(r.parameters, [{ name: 'action0_value', value: 3, configId: 'amount', tags: ['heal'] }])
   assert.match(r.actions[0].code, /parameters.action0_value/)
 })
-test('reproduces thirteen vital candidates and six unsupported lists', async () =>
-  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 13, rejected: 6 }))
+test('reproduces fourteen vital candidates and five unsupported lists', async () =>
+  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 14, rejected: 5 }))
 
 test('turn-end and damage queries retain their distinct admission and value sources', () => {
   const d = source()

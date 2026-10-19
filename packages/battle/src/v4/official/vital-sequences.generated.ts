@@ -13,6 +13,46 @@ import {
 } from '../content/authoring'
 export function createGeneratedVitalSequences() {
   return Object.freeze({
+    effect_mark_absorb_hp_to_opponent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_absorb_hp_to_opponent',
+        on: 'TurnEnd',
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.dealDamage(
+              values.combine(
+                targets.ownerPet
+                  .select(pet => pet.currentHp)
+                  .first()
+                  .map(n => Math.floor(n / 8)),
+                targets.ownerPet
+                  .select(pet => pet.stat.maxHp)
+                  .all()
+                  .map(items => items.map((n, index) => Math.floor(n / (index === 0 ? 8 : 0)))),
+                (n, limits) => Math.min(n, limits[0] ?? 0),
+              ),
+            ),
+          ),
+          targets.opponentActive.apply(
+            ops.heal(
+              values.combine(
+                targets.ownerPet
+                  .select(pet => pet.currentHp)
+                  .first()
+                  .map(n => Math.floor(n / 8)),
+                targets.ownerPet
+                  .select(pet => pet.stat.maxHp)
+                  .all()
+                  .map(items => items.map((n, index) => Math.floor(n / (index === 0 ? 8 : 0)))),
+                (n, limits) => Math.min(n, limits[0] ?? 0),
+              ),
+            ),
+          ),
+        ),
+      }),
+    ),
     effect_mark_heal_self_1_16_turnEnd: compileEffect(
       defineEffect({
         id: 'effect_mark_heal_self_1_16_turnEnd',

@@ -2,6 +2,31 @@
   "formatVersion": 1,
   "records": [
     {
+      "id": "effect_mark_absorb_hp_to_opponent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/21",
+      "definitionSha256": "a116b4e90236c7c06463fe7d14cb892186005dd768f1a2cf8e995f0372aecc46",
+      "recipe": {
+        "id": "effect_mark_absorb_hp_to_opponent",
+        "trigger": "TurnEnd",
+        "priority": 0,
+        "when": "conditions.ownerIsActive",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.dealDamage(values.combine(targets.ownerPet.select(pet => pet.currentHp).first().map(n => Math.floor(n / 8)),targets.ownerPet.select(pet => pet.stat.maxHp).all().map(items => items.map((n,index) => Math.floor(n / (index === 0 ? 8 : 0)))),(n,limits) => Math.min(n,limits[0] ?? 0))))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentActive.apply(ops.heal(values.combine(targets.ownerPet.select(pet => pet.currentHp).first().map(n => Math.floor(n / 8)),targets.ownerPet.select(pet => pet.stat.maxHp).all().map(items => items.map((n,index) => Math.floor(n / (index === 0 ? 8 : 0)))),(n,limits) => Math.min(n,limits[0] ?? 0))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_mark_heal_self_1_16_turnEnd",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/70",
@@ -303,13 +328,6 @@
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/46",
       "definitionSha256": "3c55e2ae71442969961ad5d41ab785627e1665a6c8868adc7f29dbc8fc59d8c0",
-      "reason": "unsupported sequence action or parameter"
-    },
-    {
-      "id": "effect_mark_absorb_hp_to_opponent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/21",
-      "definitionSha256": "a116b4e90236c7c06463fe7d14cb892186005dd768f1a2cf8e995f0372aecc46",
       "reason": "unsupported sequence action or parameter"
     },
     {

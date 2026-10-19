@@ -98,3 +98,28 @@ test('field mark membership composes the shared expansion and filter query', () 
     undefined,
   )
 })
+
+test('dynamic clamps pair by index, default absent limits to zero, and require explicit opt-in', async () => {
+  const { selectedNumber } = await import('./authoring-emitter.mjs')
+  const left = { base: 'selfMarks', chain: [{ type: 'select', arg: { type: 'base', arg: 'stack' } }] }
+  const right = { base: 'opponentMarks', chain: [{ type: 'select', arg: { type: 'base', arg: 'stack' } }] }
+  for (const type of ['clampMax', 'clampMin'])
+    for (const consumption of ['first', 'all']) {
+      const selector = { ...left, chain: [...left.chain, { type, arg: { type: 'dynamic', selector: right } }] }
+      assert.equal(selectedNumber(selector, [], 'value', consumption, 'skill'), undefined)
+      const code = selectedNumber(selector, [], 'value', consumption, 'skill', { dynamicClamp: true })
+      const member = items => ({
+        select: fn => ({ first: () => (items.length ? fn(items[0]) : undefined), all: () => items.map(fn) }),
+      })
+      const evaluate = new Function('targets', 'values', `return ${code}`)
+      for (const a of [[], [9], [9, 7]])
+        for (const b of [[], [3], [3, 11]]) {
+          const actual = evaluate(
+            { ownerMarks: member(a.map(stack => ({ stack }))), opponentMarks: member(b.map(stack => ({ stack }))) },
+            { combine: (a, b, fn) => (a === undefined || b === undefined ? undefined : fn(a, b)) },
+          )
+          const expected = a.map((n, i) => Math[type === 'clampMax' ? 'min' : 'max'](n, b[i] ?? 0))
+          assert.deepEqual(actual, consumption === 'first' ? expected[0] : expected)
+        }
+    }
+})

@@ -1,6 +1,6 @@
 # Ordered healing, damage and rage candidates
 
-Thirteen complete lists emit ordinary authored TypeScript: six OnHit skill lists, three TurnEnd healing lists, three OnDamage reflection lists and one PostDamage self-damage list. All remain U pending complete-game/checkpoint acceptance and production admission. The generator inventories six other vital action lists as unsupported; it never emits a supported fragment of an unsupported list. Production YAML and the parser remain unchanged.
+Fourteen complete lists emit ordinary authored TypeScript: six OnHit skill lists, three TurnEnd healing lists, one TurnEnd HP-absorption list, three OnDamage reflection lists and one PostDamage self-damage list. All remain U pending complete-game/checkpoint acceptance and production admission. The generator inventories five other vital action lists as unsupported; it never emits a supported fragment of an unsupported list. Production YAML and the parser remain unchanged.
 
 - `effect_skill_ignite_opponent_mark_jishengzhadan` and `effect_skill_ignite_opponent_mark_shaoshang` remove selected opponent marks, then requery the opposing active pet and deal 300/150 damage.
 - `effect_skill_consume_opponent_yinbo_damage_2x` and `effect_skill_consume_opponent_yinbo_heal_self_2x` read the first selected mark's stack at execution, multiply by the editable default factor 2 with the existing floor, apply damage/healing, then requery marks for removal.
@@ -26,3 +26,13 @@ The 1.5 reflection and mihuo definitions consume one source stack before the act
 The new fixture compares unchanged YAML over direct, nested and actual-phase execution, shield reduction, overkill, zero damage, last-stack consumption, inactive owners, wrong targets/types, post-collection value/type/owner/slot changes and repeated dispatch. Shields reduce 101 to 81 before the candidate reads damageResult; overkill against 7 HP retains result 101. Independent effect traces and HP assertions verify those values and recipients. Runtime error logs must be empty, so swallowed callback exceptions fail the fixture.
 
 Both review axes pass the extension. The original six records remain unchanged. The final 127 new checks pass; combined regressions and checks are recorded in the execution ledger. These are phase-level scenarios, not per-ID complete-game/checkpoint admission.
+
+## HP absorption and dynamic clamps
+
+`effect_mark_absorb_hp_to_opponent` uses two separate execution-time calculations. Both compute `min(floor(owner.currentHp / 8), floor(owner.maxHp / 8))`; the first damages the current owner, while the second heals the current opposing active pet. At 800/801 HP the first damage is 100, leaving 700 HP, so the second value is 87. The second action does not capture or reuse the first amount.
+
+The numeric emitter supports dynamic clampMin/clampMax only with an explicit dynamicClamp option. It reads the upstream numeric selection first, then the limit selection, pairs limits by index, and defaults a missing limit to zero exactly as legacy mapNumber does. Scalar consumption takes the first pair; collection consumption keeps all pairs. Other numeric-generator callers retain their former recognition boundary. No runtime API changes were needed.
+
+Thirty-eight public comparisons cover skill/mark sources, real TurnEnd dispatch, inactive owners, cancellation, changes before execution, changes to HP/maxHp/source ownership after the damage, owner detachment, an opposing active-slot switch, repeated dispatch, nested contexts, integer boundaries and the maximum-HP cap. Independent expected amounts and post-action states establish the second query's timing; all runs assert no swallowed runtime errors. A separate emitter test checks both clamp directions, scalar/collection results, absent limits and explicit opt-in.
+
+Both review axes pass. All prior thirteen records remain unchanged. Complete games/checkpoints and production admission remain pending.
