@@ -36,3 +36,7 @@ The shared offline helper refuses a changed value or a non-selectPath node at ei
 ## Stat-stage extension
 
 `effect_emblem_raise_spd_1_stage_when_baonuan_20_percent` and `effect_emblem_raise_spd_1_stage_when_rouruan_20_percent` each repair `/condition/conditions/1/target/chain/0/arg` from `skillId` to `skill`, after C07. The following query reads the selected skill's base ID, then the ordered condition draws the 20% probability. The action raises special defense (`spd`) by one stage. Exact-node refusal, original parse failure, positive/negative RNG and real skill execution are covered by the stat-stage timing suite. No global path alias is added.
+
+## Mark-event amount extension
+
+For `effect_ability_enhance_atk_when_spa_enhanced`, the sole repair is `/apply/value/selector/chain/0/arg`: `statLevelMarkLevel` → `stack`. The former property does not exist in AddMarkContext; `Pet.addStatStage` passes the signed requested amount into its stack. This reads the pending event amount, not an already merged or clamped target stage. Admission still checks the base mark's initial direction; late stack changes affect the action amount. The original parser failure, exact metadata, independently corrected reference and 32 behavior checks are recorded in [stat-stage evidence](stat-stages.md). This is a named correction candidate, not equivalence with the failing original or a new global field alias.

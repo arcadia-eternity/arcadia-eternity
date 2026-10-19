@@ -74,6 +74,39 @@ export function classifyStatStage(original) {
     !Number.isFinite(d.priority)
   )
     return { reason: 'unsupported definition fields' }
+  if (d.id === 'effect_ability_enhance_atk_when_spa_enhanced') {
+    const expected = {
+      id: d.id,
+      trigger: 'OnBeforeAddMark',
+      priority: d.priority,
+      apply: {
+        type: 'statStageBuff',
+        target: 'self',
+        statType: 'atk',
+        value: {
+          type: 'dynamic',
+          selector: { base: 'addMarkContext', chain: [{ type: 'selectPath', arg: 'stack' }] },
+        },
+      },
+      condition: {
+        type: 'every',
+        conditions: [{ type: 'selfAddMark' }, { type: 'statStageChange', check: 'up', stat: 'spa' }],
+      },
+    }
+    if (JSON.stringify(normalize(d)) !== JSON.stringify(normalize(expected)))
+      return { reason: 'unsupported mark-stage mapping' }
+    return {
+      id: d.id,
+      priority: d.priority,
+      triggers: [d.trigger],
+      target: 'self',
+      stat: 'atk',
+      valueCode: 'contexts.addMark.select(event => event.stack).first()',
+      when: "conditions.all(conditions.ownerAddsMark,conditions.statStageChange('spa','up'))",
+      pathRepairs: repaired.changes,
+      additionalDecisions: ['C09'],
+    }
+  }
   const a = d.apply
   const target = typeof a?.target === 'string' ? a.target : fields(a?.target, ['base']) ? a.target.base : undefined
   if (
@@ -177,7 +210,7 @@ export async function generateStatStages({ check = false } = {}) {
             `${p.name}:numberParam({default:${JSON.stringify(p.value)},tags:${JSON.stringify(p.tags ?? [])},legacyAliases:${JSON.stringify(p.configId ? [`${r.id}.${p.configId}`] : [])}})`,
         )
         .join(',')
-      const compiled = `compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.triggers)},priority:${r.priority},${params ? 'parameters,' : ''}when:${r.when},execute:targets.${r.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.changeStatStage(${JSON.stringify(r.stat)},${r.value}))}))`
+      const compiled = `compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.triggers)},priority:${r.priority},${params ? 'parameters,' : ''}when:${r.when},execute:targets.${r.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.changeStatStage(${JSON.stringify(r.stat)},${r.valueCode ?? r.value}))}))`
       entries.push(
         `${JSON.stringify(r.id)}:${params ? `(()=>{const parameters={${params}};return ${compiled}})()` : compiled}`,
       )

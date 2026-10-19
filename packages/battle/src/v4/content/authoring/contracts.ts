@@ -1,5 +1,12 @@
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
-import type { DamageContext, HealContext, TriggerContextMap, UseSkillContext, SwitchPetContext } from '../../context'
+import type {
+  AddMarkContext,
+  DamageContext,
+  HealContext,
+  TriggerContextMap,
+  UseSkillContext,
+  SwitchPetContext,
+} from '../../context'
 import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { BaseMark, MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
@@ -129,6 +136,8 @@ export declare const targets: {
 }
 export declare const contexts: {
   readonly battle: Selector<Battle>
+  /** Nearest mark-application ancestor, queried independently on every read. */
+  readonly addMark: Selector<AddMarkContext>
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
   readonly heal: Selector<HealContext>
@@ -158,6 +167,10 @@ export declare const conditions: {
   readonly lastSkillThisTurn: Condition
   /** Direct source ownership; the skill owner's consecutive count is divisible by this positive integer. */
   readonly everyNthUse: (times: number) => Condition
+  /** Direct mark application initiated by a source with the same owner; not target ownership. */
+  readonly ownerAddsMark: Condition
+  /** Direct event base-mark identity and initial sign, independent of its mutable stack. */
+  readonly statStageChange: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', direction: 'up' | 'down' | 'all') => Condition
   readonly selfBeDamaged: Condition
   readonly selfBeHealed: Condition
   /** One battle RNG draw on each call, including 0 and 100; short-circuiting is owned by the caller. */

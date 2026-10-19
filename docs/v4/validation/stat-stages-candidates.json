@@ -2,6 +2,30 @@
   "formatVersion": 1,
   "records": [
     {
+      "id": "effect_ability_enhance_atk_when_spa_enhanced",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/67",
+      "definitionSha256": "601f12569ac823fe547dec73e57f52472852cc0901e713ed87699e202a120aad",
+      "recipe": {
+        "id": "effect_ability_enhance_atk_when_spa_enhanced",
+        "priority": 0,
+        "triggers": ["OnBeforeAddMark"],
+        "target": "self",
+        "stat": "atk",
+        "valueCode": "contexts.addMark.select(event => event.stack).first()",
+        "when": "conditions.all(conditions.ownerAddsMark,conditions.statStageChange('spa','up'))",
+        "pathRepairs": [
+          {
+            "path": "/apply/value/selector/chain/0/arg",
+            "before": "statLevelMarkLevel",
+            "after": "stack"
+          }
+        ],
+        "additionalDecisions": ["C09"]
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_ability_raise_spe_1_stage_when_dodge",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/71",
@@ -2238,13 +2262,6 @@
     }
   ],
   "rejected": [
-    {
-      "id": "effect_ability_enhance_atk_when_spa_enhanced",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/67",
-      "definitionSha256": "601f12569ac823fe547dec73e57f52472852cc0901e713ed87699e202a120aad",
-      "reason": "requires literal stat/value and self/opponent target"
-    },
     {
       "id": "effect_skill_set_self_spa_to_atk",
       "sourceFile": "packs/base/data/effect_skill.yaml",

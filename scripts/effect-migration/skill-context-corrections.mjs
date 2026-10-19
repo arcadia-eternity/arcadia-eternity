@@ -20,6 +20,7 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_ability_enhance_atk_when_spa_enhanced: [['/apply/value/selector/chain/0/arg', 'statLevelMarkLevel', 'stack']],
   effect_emblem_raise_spd_1_stage_when_baonuan_20_percent: [
     ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
   ],

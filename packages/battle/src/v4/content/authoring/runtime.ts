@@ -11,7 +11,7 @@ import {
 } from '../../context'
 import { Pet } from '../../pet'
 import { SkillInstance } from '../../skill'
-import { BaseMark, MarkInstanceImpl } from '../../mark'
+import { BaseMark, BaseStatLevelMark, MarkInstanceImpl } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
 import type { SnapshotCatalog } from '../../snapshot'
 import type { Effect } from '../../effect'
@@ -290,6 +290,10 @@ function nearestContext<T extends AllContext>(ctx: Frame, kind: abstract new (..
 }
 export const contexts: typeof C.contexts = {
   battle: selector(ctx => [engine(ctx).battle]),
+  addMark: selector(ctx => {
+    const event = nearestContext(ctx, AddMarkContext)
+    return event ? [event] : []
+  }),
   damage: selector(ctx => {
     const event = nearestContext(ctx, DamageContext)
     return event ? [event] : []
@@ -350,6 +354,18 @@ export const conditions: typeof C.conditions = {
       ctx.event instanceof UseSkillContext &&
       owner(ctx) === ctx.event.pet &&
       (ctx.event.skill.owner?.lastSkillUsedTimes ?? 0) % times === 0
+  },
+  ownerAddsMark: ctx =>
+    ctx.event instanceof AddMarkContext && engine(ctx).source.owner === ctx.event.parent.source.owner,
+  statStageChange: (stat, direction) => ctx => {
+    if (!(ctx.event instanceof AddMarkContext)) return false
+    const mark = ctx.event.baseMark
+    return (
+      mark instanceof BaseStatLevelMark &&
+      mark.statType === stat &&
+      mark.initialLevel !== 0 &&
+      (direction === 'all' || (direction === 'up' ? mark.initialLevel > 0 : mark.initialLevel < 0))
+    )
   },
   selfBeDamaged: ctx => ctx.event instanceof DamageContext && owner(ctx) === ctx.event.target,
   selfBeHealed: ctx => ctx.event instanceof HealContext && owner(ctx) === ctx.event.target,

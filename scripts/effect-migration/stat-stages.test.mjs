@@ -53,7 +53,7 @@ test('rejects unsupported semantics and ambiguous parameter aliases', () => {
     assert.ok(classifyStatStage(bad).reason)
 })
 test('all emitted source and ledger reproduce exactly', async () =>
-  assert.deepEqual(await generateStatStages({ check: true }), { generated: 100, parameters: 42, rejected: 2 }))
+  assert.deepEqual(await generateStatStages({ check: true }), { generated: 101, parameters: 42, rejected: 1 }))
 
 test('shared authored conditions preserve stat identity and ordered admission', () => {
   const d = source()
@@ -223,4 +223,38 @@ test('damage-stage domain cannot inherit skill-only checkSelf or mixed triggers'
   }
   assert.equal(classifyStatStage(d).when, 'conditions.selfBeDamaged')
   assert.ok(classifyStatStage({ ...d, trigger: ['OnDamage', 'BeforeHit'] }).reason)
+})
+
+test('mark-stage correction is exact and preserves its dynamic read', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { parse } = await import('yaml')
+  const d = parse(await readFile('packs/base/data/effect_ability.yaml', 'utf8'), { merge: true }).find(
+    d => d.id === 'effect_ability_enhance_atk_when_spa_enhanced',
+  )
+  const before = structuredClone(d)
+  const r = classifyStatStage(d)
+  assert.equal(r.valueCode, 'contexts.addMark.select(event => event.stack).first()')
+  assert.deepEqual(r.additionalDecisions, ['C09'])
+  assert.deepEqual(d, before)
+  for (const change of [
+    x => {
+      x.apply.value.selector.chain[0].arg = 'unknown'
+    },
+    x => {
+      x.apply.value.selector.base = 'damageContext'
+    },
+    x => {
+      x.condition.conditions[1].check = 'down'
+    },
+    x => {
+      x.trigger = 'OnAddMark'
+    },
+    x => {
+      x.apply.target = 'opponent'
+    },
+  ]) {
+    const altered = structuredClone(d)
+    change(altered)
+    assert.ok(classifyStatStage(altered).reason)
+  }
 })

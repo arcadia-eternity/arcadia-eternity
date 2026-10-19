@@ -414,6 +414,17 @@ const parameters = new ParameterCatalog([
 export const generatedStatStageCandidates = Object.freeze({
   parameters,
   effects: Object.freeze({
+    effect_ability_enhance_atk_when_spa_enhanced: compileEffect(
+      defineEffect({
+        id: 'effect_ability_enhance_atk_when_spa_enhanced',
+        on: ['OnBeforeAddMark'],
+        priority: 0,
+        when: conditions.all(conditions.ownerAddsMark, conditions.statStageChange('spa', 'up')),
+        execute: targets.ownerPet.apply(
+          ops.changeStatStage('atk', contexts.addMark.select(event => event.stack).first()),
+        ),
+      }),
+    ),
     effect_ability_raise_spe_1_stage_when_dodge: compileEffect(
       defineEffect({
         id: 'effect_ability_raise_spe_1_stage_when_dodge',
