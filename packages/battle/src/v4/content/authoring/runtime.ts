@@ -10,7 +10,6 @@ import type { Battle } from '../../battle'
 import type { ValueDefinition } from '../../values/plan'
 import { Evaluation, ValuePlan, defineValue } from '../../values/plan'
 import { BindingInputUnavailable, installValueModifier } from '../../values/binding'
-import { observeMarks, observeOwner } from './relations'
 import type * as C from './contracts'
 
 type Frame = C.EffectFrame
@@ -219,7 +218,6 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
 }
 function owner(ctx: Frame): Pet | undefined {
   const source = scope(ctx).source
-  observeOwner(source)
   return source.owner instanceof Pet ? source.owner : undefined
 }
 export const targets: typeof C.targets = {
@@ -234,7 +232,6 @@ export const targets: typeof C.targets = {
   ownerMarks: selector(ctx => {
     const pet = owner(ctx)
     if (!pet) return []
-    observeMarks(pet)
     return [...pet.marks]
   }),
   sourceMark: selector(ctx => {

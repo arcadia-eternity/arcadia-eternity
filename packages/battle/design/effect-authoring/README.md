@@ -58,4 +58,4 @@ TypeScript 无法证明任意回调纯净，也无法保证节点 key 在运行�
 
 这次证明静态接口及上述运行时场景，不宣称与全部旧效果等价。持续计划已通过 `registerEffect(catalog, compiledEffect)` 与效果整批注册；计划身份由 effect ID 与 binding key 决定。组合动作自动收集绑定声明，自定义 execute 回调须在 `bindings` 中显式列出。恢复只持有来源印记引用，不保留旧触发上下文；持续查询不能访问触发事件或执行动作。尚未提供 UGC 参数覆盖/校验，参数当前只读取声明默认值；候选效果仍需完整验收才能发布。
 
-`src/v4/content/authoring/relations.ts` 是试验适配层：按需观察来源 owner 和 Pet.marks，列表方法在整个修改完成后通知，支持直接索引替换和列表重新赋值。它没有修改生产实体构造器；不支持绕过代理修改预先保留的原始数组引用，已验证 JSON 恢复后重新建立关系监听、重复恢复与来源清理。进入正式运行时前，应把关系通知纳入领域实体的统一变更入口。其余同步依赖、预算、capture 状态、modifier 及清理均复用现有 V4 实现，没有引入 RxJS。
+关系通知现位于 `src/v4/values/relations.ts`，由 Pet、Mark、Skill 构造器及存档恢复初始化，作者 API 不再按需改写领域对象。提前保留的 `pet.marks` 句柄也能通知选择器；整表赋值复制成员数组，之后应通过 `pet.marks` 修改集合，原始传入数组和已替换的旧句柄都不能影响或通知当前集合。列表方法完成后通知一次，直接索引与 length 修改也会通知。其余同步依赖、预算、capture 状态、modifier 及清理均复用现有 V4 实现，没有引入 RxJS。详见 [领域关系验证](../../../../docs/v4/validation/domain-relations.md)。

@@ -27,4 +27,4 @@ Both independent Standards and Spec reviews passed after fixing partial registra
 
 ## Remaining boundaries
 
-The lazy relation adapter still cannot observe mutation through raw array aliases obtained before instrumentation. Production integration must centralize those domain notifications. The weakness-speed candidate's legacy removal decision and full-game comparison remain outstanding. Parameter overrides, official loader admission and the remaining catalog are separate migration work; all four authored candidate records remain U.
+Domain relation notifications now initialize at construction and hydration; the lazy adapter has been removed. See [domain relation evidence](domain-relations.md) for the owned-list contract and regressions. The weakness-speed candidate's legacy removal decision and full-game comparison remain outstanding. Parameter overrides, official loader admission and the remaining catalog are separate migration work; all four authored candidate records remain U.

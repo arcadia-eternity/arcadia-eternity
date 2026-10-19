@@ -1,3 +1,4 @@
+import { initializeOwnerRelations } from './values/relations'
 import { normalizeMarkInstanceParams, markParameterContract, type MarkInstanceParams } from './content/mark-parameters'
 import {
   BattleMessageType,
@@ -144,6 +145,7 @@ export class MarkInstanceImpl implements MarkInstance {
     },
   ) {
     this.instanceParams = normalizeMarkInstanceParams(base, overrides?.instanceParams)
+    initializeOwnerRelations(this)
     this.id = nanoid() as markId
     const mergedConfig = {
       ...base.config,

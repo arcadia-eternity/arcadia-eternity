@@ -1,3 +1,4 @@
+import { initializeOwnerRelations } from './values/relations'
 // skill.ts
 import {
   AttackTargetOpinion,
@@ -17,101 +18,101 @@ import { Pet } from './pet'
 import { SkillAttributeSystem } from './attributeSystem'
 
 export class BaseSkillBuilder {
-    #id = '' as baseSkillId
-    #type = Element.Normal
-    #power = 0
-    #accuracy = 100
-    #rageCost = 0
-    #target = AttackTargetOpinion.opponent
-    #skillType = Category.Physical
-    #effects: Effect<EffectTrigger>[] = []
-    #priority: number = 0
-    #sureHit: boolean = false
-    #sureCrit: boolean = false
-    #ignoreShield: boolean = false
-    #ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
-    #multihit: [number, number] | number = 1
-    #tags: string[] = []
+  #id = '' as baseSkillId
+  #type = Element.Normal
+  #power = 0
+  #accuracy = 100
+  #rageCost = 0
+  #target = AttackTargetOpinion.opponent
+  #skillType = Category.Physical
+  #effects: Effect<EffectTrigger>[] = []
+  #priority: number = 0
+  #sureHit: boolean = false
+  #sureCrit: boolean = false
+  #ignoreShield: boolean = false
+  #ignoreOpponentStageStrategy: IgnoreStageStrategy = IgnoreStageStrategy.none
+  #multihit: [number, number] | number = 1
+  #tags: string[] = []
 
-    withID(id: string) {
-      this.#id = id as baseSkillId
-      return this
-    }
+  withID(id: string) {
+    this.#id = id as baseSkillId
+    return this
+  }
 
-    withType(type: Element) {
-      this.#type = type
-      return this
-    }
+  withType(type: Element) {
+    this.#type = type
+    return this
+  }
 
-    withPower(power: number) {
-      this.#power = power
-      return this
-    }
+  withPower(power: number) {
+    this.#power = power
+    return this
+  }
 
-    withAccuracy(accuracy: number) {
-      this.#accuracy = accuracy
-      return this
-    }
+  withAccuracy(accuracy: number) {
+    this.#accuracy = accuracy
+    return this
+  }
 
-    withRageCost(cost: number) {
-      this.#rageCost = cost
-      return this
-    }
+  withRageCost(cost: number) {
+    this.#rageCost = cost
+    return this
+  }
 
-    withTarget(target: AttackTargetOpinion) {
-      this.#target = target
-      return this
-    }
+  withTarget(target: AttackTargetOpinion) {
+    this.#target = target
+    return this
+  }
 
-    withSkillType(type: Category) {
-      this.#skillType = type
-      return this
-    }
+  withSkillType(type: Category) {
+    this.#skillType = type
+    return this
+  }
 
-    addEffect(effect: Effect<EffectTrigger>) {
-      this.#effects.push(effect)
-      return this
-    }
+  addEffect(effect: Effect<EffectTrigger>) {
+    this.#effects.push(effect)
+    return this
+  }
 
-    setSureHit() {
-      this.#sureHit = true
-      return this
-    }
+  setSureHit() {
+    this.#sureHit = true
+    return this
+  }
 
-    setSureCrit() {
-      this.#sureCrit = true
-      return this
-    }
+  setSureCrit() {
+    this.#sureCrit = true
+    return this
+  }
 
-    withMultihit(hit: [number, number] | number) {
-      this.#multihit = hit
-      return this
-    }
+  withMultihit(hit: [number, number] | number) {
+    this.#multihit = hit
+    return this
+  }
 
-    withTag(...arg: string[]) {
-      this.#tags.push(...arg)
-      return this
-    }
+  withTag(...arg: string[]) {
+    this.#tags.push(...arg)
+    return this
+  }
 
-    build() {
-      return new BaseSkill(
-        this.#id,
-        this.#skillType,
-        this.#type,
-        this.#power,
-        this.#accuracy,
-        this.#rageCost,
-        this.#priority,
-        this.#target,
-        this.#multihit,
-        this.#sureHit,
-        this.#sureCrit,
-        this.#ignoreShield,
-        this.#ignoreOpponentStageStrategy,
-        this.#tags,
-        this.#effects,
-      )
-    }
+  build() {
+    return new BaseSkill(
+      this.#id,
+      this.#skillType,
+      this.#type,
+      this.#power,
+      this.#accuracy,
+      this.#rageCost,
+      this.#priority,
+      this.#target,
+      this.#multihit,
+      this.#sureHit,
+      this.#sureCrit,
+      this.#ignoreShield,
+      this.#ignoreOpponentStageStrategy,
+      this.#tags,
+      this.#effects,
+    )
+  }
 }
 
 export class BaseSkill implements Prototype {
@@ -173,6 +174,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     },
   ) {
     this.id = nanoid() as skillId
+    initializeOwnerRelations(this)
     this.category = base.category
     this.element = base.element
     this.target = overrides?.target ?? base.target

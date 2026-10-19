@@ -43,7 +43,7 @@ import { getCleanupBinding, getModifierCleanup, describeCleanup } from './snapsh
 import { bindValue, RestoredBoundValue, validateBindingState, type BoundValue } from './values/binding'
 import type { BindingTarget } from './values/dependencies'
 import type { ValueDefinition, BindingState } from './values/plan'
-import { initializePlayerRelations } from './values/relations'
+import { initializeOwnerRelations, initializePetRelations, initializePlayerRelations } from './values/relations'
 
 type Atom = null | boolean | string | number
 type Encoded = Atom | { ref: number } | { atom: 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' }
@@ -695,6 +695,8 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
         battle.registerListener(object.handleMessage.bind(object))
         if (object instanceof AIPlayer) object.restoreSnapshotRuntime()
       } else if (object instanceof Pet || object instanceof MarkInstanceImpl) set(object, { emitter })
+      if (object instanceof Pet) initializePetRelations(object)
+      else if (object instanceof MarkInstanceImpl || object instanceof SkillInstance) initializeOwnerRelations(object)
       if (object instanceof StatLevelMarkInstanceImpl)
         set(object, {
           levelAccessors: (

@@ -1,3 +1,4 @@
+import { initializePetRelations } from './values/relations'
 import {
   BattleMessageType,
   Category,
@@ -95,6 +96,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
     this.element = originalSpecies.element
     this.owner = null
+    initializePetRelations(this)
 
     // Initialize attribute system with pet ID (battleId will be set later in setOwner)
     this.attributeSystem = new PetAttributeSystem(this.id)

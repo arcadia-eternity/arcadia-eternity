@@ -306,3 +306,33 @@ it('duplicate temporal keys and self-dependent attributes are rejected, not trea
   }
   expect(f.owner.stat.spe).toBe(initial)
 })
+
+it('observes a marks handle retained before the first persistent selector runs', () => {
+  const f = fixture()
+  const marks = f.owner.marks
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  const mark = f.add('mark_ruodianjihao', [], 2)
+  f.add('speed-source', [penalty(entryStackPenalty)])
+  expect(f.owner.stat.spe).toBe(250)
+  marks.splice(marks.indexOf(mark), 1)
+  mark.stack = 4
+  marks.push(mark)
+  expect(f.owner.stat.spe).toBe(200)
+})
+
+it('takes ownership of assigned membership instead of retaining an unobservable raw array alias', () => {
+  const f = fixture()
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  const mark = f.add('mark_ruodianjihao', [], 2)
+  const input = [...f.owner.marks]
+  f.owner.marks = input
+  f.add('speed-source', [penalty(entryStackPenalty)])
+  input.splice(input.indexOf(mark), 1)
+  expect(f.owner.marks).toContain(mark)
+  expect(f.owner.stat.spe).toBe(250)
+  const current = f.owner.marks
+  current.splice(current.indexOf(mark), 1)
+  mark.stack = 4
+  current.push(mark)
+  expect(f.owner.stat.spe).toBe(200)
+})
