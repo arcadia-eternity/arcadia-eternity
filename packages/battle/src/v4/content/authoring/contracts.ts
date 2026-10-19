@@ -154,6 +154,8 @@ export declare const conditions: {
   readonly selfUsesSkill: Condition
   /** Direct skill event owned by this source; unlike selfUsesSkill, no skill identity restriction. */
   readonly ownerUsesSkill: Condition
+  /** Legacy checkSelf: compare source ownership with the subject of the direct event. */
+  readonly sourceOwnsEvent: Condition
   /** Source pet is the actual target of the direct skill event. */
   readonly ownerIsSkillTarget: Condition
   /** Source pet is the incoming pet of the direct switch context. */

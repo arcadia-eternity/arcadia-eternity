@@ -41,3 +41,8 @@ export {
 export { createCurseMarkApplication } from './src/v4/official/curse-mark-application'
 
 export { createRandomWeatherApplication, randomWeatherDependencies } from './src/v4/official/random-weather-application'
+
+export {
+  generatedSkillOutcomeEffects,
+  createGeneratedSkillOutcomeEffects,
+} from './src/v4/official/skill-outcomes.generated'

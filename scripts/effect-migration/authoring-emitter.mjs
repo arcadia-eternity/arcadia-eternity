@@ -214,7 +214,7 @@ function rawParameter(v, parameters, name) {
   })
   return { code: `parameters.${name}`, literal: false, required: true }
 }
-function number(v, parameters, path, domain = 'damage') {
+function number(v, parameters, path, domain = 'damage', options = {}) {
   if (Number.isFinite(v)) return { code: q(v), literal: true }
   if (v?.type === 'raw:number') return rawParameter(v, parameters, path)
   if (fields(v, ['type', 'selector']) && v.type === 'dynamic') {
@@ -224,9 +224,9 @@ function number(v, parameters, path, domain = 'damage') {
   if (fields(v, ['type', 'condition', 'trueValue', 'falseValue']) && v.type === 'conditional') {
     // Legacy parsing treats a falsy false branch as absent, not numeric zero.
     if (!v.falseValue) return
-    const c = condition(v.condition, domain),
-      yes = number(v.trueValue, undefined, undefined, domain),
-      no = number(v.falseValue, undefined, undefined, domain)
+    const c = condition(v.condition, domain, undefined, 'condition', options),
+      yes = number(v.trueValue, undefined, undefined, domain, options),
+      no = number(v.falseValue, undefined, undefined, domain, options)
     // Keep optional-valued branches out until the public choose contract explicitly supports them.
     if (c && yes?.literal && no?.literal)
       return { code: `values.choose(${c},${yes.code},${no.code})`, literal: false, required: true }
@@ -234,7 +234,7 @@ function number(v, parameters, path, domain = 'damage') {
       return { code: `values.choose(${c},${yes.code},${no.code})`, literal: false, required: true }
   }
 }
-function condition(c, domain = 'damage', parameters, path = 'condition') {
+function condition(c, domain = 'damage', parameters, path = 'condition', options = {}) {
   if (fields(c, ['type'])) {
     if (domain === 'switch' && c.type === 'selfSwitchOut') return 'conditions.ownerSwitchesOut'
     if (domain === 'switch' && c.type === 'selfSwitchIn') return 'conditions.ownerSwitchesIn'
@@ -244,11 +244,13 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
     if (c.type === 'selfUseSkill') return 'conditions.selfUsesSkill'
     // checkSelf refers to a different event subject in each supported stage family.
     if (c.type === 'checkSelf')
-      return domain === 'switch'
-        ? 'conditions.ownerSwitchesIn'
-        : domain === 'skill'
-          ? 'conditions.ownerUsesSkill'
-          : 'conditions.selfBeDamaged'
+      return options.eventOwnership
+        ? 'conditions.sourceOwnsEvent'
+        : domain === 'switch'
+          ? 'conditions.ownerSwitchesIn'
+          : domain === 'skill'
+            ? 'conditions.ownerUsesSkill'
+            : 'conditions.selfBeDamaged'
     if (domain === 'skill' && c.type === 'selfBeSkillTarget') return 'conditions.ownerIsSkillTarget'
     if (c.type === 'selfBeDamaged' && domain === 'damage') return 'conditions.selfBeDamaged'
   }
@@ -278,11 +280,11 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
     Array.isArray(c.conditions) &&
     c.conditions.length
   ) {
-    const items = c.conditions.map((item, index) => condition(item, domain, parameters, `${path}_${index}`))
+    const items = c.conditions.map((item, index) => condition(item, domain, parameters, `${path}_${index}`, options))
     if (items.every(Boolean)) return `conditions.${c.type === 'every' ? 'all' : 'any'}(${items.join(',')})`
   }
   if (fields(c, ['type', 'condition']) && c.type === 'not') {
-    const inner = condition(c.condition, domain, parameters, `${path}_not`)
+    const inner = condition(c.condition, domain, parameters, `${path}_not`, options)
     if (inner) return `conditions.not(${inner})`
   }
   if (fields(c, ['type', 'baseId']) && typeof c.baseId === 'string') {
@@ -298,7 +300,7 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
     fields(c.evaluator, ['type', 'percent']) &&
     c.evaluator.type === 'probability'
   ) {
-    const percent = number(c.evaluator.percent, parameters, `${path}_percent`, domain)
+    const percent = number(c.evaluator.percent, parameters, `${path}_percent`, domain, options)
     if (percent && (percent.literal || percent.required)) return `conditions.chance(${percent.code})`
   }
   if (
@@ -430,7 +432,13 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
     )
       return
     const left = selectedNumber(c.target, undefined, undefined, 'first', domain),
-      right = number(e.value, c.target.base === 'damageContext' ? parameters : undefined, `${path}_value`, domain)
+      right = number(
+        e.value,
+        c.target.base === 'damageContext' ? parameters : undefined,
+        `${path}_value`,
+        domain,
+        options,
+      )
     // Existing optional fields may yield [undefined], distinct from an empty query; don't collapse equality.
     if (e.operator === '==' && [left, right?.code].some(code => code && /pet\.(weight|height)/.test(code))) return
     if (left && right)

@@ -7,7 +7,9 @@ import {
   SwitchPetContext,
   TurnContext,
   type AllContext,
-  type EffectContext,
+  EffectContext,
+  RageContext,
+  StackContext,
 } from '../../context'
 import { Pet } from '../../pet'
 import { SkillInstance } from '../../skill'
@@ -336,6 +338,23 @@ export const conditions: typeof C.conditions = {
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
   ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
+  sourceOwnsEvent: ctx => {
+    const event = ctx.event,
+      sourceOwner = engine(ctx).source.owner
+    if (event instanceof UseSkillContext) return sourceOwner === event.pet
+    if (event instanceof DamageContext || event instanceof HealContext) return sourceOwner === event.target
+    if (
+      event instanceof RageContext &&
+      event.reason === 'damage' &&
+      event.parent instanceof UseSkillContext &&
+      sourceOwner instanceof Pet
+    )
+      return sourceOwner.owner === event.target
+    if (event instanceof EffectContext) return sourceOwner === event.source.owner
+    if (event instanceof SwitchPetContext) return sourceOwner === event.switchInPet
+    if (event instanceof StackContext) return sourceOwner === event.existingMark.owner
+    return false
+  },
   ownerIsSkillTarget: ctx => {
     const pet = owner(ctx)
     return pet !== undefined && ctx.event instanceof UseSkillContext && pet === ctx.event.actualTarget

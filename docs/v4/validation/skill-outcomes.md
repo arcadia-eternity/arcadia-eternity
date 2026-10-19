@@ -1,0 +1,21 @@
+# Hit and critical outcome candidates
+
+The offline generator emits 51 of the 65 current single-action definitions and records 14 explicit rejections. All records remain U pending acceptance; production registration is unchanged. The generated TypeScript calls the shared skill-context selectors, conditions and outcome operators. It imports no legacy parser or runtime DSL.
+
+Every emitted record pins its source hash and exact C07 selector spelling changes. Original YAML remains unchanged. Reference fixtures independently copy `useSkillContext` to `usingSkillContext` only in base/target fields and assert that the unmodified definition fails parsing. The source/ledger audit checks every emitted ID and recipe, including action priority separately from effect priority.
+
+There are 47 literal actions and four dynamic actions. The dynamic critical-rate cases read current owner consecutive-use count, opposing target mark stacks, or owner mark duration. Accuracy has a corresponding duration-based case. Collection of values preserves order, and multiplication retains the legacy indexed pairing with zero for missing right-hand members. Critical rate applies every returned value; accuracy uses the first. The two raw duration multipliers become separate authored number parameters with default 25 and stable effect/node identities.
+
+Conditions are collected once. BeforeEffect changes do not revoke admission, but the action queries the current skill context and its value sources when it runs. The tests exercise both skill and mark sources, late ownership/target/mark changes, cancellation, nested or missing context, repeated application and real SkillPhase dispatch. Positive cases independently assert resulting rate or override entries, while negative condition fixtures assert refusal. The two configurable effects additionally test zero, 7.5, foreign-source overrides and execution-time changes against independent legacy keys.
+
+The 14 rejected definitions are still part of the migration goal: five first-skill conditions require their own C08 evidence; five defensive effects require opponent-use admission and two of those automatic stack consumption; three use malformed skill/attribute paths; one compares opposing mark stacks in its condition. No generic alias or approximation accepts those definitions in this batch.
+
+Reproduce generation with `node scripts/effect-migration/skill-outcomes.mjs --check`. Run the public test file `packages/battle/test/v4/skill-outcomes.test.ts` after building the battle package. Full-game and fresh-catalog checkpoint acceptance for these IDs remain pending.
+
+Defensive follow-up constraint: legacy `opponentUseSkill` searches for the nearest skill context and compares `source.owner !== skill.pet`. It does not check opposing player membership. A same-player bench source can therefore satisfy it, while `selfBeSkillTarget` separately requires the direct skill event's actual target. The eventual shared predicate must preserve those distinct checks and test bench/global ownership explicitly.
+
+## Verification and event ownership
+
+The first full run exposed 16 nested-context mismatches and four real-phase fixture failures (1,460 passed, 20 failed). Legacy `checkSelf` dispatches on the direct parent event, including an EffectContext whose source owns the event. The shared `conditions.sourceOwnsEvent` now preserves that dispatch; `ownerUsesSkill` retains its narrower direct-skill semantics. Outcome generation opts into this mapping, including nested conditional number expressions. Existing mechanism generators retain their previous mapping and need a separate nested-event audit. BeforeHit fixtures establish a hit so that the real phase actually reaches the tested trigger.
+
+After repair, all 1,496 outcome tests passed in seven disjoint ID groups with at most two processes; the groups sum to the complete file, including its catalog audit and parameter cases. Another focused run passed 207 nested/phase/event-ownership tests, including three direct-parent ownership matrices. All 73 offline generator tests, 69 authoring design tests, V4 typechecking and lint, declaration generation, and source provenance checks passed. Both review axes closed their findings. These are scoped checks, not a replacement for the previously recorded non-green full V4 regression.
