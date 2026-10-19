@@ -1,0 +1,42 @@
+{
+  "id": "effect_skill_set_field_qingtian_or_yemu",
+  "sourceFile": "packs/base/data/effect_skill.yaml",
+  "sourcePath": "/306",
+  "definitionSha256": "5b5bf6ada5d715738760790e03dab75a9e0807499a83bca586df132ddba28bca",
+  "classification": "U",
+  "status": "handwritten-candidate",
+  "decisions": ["C07", "C10", "C13"],
+  "corrections": [
+    {
+      "decision": "C07",
+      "path": "/condition/conditions/1/target/base",
+      "before": "useSkillContext",
+      "after": "usingSkillContext"
+    },
+    {
+      "decision": "C10",
+      "path": "/apply/mark/type",
+      "before": "selectorValue",
+      "after": "selector"
+    },
+    {
+      "decision": "C13",
+      "field": "UseSkillContext.currentHitCount",
+      "semantics": "Zero before attempts; one-based ordinal assigned before each hit or miss attempt; independent of mutable remaining multihitResult; reset at skill execution start."
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "mark_global_qingtian",
+      "sourceFile": "packs/base/data/mark_global.yaml",
+      "definitionSha256": "d0571c81ce2d0f2ab944b8b193a9957c0cce99d15ea2c1592fdba7f3fd42864a",
+      "effectIds": ["effect_global_power_35_percent_grass_light"]
+    },
+    {
+      "id": "mark_global_yemu",
+      "sourceFile": "packs/base/data/mark_global.yaml",
+      "definitionSha256": "f80de69c5172ac710b3dc5a884c84001a6b7b2640c0f840bb43863d523789802",
+      "effectIds": ["effect_global_power_35_percent_shadow_trait"]
+    }
+  ]
+}

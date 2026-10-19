@@ -39,3 +39,5 @@ export {
 } from './src/v4/official/random-mark-applications'
 
 export { createCurseMarkApplication } from './src/v4/official/curse-mark-application'
+
+export { createRandomWeatherApplication, randomWeatherDependencies } from './src/v4/official/random-weather-application'
