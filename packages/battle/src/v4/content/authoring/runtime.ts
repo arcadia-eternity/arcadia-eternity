@@ -13,6 +13,7 @@ import {
   RemoveMarkContext,
 } from '../../context'
 import { Pet } from '../../pet'
+import { Player } from '../../player'
 import { SkillInstance } from '../../skill'
 import { BaseMark, BaseStatLevelMark, MarkInstanceImpl } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
@@ -472,7 +473,14 @@ function parameter<T extends number | boolean>(options: {
 function assertWriteTarget(ctx: Frame, input: unknown): void {
   const target = input !== null && typeof input === 'object' ? (writes.get(input)?.target ?? input) : input
   const owner = target instanceof Pet || target instanceof MarkInstanceImpl ? target.owner : undefined
-  const battle = target instanceof Pet ? target.owner?.battle : owner instanceof Pet ? owner.owner?.battle : owner
+  const battle =
+    target instanceof Player
+      ? target.battle
+      : target instanceof Pet
+        ? target.owner?.battle
+        : owner instanceof Pet
+          ? owner.owner?.battle
+          : owner
   if (battle !== engine(ctx).battle) throw new Error('Cross-battle or unowned write target')
 }
 function numeric<T>(
@@ -594,6 +602,16 @@ export const ops: typeof C.ops = {
     numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)
       pet.heal(new HealContext(source, source.source, pet, n))
+    }),
+  dealDamage: amount =>
+    numeric(amount, (ctx, pet, n) => {
+      const source = engine(ctx)
+      pet.damage(new DamageContext(source, source.source, pet, n))
+    }),
+  addRage: amount =>
+    numeric(amount, (ctx, target, n) => {
+      const source = engine(ctx)
+      target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'add', n))
     }),
   removeMark: () => (ctx, selected) => {
     for (const mark of selected) if (mark.isActive) assertWriteTarget(ctx, mark)

@@ -56,3 +56,5 @@ export {
   generatedStatStageSequences,
   createGeneratedStatStageSequences,
 } from './src/v4/official/stat-stage-sequences.generated'
+
+export { generatedVitalSequences, createGeneratedVitalSequences } from './src/v4/official/vital-sequences.generated'

@@ -1,10 +1,23 @@
-import { fields, members } from './authoring-emitter.mjs'
+import { fields, members, number } from './authoring-emitter.mjs'
 import { classifySkillOutcome } from './skill-outcomes.mjs'
 import { classifySkillPower } from './skill-power.mjs'
 const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss', 'setSureCrit']
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
-export function sequenceAction(a, trigger, domain = 'skill') {
+export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional') return
+  if (['heal', 'dealDamage', 'addRage'].includes(a?.type)) {
+    if (!fields(a, ['type', 'target', 'value'])) return
+    const target = typeof a.target === 'string' ? a.target : fields(a.target, ['base']) ? a.target.base : undefined
+    const roots = {
+      self: 'ownerPet',
+      opponent: 'opponentActive',
+      ...(a.type === 'addRage' ? { selfPlayer: 'selfPlayer' } : {}),
+    }
+    if (!Object.hasOwn(roots, target)) return
+    const value = number(a.value, parameters, path, domain)
+    if (!value) return
+    return `targets.${roots[target]}.apply(ops.${a.type}(${value.code}))`
+  }
   if (skillActionTypes.includes(a?.type)) {
     const classifier = outcomeTypes.includes(a.type) ? classifySkillOutcome : classifySkillPower
     const recipe = classifier({ id: 'sequence-node', trigger, priority: 0, apply: a })

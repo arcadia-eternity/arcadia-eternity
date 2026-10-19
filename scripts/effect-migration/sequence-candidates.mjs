@@ -51,8 +51,9 @@ export function classifySequence(original, profile) {
   if (!when || parameters.length) return { reason: 'condition needs a separate mapping' }
   const actions = d.apply.map((a, i) => ({
     sourcePath: `/apply/${i}`,
-    code: sequenceAction(a, d.trigger, d.trigger === 'OnDamage' ? 'damage' : 'skill'),
+    code: sequenceAction(a, d.trigger, d.trigger === 'OnDamage' ? 'damage' : 'skill', parameters, `action${i}_value`),
   }))
+  if (parameters.length && !profile.parameters) return { reason: 'action parameters need a separate mapping' }
   if (actions.some(a => !a.code)) return { reason: 'unsupported sequence action or parameter' }
   return {
     id: d.id,
@@ -60,6 +61,7 @@ export function classifySequence(original, profile) {
     priority: d.priority,
     when,
     actions,
+    ...(parameters.length ? { parameters } : {}),
     repairedPaths: paths,
     ...(valueRepairs.length ? { valueRepairs } : {}),
     ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
@@ -105,12 +107,19 @@ export async function generateSequences(profile, { check = false } = {}) {
   }
   records.sort((a, b) => a.id.localeCompare(b.id, 'en'))
   rejected.sort((a, b) => a.id.localeCompare(b.id, 'en'))
-  const entries = records.map(
-    ({ recipe: r }) =>
-      `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.trigger)},priority:${r.priority},${r.consumesStacks !== undefined ? `consumesStacks:${r.consumesStacks},` : ''}${r.tags ? `tags:${JSON.stringify(r.tags)},` : ''}when:${r.when},execute:actions.sequence(${r.actions.map(a => a.code).join(',')})}))`,
-  )
+  const entries = records.map(({ recipe: r }) => {
+    const params = r.parameters
+      ?.map(
+        p =>
+          `${p.name}:numberParam({default:${JSON.stringify(p.value)},tags:${JSON.stringify(p.tags ?? [])},legacyAliases:${JSON.stringify(p.configId ? [`${r.id}.${p.configId}`] : [])}})`,
+      )
+      .join(',')
+    const compiled = `compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.trigger)},priority:${r.priority},${r.consumesStacks !== undefined ? `consumesStacks:${r.consumesStacks},` : ''}${r.tags ? `tags:${JSON.stringify(r.tags)},` : ''}${params ? 'parameters,' : ''}when:${r.when},execute:actions.sequence(${r.actions.map(a => a.code).join(',')})}))`
+    return `${JSON.stringify(r.id)}:${params ? `(()=>{const parameters={${params}};return ${compiled}})()` : compiled}`
+  })
   const imports = [
     'selectFrom',
+    'numberParam',
     'compileEffect',
     'defineEffect',
     'conditions',
