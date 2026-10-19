@@ -38,6 +38,7 @@ interface RecordEntry {
   definitionSha256: string
   recipe: {
     when: string
+    tags?: string[]
     additionalDecisions?: string[]
     target: 'self' | 'opponent' | 'battle'
     markId: string
@@ -77,7 +78,10 @@ afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
 
-const valueRecords = records.filter(record => record.recipe.stackValue || record.recipe.durationValue)
+const consecutiveStackId = 'effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20'
+const valueRecords = records.filter(
+  record => record.id !== consecutiveStackId && (record.recipe.stackValue || record.recipe.durationValue),
+)
 const probabilityRecords = records.filter(record =>
   record.recipe.parameters?.some(parameter => parameter.name.startsWith('condition_')),
 )
@@ -85,6 +89,7 @@ const branchingProbabilityId = 'effect_skill_add_mark_opponent_zhixi_10_or_40_pe
 const elementRecords = records.filter(record => record.recipe.when.includes('pets[0]?.element'))
 const conditionalRecords = records.filter(
   record =>
+    record.id !== consecutiveStackId &&
     !valueRecords.includes(record) &&
     !elementRecords.includes(record) &&
     !probabilityRecords.includes(record) &&
@@ -118,6 +123,14 @@ function admissionState(
   const self = battle.playerA.team[0],
     opponent = battle.playerB.team[0]
   if (elementRecords.includes(record)) opponent.element = Element.Fire
+  if (record.id === 'effect_skill_add_mark_opponent_liuxie_50_if_field_yemu') {
+    battle.marks.splice(0, battle.marks.length, ...battle.marks.filter(mark => mark.baseId !== 'mark_global_yemu'))
+    if (valid) {
+      const mark = baseMarks.get('mark_global_yemu')!.createInstance()
+      mark.owner = battle
+      battle.marks.push(mark)
+    }
+  }
   const support = supportMarks[record.id]
   if (support) {
     const pet = support[0] === 'self' ? self : opponent
@@ -166,6 +179,7 @@ const valueSupport: Record<string, ['self' | 'opponent', string]> = {
 }
 function defaultAmount(record: RecordEntry, key: 'stack' | 'duration') {
   const dynamic: Record<string, number> = {
+    [consecutiveStackId]: 10,
     effect_skill_add_mark_fansheguike: 301,
     effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500: 602,
     effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack: 7,
@@ -229,7 +243,7 @@ function run(
     | (typeof probabilityVariants)[number],
   seed = record.id === probabilityId ? 1 : 269,
   probabilityOverrides?: readonly number[],
-  elementCase?: { immune: boolean; lateImmune?: boolean; uses?: number },
+  elementCase?: { immune: boolean; lateImmune?: boolean; uses?: number; lateUses?: number },
 ) {
   const f = makeScenario(seed),
     { battle, a, b } = f
@@ -275,6 +289,7 @@ function run(
       battle.addMark(new AddMarkContext(setup, owner, sourceMark))
       source = owner.marks.find(m => m.base === sourceMark)!
     }
+    if (record.recipe.tags) expect(effect.tags).toEqual(record.recipe.tags)
     if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
     const configKey = (name: string) => {
       if (native) return parameterAddress(record.id, 'parameters', name)
@@ -430,6 +445,7 @@ function run(
           (context.parent instanceof EffectContext && context.parent.effect?.id === record.id),
         apply(context) {
           if (context.trigger === EffectTrigger.BeforeEffect && context.parent instanceof EffectContext) {
+            if (elementCase?.lateUses !== undefined) owner.lastSkillUsedTimes = elementCase.lateUses
             if (elementCase?.lateImmune)
               b.activePet.element = record.id.includes('dongshang') ? Element.Ice : Element.Water
             if (variant === 'late-values') setValues(11)
@@ -583,7 +599,7 @@ for (const record of conditionalRecords)
       },
     )
 it('covers exactly seventeen additional conditional definitions and records turn-order corrections', () => {
-  expect(conditionalRecords).toHaveLength(17)
+  expect(conditionalRecords).toHaveLength(18)
   const corrected = conditionalRecords.filter(record => record.recipe.additionalDecisions?.includes('C08'))
   expect(corrected.map(record => record.id).sort()).toEqual(
     [
@@ -779,3 +795,35 @@ for (const record of records.filter(record => record.recipe.target === 'battle')
         }
       },
     )
+
+for (const kind of ['skill', 'mark'] as const)
+  it(`${kind} retains tagged consecutive-stack growth and its cap`, () => {
+    const record = records.find(record => record.id === consecutiveStackId)!
+    for (const uses of [0, 1, 2, 3, 4]) {
+      const options = { immune: false, uses }
+      const actual = run(record, true, kind, 'OnHit', 'normal', 28, undefined, options)
+      expect(actual).toEqual(run(record, false, kind, 'OnHit', 'normal', 28, undefined, options))
+      expect(actual.inputs).toEqual(
+        uses <= 1
+          ? []
+          : [
+              {
+                target: 'A/lead',
+                stack: Math.min(uses - 1, 2) * 10,
+                duration: baseMarks.get(record.recipe.markId)!.config.duration,
+              },
+            ],
+      )
+    }
+  })
+
+for (const kind of ['skill', 'mark'] as const)
+  it(`${kind} reads the consecutive stack amount after admission`, () => {
+    const record = records.find(record => record.id === consecutiveStackId)!
+    for (const lateUses of [1, 4]) {
+      const options = { immune: false, uses: 2, lateUses }
+      const actual = run(record, true, kind, 'OnHit', 'normal', 28, undefined, options)
+      expect(actual).toEqual(run(record, false, kind, 'OnHit', 'normal', 28, undefined, options))
+      expect(actual.inputs[0].stack).toBe(lateUses === 1 ? 0 : 20)
+    }
+  })

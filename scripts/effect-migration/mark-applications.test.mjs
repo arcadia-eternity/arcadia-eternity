@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 251,
+    generated: 253,
     protected: 1,
-    dependencies: 175,
-    rejected: 35,
+    dependencies: 176,
+    rejected: 33,
   })
 })
 
@@ -210,4 +210,15 @@ test('battle targets use the shared current-battle query', async () => {
   const code = renderMarkApplications([recipe], [recipe.markId])
   assert.ok(code.includes('contexts.battle.apply(ops.addMark('))
   assert.ok(code.includes('contexts,'))
+})
+
+test('preserves effect tags without accepting unknown metadata', () => {
+  const d = { ...source(), tags: ['xingzhili'] }
+  const recipe = classifyMarkApplication(d)
+  assert.deepEqual(recipe.tags, ['xingzhili'])
+  d.tags.push('later')
+  assert.deepEqual(recipe.tags, ['xingzhili'])
+  assert.ok(renderMarkApplications([recipe], [recipe.markId]).includes('tags: ["xingzhili"]'))
+  assert.ok(classifyMarkApplication({ ...source(), tags: [1] }).reason)
+  assert.ok(classifyMarkApplication({ ...source(), tags: 'xingzhili' }).reason)
 })

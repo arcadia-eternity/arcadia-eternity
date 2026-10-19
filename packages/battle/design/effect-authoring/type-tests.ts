@@ -250,3 +250,10 @@ ops.addMark(selectedBaseMark, { stack: capturedInstancePenalty })
 ops.addMark(selectedBaseMark, { stack: targets.ownerPet.select(pet => pet.weight).first() })
 // @ts-expect-error A nullable property is not a numeric mark option.
 ops.addMark(selectedBaseMark, { stack: targets.ownerPet.select(() => null).first() })
+
+const fieldMarks = contexts.battle.flatMap(battle => battle.marks)
+exact<Equal<typeof fieldMarks, Selector<MarkInstance>>>(true)
+const expandedNumbers = targets.ownerPet.flatMap(pet => [pet.currentHp, pet.stat.maxHp] as const).all()
+exact<Equal<typeof expandedNumbers, Value<readonly number[]>>>(true)
+// @ts-expect-error Collection expansion requires an array, not a scalar.
+targets.ownerPet.flatMap(pet => pet.currentHp)

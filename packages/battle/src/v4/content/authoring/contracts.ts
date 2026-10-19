@@ -53,6 +53,8 @@ export interface WritableRef<T> {
 export interface Selector<T> {
   readonly where: (predicate: (value: T) => boolean) => Selector<T>
   readonly select: <U>(project: (value: T) => U) => Selector<U>
+  /** Expand each current member in order; membership is queried again on every use. */
+  readonly flatMap: <U>(project: (value: T) => readonly U[]) => Selector<U>
   readonly first: () => Value<T, 'optional'>
   /** Fresh ordered membership snapshot at each read. */
   readonly all: () => Value<readonly T[]>

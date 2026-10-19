@@ -177,6 +177,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_yinzhiwang',
   'mark_yishang',
   'mark_yitelingyu',
+  'mark_yuansuzhufu',
   'mark_yuecuoyueyong',
   'mark_yurenfantan',
   'mark_zengzhong',
@@ -1308,6 +1309,21 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
           ),
         ),
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 40 })),
+      }),
+    ),
+    effect_skill_add_mark_opponent_liuxie_50_if_field_yemu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_opponent_liuxie_50_if_field_yemu',
+        on: ['OnHit'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.battle
+            .flatMap(battle => battle.marks)
+            .where(mark => mark.baseId === 'mark_global_yemu')
+            .condition(checks.exists()),
+        ),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian: compileEffect(
@@ -2964,6 +2980,29 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: conditions.selfUsesSkill,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhunbeidongzuo')!)),
+      }),
+    ),
+    effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20',
+        on: ['OnHit'],
+        priority: 0,
+        tags: ['xingzhili'],
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.lastSkillUsedTimes).first())
+          const right = 1
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: targets.ownerPet.apply(
+          ops.addMark(resolved.get('mark_yuansuzhufu')!, {
+            stack: targets.ownerPet
+              .select(pet => pet.lastSkillUsedTimes)
+              .first()
+              .map(n => n + -1)
+              .map(n => Math.min(n, 2))
+              .map(n => Math.floor(n * 10)),
+          }),
+        ),
       }),
     ),
     effect_skill_double_mark_liuxie_stack: compileEffect(

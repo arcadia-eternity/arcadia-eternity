@@ -57,14 +57,25 @@ function markFilter(step, domain = 'damage') {
     return `mark => mark.tags.includes(${q(v.tag)})`
 }
 function members(s, domain = 'damage') {
-  if (
-    !fields(s, ['base', 'chain']) ||
-    !(s.base === 'selfMarks' || (domain === 'skill' && s.base === 'opponentMarks')) ||
-    !Array.isArray(s.chain)
-  )
-    return
-  let code = root(s.base)
-  for (const step of s.chain) {
+  if (!fields(s, ['base', 'chain']) || !Array.isArray(s.chain)) return
+  let code = root(s.base, domain)
+  let steps = s.chain
+  if (domain === 'skill' && s.base === 'battle') {
+    const [select, flat, ...rest] = steps
+    if (
+      !fields(select, ['type', 'arg']) ||
+      select.type !== 'select' ||
+      !fields(select.arg, ['type', 'arg']) ||
+      select.arg.type !== 'base' ||
+      select.arg.arg !== 'marks' ||
+      !fields(flat, ['type']) ||
+      flat.type !== 'flat'
+    )
+      return
+    code = 'contexts.battle.flatMap(battle => battle.marks)'
+    steps = rest
+  } else if (!(s.base === 'selfMarks' || (domain === 'skill' && s.base === 'opponentMarks'))) return
+  for (const step of steps) {
     const filter = markFilter(step, domain)
     if (!filter) return
     code += `.where(${filter})`

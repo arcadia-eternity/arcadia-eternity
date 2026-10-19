@@ -69,3 +69,32 @@ test('consecutive-use defaults and strategies preserve the direct skill-owner co
   ])
     assert.equal(condition(input, 'skill'), undefined)
 })
+
+test('field mark membership composes the shared expansion and filter query', () => {
+  const input = {
+    type: 'evaluate',
+    target: {
+      base: 'battle',
+      chain: [
+        { type: 'select', arg: { type: 'base', arg: 'marks' } },
+        { type: 'flat' },
+        { type: 'whereAttr', extractor: 'baseId', evaluator: { type: 'same', value: 'field/night' } },
+      ],
+    },
+    evaluator: { type: 'exist' },
+  }
+  const code = condition(input, 'skill')
+  assert.equal(
+    code,
+    'contexts.battle.flatMap(battle => battle.marks).where(mark => mark.baseId === "field/night").condition(checks.exists())',
+  )
+  assert.equal(condition(input, 'damage'), undefined)
+  assert.equal(
+    condition({ ...input, target: { ...input.target, chain: input.target.chain.slice(1) } }, 'skill'),
+    undefined,
+  )
+  assert.equal(
+    condition({ ...input, target: { ...input.target, chain: [...input.target.chain, { type: 'shuffled' }] } }, 'skill'),
+    undefined,
+  )
+})

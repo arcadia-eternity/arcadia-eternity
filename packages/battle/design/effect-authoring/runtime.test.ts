@@ -1188,3 +1188,34 @@ it('mark creation hooks cannot move a later selected target into another battle 
   expect(f.owner.marks.some(mark => mark.base === base)).toBe(true)
   expect(later.marks.some(mark => mark.base === base)).toBe(false)
 })
+
+it('flatMap requeries membership and preserves ordered snapshots through later operations', () => {
+  const f = fixture()
+  const first = new BaseMark('test/field-first' as baseMarkId, []).createInstance({ stack: 2 })
+  const second = new BaseMark('test/field-second' as baseMarkId, []).createInstance({ stack: 7 })
+  first.owner = f.battle
+  second.owner = f.battle
+  f.battle.marks.push(first, second)
+  const members = contexts.battle.flatMap(battle => battle.marks)
+  const stacks = members
+    .where(mark => mark.stack > 1)
+    .flatMap(mark => [mark.stack, mark.stack + 1])
+    .all()
+  const results: (readonly number[])[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/flatten-field-members',
+      on: 'BeforeHit',
+      execute(ctx) {
+        results.push(ctx.read(stacks))
+        f.battle.marks.splice(0, 1)
+        second.stack = 11
+        results.push(ctx.read(stacks))
+        f.battle.marks.splice(0)
+        results.push(ctx.read(stacks))
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(results).toEqual([[2, 3, 7, 8], [11, 12], []])
+})

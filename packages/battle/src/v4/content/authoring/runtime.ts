@@ -211,6 +211,7 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
   return {
     where: predicate => selector(ctx => query(ctx).filter(predicate)),
     select: project => selector(ctx => query(ctx).map(project)),
+    flatMap: project => selector(ctx => query(ctx).flatMap(item => [...project(item)])),
     first: () => value(ctx => query(ctx)[0]),
     all: () => value(ctx => [...query(ctx)]),
     condition: evaluate => ctx => evaluate(ctx, query(ctx as Frame)),

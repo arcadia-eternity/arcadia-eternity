@@ -32,12 +32,17 @@ const selfCondition = condition =>
     condition.conditions.some(selfCondition))
 export function classifyMarkApplication(definition) {
   if (
-    !fields(definition, ['id', 'trigger', 'priority', 'apply', 'condition']) ||
+    !fields(definition, ['id', 'trigger', 'priority', 'apply', 'condition'], ['tags']) ||
     typeof definition.id !== 'string' ||
     !definition.id ||
     !Number.isFinite(definition.priority)
   )
     return { reason: 'unsupported definition fields or identity/priority' }
+  if (
+    'tags' in definition &&
+    (!Array.isArray(definition.tags) || !definition.tags.every(tag => typeof tag === 'string'))
+  )
+    return { reason: 'invalid effect tags' }
   const action = definition.apply
   if (
     !fields(action, ['type', 'target', 'mark'], ['stack', 'duration']) ||
@@ -77,6 +82,7 @@ export function classifyMarkApplication(definition) {
   return {
     id: definition.id,
     priority: definition.priority,
+    ...(definition.tags ? { tags: [...definition.tags] } : {}),
     triggers,
     target: action.target,
     when,
@@ -102,7 +108,7 @@ export function renderMarkApplications(recipes, dependencies) {
       )
       .join(',')
     const compiled = `compileEffect(defineEffect({
-      id: ${JSON.stringify(r.id)}, on: ${JSON.stringify(r.triggers)}, priority: ${r.priority}, ${params ? 'parameters,' : ''} when: ${r.when},
+      id: ${JSON.stringify(r.id)}, on: ${JSON.stringify(r.triggers)}, priority: ${r.priority}, ${params ? 'parameters,' : ''} ${r.tags ? `tags: ${JSON.stringify(r.tags)},` : ''} when: ${r.when},
       execute: ${r.target === 'battle' ? 'contexts.battle' : r.target === 'self' ? 'targets.ownerPet' : 'targets.opponentActive'}.apply(ops.addMark(resolved.get(${JSON.stringify(r.markId)})!${options.length ? `, {${options.join(',')}}` : ''})),
     }))`
     return `${JSON.stringify(r.id)}: ${params ? `(() => {const parameters = {${params}};return ${compiled}})()` : compiled}`
