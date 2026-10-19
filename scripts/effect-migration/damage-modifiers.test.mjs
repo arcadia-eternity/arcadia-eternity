@@ -47,7 +47,7 @@ test('preserves ordered admission and late damage stage rather than rewriting it
 test('rejects unhandled fields, invalid parameters, target chains, nonfinite numbers and unsupported stages', () => {
   const d = source()
   for (const bad of [
-    { ...d, consumesStacks: 1 },
+    { ...d, consumesStacks: -1 },
     { ...d, priority: NaN },
     { ...d, trigger: [] },
     { ...d, trigger: ['OnDamage', 'OnDamage'] },
@@ -77,7 +77,7 @@ test('rejects unhandled fields, invalid parameters, target chains, nonfinite num
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 72, protected: 1, rejected: 44 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 76, protected: 1, rejected: 40 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -153,4 +153,16 @@ test('rejects configured divisors and unmapped nested parameter branches', () =>
     falseValue: 3,
   }
   assert.ok(classifyDamageModifier(d).reason)
+})
+
+test('retains automatic consumption and effect tags while rejecting malformed metadata', () => {
+  for (const input of [null, undefined, [], 'effect']) assert.ok(classifyDamageModifier(input).reason)
+  const r = classifyDamageModifier({ ...source(), consumesStacks: 1, tags: ['xingzhili'] })
+  assert.equal(r.consumesStacks, 1)
+  assert.deepEqual(r.tags, ['xingzhili'])
+  assert.equal(classifyDamageModifier({ ...source(), consumesStacks: 0 }).consumesStacks, 0)
+  for (const consumesStacks of [-1, 0.5, Infinity, '1'])
+    assert.ok(classifyDamageModifier({ ...source(), consumesStacks }).reason)
+  for (const tags of [null, 'tag', [2]]) assert.ok(classifyDamageModifier({ ...source(), tags }).reason)
+  assert.ok(classifyDamageModifier({ ...source(), extra: true }).reason)
 })

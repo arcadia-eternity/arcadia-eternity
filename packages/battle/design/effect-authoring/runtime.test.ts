@@ -618,3 +618,37 @@ it('combines values left-to-right once and reads the right input even when the l
   expect(results).toEqual([7, undefined])
   expect(trace).toEqual(['left', 'right', 'project', 'left', 'right'])
 })
+
+it('uses engine-owned consumption before action reads and still executes after the last stack', () => {
+  const f = fixture(),
+    observed: number[] = []
+  const tags = ['authored']
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/auto-consume',
+      on: 'OnBeforeCalculateDamage',
+      consumesStacks: 1,
+      tags,
+      execute(ctx) {
+        observed.push(ctx.read(targets.sourceMark.select(m => m.stack).first())!)
+        contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 }))(ctx)
+      },
+    }),
+  )
+  tags.push('external')
+  expect(effect.tags).toEqual(['authored'])
+  const source = f.add('consume-source', [effect], 3)
+  const first = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  f.battle.applyEffects(first, EffectTrigger.OnBeforeCalculateDamage, source)
+  expect(source.stack).toBe(2)
+  source.stack = 1
+  const last = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  f.battle.applyEffects(last, EffectTrigger.OnBeforeCalculateDamage, source)
+  expect(source.isActive).toBe(false)
+  expect(f.owner.marks).not.toContain(source)
+  expect(observed).toEqual([2, 0])
+  expect(first.modified).toEqual([5, 0])
+  expect(last.modified).toEqual([5, 0])
+  f.battle.applyEffects(last, EffectTrigger.OnBeforeCalculateDamage, source)
+  expect(observed).toEqual([2, 0])
+})

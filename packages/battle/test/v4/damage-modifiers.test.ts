@@ -5,6 +5,7 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   generatedDamageModifierEffects,
+  MarkInstanceImpl,
   ConfigModifier,
   ConfigModifierType,
   ConfigDurationType,
@@ -44,6 +45,8 @@ interface Entry {
   status: string
   recipe: {
     triggers: ('OnBeforeCalculateDamage' | 'OnDamage')[]
+    consumesStacks?: number
+    tags?: string[]
     parameters?: { name: string; value: number; configId?: string }[]
   }
 }
@@ -105,7 +108,8 @@ const parameterVariants = [
   'foreign-config',
   'removed-config',
 ] as const
-type Variant = (typeof variants)[number] | (typeof parameterVariants)[number]
+const consumptionVariants = ['last-stack', 'exhaust-before', 'suppressed', 'repeat'] as const
+type Variant = (typeof variants)[number] | (typeof parameterVariants)[number] | (typeof consumptionVariants)[number]
 function run(
   r: Entry,
   native: boolean,
@@ -154,7 +158,9 @@ function run(
   if (variant !== 'missing-marks')
     for (const n of nodes)
       if (n.type === 'contain' && typeof n.tag === 'string') add(owner, 'fixture/tag').tags.push(n.tag)
-  const source = kind === 'skill' ? skill : add(owner, 'fixture/modifier', 3)
+  const source =
+    kind === 'skill' ? skill : add(owner, 'fixture/modifier', variant === 'last-stack' || variant === 'repeat' ? 1 : 3)
+  if (source instanceof MarkInstanceImpl && variant === 'suppressed') source.isSuppressed = true
   const effect = native ? generatedDamageModifierEffects[r.id] : oracles.get(r.id)!
   if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
   source.effects.push(effect)
@@ -197,6 +203,8 @@ function run(
         return
       }
       trace.push('admitted')
+      if (variant === 'exhaust-before' && source instanceof MarkInstanceImpl)
+        source.consumeStack(ctx.parent, source.stack)
       if (variant === 'late-config') changeConfig(0.375)
       if (variant === 'cancel') ctx.parent.available = false
       if (variant === 'late-values') {
@@ -233,10 +241,15 @@ function run(
   damage.element = Element.Light
   if (variant === 'phase') target.damage(damage)
   else battle.applyEffects(damage, trigger, source)
+  if (variant === 'repeat') battle.applyEffects(damage, trigger, source)
   return {
     trace,
     modified: damage.modified,
     result: damage.damageResult,
+    source:
+      source instanceof MarkInstanceImpl
+        ? { stack: source.stack, active: source.isActive, present: owner.marks.includes(source) }
+        : null,
     hp: [a.activePet.currentHp, b.activePet.currentHp],
     nextRandom: battle.random(),
   }
@@ -245,18 +258,29 @@ for (const r of records)
   for (const kind of ['skill', 'mark'] as const)
     for (const name of r.recipe.triggers) {
       const trigger = EffectTrigger[name]
-      it.each(r.recipe.parameters ? [...variants, ...parameterVariants] : variants)(
-        `${r.id} ${kind} ${name}: %s`,
-        variant => {
-          const actual = run(r, true, kind, variant, trigger)
-          expect(actual).toEqual(run(r, false, kind, variant, trigger))
-          expect(actual.trace).not.toContainEqual({ success: false })
-          if (variant === 'normal' && kind === 'mark') {
-            expect(actual.trace).toContain('admitted')
+      it.each([
+        ...variants,
+        ...(r.recipe.parameters ? parameterVariants : []),
+        ...(r.recipe.consumesStacks && kind === 'mark' ? consumptionVariants : []),
+      ])(`${r.id} ${kind} ${name}: %s`, variant => {
+        const actual = run(r, true, kind, variant, trigger)
+        expect(actual).toEqual(run(r, false, kind, variant, trigger))
+        expect(actual.trace).not.toContainEqual({ success: false })
+        if (r.recipe.consumesStacks && kind === 'mark') {
+          if (variant === 'normal') expect(actual.source?.stack).toBe(3 - r.recipe.consumesStacks)
+          if (variant === 'cancel') expect(actual.source?.stack).toBe(3)
+          if (variant === 'last-stack' || variant === 'repeat') {
+            expect(actual.source).toEqual({ stack: 0, active: false, present: false })
+            expect(actual.trace.filter(x => x === 'admitted')).toHaveLength(1)
             expect(actual.modified.some(n => n !== 0)).toBe(true)
           }
-        },
-      )
+          if (variant === 'exhaust-before' || variant === 'suppressed') expect(actual.modified).toEqual([0, 0])
+        }
+        if (variant === 'normal' && kind === 'mark') {
+          expect(actual.trace).toContain('admitted')
+          expect(actual.modified.some(n => n !== 0)).toBe(true)
+        }
+      })
     }
 it('pins every emitted ID and definition to current YAML and excludes the handwritten override', () => {
   const normalize = (v: unknown): unknown =>
@@ -271,12 +295,15 @@ it('pins every emitted ID and definition to current YAML and excludes the handwr
         : v
   expect(records.map(r => r.id).sort()).toEqual(Object.keys(generatedDamageModifierEffects).sort())
   expect(generatedDamageModifierEffects).not.toHaveProperty('effect_mark_damage_boost_based_on_hp_percentage')
-  for (const r of records)
+  for (const r of records) {
+    expect(generatedDamageModifierEffects[r.id].tags).toEqual(r.recipe.tags ?? [])
+    expect(generatedDamageModifierEffects[r.id].consumesStacks).toBe(r.recipe.consumesStacks)
     expect(
       createHash('sha256')
         .update(JSON.stringify(normalize(files.get(r.sourceFile)!.find(d => d.id === r.id))))
         .digest('hex'),
     ).toBe(r.definitionSha256)
+  }
 })
 
 async function game(r: Entry, native: boolean, checkpoint: boolean) {

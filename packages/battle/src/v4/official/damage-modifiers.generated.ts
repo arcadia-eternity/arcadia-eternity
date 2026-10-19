@@ -605,6 +605,16 @@ export function createGeneratedDamageModifierEffects() {
         ),
       }),
     ),
+    effect_mark_reduce_next_skill_damage_50_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_reduce_next_skill_damage_50_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.selfBeDamaged,
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+      }),
+    ),
     effect_mark_reduce_opponent_spa_damage_20_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_opponent_spa_damage_20_percent',
@@ -685,6 +695,16 @@ export function createGeneratedDamageModifierEffects() {
             ),
           }),
         ),
+      }),
+    ),
+    effect_mark_xulichongji_add_50_percent_damage: compileEffect(
+      defineEffect({
+        id: 'effect_mark_xulichongji_add_50_percent_damage',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.selfUsesSkill,
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       }),
     ),
     effect_skill_add_damage_40_or_80_if_has_xukongganying: compileEffect(
@@ -1000,6 +1020,40 @@ export function createGeneratedDamageModifierEffects() {
               .map(n => Math.floor(n / 8)),
           }),
         ),
+      }),
+    ),
+    effect_skill_reduce_damage_on_consecutive_hits_10_percent_max_2: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_damage_on_consecutive_hits_10_percent_max_2',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        tags: ['xingzhili'],
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.lastSkillUsedTimes).first())
+          const right = 1
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.damage.apply(
+          ops.modifyDamage({
+            percent: targets.ownerPet
+              .select(pet => pet.lastSkillUsedTimes)
+              .first()
+              .map(n => n + -1)
+              .map(n => Math.min(n, 2))
+              .map(n => Math.floor(n * -10)),
+            delta: 0,
+          }),
+        ),
+      }),
+    ),
+    effect_zhongzinengliang_damage_reduction: compileEffect(
+      defineEffect({
+        id: 'effect_zhongzinengliang_damage_reduction',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.all(conditions.selfBeDamaged),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
       }),
     ),
   })

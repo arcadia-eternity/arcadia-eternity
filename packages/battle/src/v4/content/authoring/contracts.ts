@@ -93,6 +93,9 @@ export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly id: string
   readonly on: T | readonly T[]
   readonly priority?: number
+  /** Engine-owned consumption runs before the action, only for mark sources. */
+  readonly consumesStacks?: number
+  readonly tags?: readonly string[]
   readonly parameters?: P
   /** Declare plans used inside custom execute callbacks; composed actions are discovered automatically. */
   readonly bindings?: Readonly<Record<string, BindingValue<number, Presence>>>

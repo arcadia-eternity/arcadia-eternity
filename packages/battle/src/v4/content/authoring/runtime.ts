@@ -320,6 +320,7 @@ export const defineEffect: typeof C.defineEffect = definition =>
   Object.freeze({
     ...definition,
     on: Array.isArray(definition.on) ? Object.freeze([...definition.on]) : definition.on,
+    tags: definition.tags ? Object.freeze([...definition.tags]) : undefined,
     parameters: definition.parameters ? Object.freeze({ ...definition.parameters }) : undefined,
     bindings: definition.bindings ? Object.freeze({ ...definition.bindings }) : undefined,
   })
@@ -462,6 +463,8 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
     id: definition.id as effectId,
     triggers: (Array.isArray(definition.on) ? definition.on : [definition.on]) as NativeEffectTrigger[],
     priority: definition.priority,
+    consumesStacks: definition.consumesStacks,
+    tags: definition.tags,
     when: definition.when ? ctx => definition.when!(frame(ctx), parameters) : undefined,
     apply: ctx => definition.execute(frame(ctx), parameters),
   })
