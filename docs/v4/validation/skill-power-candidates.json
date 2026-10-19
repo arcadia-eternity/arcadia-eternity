@@ -182,6 +182,24 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_mark_add_power_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/36",
+      "definitionSha256": "cfa2b4158abcbd9fe49ea718e72d0686ec5c9e5514b24a0f48dc9f7b8a431d6a",
+      "recipe": {
+        "id": "effect_mark_add_power_stack",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.sourceMark.select(mark => mark.stack).all()",
+        "when": "conditions.selfUsesSkill",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_mark_amplify_fire_skill_70",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/65",
@@ -255,6 +273,42 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_add_power_15_each_huohuanzhixin",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/515",
+      "definitionSha256": "c7cb74f00d20b6e1b31db4c74505fe275101a972518bc6d582ae00a23035bd3e",
+      "recipe": {
+        "id": "effect_skill_add_power_15_each_huohuanzhixin",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huohuanzhixin\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 15 : 0))))",
+        "when": "conditions.selfUsesSkill",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_15_per_spd_level",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/671",
+      "definitionSha256": "8854af0b60cdc8e5982a7b2ea2c4c8109ad8812be57a91b898df5fc3498fb888",
+      "recipe": {
+        "id": "effect_skill_add_power_15_per_spd_level",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerMarks.where(mark => mark.baseId === \"stat_stage_spd_up\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 15 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"stat_stage_spd_up\").condition(checks.exists()))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_add_power_25_if_has_field",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/635",
@@ -267,6 +321,24 @@
         "amount": 25,
         "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.tags.includes(\"area\")).condition(checks.exists()))",
         "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_25_zhongzinengliang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/70",
+      "definitionSha256": "4e152d496892faa9c530c6bde78f01d9e6ab6f7baf585506f56143960a09d498",
+      "recipe": {
+        "id": "effect_skill_add_power_25_zhongzinengliang",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerMarks.where(mark => mark.baseId === \"mark_zhongzinengliang\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 25 : 0))))",
+        "when": "conditions.selfUsesSkill",
+        "repairedPaths": ["/apply/target/base"]
       },
       "classification": "C",
       "decision": "C07",
@@ -291,6 +363,60 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_add_power_30_per_shunliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/536",
+      "definitionSha256": "4536afef4ff7a69178a6031f2ad05c5a70939ba9321b559c66e0eb77a5e5be68",
+      "recipe": {
+        "id": "effect_skill_add_power_30_per_shunliu",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 30 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_30_per_stack_if_has_shunliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/547",
+      "definitionSha256": "91507eac56c9f3ed080a5149316a2b69d0b3d3cf871d7cd9e2a12e49291aa7a2",
+      "recipe": {
+        "id": "effect_skill_add_power_30_per_stack_if_has_shunliu",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 30 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_30_per_usetime",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/135",
+      "definitionSha256": "6665eec77ada6d795b4cae2eaba2eb484e494e02c3beb8ec6ff7a8133ec2a647",
+      "recipe": {
+        "id": "effect_skill_add_power_30_per_usetime",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerPet.select(pet => pet.lastSkillUsedTimes).all().map(items => items.map((n,index) => n + (index === 0 ? -1 : 0))).map(items => items.map((n,index) => Math.min(n, (index === 0 ? 3 : 0)))).map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 30 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/444",
@@ -302,6 +428,96 @@
         "operation": "addPower",
         "amount": 40,
         "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_jingshencuoluan\"))))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_40_opponent_per_atk_level",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/578",
+      "definitionSha256": "e7a02591e78e701c990706d4d2b8d5d6506b852d0ae4920e49ace23b504b9862",
+      "recipe": {
+        "id": "effect_skill_add_power_40_opponent_per_atk_level",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.opponentMarks.where(mark => mark.baseId === \"stat_stage_atk_up\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 40 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"stat_stage_atk_up\"))))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_40_opponent_per_def_level",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/579",
+      "definitionSha256": "7ad2fb3ad9991aa108d02b3f3b743b273304d1e8ec2cbe780a7114d5a241dcfd",
+      "recipe": {
+        "id": "effect_skill_add_power_40_opponent_per_def_level",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.opponentMarks.where(mark => mark.baseId === \"stat_stage_def_up\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 40 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"stat_stage_def_up\"))))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_40_opponent_per_spa_level",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/580",
+      "definitionSha256": "01b3d2df25ea1a405abae4da7cbb411dbfb7e1c172d31ed55ac8e7d9313ca0ed",
+      "recipe": {
+        "id": "effect_skill_add_power_40_opponent_per_spa_level",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.opponentMarks.where(mark => mark.baseId === \"stat_stage_spa_up\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 40 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"stat_stage_spa_up\"))))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_40_opponent_per_spd_level",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/581",
+      "definitionSha256": "bc6709d4c97cfce5f23c07002efe866aea54c8453a3c2592eb93874450480546",
+      "recipe": {
+        "id": "effect_skill_add_power_40_opponent_per_spd_level",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.opponentMarks.where(mark => mark.baseId === \"stat_stage_spd_up\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 40 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"stat_stage_spd_up\"))))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_40_opponent_per_spe_level",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/582",
+      "definitionSha256": "56f11b0e7143554423e18856f1fde95aeb24c9491f0ad8893f54a7ec5d6f1cab",
+      "recipe": {
+        "id": "effect_skill_add_power_40_opponent_per_spe_level",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.opponentMarks.where(mark => mark.baseId === \"stat_stage_spe_up\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 40 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"stat_stage_spe_up\"))))",
         "repairedPaths": ["/apply/target"]
       },
       "classification": "C",
@@ -374,6 +590,42 @@
         "operation": "addPower",
         "amount": 50,
         "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_wuzhezhixin\"))))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_50_ruodian",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/45",
+      "definitionSha256": "26efa1e60b4501ca52e4642c47cf410711aa62c10feba59cba827c3ba778d420",
+      "recipe": {
+        "id": "effect_skill_add_power_50_ruodian",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.opponentMarks.where(mark => mark.baseId === \"mark_ruodianjihao\").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 50 : 0))))",
+        "when": "conditions.selfUsesSkill",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_by_self_max_hp_minus_500",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/574",
+      "definitionSha256": "6430f0a40c22e01dc3c3fa781b9601889d10bc0f3ea8cf88afd22b85e78b11e3",
+      "recipe": {
+        "id": "effect_skill_add_power_by_self_max_hp_minus_500",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerPet.select(pet => pet.stat.maxHp).all().map(items => items.map((n,index) => n + (index === 0 ? -500 : 0))).map(items => items.map((n,index) => Math.max(n, (index === 0 ? 0 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first());const right=500;return left!==undefined && right!==undefined && left > right}))",
         "repairedPaths": ["/apply/target"]
       },
       "classification": "C",
@@ -1009,6 +1261,25 @@
       "classification": "C",
       "decision": "C07",
       "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_reduce_power_on_consecutive_hits_10_max_20",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/171",
+      "definitionSha256": "cf725476fb043fe0e0af1a7ca1ccbd6b810e75df7cf4e3fce6d2e8387f57f530",
+      "recipe": {
+        "id": "effect_skill_reduce_power_on_consecutive_hits_10_max_20",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "targets.ownerPet.select(pet => pet.lastSkillUsedTimes).all().map(items => items.map((n,index) => n + (index === 0 ? -1 : 0))).map(items => items.map((n,index) => Math.min(n, (index === 0 ? 2 : 0)))).map(items => items.map((n,index) => Math.floor(n * (index === 0 ? -10 : 0))))",
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "repairedPaths": ["/apply/target"],
+        "tags": ["xingzhili"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
     }
   ],
   "rejected": [
@@ -1048,13 +1319,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_mark_add_power_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/36",
-      "definitionSha256": "cfa2b4158abcbd9fe49ea718e72d0686ec5c9e5514b24a0f48dc9f7b8a431d6a",
-      "reason": "requires a literal power amount"
-    },
-    {
       "id": "effect_mark_amplify_non_yanggong",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/29",
@@ -1069,32 +1333,11 @@
       "reason": "unsupported definition fields"
     },
     {
-      "id": "effect_skill_add_power_15_each_huohuanzhixin",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/515",
-      "definitionSha256": "c7cb74f00d20b6e1b31db4c74505fe275101a972518bc6d582ae00a23035bd3e",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_15_per_spd_level",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/671",
-      "definitionSha256": "8854af0b60cdc8e5982a7b2ea2c4c8109ad8812be57a91b898df5fc3498fb888",
-      "reason": "requires a literal power amount"
-    },
-    {
       "id": "effect_skill_add_power_20_per_pofang_turn",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/330",
       "definitionSha256": "c522c10a422630ac3e29b43b6d8a897254581d0001d8e3a09222d90f67d2dbb0",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_25_zhongzinengliang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/70",
-      "definitionSha256": "4e152d496892faa9c530c6bde78f01d9e6ab6f7baf585506f56143960a09d498",
-      "reason": "requires a literal power amount"
+      "reason": "unsupported power value"
     },
     {
       "id": "effect_skill_add_power_30_if_female",
@@ -1109,27 +1352,6 @@
       "sourcePath": "/651",
       "definitionSha256": "b63ed7e3679141403b3f0b67ca24ced25fb44dd48284adedd558441c8c3df7b4",
       "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_add_power_30_per_shunliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/536",
-      "definitionSha256": "4536afef4ff7a69178a6031f2ad05c5a70939ba9321b559c66e0eb77a5e5be68",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_30_per_stack_if_has_shunliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/547",
-      "definitionSha256": "91507eac56c9f3ed080a5149316a2b69d0b3d3cf871d7cd9e2a12e49291aa7a2",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_30_per_usetime",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/135",
-      "definitionSha256": "6665eec77ada6d795b4cae2eaba2eb484e494e02c3beb8ec6ff7a8133ec2a647",
-      "reason": "requires a literal power amount"
     },
     {
       "id": "effect_skill_add_power_35_if_opponent_spa_gt_atk",
@@ -1153,41 +1375,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_skill_add_power_40_opponent_per_atk_level",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/578",
-      "definitionSha256": "e7a02591e78e701c990706d4d2b8d5d6506b852d0ae4920e49ace23b504b9862",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_40_opponent_per_def_level",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/579",
-      "definitionSha256": "7ad2fb3ad9991aa108d02b3f3b743b273304d1e8ec2cbe780a7114d5a241dcfd",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_40_opponent_per_spa_level",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/580",
-      "definitionSha256": "01b3d2df25ea1a405abae4da7cbb411dbfb7e1c172d31ed55ac8e7d9313ca0ed",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_40_opponent_per_spd_level",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/581",
-      "definitionSha256": "bc6709d4c97cfce5f23c07002efe866aea54c8453a3c2592eb93874450480546",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_40_opponent_per_spe_level",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/582",
-      "definitionSha256": "56f11b0e7143554423e18856f1fde95aeb24c9491f0ad8893f54a7ec5d6f1cab",
-      "reason": "requires a literal power amount"
-    },
-    {
       "id": "effect_skill_add_power_50_consecutive_2_times",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/668",
@@ -1195,46 +1382,32 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_skill_add_power_50_ruodian",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/45",
-      "definitionSha256": "26efa1e60b4501ca52e4642c47cf410711aa62c10feba59cba827c3ba778d420",
-      "reason": "requires a literal power amount"
-    },
-    {
-      "id": "effect_skill_add_power_by_self_max_hp_minus_500",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/574",
-      "definitionSha256": "6430f0a40c22e01dc3c3fa781b9601889d10bc0f3ea8cf88afd22b85e78b11e3",
-      "reason": "requires a literal power amount"
-    },
-    {
       "id": "effect_skill_consume_xinzhiyinji_power_2x",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/232",
       "definitionSha256": "3510cd0304843ebe07e433d4716ff00a79648513eb5dfc5c51408a512fba98df",
-      "reason": "requires a literal power amount"
+      "reason": "unsupported power value"
     },
     {
       "id": "effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/280",
       "definitionSha256": "4f0d6406e94492e8146e2fba8cf9a573ce6ca5ab385dbc145ba0b08751e33028",
-      "reason": "requires a literal power amount"
+      "reason": "unsupported power value"
     },
     {
       "id": "effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/272",
       "definitionSha256": "7bbe8e37a5cb46f76aad5e64a3e2e8be9d3777ae13b808cb607f15ea196ed5cd",
-      "reason": "requires a literal power amount"
+      "reason": "unsupported power value"
     },
     {
       "id": "effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/284",
       "definitionSha256": "a31d2d24f9066b5abb4f929285af53f07ce5107d5abaf1cb4f6c5623b645ccbf",
-      "reason": "requires a literal power amount"
+      "reason": "unsupported power value"
     },
     {
       "id": "effect_skill_power_2x_if_first",
@@ -1340,13 +1513,6 @@
       "sourcePath": "/637",
       "definitionSha256": "fe63d78fa6651b9f2699e7dd3ced514d958285ab83b6189b4d360f3a4e5cbc72",
       "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_reduce_power_on_consecutive_hits_10_max_20",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/171",
-      "definitionSha256": "cf725476fb043fe0e0af1a7ca1ccbd6b810e75df7cf4e3fce6d2e8387f57f530",
-      "reason": "requires a literal power amount"
     }
   ]
 }

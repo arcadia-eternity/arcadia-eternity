@@ -150,6 +150,15 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
+    effect_mark_add_power_stack: compileEffect(
+      defineEffect({
+        id: 'effect_mark_add_power_stack',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(ops.addPower(targets.sourceMark.select(mark => mark.stack).all())),
+      }),
+    ),
     effect_mark_amplify_fire_skill_70: compileEffect(
       defineEffect({
         id: 'effect_mark_amplify_fire_skill_70',
@@ -196,6 +205,43 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(0.5)),
       }),
     ),
+    effect_skill_add_power_15_each_huohuanzhixin: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_15_each_huohuanzhixin',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_huohuanzhixin')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 15 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_15_per_spd_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_15_per_spd_level',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_spd_up').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerMarks
+              .where(mark => mark.baseId === 'stat_stage_spd_up')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 15 : 0)))),
+          ),
+        ),
+      }),
+    ),
     effect_skill_add_power_25_if_has_field: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_25_if_has_field',
@@ -206,6 +252,23 @@ export function createGeneratedSkillPowerEffects() {
           targets.ownerMarks.where(mark => mark.tags.includes('area')).condition(checks.exists()),
         ),
         execute: contexts.skillUse.apply(ops.addPower(25)),
+      }),
+    ),
+    effect_skill_add_power_25_zhongzinengliang: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_25_zhongzinengliang',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_zhongzinengliang')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 25 : 0)))),
+          ),
+        ),
       }),
     ),
     effect_skill_add_power_30_has_mark_yinghua: compileEffect(
@@ -220,6 +283,64 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.addPower(30)),
       }),
     ),
+    effect_skill_add_power_30_per_shunliu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_30_per_shunliu',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_shunliu')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 30 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_30_per_stack_if_has_shunliu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_30_per_stack_if_has_shunliu',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_shunliu')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 30 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_30_per_usetime: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_30_per_usetime',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerPet
+              .select(pet => pet.lastSkillUsedTimes)
+              .all()
+              .map(items => items.map((n, index) => n + (index === 0 ? -1 : 0)))
+              .map(items => items.map((n, index) => Math.min(n, index === 0 ? 3 : 0)))
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 30 : 0)))),
+          ),
+        ),
+      }),
+    ),
     effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan',
@@ -232,6 +353,116 @@ export function createGeneratedSkillPowerEffects() {
           ),
         ),
         execute: contexts.skillUse.apply(ops.addPower(40)),
+      }),
+    ),
+    effect_skill_add_power_40_opponent_per_atk_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_40_opponent_per_atk_level',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_atk_up')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'stat_stage_atk_up')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 40 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_40_opponent_per_def_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_40_opponent_per_def_level',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_def_up')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'stat_stage_def_up')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 40 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_40_opponent_per_spa_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_40_opponent_per_spa_level',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spa_up')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'stat_stage_spa_up')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 40 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_40_opponent_per_spd_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_40_opponent_per_spd_level',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spd_up')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'stat_stage_spd_up')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 40 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_40_opponent_per_spe_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_40_opponent_per_spe_level',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spe_up')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'stat_stage_spe_up')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 40 : 0)))),
+          ),
+        ),
       }),
     ),
     effect_skill_add_power_50_if_aideminyi: compileEffect(
@@ -284,6 +515,44 @@ export function createGeneratedSkillPowerEffects() {
           ),
         ),
         execute: contexts.skillUse.apply(ops.addPower(50)),
+      }),
+    ),
+    effect_skill_add_power_50_ruodian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_50_ruodian',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_ruodianjihao')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 50 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_power_by_self_max_hp_minus_500: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_by_self_max_hp_minus_500',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
+          const right = 500
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .all()
+              .map(items => items.map((n, index) => n + (index === 0 ? -500 : 0)))
+              .map(items => items.map((n, index) => Math.max(n, index === 0 ? 0 : 0))),
+          ),
+        ),
       }),
     ),
     effect_skill_power_2x_below_quarter_hp: compileEffect(
@@ -797,6 +1066,25 @@ export function createGeneratedSkillPowerEffects() {
           },
         ),
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_reduce_power_on_consecutive_hits_10_max_20: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reduce_power_on_consecutive_hits_10_max_20',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        tags: ['xingzhili'],
+        when: conditions.all(conditions.selfUsesSkill),
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            targets.ownerPet
+              .select(pet => pet.lastSkillUsedTimes)
+              .all()
+              .map(items => items.map((n, index) => n + (index === 0 ? -1 : 0)))
+              .map(items => items.map((n, index) => Math.min(n, index === 0 ? 2 : 0)))
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? -10 : 0)))),
+          ),
+        ),
       }),
     ),
   })

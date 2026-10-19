@@ -111,6 +111,8 @@ export declare function defineEffect<const T extends Trigger, const P extends Pa
 export declare const targets: {
   readonly ownerPet: Selector<Pet>
   readonly opponentActive: Selector<Pet>
+  /** Direct skill target marks; otherwise the opposing active pet marks. Requeried on use. */
+  readonly opponentMarks: Selector<MarkInstance>
   readonly ownerMarks: Selector<MarkInstance>
   readonly sourceMark: Selector<MarkInstance>
 }

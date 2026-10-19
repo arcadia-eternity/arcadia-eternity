@@ -802,3 +802,34 @@ it('skill context queries resolve ancestry afresh while owner admission stays di
   expect(results).toEqual([false, true])
   expect(f.use.power).toBe(initial + 4)
 })
+
+it('opponent mark queries follow the direct skill target and requery after target changes', () => {
+  const f = fixture()
+  const marks = [f.owner, f.b.activePet, f.b.team[1]].map((pet, index) => {
+    const mark = new BaseMark(`target-${index}` as baseMarkId, []).createInstance({ stack: index + 1 })
+    mark.owner = pet
+    pet.marks.push(mark)
+    return mark
+  })
+  const amounts = targets.opponentMarks.select(mark => mark.stack).all()
+  const results: (readonly number[])[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/opponent-mark-target',
+      on: ['BeforeHit', 'BeforeEffect'],
+      execute(ctx) {
+        results.push(ctx.read(amounts))
+        f.use.actualTarget = f.b.team[1]
+        marks[2].stack = 5
+        results.push(ctx.read(amounts))
+      },
+    }),
+  )
+  f.use.actualTarget = f.owner
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(results).toEqual([[1], [5]])
+  const nested = new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)
+  results.length = 0
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(nested))
+  expect(results).toEqual([[2], [2]])
+})

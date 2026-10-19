@@ -17,6 +17,7 @@ function root(s) {
   if (s === 'opponent') return 'targets.opponentActive'
   if (s === 'mark') return 'targets.sourceMark'
   if (s === 'selfMarks') return 'targets.ownerMarks'
+  if (s === 'opponentMarks') return 'targets.opponentMarks'
 }
 function markFilter(step) {
   if (!fields(step, ['type', 'extractor', 'evaluator']) || step.type !== 'whereAttr') return
@@ -51,13 +52,15 @@ function members(s) {
   return code
 }
 /** Static TS emitter for explicitly understood numeric steps; no runtime interpreter is emitted. */
-function selectedNumber(s, parameters, path) {
+function selectedNumber(s, parameters, path, consumption = 'first') {
+  const collection = consumption === 'all'
+  const terminal = collection ? '.all()' : '.first()'
   if (!fields(s, ['base', 'chain']) || !Array.isArray(s.chain)) return
   let code = root(s.base),
     numeric = false
   if (!code) return
   for (const [index, step] of s.chain.entries()) {
-    if (!numeric && s.base === 'selfMarks') {
+    if (!numeric && ['selfMarks', 'opponentMarks'].includes(s.base)) {
       const filter = markFilter(step)
       if (filter) {
         code += `.where(${filter})`
@@ -77,19 +80,23 @@ function selectedNumber(s, parameters, path) {
       )
         name = e.arg
       else if (step.type === 'selectPath' && step.arg === 'stack') name = step.arg
-      if (['mark', 'selfMarks'].includes(s.base) && name === 'stack') code += '.select(mark => mark.stack).first()'
+      if (['mark', 'selfMarks', 'opponentMarks'].includes(s.base) && name === 'stack')
+        code += `.select(mark => mark.stack)${terminal}`
       else if (['self', 'opponent'].includes(s.base) && ['currentHp', 'maxHp', 'lastSkillUsedTimes'].includes(name))
-        code += `.select(pet => pet.${name === 'maxHp' ? 'stat.maxHp' : name}).first()`
+        code += `.select(pet => pet.${name === 'maxHp' ? 'stat.maxHp' : name})${terminal}`
       else return
       numeric = true
     } else {
       const parameter = !Number.isFinite(step.arg)
         ? rawParameter(step.arg, parameters, `${path}_step${index}`)
         : undefined
-      if (!Number.isFinite(step.arg) && !parameter) return
+      if (!Number.isFinite(step.arg) && (!parameter || collection)) return
       // A configured divisor may become zero. Keep it out until the zero contract is mapped.
       if (parameter && step.type === 'divide') return
-      const n = parameter ? 'factor' : q(step.arg)
+      // Literal numeric sources contain one item; legacy pairs by index and uses zero for missing RHS.
+      // Multi-member division therefore produces nonfinite values and needs a separate decision.
+      if (collection && ['selfMarks', 'opponentMarks'].includes(s.base) && step.type === 'divide') return
+      const n = parameter ? 'factor' : collection ? `(index === 0 ? ${q(step.arg)} : 0)` : q(step.arg)
       const expression = {
         multiply: `Math.floor(n * ${n})`,
         divide: `Math.floor(n / ${n})`,
@@ -100,7 +107,9 @@ function selectedNumber(s, parameters, path) {
       if (!expression || (step.type === 'divide' && step.arg === 0)) return
       code = parameter
         ? `values.combine(${code},${parameter.code},(n,factor) => ${expression})`
-        : `${code}.map(n => ${expression})`
+        : collection
+          ? `${code}.map(items => items.map((n,index) => ${expression}))`
+          : `${code}.map(n => ${expression})`
     }
   }
   return numeric ? code : undefined
@@ -226,4 +235,4 @@ function condition(c, domain = 'damage') {
   }
 }
 
-export { fields, normalize, number, condition }
+export { fields, normalize, number, condition, selectedNumber }

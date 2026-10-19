@@ -244,6 +244,12 @@ export const targets: typeof C.targets = {
     const player = owner(ctx)?.owner
     return player ? [scope(ctx).battle.getOpponent(player).activePet] : []
   }),
+  opponentMarks: selector(ctx => {
+    const event = engine(ctx).parent
+    if (event instanceof UseSkillContext) return [...event.actualTarget!.marks]
+    const player = owner(ctx)?.owner
+    return player ? [...scope(ctx).battle.getOpponent(player).activePet.marks] : []
+  }),
   ownerMarks: selector(ctx => {
     const pet = owner(ctx)
     if (!pet) return []

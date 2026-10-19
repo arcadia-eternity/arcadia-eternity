@@ -38,7 +38,8 @@ interface RecordEntry {
   recipe: {
     trigger: 'BeforeUseSkillCheck' | 'AfterUseSkillCheck' | 'BeforeHit'
     operation: 'addPower' | 'amplifyPower'
-    amount: number
+    amount?: number
+    value?: string
     consumesStacks?: number
     repairedPaths: string[]
   }
@@ -77,6 +78,20 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 afterEach(async () => {
   for (const b of battles.splice(0)) await b.cleanup()
 })
+function supportIds(nodes: { [key: string]: unknown }[]) {
+  return [
+    ...new Set(
+      nodes.flatMap(n =>
+        typeof n.baseId === 'string'
+          ? [n.baseId]
+          : n.type === 'same' && typeof n.value === 'string' && /^(mark_|stat_stage_)/.test(n.value)
+            ? [n.value]
+            : [],
+      ),
+    ),
+  ]
+}
+const dynamicVariants = ['late-target', 'late-stack', 'multi-mark', 'empty-values', 'retarget-self'] as const
 const variants = [
   'normal',
   'missing-marks',
@@ -89,28 +104,36 @@ const variants = [
   'repeat',
   'phase',
 ] as const
-function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark' | 'global', variant: (typeof variants)[number]) {
+function run(
+  r: RecordEntry,
+  native: boolean,
+  kind: 'skill' | 'mark' | 'global',
+  variant: (typeof variants)[number] | (typeof dynamicVariants)[number],
+) {
   const f = makeScenario(328),
     { battle, a, b } = f
   battles.push(battle)
   for (const pet of [...a.team, ...b.team]) for (const skill of pet.skills) skill.effects.splice(0)
   const pet = a.activePet,
     skill = pet.skills[0]
-  const nodes = objects(definitions.get(r.id).condition)
+  const nodes = objects(definitions.get(r.id))
   const setup = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, skill)
   const add = (owner: typeof pet | Battle, id: string) => {
     const base = new BaseMark(id as baseMarkId, [], { ...f.debuff.config, maxStacks: 5, stackable: true })
     battle.addMark(new AddMarkContext(setup, owner, base, 3))
     return owner.marks.find(m => m.base === base)!
   }
-  if (variant !== 'missing-marks')
+  if (variant !== 'missing-marks' && variant !== 'empty-values') {
+    for (const id of supportIds(nodes)) {
+      add(pet, id)
+      add(b.activePet, id)
+    }
     for (const node of nodes) {
-      if (typeof node.baseId === 'string') {
-        add(pet, node.baseId)
-        add(b.activePet, node.baseId)
-      }
       if (node.type === 'contain' && typeof node.tag === 'string') add(pet, 'fixture/tag').tags.push(node.tag)
     }
+  }
+  pet.lastSkill = skill
+  pet.lastSkillUsedTimes = 3
   for (const owner of [pet, b.activePet]) {
     owner.attributeSystem.updateBaseValue('maxHp', 801)
     owner.currentHp = nodes.some(n => n.operator === '==') ? 801 : nodes.some(n => n.operator === '>') ? 700 : 10
@@ -126,7 +149,17 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark' | 'global',
     AttackTargetOpinion.opponent,
     variant === 'other-skill' ? otherSkill : skill,
   )
-  use.actualTarget = b.activePet
+  use.actualTarget = variant === 'retarget-self' ? pet : b.activePet
+  if (variant === 'retarget-self') for (const mark of pet.marks) mark.stack = 2
+  if (variant === 'multi-mark')
+    for (const owner of [pet, b.activePet]) {
+      for (const mark of [...owner.marks]) {
+        if (!supportIds(nodes).includes(mark.baseId)) continue
+        const duplicate = mark.base.createInstance({ stack: 2 })
+        duplicate.owner = owner
+        owner.marks.push(duplicate)
+      }
+    }
   use.power = 83
   const strings = nodes.flatMap(n => (typeof n.value === 'string' ? [n.value] : Array.isArray(n.value) ? n.value : []))
   use.element = (strings.find(s => Object.values(Element).includes(s)) ?? Element.Normal) as Element
@@ -156,6 +189,12 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark' | 'global',
           use.power = 101
           use.element = Element.Trait
         }
+        if (variant === 'late-target') use.actualTarget = b.team[1]
+        if (variant === 'late-stack') {
+          for (const mark of [...pet.marks, ...b.activePet.marks]) mark.stack = 1
+          pet.lastSkillUsedTimes = 6
+          pet.attributeSystem.updateBaseValue('maxHp', 903)
+        }
         if (variant === 'cancel') ctx.parent.available = false
       },
     }),
@@ -178,6 +217,28 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark' | 'global',
     rage: [a.currentRage, b.currentRage],
     nextRandom: battle.random(),
   }
+}
+// Explicit expected contributions, independent of the emitted expression and legacy interpreter.
+function expectedDynamic(id: Id, kind: 'skill' | 'mark' | 'global', phase: boolean): number {
+  if (id === 'effect_mark_add_power_stack') return kind === 'skill' ? 0 : 3
+  if (id === 'effect_skill_add_power_30_per_usetime') return phase ? 90 : 60
+  if (id === 'effect_skill_reduce_power_on_consecutive_hits_10_max_20') return -20
+  if (id === 'effect_skill_add_power_by_self_max_hp_minus_500') return 301
+  const contributions: Record<string, number> = {
+    effect_skill_add_power_15_each_huohuanzhixin: 45,
+    effect_skill_add_power_15_per_spd_level: 45,
+    effect_skill_add_power_25_zhongzinengliang: 75,
+    effect_skill_add_power_30_per_shunliu: 90,
+    effect_skill_add_power_30_per_stack_if_has_shunliu: 90,
+    effect_skill_add_power_40_opponent_per_atk_level: 120,
+    effect_skill_add_power_40_opponent_per_def_level: 120,
+    effect_skill_add_power_40_opponent_per_spa_level: 120,
+    effect_skill_add_power_40_opponent_per_spd_level: 120,
+    effect_skill_add_power_40_opponent_per_spe_level: 120,
+    effect_skill_add_power_50_ruodian: 150,
+  }
+  if (!(id in contributions)) throw new Error(`Missing positive expectation: ${id}`)
+  return contributions[id]
 }
 for (const r of records) {
   it(`${r.id} records the original parser failure and pins its source`, () => {
@@ -206,14 +267,16 @@ for (const r of records) {
     | 'mark'
     | 'global'
   )[])
-    it.each(variants)(`${r.id} ${kind}: %s`, variant => {
+    it.each(r.recipe.value ? [...variants, ...dynamicVariants] : variants)(`${r.id} ${kind}: %s`, variant => {
       const actual = run(r, true, kind, variant)
       expect(actual).toEqual(run(r, false, kind, variant))
       expect(actual.trace).not.toContainEqual({ success: false })
       if (variant === 'normal' || variant === 'phase') {
         expect(actual.trace).toContain('admitted')
         expect(actual.power).toBeCloseTo(
-          r.recipe.operation === 'addPower' ? 83 + r.recipe.amount : 83 * r.recipe.amount,
+          r.recipe.operation === 'addPower'
+            ? 83 + (r.recipe.amount ?? expectedDynamic(r.id, kind, variant === 'phase'))
+            : 83 * r.recipe.amount!,
         )
       }
     })
@@ -226,7 +289,7 @@ async function game(r: RecordEntry, native: boolean, checkpoint: boolean) {
     { battle, a, b } = f
   const pets = [...a.team, ...b.team]
   const originals = pets.flatMap(p => p.baseSkills.flatMap(s => s.effects))
-  const nodes = objects(definitions.get(r.id).condition)
+  const nodes = objects(definitions.get(r.id))
   const strings = nodes.flatMap(n => (typeof n.value === 'string' ? [n.value] : Array.isArray(n.value) ? n.value : []))
   const element = (strings.find(s => Object.values(Element).includes(s)) ?? Element.Normal) as Element
   const category = (strings.find(s => Object.values(Category).includes(s) && s !== 'Status') ??
@@ -287,11 +350,12 @@ async function game(r: RecordEntry, native: boolean, checkpoint: boolean) {
             3,
           ),
         )
-      for (const pet of pets)
+      for (const pet of pets) {
+        for (const id of supportIds(nodes)) add(pet, id)
         for (const node of nodes) {
-          if (typeof node.baseId === 'string') add(pet, node.baseId)
           if (node.type === 'contain' && typeof node.tag === 'string') add(pet, 'fixture/power-tag', [], [node.tag])
         }
+      }
       if (r.id.startsWith('effect_global_')) add(battle, 'fixture/power-source', [effect])
       else for (const pet of a.team) add(pet, 'fixture/power-source', [effect])
     },

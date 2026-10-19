@@ -50,7 +50,7 @@ test('rejects unsupported action shapes instead of emitting partial effects', ()
     assert.ok(classifySkillPower(bad).reason)
 })
 test('deterministically reproduces every candidate and rejected record', async () => {
-  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 56, rejected: 48 })
+  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 71, rejected: 33 })
 })
 
 test('preserves skill ownership throughout nested conditional comparison values', () => {
@@ -86,4 +86,32 @@ test('does not invent an unimplemented category base extractor under C07', () =>
   assert.ok(classifySkillPower(d).reason)
   d.condition.target.chain[0].type = 'selectPath'
   assert.ok(!classifySkillPower(d).reason)
+})
+
+test('power dynamic collections pair operands by index, with missing RHS zero', () => {
+  const d = source()
+  d.apply.value = {
+    type: 'dynamic',
+    selector: {
+      base: 'opponentMarks',
+      chain: [
+        { type: 'whereAttr', extractor: { type: 'base', arg: 'baseId' }, evaluator: { type: 'same', value: 'mark_x' } },
+        { type: 'select', arg: { type: 'base', arg: 'stack' } },
+        { type: 'multiply', arg: 15 },
+      ],
+    },
+  }
+  const r = classifySkillPower(d)
+  assert.equal(
+    r.value,
+    'targets.opponentMarks.where(mark => mark.baseId === "mark_x").select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 15 : 0))))',
+  )
+  for (const step of [
+    { type: 'unknown', arg: 1 },
+    { type: 'divide', arg: 3 },
+  ]) {
+    const unsupported = structuredClone(d)
+    unsupported.apply.value.selector.chain.push(step)
+    assert.ok(classifySkillPower(unsupported).reason)
+  }
 })
