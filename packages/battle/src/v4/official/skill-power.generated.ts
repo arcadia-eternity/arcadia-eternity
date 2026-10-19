@@ -25,6 +25,30 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(1.5)),
       }),
     ),
+    effect_ability_amplify_power_consume_ruodian: compileEffect(
+      defineEffect({
+        id: 'effect_ability_amplify_power_consume_ruodian',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.ownerUsesSkill,
+          (ctx: EffectFrame) => {
+            const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
+            const right = ctx.read(
+              targets.ownerPet
+                .select(pet => pet.stat.maxHp)
+                .first()
+                .map(n => Math.floor(n / 4)),
+            )
+            return left !== undefined && right !== undefined && left < right
+          },
+          contexts.skillUse.condition((_ctx, events) =>
+            events.some(event => event.skill.tags.includes('consume_ruodian')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(1.25)),
+      }),
+    ),
     effect_ability_damage_amplify_10_percent_weight_100kg: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_10_percent_weight_100kg',
@@ -254,6 +278,20 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
+    effect_mark_amplify_non_yanggong: compileEffect(
+      defineEffect({
+        id: 'effect_mark_amplify_non_yanggong',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.all(
+          conditions.ownerUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
+          contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId !== 'skill_yanggong'),
+        ),
+        execute: contexts.skillUse.apply(ops.addPower(50)),
+      }),
+    ),
     effect_mark_amplify_skill_10: compileEffect(
       defineEffect({
         id: 'effect_mark_amplify_skill_10',
@@ -474,6 +512,19 @@ export function createGeneratedSkillPowerEffects() {
               .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 30 : 0)))),
           ),
         ),
+      }),
+    ),
+    effect_skill_add_power_35_if_opponent_spa_gt_atk: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_35_if_opponent_spa_gt_atk',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.opponentActive.select(pet => pet.stat.spa).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.stat.atk).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.addPower(35)),
       }),
     ),
     effect_skill_add_power_40_if_first: compileEffect(

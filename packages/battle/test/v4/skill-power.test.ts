@@ -40,6 +40,7 @@ interface RecordEntry {
   sourceFile: string
   sourcePath: string
   definitionSha256: string
+  additionalDecisions?: string[]
   recipe: {
     trigger: 'BeforeUseSkillCheck' | 'AfterUseSkillCheck' | 'BeforeHit'
     operation: 'addPower' | 'amplifyPower'
@@ -47,6 +48,7 @@ interface RecordEntry {
     value?: string
     parameters?: { name: string; value: number; configId?: string; tags?: string[] }[]
     consumesStacks?: number
+    pathRepairs?: { path: string; before: string; after: string }[]
     repairedPaths: string[]
   }
 }
@@ -73,7 +75,27 @@ function corrected(v: unknown): unknown {
     )
   return v
 }
-const oracles = new Map(records.map(r => [r.id, EffectParser.parse(corrected(definitions.get(r.id)))]))
+const pathRepairs: Record<string, readonly (readonly [string, string, string])[]> = {
+  effect_ability_amplify_power_consume_ruodian: [['/condition/conditions/2/target/chain/0/arg', 'skillId', 'skill']],
+  effect_mark_amplify_non_yanggong: [['/condition/conditions/2/target/chain/0/arg', 'skillId', 'skill']],
+  effect_skill_add_power_35_if_opponent_spa_gt_atk: [
+    ['/condition/conditions/1/target/chain/0/arg', 'spa', 'stat.spa'],
+    ['/condition/conditions/1/evaluator/value/selector/chain/0/arg', 'atk', 'stat.atk'],
+  ],
+}
+function correctedReference(r: RecordEntry) {
+  const d = corrected(definitions.get(r.id))
+  for (const [path, before, after] of pathRepairs[r.id] ?? []) {
+    const keys = path.slice(1).split('/')
+    const key = keys.pop()!
+    let parent = d as Record<string, unknown>
+    for (const part of keys) parent = parent[part] as Record<string, unknown>
+    expect(parent[key]).toBe(before)
+    parent[key] = after
+  }
+  return d
+}
+const oracles = new Map(records.map(r => [r.id, EffectParser.parse(correctedReference(r))]))
 function objects(v: unknown): { [key: string]: unknown }[] {
   if (Array.isArray(v)) return v.flatMap(objects)
   if (v && typeof v === 'object') return [v as { [key: string]: unknown }, ...Object.values(v).flatMap(objects)]
@@ -122,6 +144,16 @@ function parameterKey(r: RecordEntry, battle: Battle, native: boolean, name: str
   const keys = battle.configSystem.getRegisteredKeys().filter(key => key.startsWith(`${r.id}.`))
   if (keys.length !== 1) throw new Error('Ambiguous anonymous parameter oracle')
   return keys[0]
+}
+const pathVariants = ['wrong-path-value', 'late-path-value'] as const
+function setupSkillPaths(r: RecordEntry, battle: Battle) {
+  if (r.id === 'effect_ability_amplify_power_consume_ruodian')
+    for (const pet of battle.playerA.team) for (const skill of pet.skills) skill.tags.push('consume_ruodian')
+  if (r.id === 'effect_skill_add_power_35_if_opponent_spa_gt_atk')
+    for (const pet of battle.playerB.team) {
+      pet.attributeSystem.updateBaseValue('spa', 300)
+      pet.attributeSystem.updateBaseValue('atk', 100)
+    }
 }
 const fieldVariants = ['wrong-fields', 'missing-fields', 'late-fields'] as const
 const fieldIds = new Set([
@@ -195,7 +227,8 @@ function run(
     | (typeof orderVariants)[number]
     | (typeof fieldVariants)[number]
     | (typeof branchVariants)[number]
-    | (typeof parameterVariants)[number],
+    | (typeof parameterVariants)[number]
+    | (typeof pathVariants)[number],
 ) {
   const f = makeScenario(328),
     { battle, a, b } = f
@@ -259,6 +292,7 @@ function run(
   if (variant === 'config-custom') changeConfig(r.id === probabilityId ? 100 : 7.5)
   if (variant === 'foreign-config' || variant === 'removed-config')
     changeConfig(0, variant === 'foreign-config', variant === 'removed-config')
+  setupSkillPaths(r, battle)
   const otherSkill = new SkillInstance(skill.base)
   otherSkill.setOwner(pet)
   const use = new UseSkillContext(
@@ -268,6 +302,29 @@ function run(
     AttackTargetOpinion.opponent,
     variant === 'other-skill' ? otherSkill : skill,
   )
+  const changePathValues = () => {
+    if (r.id === 'effect_ability_amplify_power_consume_ruodian') use.skill.tags.splice(0)
+    if (r.id === 'effect_mark_amplify_non_yanggong') {
+      use.skill = new SkillInstance(
+        new BaseSkill(
+          'skill_yanggong' as BaseSkill['id'],
+          Category.Physical,
+          Element.Normal,
+          83,
+          100,
+          0,
+          0,
+          AttackTargetOpinion.opponent,
+          1,
+          true,
+        ),
+      )
+      use.skill.setOwner(pet)
+    }
+    if (r.id === 'effect_skill_add_power_35_if_opponent_spa_gt_atk')
+      b.activePet.attributeSystem.updateBaseValue('spa', 50)
+  }
+  if (variant === 'wrong-path-value') changePathValues()
   const rival = new UseSkillContext(use.parent, b, b.activePet, AttackTargetOpinion.opponent, b.activePet.skills[0])
   use.parent.appledContexts.push(...(variant === 'wrong-order' ? [rival, use] : [use, rival]))
   use.parent.contexts.push(...(variant === 'wrong-order' ? [rival, use] : [use, rival]))
@@ -288,6 +345,7 @@ function run(
   use.element = (strings.find(s => Object.values(Element).includes(s)) ?? Element.Normal) as Element
   use.category = (strings.find(s => Object.values(Category).includes(s) && s !== 'Status') ??
     Category.Physical) as Category
+  if (r.id === 'effect_mark_amplify_non_yanggong') use.category = Category.Physical
   if (variant === 'alternate-element') {
     use.element = Element.Trait
     use.category = Category.Status
@@ -316,6 +374,7 @@ function run(
           selectBranch(variant === 'late-lower-branch')
         if (variant === 'late-config') changeConfig(r.id === probabilityId ? 0 : 7.5)
         if (variant === 'late-duration') for (const mark of b.activePet.marks) mark.duration = 1
+        if (variant === 'late-path-value') changePathValues()
         if (variant === 'late-fields') fieldsFor(r, battle, false)
         if (variant === 'late-order') {
           use.parent.appledContexts.reverse()
@@ -380,6 +439,13 @@ function expectedDynamic(id: Id, kind: 'skill' | 'mark' | 'global', phase: boole
 for (const r of records) {
   it(`${r.id} records the original parser failure and pins its source`, () => {
     expect(() => EffectParser.parse(definitions.get(r.id))).toThrow()
+    if (pathRepairs[r.id]) {
+      expect(() => EffectParser.parse(corrected(definitions.get(r.id)))).toThrow(
+        r.id.includes('spa_gt_atk') ? /'spa'.*Pet/ : /'skillId'.*UseSkillContext/,
+      )
+      expect(r.additionalDecisions).toContain('C09')
+      expect(r.recipe.pathRepairs).toEqual(pathRepairs[r.id].map(([path, before, after]) => ({ path, before, after })))
+    } else expect(r.recipe.pathRepairs).toBeUndefined()
     expect(r.recipe.repairedPaths).toContain(
       typeof definitions.get(r.id).apply.target === 'string' ? '/apply/target' : '/apply/target/base',
     )
@@ -411,11 +477,16 @@ for (const r of records) {
       ...(fieldIds.has(r.id) ? fieldVariants : []),
       ...(conditionalPower(r) ? branchVariants : []),
       ...(r.recipe.parameters ? parameterVariants : []),
+      ...(pathRepairs[r.id] ? pathVariants : []),
     ])(`${r.id} ${kind}: %s`, variant => {
       const actual = run(r, true, kind, variant)
       expect(actual).toEqual(run(r, false, kind, variant))
       expect(actual.trace).not.toContainEqual({ success: false })
-      if (variant === 'wrong-fields' || (variant === 'missing-fields' && /weight|height|heavier/.test(r.id))) {
+      if (
+        variant === 'wrong-path-value' ||
+        variant === 'wrong-fields' ||
+        (variant === 'missing-fields' && /weight|height|heavier/.test(r.id))
+      ) {
         expect(actual.trace).not.toContain('admitted')
         expect(actual.power).toBe(83)
       }
@@ -442,7 +513,7 @@ for (const r of records) {
                   : 60
         expect(actual.power).toBe(83 + contribution)
       }
-      if (variant === 'normal' || variant === 'phase' || variant === 'late-fields') {
+      if (variant === 'normal' || variant === 'phase' || variant === 'late-fields' || variant === 'late-path-value') {
         expect(actual.trace).toContain('admitted')
         expect(actual.power).toBeCloseTo(
           r.recipe.operation === 'addPower'
@@ -504,6 +575,7 @@ async function game(r: RecordEntry, native: boolean, checkpoint: boolean) {
     // Selection starts at turn zero; the executor increments to the first round.
     if (r.id === 'effect_skill_power_2x_if_first_round') battle.currentTurn = 0
   }
+  setupSkillPaths(r, battle)
   return playCandidateGame({
     battle,
     checkpointTurn: r.id === 'effect_skill_power_2x_if_first_round' ? 0 : 1,

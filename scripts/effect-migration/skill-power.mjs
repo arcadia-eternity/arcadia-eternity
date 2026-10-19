@@ -38,9 +38,35 @@ export function repairSkillSelector(definition) {
   }
   return { definition: visit(definition), paths }
 }
+// C09 is deliberately limited to these source nodes; unknown paths are never guessed.
+const skillPathCorrections = {
+  effect_ability_amplify_power_consume_ruodian: [['/condition/conditions/2/target/chain/0/arg', 'skillId', 'skill']],
+  effect_mark_amplify_non_yanggong: [['/condition/conditions/2/target/chain/0/arg', 'skillId', 'skill']],
+  effect_skill_add_power_35_if_opponent_spa_gt_atk: [
+    ['/condition/conditions/1/target/chain/0/arg', 'spa', 'stat.spa'],
+    ['/condition/conditions/1/evaluator/value/selector/chain/0/arg', 'atk', 'stat.atk'],
+  ],
+}
+export function repairSkillPaths(definition) {
+  const copy = structuredClone(definition)
+  const changes = []
+  const corrections = Object.hasOwn(skillPathCorrections, definition.id) ? skillPathCorrections[definition.id] : []
+  for (const [path, before, after] of corrections) {
+    const keys = path.slice(1).split('/')
+    const key = keys.pop()
+    const parent = keys.reduce((value, part) => value?.[part], copy)
+    if (parent?.[key] !== before || parent.type !== 'selectPath') return { reason: `C09 source node changed: ${path}` }
+    parent[key] = after
+    changes.push({ path, before, after })
+  }
+  return { definition: copy, changes }
+}
 export function classifySkillPower(original) {
   if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
-  const { definition: d, paths } = repairSkillSelector(original)
+  const { definition: spelling, paths } = repairSkillSelector(original)
+  const repaired = repairSkillPaths(spelling)
+  if (repaired.reason) return repaired
+  const d = repaired.definition
   if (
     !fields(d, [
       'id',
@@ -81,6 +107,7 @@ export function classifySkillPower(original) {
     when,
     ...(parameters.length ? { parameters } : {}),
     repairedPaths: paths,
+    ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
     ...('consumesStacks' in d ? { consumesStacks: d.consumesStacks } : {}),
     ...('tags' in d ? { tags: d.tags } : {}),
   }
@@ -104,6 +131,10 @@ export async function generateSkillPower({ check = false } = {}) {
           .digest('hex'),
       }
       const recipe = classifySkillPower(d)
+      const additionalDecisions = [
+        ...(/conditions\.(firstSkillThisTurn|lastSkillThisTurn)/.test(recipe.when ?? '') ? ['C08'] : []),
+        ...(recipe.pathRepairs ? ['C09'] : []),
+      ]
       if (recipe.reason) rejected.push({ ...source, reason: recipe.reason })
       else
         records.push({
@@ -111,9 +142,7 @@ export async function generateSkillPower({ check = false } = {}) {
           recipe,
           classification: 'C',
           decision: 'C07',
-          ...(/conditions\.(firstSkillThisTurn|lastSkillThisTurn)/.test(recipe.when)
-            ? { additionalDecisions: ['C08'] }
-            : {}),
+          ...(additionalDecisions.length ? { additionalDecisions } : {}),
           status: 'generated-correction-candidate',
         })
     }

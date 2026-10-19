@@ -109,7 +109,11 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         name = e.arg
       else if (
         step.type === 'selectPath' &&
-        (step.arg === 'stack' || (collection && s.base === 'usingSkillContext' && step.arg === 'power'))
+        (step.arg === 'stack' ||
+          (domain === 'skill' &&
+            ['self', 'opponent'].includes(s.base) &&
+            ['stat.spa', 'stat.atk'].includes(step.arg)) ||
+          (collection && s.base === 'usingSkillContext' && step.arg === 'power'))
       )
         name = step.arg
       if (
@@ -117,7 +121,12 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         (name === 'stack' || (domain === 'skill' && name === 'duration'))
       )
         code += `.select(mark => mark.${name})${terminal}`
-      else if (['self', 'opponent'].includes(s.base) && ['currentHp', 'maxHp', 'lastSkillUsedTimes'].includes(name))
+      else if (
+        ['self', 'opponent'].includes(s.base) &&
+        ['currentHp', 'maxHp', 'lastSkillUsedTimes', ...(domain === 'skill' ? ['stat.spa', 'stat.atk'] : [])].includes(
+          name,
+        )
+      )
         code += `.select(pet => pet.${name === 'maxHp' ? 'stat.maxHp' : name})${terminal}`
       else if (
         domain === 'skill' &&
@@ -284,6 +293,35 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
 
     const t = c.target,
       e = c.evaluator
+    if (fields(t, ['base', 'chain']) && t.base === 'usingSkillContext' && Array.isArray(t.chain)) {
+      const [skill, property, flat] = t.chain
+      if (fields(skill, ['type', 'arg']) && skill.type === 'selectPath' && skill.arg === 'skill') {
+        if (
+          t.chain.length === 2 &&
+          fields(property, ['type', 'arg']) &&
+          property.type === 'select' &&
+          property.arg === 'baseId' &&
+          fields(e, ['type', 'value']) &&
+          ['same', 'notSame'].includes(e.type) &&
+          typeof e.value === 'string'
+        )
+          return `contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId ${e.type === 'same' ? '===' : '!=='} ${q(e.value)})`
+        if (
+          t.chain.length === 3 &&
+          fields(property, ['type', 'arg']) &&
+          property.type === 'select' &&
+          fields(property.arg, ['type', 'arg']) &&
+          property.arg.type === 'base' &&
+          property.arg.arg === 'tags' &&
+          fields(flat, ['type']) &&
+          flat.type === 'flat' &&
+          fields(e, ['type', 'tag']) &&
+          e.type === 'contain' &&
+          typeof e.tag === 'string'
+        )
+          return `contexts.skillUse.condition((_ctx,events) => events.some(event => event.skill.tags.includes(${q(e.tag)})))`
+      }
+    }
     if (
       fields(t, ['base', 'chain']) &&
       t.base === 'usingSkillContext' &&

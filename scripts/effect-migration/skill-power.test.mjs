@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { classifySkillPower, generateSkillPower, repairSkillSelector } from './skill-power.mjs'
+import { classifySkillPower, generateSkillPower, repairSkillSelector, repairSkillPaths } from './skill-power.mjs'
 const source = () => ({
   id: 'test',
   trigger: 'AfterUseSkillCheck',
@@ -50,7 +50,7 @@ test('rejects unsupported action shapes instead of emitting partial effects', ()
     assert.ok(classifySkillPower(bad).reason)
 })
 test('deterministically reproduces every candidate and rejected record', async () => {
-  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 101, rejected: 3 })
+  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 104, rejected: 0 })
 })
 
 test('preserves skill ownership throughout nested conditional comparison values', () => {
@@ -239,4 +239,46 @@ test('parameterized probability preserves nested condition order and parameter t
   assert.deepEqual(r.parameters, [{ name: 'condition_1_percent', value: 10, tags: ['skill_effect_probability'] }])
   d.condition.conditions[1].evaluator.percent.tags = [123]
   assert.ok(classifySkillPower(d).reason)
+})
+
+test('C09 is a nonmutating correction of exact named nodes, not a general path alias', () => {
+  const d = source()
+  d.id = 'effect_mark_amplify_non_yanggong'
+  d.condition = {
+    type: 'every',
+    conditions: [
+      { type: 'checkSelf' },
+      { type: 'checkSelf' },
+      {
+        type: 'evaluate',
+        target: {
+          base: 'useSkillContext',
+          chain: [
+            { type: 'selectPath', arg: 'skillId' },
+            { type: 'select', arg: 'baseId' },
+          ],
+        },
+        evaluator: { type: 'notSame', value: 'skill_yanggong' },
+      },
+    ],
+  }
+  const before = structuredClone(d)
+  const repaired = repairSkillPaths(d)
+  assert.deepEqual(d, before)
+  assert.deepEqual(repaired.changes, [
+    { path: '/condition/conditions/2/target/chain/0/arg', before: 'skillId', after: 'skill' },
+  ])
+  assert.equal(repaired.definition.condition.conditions[2].target.chain[0].arg, 'skill')
+  assert.ok(classifySkillPower(d).when.includes('skill.baseId !== "skill_yanggong"'))
+  assert.ok(classifySkillPower({ ...d, id: 'unreviewed' }).reason)
+  d.condition.conditions[2].target.chain[0].arg = 'anotherPath'
+  assert.ok(classifySkillPower(d).reason.includes('C09 source node changed'))
+})
+
+test('C09 unknown IDs cannot resolve inherited object properties', () => {
+  for (const id of ['toString', 'constructor', '__proto__']) {
+    const d = { ...source(), id }
+    assert.deepEqual(repairSkillPaths(d), { definition: d, changes: [] })
+    assert.equal(classifySkillPower(d).id, id)
+  }
 })
