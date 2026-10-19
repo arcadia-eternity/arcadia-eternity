@@ -1,0 +1,28 @@
+{
+  "id": "effect_skill_add_mark_zhaocai_or_jinbao",
+  "sourceFile": "packs/base/data/effect_skill.yaml",
+  "sourcePath": "/462",
+  "definitionSha256": "0a1c8382f5b58bc0b21e9e1f75ace21bc9c6a3c246549ba5cd1c0fb5ed107131",
+  "classification": "U",
+  "status": "handwritten-candidate",
+  "dependencies": [
+    {
+      "id": "mark_zhaocai",
+      "sourceFile": "packs/base/data/mark.yaml",
+      "definitionSha256": "76f7f6d3e0fb10b5b8dfb0611a493562754d545e14cc40c6b7f165d775f5a9d9",
+      "effectIds": ["effect_mark_increase_damage_dealt_25_percent"]
+    },
+    {
+      "id": "mark_jinbao",
+      "sourceFile": "packs/base/data/mark.yaml",
+      "definitionSha256": "9c967605ea300e31aad618aaada7eeeaf6c6b4725ac30664bbd38e576b2ab9ce",
+      "effectIds": ["effect_mark_reduce_damage_taken_25_percent"]
+    }
+  ],
+  "correction": {
+    "decision": "C10",
+    "path": "/apply/mark/type",
+    "before": "selectorValue",
+    "after": "selector"
+  }
+}

@@ -2,6 +2,7 @@
 export type * from './contracts'
 export {
   defineEffect,
+  selectFrom,
   numberParam,
   booleanParam,
   targets,

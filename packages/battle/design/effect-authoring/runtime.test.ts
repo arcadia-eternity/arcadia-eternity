@@ -5,6 +5,7 @@ import {
   DamageContext,
   HealContext,
   Signal,
+  GameRng,
   ConfigModifier,
   ConfigModifierType,
   ConfigDurationType,
@@ -25,6 +26,7 @@ import {
 import { makeScenario } from '../../test/v4/scenario'
 import {
   compileEffect,
+  selectFrom,
   effectParameters,
   numberParam,
   booleanParam,
@@ -1283,3 +1285,77 @@ it('target admission rejects non-pet sources when the actual target is missing',
   f.skill.owner = null
   expect(effect.condition!(new EffectContext(f.use, EffectTrigger.OnMiss, f.skill))).toBe(false)
 })
+
+it('random selectors fully shuffle on every use and preserve fixed membership and input order', () => {
+  const f = fixture()
+  const input = [1, 2, 3, 4]
+  const query = selectFrom(input).shuffled()
+  input.push(5)
+  const expected = new GameRng(201)
+  const results: unknown[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/random-selector',
+      on: 'BeforeHit',
+      execute(ctx) {
+        results.push(ctx.read(query.all()))
+        results.push(ctx.read(query.where(n => n > 2).first()))
+        results.push(ctx.read(selectFrom<number>([]).shuffled().first()))
+        results.push(ctx.read(selectFrom([9]).shuffled().first()))
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(results).toEqual([
+    expected.shuffle([1, 2, 3, 4]),
+    expected.shuffle([1, 2, 3, 4]).find(n => n > 2),
+    undefined,
+    9,
+  ])
+  expect(input).toEqual([1, 2, 3, 4, 5])
+  expect(f.battle.random()).toBe(expected.next())
+})
+
+it('random selectors requery dynamic membership before shuffling', () => {
+  const f = fixture()
+  const query = targets.ownerMarks
+    .shuffled()
+    .select(mark => mark.baseId)
+    .all()
+  const first = f.add('test/random-first')
+  const results: unknown[] = []
+  const expected = new GameRng(201)
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/random-membership',
+      on: 'BeforeHit',
+      execute(ctx) {
+        results.push(ctx.read(query))
+        f.add('test/random-second')
+        results.push(ctx.read(query))
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(results).toEqual([[first.baseId], expected.shuffle(['test/random-first', 'test/random-second'])])
+  expect(f.battle.random()).toBe(expected.next())
+})
+
+it.each(['capture', 'follow'] as const)(
+  'random queries reject persistent %s evaluation without consuming RNG',
+  mode => {
+    const f = fixture()
+    const mark = f.add('test/random-binding')
+    const speed = f.owner.stat.spe
+    const query = selectFrom([1, 2, 3]).shuffled().first()
+    const plan =
+      mode === 'capture' ? query.capture({ key: 'random', scope: 'binding' }) : query.follow({ key: 'random' })
+    const effect = penalty(plan, `test/random-${mode}`)
+    const ctx = new EffectContext(new AddMarkContext(f.ctx, f.owner, mark.base), EffectTrigger.OnMarkCreated, mark)
+    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))).toThrow(
+      'Persistent queries',
+    )
+    expect(f.owner.stat.spe).toBe(speed)
+    expect(f.battle.random()).toBe(new GameRng(201).next())
+  },
+)

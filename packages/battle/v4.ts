@@ -33,3 +33,7 @@ export {
 
 export { officialHealModifierEffects, createOfficialHealModifierEffects } from './src/v4/official/heal-modifiers'
 export { generatedSkillPowerEffects, createGeneratedSkillPowerEffects } from './src/v4/official/skill-power.generated'
+export {
+  createRandomMarkApplications,
+  randomMarkApplicationDependencies,
+} from './src/v4/official/random-mark-applications'

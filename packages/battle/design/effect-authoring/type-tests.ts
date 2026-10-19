@@ -5,6 +5,7 @@ import type { Pet } from '../../src/v4/pet'
 import type { MarkInstance } from '../../src/v4/mark'
 import {
   actions,
+  selectFrom,
   booleanParam,
   contexts,
   defineEffect,
@@ -257,3 +258,16 @@ const expandedNumbers = targets.ownerPet.flatMap(pet => [pet.currentHp, pet.stat
 exact<Equal<typeof expandedNumbers, Value<readonly number[]>>>(true)
 // @ts-expect-error Collection expansion requires an array, not a scalar.
 targets.ownerPet.flatMap(pet => pet.currentHp)
+
+const randomNumbers = selectFrom([1, 2, 3] as const)
+  .shuffled()
+  .where(n => n > 1)
+  .first()
+exact<Equal<typeof randomNumbers, Value<1 | 2 | 3, 'optional'>>>(true)
+const randomMarks = targets.ownerMarks
+  .shuffled()
+  .select(mark => mark.base)
+  .first()
+ops.addMark(randomMarks)
+// @ts-expect-error A fixed selector needs a collection.
+selectFrom(3)

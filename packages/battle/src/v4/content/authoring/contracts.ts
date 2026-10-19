@@ -55,6 +55,8 @@ export interface Selector<T> {
   readonly select: <U>(project: (value: T) => U) => Selector<U>
   /** Expand each current member in order; membership is queried again on every use. */
   readonly flatMap: <U>(project: (value: T) => readonly U[]) => Selector<U>
+  /** Requery and fully shuffle on each use with battle RNG. Requires an immediate trigger frame. */
+  readonly shuffled: () => Selector<T>
   readonly first: () => Value<T, 'optional'>
   /** Fresh ordered membership snapshot at each read. */
   readonly all: () => Value<readonly T[]>
@@ -63,6 +65,9 @@ export interface Selector<T> {
   // Deliberately bounded writable surface; does not make every Pet key writable.
   readonly property: (this: Selector<Pet>, key: 'currentHp') => Selector<WritableRef<number>>
 }
+
+/** Copy a fixed membership list at definition time; members retain their domain identity. */
+export declare function selectFrom<T>(members: readonly T[]): Selector<T>
 
 interface FrameServices {
   readonly read: <T, P extends Presence>(value: Value<T, P>) => ReadResult<T, P>
