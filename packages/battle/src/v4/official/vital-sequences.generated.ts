@@ -234,6 +234,54 @@ export function createGeneratedVitalSequences() {
         ),
       }),
     ),
+    effect_mark_self_damage_50_percent_once: compileEffect(
+      defineEffect({
+        id: 'effect_mark_self_damage_50_percent_once',
+        on: 'OnDamage',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
+          (ctx: EffectFrame) =>
+            ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
+        ),
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.dealDamage(
+              contexts.damage
+                .select(event => event.damageResult)
+                .first()
+                .map(n => Math.floor(n * 0.5)),
+            ),
+          ),
+          targets.sourceMark.apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_mark_self_damage_50_percent_once_when_special: compileEffect(
+      defineEffect({
+        id: 'effect_mark_self_damage_50_percent_once_when_special',
+        on: 'OnDamage',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
+          (ctx: EffectFrame) =>
+            ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
+        ),
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.dealDamage(
+              contexts.damage
+                .select(event => event.damageResult)
+                .first()
+                .map(n => Math.floor(n * 0.5)),
+            ),
+          ),
+          targets.sourceMark.apply(ops.removeMark()),
+        ),
+      }),
+    ),
     effect_skill_add_rage_with_consume_yinbo_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_with_consume_yinbo_stack',

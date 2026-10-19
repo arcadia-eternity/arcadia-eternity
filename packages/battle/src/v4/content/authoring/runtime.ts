@@ -15,7 +15,7 @@ import {
 import { Pet } from '../../pet'
 import { Player } from '../../player'
 import { SkillInstance } from '../../skill'
-import { BaseMark, BaseStatLevelMark, MarkInstanceImpl } from '../../mark'
+import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, type MarkInstance } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
 import type { SnapshotCatalog } from '../../snapshot'
 import type { Effect } from '../../effect'
@@ -487,6 +487,11 @@ function assertWriteTarget(ctx: Frame, input: unknown): void {
           : owner
   if (battle !== engine(ctx).battle) throw new Error('Cross-battle or unowned write target')
 }
+/** Source identity survives detachment; only source lifecycle operations may use this exception. */
+function assertMarkLifecycleTarget(ctx: Frame, mark: MarkInstance): void {
+  if (mark instanceof MarkInstanceImpl && mark.owner === null && mark === engine(ctx).source) return
+  assertWriteTarget(ctx, mark)
+}
 function numeric<T>(
   input: number | C.Value<number, C.Presence>,
   apply: (ctx: Frame, target: T, amount: number) => void,
@@ -627,24 +632,16 @@ export const ops: typeof C.ops = {
       target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'add', n))
     }),
   removeMark: () => (ctx, selected) => {
-    for (const mark of selected) if (mark.isActive) assertWriteTarget(ctx, mark)
+    for (const mark of selected) if (mark.isActive) assertMarkLifecycleTarget(ctx, mark)
     for (const mark of selected) {
       if (!mark.isActive) continue
-      assertWriteTarget(ctx, mark)
+      assertMarkLifecycleTarget(ctx, mark)
       const source = engine(ctx)
       source.battle.removeMark(new RemoveMarkContext(source, mark))
     }
   },
   consumeStacks: amount =>
-    numeric(
-      amount,
-      (ctx, mark, n) => mark.consumeStack(engine(ctx), n),
-      (ctx, mark) => {
-        // The effect retains its source identity after detachment; consuming that source still applies.
-        if (mark instanceof MarkInstanceImpl && mark.owner === null && mark === engine(ctx).source) return
-        assertWriteTarget(ctx, mark)
-      },
-    ),
+    numeric(amount, (ctx, mark, n) => mark.consumeStack(engine(ctx), n), assertMarkLifecycleTarget),
   changeStatStage: (stat, amount) =>
     numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
   assign: amount =>

@@ -63,3 +63,40 @@ for (const variant of ['detached', 'other-unowned', 'foreign', 'reattach-foreign
       expect(other.stack).toBe(150)
     }
   })
+
+for (const variant of ['detached', 'other-unowned', 'foreign'] as const)
+  it(`remove source ${variant}`, () => {
+    const { battle, a, debuff } = makeScenario(1102)
+    battles.push(battle)
+    const foreign = makeScenario(1103)
+    battles.push(foreign.battle)
+    const base = new BaseMark('fixture/remove-detached' as baseMarkId, [], { ...debuff.config, duration: -1 })
+    const source = base.createInstance()
+    source.owner = a.activePet
+    a.activePet.marks.push(source)
+    const other = base.createInstance()
+    if (variant === 'detached') source.owner = null
+    if (variant === 'foreign') other.owner = foreign.a.activePet
+    const ctx = new EffectContext<EffectTrigger>(new TurnContext(battle), EffectTrigger.TurnEnd, source)
+    const { compileEffect, defineEffect, selectFrom, ops } = effectAuthoring
+    const e = compileEffect(
+      defineEffect({
+        id: 'fixture/remove-detached',
+        on: 'TurnEnd',
+        execute: selectFrom(variant === 'detached' ? [source] : [source, other]).apply(ops.removeMark()),
+      }),
+    )
+    const apply = () =>
+      battle.executionBudget.run(battle.currentTurn, () => {
+        if (typeof e.apply !== 'function') throw new Error('Expected action')
+        e.apply(ctx)
+      })
+    if (variant === 'detached') {
+      apply()
+      expect(source.isActive).toBe(false)
+    } else {
+      expect(apply).toThrow('Cross-battle or unowned write target')
+      expect(source.isActive).toBe(true)
+      expect(other.isActive).toBe(true)
+    }
+  })

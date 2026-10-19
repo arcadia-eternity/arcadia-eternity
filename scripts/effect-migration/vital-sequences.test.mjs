@@ -46,8 +46,8 @@ test('keeps raw numeric parameters as editable authored parameters', () => {
   assert.deepEqual(r.parameters, [{ name: 'action0_value', value: 3, configId: 'amount', tags: ['heal'] }])
   assert.match(r.actions[0].code, /parameters.action0_value/)
 })
-test('reproduces seventeen vital candidates and two unsupported lists', async () =>
-  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 17, rejected: 2 }))
+test('reproduces nineteen vital candidates and no unsupported lists', async () =>
+  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 19, rejected: 0 }))
 
 test('turn-end and damage queries retain their distinct admission and value sources', () => {
   const d = source()
@@ -180,4 +180,38 @@ test('stack sequences retain event values and separate configurable consumption'
   assert.equal(r.parameters.length, 2)
   d.condition.conditions[1].target.chain[0].arg = 'unknown'
   assert.ok(classifyVitalSequence(d).reason)
+})
+
+test('self damage source corrections require the exact named source nodes', () => {
+  for (const id of [
+    'effect_mark_self_damage_50_percent_once',
+    'effect_mark_self_damage_50_percent_once_when_special',
+  ]) {
+    const d = source()
+    d.id = id
+    d.trigger = 'OnDamage'
+    d.condition = {
+      type: 'every',
+      conditions: [
+        { type: 'selfUseSkill' },
+        { type: 'selfUseSkill' },
+        {
+          type: 'evaluate',
+          target: { base: 'damageContext', chain: [{ type: 'selectPath', arg: 'sourceId' }] },
+          evaluator: { type: 'notSame', value: { type: 'dynamic', selector: 'mark' } },
+        },
+      ],
+    }
+    const r = classifyVitalSequence(d)
+    assert.ok(!r.reason, r.reason)
+    assert.deepEqual(r.pathRepairs, [
+      { path: '/condition/conditions/2/target/chain/0/arg', before: 'sourceId', after: 'source' },
+    ])
+    assert.match(r.when, /event.source.*!==.*targets.sourceMark/)
+    d.condition.conditions[2].target.chain[0].arg = 'unexpected'
+    assert.match(classifyVitalSequence(d).reason, /C09 source node changed/)
+    d.id = 'unknown-source-id'
+    d.condition.conditions[2].target.chain[0].arg = 'sourceId'
+    assert.ok(classifyVitalSequence(d).reason)
+  }
 })

@@ -20,6 +20,10 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_mark_self_damage_50_percent_once: [['/condition/conditions/2/target/chain/0/arg', 'sourceId', 'source']],
+  effect_mark_self_damage_50_percent_once_when_special: [
+    ['/condition/conditions/2/target/chain/0/arg', 'sourceId', 'source'],
+  ],
   effect_mark_next_non_status_skill_sure_crit: [['/condition/conditions/2/target/chain/0/arg', 'skillId', 'skill']],
   effect_emblem_immune_skill_bandao: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_skill_sure_hit_if_atk_over_500: [['/condition/conditions/1/target/chain/0/arg', 'atk', 'stat.atk']],

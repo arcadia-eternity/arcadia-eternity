@@ -459,6 +459,21 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
   }
   if (!fields(c, ['type', 'target', 'evaluator']) || c.type !== 'evaluate') return
   const e = c.evaluator
+  if (
+    fields(c.target, ['base', 'chain']) &&
+    c.target.base === 'damageContext' &&
+    Array.isArray(c.target.chain) &&
+    c.target.chain.length === 1 &&
+    fields(c.target.chain[0], ['type', 'arg']) &&
+    c.target.chain[0].type === 'selectPath' &&
+    c.target.chain[0].arg === 'source' &&
+    fields(e, ['type', 'value']) &&
+    e.type === 'notSame' &&
+    fields(e.value, ['type', 'selector']) &&
+    e.value.type === 'dynamic' &&
+    e.value.selector === 'mark'
+  )
+    return '((ctx: EffectFrame) => ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()))'
   if (fields(e, ['type']) && e.type === 'exist') {
     const ms = members(c.target, domain)
     if (ms) return `${ms}.condition(checks.exists())`
