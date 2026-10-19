@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "oracleTree": "3ada1d1ee32038d5670625aa3be8a3a5b6a4df2c",
+  "oracleTree": "a31916a7a44b2102d43b07b27ce2a3f23489437f",
   "sourceFiles": [
     {
       "path": "packs/base/data/effect_global.yaml",
@@ -31,12 +31,12 @@
   "evidence": "Schema diagnostics and one isolated selector-spelling experiment only. No production data is changed, no parser/runtime acceptance or behavioral equivalence is inferred from the experiment.",
   "summary": {
     "definitions": 1065,
-    "schemaAccepted": 675,
-    "schemaRejected": 390,
-    "schemaAcceptedButParserRejected": 33,
-    "parserAccepted": 642,
-    "schemaAcceptedAfterAliasExperiment": 861,
-    "newlySchemaAcceptedByAliasExperiment": 186
+    "schemaAccepted": 782,
+    "schemaRejected": 283,
+    "schemaAcceptedButParserRejected": 34,
+    "parserAccepted": 748,
+    "schemaAcceptedAfterAliasExperiment": 1049,
+    "newlySchemaAcceptedByAliasExperiment": 267
   },
   "records": [
     {
@@ -990,46 +990,28 @@
       "id": "effect_ability_damage_amplify_10_percent_opponent_has_manxingduyao",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/7",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_manxingduyao" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_damage_amplify_10_percent_has_kongqichuliang",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/8",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_kongqichuliang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_damage_amplify_10_percent_has_aideminyi",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/9",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang",
@@ -1075,11 +1057,6 @@
           ]
         },
         {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_kongqichuliang" }
-        },
-        {
           "path": "/condition/conditions/2/target/base",
           "code": "invalid_enum_value",
           "message": "Invalid enum value. Expected 'target' | 'self' | 'opponent' | 'selfTeam' | 'opponentTeam' | 'selfPlayer' | 'opponentPlayer' | 'usingSkillContext' | 'damageContext' | 'effectContext' | 'skill' | 'mark' | 'selfMarks' | 'opponentMarks' | 'selfSkills' | 'opponentSkills' | 'selfAvailableSkills' | 'opponentAvailableSkills' | 'dataMarks' | 'healContext' | 'addMarkContext' | 'rageContext' | 'stackContext' | 'switchPetContext' | 'battle' | 'turnContext' | 'currentPhase' | 'allPhases', received 'useSkillContext'",
@@ -1120,7 +1097,7 @@
       ],
       "selectorAliasExperiment": {
         "paths": ["/condition/conditions/2/target/base", "/apply/target"],
-        "schemaAccepted": false
+        "schemaAccepted": true
       }
     },
     {
@@ -1262,31 +1239,19 @@
       "id": "effect_ability_damage_amplify_15_percent_opponent_has_shaoshang",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/13",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_shaoshang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_damage_amplify_15_percent_opponent_has_xuanyun",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/14",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_xuanyun" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_add_skill_accuracy_10_percent_when_yanre",
@@ -1590,16 +1555,10 @@
       "id": "effect_ability_damage_amplify_10_percent_opponent_has_pofang",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/31",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_pofang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_physical_evasion_boost_5_percent",
@@ -1703,16 +1662,10 @@
       "id": "effect_ability_reduce_damage_10_percent_has_shazhidanke",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/34",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shazhidanke" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_damage_add_10",
@@ -1887,16 +1840,10 @@
       "id": "effect_ability_huafenmiman_damage_opponent_25_per_turn",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/40",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huafenmiman" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_fennu_power_boost_25_percent_when_full_rage",
@@ -2185,29 +2132,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_shihua" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_reduce_damage_10_if_has_mark_huanxiang",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/48",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_damage_boost_10_percent_when_first",
@@ -2336,31 +2272,19 @@
       "id": "effect_ability_shuiliangchongzu_increase_damage_5_percent",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/54",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangchongzu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_shuiliangbaohe_increase_damage_10_percent",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/55",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangbaohe" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_increase_huohuanzhixin_gain_1",
@@ -2648,16 +2572,10 @@
       "id": "effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/69",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_cuimian" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_add_rage_5_when_first_attack",
@@ -2941,31 +2859,19 @@
       "id": "effect_ability_add_rage_5_when_attack_opponent_has_tongjiling",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/79",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_tongjiling" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/80",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/2",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_emblem_set_ruodianbiaoji_keeponswitchout",
@@ -3008,16 +2914,10 @@
       "id": "effect_emblem_destroy_meihuo_onturnend",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/4",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_meihuo" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_emblem_set_zhongdu_duration_2",
@@ -4132,31 +4032,19 @@
       "id": "effect_emblem_add_rage_on_hit_if_has_shunliu",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/56",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_emblem_add_damage_if_has_niliu",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/57",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_emblem_increase_leishenjuexing_duration_1",
@@ -4256,14 +4144,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_dongqifuti" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_emblem_raise_spd_1_stage_when_baonuan_20_percent",
@@ -6673,16 +6556,10 @@
       "id": "effect_mark_xukongtizhi_consume_on_evasion",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/86",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_xukongtizhi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_mark_increase_self_crit_rate",
@@ -8332,16 +8209,10 @@
       "id": "effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/163",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply/delta/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shijianfaze" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_mark_damage_boost_based_on_hp_percentage",
@@ -10560,14 +10431,9 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kuihuazhongzi" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_ignore_stat_opponent_has_mark_kuihuazhongzi",
@@ -10611,14 +10477,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kuihuazhongzi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_kuihuazhongzi",
@@ -10734,29 +10595,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kuihuazhongzi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_zhongdu_duration_2",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/108",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_zhongdu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_rouhua_50",
@@ -11159,14 +11009,9 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yinghua" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_heal_self_90_hp",
@@ -11190,31 +11035,19 @@
       "id": "effect_skill_clear_opponent_def_stage_if_has_mark_yinghua",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/130",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_yinghua" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/131",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_yinghua" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_liuxie",
@@ -11229,16 +11062,10 @@
       "id": "effect_skill_double_mark_liuxie_stack",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/133",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_liuxie" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_hit_if_has_mark_yinghua",
@@ -11282,14 +11109,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yinghua" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_30_per_usetime",
@@ -11942,16 +11764,10 @@
       "id": "effect_skill_consume_shuiwenzhenji",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/177",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiwenzhenji" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_crit_rate_50_shuiwenzhenji",
@@ -11997,14 +11813,9 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiwenzhenji" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_crit_rate_70_shuiwenzhenji",
@@ -12050,14 +11861,9 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiwenzhenji" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_crit_shuiwenzhenji",
@@ -12101,14 +11907,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiwenzhenji" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_opponent_atk_1_stage_30_percent",
@@ -12601,16 +12402,10 @@
       "id": "effect_skill_raise_def_1_stage_if_aideminyi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/210",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_50_if_aideminyi",
@@ -12654,14 +12449,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_shiyanzhiyue",
@@ -12676,31 +12466,19 @@
       "id": "effect_skill_heal_125_if_aideminyi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/213",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_minimum_damage_100_if_aideminyi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/214",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_priority_plus_1_if_aideminyi",
@@ -12746,29 +12524,18 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_heal_self_1_16_if_aideminyi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/216",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_shanbi_if_first",
@@ -12819,16 +12586,10 @@
       "id": "effect_skill_add_mark_huifu_1_16_if_aideminyi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/222",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_aideminyi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_ignite_opponent_mark_shaoshang",
@@ -13023,16 +12784,10 @@
       "id": "effect_skill_consume_xinzhiyinji_multihit_consume",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/231",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_xinzhiyinji" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_xinzhiyinji_power_2x",
@@ -13638,16 +13393,10 @@
       "id": "effect_skill_consume_maimaijinzhen_add_liuxie_50",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/246",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_maimaijinzhen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_hit_if_opponent_has_maimaijinzhen",
@@ -13691,14 +13440,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_maimaijinzhen" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_jinzhenwayi",
@@ -13731,46 +13475,28 @@
       "id": "effect_skill_consume_maimaijinzhen_heal_self_50",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/251",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_maimaijinzhen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_maimaijinzhen_add_maidijinzhen",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/252",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_maimaijinzhen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_maidijinzhen_add_jinzhenfenmo",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/253",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_maidijinzhen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_first_turn_mark_on_switch_in",
@@ -13825,14 +13551,9 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_first_turn_after_switch" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_has_xukongganying",
@@ -13876,14 +13597,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_xukongganying" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_clear_self_negative_stage",
@@ -13898,16 +13614,10 @@
       "id": "effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/258",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1/conditions/1/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_xukongganying" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_damage_40_or_80_if_has_xukongganying",
@@ -13960,14 +13670,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_xukongganying" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_50_if_has_xukongganying",
@@ -14011,14 +13716,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_xukongganying" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_damage_50_or_100_if_has_xukongganying",
@@ -14089,14 +13789,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_qiliuyongdong",
@@ -14147,32 +13842,10 @@
       "id": "effect_skill_add_mark_dianzhilingyu_or_diancilingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/271",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_diancilingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_dianzhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu",
@@ -14271,29 +13944,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_bingdong" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_opponent_spa_1_stage_if_bingdong",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/275",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_bingdong" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_bingningzhiqi",
@@ -14326,32 +13988,10 @@
       "id": "effect_skill_add_mark_bingzhilingyu_or_bingshuanglingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/279",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_bingshuanglingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_bingzhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu",
@@ -14421,32 +14061,10 @@
       "id": "effect_skill_add_mark_fengzhilingyu_or_fengbaolingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/283",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_fengbaolingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_fengzhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu",
@@ -14554,14 +14172,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_mabi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_dianhe_1",
@@ -14715,14 +14328,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kongjuzhinian" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_anyingzhiguang",
@@ -14830,65 +14438,27 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_anzhilingyu" }
-        },
-        {
-          "path": "/condition/conditions/1/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_anyinglingyu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_atk_1_stage_if_anyinglingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/297",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_anyinglingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_anzhilingyu_or_anyinglingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/298",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_anyinglingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_anzhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_shiming_if_first",
@@ -14921,32 +14491,10 @@
       "id": "effect_skill_add_mark_guangzhilingyu_or_guanghuilingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/302",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_guanghuilingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_guangzhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_guangzhilingyu_or_guanghuilingyu",
@@ -14990,34 +14538,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_guangzhilingyu" }
-        },
-        {
-          "path": "/condition/conditions/1/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_guanghuilingyu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_heal_quarter_if_guanghuilingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/304",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_guanghuilingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_crit_if_first",
@@ -15439,46 +14971,28 @@
       "id": "effect_skill_consume_opponent_yinbo_add_zaoyin",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/325",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_yinbo" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_opponent_yinbo_add_yinbopingzhang",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/326",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_yinbo" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_opponent_yinbo_damage_2x",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/327",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_yinbo" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_yinzhiwang",
@@ -15548,16 +15062,10 @@
       "id": "effect_skill_add_mark_opponent_liuxie_40_if_pofang",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/331",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_pofang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_lanbaoshi",
@@ -15637,14 +15145,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shahezhili" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_spe_20_percent",
@@ -15706,14 +15209,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shahezhili" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_shazhiwang",
@@ -15775,14 +15273,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shahezhili" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_xuli_1",
@@ -15874,14 +15367,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shazhidanke" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_10_consume_shazhidanke",
@@ -15946,14 +15434,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shazhidanke" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_hit_consume_shazhidanke",
@@ -16018,14 +15501,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shazhidanke" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_heal_self_120_hp_if_consecutive_half",
@@ -16105,14 +15583,9 @@
           ]
         },
         { "path": "/apply/0/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/0/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shazhidanke" }
-        }
+        { "path": "/apply/0/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/0/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/0/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_wuzhezhixin_1",
@@ -16127,16 +15600,10 @@
       "id": "effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/352",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_wuzhezhixin" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_jueying",
@@ -16189,14 +15656,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_wuzhezhixin" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_yingzhidouqi",
@@ -16247,16 +15709,10 @@
       "id": "effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/360",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_renzhezhixin" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_jiguang",
@@ -16309,14 +15765,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_renzhezhixin" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_shanguangboji",
@@ -17270,14 +16721,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_heianwuzhi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/1/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/1/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_clear_self_negative_stage_if_field_yemu",
@@ -17439,14 +16885,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_mabi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_xudian",
@@ -17470,16 +16911,10 @@
       "id": "effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/434",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_mabi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_hit_if_opponent_has_mark_mabi",
@@ -17523,14 +16958,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_mabi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_mabi_30_percent_or_shandianluoyin_if_fail",
@@ -17583,14 +17013,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_hunmi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_hunmi_10_percent",
@@ -17652,29 +17077,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_jingshencuoluan" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/441",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_jingshencuoluan" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_opponent_has_mark_haipa",
@@ -17718,29 +17132,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_haipa" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_damage_80_if_opponent_has_mark_zhongdu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/443",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_zhongdu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan",
@@ -17784,14 +17187,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_jingshencuoluan" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_shihua",
@@ -17844,14 +17242,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_shihua" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa",
@@ -17895,19 +17288,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_zhongdu" }
-        },
-        {
-          "path": "/condition/conditions/2",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_haipa" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa",
@@ -17951,19 +17334,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_jingshencuoluan" }
-        },
-        {
-          "path": "/condition/conditions/2",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_haipa" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_huanxiang",
@@ -18037,44 +17410,27 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_huanxiang_raise_spa_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/451",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_huanxiang_add_mark_opponent_dongshang",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/452",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_wanan",
@@ -18148,14 +17504,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/1/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/1/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_crit_gain_rage_20",
@@ -18170,16 +17521,10 @@
       "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/456",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_zhenshihuanxiang",
@@ -18194,16 +17539,10 @@
       "id": "effect_skill_set_self_spa_to_atk",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/458",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "stat_stage_atk_up" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_taobi",
@@ -18277,29 +17616,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_huanxiang_raise_spd_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/461",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_huanxiang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_zhaocai_or_jinbao",
@@ -18365,14 +17693,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhaocai" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_crit_rate_95_if_has_jinbao",
@@ -18416,14 +17739,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_jinbao" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_hit_if_has_zhaocai",
@@ -18467,29 +17785,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhaocai" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/466",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_jinbao" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_multihit_3_if_has_zhaocai",
@@ -18533,89 +17840,54 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhaocai" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_fixed_damage_100_if_has_jinbao",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/468",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_jinbao" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_damage_increase_50_if_has_zhaocai",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/469",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhaocai" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_damage_reduce_50_if_has_jinbao",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/470",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_jinbao" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_damage_increase_50_if_has_jinbao",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/471",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_jinbao" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_damage_reduce_50_if_has_zhaocai",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/472",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhaocai" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_40_if_first",
@@ -19007,31 +18279,20 @@
       "id": "effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/488",
-      "originalSchemaAccepted": false,
+      "originalSchemaAccepted": true,
       "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/2",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_qianggong" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "diagnostics": [],
+      "parserDiagnostic": "[parseEffect] 解析效果 'effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500' 时出现问题: [parseEffect] 选择器步骤 'selectPath' 执行失败: [路径校验失败] 路径 'atk' 在类型 Pet 中不存在\n预期类型: undefined",
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_damage_50_or_add_mark_dingshizhadan",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/489",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shijianfaze" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_shijianfaze",
@@ -19055,16 +18316,10 @@
       "id": "effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/492",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shijianfaze" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_both_spa_1_stage",
@@ -19079,16 +18334,10 @@
       "id": "effect_skill_raise_self_spa_2_stage_if_has_shijianfaze",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/494",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shijianfaze" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_hit_if_first",
@@ -19195,16 +18444,10 @@
       "id": "effect_skill_add_damage_100_or_add_mark_shijianzhadan",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/498",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shijianfaze" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_chuansuoweilai",
@@ -19339,14 +18582,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangchongzu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_multi_hit_5_times_if_has_shuiliangchongzu",
@@ -19390,14 +18628,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangchongzu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_nishui_50_percent",
@@ -19450,59 +18683,36 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangbaohe" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_spa_1_stage_if_shuiliangbaohe",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/509",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangbaohe" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_mark_shuiliangbaohe",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/510",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangbaohe" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_mark_shuiliangchongzu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/511",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shuiliangchongzu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_huohuanzhixin_3",
@@ -19637,14 +18847,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhenkongzhixin" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_guangwushentong",
@@ -19859,31 +19064,19 @@
       "id": "effect_skill_raise_atk_1_stage_if_has_shunliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/534",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_spd_1_stage_if_has_niliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/535",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_30_per_shunliu",
@@ -19927,59 +19120,36 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_damage_30_per_niliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/537",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_def_1_stage_if_has_shunliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/538",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_spa_1_stage_if_has_niliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/539",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_ignore_opponent_shield_if_has_shunliu",
@@ -19992,11 +19162,6 @@
           "path": "/apply",
           "code": "unsupported_variant",
           "value": { "type": "setIgnoreShield", "target": "useSkillContext" }
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
         }
       ],
       "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
@@ -20043,14 +19208,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_rage_15_if_first",
@@ -20065,61 +19225,37 @@
       "id": "effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/543",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_clear_status_if_has_niliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/544",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_opponent_def_1_stage_if_has_shunliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/545",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_opponent_spa_1_stage_if_has_niliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/546",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_30_per_stack_if_has_shunliu",
@@ -20163,29 +19299,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shunliu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_heal_1_16_max_hp_per_stack_if_has_niliu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/548",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_niliu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_dianxizengqiang",
@@ -20339,16 +19464,10 @@
       "id": "effect_skill_add_self_40_rage_if_opponent_mabi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/557",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_mabi" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_4x_10_percent",
@@ -20526,16 +19645,10 @@
       "id": "effect_skill_add_rage_25_if_opponent_shaoshang",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/563",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_shaoshang" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reverse_self_negative_stage",
@@ -20568,16 +19681,10 @@
       "id": "effect_skill_consume_dongqifuti_heal_self_quarter_max_hp",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/567",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_dongqifuti" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_consume_dongqifuti_sure_crit",
@@ -20641,14 +19748,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_dongqifuti" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/0/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_dongshang_10_percent",
@@ -20663,21 +19765,10 @@
       "id": "effect_skill_add_mark_opponent_dongshang_10_percent_if_consume_dongqifuti_70_percent",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/570",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/2",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_dongqifuti" }
-        },
-        {
-          "path": "/condition/conditions/3/evaluator/percent/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_dongqifuti" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_increase_crit_rate_95_if_max_hp_gt_opponent",
@@ -20831,14 +19922,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_bingdong" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_fixed_damage_by_self_max_hp_minus_500",
@@ -20900,14 +19986,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "stat_stage_atk_up" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_40_opponent_per_def_level",
@@ -20951,14 +20032,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "stat_stage_def_up" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_40_opponent_per_spa_level",
@@ -21002,14 +20078,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "stat_stage_spa_up" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_40_opponent_per_spd_level",
@@ -21053,14 +20124,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "stat_stage_spd_up" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_power_40_opponent_per_spe_level",
@@ -21104,14 +20170,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "stat_stage_spe_up" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_dongshang_when_reused",
@@ -21135,16 +20196,10 @@
       "id": "effect_skill_add_rage_with_consume_yinbo_stack",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/585",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_yinbo" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_oppoent_has_yinzhiwang",
@@ -21188,14 +20243,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_yinzhiwang" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_penti",
@@ -21266,14 +20316,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_penti" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_heal_self_125_hp_if_consecutive_half",
@@ -21344,14 +20389,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_qianglipenti" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_4x_if_has_mark_qianglipenti",
@@ -21395,14 +20435,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_qianglipenti" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_4x_if_has_mark_chaojipenti",
@@ -21446,14 +20481,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_chaojipenti" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_fixed_damage_50",
@@ -21508,14 +20538,9 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_chaojipenti" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_fasibilei",
@@ -21546,11 +20571,6 @@
           "path": "/apply/delta",
           "code": "unsupported_variant",
           "value": { "type": "selectorValue", "value": [30, 70], "chain": [{ "type": "sampleBetween" }] }
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_cuimian" }
         }
       ],
       "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
@@ -21597,14 +20617,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_shuimian" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_shuimian_40_percent",
@@ -21628,16 +20643,10 @@
       "id": "effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/605",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_cuimian" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_jingshenshikong",
@@ -21685,31 +20694,19 @@
       "id": "effect_skill_add_mark_opponent_haipa_if_has_cuimian_10_percent",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/610",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_cuimian" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_haipa_if_has_cuimian_15_percent",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/611",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_cuimian" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_opponent_rage_5",
@@ -21742,94 +20739,28 @@
       "id": "effect_skill_add_mark_feizhilingyu_or_feikonglingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/615",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_feikonglingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_feizhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_shazhilingyu_or_shabaoLingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/616",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_shabaolingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_shazhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_chongzhilingyu_or_chongqunLingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/617",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_chongqunlingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_chongzhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_has_mark_feizhilingyu_or_feikonglingyu",
@@ -21873,19 +20804,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_feizhilingyu" }
-        },
-        {
-          "path": "/condition/conditions/1/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_feikonglingyu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_has_mark_shazhilingyu_or_shabaoLingyu",
@@ -21929,19 +20850,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shazhilingyu" }
-        },
-        {
-          "path": "/condition/conditions/1/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shabaoLingyu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_has_mark_chongzhilingyu_or_chongqunLingyu",
@@ -21985,34 +20896,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_chongzhilingyu" }
-        },
-        {
-          "path": "/condition/conditions/1/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_chongqunlingyu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_rage_40_if_feikonglingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/621",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_feikonglingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_sure_crit_if_has_field",
@@ -22120,29 +21015,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_zhixi" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_shanbiwugong_if_shabaolingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/626",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_shabaolingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_self_spa_1_stage_if_3_hits",
@@ -22358,16 +21242,10 @@
       "id": "effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/633",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_chongqunlingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_set_field_chongqun",
@@ -22521,32 +21399,10 @@
       "id": "effect_skill_add_mark_zhanzhilingyu_or_zhandoulingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/642",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/apply",
-          "code": "unsupported_variant",
-          "value": [
-            {
-              "type": "addMark",
-              "target": "self",
-              "mark": {
-                "type": "conditional",
-                "trueValue": { "type": "entity:baseMark", "value": "mark_zhandoulingyu" },
-                "falseValue": { "type": "entity:baseMark", "value": "mark_zhanzhilingyu" },
-                "condition": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-              }
-            }
-          ]
-        },
-        {
-          "path": "/apply/0/mark/condition",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_yitelingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power_2x_if_has_mark_zhanzhilingyu_or_zhandouLingyu",
@@ -22590,34 +21446,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1/conditions/0",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhanzhilingyu" }
-        },
-        {
-          "path": "/condition/conditions/1/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhandoulingyu" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_spe_1_stage_if_zhandoulingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/644",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_zhandoulingyu" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_both_shanghaizengjia_50",
@@ -22670,14 +21510,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_hunluan" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_shanbi_below_1_8_hp",
@@ -22899,11 +21734,6 @@
               "chain": [{ "type": "randomPick", "arg": 1 }]
             }
           }
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_emblem_wuxing" }
         }
       ],
       "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
@@ -22947,11 +21777,6 @@
               "chain": [{ "type": "randomPick", "arg": 1 }]
             }
           }
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_emblem_wuxing" }
         }
       ],
       "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
@@ -23055,11 +21880,6 @@
               "chain": [{ "type": "randomPick", "arg": 1 }, { "type": "flat" }]
             }
           }
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "mark_emblem_wuxing" }
         }
       ],
       "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
@@ -23181,14 +22001,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "selfHasMark", "baseId": "stat_stage_spd_up" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_shaduhongxue",
@@ -23259,29 +22074,18 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_tongjiling" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/676",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_tongjiling" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_power2x_if_opponent_has_tongjiling_and_below_half_hp",
@@ -23327,14 +22131,9 @@
           ]
         },
         { "path": "/apply/target/condition", "code": "unsupported_variant" },
-        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_tongjiling" }
-        }
+        { "path": "/apply/target/trueSelector", "code": "unsupported_variant" }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target/base"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_opponent_spe_1_stage_35_percent",
@@ -23358,16 +22157,10 @@
       "id": "effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/680",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_tongjiling" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_kongju_20_percent",
@@ -23420,14 +22213,9 @@
             "currentPhase",
             "allPhases"
           ]
-        },
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_tongjiling" }
         }
       ],
-      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": false }
+      "selectorAliasExperiment": { "paths": ["/apply/target"], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_yingyongyizhi",
@@ -23490,16 +22278,10 @@
       "id": "effect_skill_reduce_opponent_rage_30_if_opponent_has_tongjiling",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/685",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_tongjiling" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_kaowen",
@@ -23514,31 +22296,19 @@
       "id": "effect_skill_add_rage_opponent_45_if_opponent_has_kaowen",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/687",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/688",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_damage_50_percent_if_last",
@@ -23553,46 +22323,28 @@
       "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/690",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_raise_def_1_stage_if_opponent_has_kaowen",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/691",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/692",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
@@ -23607,16 +22359,10 @@
       "id": "effect_skill_add_mark_opponent_taobi_60_percent_if_opponent_has_kaowen",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/694",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     },
     {
       "id": "effect_skill_multihit_4_times_if_last",
@@ -23686,16 +22432,10 @@
       "id": "effect_skill_heal_self_quarter_if_opponent_has_kaowen_on_defeat_opponent",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/698",
-      "originalSchemaAccepted": false,
-      "oracleParserAccepted": false,
-      "diagnostics": [
-        {
-          "path": "/condition/conditions/1",
-          "code": "unsupported_variant",
-          "value": { "type": "opponentHasMark", "baseId": "mark_kaowen" }
-        }
-      ],
-      "selectorAliasExperiment": { "paths": [], "schemaAccepted": false }
+      "originalSchemaAccepted": true,
+      "oracleParserAccepted": true,
+      "diagnostics": [],
+      "selectorAliasExperiment": { "paths": [], "schemaAccepted": true }
     }
   ]
 }

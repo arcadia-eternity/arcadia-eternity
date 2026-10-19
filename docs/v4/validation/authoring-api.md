@@ -30,3 +30,7 @@ Capture/follow use the existing Evaluation, ValuePlan, synchronous dependency tr
 `missing: detach` means the contribution is unavailable while structural tracking stays alive. A follow can recover; source destruction permanently disposes the binding. Captured absence remains absent, and captured instances never rebind. Per-binding attribute capture retains its original result across subsequent slot changes.
 
 Relation observation currently adapts source.owner and Pet.marks lazily. Array mutation methods notify after completing the operation. This is still a temporary seam: raw array aliases retained before instrumentation can bypass notification, and restoring these relation observers has not been validated. Domain-owned mutation notifications and stable plan registration are required before persistent candidates can enter production or pass checkpoint acceptance.
+
+## Final validation
+
+Final rebuilt artifacts pass all 5,078 V4 tests across 38 files, plus 35 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. No production loader cutover is implied by these results.

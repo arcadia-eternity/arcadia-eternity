@@ -2,7 +2,7 @@
 
 The current production YAML uses `selfHasMark` and `opponentHasMark`. These were missing from the imported parser, but already existed in the later V1 implementation. This restores their historical bodies and the corresponding DSL, schema and parser branches; it does not reinterpret them as new native effects.
 
-Historical implementation checked by the test: commit `e19261dba321d06a971b74455b08bac5f2dc1f70`, `packages/effectBuilder/src/condition.ts`. The test compares the exact method section after whitespace normalization and `let` to `const` normalization.
+Historical implementation checked by the test: commit `e19261dba321d06a971b74455b08bac5f2dc1f70`, `packages/effectBuilder/src/condition.ts`. The test compares a locked SHA-256 digest of the method section after whitespace normalization and `let` to `const` normalization, without requiring the historical Git object in shallow CI clones.
 
 Preserved semantics:
 
