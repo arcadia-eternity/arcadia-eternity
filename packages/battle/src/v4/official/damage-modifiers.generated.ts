@@ -154,6 +154,18 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 15 })),
       }),
     ),
+    effect_ability_ice_damage_boost_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_ability_ice_damage_boost_15_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Ice'),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
+      }),
+    ),
     effect_ability_increase_special_damage_taken_15_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_increase_special_damage_taken_15_percent',
@@ -294,6 +306,18 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
+    effect_emblem_climax_damage_boost_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_climax_damage_boost_10_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+      }),
+    ),
     effect_mark_buxieanguang_reduce_light_damage_half: compileEffect(
       defineEffect({
         id: 'effect_mark_buxieanguang_reduce_light_damage_half',
@@ -304,6 +328,18 @@ export function createGeneratedDamageModifierEffects() {
           contexts.damage.condition((_ctx, events) => events[0]?.element === 'Light'),
         ),
         execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+      }),
+    ),
+    effect_mark_double_physical_damage_taken: compileEffect(
+      defineEffect({
+        id: 'effect_mark_double_physical_damage_taken',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
       }),
     ),
     effect_mark_double_special_damage_taken: compileEffect(
@@ -466,6 +502,19 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 75, delta: 0 })),
       }),
     ),
+    effect_mark_increase_multi_hit_damage_35_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_increase_multi_hit_damage_35_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
+          const right = 1
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
+      }),
+    ),
     effect_mark_reduce_atk_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_atk_damage_25_percent',
@@ -603,6 +652,18 @@ export function createGeneratedDamageModifierEffects() {
               .map(n => Math.floor(n * -25)),
           }),
         ),
+      }),
+    ),
+    effect_mark_reduce_fire_damage_half: compileEffect(
+      defineEffect({
+        id: 'effect_mark_reduce_fire_damage_half',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Fire'),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_mark_reduce_next_skill_damage_50_percent: compileEffect(
@@ -829,6 +890,19 @@ export function createGeneratedDamageModifierEffects() {
           targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
         ),
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 100 })),
+      }),
+    ),
+    effect_skill_add_fixed_damage_25_if_3_hits: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_fixed_damage_25_if_3_hits',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
+          const right = 3
+          return left !== undefined && right !== undefined && left === right
+        }),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 25 })),
       }),
     ),
     effect_skill_add_fixed_damage_50: compileEffect(

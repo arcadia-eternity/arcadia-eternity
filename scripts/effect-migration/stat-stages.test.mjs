@@ -53,4 +53,44 @@ test('rejects unsupported semantics and ambiguous parameter aliases', () => {
     assert.ok(classifyStatStage(bad).reason)
 })
 test('all emitted source and ledger reproduce exactly', async () =>
-  assert.deepEqual(await generateStatStages({ check: true }), { generated: 58, parameters: 42, rejected: 44 }))
+  assert.deepEqual(await generateStatStages({ check: true }), { generated: 91, parameters: 42, rejected: 11 }))
+
+test('shared authored conditions preserve stat identity and ordered admission', () => {
+  const d = source()
+  const input = {
+    ...d,
+    apply: { ...d.apply, statType: 'spd' },
+    condition: {
+      type: 'every',
+      conditions: [
+        d.condition,
+        { type: 'selfHasMark', baseId: 'mark_example' },
+        { type: 'continuousUseSkill', times: 2, strategy: 'Periodic' },
+      ],
+    },
+  }
+  const before = structuredClone(input)
+  const r = classifyStatStage(input)
+  assert.equal(r.stat, 'spd')
+  assert.match(r.when, /^conditions.all\(conditions.selfUsesSkill,targets.ownerMarks/)
+  assert.match(r.when, /conditions.everyNthUse\(2\)/)
+  assert.deepEqual(input, before)
+  assert.equal(
+    classifyStatStage({ ...d, condition: { type: 'selfBeSkillTarget' } }).when,
+    'conditions.ownerIsSkillTarget',
+  )
+})
+test('shared authored conditions do not silently admit corrections or new parameters', () => {
+  const d = source()
+  for (const extra of [
+    { type: 'isLastSkillUsedThisTurn' },
+    { type: 'not', condition: { type: 'isFirstSkillUsedThisTurn' } },
+    {
+      type: 'evaluate',
+      target: { base: 'useSkillContext', chain: [{ type: 'selectPath', arg: 'multihitResult' }] },
+      evaluator: { type: 'compare', operator: '==', value: 3 },
+    },
+    { type: 'every', conditions: [{ type: 'selfHasMark', baseId: 'mark_example' }, roll] },
+  ])
+    assert.ok(classifyStatStage({ ...d, condition: { type: 'every', conditions: [d.condition, extra] } }).reason)
+})

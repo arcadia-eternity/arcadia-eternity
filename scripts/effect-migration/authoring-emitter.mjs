@@ -123,7 +123,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         step.type === 'selectPath' &&
         (step.arg === 'stack' ||
           (s.base === 'damageContext' && step.arg === 'damageResult') ||
-          (domain === 'skill' && s.base === 'usingSkillContext' && step.arg === 'multihitResult') ||
+          (['skill', 'damage'].includes(domain) && s.base === 'usingSkillContext' && step.arg === 'multihitResult') ||
           (domain === 'skill' &&
             ['self', 'opponent'].includes(s.base) &&
             ['stat.spa', 'stat.atk'].includes(step.arg)) ||
@@ -156,7 +156,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         code += `.select(battle => battle.currentTurn)${terminal}`
       else if (s.base === 'damageContext' && name === 'damageResult')
         code += `.select(event => event.damageResult)${terminal}`
-      else if (domain === 'skill' && s.base === 'usingSkillContext' && name === 'multihitResult')
+      else if (['skill', 'damage'].includes(domain) && s.base === 'usingSkillContext' && name === 'multihitResult')
         code += `.select(event => event.multihitResult)${terminal}`
       else if (collection && s.base === 'usingSkillContext' && name === 'power')
         code += `.select(event => event.power)${terminal}`
@@ -301,7 +301,11 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
     const percent = number(c.evaluator.percent, parameters, `${path}_percent`, domain)
     if (percent && (percent.literal || percent.required)) return `conditions.chance(${percent.code})`
   }
-  if (domain === 'skill' && fields(c, ['type', 'target', 'evaluator']) && c.type === 'evaluate') {
+  if (
+    (domain === 'skill' || (domain === 'damage' && c?.target?.base === 'usingSkillContext')) &&
+    fields(c, ['type', 'target', 'evaluator']) &&
+    c.type === 'evaluate'
+  ) {
     const target = c.target,
       evaluator = c.evaluator
     if (
@@ -420,7 +424,8 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
         'opponent',
         'mark',
         'damageContext',
-        ...(domain === 'skill' ? ['selfPlayer', 'battle', 'usingSkillContext'] : []),
+        ...(['skill', 'damage'].includes(domain) ? ['usingSkillContext'] : []),
+        ...(domain === 'skill' ? ['selfPlayer', 'battle'] : []),
       ].includes(c.target?.base)
     )
       return

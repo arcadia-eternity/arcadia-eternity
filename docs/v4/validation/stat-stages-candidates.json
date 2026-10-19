@@ -2,6 +2,22 @@
   "formatVersion": 1,
   "records": [
     {
+      "id": "effect_ability_raise_spe_1_stage_when_dodge",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/71",
+      "definitionSha256": "98bd5ec9873edafed662e09eaebca28ed31e34e80a60398bb5c9d302b96ffb1b",
+      "recipe": {
+        "id": "effect_ability_raise_spe_1_stage_when_dodge",
+        "priority": 0,
+        "triggers": ["OnMiss"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.ownerIsSkillTarget"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_raise_atk_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/14",
@@ -139,6 +155,86 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_raise_atk_1_stage_after_2_uses",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/370",
+      "definitionSha256": "02c54e96f7d4b1410385ae9d189bdd52accccf285cc2c8ce3031d69d7e5a7140",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_if_anyinglingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/297",
+      "definitionSha256": "f04b5e25a8c17bb316a5872fd4421224649e7ac69e26d2f3600ee35ba96e6952",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_if_anyinglingyu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_anyinglingyu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_if_has_shunliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/534",
+      "definitionSha256": "8e8a2df3487f686f3bfaadc6ecac02ed12bf2e74aa6ff95ba75b4654c52ed7eb",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_if_has_shunliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_if_opponent_male",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/656",
+      "definitionSha256": "bb423fe57199c19210fb0ab81f62a35cc53cb4cd8fdc9152c21384836e649755",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_if_opponent_male",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_2_stage_if_male",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/661",
+      "definitionSha256": "f41d20fc80edc146956de01f5545c31857abd109d29d905a002227c86af3ad63",
+      "recipe": {
+        "id": "effect_skill_raise_atk_2_stage_if_male",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_raise_atk_2_stages",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/28",
@@ -237,6 +333,70 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_raise_def_1_stage_after_2_uses",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/372",
+      "definitionSha256": "465ad0115c388792cc3148518bf116b993ce7c9abd8849d0e13ebd5d8fae323c",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_if_aideminyi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/210",
+      "definitionSha256": "7503ae5709f9d168d5b1dce264592413bcd3e7a6f51183679a1164a7e6393be2",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_if_aideminyi",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_aideminyi\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_if_has_shunliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/538",
+      "definitionSha256": "d4ee888faca3d350f63a38773a8826ca9eaad5e5cab2ddcd8d6d6bef13984750",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_if_has_shunliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_if_opponent_has_kaowen",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/691",
+      "definitionSha256": "a1d146389d4f982747dbf7be422220f05833906c1ea0e3ae722d6451aed5d13b",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_if_opponent_has_kaowen",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kaowen\"))))"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_raise_def_2_stages",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/29",
@@ -254,6 +414,22 @@
             "path": "condition"
           }
         ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_self_spa_2_stage_if_has_shijianfaze",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/494",
+      "definitionSha256": "001023fc811c5b8f53c9a52ab1cacd18fb73dd5893c838598c7875467354b74e",
+      "recipe": {
+        "id": "effect_skill_raise_self_spa_2_stage_if_has_shijianfaze",
+        "priority": -1,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shijianfaze\").condition(checks.exists()))"
       },
       "classification": "U"
     },
@@ -367,6 +543,86 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_raise_spa_1_stage_after_2_uses",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/371",
+      "definitionSha256": "9b3cbdf8a156acaf791aa52191baa8972c0b1512fc40f3f0db546e248da4f4d2",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_if_has_niliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/539",
+      "definitionSha256": "7fd759ae22906f1c220e8d0a226130f7f8d1fa09651151b947b4e0d0e9dbddeb",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_if_has_niliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_niliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_if_hp_lt_half",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/565",
+      "definitionSha256": "16b3a8e2bd88541978e7fac63250a8378b550d3ed6ae4885363758e68018219e",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_if_hp_lt_half",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n * 0.5)));return left!==undefined && right!==undefined && left < right}))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_if_shuiliangbaohe",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/509",
+      "definitionSha256": "aa923e75486ffbb598769e384b88059e1817932bac4cd5d39a640cd4e6e64189",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_if_shuiliangbaohe",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shuiliangbaohe\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_2_stage_if_female",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/660",
+      "definitionSha256": "d533425588a4a530d29e811ea6451ef3577e5d45f6ed537223152a7f8375e104",
+      "recipe": {
+        "id": "effect_skill_raise_spa_2_stage_if_female",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_raise_spa_2_stages",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/30",
@@ -433,6 +689,54 @@
             "tags": ["skill_effect_probability"]
           }
         ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage_after_2_uses",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/373",
+      "definitionSha256": "f9f3b5d1994d017b442e5983088526af21cffcdf4b84a294aefdac7ea20e6be7",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage_if_has_niliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/535",
+      "definitionSha256": "cc79f28f05719915c58e1659f2c506a6155c307408402207c67a8fbbc00ac548",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage_if_has_niliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_niliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/676",
+      "definitionSha256": "a44e75f4434dfd9b53d2bfb55460b1aa09e57a5028d4d917ef18639e9dd2ca31",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_tongjiling\"))))"
       },
       "classification": "U"
     },
@@ -596,6 +900,70 @@
             "alias": "probability"
           }
         ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_after_2_uses",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/369",
+      "definitionSha256": "540d6dfe4bd65fd7967f75e167b99b17976b4b46047cb6566acb3bc8165a0b19",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_hp_below_75_percent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/412",
+      "definitionSha256": "969d95301324902fcef9000f3f7f7db6f7f069177d3b0fa3ab98824f0f68a768",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_hp_below_75_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n * 0.75)));return left!==undefined && right!==undefined && left < right}))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_opponent_female",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/655",
+      "definitionSha256": "d606360815e3e92c8c459ff313cf16041d451904048f689d54eed635eb0c775e",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_opponent_female",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_zhandoulingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/644",
+      "definitionSha256": "1a03e7031662bfaa7a1c2274fd2262950cdc85a296d1a61afeac590e4921acaf",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_zhandoulingyu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_zhandoulingyu\").condition(checks.exists()))"
       },
       "classification": "U"
     },
@@ -842,6 +1210,22 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_reduce_opponent_atk_1_stage_if_opponent_male",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/653",
+      "definitionSha256": "72855ddf6a256841ec861c6f29d7bb868892084db47af7f28e6fe020cb96fecb",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage_if_opponent_male",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_reduce_opponent_def_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/36",
@@ -1032,6 +1416,54 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_reduce_opponent_def_1_stage_if_has_shunliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/545",
+      "definitionSha256": "2f1b8e4d8acde06554b462c20dddb10eb005f4c407edffdd7241050ce1f885cf",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_if_has_shunliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/636",
+      "definitionSha256": "7f13d767797a278063a302a24fbf72b48fc82b2f5668e6579456124f244d8fd5",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=30;return left!==undefined && right!==undefined && left < right}))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/352",
+      "definitionSha256": "8b9fe2893f21564ad5257fd280a1c4bf645a0c4a4854dc8c2e79a846badcd486",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_wuzhezhixin\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_reduce_opponent_spa_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/37",
@@ -1161,6 +1593,54 @@
             "tags": ["skill_effect_probability"]
           }
         ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_bingdong",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/275",
+      "definitionSha256": "19821ca986c25336b77b4dc27bb6ce9e5d399e8a8c5503c2d9e884d29045b6e1",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_bingdong",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_bingdong\"))))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_has_niliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/546",
+      "definitionSha256": "0a0072e0ae269b7d723a2608fdaa914d11ea2f9571fbc52423ff4458e24f8f33",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_has_niliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_niliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_female",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/652",
+      "definitionSha256": "86c263731ee00a4f474175e5248cc9e948dfb2f392055762119f9d122cc0df81",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_female",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))"
       },
       "classification": "U"
     },
@@ -1383,6 +1863,38 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/395",
+      "definitionSha256": "9c785ed77936609f4bc0a1d82ee96900f1a65deae900cc2a74c211107a2baecf",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/360",
+      "definitionSha256": "554b663b46ea317609b5de91bfe2af1c3796dbc8e99e1450d9ac60645eac1786",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_renzhezhixin\"))))"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_reduce_opponent_spe_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/39",
@@ -1516,6 +2028,22 @@
       "classification": "U"
     },
     {
+      "id": "effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/492",
+      "definitionSha256": "e7eea9eae54a2f78d62165acd1233381bd2b7de6222b54ef118d934be33b3449",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze",
+        "priority": -1,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shijianfaze\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
       "id": "effect_skill_reduce_opponent_stat_1_stage",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/33",
@@ -1546,13 +2074,6 @@
       "reason": "requires literal stat/value and self/opponent target"
     },
     {
-      "id": "effect_ability_raise_spe_1_stage_when_dodge",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/71",
-      "definitionSha256": "98bd5ec9873edafed662e09eaebca28ed31e34e80a60398bb5c9d302b96ffb1b",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
       "id": "effect_emblem_raise_spd_1_stage_when_baonuan_20_percent",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/61",
@@ -1581,73 +2102,10 @@
       "reason": "unsupported trigger or admission condition"
     },
     {
-      "id": "effect_skill_raise_atk_1_stage_after_2_uses",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/370",
-      "definitionSha256": "02c54e96f7d4b1410385ae9d189bdd52accccf285cc2c8ce3031d69d7e5a7140",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_atk_1_stage_if_anyinglingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/297",
-      "definitionSha256": "f04b5e25a8c17bb316a5872fd4421224649e7ac69e26d2f3600ee35ba96e6952",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_atk_1_stage_if_has_shunliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/534",
-      "definitionSha256": "8e8a2df3487f686f3bfaadc6ecac02ed12bf2e74aa6ff95ba75b4654c52ed7eb",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_atk_1_stage_if_opponent_male",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/656",
-      "definitionSha256": "bb423fe57199c19210fb0ab81f62a35cc53cb4cd8fdc9152c21384836e649755",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
       "id": "effect_skill_raise_atk_1_stage_on_crit",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/268",
       "definitionSha256": "cbe39c074f406d7661e803c66344652034f779d1c6c10265aa0e99713a825ef9",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_atk_2_stage_if_male",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/661",
-      "definitionSha256": "f41d20fc80edc146956de01f5545c31857abd109d29d905a002227c86af3ad63",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_def_1_stage_after_2_uses",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/372",
-      "definitionSha256": "465ad0115c388792cc3148518bf116b993ce7c9abd8849d0e13ebd5d8fae323c",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_def_1_stage_if_aideminyi",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/210",
-      "definitionSha256": "7503ae5709f9d168d5b1dce264592413bcd3e7a6f51183679a1164a7e6393be2",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_def_1_stage_if_has_shunliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/538",
-      "definitionSha256": "d4ee888faca3d350f63a38773a8826ca9eaad5e5cab2ddcd8d6d6bef13984750",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_def_1_stage_if_opponent_has_kaowen",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/691",
-      "definitionSha256": "a1d146389d4f982747dbf7be422220f05833906c1ea0e3ae722d6451aed5d13b",
       "reason": "unsupported trigger or admission condition"
     },
     {
@@ -1658,90 +2116,6 @@
       "reason": "unsupported trigger or admission condition"
     },
     {
-      "id": "effect_skill_raise_self_spa_2_stage_if_has_shijianfaze",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/494",
-      "definitionSha256": "001023fc811c5b8f53c9a52ab1cacd18fb73dd5893c838598c7875467354b74e",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spa_1_stage_after_2_uses",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/371",
-      "definitionSha256": "9b3cbdf8a156acaf791aa52191baa8972c0b1512fc40f3f0db546e248da4f4d2",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spa_1_stage_if_has_niliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/539",
-      "definitionSha256": "7fd759ae22906f1c220e8d0a226130f7f8d1fa09651151b947b4e0d0e9dbddeb",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spa_1_stage_if_hp_lt_half",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/565",
-      "definitionSha256": "16b3a8e2bd88541978e7fac63250a8378b550d3ed6ae4885363758e68018219e",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spa_1_stage_if_shuiliangbaohe",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/509",
-      "definitionSha256": "aa923e75486ffbb598769e384b88059e1817932bac4cd5d39a640cd4e6e64189",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spa_2_stage_if_female",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/660",
-      "definitionSha256": "d533425588a4a530d29e811ea6451ef3577e5d45f6ed537223152a7f8375e104",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spd_1_stage_after_2_uses",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/373",
-      "definitionSha256": "f9f3b5d1994d017b442e5983088526af21cffcdf4b84a294aefdac7ea20e6be7",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spd_1_stage_if_has_niliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/535",
-      "definitionSha256": "cc79f28f05719915c58e1659f2c506a6155c307408402207c67a8fbbc00ac548",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/676",
-      "definitionSha256": "a44e75f4434dfd9b53d2bfb55460b1aa09e57a5028d4d917ef18639e9dd2ca31",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spe_1_stage_after_2_uses",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/369",
-      "definitionSha256": "540d6dfe4bd65fd7967f75e167b99b17976b4b46047cb6566acb3bc8165a0b19",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spe_1_stage_if_hp_below_75_percent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/412",
-      "definitionSha256": "969d95301324902fcef9000f3f7f7db6f7f069177d3b0fa3ab98824f0f68a768",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_raise_spe_1_stage_if_opponent_female",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/655",
-      "definitionSha256": "d606360815e3e92c8c459ff313cf16041d451904048f689d54eed635eb0c775e",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
       "id": "effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/680",
@@ -1749,87 +2123,10 @@
       "reason": "unsupported trigger or admission condition"
     },
     {
-      "id": "effect_skill_raise_spe_1_stage_if_zhandoulingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/644",
-      "definitionSha256": "1a03e7031662bfaa7a1c2274fd2262950cdc85a296d1a61afeac590e4921acaf",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_atk_1_stage_if_opponent_male",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/653",
-      "definitionSha256": "72855ddf6a256841ec861c6f29d7bb868892084db47af7f28e6fe020cb96fecb",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_def_1_stage_if_has_shunliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/545",
-      "definitionSha256": "2f1b8e4d8acde06554b462c20dddb10eb005f4c407edffdd7241050ce1f885cf",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/636",
-      "definitionSha256": "7f13d767797a278063a302a24fbf72b48fc82b2f5668e6579456124f244d8fd5",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/352",
-      "definitionSha256": "8b9fe2893f21564ad5257fd280a1c4bf645a0c4a4854dc8c2e79a846badcd486",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_spa_1_stage_if_bingdong",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/275",
-      "definitionSha256": "19821ca986c25336b77b4dc27bb6ce9e5d399e8a8c5503c2d9e884d29045b6e1",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_spa_1_stage_if_has_niliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/546",
-      "definitionSha256": "0a0072e0ae269b7d723a2608fdaa914d11ea2f9571fbc52423ff4458e24f8f33",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_female",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/652",
-      "definitionSha256": "86c263731ee00a4f474175e5248cc9e948dfb2f392055762119f9d122cc0df81",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
       "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/692",
       "definitionSha256": "f25ee3df13b444a57c3256c442c54afc614847ec27c0c4b8e441a751461e8b34",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/395",
-      "definitionSha256": "9c785ed77936609f4bc0a1d82ee96900f1a65deae900cc2a74c211107a2baecf",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/360",
-      "definitionSha256": "554b663b46ea317609b5de91bfe2af1c3796dbc8e99e1450d9ac60645eac1786",
-      "reason": "unsupported trigger or admission condition"
-    },
-    {
-      "id": "effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/492",
-      "definitionSha256": "e7eea9eae54a2f78d62165acd1233381bd2b7de6222b54ef118d934be33b3449",
       "reason": "unsupported trigger or admission condition"
     },
     {

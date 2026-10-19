@@ -36,11 +36,15 @@ interface Entry {
     clauses: { kind: string; parameter?: boolean; tags?: string[] }[]
   }
 }
-const records: Entry[] = JSON.parse(
+type LedgerEntry = Omit<Entry, 'recipe'> & {
+  recipe: Omit<Entry['recipe'], 'clauses'> & { clauses?: Entry['recipe']['clauses']; when?: string }
+}
+const allRecords: LedgerEntry[] = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/stat-stages-candidates.json', import.meta.url), 'utf8'),
 ).records
+const records = allRecords.filter((r): r is Entry => !r.recipe.when && Array.isArray(r.recipe.clauses))
 const sources = new Map<string, { id: string }[]>()
-for (const r of records)
+for (const r of allRecords)
   if (!sources.has(r.sourceFile))
     sources.set(
       r.sourceFile,
@@ -178,8 +182,8 @@ it('pins every emitted definition and keeps exact ID coverage', () => {
               .map(([k, x]) => [k, normalize(x)]),
           )
         : v
-  expect(Object.keys(generatedStatStageCandidates.effects).sort()).toEqual(records.map(r => r.id).sort())
-  for (const r of records)
+  expect(Object.keys(generatedStatStageCandidates.effects).sort()).toEqual(allRecords.map(r => r.id).sort())
+  for (const r of allRecords)
     expect(
       createHash('sha256')
         .update(JSON.stringify(normalize(sources.get(r.sourceFile)!.find(d => d.id === r.id))))

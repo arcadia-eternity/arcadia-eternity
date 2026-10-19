@@ -178,6 +178,24 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_ability_ice_damage_boost_15_percent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/25",
+      "definitionSha256": "ae8ffaa9db3c13da25e8fb5f25f84265eb4d2943f3ba2c3151215697126ba5a9",
+      "recipe": {
+        "id": "effect_ability_ice_damage_boost_15_percent",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.element === \"Ice\"))",
+        "percent": "15",
+        "delta": "0"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_ability_increase_special_damage_taken_15_percent",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/29",
@@ -354,6 +372,24 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_emblem_climax_damage_boost_10_percent",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/55",
+      "definitionSha256": "fd6ddf9624c093912feab25caacc9db7dfd85846020462ea93bd792f6da76bd7",
+      "recipe": {
+        "id": "effect_emblem_climax_damage_boost_10_percent",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Climax\"))",
+        "percent": "10",
+        "delta": "0"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_mark_buxieanguang_reduce_light_damage_half",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/147",
@@ -377,6 +413,24 @@
       "recipe": null,
       "classification": "U",
       "status": "handwritten-override-retained"
+    },
+    {
+      "id": "effect_mark_double_physical_damage_taken",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/77",
+      "definitionSha256": "8d61c990f0019c506daa59435da0c6292ef243aa0e611b241d582508110f3032",
+      "recipe": {
+        "id": "effect_mark_double_physical_damage_taken",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Physical\"))",
+        "percent": "100",
+        "delta": "0"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
     },
     {
       "id": "effect_mark_double_special_damage_taken",
@@ -610,6 +664,24 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_mark_increase_multi_hit_damage_35_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/192",
+      "definitionSha256": "73046ee79a08651b4432c2e62f66fb5dbd030172ee99ecae6ce0e9f43f718162",
+      "recipe": {
+        "id": "effect_mark_increase_multi_hit_damage_35_percent",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(contexts.skillUse.select(event => event.multihitResult).first());const right=1;return left!==undefined && right!==undefined && left > right}))",
+        "percent": "35",
+        "delta": "0"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_mark_reduce_atk_damage_25_percent",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/80",
@@ -779,6 +851,24 @@
         "when": "conditions.selfBeDamaged",
         "percent": "0",
         "delta": "targets.sourceMark.select(mark => mark.stack).first().map(n => Math.floor(n * -25))"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_fire_damage_half",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/171",
+      "definitionSha256": "e914b62ebdfc278ddb25e9412ccee02395d8d4695760cb1385c7ae515c1612a6",
+      "recipe": {
+        "id": "effect_mark_reduce_fire_damage_half",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.skillUse.condition((_ctx,events) => events[0]?.element === \"Fire\"))",
+        "percent": "-50",
+        "delta": "0"
       },
       "classification": "U",
       "status": "generated-candidate"
@@ -1011,6 +1101,24 @@
         "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_jinbao\").condition(checks.exists()))",
         "percent": "0",
         "delta": "100"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_25_if_3_hits",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/629",
+      "definitionSha256": "36e31aa2e8b42144e2bf2200feb7c1ac469d1dddeec53af31f2e14069f3ee341",
+      "recipe": {
+        "id": "effect_skill_add_fixed_damage_25_if_3_hits",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(contexts.skillUse.select(event => event.multihitResult).first());const right=3;return left!==undefined && right!==undefined && left === right}))",
+        "percent": "0",
+        "delta": "25"
       },
       "classification": "U",
       "status": "generated-candidate"
@@ -1294,13 +1402,6 @@
       "reason": "condition requires a separate semantic mapping"
     },
     {
-      "id": "effect_ability_ice_damage_boost_15_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/25",
-      "definitionSha256": "ae8ffaa9db3c13da25e8fb5f25f84265eb4d2943f3ba2c3151215697126ba5a9",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
       "id": "effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/69",
@@ -1313,13 +1414,6 @@
       "sourcePath": "/3",
       "definitionSha256": "90a66ec022394ddd70ff377ea5ed2244c410c4f5da4a480fc89295e513e92245",
       "reason": "requires a supported damage stage"
-    },
-    {
-      "id": "effect_emblem_climax_damage_boost_10_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/55",
-      "definitionSha256": "fd6ddf9624c093912feab25caacc9db7dfd85846020462ea93bd792f6da76bd7",
-      "reason": "condition requires a separate semantic mapping"
     },
     {
       "id": "effect_emblem_increase_quan_skill_damage_5_percent",
@@ -1350,13 +1444,6 @@
       "reason": "requires a supported damage stage"
     },
     {
-      "id": "effect_mark_double_physical_damage_taken",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/77",
-      "definitionSha256": "8d61c990f0019c506daa59435da0c6292ef243aa0e611b241d582508110f3032",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
       "id": "effect_mark_hongbaoshizhiguang_add_200_fixed_damage",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/117",
@@ -1376,13 +1463,6 @@
       "sourcePath": "/110",
       "definitionSha256": "5b34012578dd9708a1bb70169cee2121b781051d89623c651a7f767e3edff6c2",
       "reason": "requires a supported damage stage"
-    },
-    {
-      "id": "effect_mark_increase_multi_hit_damage_35_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/192",
-      "definitionSha256": "73046ee79a08651b4432c2e62f66fb5dbd030172ee99ecae6ce0e9f43f718162",
-      "reason": "condition requires a separate semantic mapping"
     },
     {
       "id": "effect_mark_increase_rage_on_damage_10_percent",
@@ -1441,13 +1521,6 @@
       "reason": "numeric value or parameter requires a separate semantic mapping"
     },
     {
-      "id": "effect_mark_reduce_fire_damage_half",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/171",
-      "definitionSha256": "e914b62ebdfc278ddb25e9412ccee02395d8d4695760cb1385c7ae515c1612a6",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
       "id": "effect_mark_reduce_healing_50_percent",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/199",
@@ -1481,13 +1554,6 @@
       "sourcePath": "/381",
       "definitionSha256": "3b7f70c87aa823c6c0ca5daa1fd4e001200f9adc5d5c1af8d97d9b1e07c61994",
       "reason": "numeric value or parameter requires a separate semantic mapping"
-    },
-    {
-      "id": "effect_skill_add_fixed_damage_25_if_3_hits",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/629",
-      "definitionSha256": "36e31aa2e8b42144e2bf2200feb7c1ac469d1dddeec53af31f2e14069f3ee341",
-      "reason": "condition requires a separate semantic mapping"
     },
     {
       "id": "effect_skill_add_fixed_damage_50_if_first",

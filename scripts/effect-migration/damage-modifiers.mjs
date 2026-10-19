@@ -5,8 +5,10 @@ import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 
 import { fields, normalize, number, condition } from './authoring-emitter.mjs'
+import { repairSkillSelector } from './skill-context-corrections.mjs'
 const q = JSON.stringify
-export function classifyDamageModifier(d) {
+export function classifyDamageModifier(original) {
+  const { definition: d, paths } = repairSkillSelector(original)
   if (!d || typeof d !== 'object' || Array.isArray(d)) return { reason: 'unsupported definition fields' }
   if (
     !fields(d, [
@@ -48,6 +50,7 @@ export function classifyDamageModifier(d) {
   if (!percent || !delta) return { reason: 'numeric value or parameter requires a separate semantic mapping' }
   return {
     id: d.id,
+    ...(paths.length ? { selectorRepairs: paths, additionalDecisions: ['C07'] } : {}),
     priority: d.priority,
     triggers,
     when,

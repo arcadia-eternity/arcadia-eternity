@@ -77,7 +77,7 @@ test('rejects unhandled fields, invalid parameters, target chains, nonfinite num
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 76, protected: 1, rejected: 40 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 82, protected: 1, rejected: 34 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -165,4 +165,34 @@ test('retains automatic consumption and effect tags while rejecting malformed me
     assert.ok(classifyDamageModifier({ ...source(), consumesStacks }).reason)
   for (const tags of [null, 'tag', [2]]) assert.ok(classifyDamageModifier({ ...source(), tags }).reason)
   assert.ok(classifyDamageModifier({ ...source(), extra: true }).reason)
+})
+
+test('C07 shares nearest-skill scalar queries with damage admission without changing checkSelf', () => {
+  for (const [field, evaluator] of [
+    ['element', { type: 'same', value: 'Ice' }],
+    ['category', { type: 'same', value: 'Physical' }],
+    ['multihitResult', { type: 'compare', operator: '>', value: 1 }],
+  ]) {
+    const d = source()
+    d.condition = {
+      type: 'every',
+      conditions: [
+        { type: 'checkSelf' },
+        {
+          type: 'evaluate',
+          target: { base: 'useSkillContext', chain: [{ type: 'selectPath', arg: field }] },
+          evaluator,
+        },
+      ],
+    }
+    const before = structuredClone(d)
+    const r = classifyDamageModifier(d)
+    assert.match(r.when, /conditions.all\(conditions.selfBeDamaged,/)
+    assert.match(r.when, /contexts.skillUse/)
+    assert.deepEqual(r.selectorRepairs, ['/condition/conditions/1/target/base'])
+    assert.deepEqual(r.additionalDecisions, ['C07'])
+    assert.deepEqual(d, before)
+    d.condition.conditions[1].target.chain[0].arg = 'currentHitCount'
+    assert.ok(classifyDamageModifier(d).reason)
+  }
 })

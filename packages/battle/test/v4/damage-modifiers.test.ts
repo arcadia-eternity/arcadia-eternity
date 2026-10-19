@@ -45,6 +45,7 @@ interface Entry {
   status: string
   recipe: {
     triggers: ('OnBeforeCalculateDamage' | 'OnDamage')[]
+    selectorRepairs?: string[]
     consumesStacks?: number
     tags?: string[]
     parameters?: { name: string; value: number; configId?: string }[]
@@ -58,9 +59,10 @@ interface Definition {
 const manifest: { records: (Omit<Entry, 'recipe'> & { recipe: Entry['recipe'] | null })[] } = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/damage-modifiers-candidates.json', import.meta.url), 'utf8'),
 )
-const records = manifest.records.filter((r): r is Entry => r.status === 'generated-candidate' && r.recipe !== null)
+const allRecords = manifest.records.filter((r): r is Entry => r.status === 'generated-candidate' && r.recipe !== null)
+const records = allRecords.filter(r => !r.recipe.selectorRepairs?.length)
 const files = new Map<string, Definition[]>()
-for (const r of records)
+for (const r of allRecords)
   if (!files.has(r.sourceFile))
     files.set(
       r.sourceFile,
@@ -293,9 +295,9 @@ it('pins every emitted ID and definition to current YAML and excludes the handwr
               .map(([k, x]) => [k, normalize(x)]),
           )
         : v
-  expect(records.map(r => r.id).sort()).toEqual(Object.keys(generatedDamageModifierEffects).sort())
+  expect(allRecords.map(r => r.id).sort()).toEqual(Object.keys(generatedDamageModifierEffects).sort())
   expect(generatedDamageModifierEffects).not.toHaveProperty('effect_mark_damage_boost_based_on_hp_percentage')
-  for (const r of records) {
+  for (const r of allRecords) {
     expect(generatedDamageModifierEffects[r.id].tags).toEqual(r.recipe.tags ?? [])
     expect(generatedDamageModifierEffects[r.id].consumesStacks).toBe(r.recipe.consumesStacks)
     expect(
