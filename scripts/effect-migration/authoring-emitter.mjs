@@ -187,6 +187,19 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
           : `values.combine(${code},${limits},(n,limits) => Math.${operation}(n,limits[0] ?? 0))`
         continue
       }
+      if (
+        options.dynamicMultiply &&
+        step.type === 'multiply' &&
+        fields(step.arg, ['type', 'selector']) &&
+        step.arg.type === 'dynamic'
+      ) {
+        const factors = selectedNumber(step.arg.selector, parameters, `${path}_step${index}`, 'all', domain, options)
+        if (!factors) return
+        code = collection
+          ? `values.combine(${code},${factors},(items,factors) => items.map((n,index) => Math.floor(n * (factors[index] ?? 0))))`
+          : `values.combine(${code},${factors},(n,factors) => Math.floor(n * (factors[0] ?? 0)))`
+        continue
+      }
       if (options.conditionalDivisor && step.type === 'divide' && !collection) {
         const v = step.arg
         if (fields(v, ['type', 'condition', 'trueValue', 'falseValue']) && v.type === 'conditional') {

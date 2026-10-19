@@ -30,7 +30,11 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
       ...(a.type === 'addRage' ? { selfPlayer: 'selfPlayer' } : {}),
     }
     if (!Object.hasOwn(roots, target)) return
-    const value = number(a.value, parameters, path, domain, { dynamicClamp: true, conditionalDivisor: true })
+    const value = number(a.value, parameters, path, domain, {
+      dynamicClamp: true,
+      conditionalDivisor: true,
+      dynamicMultiply: true,
+    })
     if (!value) return
     return `targets.${roots[target]}.apply(ops.${a.type}(${value.code}))`
   }

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { condition, number } from './authoring-emitter.mjs'
+import { condition, number, selectedNumber } from './authoring-emitter.mjs'
 
 test('element equality retains first-item and empty-selection semantics', () => {
   for (const base of ['self', 'opponent'])
@@ -156,4 +156,46 @@ test('player comparisons and dynamic damage-result extraction preserve typed que
   assert.match(number(value, [], 'damage', 'damage').code, /contexts.damage.select.*damageResult.*Math.floor/)
   value.selector.chain[0].arg.arg = 'unknown'
   assert.equal(number(value, [], 'damage', 'damage'), undefined)
+})
+
+test('dynamic factors retain collection positions and left-before-right reads', () => {
+  const selection = base => ({ base, chain: [{ type: 'select', arg: { type: 'base', arg: 'stack' } }] })
+  const input = selection('selfMarks')
+  input.chain.push({ type: 'multiply', arg: { type: 'dynamic', selector: selection('opponentMarks') } })
+  const expression = selectedNumber(input, [], 'value', 'all', 'skill', { dynamicMultiply: true })
+  const value = read => ({ read, map: fn => value(() => fn(read())) })
+  const selector = query => ({
+    select: fn => selector(() => query().map(fn)),
+    all: () => value(query),
+    first: () => value(() => query()[0]),
+  })
+  const calls = []
+  let left = [2, 3, 4],
+    right = [5, 6]
+  const targets = {
+    ownerMarks: selector(() => {
+      calls.push('left')
+      return left.map(stack => ({ stack }))
+    }),
+    opponentMarks: selector(() => {
+      calls.push('right')
+      return right.map(stack => ({ stack }))
+    }),
+  }
+  const values = {
+    combine: (a, b, fn) =>
+      value(() => {
+        const x = a.read(),
+          y = b.read()
+        return fn(x, y)
+      }),
+  }
+  const result = new Function('targets', 'values', `return ${expression}`)(targets, values)
+  assert.deepEqual(result.read(), [10, 18, 0])
+  assert.deepEqual(calls, ['left', 'right'])
+  calls.length = 0
+  left = []
+  right = [9]
+  assert.deepEqual(result.read(), [])
+  assert.deepEqual(calls, ['left', 'right'])
 })

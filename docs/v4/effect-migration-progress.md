@@ -219,3 +219,9 @@ These candidates remain U; full-game/checkpoint evidence and production admissio
 Three additional single-vital candidates compare both players' rage, bringing that catalog to 30 candidates, 20 rejected and 27 retained. The authoring API now exposes opponentPlayer and shares direct-skill-context detection among player/mark queries. Persistent bindings query source identity without reading a transient event. No production catalog switch is included.
 
 All 959 public single-vital tests, 73 design tests, 39 binding/boundary/checkpoint tests and 108 generator tests pass, as do types/lint, declarations and provenance. Both review axes pass. Tests independently check strict rage boundaries, admission retained after rage changes, direct target redirection, nested source fallback, capture/follow changes and two JSON restorations with fresh player identities. See [player comparison evidence](validation/vital-actions.md). Candidates remain U pending full-game and production gates; the prior full V4 regression status is unchanged.
+
+## Indexed dynamic multiplication (2026-10-20)
+
+Two more healing effects now use typed queries for dynamic stack factors. The single-vital catalog contains 32 candidates, 18 rejected and 27 retained definitions. The shared emitter reuses values.combine, preserving left-before-right reads, positional pairing, missing factors as zero and division rounding before multiplication. No runtime or production-loading changes are included.
+
+All 1,081 public single-vital checks, 110 generator tests, 73 design tests, types/lint, declarations and provenance pass. Independent cases distinguish floor ordering, absent/zero factors, multiple same-ID marks in different orders and late changes after admission. See [dynamic-factor evidence](validation/vital-actions.md). All-effect completion, full-game/checkpoint gates and production admission remain pending; scoped results do not supersede the prior full V4 regression status.

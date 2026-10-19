@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 30, rejected: 20, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 32, rejected: 18, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')
@@ -49,4 +49,20 @@ test('retained entries preserve all existing provenance ledgers', async () => {
     'docs/v4/validation/instant-literals-candidates.json',
     'docs/v4/validation/official-healing-candidates.json',
   ])
+})
+
+test('dynamic multiplication preserves indexed factors and rejects unsupported factors', () => {
+  const d = source()
+  d.apply.value.selector.chain.push({
+    type: 'multiply',
+    arg: {
+      type: 'dynamic',
+      selector: { base: 'selfMarks', chain: [{ type: 'select', arg: { type: 'base', arg: 'stack' } }] },
+    },
+  })
+  const recipe = classifyVitalAction(d)
+  assert.ok(!recipe.reason, recipe.reason)
+  assert.match(recipe.actions[0].code, /\.all\(\).*factors\[0\] \?\? 0/)
+  d.apply.value.selector.chain[2].arg.selector.chain[0].arg.arg = 'unknown'
+  assert.ok(classifyVitalAction(d).reason)
 })

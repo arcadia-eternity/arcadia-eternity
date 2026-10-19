@@ -132,6 +132,34 @@ export function createGeneratedVitalActions() {
         execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       }),
     ),
+    effect_heal_1_16_max_hp_per_stack_if_has_niliu: compileEffect(
+      defineEffect({
+        id: 'effect_heal_1_16_max_hp_per_stack_if_has_niliu',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
+        ),
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              values.combine(
+                targets.ownerPet
+                  .select(pet => pet.stat.maxHp)
+                  .first()
+                  .map(n => Math.floor(n / 16)),
+                targets.ownerMarks
+                  .where(mark => mark.baseId === 'mark_niliu')
+                  .select(mark => mark.stack)
+                  .all(),
+                (n, factors) => Math.floor(n * (factors[0] ?? 0)),
+              ),
+            ),
+          ),
+        ),
+      }),
+    ),
     effect_mark_damage_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_damage_with_stack',
@@ -366,6 +394,31 @@ export function createGeneratedVitalActions() {
                 .select(event => event.damageResult)
                 .first()
                 .map(n => Math.floor(n * 0.25)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_heal_by_damage_25_zhongzinengliang: compileEffect(
+      defineEffect({
+        id: 'effect_skill_heal_by_damage_25_zhongzinengliang',
+        on: 'PostDamage',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              values.combine(
+                contexts.damage
+                  .select(event => event.damageResult)
+                  .first()
+                  .map(n => Math.floor(n / 4)),
+                targets.ownerMarks
+                  .where(mark => mark.baseId === 'mark_zhongzinengliang')
+                  .select(mark => mark.stack)
+                  .all(),
+                (n, factors) => Math.floor(n * (factors[0] ?? 0)),
+              ),
             ),
           ),
         ),

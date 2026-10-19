@@ -55,6 +55,8 @@ const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
   }),
 )
 const expected: Record<Id, number> = {
+  effect_heal_1_16_max_hp_per_stack_if_has_niliu: 375,
+  effect_skill_heal_by_damage_25_zhongzinengliang: 75,
   effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end: 15,
   effect_ability_heal_1_8_max_hp_when_rage_gt_opponent: 250,
   effect_ability_heal_half_damage_when_rage_lt_opponent: 50,
@@ -129,6 +131,8 @@ function run(
     currentHp?: number
     selfRage?: number
     opponentRage?: number
+    maxHp?: number
+    supportStacks?: readonly number[]
   } = {},
 ) {
   const d = definitions.get(id)!,
@@ -136,7 +140,7 @@ function run(
   battles.push(battle)
   for (const p of [...a.team, ...b.team]) {
     for (const s of p.skills) s.effects.splice(0)
-    p.attributeSystem.updateBaseValue('maxHp', 2001)
+    p.attributeSystem.updateBaseValue('maxHp', options.maxHp ?? 2001)
     p.currentHp = options.currentHp ?? 500
   }
   a.currentRage = options.selfRage ?? 60
@@ -170,10 +174,10 @@ function run(
   const source = kind === 'mark' ? mark : skill
   source.effects.push(native ? generatedVitalActions[id] : oracles.get(id)!)
   const supports: ReturnType<BaseMark['createInstance']>[] = []
-  const addSupport = (baseId: string, target: typeof a.activePet | typeof battle) => {
+  const addSupport = (baseId: string, target: typeof a.activePet | typeof battle, stack = 3) => {
     const m = new BaseMark(baseId as baseMarkId, [], { ...debuff.config, duration: -1, maxStacks: 20 }).createInstance()
     m.setOwner(target, battle.emitter)
-    m.stack = 3
+    m.stack = stack
     target.marks.push(m)
     supports.push(m)
   }
@@ -185,6 +189,8 @@ function run(
     'mark_kongqichuliang',
   ])
     addSupport(name, a.activePet)
+  for (const name of ['mark_niliu', 'mark_zhongzinengliang'])
+    for (const stack of options.supportStacks ?? [3]) addSupport(name, a.activePet, stack)
   for (const name of ['mark_tongjiling', 'mark_shaoshang', 'mark_kaowen', 'mark_mabi', 'mark_jingshencuoluan'])
     addSupport(name, b.activePet)
   for (const name of ['mark_global_guzhanchang', 'mark_global_qingtian']) addSupport(name, battle)
@@ -400,6 +406,36 @@ for (const id of [
         const result = run(id, native, kind, 'late-rage')
         expect(result.admitted).toBe(1)
         expect(result.events.map(e => e.amount)).toEqual([expected[id]])
+      })
+    }
+  }
+}
+
+for (const id of [
+  'effect_heal_1_16_max_hp_per_stack_if_has_niliu',
+  'effect_skill_heal_by_damage_25_zhongzinengliang',
+] as const) {
+  for (const kind of ['skill', 'mark'] as const) {
+    for (const native of [false, true]) {
+      for (const supportStacks of [[], [0], [1], [3], [2, 7], [7, 2]] as const) {
+        it(`ordered dynamic factors ${id}/${kind}/${native}/${supportStacks}`, () => {
+          const result = run(id, native, kind, 'normal', { supportStacks, maxHp: 2015, damageResult: 103 })
+          const expectedAdmission = id.includes('niliu') ? supportStacks.length > 0 : true
+          expect(result.admitted).toBe(Number(expectedAdmission))
+          const factor = supportStacks[0] ?? 0
+          expect(result.events.map(e => e.amount)).toEqual(
+            expectedAdmission ? [(id.includes('niliu') ? 125 : 25) * factor] : [],
+          )
+        })
+      }
+      it(`admitted source removed before numeric read ${id}/${kind}/${native}`, () => {
+        const result = run(id, native, kind, 'late-support')
+        expect(result.admitted).toBe(1)
+        expect(result.events.map(e => e.amount)).toEqual([0])
+      })
+      it(`factor and dividend read at execution ${id}/${kind}/${native}`, () => {
+        const result = run(id, native, kind, 'late-value')
+        expect(result.events.map(e => e.amount)).toEqual([id.includes('niliu') ? 62 * 7 : 11 * 7])
       })
     }
   }
