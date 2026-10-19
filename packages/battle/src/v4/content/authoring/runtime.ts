@@ -204,6 +204,7 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
     where: predicate => selector(ctx => query(ctx).filter(predicate)),
     select: project => selector(ctx => query(ctx).map(project)),
     first: () => value(ctx => query(ctx)[0]),
+    all: () => value(ctx => [...query(ctx)]),
     condition: evaluate => ctx => evaluate(ctx, query(ctx as Frame)),
     apply: operator => {
       const action = (ctx: Parameters<typeof operator>[0]) => {
@@ -270,6 +271,10 @@ export const contexts: typeof C.contexts = {
     const event = nearestContext(ctx, HealContext)
     return event ? [event] : []
   }),
+  skillUse: selector(ctx => {
+    const event = nearestContext(ctx, UseSkillContext)
+    return event ? [event] : []
+  }),
   nearestSkillUse: ctx => nearestContext(ctx, UseSkillContext),
 }
 export const conditions: typeof C.conditions = {
@@ -287,6 +292,7 @@ export const conditions: typeof C.conditions = {
     const source = engine(ctx).source
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
+  ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
   selfBeDamaged: ctx => ctx.event instanceof DamageContext && owner(ctx) === ctx.event.target,
   selfBeHealed: ctx => ctx.event instanceof HealContext && owner(ctx) === ctx.event.target,
   chance: percent => {
@@ -402,7 +408,28 @@ function modifyContext<T extends DamageContext | HealContext>(
     }
   }
 }
+/** Legacy power actions consume the complete value list separately for every target. */
+function modifyPower(
+  input: Parameters<typeof C.ops.addPower>[0],
+  apply: (event: UseSkillContext, amount: number) => void,
+): C.Operator<UseSkillContext> {
+  return (ctx, selected) => {
+    selected.forEach(event => {
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+      const result = read(ctx, input)
+      if (result === undefined) return
+      const amounts = Array.isArray(result) ? result : [result]
+      amounts.forEach(amount => {
+        if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+        if (typeof amount !== 'number' || !Number.isFinite(amount)) throw new Error('Expected finite numeric input')
+        apply(event, amount)
+      })
+    })
+  }
+}
 export const ops: typeof C.ops = {
+  addPower: input => modifyPower(input, (event, amount) => event.addPower(amount)),
+  amplifyPower: input => modifyPower(input, (event, amount) => event.amplifyPower(amount)),
   modifyDamage: input => modifyContext(input, 'damage'),
   modifyHeal: input => modifyContext(input, 'heal'),
   heal: amount =>

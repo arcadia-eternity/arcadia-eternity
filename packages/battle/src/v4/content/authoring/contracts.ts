@@ -52,6 +52,8 @@ export interface Selector<T> {
   readonly where: (predicate: (value: T) => boolean) => Selector<T>
   readonly select: <U>(project: (value: T) => U) => Selector<U>
   readonly first: () => Value<T, 'optional'>
+  /** Fresh ordered membership snapshot at each read. */
+  readonly all: () => Value<readonly T[]>
   readonly condition: <K extends Trigger = Trigger>(evaluate: Evaluator<T, K>) => Condition<K>
   readonly apply: <K extends Trigger = Trigger>(operator: Operator<T, K>) => Action<K>
   // Deliberately bounded writable surface; does not make every Pet key writable.
@@ -116,6 +118,7 @@ export declare const contexts: {
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
   readonly heal: Selector<HealContext>
+  readonly skillUse: Selector<UseSkillContext>
   /** Searches ancestry; unlike event, a matching ancestor is not guaranteed. */
   readonly nearestSkillUse: (ctx: EffectFrame) => UseSkillContext | undefined
 }
@@ -124,6 +127,8 @@ export declare const conditions: {
   readonly any: <T extends Trigger = Trigger>(...items: readonly Condition<T>[]) => Condition<T>
   readonly not: <T extends Trigger = Trigger>(item: Condition<T>) => Condition<T>
   readonly selfUsesSkill: Condition
+  /** Direct skill event owned by this source; unlike selfUsesSkill, no skill identity restriction. */
+  readonly ownerUsesSkill: Condition
   readonly selfBeDamaged: Condition
   readonly selfBeHealed: Condition
   /** One battle RNG draw on each call, including 0 and 100; short-circuiting is owned by the caller. */
@@ -148,7 +153,11 @@ export declare const values: {
 }
 
 type NumericInput = number | Value<number, Presence>
+type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  /** Read once per selected context; apply every number in order, with no rounding. */
+  readonly addPower: (amount: PowerInput) => Operator<UseSkillContext>
+  readonly amplifyPower: (amount: PowerInput) => Operator<UseSkillContext>
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
   readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>

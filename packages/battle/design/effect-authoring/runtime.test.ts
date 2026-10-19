@@ -751,3 +751,54 @@ it('rechecks damage and healing ownership after value callbacks mutate the selec
   expect(otherDamage.modified).toEqual([0, 0])
   expect(otherHeal.modified).toEqual([0, 0])
 })
+
+it('power operations read complete lists again for each target and preserve fractions and order', () => {
+  const f = fixture()
+  const other = new UseSkillContext(new TurnContext(f.battle), f.a, f.owner, AttackTargetOpinion.opponent, f.skill)
+  let reads = 0
+  const first = f.add('power-a', [], 2),
+    second = f.add('power-b', [], 3)
+  const amounts = targets.ownerMarks
+    .where(mark => mark === first || mark === second)
+    .select(mark => {
+      if (mark === first) reads++
+      return mark.stack + reads / 10
+    })
+    .all()
+  f.use.power = 10
+  other.power = 20
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/power-values',
+      on: 'BeforeHit',
+      execute(ctx) {
+        ops.addPower(amounts)(ctx, [f.use, other])
+        ops.amplifyPower(1.25)(ctx, [f.use, other])
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(reads).toBe(2)
+  expect(f.use.power).toBeCloseTo((10 + 2.1 + 3.1) * 1.25)
+  expect(other.power).toBeCloseTo((20 + 2.2 + 3.2) * 1.25)
+})
+it('skill context queries resolve ancestry afresh while owner admission stays direct', () => {
+  const f = fixture(),
+    results: boolean[] = []
+  const nested = new EffectContext(f.use, EffectTrigger.BeforeHit, f.skill)
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/skill-context',
+      on: 'BeforeEffect',
+      execute(ctx) {
+        results.push(conditions.ownerUsesSkill(ctx), conditions.selfUsesSkill(ctx))
+        contexts.skillUse.apply(ops.addPower(4))(ctx)
+      },
+    }),
+  )
+  const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
+  const initial = f.use.power
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  expect(results).toEqual([false, true])
+  expect(f.use.power).toBe(initial + 4)
+})

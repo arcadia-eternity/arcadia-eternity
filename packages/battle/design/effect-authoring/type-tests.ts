@@ -227,3 +227,12 @@ values.combine(capturedInstancePenalty, numberParam({ default: 3 }), (a, b) => b
 contexts.heal.apply(ops.modifyHeal({ percent: 20, delta: 0 }))
 // @ts-expect-error Healing modifiers require heal contexts.
 contexts.damage.apply(ops.modifyHeal({ percent: 20, delta: 0 }))
+
+const allStacks = targets.ownerMarks.select(mark => mark.stack).all()
+exact<Equal<typeof allStacks, Value<readonly number[]>>>(true)
+contexts.skillUse.apply(ops.addPower(allStacks))
+contexts.skillUse.apply(ops.amplifyPower(numberParam({ default: 1.5 })))
+// @ts-expect-error Power operations require skill contexts.
+contexts.heal.apply(ops.addPower(20))
+// @ts-expect-error Numeric collection, not pets.
+contexts.skillUse.apply(ops.addPower(targets.ownerPet.all()))
