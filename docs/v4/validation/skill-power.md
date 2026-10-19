@@ -1,12 +1,12 @@
 # Skill power correction candidates
 
-The current production source contains 104 single-action `amplifyPower`/`addPower` definitions. This batch statically emits 82 candidates (65 literal and 17 dynamic-valued) and records 22 rejected definitions with precise source hashes and reasons. The generated module contains ordinary TypeScript; neither legacy parser nor migration expressions run in the candidate implementation.
+The current production source contains 104 single-action `amplifyPower`/`addPower` definitions. This batch statically emits 96 candidates (79 literal and 17 dynamic-valued) and records 8 rejected definitions with precise source hashes and reasons. The generated module contains ordinary TypeScript; neither legacy parser nor migration expressions run in the candidate implementation.
 
 ## C07: skill selector spelling
 
 Every one of these 104 definitions is rejected by the current legacy parser because it uses `useSkillContext`; the implemented selector is named `usingSkillContext`. The selected correction is to resolve the nearest UseSkillContext through the typed `contexts.skillUse` query. This restores the intended selector operation without changing trigger stage, target ancestry, condition order, coefficients or automatic consumption. No production YAML or legacy parser is changed.
 
-Each candidate records its definition hash, exact changed source paths and C07 decision. Tests first require the unchanged production definition to fail parsing. A separate test-only copy changes only base/target selector spellings, and its resulting legacy execution is the corrected-rule reference. This reference is explicitly not evidence of equivalence with the unchanged failing definition. These 82 records are classified C: the scoped C07 correction is selected and verified. Production admission remains pending and is tracked separately from the behavior decision. The 22 rejected definitions remain unsupported.
+Each candidate records its definition hash, exact changed source paths and C07 decision. Tests first require the unchanged production definition to fail parsing. A separate test-only copy changes only base/target selector spellings, and its resulting legacy execution is the corrected-rule reference. This reference is explicitly not evidence of equivalence with the unchanged failing definition. These 96 records are classified C: the scoped C07 correction is selected and verified. Production admission remains pending and is tracked separately from the behavior decision. The 8 rejected definitions remain unsupported.
 
 Other nonexistent paths (`skillId`, `Pet.spa`), unsupported predicates, unmapped dynamic/configured amounts and other structures remain rejected. Spelling repair alone permits 101/104 parser constructions, but that does not establish runtime correctness of those 101. No original no-op or silently skipped effect is emitted as a completed migration.
 
@@ -32,24 +32,25 @@ Numeric collection steps preserve the legacy **indexed operand pairing**: a lite
 
 Dynamic cases also cover missing collections, another actual target, self-targeting, stack/count/max-HP changes between admission and execution, multiple matching marks, and independent `spd` / `spe` mark identities. The source runtime test separately verifies direct actual-target reselection and nested-context fallback.
 
-## Remaining 22 definitions
+## Field and player conditions
 
-The remaining boundary is explicit: 18 need condition mapping and four need value mapping. Next condition cases include player rage, species fields and parameterized probability. The three invalid paths described above still require separate correction decisions.
+Fourteen additional candidates cover raw Pet weight/height/level, gender, opposing element, player rage/maxRage and currentTurn. `targets.selfPlayer` reads the direct skill actor's owner; in other contexts it reads the effect owner's player. It re-resolves ownership on each query. `contexts.battle` provides the current battle without repeated context traversal in effects.
 
-Read-only characterization for the next batch:
+Optional weight/height retain missing-value behavior and never fall back to stat attributes. Tests deliberately make raw dimensions disagree with those attributes. Field cases cover wrong values, absent dimensions and changes after admission; a collected condition is not rechecked during execution. The first-round full-game checkpoint is before the first turn executes, so restored execution must actually activate the effect.
 
-- First skill tests the first UseSkillContext in `TurnContext.appledContexts`; last skill tests the first planned UseSkillContext in `TurnContext.contexts`, reflecting the queue's pop order. Both require direct UseSkillContext → TurnContext ancestry.
-- Periodic consecutive use checks direct ownership and `(skill.owner?.lastSkillUsedTimes ?? 0) % times === 0`; it is not a generic count threshold.
-- Dynamic `weight` and `height` read optional Pet fields, while stat attributes provide species-range fallbacks. Replacing these fields with `stat.weight`/`stat.height` would be an additional semantic change.
-- The three domain-field conditional values contain literal false branches of zero; the old parser treats them as absent. Their value-list behavior must be preserved or assigned a separate correction, not silently converted to a required zero.
+The generator rejects nonexistent base extractors for weight, height, level, maxRage, currentTurn and lastSkillUsedTimes; these fields require their valid dynamic forms. Optional dimension equality and arithmetic remain rejected rather than collapsing legacy undefined entries into empty-list semantics.
+
+## Remaining 8 definitions
+
+Three invalid paths (`skillId` twice, `Pet.spa`/`Pet.atk` once) require explicit corrections. One probability condition needs parameter mapping. One value needs mark duration and its tagged numeric parameter. Three domain-field conditional values contain literal false branches of zero, which the old parser treats as absent; their value-list behavior must be preserved or assigned a separate correction, not silently converted to a required zero.
 
 ## Evidence and remaining work
 
-2,075 public-runtime checks cover: each of the 82 original parser failures and hashes, 1,910 corrected-reference cases (skill/mark sources, seven real global-mark sources, and ten baseline variants plus five dynamic variants), exact ID coverage and 82 complete-game/JSON continuation cases. Cases include positive activation with expected power, missing marks, wrong owner, another skill on the same owner, execution-time ownership/value changes, cancellation, alternate element/category, repeated dispatch, real SkillPhase execution, consumption, HP, rage, message order and subsequent RNG. Tests assert actual positive application for every candidate in the normal scenario.
+2,467 public-runtime checks cover: each of the 96 original parser failures and hashes, 2,274 corrected-reference cases (skill/mark sources, seven real global-mark sources, ten baseline variants, five dynamic variants and three field variants), exact ID coverage and 96 complete-game/JSON continuation cases. Cases include positive activation with expected power, missing marks, wrong owner, another skill on the same owner, execution-time ownership/value changes, cancellation, alternate element/category, repeated dispatch, real SkillPhase execution, consumption, HP, rage, message order and subsequent RNG. Tests assert actual positive application for every candidate in the normal scenario.
 
-Two additional source tests cover ordered list consumption with per-target re-reads and fractional arithmetic, plus nested context lookup versus direct ownership admission. The complete authoring/binding suite passes 52 tests. Type checks pass. Nine generator tests cover C07 path recording, nonmutation, ownership mapping, strict rejection and deterministic output. Review identified and closed two recognition defects: conditional comparison values now preserve the skill domain through nested branches and import `values` when needed; the nonexistent category base extractor is rejected while category `selectPath` remains supported.
+Two additional source tests cover ordered list consumption with per-target re-reads and fractional arithmetic, plus nested context lookup versus direct ownership admission. The complete authoring/binding suite passes 53 tests. Type checks pass. Eleven generator tests cover C07 path recording, nonmutation, ownership mapping, strict rejection and deterministic output. Review identified and closed two recognition defects: conditional comparison values now preserve the skill domain through nested branches and import `values` when needed; the nonexistent category base extractor is rejected while category `selectPath` remains supported.
 
-Both independent implementation reviews pass after the recognition fixes. All 82 full-game cases pass after the core repair, comparing the corrected legacy reference with native uninterrupted and fresh-catalog JSON-restored games. A selection-boundary checkpoint is followed by a real switch and completion to a winner; every run asserts actual candidate application both in the complete game and after the checkpoint boundary. Seven global definitions use Battle-owned sources. The common game harness compares messages, per-turn HP/rage, final state and subsequent RNG. Both independent harness follow-up reviews pass. The strengthened post-boundary application assertion passes all 82 cases. All 9,108 V4 tests across 43 files pass. V4 and source authoring typechecks, declaration build, scoped lint, provenance and Node/real-Chrome checkpoint checks pass. This is not production catalog admission or loader cutover.
+Both independent implementation reviews pass after the recognition fixes. All 96 full-game cases pass after the core repair, comparing the corrected legacy reference with native uninterrupted and fresh-catalog JSON-restored games. A selection-boundary checkpoint is followed by a real switch and completion to a winner; every run asserts actual candidate application both in the complete game and after the checkpoint boundary. Seven global definitions use Battle-owned sources. The common game harness compares messages, per-turn HP/rage, final state and subsequent RNG. Both independent harness follow-up reviews pass. The strengthened post-boundary application assertion passes all 96 cases. All 9,500 V4 tests across 43 files pass. V4 and source authoring typechecks, declaration build, scoped lint, provenance and Node/real-Chrome checkpoint checks pass. This is not production catalog admission or loader cutover.
 
 Reproduce:
 
@@ -60,3 +61,5 @@ pnpm --filter @arcadia-eternity/battle build:code
 pnpm --filter @arcadia-eternity/battle exec vitest run --config vitest.v4.config.mjs test/v4/skill-power.test.ts
 pnpm test:effect-authoring-design
 ```
+
+Field-batch review closed two additional findings: invalid base extractor forms are rejected, and field variants are included in the executable matrix. Both independent review axes pass; 19 combined skill/damage generator tests and all 85 focused field/first-round checks pass.

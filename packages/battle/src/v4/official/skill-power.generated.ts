@@ -23,6 +23,74 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(1.5)),
       }),
     ),
+    effect_ability_damage_amplify_10_percent_weight_100kg: compileEffect(
+      defineEffect({
+        id: 'effect_ability_damage_amplify_10_percent_weight_100kg',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.ownerUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.weight).first())
+          const right = 100
+          return left !== undefined && right !== undefined && left >= right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(1.1)),
+      }),
+    ),
+    effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70: compileEffect(
+      defineEffect({
+        id: 'effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.ownerUsesSkill,
+          (ctx: EffectFrame) => {
+            const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+            const right = 50
+            return left !== undefined && right !== undefined && left >= right
+          },
+          (ctx: EffectFrame) => {
+            const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+            const right = 70
+            return left !== undefined && right !== undefined && left < right
+          },
+        ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(1.1)),
+      }),
+    ),
+    effect_ability_fennu_power_boost_15_percent_when_rage_gt_70: compileEffect(
+      defineEffect({
+        id: 'effect_ability_fennu_power_boost_15_percent_when_rage_gt_70',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.ownerUsesSkill,
+          (ctx: EffectFrame) => {
+            const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+            const right = 70
+            return left !== undefined && right !== undefined && left >= right
+          },
+          (ctx: EffectFrame) => {
+            const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+            const right = ctx.read(targets.selfPlayer.select(player => player.maxRage).first())
+            return left !== undefined && right !== undefined && left < right
+          },
+        ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(1.15)),
+      }),
+    ),
+    effect_ability_fennu_power_boost_25_percent_when_full_rage: compileEffect(
+      defineEffect({
+        id: 'effect_ability_fennu_power_boost_25_percent_when_full_rage',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.ownerUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+          const right = ctx.read(targets.selfPlayer.select(player => player.maxRage).first())
+          return left !== undefined && right !== undefined && left === right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(1.25)),
+      }),
+    ),
     effect_ability_fire_power_boost_below_25_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_fire_power_boost_below_25_percent',
@@ -296,6 +364,30 @@ export function createGeneratedSkillPowerEffects() {
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_yinghua').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.addPower(30)),
+      }),
+    ),
+    effect_skill_add_power_30_if_female: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_30_if_female',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
+        ),
+        execute: contexts.skillUse.apply(ops.addPower(30)),
+      }),
+    ),
+    effect_skill_add_power_30_if_male: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_power_30_if_male',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
         execute: contexts.skillUse.apply(ops.addPower(30)),
       }),
@@ -660,6 +752,19 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
+    effect_skill_power_2x_if_first_round: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_first_round',
+        on: 'AfterUseSkillCheck',
+        priority: 1,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(contexts.battle.select(battle => battle.currentTurn).first())
+          const right = 1
+          return left !== undefined && right !== undefined && left === right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
     effect_skill_power_2x_if_first_switch_in_zuijiazhuogong: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_first_switch_in_zuijiazhuogong',
@@ -816,6 +921,45 @@ export function createGeneratedSkillPowerEffects() {
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
         ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power_2x_if_height_above_100: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_height_above_100',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
+          const right = 100
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power_2x_if_height_gt_opponent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_height_gt_opponent',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power_2x_if_height_lt_opponent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_2x_if_height_lt_opponent',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
+          return left !== undefined && right !== undefined && left < right
+        }),
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
@@ -1163,6 +1307,32 @@ export function createGeneratedSkillPowerEffects() {
         execute: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
+    effect_skill_power2x_if_heavier: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power2x_if_heavier',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.weight).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.weight).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power2x_if_higher_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power2x_if_higher_level',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.level).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.level).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
     effect_skill_power2x_if_opponent_has_exceptional: compileEffect(
       defineEffect({
         id: 'effect_skill_power2x_if_opponent_has_exceptional',
@@ -1195,6 +1365,33 @@ export function createGeneratedSkillPowerEffects() {
             )
             return left !== undefined && right !== undefined && left < right
           },
+        ),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power2x_if_weight_above_99: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power2x_if_weight_above_99',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.weight).first())
+          const right = 99
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+      }),
+    ),
+    effect_skill_power2x_vs_wind_psychic_fighting_trait: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power2x_vs_wind_psychic_fighting_trait',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => (['Wind', 'Psychic', 'Fighting', 'Trait'] as string[]).includes(pet.element)),
+          ),
         ),
         execute: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),

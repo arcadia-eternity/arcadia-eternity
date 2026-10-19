@@ -873,3 +873,31 @@ it('skill-order and periodic conditions keep direct ancestry, queue order and ow
   ])
   for (const invalid of [0, -1, 0.5, NaN, Infinity]) expect(() => conditions.everyNthUse(invalid)).toThrow()
 })
+
+it('player queries use the direct skill actor, requery ownership, then fall back in nested contexts', () => {
+  const f = fixture()
+  f.skill.setOwner(f.b.activePet)
+  const players = targets.selfPlayer.first()
+  const rounds = contexts.battle.select(battle => battle.currentTurn).first()
+  const seen: unknown[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/player-and-battle-queries',
+      on: ['BeforeHit', 'BeforeEffect'],
+      execute(ctx) {
+        seen.push(ctx.read(players)?.id, ctx.read(rounds))
+        f.owner.owner = f.b
+        f.battle.currentTurn = 7
+        seen.push(ctx.read(players)?.id, ctx.read(rounds))
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(seen).toEqual([f.a.id, 0, f.b.id, 7])
+  seen.length = 0
+  f.owner.owner = f.a
+  f.battle.executionBudget.run(f.battle.currentTurn, () =>
+    effect.innerApply(new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
+  )
+  expect(seen).toEqual([f.b.id, 7, f.b.id, 7])
+})

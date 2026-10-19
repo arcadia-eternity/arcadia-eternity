@@ -247,6 +247,11 @@ export const targets: typeof C.targets = {
     const pet = owner(ctx)
     return pet ? [pet] : []
   }),
+  selfPlayer: selector(ctx => {
+    const event = engine(ctx).parent
+    const player = event instanceof UseSkillContext ? event.pet.owner : owner(ctx)?.owner
+    return player ? [player] : []
+  }),
   opponentActive: selector(ctx => {
     const player = owner(ctx)?.owner
     return player ? [scope(ctx).battle.getOpponent(player).activePet] : []
@@ -276,6 +281,7 @@ function nearestContext<T extends AllContext>(ctx: Frame, kind: abstract new (..
   return undefined
 }
 export const contexts: typeof C.contexts = {
+  battle: selector(ctx => [engine(ctx).battle]),
   damage: selector(ctx => {
     const event = nearestContext(ctx, DamageContext)
     return event ? [event] : []

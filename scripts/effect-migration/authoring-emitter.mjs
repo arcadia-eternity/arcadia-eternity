@@ -12,7 +12,9 @@ function normalize(v) {
         )
       : v
 }
-function root(s) {
+function root(s, domain = 'damage') {
+  if (domain === 'skill' && s === 'selfPlayer') return 'targets.selfPlayer'
+  if (domain === 'skill' && s === 'battle') return 'contexts.battle'
   if (s === 'self') return 'targets.ownerPet'
   if (s === 'opponent') return 'targets.opponentActive'
   if (s === 'mark') return 'targets.sourceMark'
@@ -70,12 +72,13 @@ function members(s, domain = 'damage') {
   return code
 }
 /** Static TS emitter for explicitly understood numeric steps; no runtime interpreter is emitted. */
-function selectedNumber(s, parameters, path, consumption = 'first') {
+function selectedNumber(s, parameters, path, consumption = 'first', domain = 'damage') {
   const collection = consumption === 'all'
   const terminal = collection ? '.all()' : '.first()'
   if (!fields(s, ['base', 'chain']) || !Array.isArray(s.chain)) return
-  let code = root(s.base),
-    numeric = false
+  let code = root(s.base, domain),
+    numeric = false,
+    optional = false
   if (!code) return
   for (const [index, step] of s.chain.entries()) {
     if (!numeric && ['selfMarks', 'opponentMarks'].includes(s.base)) {
@@ -89,12 +92,19 @@ function selectedNumber(s, parameters, path, consumption = 'first') {
     if (!numeric) {
       const e = step.arg
       let name
-      if (step.type === 'select' && fields(e, ['type', 'arg']) && e.type === 'base') name = e.arg
+      if (
+        step.type === 'select' &&
+        fields(e, ['type', 'arg']) &&
+        e.type === 'base' &&
+        ['stack', 'currentHp', 'maxHp', 'rage'].includes(e.arg)
+      )
+        name = e.arg
       else if (
         step.type === 'select' &&
         fields(e, ['type', 'arg']) &&
         e.type === 'dynamic' &&
-        e.arg === 'lastSkillUsedTimes'
+        (e.arg === 'lastSkillUsedTimes' ||
+          (domain === 'skill' && ['weight', 'height', 'level', 'maxRage', 'currentTurn'].includes(e.arg)))
       )
         name = e.arg
       else if (
@@ -106,11 +116,24 @@ function selectedNumber(s, parameters, path, consumption = 'first') {
         code += `.select(mark => mark.stack)${terminal}`
       else if (['self', 'opponent'].includes(s.base) && ['currentHp', 'maxHp', 'lastSkillUsedTimes'].includes(name))
         code += `.select(pet => pet.${name === 'maxHp' ? 'stat.maxHp' : name})${terminal}`
+      else if (
+        domain === 'skill' &&
+        ['self', 'opponent'].includes(s.base) &&
+        ['weight', 'height', 'level'].includes(name)
+      ) {
+        code += `.select(pet => pet.${name})${terminal}`
+        optional = name !== 'level'
+        if (collection && optional) return
+      } else if (domain === 'skill' && s.base === 'selfPlayer' && ['rage', 'maxRage'].includes(name))
+        code += `.select(player => player.${name === 'rage' ? 'currentRage' : name})${terminal}`
+      else if (domain === 'skill' && s.base === 'battle' && name === 'currentTurn')
+        code += `.select(battle => battle.currentTurn)${terminal}`
       else if (collection && s.base === 'usingSkillContext' && name === 'power')
         code += `.select(event => event.power)${terminal}`
       else return
       numeric = true
     } else {
+      if (optional) return
       const parameter = !Number.isFinite(step.arg)
         ? rawParameter(step.arg, parameters, `${path}_step${index}`)
         : undefined
@@ -157,7 +180,7 @@ function number(v, parameters, path, domain = 'damage') {
   if (Number.isFinite(v)) return { code: q(v), literal: true }
   if (v?.type === 'raw:number') return rawParameter(v, parameters, path)
   if (fields(v, ['type', 'selector']) && v.type === 'dynamic') {
-    const code = selectedNumber(v.selector, parameters, path)
+    const code = selectedNumber(v.selector, parameters, path, 'first', domain)
     if (code) return { code, literal: false }
   }
   if (fields(v, ['type', 'condition', 'trueValue', 'falseValue']) && v.type === 'conditional') {
@@ -211,6 +234,39 @@ function condition(c, domain = 'damage') {
       return `targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === ${q(c.baseId)})))`
   }
   if (domain === 'skill' && fields(c, ['type', 'target', 'evaluator']) && c.type === 'evaluate') {
+    const target = c.target,
+      evaluator = c.evaluator
+    if (
+      fields(target, ['base', 'chain']) &&
+      ['self', 'opponent'].includes(target.base) &&
+      Array.isArray(target.chain) &&
+      target.chain.length === 1
+    ) {
+      const step = target.chain[0]
+      if (
+        fields(step, ['type', 'arg']) &&
+        step.type === 'selectPath' &&
+        step.arg === 'gender' &&
+        fields(evaluator, ['type', 'operator', 'value']) &&
+        evaluator.type === 'compare' &&
+        evaluator.operator === '==' &&
+        ['Male', 'Female', 'NoGender'].includes(evaluator.value)
+      )
+        return `${root(target.base)}.condition((_ctx,pets) => pets.some(pet => pet.gender === ${q(evaluator.value)}))`
+      if (
+        fields(step, ['type', 'arg']) &&
+        step.type === 'select' &&
+        fields(step.arg, ['type', 'arg']) &&
+        step.arg.type === 'base' &&
+        step.arg.arg === 'element' &&
+        fields(evaluator, ['type', 'value']) &&
+        evaluator.type === 'anyOf' &&
+        Array.isArray(evaluator.value) &&
+        evaluator.value.every(x => typeof x === 'string')
+      )
+        return `${root(target.base)}.condition((_ctx,pets) => pets.some(pet => (${q(evaluator.value)} as string[]).includes(pet.element)))`
+    }
+
     const t = c.target,
       e = c.evaluator
     if (
@@ -249,9 +305,12 @@ function condition(c, domain = 'damage') {
     ['<', '>', '<=', '>=', '=='].includes(e.operator)
   ) {
     // Legacy compare checks every member with some(); only single-entity roots may use first().
-    if (!['self', 'opponent', 'mark'].includes(c.target?.base)) return
-    const left = selectedNumber(c.target),
+    if (!['self', 'opponent', 'mark', ...(domain === 'skill' ? ['selfPlayer', 'battle'] : [])].includes(c.target?.base))
+      return
+    const left = selectedNumber(c.target, undefined, undefined, 'first', domain),
       right = number(e.value, undefined, undefined, domain)
+    // Existing optional fields may yield [undefined], distinct from an empty query; don't collapse equality.
+    if (e.operator === '==' && [left, right?.code].some(code => code && /pet\.(weight|height)/.test(code))) return
     if (left && right)
       return `((ctx: EffectFrame) => {const left=ctx.read(${left});const right=${right.literal ? right.code : `ctx.read(${right.code})`};return left!==undefined && right!==undefined && left ${e.operator === '==' ? '===' : e.operator} right})`
   }

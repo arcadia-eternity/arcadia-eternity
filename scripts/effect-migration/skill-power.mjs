@@ -56,7 +56,7 @@ export function classifySkillPower(original) {
   const amount = Number.isFinite(a.value) ? a.value : undefined
   const value =
     fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic'
-      ? selectedNumber(a.value.selector, undefined, undefined, 'all')
+      ? selectedNumber(a.value.selector, undefined, undefined, 'all', 'skill')
       : undefined
   if (amount === undefined && !value) return { reason: 'unsupported power value' }
   const when = 'condition' in d ? condition(d.condition, 'skill') : '() => true'

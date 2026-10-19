@@ -14,6 +14,7 @@ export async function playCandidateGame(options: {
   battle: Battle
   effectId: string
   checkpoint: boolean
+  checkpointTurn?: 0 | 1
   catalog: (fresh: boolean) => SnapshotCatalog
   setup: () => void
 }) {
@@ -75,9 +76,11 @@ export async function playCandidateGame(options: {
       ])
     await reached(first)
     options.setup()
-    const second = ready(battle, 1)
-    choose(battle)
-    await reached(second)
+    if (options.checkpointTurn !== 0) {
+      const second = ready(battle, 1)
+      choose(battle)
+      await reached(second)
+    }
     const applicationsAtBoundary = applications
     if (options.checkpoint) {
       const saved = JSON.parse(JSON.stringify(snapshotBattle(battle, options.catalog(false))))

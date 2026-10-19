@@ -20,6 +20,78 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_ability_damage_amplify_10_percent_weight_100kg",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/4",
+      "definitionSha256": "d6a7ff8c4ef56d8d488315f56d8947734f935e182805a15eb055ce1e19d756a0",
+      "recipe": {
+        "id": "effect_ability_damage_amplify_10_percent_weight_100kg",
+        "trigger": "BeforeUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 1.1,
+        "when": "conditions.all(conditions.ownerUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.weight).first());const right=100;return left!==undefined && right!==undefined && left >= right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/43",
+      "definitionSha256": "ddd3168785d85489204f981053e5fe38c8674a77f0a5a9b8b27b1e508280453d",
+      "recipe": {
+        "id": "effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70",
+        "trigger": "BeforeUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 1.1,
+        "when": "conditions.all(conditions.ownerUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=50;return left!==undefined && right!==undefined && left >= right}),((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=70;return left!==undefined && right!==undefined && left < right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_ability_fennu_power_boost_15_percent_when_rage_gt_70",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/42",
+      "definitionSha256": "adca1f02065fb2f2b4db20aa67bbc47e0077a5944c938664dc9446b1cfe44354",
+      "recipe": {
+        "id": "effect_ability_fennu_power_boost_15_percent_when_rage_gt_70",
+        "trigger": "BeforeUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 1.15,
+        "when": "conditions.all(conditions.ownerUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=70;return left!==undefined && right!==undefined && left >= right}),((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=ctx.read(targets.selfPlayer.select(player => player.maxRage).first());return left!==undefined && right!==undefined && left < right}))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_ability_fennu_power_boost_25_percent_when_full_rage",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/41",
+      "definitionSha256": "927c05bf08da608db5ab5230b13b062547b8b3bfc8e77ccea29b9a84788b6dee",
+      "recipe": {
+        "id": "effect_ability_fennu_power_boost_25_percent_when_full_rage",
+        "trigger": "BeforeUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 1.25,
+        "when": "conditions.all(conditions.ownerUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=ctx.read(targets.selfPlayer.select(player => player.maxRage).first());return left!==undefined && right!==undefined && left === right}))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_ability_fire_power_boost_below_25_percent",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/1",
@@ -374,6 +446,42 @@
         "operation": "addPower",
         "amount": 30,
         "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_yinghua\").condition(checks.exists()))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_30_if_female",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/650",
+      "definitionSha256": "e7c4b514925532ec36ff6f33d84eb3219a68975bb9848a412ece6501b1d4fe34",
+      "recipe": {
+        "id": "effect_skill_add_power_30_if_female",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "amount": 30,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_30_if_male",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/651",
+      "definitionSha256": "b63ed7e3679141403b3f0b67ca24ced25fb44dd48284adedd558441c8c3df7b4",
+      "recipe": {
+        "id": "effect_skill_add_power_30_if_male",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "amount": 30,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))",
         "repairedPaths": ["/apply/target/base"]
       },
       "classification": "C",
@@ -780,6 +888,24 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power_2x_if_first_round",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/204",
+      "definitionSha256": "e0fcdc2b44543733a587b284f5e58413ea7aa84162bbc68e196f29c2f8399205",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_first_round",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 1,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(contexts.battle.select(battle => battle.currentTurn).first());const right=1;return left!==undefined && right!==undefined && left === right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power_2x_if_first_switch_in_zuijiazhuogong",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/255",
@@ -990,6 +1116,60 @@
         "amount": 2,
         "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_zhaocai\").condition(checks.exists()))",
         "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_2x_if_height_above_100",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/238",
+      "definitionSha256": "d2ab958a35159f266c4d24ae3e99794b6a95005f52204fe3081f22c76bfca531",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_height_above_100",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.height).first());const right=100;return left!==undefined && right!==undefined && left > right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_2x_if_height_gt_opponent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/237",
+      "definitionSha256": "3dfd32d057b26a63a6b6967bcb391f0dc766b716cc52c329fcbff661ee8fe626",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_height_gt_opponent",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.height).first());const right=ctx.read(targets.opponentActive.select(pet => pet.height).first());return left!==undefined && right!==undefined && left > right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_2x_if_height_lt_opponent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/240",
+      "definitionSha256": "f8d247778a706429200b95cf14e86069dcf3b41e6791cb97600859f38e864b6b",
+      "recipe": {
+        "id": "effect_skill_power_2x_if_height_lt_opponent",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.height).first());const right=ctx.read(targets.opponentActive.select(pet => pet.height).first());return left!==undefined && right!==undefined && left < right}))",
+        "repairedPaths": ["/apply/target/base"]
       },
       "classification": "C",
       "decision": "C07",
@@ -1429,6 +1609,42 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power2x_if_heavier",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/112",
+      "definitionSha256": "bbfe3ac176d3dacabf33425d3533bceac8eb4999699476b9e85ce52677c277c6",
+      "recipe": {
+        "id": "effect_skill_power2x_if_heavier",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.weight).first());const right=ctx.read(targets.opponentActive.select(pet => pet.weight).first());return left!==undefined && right!==undefined && left > right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power2x_if_higher_level",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/114",
+      "definitionSha256": "f410b68a5f2944a453c916a0a8ddfa43ae2b19cd2de576269445443fa9a45420",
+      "recipe": {
+        "id": "effect_skill_power2x_if_higher_level",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.level).first());const right=ctx.read(targets.opponentActive.select(pet => pet.level).first());return left!==undefined && right!==undefined && left > right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power2x_if_opponent_has_exceptional",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/684",
@@ -1465,6 +1681,42 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power2x_if_weight_above_99",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/121",
+      "definitionSha256": "47dc1a1937efde4d2fbe665e5c5d7fec8eeb85e0fafdf7781668ebdb73235f1d",
+      "recipe": {
+        "id": "effect_skill_power2x_if_weight_above_99",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.weight).first());const right=99;return left!==undefined && right!==undefined && left > right}))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power2x_vs_wind_psychic_fighting_trait",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/637",
+      "definitionSha256": "fe63d78fa6651b9f2699e7dd3ced514d958285ab83b6189b4d360f3a4e5cbc72",
+      "recipe": {
+        "id": "effect_skill_power2x_vs_wind_psychic_fighting_trait",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "amplifyPower",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => ([\"Wind\",\"Psychic\",\"Fighting\",\"Trait\"] as string[]).includes(pet.element))))",
+        "repairedPaths": ["/apply/target/base"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_reduce_power_on_consecutive_hits_10_max_20",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/171",
@@ -1493,34 +1745,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_ability_damage_amplify_10_percent_weight_100kg",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/4",
-      "definitionSha256": "d6a7ff8c4ef56d8d488315f56d8947734f935e182805a15eb055ce1e19d756a0",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/43",
-      "definitionSha256": "ddd3168785d85489204f981053e5fe38c8674a77f0a5a9b8b27b1e508280453d",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_ability_fennu_power_boost_15_percent_when_rage_gt_70",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/42",
-      "definitionSha256": "adca1f02065fb2f2b4db20aa67bbc47e0077a5944c938664dc9446b1cfe44354",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_ability_fennu_power_boost_25_percent_when_full_rage",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/41",
-      "definitionSha256": "927c05bf08da608db5ab5230b13b062547b8b3bfc8e77ccea29b9a84788b6dee",
-      "reason": "condition needs a separate mapping"
-    },
-    {
       "id": "effect_mark_amplify_non_yanggong",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/29",
@@ -1533,20 +1757,6 @@
       "sourcePath": "/330",
       "definitionSha256": "c522c10a422630ac3e29b43b6d8a897254581d0001d8e3a09222d90f67d2dbb0",
       "reason": "unsupported power value"
-    },
-    {
-      "id": "effect_skill_add_power_30_if_female",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/650",
-      "definitionSha256": "e7c4b514925532ec36ff6f33d84eb3219a68975bb9848a412ece6501b1d4fe34",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_add_power_30_if_male",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/651",
-      "definitionSha256": "b63ed7e3679141403b3f0b67ca24ced25fb44dd48284adedd558441c8c3df7b4",
-      "reason": "condition needs a separate mapping"
     },
     {
       "id": "effect_skill_add_power_35_if_opponent_spa_gt_atk",
@@ -1577,66 +1787,10 @@
       "reason": "unsupported power value"
     },
     {
-      "id": "effect_skill_power_2x_if_first_round",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/204",
-      "definitionSha256": "e0fcdc2b44543733a587b284f5e58413ea7aa84162bbc68e196f29c2f8399205",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_2x_if_height_above_100",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/238",
-      "definitionSha256": "d2ab958a35159f266c4d24ae3e99794b6a95005f52204fe3081f22c76bfca531",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_2x_if_height_gt_opponent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/237",
-      "definitionSha256": "3dfd32d057b26a63a6b6967bcb391f0dc766b716cc52c329fcbff661ee8fe626",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_2x_if_height_lt_opponent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/240",
-      "definitionSha256": "f8d247778a706429200b95cf14e86069dcf3b41e6791cb97600859f38e864b6b",
-      "reason": "condition needs a separate mapping"
-    },
-    {
       "id": "effect_skill_power_4x_10_percent",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/558",
       "definitionSha256": "899afa9cff2a33a3c3879160bdba0c9d7ceadb7f9d7bb68e368c2f9e11d964ec",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power2x_if_heavier",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/112",
-      "definitionSha256": "bbfe3ac176d3dacabf33425d3533bceac8eb4999699476b9e85ce52677c277c6",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power2x_if_higher_level",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/114",
-      "definitionSha256": "f410b68a5f2944a453c916a0a8ddfa43ae2b19cd2de576269445443fa9a45420",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power2x_if_weight_above_99",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/121",
-      "definitionSha256": "47dc1a1937efde4d2fbe665e5c5d7fec8eeb85e0fafdf7781668ebdb73235f1d",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power2x_vs_wind_psychic_fighting_trait",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/637",
-      "definitionSha256": "fe63d78fa6651b9f2699e7dd3ced514d958285ab83b6189b4d360f3a4e5cbc72",
       "reason": "condition needs a separate mapping"
     }
   ]

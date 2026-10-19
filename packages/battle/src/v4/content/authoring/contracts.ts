@@ -3,6 +3,8 @@ import type { DamageContext, HealContext, TriggerContextMap, UseSkillContext } f
 import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
+import type { Player } from '../../player'
+import type { Battle } from '../../battle'
 
 export type EventMap = { [K in NativeEffectTrigger as `${K}`]: TriggerContextMap[K] }
 export type Trigger = keyof EventMap
@@ -110,6 +112,8 @@ export declare function defineEffect<const T extends Trigger, const P extends Pa
 
 export declare const targets: {
   readonly ownerPet: Selector<Pet>
+  /** Direct skill actor owner; otherwise the source pet owner. */
+  readonly selfPlayer: Selector<Player>
   readonly opponentActive: Selector<Pet>
   /** Direct skill target marks; otherwise the opposing active pet marks. Requeried on use. */
   readonly opponentMarks: Selector<MarkInstance>
@@ -117,6 +121,7 @@ export declare const targets: {
   readonly sourceMark: Selector<MarkInstance>
 }
 export declare const contexts: {
+  readonly battle: Selector<Battle>
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
   readonly heal: Selector<HealContext>

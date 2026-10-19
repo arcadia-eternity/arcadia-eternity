@@ -50,7 +50,7 @@ test('rejects unsupported action shapes instead of emitting partial effects', ()
     assert.ok(classifySkillPower(bad).reason)
 })
 test('deterministically reproduces every candidate and rejected record', async () => {
-  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 82, rejected: 22 })
+  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 96, rejected: 8 })
 })
 
 test('preserves skill ownership throughout nested conditional comparison values', () => {
@@ -139,4 +139,41 @@ test('maps ordered and periodic admission without admitting malformed conditions
 test('pins the complete C08 potential reference scope independently of converted candidates', async () => {
   const { generateTurnOrder } = await import('./turn-order.mjs')
   assert.deepEqual(await generateTurnOrder({ check: true }), { references: 27 })
+})
+
+test('keeps optional species fields out of equality, arithmetic and list-valued amounts', () => {
+  const d = source()
+  const target = { base: 'self', chain: [{ type: 'select', arg: { type: 'dynamic', arg: 'weight' } }] }
+  d.condition = { type: 'evaluate', target, evaluator: { type: 'compare', operator: '>', value: 99 } }
+  assert.ok(classifySkillPower(d).when.includes('pet.weight'))
+  d.condition.evaluator.operator = '=='
+  assert.ok(classifySkillPower(d).reason)
+  d.condition.evaluator.operator = '>'
+  target.chain.push({ type: 'multiply', arg: 2 })
+  assert.ok(classifySkillPower(d).reason)
+  target.chain.pop()
+  d.condition = { type: 'checkSelf' }
+  d.apply.value = { type: 'dynamic', selector: target }
+  assert.ok(classifySkillPower(d).reason)
+})
+
+test('rejects nonexistent base extractors instead of extending C07', () => {
+  for (const [base, arg] of [
+    ['self', 'weight'],
+    ['self', 'height'],
+    ['self', 'level'],
+    ['selfPlayer', 'maxRage'],
+    ['battle', 'currentTurn'],
+    ['self', 'lastSkillUsedTimes'],
+  ]) {
+    const d = source()
+    d.condition = {
+      type: 'evaluate',
+      target: { base, chain: [{ type: 'select', arg: { type: 'base', arg } }] },
+      evaluator: { type: 'compare', operator: '>', value: 1 },
+    }
+    assert.ok(classifySkillPower(d).reason, `${base}.${arg}`)
+    d.condition.target.chain[0].arg.type = 'dynamic'
+    assert.ok(!classifySkillPower(d).reason, `${base}.${arg} dynamic`)
+  }
 })

@@ -21,6 +21,7 @@ import {
   AttackTargetOpinion,
   Element,
   Category,
+  Gender,
   defineNativeEffect,
   setGlobalLogger,
   type Battle,
@@ -95,6 +96,49 @@ function supportIds(nodes: { [key: string]: unknown }[]) {
     ),
   ]
 }
+const fieldVariants = ['wrong-fields', 'missing-fields', 'late-fields'] as const
+const fieldIds = new Set([
+  'effect_ability_damage_amplify_10_percent_weight_100kg',
+  'effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70',
+  'effect_ability_fennu_power_boost_15_percent_when_rage_gt_70',
+  'effect_ability_fennu_power_boost_25_percent_when_full_rage',
+  'effect_skill_add_power_30_if_female',
+  'effect_skill_add_power_30_if_male',
+  'effect_skill_power_2x_if_first_round',
+  'effect_skill_power_2x_if_height_above_100',
+  'effect_skill_power_2x_if_height_gt_opponent',
+  'effect_skill_power_2x_if_height_lt_opponent',
+  'effect_skill_power2x_if_heavier',
+  'effect_skill_power2x_if_higher_level',
+  'effect_skill_power2x_if_weight_above_99',
+  'effect_skill_power2x_vs_wind_psychic_fighting_trait',
+])
+function fieldsFor(r: RecordEntry, battle: Battle, valid: boolean, missing = false) {
+  const { playerA: a, playerB: b } = battle
+  for (const player of [a, b])
+    for (const pet of player.team) {
+      const self = player === a
+      Object.defineProperties(pet, {
+        weight: { value: missing ? undefined : self === valid ? 200 : 90, writable: true, configurable: true },
+        height: {
+          value: missing ? undefined : self === (valid !== r.id.includes('height_lt')) ? 200 : 90,
+          writable: true,
+          configurable: true,
+        },
+        level: { value: self === valid ? 60 : 50, writable: true, configurable: true },
+      })
+      pet.gender = valid === r.id.endsWith('_female') ? Gender.Female : Gender.Male
+      if (!self) pet.element = valid ? Element.Wind : Element.Normal
+      // Deliberately disagree with raw fields: fallback to stat attributes must be observable.
+      pet.attributeSystem.updateBaseValue('weight', self ? 50 : 500)
+      pet.attributeSystem.updateBaseValue('height', self === r.id.includes('height_lt') ? 500 : 50)
+    }
+  if (r.id.includes('fennu')) {
+    a.maxRage = r.id.includes('between_50') ? 69 : r.id.includes('gt_70') ? 1000 : 100
+    a.currentRage = valid ? (r.id.includes('between_50') ? 60 : r.id.includes('gt_70') ? 80 : a.maxRage) : 0
+  }
+  if (r.id === 'effect_skill_power_2x_if_first_round') battle.currentTurn = valid ? 1 : 2
+}
 const orderVariants = ['wrong-order', 'wrong-count', 'late-order'] as const
 function hasOrderCondition(r: RecordEntry) {
   return objects(definitions.get(r.id).condition).some(n =>
@@ -118,7 +162,11 @@ function run(
   r: RecordEntry,
   native: boolean,
   kind: 'skill' | 'mark' | 'global',
-  variant: (typeof variants)[number] | (typeof dynamicVariants)[number] | (typeof orderVariants)[number],
+  variant:
+    | (typeof variants)[number]
+    | (typeof dynamicVariants)[number]
+    | (typeof orderVariants)[number]
+    | (typeof fieldVariants)[number],
 ) {
   const f = makeScenario(328),
     { battle, a, b } = f
@@ -152,6 +200,7 @@ function run(
     owner.attributeSystem.updateBaseValue('maxHp', 801)
     owner.currentHp = nodes.some(n => n.operator === '==') ? 801 : nodes.some(n => n.operator === '>') ? 700 : 10
   }
+  if (fieldIds.has(r.id)) fieldsFor(r, battle, variant !== 'wrong-fields', variant === 'missing-fields')
   const source = kind === 'skill' ? skill : add(kind === 'global' ? battle : pet, 'fixture/power')
   source.effects.push(native ? generatedSkillPowerEffects[r.id] : oracles.get(r.id)!)
   const otherSkill = new SkillInstance(skill.base)
@@ -206,6 +255,7 @@ function run(
           use.power = 101
           use.element = Element.Trait
         }
+        if (variant === 'late-fields') fieldsFor(r, battle, false)
         if (variant === 'late-order') {
           use.parent.appledContexts.reverse()
           use.parent.contexts.reverse()
@@ -224,7 +274,7 @@ function run(
   if (variant === 'wrong-role') source.owner = a.team[1]
   if (variant === 'phase') {
     use.rage = 0
-    a.currentRage = 100
+    if (!r.id.includes('fennu')) a.currentRage = 100
     const phase = new SkillPhase(battle, a, pet, AttackTargetOpinion.opponent, skill, use.parent, use)
     battle.phaseManager.registerPhase(phase)
     battle.phaseManager.executePhase(phase.id)
@@ -291,22 +341,28 @@ for (const r of records) {
     | 'mark'
     | 'global'
   )[])
-    it.each([...variants, ...(r.recipe.value ? dynamicVariants : []), ...(hasOrderCondition(r) ? orderVariants : [])])(
-      `${r.id} ${kind}: %s`,
-      variant => {
-        const actual = run(r, true, kind, variant)
-        expect(actual).toEqual(run(r, false, kind, variant))
-        expect(actual.trace).not.toContainEqual({ success: false })
-        if (variant === 'normal' || variant === 'phase') {
-          expect(actual.trace).toContain('admitted')
-          expect(actual.power).toBeCloseTo(
-            r.recipe.operation === 'addPower'
-              ? 83 + (r.recipe.amount ?? expectedDynamic(r.id, kind, variant === 'phase'))
-              : 83 * r.recipe.amount!,
-          )
-        }
-      },
-    )
+    it.each([
+      ...variants,
+      ...(r.recipe.value ? dynamicVariants : []),
+      ...(hasOrderCondition(r) ? orderVariants : []),
+      ...(fieldIds.has(r.id) ? fieldVariants : []),
+    ])(`${r.id} ${kind}: %s`, variant => {
+      const actual = run(r, true, kind, variant)
+      expect(actual).toEqual(run(r, false, kind, variant))
+      expect(actual.trace).not.toContainEqual({ success: false })
+      if (variant === 'wrong-fields' || (variant === 'missing-fields' && /weight|height|heavier/.test(r.id))) {
+        expect(actual.trace).not.toContain('admitted')
+        expect(actual.power).toBe(83)
+      }
+      if (variant === 'normal' || variant === 'phase' || variant === 'late-fields') {
+        expect(actual.trace).toContain('admitted')
+        expect(actual.power).toBeCloseTo(
+          r.recipe.operation === 'addPower'
+            ? 83 + (r.recipe.amount ?? expectedDynamic(r.id, kind, variant === 'phase'))
+            : 83 * r.recipe.amount!,
+        )
+      }
+    })
 }
 it('exports exactly the recorded candidate IDs', () =>
   expect(Object.keys(generatedSkillPowerEffects).sort()).toEqual(records.map(r => r.id).sort()))
@@ -352,8 +408,14 @@ async function game(r: RecordEntry, native: boolean, checkpoint: boolean) {
       pet.lastSkillUsedTimes = 1
     }
   }
+  if (fieldIds.has(r.id)) {
+    fieldsFor(r, battle, true)
+    // Selection starts at turn zero; the executor increments to the first round.
+    if (r.id === 'effect_skill_power_2x_if_first_round') battle.currentTurn = 0
+  }
   return playCandidateGame({
     battle,
+    checkpointTurn: r.id === 'effect_skill_power_2x_if_first_round' ? 0 : 1,
     effectId: r.id,
     checkpoint,
     catalog: fresh => {
