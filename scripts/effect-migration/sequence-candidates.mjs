@@ -1,0 +1,125 @@
+import { createHash } from 'node:crypto'
+import { readFile, writeFile } from 'node:fs/promises'
+import { parse } from 'yaml'
+import { format, resolveConfig } from 'prettier'
+import { fields, normalize, condition } from './authoring-emitter.mjs'
+import { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
+import { sequenceAction } from './sequence-actions.mjs'
+export function classifySequence(original, profile) {
+  if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
+  const { definition: spelling, paths } = repairSkillSelector(original)
+  const repaired = repairSkillPaths(spelling)
+  if (repaired.reason) return repaired
+  const d = repaired.definition
+  if (
+    !fields(d, [
+      'id',
+      'trigger',
+      'priority',
+      'condition',
+      'apply',
+      ...['tags', 'consumesStacks'].filter(k => Object.hasOwn(d, k)),
+    ]) ||
+    typeof d.id !== 'string' ||
+    !d.id ||
+    !Number.isFinite(d.priority)
+  )
+    return { reason: 'unsupported definition fields' }
+  if (!profile.triggers.includes(d.trigger)) return { reason: 'unsupported trigger' }
+  if (!Array.isArray(d.apply) || !d.apply.length || !d.apply.some(a => profile.actionTypes.includes(a?.type)))
+    return { reason: 'requires a supported action list' }
+  if ('consumesStacks' in d && (!Number.isSafeInteger(d.consumesStacks) || d.consumesStacks < 0))
+    return { reason: 'invalid stack consumption' }
+  if ('tags' in d && (!Array.isArray(d.tags) || !d.tags.every(x => typeof x === 'string')))
+    return { reason: 'invalid tags' }
+  if (/isFirstSkillUsedThisTurn|isLastSkillUsedThisTurn/.test(JSON.stringify(d)))
+    return { reason: 'order correction needs a source mapping' }
+  const parameters = []
+  const when = condition(d.condition, d.trigger === 'OnDamage' ? 'damage' : 'skill', parameters, 'condition', {
+    eventOwnership: true,
+    collectionCompare: true,
+    defensiveSkill: true,
+    skillCategory: true,
+  })
+  if (!when || parameters.length) return { reason: 'condition needs a separate mapping' }
+  const actions = d.apply.map((a, i) => ({
+    sourcePath: `/apply/${i}`,
+    code: sequenceAction(a, d.trigger, d.trigger === 'OnDamage' ? 'damage' : 'skill'),
+  }))
+  if (actions.some(a => !a.code)) return { reason: 'unsupported sequence action or parameter' }
+  return {
+    id: d.id,
+    trigger: d.trigger,
+    priority: d.priority,
+    when,
+    actions,
+    repairedPaths: paths,
+    ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
+    ...('consumesStacks' in d ? { consumesStacks: d.consumesStacks } : {}),
+    ...('tags' in d ? { tags: d.tags } : {}),
+  }
+}
+export async function generateSequences(profile, { check = false } = {}) {
+  const records = [],
+    rejected = [],
+    seen = new Set()
+  for (const name of ['global', 'ability', 'emblem', 'mark', 'skill']) {
+    const sourceFile = `packs/base/data/effect_${name}.yaml`
+    for (const [index, d] of parse(await readFile(sourceFile, 'utf8'), { merge: true }).entries()) {
+      if (seen.has(d.id)) throw new Error(`Duplicate effect ${d.id}`)
+      seen.add(d.id)
+      if (!Array.isArray(d.apply) || !d.apply.some(a => profile.actionTypes.includes(a?.type))) continue
+      const source = {
+        id: d.id,
+        sourceFile,
+        sourcePath: `/${index}`,
+        definitionSha256: createHash('sha256')
+          .update(JSON.stringify(normalize(d)))
+          .digest('hex'),
+      }
+      const recipe = classifySequence(d, profile)
+      if (recipe.reason) rejected.push({ ...source, reason: recipe.reason })
+      else
+        records.push({
+          ...source,
+          recipe,
+          classification: 'U',
+          ...(recipe.repairedPaths.length ? { decision: 'C07' } : {}),
+          ...(recipe.pathRepairs ? { additionalDecisions: ['C09'] } : {}),
+          status:
+            recipe.repairedPaths.length || recipe.pathRepairs
+              ? 'generated-correction-candidate'
+              : 'generated-candidate',
+        })
+    }
+  }
+  records.sort((a, b) => a.id.localeCompare(b.id, 'en'))
+  rejected.sort((a, b) => a.id.localeCompare(b.id, 'en'))
+  const entries = records.map(
+    ({ recipe: r }) =>
+      `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.trigger)},priority:${r.priority},${r.consumesStacks !== undefined ? `consumesStacks:${r.consumesStacks},` : ''}${r.tags ? `tags:${JSON.stringify(r.tags)},` : ''}when:${r.when},execute:actions.sequence(${r.actions.map(a => a.code).join(',')})}))`,
+  )
+  const imports = [
+    'compileEffect',
+    'defineEffect',
+    'conditions',
+    'contexts',
+    'targets',
+    'checks',
+    'ops',
+    'actions',
+    'values',
+  ].filter(name => entries.some(e => e.includes(`${name}(`) || e.includes(`${name}.`)))
+  if (entries.some(e => e.includes(': EffectFrame'))) imports.push('type EffectFrame')
+  const code = `// Generated by scripts/effect-migration/${profile.slug}.mjs. ${profile.comment}\nimport {${imports.join(',')}} from '../content/authoring'\nexport function ${profile.factory}(){return Object.freeze({${entries.join(',\n')}})}\nexport const ${profile.exportName}=${profile.factory}()\n`
+  for (const [path, raw] of [
+    [`packages/battle/src/v4/official/${profile.slug}.generated.ts`, code],
+    [`docs/v4/validation/${profile.slug}-candidates.json`, JSON.stringify({ formatVersion: 1, records, rejected })],
+  ]) {
+    const output = await format(raw, { ...(await resolveConfig(path)), filepath: path })
+    if (check) {
+      if ((await readFile(path, 'utf8')) !== output) throw new Error(`Generated drift: ${path}`)
+    } else await writeFile(path, output)
+  }
+  return { generated: records.length, rejected: rejected.length }
+}

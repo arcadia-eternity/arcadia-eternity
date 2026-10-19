@@ -1,0 +1,11 @@
+# Ordered stat-stage candidates
+
+Eleven complete official action lists compile to shared authoring queries, `actions.sequence`, `ops.changeStatStage`, mark consumption and lifecycle removal. The offline sequence classifier/emitter is shared with the twelve skill-outcome/power lists; their generated source and ledger remain byte-identical. Production registration and per-ID full-game/checkpoint acceptance remain pending. All eleven records remain U.
+
+The candidates preserve admission at collection and requery each action's targets at execution. `opponent` resolves the opposing active slot; `opponentMarks` in a direct skill context resolves actualTarget's marks. Redirecting actualTarget alone therefore does not redirect a subsequent opponent stat action. Switching the active slot during the consumption destruction callback does. Gender conditions are not reevaluated after BeforeEffect; cancellation still suppresses the action list.
+
+The public-package matrix compares unchanged YAML with generated code using skill and mark sources, missing/late support, source-owner changes, target changes, stack changes, cancellation, last-stack consumption, nested contexts, duplicate support marks, repeated dispatch, gender changes, actualTarget redirection and active-slot replacement. Ten BeforeHit candidates additionally exercise real SkillPhase and turn dispatch with explicit stage probes. The OnDamage candidate currently exercises direct DamageContext dispatch, not a real damage phase. Independent assertions distinguish `spd` (special defense) and `spe` (speed), and capture stat-stage state during mark destruction to verify consumption precedes strengthening.
+
+`effect_skill_raise_atk_1_stage_and_other_1_stage` remains explicitly rejected. Its current YAML uses `statType.type: selectorValue`, which the legacy schema rejects (the accepted tag is `selector`). The builder's randomPick uses a full shuffle followed by slicing; a future correction must pin the source node and verify full RNG continuation. No inferred correction or random implementation is included here.
+
+Validation results are recorded in the execution ledger after the final run. The repository-wide regression remains the separately documented non-green historical run; scoped success does not replace that result.

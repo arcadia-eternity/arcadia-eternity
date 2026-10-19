@@ -51,3 +51,8 @@ export {
   generatedSkillOutcomeSequences,
   createGeneratedSkillOutcomeSequences,
 } from './src/v4/official/skill-outcome-sequences.generated'
+
+export {
+  generatedStatStageSequences,
+  createGeneratedStatStageSequences,
+} from './src/v4/official/stat-stage-sequences.generated'
