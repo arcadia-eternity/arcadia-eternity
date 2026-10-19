@@ -419,6 +419,13 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
     e.type === 'compare' &&
     ['<', '>', '<=', '>=', '=='].includes(e.operator)
   ) {
+    if (options.collectionCompare && ['selfMarks', 'opponentMarks'].includes(c.target?.base)) {
+      const left = selectedNumber(c.target, undefined, undefined, 'all', domain)
+      const right = number(e.value, undefined, `${path}_value`, domain, options)
+      if (left && right)
+        return `((ctx: EffectFrame) => {const left=ctx.read(${left});const right=${right.literal ? right.code : `ctx.read(${right.code})`};return right!==undefined && left.some(value => value ${e.operator === '==' ? '===' : e.operator} right)})`
+      return
+    }
     // Legacy compare checks every member with some(); only single-entity roots may use first().
     if (
       ![

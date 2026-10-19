@@ -39,6 +39,7 @@ interface Entry {
     operation: 'addAccuracy' | 'addCritRate' | 'setSureHit' | 'setSureMiss' | 'setSureCrit'
     amount?: number
     value?: string
+    pathRepairs?: { path: string; before: string; after: string }[]
     repairedPaths: string[]
     orderConditions?: { path: string; type: string }[]
     parameters?: { name: string }[]
@@ -73,7 +74,26 @@ function nodes(value: unknown): Node[] {
       ? [value as Node, ...Object.values(value).flatMap(nodes)]
       : []
 }
-const oracles = new Map(records.map(r => [r.id, EffectParser.parse(corrected(originals.get(r.id)))]))
+const pathRepairs: Record<string, [string, string, string][]> = {
+  effect_emblem_immune_skill_bandao: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
+  effect_skill_sure_hit_if_atk_over_500: [['/condition/conditions/1/target/chain/0/arg', 'atk', 'stat.atk']],
+  effect_skill_sure_hit_if_opponent_spa_gt_atk: [
+    ['/condition/conditions/1/target/chain/0/arg', 'spa', 'stat.spa'],
+    ['/condition/conditions/1/evaluator/value/selector/chain/0/arg', 'atk', 'stat.atk'],
+  ],
+}
+function reference(r: Entry) {
+  const d = corrected(originals.get(r.id)) as Node
+  for (const [path, before, after] of pathRepairs[r.id] ?? []) {
+    const parts = path.slice(1).split('/')
+    const key = parts.pop()!
+    const parent = parts.reduce((n, part) => n[part] as Node, d)
+    expect(parent[key]).toBe(before)
+    parent[key] = after
+  }
+  return d
+}
+const oracles = new Map(records.map(r => [r.id, EffectParser.parse(reference(r))]))
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
@@ -81,6 +101,7 @@ afterEach(async () => {
 })
 import { makeScenario } from './scenario'
 const parameterVariants = ['config-zero', 'config-custom', 'foreign-config', 'late-config'] as const
+const stackVariants = ['stack-empty', 'stack-one', 'stack-two', 'stack-later', 'stack-first', 'late-stack'] as const
 const turnVariants = ['turn-first', 'turn-second'] as const
 const orderVariants = ['wrong-order', 'empty-order', 'non-skill-first', 'late-order'] as const
 const variants = [
@@ -107,7 +128,8 @@ function run(
     | (typeof variants)[number]
     | (typeof parameterVariants)[number]
     | (typeof orderVariants)[number]
-    | (typeof turnVariants)[number],
+    | (typeof turnVariants)[number]
+    | (typeof stackVariants)[number],
 ) {
   const f = makeScenario(301),
     { battle, a, b } = f
@@ -116,7 +138,7 @@ function run(
   const pet = a.activePet,
     skill = new SkillInstance(
       new BaseSkill(
-        'fixture/outcome' as baseSkillId,
+        (r.id === 'effect_emblem_immune_skill_bandao' ? 'skill_bandao' : 'fixture/outcome') as baseSkillId,
         Category.Status,
         Element.Normal,
         1,
@@ -166,6 +188,22 @@ function run(
   }
   let source: typeof skill | (typeof pet.marks)[number] = skill
   if (kind === 'mark') source = add(pet, 'fixture/source')
+  if (stackVariants.includes(variant as (typeof stackVariants)[number])) {
+    const matches = b.activePet.marks.filter(m => m.baseId === 'mark_kongjuzhinian')
+    if (variant === 'stack-empty') b.activePet.marks = b.activePet.marks.filter(m => !matches.includes(m))
+    if (variant === 'stack-one' || variant === 'stack-later')
+      matches.forEach(m => {
+        m.stack = 1
+      })
+    if (variant === 'stack-two')
+      matches.forEach(m => {
+        m.stack = 2
+      })
+    if (variant === 'stack-later' || variant === 'stack-first') {
+      const extra = add(b.activePet, 'mark_kongjuzhinian')
+      extra.stack = variant === 'stack-later' ? 3 : 1
+    }
+  }
   source.effects.push(native ? generatedSkillOutcomeEffects[r.id] : oracles.get(r.id)!)
   if (native) effectAuthoring.effectParameters(generatedSkillOutcomeEffects[r.id]).install(battle.configSystem)
   const other = new SkillInstance(skill.base)
@@ -184,6 +222,9 @@ function run(
   use.updateActualTarget()
   use.accuracy = 20
   use.critRate = 10
+  pet.attributeSystem.updateBaseValue('atk', 600)
+  b.activePet.attributeSystem.updateBaseValue('spa', 200)
+  b.activePet.attributeSystem.updateBaseValue('atk', 100)
   pet.lastSkillUsedTimes = 3
   pet.lastSkill = selected
   // These legacy selectors read public optional/raw fields rather than stat attributes.
@@ -218,6 +259,21 @@ function run(
   const mismatch = () => {
     if (r.recipe.orderConditions) turn.appledContexts.splice(0, turn.appledContexts.length, rival, use)
     removeSupports()
+    pet.attributeSystem.updateBaseValue('atk', 500)
+    b.activePet.attributeSystem.updateBaseValue('spa', 100)
+    if (r.id === 'effect_emblem_immune_skill_bandao')
+      use.skill = new SkillInstance(
+        new BaseSkill(
+          'fixture/other' as baseSkillId,
+          Category.Status,
+          Element.Normal,
+          1,
+          20,
+          0,
+          0,
+          AttackTargetOpinion.opponent,
+        ),
+      )
     pet.currentHp = pet.stat.maxHp
     b.activePet.currentHp = b.activePet.stat.maxHp
     use.element = Element.Normal
@@ -257,6 +313,10 @@ function run(
       when: c => c.parent instanceof EffectContext && c.parent.effect?.id === r.id,
       apply(c) {
         applied.push(pet.lastSkillUsedTimes)
+        if (variant === 'late-stack')
+          supports.forEach(m => {
+            m.stack = 1
+          })
         if (variant === 'late-order') turn.appledContexts.splice(0, turn.appledContexts.length, rival, use)
         if (variant === 'late-config') configure(7.5)
         if (variant === 'late-condition') mismatch()
@@ -353,6 +413,9 @@ for (const r of records) {
     const paths: string[] = []
     corrected(originals.get(r.id), paths)
     expect(paths).toEqual(r.recipe.repairedPaths)
+    expect(r.recipe.pathRepairs ?? []).toEqual(
+      (pathRepairs[r.id] ?? []).map(([path, before, after]) => ({ path, before, after })),
+    )
     const normalize = (v: unknown): unknown =>
       Array.isArray(v)
         ? v.map(normalize)
@@ -442,3 +505,13 @@ for (const r of records.filter(r => r.recipe.orderConditions))
           admitted ? [{ willHit: true, priority: r.recipe.amount }] : [],
         )
     })
+
+for (const kind of ['skill', 'mark'] as const)
+  it.each(stackVariants)(`effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian ${kind} stack: %s`, variant => {
+    const r = records.find(r => r.id === 'effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian')!
+    const actual = run(r, true, kind, variant)
+    expect(actual).toEqual(run(r, false, kind, variant))
+    const admitted = !['stack-empty', 'stack-one'].includes(variant)
+    expect(actual.applied).toHaveLength(admitted ? 1 : 0)
+    expect(actual.critOverrides).toEqual(admitted ? [{ willCrit: true, priority: 1 }] : [])
+  })

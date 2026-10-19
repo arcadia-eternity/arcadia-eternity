@@ -110,6 +110,26 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_emblem_immune_skill_bandao",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/50",
+      "definitionSha256": "2760a666e009150565ac2601f2b8a1d28ffba7fb6bff69845247bda1b2131f8c",
+      "recipe": {
+        "id": "effect_emblem_immune_skill_bandao",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "setSureMiss",
+        "amount": -1,
+        "when": "conditions.all(conditions.sourceOwnsEvent,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_bandao\"))",
+        "repairedPaths": ["/condition/conditions/1/target/base", "/apply/target"],
+        "pathRepairs": [{ "path": "/condition/conditions/1/target/chain/0/arg", "before": "skillId", "after": "skill" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_emblem_increase_crit_rate_when_dongqifuti",
       "sourceFile": "packs/base/data/effect_emblem.yaml",
       "sourcePath": "/60",
@@ -750,6 +770,24 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/294",
+      "definitionSha256": "b90ae642b1e11e51573fcafd79fc9e2ce0175ca042c551ce7775c22d23f16c15",
+      "recipe": {
+        "id": "effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureCrit",
+        "amount": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.opponentMarks.where(mark => mark.baseId === \"mark_kongjuzhinian\").select(mark => mark.stack).all());const right=2;return right!==undefined && left.some(value => value >= right)}))",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_sure_crit_shuiwenzhenji",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/180",
@@ -783,6 +821,26 @@
       },
       "classification": "U",
       "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_sure_hit_if_atk_over_500",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/487",
+      "definitionSha256": "7296ea16848405db5c7db88353f580b29460333978768886d4fd8d819d1bcf45",
+      "recipe": {
+        "id": "effect_skill_sure_hit_if_atk_over_500",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureHit",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.stat.atk).first());const right=500;return left!==undefined && right!==undefined && left > right}))",
+        "repairedPaths": ["/apply/target"],
+        "pathRepairs": [{ "path": "/condition/conditions/1/target/chain/0/arg", "before": "atk", "after": "stat.atk" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
       "status": "generated-correction-candidate"
     },
     {
@@ -950,6 +1008,33 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_sure_hit_if_opponent_spa_gt_atk",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/528",
+      "definitionSha256": "a3f81e9ba720cb14b6a28661cb2f7acb93221879c9ed5ea683ae2544a34e6446",
+      "recipe": {
+        "id": "effect_skill_sure_hit_if_opponent_spa_gt_atk",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureHit",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.opponentActive.select(pet => pet.stat.spa).first());const right=ctx.read(targets.opponentActive.select(pet => pet.stat.atk).first());return left!==undefined && right!==undefined && left > right}))",
+        "repairedPaths": ["/apply/target"],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "spa", "after": "stat.spa" },
+          {
+            "path": "/condition/conditions/1/evaluator/value/selector/chain/0/arg",
+            "before": "atk",
+            "after": "stat.atk"
+          }
+        ]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_sure_hit_opponent_below_quarter_hp",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/189",
@@ -1024,13 +1109,6 @@
   ],
   "rejected": [
     {
-      "id": "effect_emblem_immune_skill_bandao",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/50",
-      "definitionSha256": "2760a666e009150565ac2601f2b8a1d28ffba7fb6bff69845247bda1b2131f8c",
-      "reason": "condition needs a separate mapping"
-    },
-    {
       "id": "effect_mark_evade",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/38",
@@ -1063,27 +1141,6 @@
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/76",
       "definitionSha256": "a7721bfdd6234b59b56392680a66780a185a735651ad7187981355f46fa48101",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/294",
-      "definitionSha256": "b90ae642b1e11e51573fcafd79fc9e2ce0175ca042c551ce7775c22d23f16c15",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_sure_hit_if_atk_over_500",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/487",
-      "definitionSha256": "7296ea16848405db5c7db88353f580b29460333978768886d4fd8d819d1bcf45",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_sure_hit_if_opponent_spa_gt_atk",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/528",
-      "definitionSha256": "a3f81e9ba720cb14b6a28661cb2f7acb93221879c9ed5ea683ae2544a34e6446",
       "reason": "condition needs a separate mapping"
     }
   ]

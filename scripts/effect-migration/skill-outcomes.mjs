@@ -77,7 +77,9 @@ export function classifySkillOutcome(original) {
   if (JSON.stringify(order) !== JSON.stringify(expectedOrder))
     return { reason: 'turn-order correction source nodes changed or unmapped' }
   const when =
-    'condition' in d ? condition(d.condition, 'skill', parameters, 'condition', { eventOwnership: true }) : '() => true'
+    'condition' in d
+      ? condition(d.condition, 'skill', parameters, 'condition', { eventOwnership: true, collectionCompare: true })
+      : '() => true'
   if (!when) return { reason: 'condition needs a separate mapping' }
   return {
     id: d.id,

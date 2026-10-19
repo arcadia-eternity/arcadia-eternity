@@ -101,6 +101,18 @@ export function createGeneratedSkillOutcomeEffects() {
         execute: contexts.skillUse.apply(ops.setSureHit(2)),
       }),
     ),
+    effect_emblem_immune_skill_bandao: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_immune_skill_bandao',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.sourceOwnsEvent,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_bandao'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
     effect_emblem_increase_crit_rate_when_dongqifuti: compileEffect(
       defineEffect({
         id: 'effect_emblem_increase_crit_rate_when_dongqifuti',
@@ -581,6 +593,24 @@ export function createGeneratedSkillOutcomeEffects() {
         execute: contexts.skillUse.apply(ops.setSureCrit(1)),
       }),
     ),
+    effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_kongjuzhinian')
+              .select(mark => mark.stack)
+              .all(),
+          )
+          const right = 2
+          return right !== undefined && left.some(value => value >= right)
+        }),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
     effect_skill_sure_crit_shuiwenzhenji: compileEffect(
       defineEffect({
         id: 'effect_skill_sure_crit_shuiwenzhenji',
@@ -607,6 +637,19 @@ export function createGeneratedSkillOutcomeEffects() {
               .map(n => Math.floor(n / 4)),
           )
           return left !== undefined && right !== undefined && left <= right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_atk_over_500: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_atk_over_500',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.atk).first())
+          const right = 500
+          return left !== undefined && right !== undefined && left > right
         }),
         execute: contexts.skillUse.apply(ops.setSureHit(2)),
       }),
@@ -720,6 +763,19 @@ export function createGeneratedSkillOutcomeEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
           ),
         ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_opponent_spa_gt_atk: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_opponent_spa_gt_atk',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.opponentActive.select(pet => pet.stat.spa).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.stat.atk).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
         execute: contexts.skillUse.apply(ops.setSureHit(2)),
       }),
     ),

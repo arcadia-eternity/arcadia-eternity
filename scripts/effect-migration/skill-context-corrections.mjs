@@ -20,6 +20,12 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_emblem_immune_skill_bandao: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
+  effect_skill_sure_hit_if_atk_over_500: [['/condition/conditions/1/target/chain/0/arg', 'atk', 'stat.atk']],
+  effect_skill_sure_hit_if_opponent_spa_gt_atk: [
+    ['/condition/conditions/1/target/chain/0/arg', 'spa', 'stat.spa'],
+    ['/condition/conditions/1/evaluator/value/selector/chain/0/arg', 'atk', 'stat.atk'],
+  ],
   effect_ability_enhance_atk_when_spa_enhanced: [['/apply/value/selector/chain/0/arg', 'statLevelMarkLevel', 'stack']],
   effect_emblem_raise_spd_1_stage_when_baonuan_20_percent: [
     ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],

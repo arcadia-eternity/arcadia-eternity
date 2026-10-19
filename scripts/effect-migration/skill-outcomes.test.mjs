@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { parse } from 'yaml'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { classifySkillOutcome, generateSkillOutcome } from './skill-outcomes.mjs'
@@ -72,7 +74,7 @@ test('numeric lists preserve per-operation runtime consumption', () => {
   }
 })
 test('reproduces current outcome source and ledger', async () =>
-  assert.deepEqual(await generateSkillOutcome({ check: true }), { generated: 56, rejected: 9 }))
+  assert.deepEqual(await generateSkillOutcome({ check: true }), { generated: 60, rejected: 5 }))
 test('checkSelf uses direct-event ownership while consecutive-use checks stay skill-specific', () => {
   const d = source()
   d.condition = { type: 'every', conditions: [{ type: 'checkSelf' }, { type: 'continuousUseSkill' }] }
@@ -140,4 +142,43 @@ test('C08 admits only the recorded first-skill source nodes', () => {
     alter(copy)
     assert.ok(classifySkillOutcome(copy).reason)
   }
+})
+
+test('mark stack comparison consumes the complete selected collection', () => {
+  const d = source()
+  d.condition = {
+    type: 'evaluate',
+    target: { base: 'opponentMarks', chain: [{ type: 'select', arg: { type: 'base', arg: 'stack' } }] },
+    evaluator: { type: 'compare', operator: '>=', value: 2 },
+  }
+  const r = classifySkillOutcome(d)
+  assert.match(r.when, /\.all\(\)/)
+  assert.match(r.when, /left.some/)
+  assert.doesNotMatch(r.when, /\.first\(\)/)
+})
+
+test('C09 outcome paths are exact and do not mutate source definitions', async () => {
+  const ids = new Set([
+    'effect_emblem_immune_skill_bandao',
+    'effect_skill_sure_hit_if_atk_over_500',
+    'effect_skill_sure_hit_if_opponent_spa_gt_atk',
+  ])
+  let count = 0
+  for (const file of ['emblem', 'skill'])
+    for (const d of parse(await readFile(`packs/base/data/effect_${file}.yaml`, 'utf8'), { merge: true })) {
+      if (!ids.has(d.id)) continue
+      const original = structuredClone(d)
+      const r = classifySkillOutcome(d)
+      assert.ok(!r.reason, r.reason)
+      assert.deepEqual(d, original)
+      for (const repair of r.pathRepairs) {
+        const changed = structuredClone(d)
+        const parts = repair.path.slice(1).split('/')
+        const key = parts.pop()
+        parts.reduce((n, k) => n[k], changed)[key] = 'unreviewed'
+        assert.match(classifySkillOutcome(changed).reason, /C09 source node changed/)
+      }
+      count++
+    }
+  assert.equal(count, 3)
 })
