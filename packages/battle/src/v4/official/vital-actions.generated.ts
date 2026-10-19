@@ -398,6 +398,24 @@ export function createGeneratedVitalActions() {
         execute: actions.sequence(targets.ownerPet.apply(ops.addRage(40))),
       }),
     ),
+    effect_skill_deal_damage_spa_sixth_on_miss: compileEffect(
+      defineEffect({
+        id: 'effect_skill_deal_damage_spa_sixth_on_miss',
+        on: 'OnMiss',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(
+          targets.opponentActive.apply(
+            ops.dealDamage(
+              targets.ownerPet
+                .select(pet => pet.stat.spa)
+                .first()
+                .map(n => Math.floor(n / 6)),
+            ),
+          ),
+        ),
+      }),
+    ),
     effect_skill_heal_125_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_125_if_aideminyi',
@@ -543,6 +561,24 @@ export function createGeneratedVitalActions() {
                 .where(mark => mark.baseId === 'mark_kongqichuliang')
                 .select(mark => mark.stack)
                 .first(),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_heal_self_def_quarter_hit_or_miss: compileEffect(
+      defineEffect({
+        id: 'effect_skill_heal_self_def_quarter_hit_or_miss',
+        on: ['OnHit', 'OnMiss'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              targets.ownerPet
+                .select(pet => pet.stat.def)
+                .first()
+                .map(n => Math.floor(n / 4)),
             ),
           ),
         ),

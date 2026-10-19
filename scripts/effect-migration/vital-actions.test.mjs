@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 36, rejected: 14, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 38, rejected: 12, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')
@@ -117,5 +117,33 @@ test('conditional checkSelf shares the outer direct-event ownership mapping', ()
     assert.ok(!r.reason, r.reason)
     assert.match(r.actions[0].code, /values.choose\(conditions.sourceOwnsEvent,10,20\)/)
     assert.doesNotMatch(r.actions[0].code, /ownerUsesSkill/)
+  }
+})
+
+test('stat-path corrections and paired hit triggers remain exact', () => {
+  for (const [id, stat, trigger] of [
+    ['effect_skill_deal_damage_spa_sixth_on_miss', 'spa', 'OnMiss'],
+    ['effect_skill_heal_self_def_quarter_hit_or_miss', 'def', ['OnHit', 'OnMiss']],
+  ]) {
+    const d = source()
+    d.id = id
+    d.trigger = trigger
+    d.apply.value.selector.chain[0].arg = { type: 'dynamic', arg: stat }
+    const r = classifyVitalAction(d)
+    assert.ok(!r.reason, r.reason)
+    assert.deepEqual(r.pathRepairs, [
+      { path: '/apply/value/selector/chain/0/arg/arg', before: stat, after: `stat.${stat}` },
+    ])
+    for (const mutate of [
+      x => (x.apply.value.selector.chain[0].arg.type = 'base'),
+      x => (x.apply.value.selector.chain[0].type = 'where'),
+      x => (x.apply.value.selector.chain[0].arg.arg = 'spe'),
+      x => (x.trigger = ['OnHit', 'OnDamage']),
+      x => (x.trigger = []),
+    ]) {
+      const changed = structuredClone(d)
+      mutate(changed)
+      assert.ok(classifyVitalAction(changed).reason)
+    }
   }
 })

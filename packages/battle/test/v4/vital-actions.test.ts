@@ -38,7 +38,8 @@ const ledger = JSON.parse(
 )
 interface SourceDefinition {
   id: string
-  trigger: string
+  trigger: string | string[]
+  apply?: { value: { selector: { chain: { arg: { arg: string } }[] } } }
   condition: { conditions?: { target?: { base: string } }[] }
 }
 const definitions = new Map<string, SourceDefinition>()
@@ -53,10 +54,14 @@ const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
     const d = structuredClone(definitions.get(r.id)!)
     if (r.id === 'effect_skill_heal_half_damage_dealt_if_3_hits')
       d.condition.conditions![1].target!.base = 'usingSkillContext'
+    if (r.id === 'effect_skill_deal_damage_spa_sixth_on_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.spa'
+    if (r.id === 'effect_skill_heal_self_def_quarter_hit_or_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.def'
     return [r.id, EffectParser.parse(d)]
   }),
 )
 const expected: Record<Id, number> = {
+  effect_skill_deal_damage_spa_sixth_on_miss: 101,
+  effect_skill_heal_self_def_quarter_hit_or_miss: 101,
   effect_skill_heal_70_double_if_field_yemu: 140,
   effect_ability_add_rage_5_when_first_attack: 5,
   effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen: -5,
@@ -142,17 +147,24 @@ function run(
     order?: 'wrong' | 'empty' | 'non-skill' | 'late'
     night?: boolean
     trackBranchReads?: boolean
+    trigger?: 'OnHit' | 'OnMiss'
+    attribute?: number
     branchParameters?: { yes: number; no: number }
     lateBranchParameters?: { yes: number; no: number }
   } = {},
 ) {
   const d = definitions.get(id)!,
     { battle, a, b, debuff } = makeScenario(1301)
+  const trigger = options.trigger ?? (Array.isArray(d.trigger) ? d.trigger[0] : d.trigger)
   battles.push(battle)
   for (const p of [...a.team, ...b.team]) {
     for (const s of p.skills) s.effects.splice(0)
     p.attributeSystem.updateBaseValue('maxHp', options.maxHp ?? 2001)
     p.currentHp = options.currentHp ?? 500
+    p.attributeSystem.updateBaseValue('spa', options.attribute ?? 606)
+    p.attributeSystem.updateBaseValue('def', options.attribute ?? 404)
+    p.attributeSystem.updateBaseValue('spd', 909)
+    p.attributeSystem.updateBaseValue('spe', 808)
   }
   a.currentRage = options.selfRage ?? 60
   b.currentRage =
@@ -289,6 +301,8 @@ function run(
           mark.stack = 7
           damage.damageResult = 47
           a.team[0].attributeSystem.updateBaseValue('maxHp', 1001)
+          a.team[0].attributeSystem.updateBaseValue('spa', 305)
+          a.team[0].attributeSystem.updateBaseValue('def', 203)
           for (const m of supports) m.stack = 7
         }
         if (variant === 'late-owner') source.owner = a.team[1]
@@ -330,26 +344,27 @@ function run(
     const actors = turn.appledContexts.filter((c): c is UseSkillContext => c instanceof UseSkillContext).map(c => c.pet)
     expect(actors).toEqual(variant === 'turn-first' ? [a.activePet, b.activePet] : [b.activePet, a.activePet])
   } else if (variant === 'phase') {
-    if (d.trigger === 'TurnEnd') {
+    if (trigger === 'TurnEnd') {
       a.selection = { player: a.id, type: 'do-nothing' }
       b.selection = { player: b.id, type: 'do-nothing' }
       executeTurnOperation(turn, battle)
-    } else if (['OnDamage', 'PostDamage'].includes(d.trigger)) {
+    } else if (['OnDamage', 'PostDamage'].includes(trigger)) {
       const p = new DamagePhase(battle, use, attacker.activePet, victim.activePet, 101, damage.damageType)
       p.initialize()
       p.execute()
     } else {
-      if (d.trigger === 'OnDefeat') victim.activePet.currentHp = 1
+      if (trigger === 'OnDefeat') victim.activePet.currentHp = 1
+      if (trigger === 'OnMiss') use.hitOverrides.push({ willHit: false, priority: 1000 })
       const p = new SkillPhase(battle, a, a.activePet, AttackTargetOpinion.opponent, skill, turn, use)
       p.initialize()
       p.execute()
     }
   } else {
-    const parent = d.trigger === 'TurnEnd' ? turn : ['OnHit', 'OnMiss', 'BeforeHit'].includes(d.trigger) ? use : damage
+    const parent = trigger === 'TurnEnd' ? turn : ['OnHit', 'OnMiss', 'BeforeHit'].includes(trigger) ? use : damage
     const event = variant === 'nested' ? new EffectContext(parent, EffectTrigger.BeforeEffect, source) : parent
-    battle.applyEffects<EffectTrigger>(event, EffectTrigger[d.trigger as keyof typeof EffectTrigger], source)
+    battle.applyEffects<EffectTrigger>(event, EffectTrigger[trigger as keyof typeof EffectTrigger], source)
     if (variant === 'repeat')
-      battle.applyEffects<EffectTrigger>(event, EffectTrigger[d.trigger as keyof typeof EffectTrigger], source)
+      battle.applyEffects<EffectTrigger>(event, EffectTrigger[trigger as keyof typeof EffectTrigger], source)
   }
   return {
     branchReads,
@@ -381,7 +396,7 @@ for (const id of Object.keys(expected) as Id[]) {
         .digest('hex'),
     )
     expect(r.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(['/apply'])
-    if (r.recipe.repairedPaths.length) expect(() => EffectParser.parse(d)).toThrow()
+    if (r.recipe.repairedPaths.length || r.recipe.pathRepairs) expect(() => EffectParser.parse(d)).toThrow()
   })
   for (const kind of ['skill', 'mark'] as const)
     for (const variant of variants)
@@ -573,4 +588,31 @@ for (const night of [false, true]) {
       parameterAddress(id, 'parameters', `action0_value_${night ? 'true' : 'false'}`),
     ])
   })
+}
+
+for (const [id, stat, triggers, divisor] of [
+  ['effect_skill_deal_damage_spa_sixth_on_miss', 'spa', ['OnMiss'], 6],
+  ['effect_skill_heal_self_def_quarter_hit_or_miss', 'def', ['OnHit', 'OnMiss'], 4],
+] as const) {
+  it(`C09 exact dynamic attribute source ${id}`, () => {
+    const record = ledger.records.find((r: { id: string }) => r.id === id)
+    expect(record.additionalDecisions).toEqual(['C09'])
+    expect(record.recipe.pathRepairs).toEqual([
+      { path: '/apply/value/selector/chain/0/arg/arg', before: stat, after: `stat.${stat}` },
+    ])
+  })
+  for (const kind of ['skill', 'mark'] as const) {
+    for (const trigger of triggers) {
+      for (const variant of ['normal', 'late-value', 'phase'] as const) {
+        it(`attribute ${id}/${kind}/${trigger}/${variant}`, () => {
+          const actual = run(id, true, kind, variant, { trigger, attribute: 607 })
+          expect(actual).toEqual(run(id, false, kind, variant, { trigger, attribute: 607 }))
+          expect(actual.admitted).toBe(1)
+          expect(actual.events.map(e => e.amount)).toEqual([
+            Math.floor((variant === 'late-value' ? (stat === 'spa' ? 305 : 203) : 607) / divisor),
+          ])
+        })
+      }
+    }
+  }
 }

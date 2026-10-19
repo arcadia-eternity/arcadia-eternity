@@ -118,6 +118,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         e.type === 'dynamic' &&
         (e.arg === 'lastSkillUsedTimes' ||
           (s.base === 'damageContext' && e.arg === 'damageResult') ||
+          (domain === 'skill' && ['self', 'opponent'].includes(s.base) && ['stat.spa', 'stat.def'].includes(e.arg)) ||
           (domain === 'skill' && ['weight', 'height', 'level', 'maxRage', 'currentTurn', 'duration'].includes(e.arg)))
       )
         name = e.arg
@@ -129,7 +130,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
           (['skill', 'damage'].includes(domain) && s.base === 'usingSkillContext' && step.arg === 'multihitResult') ||
           (domain === 'skill' &&
             ['self', 'opponent'].includes(s.base) &&
-            ['stat.spa', 'stat.atk'].includes(step.arg)) ||
+            ['stat.spa', 'stat.atk', 'stat.def'].includes(step.arg)) ||
           (collection && s.base === 'usingSkillContext' && step.arg === 'power'))
       )
         name = step.arg
@@ -140,9 +141,12 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         code += `.select(mark => mark.${name})${terminal}`
       else if (
         ['self', 'opponent'].includes(s.base) &&
-        ['currentHp', 'maxHp', 'lastSkillUsedTimes', ...(domain === 'skill' ? ['stat.spa', 'stat.atk'] : [])].includes(
-          name,
-        )
+        [
+          'currentHp',
+          'maxHp',
+          'lastSkillUsedTimes',
+          ...(domain === 'skill' ? ['stat.spa', 'stat.atk', 'stat.def'] : []),
+        ].includes(name)
       )
         code += `.select(pet => pet.${name === 'maxHp' ? 'stat.maxHp' : name})${terminal}`
       else if (

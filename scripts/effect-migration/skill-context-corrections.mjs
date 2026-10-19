@@ -20,6 +20,10 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_skill_deal_damage_spa_sixth_on_miss: [['/apply/value/selector/chain/0/arg/arg', 'spa', 'stat.spa', 'dynamic']],
+  effect_skill_heal_self_def_quarter_hit_or_miss: [
+    ['/apply/value/selector/chain/0/arg/arg', 'def', 'stat.def', 'dynamic'],
+  ],
   effect_mark_baiyapo_add_damage_based_on_stack: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_mark_heiyapao_add_damage_based_on_stack: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_mark_self_damage_50_percent_once: [['/condition/conditions/2/target/chain/0/arg', 'sourceId', 'source']],
@@ -57,11 +61,16 @@ export function repairSkillPaths(definition) {
   const copy = structuredClone(definition)
   const changes = []
   const corrections = Object.hasOwn(skillPathCorrections, definition.id) ? skillPathCorrections[definition.id] : []
-  for (const [path, before, after] of corrections) {
+  for (const [path, before, after, expectedType = 'selectPath'] of corrections) {
     const keys = path.slice(1).split('/')
     const key = keys.pop()
     const parent = keys.reduce((value, part) => value?.[part], copy)
-    if (parent?.[key] !== before || parent.type !== 'selectPath') return { reason: `C09 source node changed: ${path}` }
+    if (
+      parent?.[key] !== before ||
+      parent.type !== expectedType ||
+      (expectedType === 'dynamic' && keys.slice(0, -1).reduce((value, part) => value?.[part], copy)?.type !== 'select')
+    )
+      return { reason: `C09 source node changed: ${path}` }
     parent[key] = after
     changes.push({ path, before, after })
   }

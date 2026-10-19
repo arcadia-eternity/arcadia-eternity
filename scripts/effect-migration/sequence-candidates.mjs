@@ -33,7 +33,11 @@ export function classifySequence(original, profile) {
     !Number.isFinite(d.priority)
   )
     return { reason: 'unsupported definition fields' }
-  if (!profile.triggers.includes(d.trigger)) return { reason: 'unsupported trigger' }
+  if (
+    !profile.triggers.includes(d.trigger) &&
+    !profile.triggerLists?.some(triggers => JSON.stringify(triggers) === JSON.stringify(d.trigger))
+  )
+    return { reason: 'unsupported trigger' }
   const sourceActions = profile.singleAction && !Array.isArray(d.apply) ? [d.apply] : d.apply
   if (
     (profile.singleAction && Array.isArray(d.apply)) ||

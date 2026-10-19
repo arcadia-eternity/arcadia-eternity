@@ -442,6 +442,29 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_skill_deal_damage_spa_sixth_on_miss",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/382",
+      "definitionSha256": "6652a8c121340e859090c2bc242b89c7da7108773f48ed2fed3f3d59dcc096ba",
+      "recipe": {
+        "id": "effect_skill_deal_damage_spa_sixth_on_miss",
+        "trigger": "OnMiss",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.dealDamage(targets.ownerPet.select(pet => pet.stat.spa).first().map(n => Math.floor(n / 6))))"
+          }
+        ],
+        "repairedPaths": [],
+        "pathRepairs": [{ "path": "/apply/value/selector/chain/0/arg/arg", "before": "spa", "after": "stat.spa" }]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_heal_125_if_aideminyi",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/213",
@@ -587,6 +610,29 @@
       },
       "classification": "U",
       "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_heal_self_def_quarter_hit_or_miss",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/380",
+      "definitionSha256": "f676d71b30f6b2f7bc4e7ce6088db8adeaabfdeab465636ca0817c07679c9157",
+      "recipe": {
+        "id": "effect_skill_heal_self_def_quarter_hit_or_miss",
+        "trigger": ["OnHit", "OnMiss"],
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.def).first().map(n => Math.floor(n / 4))))"
+          }
+        ],
+        "repairedPaths": [],
+        "pathRepairs": [{ "path": "/apply/value/selector/chain/0/arg/arg", "before": "def", "after": "stat.def" }]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
     },
     {
       "id": "effect_skill_heal_self_eighth",
@@ -754,13 +800,6 @@
       "reason": "unsupported trigger"
     },
     {
-      "id": "effect_skill_deal_damage_spa_sixth_on_miss",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/382",
-      "definitionSha256": "6652a8c121340e859090c2bc242b89c7da7108773f48ed2fed3f3d59dcc096ba",
-      "reason": "unsupported sequence action or parameter"
-    },
-    {
       "id": "effect_skill_heal_quarter_if_guanghuilingyu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/304",
@@ -780,13 +819,6 @@
       "sourcePath": "/526",
       "definitionSha256": "a29539df4649263b60c75c2a78be45fa9c006a6535f8674deed6ff978d4b05b9",
       "reason": "unsupported sequence action or parameter"
-    },
-    {
-      "id": "effect_skill_heal_self_def_quarter_hit_or_miss",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/380",
-      "definitionSha256": "f676d71b30f6b2f7bc4e7ce6088db8adeaabfdeab465636ca0817c07679c9157",
-      "reason": "unsupported trigger"
     }
   ],
   "retained": [

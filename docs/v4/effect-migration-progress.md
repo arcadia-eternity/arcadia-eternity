@@ -237,3 +237,9 @@ All 1,207 public single-vital checks pass, including twelve real double-skill tu
 The night-field healing candidate retains separately editable 140/70 branches and reads the selected parameter at execution. The shared emitter explicitly opts into required conditional branch parameters; literal false zero retains its legacy missing-branch rejection, while raw:number zero is valid. The catalog now contains 36 emitted, 14 rejected and 27 retained definitions.
 
 All 1,258 public single-vital checks, 113 generator tests, 75 design tests, V4 types/lint, declarations and provenance pass. Added tests verify late field changes, late parameter edits and selected-branch-only reads. Existing candidate records reproduce unchanged. See [conditional-healing evidence](validation/vital-actions.md). Full-game/checkpoint and production gates remain pending.
+
+## Attribute-derived vital actions (2026-10-20)
+
+Two named C09 candidates correct dynamic Pet attribute paths to stat.spa/stat.def, then preserve spa/6 miss damage and def/4 hit-or-miss healing. The latter remains one multi-trigger effect. The single-vital catalog now contains 38 emitted, 12 rejected and 27 retained definitions; all prior records reproduce unchanged.
+
+All 1,336 public single-vital checks, 114 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. Original parse failures, exact repair guards, distinct stats, nondivisible inputs, late changes and actual hit/miss SkillPhase amounts are covered. See [attribute-derived evidence](validation/vital-actions.md). These remain correction candidates pending full-game/checkpoint and production gates.

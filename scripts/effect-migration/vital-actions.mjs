@@ -3,6 +3,7 @@ import { classifySequence, generateSequences } from './sequence-candidates.mjs'
 const profile = {
   slug: 'vital-actions',
   singleAction: true,
+  triggerLists: [['OnHit', 'OnMiss']],
   orderConditions: {
     effect_ability_add_rage_5_when_first_attack: [
       { path: '/condition/conditions/1', condition: 'isFirstSkillUsedThisTurn' },
