@@ -5,7 +5,7 @@ import { format, resolveConfig } from 'prettier'
 import { fields, normalize, condition } from './authoring-emitter.mjs'
 import { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
 import { turnOrderReferences } from './turn-order.mjs'
-import { sequenceAction } from './sequence-actions.mjs'
+import { sequenceAction, sequenceConditionOptions } from './sequence-actions.mjs'
 export function classifySequence(original, profile) {
   if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
   const { definition: spelling, paths } = repairSkillSelector(original)
@@ -53,12 +53,7 @@ export function classifySequence(original, profile) {
     return { reason: 'order correction needs an exact source mapping' }
   const domain = profile.domain ?? (d.trigger === 'OnDamage' ? 'damage' : 'skill')
   const parameters = []
-  const when = condition(d.condition, domain, parameters, 'condition', {
-    eventOwnership: true,
-    collectionCompare: true,
-    defensiveSkill: true,
-    skillCategory: true,
-  })
+  const when = condition(d.condition, domain, parameters, 'condition', sequenceConditionOptions)
   if (!when || parameters.length) return { reason: 'condition needs a separate mapping' }
   const actions = sourceActions.map((a, i) => ({
     sourcePath: profile.singleAction ? '/apply' : `/apply/${i}`,

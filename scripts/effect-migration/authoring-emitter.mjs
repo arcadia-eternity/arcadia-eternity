@@ -279,8 +279,20 @@ function number(v, parameters, path, domain = 'damage', options = {}) {
     // Legacy parsing treats a falsy false branch as absent, not numeric zero.
     if (!v.falseValue) return
     const c = condition(v.condition, domain, undefined, 'condition', options),
-      yes = number(v.trueValue, undefined, undefined, domain, options),
-      no = number(v.falseValue, undefined, undefined, domain, options)
+      yes = number(
+        v.trueValue,
+        options.conditionalParameters ? parameters : undefined,
+        `${path}_true`,
+        domain,
+        options,
+      ),
+      no = number(
+        v.falseValue,
+        options.conditionalParameters ? parameters : undefined,
+        `${path}_false`,
+        domain,
+        options,
+      )
     // Keep optional-valued branches out until the public choose contract explicitly supports them.
     if (c && yes?.literal && no?.literal)
       return { code: `values.choose(${c},${yes.code},${no.code})`, literal: false, required: true }

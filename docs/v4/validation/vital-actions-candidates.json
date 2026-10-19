@@ -479,6 +479,31 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_skill_heal_70_double_if_field_yemu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/420",
+      "definitionSha256": "cecf36f9367889e89bffedea6a34cdce6235e78b7a27cbee2f991e77b3deb165",
+      "recipe": {
+        "id": "effect_skill_heal_70_double_if_field_yemu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.heal(values.choose(contexts.battle.flatMap(battle => battle.marks).where(mark => mark.baseId === \"mark_global_yemu\").condition(checks.exists()),parameters.action0_value_true,parameters.action0_value_false)))"
+          }
+        ],
+        "parameters": [
+          { "name": "action0_value_true", "value": 140 },
+          { "name": "action0_value_false", "value": 70 }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_skill_heal_by_damage_25_zhongzinengliang",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/71",
@@ -733,13 +758,6 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/382",
       "definitionSha256": "6652a8c121340e859090c2bc242b89c7da7108773f48ed2fed3f3d59dcc096ba",
-      "reason": "unsupported sequence action or parameter"
-    },
-    {
-      "id": "effect_skill_heal_70_double_if_field_yemu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/420",
-      "definitionSha256": "cecf36f9367889e89bffedea6a34cdce6235e78b7a27cbee2f991e77b3deb165",
       "reason": "unsupported sequence action or parameter"
     },
     {

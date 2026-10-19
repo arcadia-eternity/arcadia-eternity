@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 35, rejected: 15, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 36, rejected: 14, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')
@@ -84,5 +84,38 @@ test('turn-order corrections accept only the exact named source nodes', () => {
     const changed = structuredClone(d)
     change(changed)
     assert.ok(classifyVitalAction(changed).reason)
+  }
+})
+
+test('conditional healing exposes separate branch parameters and rejects absent branches', () => {
+  const d = source()
+  d.apply.value = {
+    type: 'conditional',
+    condition: { type: 'selfUseSkill' },
+    trueValue: { type: 'raw:number', value: 140 },
+    falseValue: { type: 'raw:number', value: 0 },
+  }
+  const r = classifyVitalAction(d)
+  assert.ok(!r.reason, r.reason)
+  assert.deepEqual(r.parameters, [
+    { name: 'action0_value_true', value: 140 },
+    { name: 'action0_value_false', value: 0 },
+  ])
+  assert.match(r.actions[0].code, /values.choose.*parameters.action0_value_true,parameters.action0_value_false/)
+  d.apply.value.falseValue = 0
+  assert.ok(classifyVitalAction(d).reason)
+  d.apply.value.falseValue = { type: 'raw:number', value: NaN }
+  assert.ok(classifyVitalAction(d).reason)
+})
+
+test('conditional checkSelf shares the outer direct-event ownership mapping', () => {
+  for (const trigger of ['OnHit', 'OnDamage', 'PostDamage']) {
+    const d = source()
+    d.trigger = trigger
+    d.apply.value = { type: 'conditional', condition: { type: 'checkSelf' }, trueValue: 10, falseValue: 20 }
+    const r = classifyVitalAction(d)
+    assert.ok(!r.reason, r.reason)
+    assert.match(r.actions[0].code, /values.choose\(conditions.sourceOwnsEvent,10,20\)/)
+    assert.doesNotMatch(r.actions[0].code, /ownerUsesSkill/)
   }
 })

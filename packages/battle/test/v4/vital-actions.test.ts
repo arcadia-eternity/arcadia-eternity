@@ -5,6 +5,8 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   generatedVitalActions,
+  effectAuthoring,
+  parameterAddress,
   BaseMark,
   BaseSkill,
   SkillInstance,
@@ -55,6 +57,7 @@ const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
   }),
 )
 const expected: Record<Id, number> = {
+  effect_skill_heal_70_double_if_field_yemu: 140,
   effect_ability_add_rage_5_when_first_attack: 5,
   effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen: -5,
   effect_skill_add_rage_15_if_first: 15,
@@ -127,7 +130,7 @@ function run(
   id: Id,
   native: boolean,
   kind: 'skill' | 'mark',
-  variant: (typeof variants)[number] | 'turn-first' | 'turn-second',
+  variant: (typeof variants)[number] | 'turn-first' | 'turn-second' | 'late-night',
   options: {
     damageResult?: number
     multihit?: number
@@ -137,6 +140,10 @@ function run(
     maxHp?: number
     supportStacks?: readonly number[]
     order?: 'wrong' | 'empty' | 'non-skill' | 'late'
+    night?: boolean
+    trackBranchReads?: boolean
+    branchParameters?: { yes: number; no: number }
+    lateBranchParameters?: { yes: number; no: number }
   } = {},
 ) {
   const d = definitions.get(id)!,
@@ -177,6 +184,21 @@ function run(
   a.activePet.marks.push(mark)
   const source = kind === 'mark' ? mark : skill
   source.effects.push(native ? generatedVitalActions[id] : oracles.get(id)!)
+  if (native) effectAuthoring.effectParameters(generatedVitalActions[id]).install(battle.configSystem)
+  const setBranches = (values: { yes: number; no: number }) => {
+    battle.configSystem.set(parameterAddress(id, 'parameters', 'action0_value_true'), values.yes, source)
+    battle.configSystem.set(parameterAddress(id, 'parameters', 'action0_value_false'), values.no, source)
+  }
+  if (options.branchParameters) setBranches(options.branchParameters)
+  const branchReads: string[] = []
+  if (options.trackBranchReads) {
+    const get = battle.configSystem.get.bind(battle.configSystem)
+    const keys = ['true', 'false'].map(branch => parameterAddress(id, 'parameters', `action0_value_${branch}`))
+    battle.configSystem.get = (key, targetScope) => {
+      if (keys.includes(key)) branchReads.push(key)
+      return get(key, targetScope)
+    }
+  }
   const supports: ReturnType<BaseMark['createInstance']>[] = []
   const addSupport = (baseId: string, target: typeof a.activePet | typeof battle, stack = 3) => {
     const m = new BaseMark(baseId as baseMarkId, [], { ...debuff.config, duration: -1, maxStacks: 20 }).createInstance()
@@ -198,6 +220,7 @@ function run(
   for (const name of ['mark_tongjiling', 'mark_shaoshang', 'mark_kaowen', 'mark_mabi', 'mark_jingshencuoluan'])
     addSupport(name, b.activePet)
   for (const name of ['mark_global_guzhanchang', 'mark_global_qingtian']) addSupport(name, battle)
+  if (options.night !== false) addSupport('mark_global_yemu', battle)
   const removeSupports = () => {
     for (const m of supports) {
       const owner = m.owner
@@ -252,6 +275,8 @@ function run(
       when: c => c.parent instanceof EffectContext && c.parent.effect?.id === id,
       apply(c) {
         admitted++
+        if (variant === 'late-night') addSupport('mark_global_yemu', battle)
+        if (options.lateBranchParameters) setBranches(options.lateBranchParameters)
         if (options.order === 'late') {
           turn.appledContexts.splice(0, turn.appledContexts.length, rival, use)
           turn.contexts.splice(0, turn.contexts.length, rival, use)
@@ -327,6 +352,7 @@ function run(
       battle.applyEffects<EffectTrigger>(event, EffectTrigger[d.trigger as keyof typeof EffectTrigger], source)
   }
   return {
+    branchReads,
     admitted,
     events,
     hp: [...a.team, ...b.team].map(p => p.currentHp),
@@ -509,4 +535,42 @@ for (const id of [
       })
     }
   }
+}
+
+for (const kind of ['skill', 'mark'] as const) {
+  for (const native of [false, true]) {
+    for (const [variant, night, amount] of [
+      ['normal', true, 140],
+      ['normal', false, 70],
+      ['late-support', true, 70],
+      ['late-night', false, 140],
+    ] as const) {
+      it(`branch reads current night field ${kind}/${native}/${variant}/${night}`, () => {
+        const result = run('effect_skill_heal_70_double_if_field_yemu', native, kind, variant, { night })
+        expect(result.admitted).toBe(1)
+        expect(result.events.map(e => e.amount)).toEqual([amount])
+      })
+    }
+  }
+  for (const night of [false, true]) {
+    it(`conditional branch parameters remain editable ${kind}/${night}`, () => {
+      const result = run('effect_skill_heal_70_double_if_field_yemu', true, kind, 'normal', {
+        night,
+        branchParameters: { yes: 180, no: 90 },
+        lateBranchParameters: { yes: 0, no: 37 },
+      })
+      expect(result.events.map(e => e.amount)).toEqual([night ? 0 : 37])
+    })
+  }
+}
+
+for (const night of [false, true]) {
+  it(`reads only the selected configured branch ${night}`, () => {
+    const id = 'effect_skill_heal_70_double_if_field_yemu'
+    const result = run(id, true, 'mark', 'normal', { night, trackBranchReads: true })
+    expect(result.branchReads.length).toBeGreaterThan(0)
+    expect([...new Set(result.branchReads)]).toEqual([
+      parameterAddress(id, 'parameters', `action0_value_${night ? 'true' : 'false'}`),
+    ])
+  })
 }

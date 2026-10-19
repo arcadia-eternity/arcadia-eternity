@@ -1468,3 +1468,28 @@ it('persistent self-player and opponent-mark queries use source identity without
   f.battle.addMark(new AddMarkContext(f.ctx, f.b.activePet, base))
   expect(f.owner.stat.spe).toBe(before - 1)
 })
+
+it.each([false, true])('conditional checkSelf uses the direct event subject, nested=%s', nested => {
+  const f = fixture()
+  f.use.updateActualTarget()
+  const answers: number[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/conditional-event-owner',
+      on: 'PostDamage',
+      execute(ctx) {
+        answers.push(ctx.read(values.choose(conditions.sourceOwnsEvent, 10, 20)))
+      },
+    }),
+  )
+  for (const matches of [false, true]) {
+    const damage = new DamageContext(f.use, f.owner, matches ? f.owner : f.b.activePet, 100)
+    const parent = nested
+      ? new EffectContext(damage, EffectTrigger.OnDamage, matches ? f.skill : f.b.activePet.skills[0])
+      : damage
+    f.battle.executionBudget.run(0, () =>
+      effect.innerApply(new EffectContext(parent, EffectTrigger.PostDamage, f.skill)),
+    )
+  }
+  expect(answers).toEqual([20, 10])
+})

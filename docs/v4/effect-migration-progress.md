@@ -231,3 +231,9 @@ All 1,081 public single-vital checks, 110 generator tests, 73 design tests, type
 Three additional single-vital effects reuse the existing C08 executor semantics. The catalog contains 35 emitted, 15 rejected and 27 retained definitions. Each named source condition is pinned by ID, path and type; all old records and the C08 scope artifact reproduce unchanged. No runtime or production-loader changes are included.
 
 All 1,207 public single-vital checks pass, including twelve real double-skill turns with independently asserted actor order, admission and rage values. All 111 generator tests, 73 design tests, V4 types/lint, declarations and provenance pass. See [C08 single-rage evidence](validation/vital-actions.md). Full-game/checkpoint acceptance, production cutover and overall migration remain pending.
+
+## Editable conditional healing (2026-10-20)
+
+The night-field healing candidate retains separately editable 140/70 branches and reads the selected parameter at execution. The shared emitter explicitly opts into required conditional branch parameters; literal false zero retains its legacy missing-branch rejection, while raw:number zero is valid. The catalog now contains 36 emitted, 14 rejected and 27 retained definitions.
+
+All 1,258 public single-vital checks, 113 generator tests, 75 design tests, V4 types/lint, declarations and provenance pass. Added tests verify late field changes, late parameter edits and selected-branch-only reads. Existing candidate records reproduce unchanged. See [conditional-healing evidence](validation/vital-actions.md). Full-game/checkpoint and production gates remain pending.

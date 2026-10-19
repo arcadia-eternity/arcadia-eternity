@@ -1,10 +1,16 @@
 import { fields, members, number } from './authoring-emitter.mjs'
 import { classifySkillOutcome } from './skill-outcomes.mjs'
 import { classifySkillPower } from './skill-power.mjs'
+export const sequenceConditionOptions = Object.freeze({
+  eventOwnership: true,
+  collectionCompare: true,
+  defensiveSkill: true,
+  skillCategory: true,
+})
 const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss', 'setSureCrit']
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
-  if (a?.value?.type === 'conditional') return
+  if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
   if (a?.type === 'preventDamage') {
     if (!fields(a, ['type', 'target']) || a.target !== 'damageContext') return
     return 'contexts.damage.apply(ops.preventDamage())'
@@ -31,9 +37,11 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     }
     if (!Object.hasOwn(roots, target)) return
     const value = number(a.value, parameters, path, domain, {
+      ...sequenceConditionOptions,
       dynamicClamp: true,
       conditionalDivisor: true,
       dynamicMultiply: true,
+      conditionalParameters: true,
     })
     if (!value) return
     return `targets.${roots[target]}.apply(ops.${a.type}(${value.code}))`
