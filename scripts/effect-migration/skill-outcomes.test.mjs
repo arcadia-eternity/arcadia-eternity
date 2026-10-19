@@ -74,7 +74,7 @@ test('numeric lists preserve per-operation runtime consumption', () => {
   }
 })
 test('reproduces current outcome source and ledger', async () =>
-  assert.deepEqual(await generateSkillOutcome({ check: true }), { generated: 60, rejected: 5 }))
+  assert.deepEqual(await generateSkillOutcome({ check: true }), { generated: 65, rejected: 0 }))
 test('checkSelf uses direct-event ownership while consecutive-use checks stay skill-specific', () => {
   const d = source()
   d.condition = { type: 'every', conditions: [{ type: 'checkSelf' }, { type: 'continuousUseSkill' }] }
@@ -181,4 +181,13 @@ test('C09 outcome paths are exact and do not mutate source definitions', async (
       count++
     }
   assert.equal(count, 3)
+})
+
+test('defensive skill ownership and direct target checks stay separate', () => {
+  const d = source()
+  d.condition = { type: 'every', conditions: [{ type: 'opponentUseSkill' }, { type: 'selfBeSkillTarget' }] }
+  assert.equal(
+    classifySkillOutcome(d).when,
+    'conditions.all(conditions.skillActorDiffersFromOwner,conditions.ownerIsSkillTarget)',
+  )
 })

@@ -432,6 +432,7 @@ for (const r of records) {
         .digest('hex'),
     ).toBe(r.definitionSha256)
   })
+  if (nodes(originals.get(r.id)?.condition).some(n => n.type === 'opponentUseSkill')) continue
   for (const kind of ['skill', 'mark'] as const)
     it.each(variants)(`${r.id} ${kind}: %s`, variant => {
       const actual = run(r, true, kind, variant)

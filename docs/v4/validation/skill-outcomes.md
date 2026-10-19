@@ -1,18 +1,18 @@
 # Hit and critical outcome candidates
 
-The offline generator emits 60 of the 65 current single-action definitions and records five explicit rejections. All records remain U pending acceptance; production registration is unchanged. The generated TypeScript calls the shared skill-context selectors, conditions and outcome operators. It imports no legacy parser or runtime DSL.
+The offline generator emits all 65 current single-action definitions with no rejected definitions in this mechanism. All records remain U pending acceptance; production registration is unchanged. The generated TypeScript calls the shared skill-context selectors, conditions and outcome operators. It imports no legacy parser or runtime DSL.
 
 Every emitted record pins its source hash and exact C07 selector spelling changes. Original YAML remains unchanged. Reference fixtures independently copy `useSkillContext` to `usingSkillContext` only in base/target fields and assert that the unmodified definition fails parsing. The source/ledger audit checks every emitted ID and recipe, including action priority separately from effect priority.
 
-There are 56 literal actions and four dynamic actions. The dynamic critical-rate cases read current owner consecutive-use count, opposing target mark stacks, or owner mark duration. Accuracy has a corresponding duration-based case. Collection of values preserves order, and multiplication retains the legacy indexed pairing with zero for missing right-hand members. Critical rate applies every returned value; accuracy uses the first. The two raw duration multipliers become separate authored number parameters with default 25 and stable effect/node identities.
+There are 61 literal actions and four dynamic actions. The dynamic critical-rate cases read current owner consecutive-use count, opposing target mark stacks, or owner mark duration. Accuracy has a corresponding duration-based case. Collection of values preserves order, and multiplication retains the legacy indexed pairing with zero for missing right-hand members. Critical rate applies every returned value; accuracy uses the first. The two raw duration multipliers become separate authored number parameters with default 25 and stable effect/node identities.
 
 Conditions are collected once. BeforeEffect changes do not revoke admission, but the action queries the current skill context and its value sources when it runs. The tests exercise both skill and mark sources, late ownership/target/mark changes, cancellation, nested or missing context, repeated application and real SkillPhase dispatch. Positive cases independently assert resulting rate or override entries, while negative condition fixtures assert refusal. The two configurable effects additionally test zero, 7.5, foreign-source overrides and execution-time changes against independent legacy keys.
 
-The five rejected definitions are still part of the migration goal: defensive effects require opponent-use admission and two of those automatic stack consumption. No generic alias or approximation accepts those definitions in this batch.
+The defensive extension below completes this single-action inventory. Embedded outcome actions in lists, dependency closure and per-ID acceptance remain part of the migration goal.
 
 Reproduce generation with `node scripts/effect-migration/skill-outcomes.mjs --check`. Run the public test file `packages/battle/test/v4/skill-outcomes.test.ts` after building the battle package. Full-game and fresh-catalog checkpoint acceptance for these IDs remain pending.
 
-Defensive follow-up constraint: legacy `opponentUseSkill` searches for the nearest skill context and compares `source.owner !== skill.pet`. It does not check opposing player membership. A same-player bench source can therefore satisfy it, while `selfBeSkillTarget` separately requires the direct skill event's actual target. The eventual shared predicate must preserve those distinct checks and test bench/global ownership explicitly.
+Defensive semantic constraint: legacy `opponentUseSkill` searches for the nearest skill context and compares `source.owner !== skill.pet`. It does not check opposing player membership. A same-player bench source can therefore satisfy it, while `selfBeSkillTarget` separately requires the direct skill event's actual target. The shared predicate preserves those distinct checks; bench/global ownership is explicitly tested below.
 
 ## Verification and event ownership
 
@@ -37,3 +37,13 @@ The fourth condition reads all selected opposing mark stacks, then uses `some`, 
 All 128 new public checks pass, including source/hash/path assertions and the collection boundary cases. They include both skill and mark sources, actual SkillPhase dispatch, late condition/owner/target changes and cancellation. Complete-game/checkpoint acceptance remains pending.
 
 Final integration: all 1,829 public outcome checks pass across eight disjoint ID groups, including the full catalog audit. All 76 offline generator tests, V4 typechecking and lint, declaration generation and source provenance pass. Both review axes pass this extension. The original 56 recipes remain unchanged.
+
+## Defensive outcome extension
+
+The final five candidates are `effect_mark_evade`, `effect_mark_evade_with_stack`, `effect_mark_evasion_special_attacks`, `effect_mark_evade_physical_attacks` and `effect_mark_evade_physical_with_stack`. The reusable `conditions.skillActorDiffersFromOwner` queries the nearest skill context and compares its pet to `source.owner`. It deliberately includes same-player bench, global and unowned sources when those owners differ from the actor. `ownerIsSkillTarget` independently requires the direct skill event and matching actual target; nested events therefore admit the category-only effects but reject the target-bound effects.
+
+The two `with_stack` candidates retain automatic consumption in the existing effect lifecycle. A last-layer destruction probe observes zero layers and no miss override; the current action then writes its override even though the source has been destroyed. A later redispatch cannot execute an exhausted source. Cancellation, initial suppression, late suppression/inactivation and removal before the action prevent the write. Skill sources are not charged mark layers.
+
+The dedicated suite covers both skill/mark sources, owner relations, empty/nested contexts, category and actual-target mismatches, collect-time versus execution-time mutations, repeated application, exhaustion and real SkillPhase/turn execution. Actual phases have an independent target-stage probe; results independently assert hit/miss, override entries and stack counts. These are scoped candidate tests, not complete-game or checkpoint acceptance. The original 60 recipes remain unchanged; all 65 IDs still carry U status and are not registered by the production loader.
+
+Defensive integration passes 186 dedicated checks plus three existing direct-event ownership matrices (189 total), the full 65-ID source/ledger audit (66 checks), all 77 generator checks and 69 authoring design checks. V4 typechecking, lint, declarations and source provenance pass. The prior 1,829-check run covers the preceding 60-candidate snapshot; it is separate from these new checks.

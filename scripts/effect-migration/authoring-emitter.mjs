@@ -241,6 +241,8 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
     if (domain === 'skill' && c.type === 'petIsActive') return 'conditions.ownerIsActive'
     if (domain === 'skill' && c.type === 'isFirstSkillUsedThisTurn') return 'conditions.firstSkillThisTurn'
     if (domain === 'skill' && c.type === 'isLastSkillUsedThisTurn') return 'conditions.lastSkillThisTurn'
+    if (domain === 'skill' && options.defensiveSkill && c.type === 'opponentUseSkill')
+      return 'conditions.skillActorDiffersFromOwner'
     if (c.type === 'selfUseSkill') return 'conditions.selfUsesSkill'
     // checkSelf refers to a different event subject in each supported stage family.
     if (c.type === 'checkSelf')

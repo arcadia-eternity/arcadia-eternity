@@ -167,6 +167,63 @@ export function createGeneratedSkillOutcomeEffects() {
         execute: contexts.skillUse.apply(ops.setSureHit(1)),
       }),
     ),
+    effect_mark_evade: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.skillActorDiffersFromOwner, conditions.ownerIsSkillTarget),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evade_physical_attacks: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade_physical_attacks',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.skillActorDiffersFromOwner,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evade_physical_with_stack: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade_physical_with_stack',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.all(
+          conditions.skillActorDiffersFromOwner,
+          conditions.ownerIsSkillTarget,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evade_with_stack: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade_with_stack',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.all(conditions.skillActorDiffersFromOwner, conditions.ownerIsSkillTarget),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evasion_special_attacks: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evasion_special_attacks',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.skillActorDiffersFromOwner,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
     effect_mark_silence: compileEffect(
       defineEffect({
         id: 'effect_mark_silence',

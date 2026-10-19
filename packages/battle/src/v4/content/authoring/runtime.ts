@@ -337,6 +337,10 @@ export const conditions: typeof C.conditions = {
     const source = engine(ctx).source
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
+  skillActorDiffersFromOwner(ctx) {
+    const skill = contexts.nearestSkillUse(ctx)
+    return !!skill && engine(ctx).source.owner !== skill.pet
+  },
   ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
   sourceOwnsEvent: ctx => {
     const event = ctx.event,

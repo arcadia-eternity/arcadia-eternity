@@ -152,6 +152,8 @@ export declare const conditions: {
   readonly any: <T extends Trigger = Trigger>(...items: readonly Condition<T>[]) => Condition<T>
   readonly not: <T extends Trigger = Trigger>(item: Condition<T>) => Condition<T>
   readonly selfUsesSkill: Condition
+  /** Nearest skill actor differs from source.owner; includes same-player bench and global owners. */
+  readonly skillActorDiffersFromOwner: Condition
   /** Direct skill event owned by this source; unlike selfUsesSkill, no skill identity restriction. */
   readonly ownerUsesSkill: Condition
   /** Legacy checkSelf: compare source ownership with the subject of the direct event. */

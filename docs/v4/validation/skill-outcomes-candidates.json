@@ -222,6 +222,98 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_mark_evade",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/38",
+      "definitionSha256": "c5a2d1cd1ab54f19d07a8222e53d4358c01c810a8c106a50866c0c26affc9990",
+      "recipe": {
+        "id": "effect_mark_evade",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureMiss",
+        "amount": -1,
+        "when": "conditions.all(conditions.skillActorDiffersFromOwner,conditions.ownerIsSkillTarget)",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_evade_physical_attacks",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/112",
+      "definitionSha256": "2018d6769f8d8ba1fd6067771fcc003d3c4a8dd877da1084f114ea0e66e98d8f",
+      "recipe": {
+        "id": "effect_mark_evade_physical_attacks",
+        "trigger": "BeforeUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureMiss",
+        "amount": -1,
+        "when": "conditions.all(conditions.skillActorDiffersFromOwner,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Physical\"))",
+        "repairedPaths": ["/condition/conditions/1/target/base", "/apply/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_evade_physical_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/191",
+      "definitionSha256": "1bcf4ca90a1525347befab076eff12df63cbb5b5e8f528600d5a197b0d56a60a",
+      "recipe": {
+        "id": "effect_mark_evade_physical_with_stack",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureMiss",
+        "amount": -1,
+        "when": "conditions.all(conditions.skillActorDiffersFromOwner,conditions.ownerIsSkillTarget,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Physical\"))",
+        "repairedPaths": ["/condition/conditions/2/target/base", "/apply/target"],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_evade_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/39",
+      "definitionSha256": "98cfb14710166069a625b8047953dd133671bab5505cca2c3508982d93801354",
+      "recipe": {
+        "id": "effect_mark_evade_with_stack",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureMiss",
+        "amount": -1,
+        "when": "conditions.all(conditions.skillActorDiffersFromOwner,conditions.ownerIsSkillTarget)",
+        "repairedPaths": ["/apply/target"],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_evasion_special_attacks",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/76",
+      "definitionSha256": "a7721bfdd6234b59b56392680a66780a185a735651ad7187981355f46fa48101",
+      "recipe": {
+        "id": "effect_mark_evasion_special_attacks",
+        "trigger": "BeforeUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureMiss",
+        "amount": -1,
+        "when": "conditions.all(conditions.skillActorDiffersFromOwner,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Special\"))",
+        "repairedPaths": ["/condition/conditions/1/target/base", "/apply/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_mark_silence",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/12",
@@ -1107,41 +1199,5 @@
       "status": "generated-correction-candidate"
     }
   ],
-  "rejected": [
-    {
-      "id": "effect_mark_evade",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/38",
-      "definitionSha256": "c5a2d1cd1ab54f19d07a8222e53d4358c01c810a8c106a50866c0c26affc9990",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_mark_evade_physical_attacks",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/112",
-      "definitionSha256": "2018d6769f8d8ba1fd6067771fcc003d3c4a8dd877da1084f114ea0e66e98d8f",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_mark_evade_physical_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/191",
-      "definitionSha256": "1bcf4ca90a1525347befab076eff12df63cbb5b5e8f528600d5a197b0d56a60a",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_mark_evade_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/39",
-      "definitionSha256": "98cfb14710166069a625b8047953dd133671bab5505cca2c3508982d93801354",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_mark_evasion_special_attacks",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/76",
-      "definitionSha256": "a7721bfdd6234b59b56392680a66780a185a735651ad7187981355f46fa48101",
-      "reason": "condition needs a separate mapping"
-    }
-  ]
+  "rejected": []
 }
