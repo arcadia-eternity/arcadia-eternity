@@ -53,7 +53,7 @@ test('rejects unsupported semantics and ambiguous parameter aliases', () => {
     assert.ok(classifyStatStage(bad).reason)
 })
 test('all emitted source and ledger reproduce exactly', async () =>
-  assert.deepEqual(await generateStatStages({ check: true }), { generated: 99, parameters: 42, rejected: 3 }))
+  assert.deepEqual(await generateStatStages({ check: true }), { generated: 100, parameters: 42, rejected: 2 }))
 
 test('shared authored conditions preserve stat identity and ordered admission', () => {
   const d = source()
@@ -194,4 +194,33 @@ test('C08 last-skill admission is explicit and rejects moved correction nodes', 
   }
   d.condition.conditions.reverse()
   assert.ok(classifyStatStage(d).reason)
+})
+
+test('damage-stage probability uses shared skill admission and authored parameter metadata', () => {
+  const d = {
+    ...source(),
+    id: 'effect_skill_reduce_stat_5_percent',
+    trigger: 'OnDamage',
+    condition: { type: 'every', conditions: [source().condition, roll] },
+  }
+  const before = structuredClone(d)
+  const r = classifyStatStage(d)
+  assert.deepEqual(d, before)
+  assert.match(r.when, /conditions.selfUsesSkill/)
+  assert.match(r.when, /conditions.chance\(parameters.condition_1_percent\)/)
+  assert.deepEqual(r.parameters, [
+    { name: 'condition_1_percent', value: 20, tags: ['skill_effect_probability'], configId: 'chance' },
+  ])
+  assert.ok(classifyStatStage({ ...d, id: 'unreviewed' }).reason)
+})
+
+test('damage-stage domain cannot inherit skill-only checkSelf or mixed triggers', () => {
+  const d = {
+    ...source(),
+    id: 'effect_skill_reduce_stat_5_percent',
+    trigger: 'OnDamage',
+    condition: { type: 'checkSelf' },
+  }
+  assert.equal(classifyStatStage(d).when, 'conditions.selfBeDamaged')
+  assert.ok(classifyStatStage({ ...d, trigger: ['OnDamage', 'BeforeHit'] }).reason)
 })

@@ -2212,6 +2212,29 @@
         ]
       },
       "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_stat_5_percent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/0",
+      "definitionSha256": "a3b001aeec5e0486c1a96b719a5a0f2323bfc6cefc0d67612e8daf75fd209846",
+      "recipe": {
+        "id": "effect_skill_reduce_stat_5_percent",
+        "priority": 0,
+        "triggers": ["OnDamage"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_percent))",
+        "parameters": [
+          {
+            "name": "condition_1_percent",
+            "value": 5,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
     }
   ],
   "rejected": [
@@ -2221,13 +2244,6 @@
       "sourcePath": "/67",
       "definitionSha256": "601f12569ac823fe547dec73e57f52472852cc0901e713ed87699e202a120aad",
       "reason": "requires literal stat/value and self/opponent target"
-    },
-    {
-      "id": "effect_skill_reduce_stat_5_percent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/0",
-      "definitionSha256": "a3b001aeec5e0486c1a96b719a5a0f2323bfc6cefc0d67612e8daf75fd209846",
-      "reason": "unsupported trigger or admission condition"
     },
     {
       "id": "effect_skill_set_self_spa_to_atk",

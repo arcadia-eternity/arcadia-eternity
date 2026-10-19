@@ -85,6 +85,8 @@ export function classifyStatStage(original) {
   )
     return { reason: 'requires literal stat/value and self/opponent target' }
   const triggers = Array.isArray(d.trigger) ? d.trigger : [d.trigger]
+  if (triggers.includes('OnDamage') && (triggers.length !== 1 || d.id !== 'effect_skill_reduce_stat_5_percent'))
+    return { reason: 'damage-stage admission needs an explicit source mapping' }
   const initialStages = triggers.every(t => ['BeforeHit', 'OnHit', 'OnMiss'].includes(t))
   const clauses = initialStages ? condition(d.condition) : undefined
   const turnOrderPaths = turnOrderConditionPaths(d.condition)
@@ -101,15 +103,17 @@ export function classifyStatStage(original) {
   // Keep the established parameter addresses for the initial batch. New conditions
   // use the shared authoring API; turn-order repairs need their own C08 evidence.
   const parameters = []
-  const when = !clauses ? authoredCondition(d.condition, 'skill', parameters) : undefined
+  const when = !clauses
+    ? authoredCondition(d.condition, triggers[0] === 'OnDamage' ? 'damage' : 'skill', parameters)
+    : undefined
   if (
     !triggers.length ||
     new Set(triggers).size !== triggers.length ||
     !triggers.every(t =>
-      ['BeforeHit', 'OnHit', 'OnMiss', 'BeforeMultiHit', 'OnCritPreDamage', 'OnDefeat'].includes(t),
+      ['BeforeHit', 'OnHit', 'OnMiss', 'BeforeMultiHit', 'OnCritPreDamage', 'OnDefeat', 'OnDamage'].includes(t),
     ) ||
     (clauses ? !clauses.some(c => c.kind === 'self') : !when) ||
-    parameters.length > 0
+    (parameters.length > 0 && d.id !== 'effect_skill_reduce_stat_5_percent')
   )
     return { reason: 'unsupported trigger or admission condition' }
   if (when)
@@ -121,6 +125,7 @@ export function classifyStatStage(original) {
       stat: a.statType,
       value: a.value,
       when,
+      ...(parameters.length ? { parameters } : {}),
       ...(paths.length ? { selectorRepairs: paths } : {}),
       ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
       ...(paths.length || repaired.changes.length || turnOrder
@@ -166,8 +171,15 @@ export async function generateStatStages({ check = false } = {}) {
     entries = []
   for (const { recipe: r } of records) {
     if (r.when) {
+      const params = r.parameters
+        ?.map(
+          p =>
+            `${p.name}:numberParam({default:${JSON.stringify(p.value)},tags:${JSON.stringify(p.tags ?? [])},legacyAliases:${JSON.stringify(p.configId ? [`${r.id}.${p.configId}`] : [])}})`,
+        )
+        .join(',')
+      const compiled = `compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.triggers)},priority:${r.priority},${params ? 'parameters,' : ''}when:${r.when},execute:targets.${r.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.changeStatStage(${JSON.stringify(r.stat)},${r.value}))}))`
       entries.push(
-        `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.triggers)},priority:${r.priority},when:${r.when},execute:targets.${r.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.changeStatStage(${JSON.stringify(r.stat)},${r.value}))}))`,
+        `${JSON.stringify(r.id)}:${params ? `(()=>{const parameters={${params}};return ${compiled}})()` : compiled}`,
       )
       continue
     }
@@ -188,6 +200,7 @@ export async function generateStatStages({ check = false } = {}) {
     )
   }
   const authoringImports = [
+    'numberParam',
     'compileEffect',
     'defineEffect',
     'conditions',
