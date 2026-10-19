@@ -142,6 +142,8 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_shoudaoshanghaizengjia',
   'mark_shoufashanghaizengjia',
   'mark_shuanghunxuanlv',
+  'mark_shuangpozhuiji',
+  'mark_shuangrenzhuiji',
   'mark_shuiliangbaohe',
   'mark_shuiliangchongzu',
   'mark_shuimian',
@@ -2042,6 +2044,40 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuanghunxuanlv')!)),
       }),
     ),
+    effect_skill_add_mark_opponent_shuangpozhuiji_if_damage_less_100: (() => {
+      const parameters = { condition_1_value: numberParam({ default: 100, tags: [], legacyAliases: [] }) }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_shuangpozhuiji_if_damage_less_100',
+          on: ['OnDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+            const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+            const right = ctx.read(parameters.condition_1_value)
+            return left !== undefined && right !== undefined && left < right
+          }),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuangpozhuiji')!)),
+        }),
+      )
+    })(),
+    effect_skill_add_mark_opponent_shuangrenzhuiji_if_damage_less_100: (() => {
+      const parameters = { condition_1_value: numberParam({ default: 100, tags: [], legacyAliases: [] }) }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_mark_opponent_shuangrenzhuiji_if_damage_less_100',
+          on: ['OnDamage'],
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+            const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+            const right = ctx.read(parameters.condition_1_value)
+            return left !== undefined && right !== undefined && left < right
+          }),
+          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuangrenzhuiji')!)),
+        }),
+      )
+    })(),
     effect_skill_add_mark_opponent_shuimian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shuimian',

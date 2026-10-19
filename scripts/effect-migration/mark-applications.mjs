@@ -80,7 +80,9 @@ export function classifyMarkApplication(original) {
     } else options[`${key}Value`] = value.code
   }
   const supportedStage =
-    (damageStage && requiredCondition(definition.condition, 'selfBeDamaged')) ||
+    (damageStage &&
+      (requiredCondition(definition.condition, 'selfBeDamaged') ||
+        requiredCondition(definition.condition, 'selfUseSkill'))) ||
     (triggers.length === 1 &&
       ['OnMarkDestroy', 'OnMarkDurationEnd'].includes(triggers[0]) &&
       !('condition' in definition)) ||

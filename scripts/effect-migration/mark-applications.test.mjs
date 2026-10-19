@@ -23,7 +23,7 @@ test('rejects extra semantics rather than silently dropping them', () => {
   const d = source()
   for (const invalid of [
     { ...d, consumesStacks: 1 },
-    { ...d, trigger: 'OnDamage' },
+    { ...d, trigger: 'OnDamage', condition: { type: 'petIsActive' } },
     { ...d, trigger: ['OnHit', 'OnHit'] },
     { ...d, priority: NaN },
     { ...d, condition: { type: 'some', conditions: [d.condition, { type: 'isFirstSkillUsedThisTurn' }] } },
@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 275,
+    generated: 277,
     protected: 2,
-    dependencies: 186,
-    rejected: 10,
+    dependencies: 188,
+    rejected: 8,
   })
 })
 
@@ -249,10 +249,10 @@ test('accepts unconditional fixed mark lifecycle actions and retains strict stag
   }
 })
 
-test('requires a mandatory damaged-owner guard at damage stages', () => {
+test('requires a mandatory damaged-owner or skill-owner guard at damage stages', () => {
   const d = { ...source(), trigger: 'PostDamage', condition: { type: 'selfBeDamaged' } }
   assert.equal(classifyMarkApplication(d).when, 'conditions.selfBeDamaged')
-  assert.ok(classifyMarkApplication({ ...d, condition: { type: 'selfUseSkill' } }).reason)
+  assert.equal(classifyMarkApplication({ ...d, condition: { type: 'selfUseSkill' } }).when, 'conditions.selfUsesSkill')
   assert.ok(
     classifyMarkApplication({ ...d, condition: { type: 'some', conditions: [d.condition, { type: 'selfUseSkill' }] } })
       .reason,
@@ -375,4 +375,37 @@ test('named mark skill paths require the reviewed source node and retain a C09 r
     d.condition.conditions[1].target.chain[0].type = 'selectPath'
     assert.ok(classifyMarkApplication({ ...d, id: 'unreviewed-effect' }).reason)
   }
+})
+
+test('damage-result comparison emits one configured threshold and a scoped damage query', () => {
+  const d = {
+    ...source(),
+    trigger: 'OnDamage',
+    condition: {
+      type: 'every',
+      conditions: [
+        { type: 'selfUseSkill' },
+        {
+          type: 'evaluate',
+          target: { base: 'damageContext', chain: [{ type: 'selectPath', arg: 'damageResult' }] },
+          evaluator: {
+            type: 'compare',
+            operator: '<',
+            value: { type: 'raw:number', value: 100, configId: 'threshold', tags: ['threshold'] },
+          },
+        },
+      ],
+    },
+  }
+  const recipe = classifyMarkApplication(d)
+  assert.match(recipe.when, /contexts\.damage\.select\(event => event\.damageResult\)\.first\(\)/)
+  assert.match(recipe.when, /ctx\.read\(parameters\.condition_1_value\)/)
+  assert.deepEqual(recipe.parameters, [
+    { name: 'condition_1_value', value: 100, configId: 'threshold', tags: ['threshold'] },
+  ])
+  d.condition.conditions[1].target.chain[0].arg = 'baseDamage'
+  assert.ok(classifyMarkApplication(d).reason)
+  d.condition.conditions[1].target.chain[0].arg = 'damageResult'
+  d.condition.conditions[1].evaluator.value.unknown = true
+  assert.ok(classifyMarkApplication(d).reason)
 })

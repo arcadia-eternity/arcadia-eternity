@@ -35,8 +35,10 @@ type RecordEntry = {
 const allRecords: RecordEntry[] = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/mark-applications-candidates.json', import.meta.url), 'utf8'),
 ).records.filter((r: RecordEntry) => r.status === 'generated-candidate')
-const records = allRecords.filter(record =>
-  record.recipe.triggers.some(trigger => ['OnDamage', 'PostDamage'].includes(trigger)),
+const records = allRecords.filter(
+  record =>
+    record.recipe.triggers.some(trigger => ['OnDamage', 'PostDamage'].includes(trigger)) &&
+    record.recipe.when.includes('conditions.selfBeDamaged'),
 )
 const files = new Map<string, { id: string }[]>()
 for (const record of allRecords)

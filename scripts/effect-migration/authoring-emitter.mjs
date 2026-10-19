@@ -19,6 +19,7 @@ function root(s, domain = 'damage') {
   if (s === 'opponent') return 'targets.opponentActive'
   if (s === 'mark') return 'targets.sourceMark'
   if (s === 'selfMarks') return 'targets.ownerMarks'
+  if (s === 'damageContext') return 'contexts.damage'
   if (s === 'usingSkillContext') return 'contexts.skillUse'
   if (s === 'opponentMarks') return 'targets.opponentMarks'
 }
@@ -121,6 +122,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
       else if (
         step.type === 'selectPath' &&
         (step.arg === 'stack' ||
+          (s.base === 'damageContext' && step.arg === 'damageResult') ||
           (domain === 'skill' &&
             ['self', 'opponent'].includes(s.base) &&
             ['stat.spa', 'stat.atk'].includes(step.arg)) ||
@@ -151,6 +153,8 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         code += `.select(player => player.${name === 'rage' ? 'currentRage' : name})${terminal}`
       else if (domain === 'skill' && s.base === 'battle' && name === 'currentTurn')
         code += `.select(battle => battle.currentTurn)${terminal}`
+      else if (s.base === 'damageContext' && name === 'damageResult')
+        code += `.select(event => event.damageResult)${terminal}`
       else if (collection && s.base === 'usingSkillContext' && name === 'power')
         code += `.select(event => event.power)${terminal}`
       else return
@@ -406,10 +410,14 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
     ['<', '>', '<=', '>=', '=='].includes(e.operator)
   ) {
     // Legacy compare checks every member with some(); only single-entity roots may use first().
-    if (!['self', 'opponent', 'mark', ...(domain === 'skill' ? ['selfPlayer', 'battle'] : [])].includes(c.target?.base))
+    if (
+      !['self', 'opponent', 'mark', 'damageContext', ...(domain === 'skill' ? ['selfPlayer', 'battle'] : [])].includes(
+        c.target?.base,
+      )
+    )
       return
     const left = selectedNumber(c.target, undefined, undefined, 'first', domain),
-      right = number(e.value, undefined, undefined, domain)
+      right = number(e.value, c.target.base === 'damageContext' ? parameters : undefined, `${path}_value`, domain)
     // Existing optional fields may yield [undefined], distinct from an empty query; don't collapse equality.
     if (e.operator === '==' && [left, right?.code].some(code => code && /pet\.(weight|height)/.test(code))) return
     if (left && right)
