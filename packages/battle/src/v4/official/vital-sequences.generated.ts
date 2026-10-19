@@ -4,6 +4,7 @@ import {
   compileEffect,
   defineEffect,
   conditions,
+  contexts,
   targets,
   checks,
   ops,
@@ -12,6 +13,130 @@ import {
 } from '../content/authoring'
 export function createGeneratedVitalSequences() {
   return Object.freeze({
+    effect_mark_heal_self_1_16_turnEnd: compileEffect(
+      defineEffect({
+        id: 'effect_mark_heal_self_1_16_turnEnd',
+        on: 'TurnEnd',
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              targets.ownerPet
+                .select(pet => pet.stat.maxHp)
+                .first()
+                .map(n => Math.floor(n / 16)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_mark_heal_self_1_6_turnEnd: compileEffect(
+      defineEffect({
+        id: 'effect_mark_heal_self_1_6_turnEnd',
+        on: 'TurnEnd',
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              targets.ownerPet
+                .select(pet => pet.stat.maxHp)
+                .first()
+                .map(n => Math.floor(n / 6)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_mark_heal_self_1_8_turnEnd: compileEffect(
+      defineEffect({
+        id: 'effect_mark_heal_self_1_8_turnEnd',
+        on: 'TurnEnd',
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              targets.ownerPet
+                .select(pet => pet.stat.maxHp)
+                .first()
+                .map(n => Math.floor(n / 8)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_mark_mihuo_damage_self: compileEffect(
+      defineEffect({
+        id: 'effect_mark_mihuo_damage_self',
+        on: 'PostDamage',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(
+          targets.ownerPet.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first())),
+        ),
+      }),
+    ),
+    effect_mark_reflect_damage: compileEffect(
+      defineEffect({
+        id: 'effect_mark_reflect_damage',
+        on: 'OnDamage',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.selfBeDamaged,
+        execute: actions.sequence(
+          targets.opponentActive.apply(
+            ops.dealDamage(
+              contexts.damage
+                .select(event => event.damageResult)
+                .first()
+                .map(n => Math.floor(n * 1.5)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_mark_reflect_damage_1_4: compileEffect(
+      defineEffect({
+        id: 'effect_mark_reflect_damage_1_4',
+        on: 'OnDamage',
+        priority: 0,
+        when: conditions.selfBeDamaged,
+        execute: actions.sequence(
+          targets.opponentActive.apply(
+            ops.dealDamage(
+              contexts.damage
+                .select(event => event.damageResult)
+                .first()
+                .map(n => Math.floor(n / 4)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_mark_reflect_special_damage_50_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_reflect_special_damage_50_percent',
+        on: 'OnDamage',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
+        ),
+        execute: actions.sequence(
+          targets.opponentActive.apply(
+            ops.dealDamage(
+              contexts.damage
+                .select(event => event.damageResult)
+                .first()
+                .map(n => Math.floor(n * 0.5)),
+            ),
+          ),
+        ),
+      }),
+    ),
     effect_skill_add_rage_with_consume_yinbo_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_with_consume_yinbo_stack',

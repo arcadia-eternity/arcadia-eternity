@@ -2,6 +2,155 @@
   "formatVersion": 1,
   "records": [
     {
+      "id": "effect_mark_heal_self_1_16_turnEnd",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/70",
+      "definitionSha256": "dcfae07a8b829a2a6a269ad474085bd2e3cc2eebbd8f7f8c630b2b6a5a41f5bf",
+      "recipe": {
+        "id": "effect_mark_heal_self_1_16_turnEnd",
+        "trigger": "TurnEnd",
+        "priority": 0,
+        "when": "conditions.ownerIsActive",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 16))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_heal_self_1_6_turnEnd",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/181",
+      "definitionSha256": "54b84e345786d9386af0c90d1117481c6a9c3a3c235bf774b676ac18eb793994",
+      "recipe": {
+        "id": "effect_mark_heal_self_1_6_turnEnd",
+        "trigger": "TurnEnd",
+        "priority": 0,
+        "when": "conditions.ownerIsActive",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 6))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_heal_self_1_8_turnEnd",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/35",
+      "definitionSha256": "0795064ce420482e3f9fb28a452b8bf49fda3069fa7e322af373c0ee91757097",
+      "recipe": {
+        "id": "effect_mark_heal_self_1_8_turnEnd",
+        "trigger": "TurnEnd",
+        "priority": 0,
+        "when": "conditions.ownerIsActive",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 8))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_mihuo_damage_self",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/41",
+      "definitionSha256": "ff32d9f928d3a17a95c3aed08318f98260f581dbaa6c4add1b4ec1375ec34f3d",
+      "recipe": {
+        "id": "effect_mark_mihuo_damage_self",
+        "trigger": "PostDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first()))"
+          }
+        ],
+        "repairedPaths": [],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reflect_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/52",
+      "definitionSha256": "07e75a0d0766d8747434a2c2466d252b6603a224e6c4d26e88af541293cbc1ee",
+      "recipe": {
+        "id": "effect_mark_reflect_damage",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first().map(n => Math.floor(n * 1.5))))"
+          }
+        ],
+        "repairedPaths": [],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reflect_damage_1_4",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/58",
+      "definitionSha256": "1e73b2a9a9db4b9396d5ed9d6ae9b6c52a97e465d022865423a79cd02167dcb9",
+      "recipe": {
+        "id": "effect_mark_reflect_damage_1_4",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first().map(n => Math.floor(n / 4))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reflect_special_damage_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/142",
+      "definitionSha256": "94c862a0d155197edfe6700e90c78ef9a9d1da568c24f01930d3d13dc6e572d4",
+      "recipe": {
+        "id": "effect_mark_reflect_special_damage_50_percent",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.damage.condition((_ctx,events) => events[0]?.damageType === \"Special\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first().map(n => Math.floor(n * 0.5))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_skill_add_rage_with_consume_yinbo_stack",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/585",
@@ -154,14 +303,14 @@
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/46",
       "definitionSha256": "3c55e2ae71442969961ad5d41ab785627e1665a6c8868adc7f29dbc8fc59d8c0",
-      "reason": "unsupported trigger"
+      "reason": "unsupported sequence action or parameter"
     },
     {
       "id": "effect_mark_absorb_hp_to_opponent",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/21",
       "definitionSha256": "a116b4e90236c7c06463fe7d14cb892186005dd768f1a2cf8e995f0372aecc46",
-      "reason": "unsupported trigger"
+      "reason": "unsupported sequence action or parameter"
     },
     {
       "id": "effect_mark_explode_on_stack_over_100",
@@ -171,67 +320,18 @@
       "reason": "unsupported trigger"
     },
     {
-      "id": "effect_mark_heal_self_1_16_turnEnd",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/70",
-      "definitionSha256": "dcfae07a8b829a2a6a269ad474085bd2e3cc2eebbd8f7f8c630b2b6a5a41f5bf",
-      "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_mark_heal_self_1_6_turnEnd",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/181",
-      "definitionSha256": "54b84e345786d9386af0c90d1117481c6a9c3a3c235bf774b676ac18eb793994",
-      "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_mark_heal_self_1_8_turnEnd",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/35",
-      "definitionSha256": "0795064ce420482e3f9fb28a452b8bf49fda3069fa7e322af373c0ee91757097",
-      "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_mark_mihuo_damage_self",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/41",
-      "definitionSha256": "ff32d9f928d3a17a95c3aed08318f98260f581dbaa6c4add1b4ec1375ec34f3d",
-      "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_mark_reflect_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/52",
-      "definitionSha256": "07e75a0d0766d8747434a2c2466d252b6603a224e6c4d26e88af541293cbc1ee",
-      "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_mark_reflect_damage_1_4",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/58",
-      "definitionSha256": "1e73b2a9a9db4b9396d5ed9d6ae9b6c52a97e465d022865423a79cd02167dcb9",
-      "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_mark_reflect_special_damage_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/142",
-      "definitionSha256": "94c862a0d155197edfe6700e90c78ef9a9d1da568c24f01930d3d13dc6e572d4",
-      "reason": "unsupported trigger"
-    },
-    {
       "id": "effect_mark_self_damage_50_percent_once",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/197",
       "definitionSha256": "89d549d6f6a57034eb2ab9987f81db93a48770bb20f0933f39519b92bc368abf",
-      "reason": "unsupported trigger"
+      "reason": "condition needs a separate mapping"
     },
     {
       "id": "effect_mark_self_damage_50_percent_once_when_special",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/200",
       "definitionSha256": "ee1f997518c42abc2bf371b6c35542f0afd7d43f0bf20bc0256dfe7210ede06b",
-      "reason": "unsupported trigger"
+      "reason": "condition needs a separate mapping"
     },
     {
       "id": "effect_skill_clear_rage_add_fixed_damage",

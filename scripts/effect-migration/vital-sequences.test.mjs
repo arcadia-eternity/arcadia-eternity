@@ -28,7 +28,7 @@ test('rejects unsupported whole lists rather than dropping fields', () => {
       d.apply.push({ type: 'unknown' })
     },
     d => {
-      d.trigger = 'OnDamage'
+      d.trigger = 'OnStack'
     },
     d => {
       d.apply[0].extra = 1
@@ -46,5 +46,33 @@ test('keeps raw numeric parameters as editable authored parameters', () => {
   assert.deepEqual(r.parameters, [{ name: 'action0_value', value: 3, configId: 'amount', tags: ['heal'] }])
   assert.match(r.actions[0].code, /parameters.action0_value/)
 })
-test('reproduces six OnHit candidates and thirteen unsupported lists', async () =>
-  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 6, rejected: 13 }))
+test('reproduces thirteen vital candidates and six unsupported lists', async () =>
+  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 13, rejected: 6 }))
+
+test('turn-end and damage queries retain their distinct admission and value sources', () => {
+  const d = source()
+  d.trigger = 'TurnEnd'
+  d.condition = { type: 'petIsActive' }
+  assert.equal(classifyVitalSequence(d).when, 'conditions.ownerIsActive')
+  d.trigger = 'OnDamage'
+  d.condition = { type: 'selfBeDamaged' }
+  d.apply = [
+    {
+      type: 'dealDamage',
+      target: 'opponent',
+      value: {
+        type: 'dynamic',
+        selector: {
+          base: 'damageContext',
+          chain: [
+            { type: 'selectPath', arg: 'damageResult' },
+            { type: 'divide', arg: 4 },
+          ],
+        },
+      },
+    },
+  ]
+  const r = classifyVitalSequence(d)
+  assert.equal(r.when, 'conditions.selfBeDamaged')
+  assert.match(r.actions[0].code, /contexts.damage.select.*damageResult.*Math.floor/)
+})

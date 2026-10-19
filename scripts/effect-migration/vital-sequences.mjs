@@ -3,7 +3,7 @@ import { classifySequence, generateSequences } from './sequence-candidates.mjs'
 const profile = {
   slug: 'vital-sequences',
   actionTypes: ['heal', 'dealDamage', 'addRage'],
-  triggers: ['OnHit'],
+  triggers: ['OnHit', 'TurnEnd', 'OnDamage', 'PostDamage'],
   exportName: 'generatedVitalSequences',
   factory: 'createGeneratedVitalSequences',
   parameters: true,
