@@ -109,6 +109,30 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/485",
+      "definitionSha256": "b165b06fee42b4015d15c41bbe2734c91d8506ac71143265208b8f238de3773a",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.changeStatStage(\"atk\",1))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerPet.apply((ctx,pets) => {const stat=ctx.read(selectFrom([\"def\",\"spd\",\"spa\",\"spe\"] as const).shuffled().first());if(stat!==undefined) ops.changeStatStage(stat,1)(ctx,pets)})"
+          }
+        ],
+        "repairedPaths": [],
+        "valueRepairs": [{ "path": "/apply/1/statType/type", "before": "selectorValue", "after": "selector" }]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C10"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_raise_atk_def_1_stage_if_male",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/663",
@@ -223,13 +247,5 @@
       "status": "generated-candidate"
     }
   ],
-  "rejected": [
-    {
-      "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/485",
-      "definitionSha256": "b165b06fee42b4015d15c41bbe2734c91d8506ac71143265208b8f238de3773a",
-      "reason": "unsupported sequence action or parameter"
-    }
-  ]
+  "rejected": []
 }

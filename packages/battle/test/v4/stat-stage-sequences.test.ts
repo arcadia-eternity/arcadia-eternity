@@ -13,6 +13,7 @@ import {
   EffectContext,
   RemoveMarkContext,
   DamageContext,
+  AddMarkContext,
   Gender,
   EffectTrigger,
   TurnContext,
@@ -35,6 +36,7 @@ interface RecordEntry {
   recipe: {
     trigger: 'BeforeHit' | 'OnDamage'
     repairedPaths: string[]
+    valueRepairs?: { path: string; before: string; after: string }[]
     pathRepairs?: { path: string; before: string; after: string }[]
     actions: { sourcePath: string }[]
   }
@@ -67,7 +69,13 @@ function copy(value: unknown, paths: string[] = [], path = ''): unknown {
   return value
 }
 function reference(r: RecordEntry) {
-  return copy(definitions.get(r.id)) as Definition
+  const d = copy(definitions.get(r.id)) as Definition
+  if (r.id === 'effect_skill_raise_atk_1_stage_and_other_1_stage') {
+    const action = d.apply[1] as { statType: { type: string } }
+    expect(action.statType.type).toBe('selectorValue')
+    action.statType.type = 'selector'
+  }
+  return d
 }
 const oracles = new Map(records.map(r => [r.id, EffectParser.parse(reference(r))]))
 const battles: Battle[] = []
@@ -94,8 +102,14 @@ const variants = [
   'redirect',
   'switch-slot',
 ] as const
-function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (typeof variants)[number]) {
-  const { battle, a, b, debuff } = makeScenario(421)
+function run(
+  r: RecordEntry,
+  native: boolean,
+  kind: 'skill' | 'mark',
+  variant: (typeof variants)[number] | 'random-shift' | 'random-detach' | 'random-cancel-stage',
+  seed = 421,
+) {
+  const { battle, a, b, debuff } = makeScenario(seed)
   battles.push(battle)
   for (const p of [...a.team, ...b.team]) for (const s of p.skills) s.effects.splice(0)
   const skill = new SkillInstance(
@@ -196,6 +210,26 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
       },
     }),
   )
+  const stageTrace: string[] = []
+  if (r.id === 'effect_skill_raise_atk_1_stage_and_other_1_stage')
+    b.team[1].skills[0].effects.push(
+      defineNativeEffect({
+        id: 'fixture/stat-order' as effectId,
+        triggers: [EffectTrigger.OnBeforeAddMark],
+        when: c => c.parent instanceof AddMarkContext && c.parent.parent === outer,
+        apply(c) {
+          if (!(c.parent instanceof AddMarkContext)) return
+          stageTrace.push(c.parent.baseMark.id)
+          if (c.parent.baseMark.id !== 'stat_stage_atk_up') return
+          if (variant === 'random-shift') {
+            battle.random()
+            source.owner = a.team[1]
+          }
+          if (variant === 'random-detach') source.owner = null
+          if (variant === 'random-cancel-stage') c.parent.available = false
+        },
+      }),
+    )
   if (variant === 'phase' || variant === 'turn') {
     let reached = 0
     skill.effects.push(
@@ -251,6 +285,7 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
     support: support.map(m => ({ id: m.baseId, stack: m.stack, active: m.isActive })),
     use: state(use),
     stages: stages(),
+    stageTrace,
     next: battle.random(),
   }
 }
@@ -258,6 +293,13 @@ function run(r: RecordEntry, native: boolean, kind: 'skill' | 'mark', variant: (
 for (const r of records) {
   it(`${r.id} audits unchanged source and full ordered mapping`, () => {
     expect(r.recipe.repairedPaths).toEqual([])
+    expect(r.recipe.valueRepairs ?? []).toEqual(
+      r.id === 'effect_skill_raise_atk_1_stage_and_other_1_stage'
+        ? [{ path: '/apply/1/statType/type', before: 'selectorValue', after: 'selector' }]
+        : [],
+    )
+    if (r.recipe.valueRepairs) expect(() => EffectParser.parse(definitions.get(r.id))).toThrow(/效果数据验证失败/)
+
     expect(r.recipe.actions.map(a => a.sourcePath)).toEqual(definitions.get(r.id)!.apply.map((_, i) => `/apply/${i}`))
     const normalize = (v: unknown): unknown =>
       Array.isArray(v)
@@ -284,6 +326,7 @@ for (const r of records) {
         if (variant === 'normal') {
           expect(actual.admitted).toHaveLength(1)
           const expected: Record<string, [number, string, number][]> = {
+            effect_skill_raise_atk_1_stage_and_other_1_stage: [[0, 'atk', 1]],
             effect_mark_raise_def_1_when_hit_and_remove_self: [[0, 'def', 1]],
             effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage: [[2, 'spd', -1]],
             effect_skill_consume_huanxiang_raise_spa_1_stage: [[0, 'spa', 1]],
@@ -336,3 +379,55 @@ for (const r of records) {
 }
 it('exports exactly the stat-stage sequence ledger', () =>
   expect(Object.keys(generatedStatStageSequences).sort()).toEqual(records.map(r => r.id).sort()))
+
+for (const seed of [1, 2, 3, 4, 5, 100, 999, 8001])
+  it(`random stat complete shuffle RNG seed ${seed}`, () => {
+    const r = records.find(r => r.id === 'effect_skill_raise_atk_1_stage_and_other_1_stage')!
+    const actual = run(r, true, 'skill', 'normal', seed)
+    expect(actual).toEqual(run(r, false, 'skill', 'normal', seed))
+    const { battle } = makeScenario(seed)
+    battles.push(battle)
+    const choices = ['def', 'spd', 'spa', 'spe']
+    for (let i = 3; i > 0; i--) {
+      const j = battle.randomInt(0, i)
+      ;[choices[i], choices[j]] = [choices[j], choices[i]]
+    }
+    expect(actual.stages[0]).toEqual(
+      [
+        { id: 'stat_stage_atk_up', stack: 1 },
+        { id: `stat_stage_${choices[0]}_up`, stack: 1 },
+      ].sort((a, b) => a.id.localeCompare(b.id)),
+    )
+    expect(actual.next).toBe(battle.random())
+  })
+
+for (const kind of ['skill', 'mark'] as const)
+  for (const variant of ['cancel', 'repeat', 'random-shift', 'random-detach', 'random-cancel-stage'] as const)
+    it(`random stat timing ${kind} ${variant}`, () => {
+      const r = records.find(r => r.id === 'effect_skill_raise_atk_1_stage_and_other_1_stage')!
+      const actual = run(r, true, kind, variant, 902)
+      expect(actual).toEqual(run(r, false, kind, variant, 902))
+      const { battle } = makeScenario(902)
+      battles.push(battle)
+      if (variant === 'random-shift') battle.random()
+      const choices = ['def', 'spd', 'spa', 'spe']
+      const selected: string[] = []
+      if (variant !== 'cancel')
+        for (let round = 0; round < (variant === 'repeat' ? 2 : 1); round++) {
+          const order = [...choices]
+          for (let i = 3; i > 0; i--) {
+            const j = battle.randomInt(0, i)
+            ;[order[i], order[j]] = [order[j], order[i]]
+          }
+          selected.push(`stat_stage_${order[0]}_up`)
+        }
+      expect(actual.next).toBe(battle.random())
+      if (variant === 'cancel') expect(actual.stageTrace).toEqual([])
+      else if (variant === 'random-detach') expect(actual.stageTrace).toEqual(['stat_stage_atk_up'])
+      else expect(actual.stageTrace).toEqual(selected.flatMap(id => ['stat_stage_atk_up', id]))
+      if (variant === 'random-shift') {
+        expect(actual.stages[0]).toEqual([{ id: 'stat_stage_atk_up', stack: 1 }])
+        expect(actual.stages[1]).toEqual([{ id: selected[0], stack: 1 }])
+      }
+      if (variant === 'random-cancel-stage') expect(actual.stages[0]).toEqual([{ id: selected[0], stack: 1 }])
+    })

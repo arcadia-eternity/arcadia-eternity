@@ -15,7 +15,24 @@ export function sequenceAction(a, trigger, domain = 'skill') {
     if (!fields(a, ['type', 'target', 'statType', 'value']) || !Number.isFinite(a.value)) return
     const target = typeof a.target === 'string' ? a.target : fields(a.target, ['base']) ? a.target.base : undefined
     if (!['self', 'opponent'].includes(target)) return
-    if (!['atk', 'def', 'spa', 'spd', 'spe'].includes(a.statType)) return
+    const stats = ['atk', 'def', 'spa', 'spd', 'spe']
+    if (!stats.includes(a.statType)) {
+      const pick = a.statType
+      if (
+        !fields(pick, ['type', 'value', 'chain']) ||
+        pick.type !== 'selector' ||
+        !Array.isArray(pick.value) ||
+        !pick.value.length ||
+        !pick.value.every(v => stats.includes(v)) ||
+        !Array.isArray(pick.chain) ||
+        pick.chain.length !== 1 ||
+        !fields(pick.chain[0], ['type', 'arg']) ||
+        pick.chain[0].type !== 'randomPick' ||
+        pick.chain[0].arg !== 1
+      )
+        return
+      return `targets.${target === 'self' ? 'ownerPet' : 'opponentActive'}.apply((ctx,pets) => {const stat=ctx.read(selectFrom(${JSON.stringify(pick.value)} as const).shuffled().first());if(stat!==undefined) ops.changeStatStage(stat,${a.value})(ctx,pets)})`
+    }
     return `targets.${target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.changeStatStage(${JSON.stringify(a.statType)},${a.value}))`
   }
   if (!['consumeStacks', 'destroyMark'].includes(a?.type)) return

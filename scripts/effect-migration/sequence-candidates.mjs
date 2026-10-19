@@ -11,6 +11,13 @@ export function classifySequence(original, profile) {
   const repaired = repairSkillPaths(spelling)
   if (repaired.reason) return repaired
   const d = repaired.definition
+  const valueRepairs = []
+  if (d.id === 'effect_skill_raise_atk_1_stage_and_other_1_stage') {
+    const node = d.apply?.[1]?.statType
+    if (node?.type !== 'selectorValue') return { reason: 'C10 source node changed: /apply/1/statType/type' }
+    node.type = 'selector'
+    valueRepairs.push({ path: '/apply/1/statType/type', before: 'selectorValue', after: 'selector' })
+  }
   if (
     !fields(d, [
       'id',
@@ -54,6 +61,7 @@ export function classifySequence(original, profile) {
     when,
     actions,
     repairedPaths: paths,
+    ...(valueRepairs.length ? { valueRepairs } : {}),
     ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
     ...('consumesStacks' in d ? { consumesStacks: d.consumesStacks } : {}),
     ...('tags' in d ? { tags: d.tags } : {}),
@@ -85,9 +93,11 @@ export async function generateSequences(profile, { check = false } = {}) {
           recipe,
           classification: 'U',
           ...(recipe.repairedPaths.length ? { decision: 'C07' } : {}),
-          ...(recipe.pathRepairs ? { additionalDecisions: ['C09'] } : {}),
+          ...(recipe.pathRepairs || recipe.valueRepairs
+            ? { additionalDecisions: [...(recipe.pathRepairs ? ['C09'] : []), ...(recipe.valueRepairs ? ['C10'] : [])] }
+            : {}),
           status:
-            recipe.repairedPaths.length || recipe.pathRepairs
+            recipe.repairedPaths.length || recipe.pathRepairs || recipe.valueRepairs
               ? 'generated-correction-candidate'
               : 'generated-candidate',
         })
@@ -100,6 +110,7 @@ export async function generateSequences(profile, { check = false } = {}) {
       `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:${JSON.stringify(r.trigger)},priority:${r.priority},${r.consumesStacks !== undefined ? `consumesStacks:${r.consumesStacks},` : ''}${r.tags ? `tags:${JSON.stringify(r.tags)},` : ''}when:${r.when},execute:actions.sequence(${r.actions.map(a => a.code).join(',')})}))`,
   )
   const imports = [
+    'selectFrom',
     'compileEffect',
     'defineEffect',
     'conditions',
