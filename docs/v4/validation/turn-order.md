@@ -36,3 +36,7 @@ Both independent review axes approved the core change before its provenance dige
 ## Stat-stage candidate extension
 
 `effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last` records C08 for its single `/condition/conditions/2` last-skill predicate. It retains the preceding self-use and opposing `mark_kaowen` conditions and lowers the opposing active pet's special attack one stage. The generator recursively collects all first/last nodes and rejects appended, duplicate, moved or nested nodes outside this exact mapping. Candidate tests cover admission and action timing with a seeded turn schedule and actual SkillPhase execution; per-ID full-turn/game and checkpoint acceptance remain pending.
+
+## Hit and critical candidate extension
+
+Five first-skill outcome candidates now pin `/condition/conditions/1` and record C08 in [their ledger](skill-outcomes-candidates.json). Their [205-check evidence](skill-outcomes.md#first-skill-extension-c08) includes 20 actual executor turns, both actor orderings and both skill/mark sources. This extends candidate evidence; complete-game/checkpoint acceptance for these five remains pending.

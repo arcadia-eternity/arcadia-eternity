@@ -128,6 +128,15 @@ export function createGeneratedSkillOutcomeEffects() {
         execute: contexts.skillUse.apply(ops.setSureHit(2)),
       }),
     ),
+    effect_emblem_xianzhi_crit_rate_5_percent_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_xianzhi_crit_rate_5_percent_if_first',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(conditions.sourceOwnsEvent, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addCritRate(5)),
+      }),
+    ),
     effect_mark_bizhong: compileEffect(
       defineEffect({
         id: 'effect_mark_bizhong',
@@ -290,6 +299,15 @@ export function createGeneratedSkillOutcomeEffects() {
         execute: contexts.skillUse.apply(ops.addCritRate(30)),
       }),
     ),
+    effect_skill_add_crit_rate_50_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_50_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addCritRate(50)),
+      }),
+    ),
     effect_skill_add_crit_rate_50_shuiwenzhenji: compileEffect(
       defineEffect({
         id: 'effect_skill_add_crit_rate_50_shuiwenzhenji',
@@ -300,6 +318,15 @@ export function createGeneratedSkillOutcomeEffects() {
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
         ),
         execute: contexts.skillUse.apply(ops.addCritRate(50)),
+      }),
+    ),
+    effect_skill_add_crit_rate_65_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_65_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addCritRate(65)),
       }),
     ),
     effect_skill_add_crit_rate_70_shuiwenzhenji: compileEffect(
@@ -384,6 +411,15 @@ export function createGeneratedSkillOutcomeEffects() {
           targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
         ),
         execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_crit_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_crit_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
       }),
     ),
     effect_skill_increase_accuracy_50_if_higher_level: compileEffect(
@@ -572,6 +608,15 @@ export function createGeneratedSkillOutcomeEffects() {
           )
           return left !== undefined && right !== undefined && left <= right
         }),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
         execute: contexts.skillUse.apply(ops.setSureHit(2)),
       }),
     ),

@@ -146,6 +146,26 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_emblem_xianzhi_crit_rate_5_percent_if_first",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/49",
+      "definitionSha256": "b43fe91a311adb3772507118210057e08fed8c0cd5811b30c5ba81bd89e64a5c",
+      "recipe": {
+        "id": "effect_emblem_xianzhi_crit_rate_5_percent_if_first",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "operation": "addCritRate",
+        "amount": 5,
+        "when": "conditions.all(conditions.sourceOwnsEvent,conditions.firstSkillThisTurn)",
+        "repairedPaths": ["/apply/target"],
+        "orderConditions": [{ "path": "/condition/conditions/1", "type": "isFirstSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_mark_bizhong",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/43",
@@ -346,6 +366,26 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_add_crit_rate_50_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/496",
+      "definitionSha256": "6babbb6fba0b1bcbd4a2e6f2d9d239b0a4fbd1c0435645ea9979289f2696d2b6",
+      "recipe": {
+        "id": "effect_skill_add_crit_rate_50_if_first",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addCritRate",
+        "amount": 50,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "repairedPaths": ["/apply/target"],
+        "orderConditions": [{ "path": "/condition/conditions/1", "type": "isFirstSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_add_crit_rate_50_shuiwenzhenji",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/178",
@@ -361,6 +401,26 @@
       },
       "classification": "U",
       "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_crit_rate_65_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/500",
+      "definitionSha256": "84eb0d7e3b848c0130ba3ff67e03e586b503f5097d5f8caf104dc5dcfd429a36",
+      "recipe": {
+        "id": "effect_skill_add_crit_rate_65_if_first",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addCritRate",
+        "amount": 65,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "repairedPaths": ["/apply/target"],
+        "orderConditions": [{ "path": "/condition/conditions/1", "type": "isFirstSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
       "status": "generated-correction-candidate"
     },
     {
@@ -469,6 +529,26 @@
       },
       "classification": "U",
       "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_crit_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/305",
+      "definitionSha256": "5166747fc5afd5706a7dcdbeb74bfe26c0406a48c893c9982b96f89d0a908989",
+      "recipe": {
+        "id": "effect_skill_crit_if_first",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureCrit",
+        "amount": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "repairedPaths": ["/apply/target"],
+        "orderConditions": [{ "path": "/condition/conditions/1", "type": "isFirstSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
       "status": "generated-correction-candidate"
     },
     {
@@ -706,6 +786,26 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_sure_hit_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/495",
+      "definitionSha256": "09ee4f0a3e47c21c93989260fd0610bed5538a56e353a143b4ab52f0171f7f98",
+      "recipe": {
+        "id": "effect_skill_sure_hit_if_first",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "setSureHit",
+        "amount": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "repairedPaths": ["/apply/target"],
+        "orderConditions": [{ "path": "/condition/conditions/1", "type": "isFirstSkillUsedThisTurn" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C08"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_sure_hit_if_has_mark_yinghua",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/134",
@@ -931,13 +1031,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_emblem_xianzhi_crit_rate_5_percent_if_first",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/49",
-      "definitionSha256": "b43fe91a311adb3772507118210057e08fed8c0cd5811b30c5ba81bd89e64a5c",
-      "reason": "turn-order correction needs a separately reviewed mapping"
-    },
-    {
       "id": "effect_mark_evade",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/38",
@@ -973,27 +1066,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_skill_add_crit_rate_50_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/496",
-      "definitionSha256": "6babbb6fba0b1bcbd4a2e6f2d9d239b0a4fbd1c0435645ea9979289f2696d2b6",
-      "reason": "turn-order correction needs a separately reviewed mapping"
-    },
-    {
-      "id": "effect_skill_add_crit_rate_65_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/500",
-      "definitionSha256": "84eb0d7e3b848c0130ba3ff67e03e586b503f5097d5f8caf104dc5dcfd429a36",
-      "reason": "turn-order correction needs a separately reviewed mapping"
-    },
-    {
-      "id": "effect_skill_crit_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/305",
-      "definitionSha256": "5166747fc5afd5706a7dcdbeb74bfe26c0406a48c893c9982b96f89d0a908989",
-      "reason": "turn-order correction needs a separately reviewed mapping"
-    },
-    {
       "id": "effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/294",
@@ -1006,13 +1078,6 @@
       "sourcePath": "/487",
       "definitionSha256": "7296ea16848405db5c7db88353f580b29460333978768886d4fd8d819d1bcf45",
       "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_sure_hit_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/495",
-      "definitionSha256": "09ee4f0a3e47c21c93989260fd0610bed5538a56e353a143b4ab52f0171f7f98",
-      "reason": "turn-order correction needs a separately reviewed mapping"
     },
     {
       "id": "effect_skill_sure_hit_if_opponent_spa_gt_atk",

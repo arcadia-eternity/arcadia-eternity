@@ -21,6 +21,7 @@ import {
   UseSkillContext,
   AttackTargetOpinion,
   SkillPhase,
+  executeTurnOperation,
   defineNativeEffect,
   setGlobalLogger,
   type Battle,
@@ -39,6 +40,7 @@ interface Entry {
     amount?: number
     value?: string
     repairedPaths: string[]
+    orderConditions?: { path: string; type: string }[]
     parameters?: { name: string }[]
   }
 }
@@ -79,6 +81,8 @@ afterEach(async () => {
 })
 import { makeScenario } from './scenario'
 const parameterVariants = ['config-zero', 'config-custom', 'foreign-config', 'late-config'] as const
+const turnVariants = ['turn-first', 'turn-second'] as const
+const orderVariants = ['wrong-order', 'empty-order', 'non-skill-first', 'late-order'] as const
 const variants = [
   'normal',
   'wrong-owner',
@@ -99,7 +103,11 @@ function run(
   r: Entry,
   native: boolean,
   kind: 'skill' | 'mark',
-  variant: (typeof variants)[number] | (typeof parameterVariants)[number],
+  variant:
+    | (typeof variants)[number]
+    | (typeof parameterVariants)[number]
+    | (typeof orderVariants)[number]
+    | (typeof turnVariants)[number],
 ) {
   const f = makeScenario(301),
     { battle, a, b } = f
@@ -163,8 +171,16 @@ function run(
   const other = new SkillInstance(skill.base)
   other.owner = pet
   const selected = variant === 'other-skill' ? other : skill
-  const turn = new TurnContext(battle),
-    use = new UseSkillContext(turn, a, pet, AttackTargetOpinion.opponent, selected)
+  const turn = new TurnContext(battle)
+  let use = new UseSkillContext(turn, a, pet, AttackTargetOpinion.opponent, selected)
+  const rival = new UseSkillContext(turn, b, b.activePet, AttackTargetOpinion.opponent, b.activePet.skills[0])
+  if (r.recipe.orderConditions && !variant.startsWith('turn-')) {
+    turn.appledContexts.push(
+      ...(variant === 'empty-order' ? [] : variant === 'wrong-order' ? [rival, use] : [use, rival]),
+    )
+    if (variant === 'non-skill-first')
+      turn.appledContexts.unshift(new EffectContext(turn, EffectTrigger.BeforeEffect, source))
+  }
   use.updateActualTarget()
   use.accuracy = 20
   use.critRate = 10
@@ -200,6 +216,7 @@ function run(
       owner.marks = owner.marks.filter(m => !supports.includes(m) || m === source)
   }
   const mismatch = () => {
+    if (r.recipe.orderConditions) turn.appledContexts.splice(0, turn.appledContexts.length, rival, use)
     removeSupports()
     pet.currentHp = pet.stat.maxHp
     b.activePet.currentHp = b.activePet.stat.maxHp
@@ -240,6 +257,7 @@ function run(
       when: c => c.parent instanceof EffectContext && c.parent.effect?.id === r.id,
       apply(c) {
         applied.push(pet.lastSkillUsedTimes)
+        if (variant === 'late-order') turn.appledContexts.splice(0, turn.appledContexts.length, rival, use)
         if (variant === 'late-config') configure(7.5)
         if (variant === 'late-condition') mismatch()
         if (variant === 'late-owner') source.owner = a.team[1]
@@ -256,7 +274,50 @@ function run(
       },
     }),
   )
-  if (variant === 'phase') {
+  if (variant === 'turn-first' || variant === 'turn-second') {
+    battle.skillMap.set(skill.id, skill)
+    const harmless = new SkillInstance(skill.base)
+    harmless.owner = b.activePet
+    b.activePet.skills[0] = harmless
+    battle.skillMap.set(harmless.id, harmless)
+    let reached = 0
+    skill.effects.push(
+      defineNativeEffect({
+        id: 'fixture/outcome-turn-stage' as effectId,
+        triggers: [EffectTrigger[r.recipe.trigger]],
+        when: c => c.parent instanceof UseSkillContext && c.parent.skill === skill,
+        apply() {
+          reached++
+        },
+      }),
+    )
+    for (const player of [a, b]) {
+      player.currentRage = player.maxRage
+      player.activePet.attributeSystem.updateBaseValue(
+        'spe',
+        player === a ? (variant === 'turn-first' ? 200 : 50) : 100,
+      )
+      player.activePet.attributeSystem.updateBaseValue('critRate', 10)
+      const chosen = player.activePet.skills[0]
+      player.selection = { player: player.id, type: 'use-skill', skill: chosen.id, target: chosen.target }
+    }
+    // Reach BeforeHit without making this fixture's assertions depend on hit RNG.
+    skill.effects.push(
+      defineNativeEffect({
+        id: 'fixture/outcome-turn-hit' as effectId,
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
+        when: c => c.parent instanceof UseSkillContext && c.parent.skill === skill,
+        apply(c) {
+          if (c.parent instanceof UseSkillContext) c.parent.hitOverrides.push({ willHit: true, priority: 1000 })
+        },
+      }),
+    )
+    executeTurnOperation(turn, battle)
+    expect(reached).toBe(1)
+    const executed = turn.appledContexts.filter((c): c is UseSkillContext => c instanceof UseSkillContext)
+    expect(executed.map(c => c.pet)).toEqual(variant === 'turn-first' ? [pet, b.activePet] : [b.activePet, pet])
+    use = executed.find(c => c.pet === pet)!
+  } else if (variant === 'phase') {
     a.currentRage = a.maxRage
     if (r.recipe.trigger === 'BeforeHit') use.hitOverrides.push({ willHit: true, priority: 1000 })
     use.rage = 0
@@ -350,4 +411,34 @@ for (const r of records.filter(r => r.recipe.parameters))
       expect(r.recipe.operation === 'addAccuracy' ? actual.accuracy : actual.critRate).toBe(
         (r.recipe.operation === 'addAccuracy' ? 20 : 10) + amount,
       )
+    })
+
+for (const r of records.filter(r => r.recipe.orderConditions))
+  for (const kind of ['skill', 'mark'] as const)
+    it.each(orderVariants)(`${r.id} ${kind} order: %s`, variant => {
+      const actual = run(r, true, kind, variant)
+      expect(actual).toEqual(run(r, false, kind, variant))
+      const admitted = variant === 'non-skill-first' || variant === 'late-order'
+      expect(actual.applied).toHaveLength(admitted ? 1 : 0)
+      if (r.recipe.operation === 'addCritRate') expect(actual.critRate).toBe(10 + (admitted ? r.recipe.amount! : 0))
+      else
+        expect(r.recipe.operation === 'setSureHit' ? actual.hitOverrides : actual.critOverrides).toHaveLength(
+          admitted ? 1 : 0,
+        )
+    })
+
+for (const r of records.filter(r => r.recipe.orderConditions))
+  for (const kind of ['skill', 'mark'] as const)
+    it.each(turnVariants)(`${r.id} ${kind} real turn: %s`, variant => {
+      const actual = run(r, true, kind, variant)
+      expect(actual).toEqual(run(r, false, kind, variant))
+      const admitted = variant === 'turn-first'
+      expect(actual.applied).toHaveLength(admitted ? 1 : 0)
+      if (r.recipe.operation === 'addCritRate') expect(actual.critRate).toBe(10 + (admitted ? r.recipe.amount! : 0))
+      if (r.recipe.operation === 'setSureCrit')
+        expect(actual.critOverrides).toEqual(admitted ? [{ willCrit: true, priority: r.recipe.amount }] : [])
+      if (r.recipe.operation === 'setSureHit')
+        expect(actual.hitOverrides.filter(x => x.priority !== 1000)).toEqual(
+          admitted ? [{ willHit: true, priority: r.recipe.amount }] : [],
+        )
     })

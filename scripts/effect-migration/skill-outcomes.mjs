@@ -15,6 +15,22 @@ function outcomeValues(value, parameters, path = 'amount') {
 import { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
 export { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
 
+const firstSkillIds = new Set([
+  'effect_emblem_xianzhi_crit_rate_5_percent_if_first',
+  'effect_skill_add_crit_rate_50_if_first',
+  'effect_skill_add_crit_rate_65_if_first',
+  'effect_skill_crit_if_first',
+  'effect_skill_sure_hit_if_first',
+])
+function orderNodes(value, path = '') {
+  if (!value || typeof value !== 'object') return []
+  return [
+    ...(['isFirstSkillUsedThisTurn', 'isLastSkillUsedThisTurn'].includes(value.type)
+      ? [{ path, type: value.type }]
+      : []),
+    ...Object.entries(value).flatMap(([key, child]) => orderNodes(child, `${path}/${key}`)),
+  ]
+}
 export function classifySkillOutcome(original) {
   if (!original || typeof original !== 'object' || Array.isArray(original)) return { reason: 'invalid definition' }
   const { definition: spelling, paths } = repairSkillSelector(original)
@@ -54,8 +70,12 @@ export function classifySkillOutcome(original) {
   const amount = Number.isFinite(override ? a.priority : a.value) ? (override ? a.priority : a.value) : undefined
   const value = !override && amount === undefined ? outcomeValues(a.value, parameters) : undefined
   if (amount === undefined && !value) return { reason: 'unsupported outcome value' }
-  if ((JSON.stringify(d.condition) ?? '').match(/isFirstSkillUsedThisTurn|isLastSkillUsedThisTurn/))
-    return { reason: 'turn-order correction needs a separately reviewed mapping' }
+  const order = orderNodes(d)
+  const expectedOrder = firstSkillIds.has(d.id)
+    ? [{ path: '/condition/conditions/1', type: 'isFirstSkillUsedThisTurn' }]
+    : []
+  if (JSON.stringify(order) !== JSON.stringify(expectedOrder))
+    return { reason: 'turn-order correction source nodes changed or unmapped' }
   const when =
     'condition' in d ? condition(d.condition, 'skill', parameters, 'condition', { eventOwnership: true }) : '() => true'
   if (!when) return { reason: 'condition needs a separate mapping' }
@@ -68,6 +88,7 @@ export function classifySkillOutcome(original) {
     when,
     ...(parameters.length ? { parameters } : {}),
     repairedPaths: paths,
+    ...(order.length ? { orderConditions: order } : {}),
     ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
     ...('consumesStacks' in d ? { consumesStacks: d.consumesStacks } : {}),
     ...('tags' in d ? { tags: d.tags } : {}),

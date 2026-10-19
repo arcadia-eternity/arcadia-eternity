@@ -72,7 +72,7 @@ test('numeric lists preserve per-operation runtime consumption', () => {
   }
 })
 test('reproduces current outcome source and ledger', async () =>
-  assert.deepEqual(await generateSkillOutcome({ check: true }), { generated: 51, rejected: 14 }))
+  assert.deepEqual(await generateSkillOutcome({ check: true }), { generated: 56, rejected: 9 }))
 test('checkSelf uses direct-event ownership while consecutive-use checks stay skill-specific', () => {
   const d = source()
   d.condition = { type: 'every', conditions: [{ type: 'checkSelf' }, { type: 'continuousUseSkill' }] }
@@ -105,4 +105,39 @@ test('event ownership propagates through conditional probabilities and compare v
       assert.match(r.when, /sourceOwnsEvent/)
       assert.doesNotMatch(r.when, /ownerUsesSkill/)
     }
+})
+
+test('C08 admits only the recorded first-skill source nodes', () => {
+  const d = {
+    ...source(),
+    id: 'effect_skill_crit_if_first',
+    condition: { type: 'every', conditions: [{ type: 'selfUseSkill' }, { type: 'isFirstSkillUsedThisTurn' }] },
+  }
+  assert.deepEqual(classifySkillOutcome(d).orderConditions, [
+    { path: '/condition/conditions/1', type: 'isFirstSkillUsedThisTurn' },
+  ])
+  for (const alter of [
+    x => {
+      x.id = 'unreviewed'
+    },
+    x => {
+      x.condition.conditions.reverse()
+    },
+    x => {
+      x.condition.conditions.push({ type: 'isFirstSkillUsedThisTurn' })
+    },
+    x => {
+      x.condition.conditions[1] = { type: 'isLastSkillUsedThisTurn' }
+    },
+    x => {
+      x.condition.conditions[1] = { type: 'not', condition: { type: 'isFirstSkillUsedThisTurn' } }
+    },
+    x => {
+      x.condition.conditions.pop()
+    },
+  ]) {
+    const copy = structuredClone(d)
+    alter(copy)
+    assert.ok(classifySkillOutcome(copy).reason)
+  }
 })
