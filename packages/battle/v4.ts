@@ -37,3 +37,5 @@ export {
   createRandomMarkApplications,
   randomMarkApplicationDependencies,
 } from './src/v4/official/random-mark-applications'
+
+export { createCurseMarkApplication } from './src/v4/official/curse-mark-application'

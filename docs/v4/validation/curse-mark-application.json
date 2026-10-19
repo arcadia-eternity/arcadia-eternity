@@ -1,0 +1,57 @@
+{
+  "id": "effect_mark_curse_add_random_status",
+  "sourceFile": "packs/base/data/effect_mark.yaml",
+  "sourcePath": "/7",
+  "definitionSha256": "7973b17b256be575ef762083ab05994cddedc7191fceb095476175aa6c9a93d5",
+  "classification": "U",
+  "status": "handwritten-candidate",
+  "catalogFile": "packs/base/data/mark.yaml",
+  "catalogSha256": "eaece9da9732a87f9be5783907f3360e169950a3abb95e54cf1d6ffe3bcac441",
+  "dependencies": [
+    {
+      "id": "mark_nishui",
+      "definitionSha256": "bdd3688667a31be9ab47d43e8815e07f8fcdd373b35303f03c830fb108ae4079",
+      "effectIds": ["effect_mark_turn_damage", "effect_mark_reduce_accuracy_10"]
+    },
+    {
+      "id": "mark_shaoshang",
+      "definitionSha256": "d47b05f4f769ed6ad7594ac13c5028cf0faa76393539632e9fd24b83a48f5184",
+      "effectIds": ["effect_mark_turn_damage", "effect_mark_decrease_atk"]
+    },
+    {
+      "id": "mark_dongshang",
+      "definitionSha256": "df60d1e8b099773a64832902761c263a61a5ed90635289deb9f63ab68250f94e",
+      "effectIds": ["effect_mark_turn_damage", "effect_mark_decrease_spa"]
+    },
+    {
+      "id": "mark_zhongdu",
+      "definitionSha256": "72d3778645d2cad0fc8174dd406c3a457104d82d96c40bf6c2b18a0298609baa",
+      "effectIds": ["effect_mark_turn_damage", "effect_mark_decrease_heal"]
+    },
+    {
+      "id": "mark_liuxie",
+      "definitionSha256": "dbc418466be7f45527b8e1b9b5a1634016877ff90794c8c3923d5b18b3b81339",
+      "effectIds": ["effect_mark_damage_with_stack"]
+    },
+    {
+      "id": "mark_exin",
+      "definitionSha256": "e08b52640a266b61f0189d95e512ed2b558a4225c17be00989f1c8f1fe376de1",
+      "effectIds": ["effect_mark_reduce_accuracy_50"]
+    },
+    {
+      "id": "mark_shiming",
+      "definitionSha256": "a632adebe739423e4a67a6b9d35426773b960adeb7c55bd6f59884f7d4e8270b",
+      "effectIds": ["effect_mark_reduce_accuracy_50"]
+    },
+    {
+      "id": "mark_jisheng",
+      "definitionSha256": "bf7693ae509982e3c73a7804144f5b19f09a657fb4177dadc66d7308bb4eb7cb",
+      "effectIds": ["effect_mark_absorb_hp_to_opponent"]
+    },
+    {
+      "id": "mark_manxingduyao",
+      "definitionSha256": "7b857b0d2ba36b8e7d6596574b6c0296522501eeca5eb7ec15ca79e05a710f52",
+      "effectIds": ["effect_mark_damage_with_stack_mutilipy_10"]
+    }
+  ]
+}
