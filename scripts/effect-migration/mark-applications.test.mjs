@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 261,
-    protected: 1,
-    dependencies: 179,
-    rejected: 25,
+    generated: 264,
+    protected: 2,
+    dependencies: 180,
+    rejected: 21,
   })
 })
 
@@ -238,4 +238,13 @@ test('keeps entry-stage recognition separate from mandatory skill guards', () =>
   assert.ok(classifyMarkApplication({ ...unconditional, trigger: 'OnHit' }).reason)
   assert.ok(classifyMarkApplication({ ...unconditional, trigger: 'OnSwitchIn' }).reason)
   assert.ok(classifyMarkApplication({ ...d, trigger: ['OnHit', 'OnSwitchIn'] }).reason)
+})
+
+test('accepts unconditional fixed mark lifecycle actions and retains strict stage boundaries', () => {
+  const { condition, ...d } = source()
+  for (const trigger of ['OnMarkDestroy', 'OnMarkDurationEnd']) {
+    assert.equal(classifyMarkApplication({ ...d, trigger }).when, '() => true')
+    assert.ok(classifyMarkApplication({ ...d, trigger, condition: { type: 'selfUseSkill' } }).reason)
+    assert.ok(classifyMarkApplication({ ...d, trigger: [trigger, 'OnHit'] }).reason)
+  }
 })

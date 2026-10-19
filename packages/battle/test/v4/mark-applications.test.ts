@@ -47,7 +47,15 @@ interface RecordEntry {
     parameters?: { name: string; value: number; configId?: string; tags?: string[] }[]
     stack?: number
     duration?: number
-    triggers: ('BeforeHit' | 'OnHit' | 'OnMiss' | 'OnSwitchIn' | 'OnBattleStart')[]
+    triggers: (
+      | 'BeforeHit'
+      | 'OnHit'
+      | 'OnMiss'
+      | 'OnSwitchIn'
+      | 'OnBattleStart'
+      | 'OnMarkDestroy'
+      | 'OnMarkDurationEnd'
+    )[]
   }
   dependency: { id: string; sourceFile: string; definitionSha256: string; effectIds: string[] }
 }

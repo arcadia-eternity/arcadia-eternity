@@ -148,6 +148,7 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_tanxingzhifang',
   'mark_taobi',
   'mark_teshushanghaizengjia',
+  'mark_tizhongjiangdi',
   'mark_tongjiling',
   'mark_wanan',
   'mark_weilibianhua',
@@ -272,6 +273,33 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: () => true,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
+      }),
+    ),
+    effect_mark_on_duration_end_add_mark_penti: compileEffect(
+      defineEffect({
+        id: 'effect_mark_on_duration_end_add_mark_penti',
+        on: ['OnMarkDurationEnd'],
+        priority: 0,
+        when: () => true,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_penti')!)),
+      }),
+    ),
+    effect_mark_on_duration_end_add_mark_qianglipenti: compileEffect(
+      defineEffect({
+        id: 'effect_mark_on_duration_end_add_mark_qianglipenti',
+        on: ['OnMarkDurationEnd'],
+        priority: 0,
+        when: () => true,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qianglipenti')!)),
+      }),
+    ),
+    effect_mark_onDestroy_add_mark_tizhongjiangdi: compileEffect(
+      defineEffect({
+        id: 'effect_mark_onDestroy_add_mark_tizhongjiangdi',
+        on: ['OnMarkDestroy'],
+        priority: 0,
+        when: () => true,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tizhongjiangdi')!)),
       }),
     ),
     effect_skill_add_first_turn_mark_on_switch_in: compileEffect(

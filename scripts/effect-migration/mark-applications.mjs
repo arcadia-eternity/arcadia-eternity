@@ -72,6 +72,9 @@ export function classifyMarkApplication(definition) {
   }
   const triggers = Array.isArray(definition.trigger) ? definition.trigger : [definition.trigger]
   const supportedStage =
+    (triggers.length === 1 &&
+      ['OnMarkDestroy', 'OnMarkDurationEnd'].includes(triggers[0]) &&
+      !('condition' in definition)) ||
     (triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) &&
       selfCondition(definition.condition)) ||
     (triggers.length === 1 &&
