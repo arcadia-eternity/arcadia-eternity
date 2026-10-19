@@ -1,0 +1,308 @@
+import { afterEach, beforeAll, expect, it } from 'vitest'
+import {
+  AddMarkContext,
+  BaseMark,
+  DamageContext,
+  Effect,
+  EffectContext,
+  EffectTrigger,
+  TurnContext,
+  UseSkillContext,
+  AttackTargetOpinion,
+  SwitchPetPhase,
+  setGlobalLogger,
+  type Battle,
+  type baseMarkId,
+  type effectId,
+} from '../../v4'
+import { makeScenario } from '../../test/v4/scenario'
+import { compileEffect, defineEffect, targets, ops, values, type BindingValue, type Presence } from './api'
+import { consumeFantasyForDefense } from './examples/fantasy-defense'
+import { damageBoostByHp } from './examples/damage-by-hp'
+import { timeRebirth } from './examples/time-rebirth'
+import {
+  weaknessSpeedPenalty,
+  capturedInstancePenalty,
+  followingInstancePenalty,
+  entryStackPenalty,
+} from './examples/weakness-speed'
+
+const battles: Battle[] = []
+beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
+afterEach(async () => {
+  for (const battle of battles.splice(0)) await battle.cleanup()
+})
+function fixture() {
+  const f = makeScenario()
+  battles.push(f.battle)
+  const owner = f.a.activePet
+  const skill = owner.skills[0]
+  const use = new UseSkillContext(new TurnContext(f.battle), f.a, owner, AttackTargetOpinion.opponent, skill)
+  const ctx = new EffectContext(use, EffectTrigger.BeforeHit, skill)
+  function add(id: string, effects: Effect<EffectTrigger>[] = [], stack = 1) {
+    const base = new BaseMark(id as baseMarkId, effects, {
+      ...f.debuff.config,
+      maxStacks: 10,
+      stackable: true,
+      keepOnSwitchOut: true,
+    })
+    f.battle.addMark(new AddMarkContext(ctx, owner, base, stack))
+    const mark = owner.marks.find(mark => mark.baseId === id)
+    if (!mark) throw new Error(`Mark creation failed: ${id}`)
+    return mark
+  }
+  return { ...f, owner, skill, use, ctx, add }
+}
+function hook(id: string, trigger: EffectTrigger, apply: (ctx: EffectContext<EffectTrigger>) => void) {
+  return new Effect(
+    id as effectId,
+    [trigger],
+    apply,
+    0,
+    ctx =>
+      trigger !== EffectTrigger.BeforeEffect ||
+      (ctx.parent instanceof EffectContext && !ctx.parent.effect?.triggers.includes(EffectTrigger.BeforeEffect)),
+  )
+}
+it('runs fantasy consumption and re-queries owner after the removal hook', () => {
+  const f = fixture()
+  const next = f.a.team[1]
+  const initial = f.owner.stat.def
+  const nextInitial = next.stat.def
+  f.add('mark_huanxiang', [
+    hook('move-source', EffectTrigger.OnMarkDestroy, () => {
+      f.skill.owner = next
+    }),
+  ])
+  f.skill.effects.splice(0, f.skill.effects.length, compileEffect(consumeFantasyForDefense))
+  f.battle.applyEffects(f.use, EffectTrigger.BeforeHit, f.skill)
+  expect(f.owner.marks.some(mark => mark.baseId === 'mark_huanxiang')).toBe(false)
+  expect(f.owner.stat.def).toBe(initial)
+  expect(next.stat.def).toBeGreaterThan(nextInitial)
+})
+it('reads HP again in execution after admission and preserves lazy branches', () => {
+  const f = fixture()
+  const source = f.add('damage-source', [compileEffect(damageBoostByHp)])
+  f.owner.currentHp = Math.floor(f.owner.stat.maxHp * 0.6)
+  let changed = 0
+  f.add('before-effect', [
+    hook('lower-hp', EffectTrigger.BeforeEffect, ctx => {
+      if (ctx.parent instanceof EffectContext && ctx.parent.effect?.id === damageBoostByHp.id) {
+        changed++
+        f.owner.currentHp = Math.floor(f.owner.stat.maxHp * 0.2)
+      }
+    }),
+  ])
+  const damage = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  f.battle.applyEffects(damage, EffectTrigger.OnBeforeCalculateDamage, source)
+  expect(changed).toBe(1)
+  expect(damage.modified).toEqual([70, 0])
+  let unused = 0
+  const unusedCondition = targets.ownerPet.condition(() => {
+    unused++
+    return true
+  })
+  const chosen = values.choose(() => true, 7, values.choose(unusedCondition, 999, 0))
+  let result: number | undefined
+  const effect = compileEffect(
+    defineEffect({
+      id: 'lazy',
+      on: 'BeforeHit',
+      execute: ctx => {
+        result = ctx.read(chosen)
+      },
+    }),
+  )
+  f.skill.effects.splice(0, f.skill.effects.length, effect)
+  f.battle.applyEffects(f.use, EffectTrigger.BeforeHit, f.skill)
+  expect(result).toBe(7)
+  expect(unused).toBe(0)
+})
+it('rebirth assigns current HP from execution-time max HP without heal hooks', () => {
+  const f = fixture()
+  const source = f.add('rebirth', [compileEffect(timeRebirth)])
+  let healing = 0
+  f.add('watch', [
+    hook('heal-watch', EffectTrigger.OnBeforeHeal, () => {
+      healing++
+    }),
+    hook('resize', EffectTrigger.BeforeEffect, ctx => {
+      if (ctx.parent instanceof EffectContext && ctx.parent.effect?.id === timeRebirth.id)
+        f.owner.attributeSystem.updateBaseValue('maxHp', 400)
+    }),
+  ])
+  f.owner.currentHp = 0
+  const damage = new DamageContext(f.use, f.b.activePet, f.owner, 100)
+  f.battle.applyEffects(damage, EffectTrigger.PostDamage, source)
+  expect(f.owner.currentHp).toBe(100)
+  expect(healing).toBe(0)
+})
+function penalty(plan: BindingValue<number, Presence>, id = 'penalty') {
+  return compileEffect(
+    defineEffect({
+      id,
+      on: 'OnMarkCreated',
+      execute: targets.ownerPet.apply(
+        ops.bindAttribute({
+          key: 'speed',
+          attribute: 'spe',
+          operation: 'delta',
+          value: plan,
+          lifetime: 'sourceMark',
+          missing: 'detach',
+        }),
+      ),
+    }),
+  )
+}
+it('runs the weakness example on creation, follows stack, changes spe only, and cleans up with source', () => {
+  const f = fixture()
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  const spd = f.owner.stat.spd
+  const mark = f.add('mark_ruodianjihao', [], 2)
+  const source = f.add('speed-source', [compileEffect(weaknessSpeedPenalty)])
+  expect(f.owner.stat.spe).toBe(250)
+  expect(f.owner.stat.spd).toBe(spd)
+  mark.stack = 3
+  expect(f.owner.stat.spe).toBe(225)
+  source.consumeStack(f.ctx, 1)
+  expect(f.owner.stat.spe).toBe(300)
+  mark.stack = 4
+  expect(f.owner.stat.spe).toBe(300)
+})
+it.each([
+  ['capture instance', capturedInstancePenalty, [250, 225, 225, 200]],
+  ['follow instance', followingInstancePenalty, [250, 225, 275, 275]],
+  ['capture per entry', entryStackPenalty, [250, 250, 275, 275]],
+] as const)('%s separates object selection from stack timing', (name, plan, expected) => {
+  const f = fixture()
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  const old = f.add('mark_ruodianjihao', [], 2)
+  f.add('speed-source', [penalty(plan)])
+  const actual = [f.owner.stat.spe]
+  old.stack = 3
+  actual.push(f.owner.stat.spe)
+  const replacement = old.base.createInstance({ stack: 1 })
+  replacement.setOwner(f.owner, f.battle.emitter)
+  f.owner.marks.splice(f.owner.marks.indexOf(old), 1, replacement)
+  actual.push(f.owner.stat.spe)
+  old.stack = 4
+  actual.push(f.owner.stat.spe)
+  expect(actual).toEqual(expected)
+})
+it('follow survives absent input and captures a new generation on same-instance re-entry without intermediate reads', () => {
+  const f = fixture()
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  f.add('speed-source', [penalty(entryStackPenalty)])
+  expect(f.owner.stat.spe).toBe(300)
+  const mark = f.add('mark_ruodianjihao', [], 2)
+  expect(f.owner.stat.spe).toBe(250)
+  f.owner.marks = f.owner.marks.filter(item => item !== mark)
+  mark.stack = 4
+  f.owner.marks.push(mark)
+  expect(f.owner.stat.spe).toBe(200)
+  mark.stack = 5
+  expect(f.owner.stat.spe).toBe(200)
+})
+it.each(['capture', 'follow'] as const)('%s handles real removal and subsequent replacement', mode => {
+  const f = fixture()
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  const mark = f.add('mark_ruodianjihao', [], 2)
+  f.add('speed-source', [penalty(mode === 'capture' ? capturedInstancePenalty : followingInstancePenalty)])
+  mark.consumeStack(f.ctx, 2)
+  expect(f.owner.stat.spe).toBe(300)
+  f.add('mark_ruodianjihao', [], 3)
+  expect(f.owner.stat.spe).toBe(mode === 'capture' ? 300 : 225)
+})
+it.each(['capture', 'follow'] as const)('%s opponent selection across real switch phases', mode => {
+  const f = fixture()
+  f.b.team[0].attributeSystem.updateBaseValue('def', 40)
+  f.b.team[1].attributeSystem.updateBaseValue('def', 80)
+  const root = targets.opponentActive.first()
+  const selected =
+    mode === 'capture' ? root.capture({ key: 'opponent', scope: 'binding' }) : root.follow({ key: 'opponent' })
+  f.add('opponent-source', [
+    penalty(
+      selected
+        .attribute('def')
+        .follow({ key: 'def' })
+        .map(n => -n),
+    ),
+  ])
+  const initial = f.owner.stat.spe
+  f.b.team[0].attributeSystem.updateBaseValue('def', 50)
+  expect(f.owner.stat.spe).toBe(initial - 10)
+  const phase = new SwitchPetPhase(f.battle, f.b, f.b.team[1], new TurnContext(f.battle))
+  phase.initialize()
+  expect(phase.execute().success).toBe(true)
+  expect(f.owner.stat.spe).toBe(initial - (mode === 'capture' ? 10 : 40))
+})
+
+it('reads a numeric operand once for all targets in one operation', () => {
+  const f = fixture()
+  const first = f.add('counter/first', [], 3)
+  const second = f.add('counter/second', [], 3)
+  let reads = 0
+  const amount = targets.ownerPet.first().map(() => {
+    reads++
+    return 1
+  })
+  const effect = compileEffect(
+    defineEffect({
+      id: 'consume-two',
+      on: 'BeforeHit',
+      execute: targets.ownerMarks.where(mark => mark.baseId.startsWith('counter/')).apply(ops.consumeStacks(amount)),
+    }),
+  )
+  f.skill.effects.splice(0, f.skill.effects.length, effect)
+  f.battle.applyEffects(f.use, EffectTrigger.BeforeHit, f.skill)
+  expect(reads).toBe(1)
+  expect([first.stack, second.stack]).toEqual([2, 2])
+})
+
+it('captures an absent selection once instead of silently turning capture into follow', () => {
+  const f = fixture()
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  f.add('speed-source', [penalty(capturedInstancePenalty)])
+  f.add('mark_ruodianjihao', [], 3)
+  expect(f.owner.stat.spe).toBe(300)
+})
+
+it('keeps a binding-scope captured attribute fixed across attribute and slot changes', () => {
+  const f = fixture()
+  f.owner.attributeSystem.updateBaseValue('spe', 300)
+  f.b.team[0].attributeSystem.updateBaseValue('def', 40)
+  f.b.team[1].attributeSystem.updateBaseValue('def', 80)
+  const plan = targets.opponentActive
+    .first()
+    .follow({ key: 'slot' })
+    .attribute('def')
+    .capture({ key: 'initial-defense', scope: 'binding' })
+    .map(n => -n)
+  f.add('captured-attribute', [penalty(plan)])
+  f.b.team[0].attributeSystem.updateBaseValue('def', 60)
+  f.b.activePet = f.b.team[1]
+  expect(f.owner.stat.spe).toBe(260)
+})
+
+it('duplicate temporal keys and self-dependent attributes are rejected, not treated as missing input', () => {
+  const f = fixture()
+  f.add('mark_ruodianjihao', [], 2)
+  const source = f.add('binding-source')
+  const plans = [
+    targets.ownerPet.first().follow({ key: 'same' }).attribute('def').follow({ key: 'same' }),
+    targets.ownerPet.first().follow({ key: 'pet' }).attribute('spe').follow({ key: 'speed' }),
+  ]
+  const initial = f.owner.stat.spe
+  for (const plan of plans) {
+    const effect = penalty(plan)
+    const context = new EffectContext(
+      new AddMarkContext(f.ctx, f.owner, source.base),
+      EffectTrigger.OnMarkCreated,
+      source,
+      effect,
+    )
+    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(context))).toThrow()
+  }
+  expect(f.owner.stat.spe).toBe(initial)
+})

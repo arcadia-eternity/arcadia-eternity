@@ -1,0 +1,207 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions -- Compile-only positive and negative type assertions intentionally do not execute. */
+/** Compile only. @ts-expect-error must fail if its misuse ever becomes accepted. */
+import type { DamageContext, UseSkillContext } from '../../src/v4/context'
+import type { Pet } from '../../src/v4/pet'
+import type { MarkInstance } from '../../src/v4/mark'
+import {
+  actions,
+  booleanParam,
+  contexts,
+  defineEffect,
+  numberParam,
+  ops,
+  targets,
+  values,
+  type Action,
+  type BindingValue,
+  type EffectFrame,
+  type Selector,
+  type Value,
+} from './api'
+import { consumeFantasyForDefense } from './examples/fantasy-defense'
+import { damageBoostByHp } from './examples/damage-by-hp'
+import { timeRebirth } from './examples/time-rebirth'
+import {
+  capturedInstancePenalty,
+  entryStackPenalty,
+  followingInstancePenalty,
+  weaknessSpeedPenalty,
+} from './examples/weakness-speed'
+
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
+type Expect<T extends true> = T
+function exact<T extends true>(_value: T): void {}
+
+// Positive inference tests also guard against accidental `any` or widening to every event.
+export type ExampleInference = [
+  Expect<Equal<Parameters<typeof consumeFantasyForDefense.execute>[0]['event'], UseSkillContext>>,
+  Expect<Equal<Parameters<typeof damageBoostByHp.execute>[0]['event'], DamageContext>>,
+  Expect<Equal<Parameters<typeof timeRebirth.execute>[0]['event'], DamageContext>>,
+  Expect<Equal<Parameters<typeof weaknessSpeedPenalty.execute>[0]['on'], 'OnMarkCreated'>>,
+  Expect<Equal<typeof capturedInstancePenalty, BindingValue<number, 'optional'>>>,
+  Expect<Equal<typeof followingInstancePenalty, typeof capturedInstancePenalty>>,
+  Expect<Equal<typeof entryStackPenalty, typeof capturedInstancePenalty>>,
+  Expect<Equal<typeof targets.ownerPet, Selector<Pet>>>,
+  Expect<Equal<typeof targets.ownerMarks, Selector<MarkInstance>>>,
+]
+
+const hit = defineEffect({
+  id: 'type-test/hit',
+  on: 'OnHit',
+  parameters: {
+    chance: numberParam({ default: 20, tags: ['skill_effect_probability'] }),
+    enabled: booleanParam({ default: true }),
+  },
+  when(ctx, params) {
+    exact<Equal<typeof ctx.event, UseSkillContext>>(true)
+    const enabled = ctx.read(params.enabled)
+    exact<Equal<typeof enabled, boolean>>(true)
+    return enabled
+  },
+  execute(ctx, params) {
+    const chance = ctx.read(params.chance)
+    exact<Equal<typeof chance, number>>(true)
+    const owner = ctx.read(targets.ownerPet.first())
+    exact<Equal<typeof owner, Pet | undefined>>(true)
+    const skillUse = contexts.nearestSkillUse(ctx)
+    exact<Equal<typeof skillUse, UseSkillContext | undefined>>(true)
+    // @ts-expect-error A skill event is not a damage event.
+    ctx.event.damageResult
+    // @ts-expect-error Parameter names are inferred, not an open dictionary.
+    params.missing
+    // @ts-expect-error A required number parameter does not become a string.
+    const bad: string = chance
+    // @ts-expect-error Explicit optionality must be narrowed.
+    owner.currentHp
+    // @ts-expect-error Ancestor lookup is fallible.
+    skillUse.skill
+    // @ts-expect-error Selector collections cannot be silently read as scalar values.
+    ctx.read(targets.ownerPet)
+    // @ts-expect-error Persistent binding plans cannot be read as instantaneous values.
+    ctx.read(capturedInstancePenalty)
+    const branch = values.choose(
+      () => true,
+      1,
+      values.choose(() => false, 2, 3),
+    )
+    exact<Equal<typeof branch, Value<number>>>(true)
+    exact<Equal<ReturnType<typeof hit.execute>, void>>(true)
+  },
+})
+
+// Conditional type correlation survives a union of triggers.
+defineEffect({
+  id: 'type-test/union',
+  on: ['OnHit', 'OnDamage'],
+  execute(ctx) {
+    // @ts-expect-error Cannot access damage before narrowing the trigger.
+    ctx.event.damageResult
+    if (ctx.on === 'OnDamage') exact<Equal<typeof ctx.event, DamageContext>>(true)
+    else exact<Equal<typeof ctx.event, UseSkillContext>>(true)
+  },
+})
+
+// @ts-expect-error Unknown or undispatched trigger.
+defineEffect({ id: 'invalid-trigger', on: 'ImaginaryTrigger', execute() {} })
+// @ts-expect-error Values cannot be used as writable references.
+targets.ownerPet.select(pet => pet.currentHp).apply(ops.assign(20))
+// @ts-expect-error Arbitrary keys, including identity, are not writable fields.
+targets.ownerPet.property('id')
+// @ts-expect-error Pet write fields cannot be selected on a mark.
+targets.ownerMarks.property('currentHp')
+// @ts-expect-error Mark operations cannot be applied to pets.
+targets.ownerPet.apply(ops.consumeStacks(1))
+// @ts-expect-error Pet operations cannot be applied to marks.
+targets.ownerMarks.apply(ops.heal(20))
+// @ts-expect-error Attribute names are inferred from the input entity.
+targets.ownerMarks.first().attribute('def')
+// @ts-expect-error Unknown Pet attribute.
+targets.ownerPet.first().attribute('notAnAttribute')
+// @ts-expect-error Numeric operators cannot consume string-valued queries.
+ops.heal(targets.ownerPet.select(pet => pet.name).first())
+// @ts-expect-error Number defaults must be numbers.
+numberParam({ default: '20' })
+// @ts-expect-error Capture scope is bounded.
+targets.ownerPet.first().capture({ key: 'owner', scope: 'forever' })
+
+const unconfiguredStep = targets.ownerMarks.first().follow({ key: 'mark' }).attribute('stack')
+ops.bindAttribute({
+  key: 'incomplete',
+  attribute: 'spe',
+  operation: 'delta',
+  lifetime: 'sourceMark',
+  missing: 'detach',
+  // @ts-expect-error A newly selected attribute must explicitly choose capture/follow.
+  value: unconfiguredStep,
+})
+ops.bindAttribute({
+  key: 'instant',
+  attribute: 'spe',
+  operation: 'delta',
+  lifetime: 'sourceMark',
+  missing: 'detach',
+  // @ts-expect-error An instant value is not a persistent binding plan.
+  value: targets.ownerPet.first().attribute('spe'),
+})
+ops.bindAttribute({
+  key: 'string',
+  attribute: 'spe',
+  operation: 'delta',
+  lifetime: 'sourceMark',
+  missing: 'detach',
+  // @ts-expect-error Numeric attribute modifiers require numeric binding values.
+  value: capturedInstancePenalty.map(String),
+})
+
+const damageOnly: Action<'OnDamage'> = ctx => {
+  ctx.event.damageResult
+}
+// @ts-expect-error A damage-only callback cannot run for every trigger.
+const everyTrigger: Action = damageOnly
+const damageSequence = actions.sequence(damageOnly)
+exact<Equal<typeof damageSequence, Action<'OnDamage'>>>(true)
+defineEffect({ id: 'damage-sequence', on: 'OnDamage', execute: damageSequence })
+defineEffect({
+  id: 'wrong-context',
+  on: 'OnHit',
+  // @ts-expect-error OnHit cannot run a damage-only callback.
+  execute: damageOnly,
+})
+
+// This branch proves the event/frame itself does not lose the discriminant.
+export function narrowFrame(ctx: EffectFrame<'OnHit' | 'OnDamage'>): void {
+  if (ctx.on === 'OnHit') exact<Equal<typeof ctx.event, UseSkillContext>>(true)
+}
+
+const damageOperator = targets.ownerPet.apply((ctx: EffectFrame<'OnDamage'>, pets) => {
+  exact<Equal<typeof pets, readonly Pet[]>>(true)
+  ctx.event.damageResult
+})
+exact<Equal<typeof damageOperator, Action<'OnDamage'>>>(true)
+defineEffect({
+  id: 'wrong-selection-context',
+  on: 'OnHit',
+  // @ts-expect-error Applying a selector retains the operator's event requirement.
+  execute: damageOperator,
+})
+
+const scalar = targets.ownerPet.select(pet => pet.currentHp).first()
+// @ts-expect-error Scalar values do not acquire entity attributes.
+scalar.attribute('stack')
+const hp = targets.ownerPet
+  .select(pet => pet.stat.maxHp)
+  .first()
+  .map(value => Math.floor(value / 4))
+exact<Equal<typeof hp, Value<number, 'optional'>>>(true)
+const petDefense = targets.ownerPet.first().attribute('def')
+exact<Equal<typeof petDefense, Value<number, 'optional'>>>(true)
+
+const specialDefense = targets.ownerPet.first().attribute('spd') // 特防
+const speed = targets.ownerPet.first().attribute('spe') // 速度
+exact<Equal<typeof specialDefense, Value<number, 'optional'>>>(true)
+exact<Equal<typeof speed, Value<number, 'optional'>>>(true)
+ops.changeStatStage('spd', 1)
+ops.changeStatStage('spe', 1)
+const capturedMark = targets.sourceMark.first().capture({ key: 'source', scope: 'binding' })
+// @ts-expect-error Entity property reads must pass through an explicit temporal step.
+capturedMark.map(mark => mark.stack)

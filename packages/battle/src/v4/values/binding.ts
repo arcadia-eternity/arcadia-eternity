@@ -8,6 +8,9 @@ import { Evaluation, emptyBindingState, BindingStateError, type ValueDefinition,
 import { traceReads, type BindingTarget } from './dependencies'
 import { describeCleanup, getModifierCleanup } from '../snapshotBindings'
 
+/** Recoverable absence; unlike invalid plans this may wait for a structural update. */
+export class BindingInputUnavailable extends Error {}
+
 type Result = { ok: true; value: number } | { ok: false; error: Error }
 export class BoundValue extends ReactiveValue<number> {
   private result: Result = { ok: false, error: new Error('Binding is not active') }
@@ -19,7 +22,7 @@ export class BoundValue extends ReactiveValue<number> {
   ) {
     super()
   }
-  start(restoring: boolean): void {
+  start(restoring: boolean, allowInitialMissing = false): void {
     const refresh = () => {
       const result = this.calculation.value
       const changed =
@@ -34,7 +37,12 @@ export class BoundValue extends ReactiveValue<number> {
     try {
       this.stop = this.calculation.watch(refresh)
       refresh()
-      if (!restoring && !this.result.ok) throw this.result.error
+      if (
+        !restoring &&
+        !this.result.ok &&
+        !(allowInitialMissing && this.result.error instanceof BindingInputUnavailable)
+      )
+        throw this.result.error
     } catch (error) {
       this.complete()
       throw error
@@ -65,6 +73,7 @@ export function bindValue<A>(
   target: BindingTarget,
   state: BindingState = emptyBindingState(),
   restoring = false,
+  allowInitialMissing = false,
 ): BoundValue {
   if (!target.pet.attributeSystem.hasAttribute(target.attribute)) throw new Error('Invalid binding target attribute')
   const battle = target.pet.owner?.battle
@@ -95,7 +104,7 @@ export function bindValue<A>(
     dependencies,
   )
   describeValue(bound, { type: 'bound', key: definition.id, args, state, target })
-  bound.start(restoring)
+  bound.start(restoring, allowInitialMissing)
   restoring = false
   return bound
 }
@@ -181,6 +190,8 @@ export interface InstallValueModifier<A> {
   attribute: `${StatTypeOnBattle}`
   operation: 'delta' | 'override' | 'percent'
   priority?: number
+  /** Keep an initially unavailable plan subscribed so structural follow can recover. */
+  allowInitialMissing?: boolean
 }
 /** A contribution owns its subscription; disposing an old handle cannot remove a replacement. */
 export interface ValueModifierBinding {
@@ -210,7 +221,14 @@ export function installValueModifier<A>(options: InstallValueModifier<A>): Value
   if (!options.source.isActive || !options.source.owner) throw new Error('Inactive binding source')
   const sourceBattle = options.source.owner instanceof Pet ? options.source.owner.owner?.battle : options.source.owner
   if (!sourceBattle || options.target.owner?.battle !== sourceBattle) throw new Error('Cross-battle value binding')
-  const bound = bindValue(options.definition, options.args, { pet: options.target, attribute: options.attribute })
+  const bound = bindValue(
+    options.definition,
+    options.args,
+    { pet: options.target, attribute: options.attribute },
+    undefined,
+    false,
+    options.allowInitialMissing,
+  )
   const id = JSON.stringify([options.source.id, options.effectId, options.bindingKey, options.target.id])
   const old = options.target.attributeSystem.findModifier(options.attribute, id)
   if (old) {

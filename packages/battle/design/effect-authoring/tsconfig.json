@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.v4.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "strict": true
+  },
+  "include": ["./**/*.ts"],
+  "exclude": []
+}

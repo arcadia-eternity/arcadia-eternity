@@ -1,35 +1,32 @@
-import { EffectTrigger, type effectId } from '@arcadia-eternity/const'
-import { HealContext } from '../context'
-import { Pet } from '../pet'
-import { SkillInstance } from '../skill'
-import { defineNativeEffect, type NativeEffectContext } from '../content/native-effect'
+import { compileEffect, defineEffect, conditions, targets, ops, type Value } from '../content/authoring'
 
-function selfUsesSkill(context: NativeEffectContext<EffectTrigger.OnHit>): boolean {
-  return (
-    context.source.owner === context.parent.pet &&
-    (!(context.source instanceof SkillInstance) || context.source === context.parent.skill)
+const owner = targets.ownerPet
+const maxHp = owner.first().attribute('maxHp')
+function healing(id: string, amount: number | Value<number, 'optional'>) {
+  return compileEffect(
+    defineEffect({
+      id,
+      on: 'OnHit',
+      when: conditions.selfUsesSkill,
+      execute: owner.apply(ops.heal(amount)),
+    }),
   )
 }
 
-function healing(id: string, amount: (target: Pet) => number) {
-  return defineNativeEffect({
-    id: id as effectId,
-    triggers: [EffectTrigger.OnHit],
-    when: selfUsesSkill,
-    apply(context) {
-      const target = context.source.owner
-      if (target instanceof Pet) target.heal(new HealContext(context, context.source, target, amount(target)))
-    },
-  })
-}
-
-/** Handwritten production candidates; not installed alongside the legacy catalog. */
+/** Native candidates share context lookup, target queries and action-time value reads. */
 export const officialHealingEffects = Object.freeze({
-  effect_skill_heal_self_90_hp: healing('effect_skill_heal_self_90_hp', () => 90),
-  // Legacy selector.divide floors before HealContext and before OnBeforeHeal hooks.
-  effect_heal_self_half: healing('effect_heal_self_half', target => Math.floor(target.stat.maxHp / 2)),
-  effect_heal_self_onethird: healing('effect_heal_self_onethird', target => Math.floor(target.stat.maxHp / 3)),
-  effect_skill_heal_self_quarter: healing('effect_skill_heal_self_quarter', target =>
-    Math.floor(target.stat.maxHp / 4),
+  effect_skill_heal_self_90_hp: healing('effect_skill_heal_self_90_hp', 90),
+  // Preserve the legacy floor before HealContext and OnBeforeHeal hooks.
+  effect_heal_self_half: healing(
+    'effect_heal_self_half',
+    maxHp.map(hp => Math.floor(hp / 2)),
+  ),
+  effect_heal_self_onethird: healing(
+    'effect_heal_self_onethird',
+    maxHp.map(hp => Math.floor(hp / 3)),
+  ),
+  effect_skill_heal_self_quarter: healing(
+    'effect_skill_heal_self_quarter',
+    maxHp.map(hp => Math.floor(hp / 4)),
   ),
 })

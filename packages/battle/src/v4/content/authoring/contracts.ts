@@ -1,0 +1,141 @@
+/** Author-facing contracts. Runtime implementations are exported from api.ts. */
+import type { DamageContext, TriggerContextMap, UseSkillContext } from '../../context'
+import type { NativeEffectTrigger } from '../../content/native-effect'
+import type { MarkInstance } from '../../mark'
+import type { Pet } from '../../pet'
+
+export type EventMap = { [K in NativeEffectTrigger as `${K}`]: TriggerContextMap[K] }
+export type Trigger = keyof EventMap
+export type Presence = 'required' | 'optional'
+type Scalar = number | string | boolean
+type ReadResult<T, P extends Presence> = P extends 'optional' ? T | undefined : T
+
+declare const valueType: unique symbol
+declare const bindingType: unique symbol
+declare const referenceType: unique symbol
+
+type PetAttributes = { [K in keyof Pet['stat'] as `${K}`]: Pet['stat'][K] }
+type Attributes<T> = T extends Pet ? PetAttributes : T extends MarkInstance ? { stack: number } : Record<never, never>
+
+/** Reusable single-value query. A map skips an absent input; it never supplies an invented zero. */
+export interface Value<T, P extends Presence = 'required'> {
+  readonly [valueType]: { readonly value: T; readonly presence: P }
+  readonly map: <U>(project: (value: T) => U) => Value<U, P>
+  readonly attribute: <K extends keyof Attributes<T>>(key: K) => Value<Attributes<T>[K], P>
+  readonly capture: (options: { key: string; scope: 'binding' }) => BindingValue<T, P>
+  readonly follow: (options: { key: string }) => BindingValue<T, P>
+}
+
+/** Explicit persistent plan, not a value readable with ctx.read or an arbitrary serializable closure. */
+export interface BindingValue<T, P extends Presence = 'required'> {
+  readonly [bindingType]: { readonly value: T; readonly presence: P }
+  /** Pure scalar projection, recomputed when this input changes; no new temporal step. */
+  readonly map: <U extends Scalar>(
+    this: T extends Scalar ? BindingValue<T, P> : never,
+    project: (value: T) => U,
+  ) => BindingValue<U, P>
+  readonly attribute: <K extends keyof Attributes<T>>(key: K) => BindingStep<Attributes<T>[K], P>
+}
+
+/** A new step must choose its temporal policy before an operator can consume it. */
+export interface BindingStep<T, P extends Presence> {
+  readonly capture: (options: { key: string; scope: 'binding' | 'input' }) => BindingValue<T, P>
+  readonly follow: (options: { key: string }) => BindingValue<T, P>
+}
+
+/** Opaque, invariant write location. A number is not a number reference. */
+export interface WritableRef<T> {
+  readonly [referenceType]: (value: T) => T
+}
+
+export interface Selector<T> {
+  readonly where: (predicate: (value: T) => boolean) => Selector<T>
+  readonly select: <U>(project: (value: T) => U) => Selector<U>
+  readonly first: () => Value<T, 'optional'>
+  readonly condition: <K extends Trigger = Trigger>(evaluate: Evaluator<T, K>) => Condition<K>
+  readonly apply: <K extends Trigger = Trigger>(operator: Operator<T, K>) => Action<K>
+  // Deliberately bounded writable surface; does not make every Pet key writable.
+  readonly property: (this: Selector<Pet>, key: 'currentHp') => Selector<WritableRef<number>>
+}
+
+interface FrameServices {
+  readonly read: <T, P extends Presence>(value: Value<T, P>) => ReadResult<T, P>
+  readonly ops: {
+    readonly modifyDamage: (event: DamageContext, change: { delta: number; percent: number }) => void
+  }
+}
+
+/** Discriminated by on, including multi-trigger definitions. Reuses the real engine's context types. */
+export type EffectFrame<T extends Trigger = Trigger> = {
+  [K in T]: FrameServices & { readonly on: K; readonly event: EventMap[K] }
+}[T]
+export type Condition<T extends Trigger = Trigger> = (ctx: EffectFrame<T>) => boolean
+export type Action<T extends Trigger = Trigger> = (ctx: EffectFrame<T>) => void
+export type Evaluator<T, K extends Trigger = Trigger> = (ctx: EffectFrame<K>, values: readonly T[]) => boolean
+export type Operator<T, K extends Trigger = Trigger> = (ctx: EffectFrame<K>, targets: readonly T[]) => void
+
+export interface Parameter<T> extends Value<T> {
+  readonly parameter: true
+}
+export declare function numberParam(options: {
+  default: number
+  tags?: readonly string[]
+  legacyAliases?: readonly string[]
+}): Parameter<number>
+export declare function booleanParam(options: { default: boolean }): Parameter<boolean>
+
+type Parameters = Readonly<Record<string, Parameter<unknown>>>
+export interface EffectDefinition<T extends Trigger, P extends Parameters> {
+  readonly id: string
+  readonly on: T | readonly T[]
+  readonly priority?: number
+  readonly parameters?: P
+  readonly when?: (ctx: NoInfer<EffectFrame<T>>, params: P) => boolean
+  readonly execute: (ctx: NoInfer<EffectFrame<T>>, params: P) => void
+}
+export declare function defineEffect<const T extends Trigger, const P extends Parameters = Record<never, never>>(
+  definition: EffectDefinition<T, P>,
+): EffectDefinition<T, P>
+
+export declare const targets: {
+  readonly ownerPet: Selector<Pet>
+  readonly opponentActive: Selector<Pet>
+  readonly ownerMarks: Selector<MarkInstance>
+  readonly sourceMark: Selector<MarkInstance>
+}
+export declare const contexts: {
+  /** Searches ancestry; unlike event, a matching ancestor is not guaranteed. */
+  readonly nearestSkillUse: (ctx: EffectFrame) => UseSkillContext | undefined
+}
+export declare const conditions: {
+  readonly selfUsesSkill: Condition
+  readonly selfBeDamaged: Condition
+}
+export declare const checks: {
+  readonly exists: <T>() => Evaluator<T>
+}
+export declare const actions: {
+  /** Each action queries independently, in order; no implicit success gate or shared capture. */
+  readonly sequence: <T extends Trigger = Trigger>(...actions: readonly Action<T>[]) => Action<T>
+}
+export declare const values: {
+  /** Lazy branches, freshly evaluated at the consumer's read. */
+  readonly choose: <T>(condition: Condition, yes: T | Value<T>, no: T | Value<T>) => Value<T>
+}
+
+type NumericInput = number | Value<number, Presence>
+export declare const ops: {
+  /** Evaluate amount once per operator invocation, then apply to its selected targets. Missing skips. */
+  readonly heal: (amount: NumericInput) => Operator<Pet>
+  readonly consumeStacks: (amount: NumericInput) => Operator<MarkInstance>
+  readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
+  readonly assign: (value: NumericInput) => Operator<WritableRef<number>>
+  readonly bindAttribute: (options: {
+    key: string
+    attribute: keyof PetAttributes
+    operation: 'delta' | 'percent' | 'override'
+    value: BindingValue<number, Presence>
+    lifetime: 'sourceMark'
+    missing: 'detach'
+  }) => Operator<Pet>
+}
