@@ -50,7 +50,7 @@ test('rejects unsupported action shapes instead of emitting partial effects', ()
     assert.ok(classifySkillPower(bad).reason)
 })
 test('deterministically reproduces every candidate and rejected record', async () => {
-  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 96, rejected: 8 })
+  assert.deepEqual(await generateSkillPower({ check: true }), { generated: 99, rejected: 5 })
 })
 
 test('preserves skill ownership throughout nested conditional comparison values', () => {
@@ -175,5 +175,24 @@ test('rejects nonexistent base extractors instead of extending C07', () => {
     assert.ok(classifySkillPower(d).reason, `${base}.${arg}`)
     d.condition.target.chain[0].arg.type = 'dynamic'
     assert.ok(!classifySkillPower(d).reason, `${base}.${arg} dynamic`)
+  }
+})
+
+test('conditional power values preserve absent false-zero and lazy list branches', () => {
+  const d = source()
+  d.apply.value = {
+    type: 'conditional',
+    condition: { type: 'checkSelf' },
+    trueValue: 0,
+    falseValue: { type: 'conditional', condition: { type: 'selfUseSkill' }, trueValue: 50, falseValue: 0 },
+  }
+  assert.equal(
+    classifySkillPower(d).value,
+    'values.choose(conditions.ownerUsesSkill,[0],values.choose(conditions.selfUsesSkill,[50],[]))',
+  )
+  for (const bad of [null, false, [], { type: 'raw:number', value: 2 }]) {
+    const invalid = structuredClone(d)
+    invalid.apply.value.falseValue = bad
+    assert.ok(classifySkillPower(invalid).reason)
   }
 })

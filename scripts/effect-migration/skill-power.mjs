@@ -5,6 +5,19 @@ import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 import { fields, normalize, condition, selectedNumber } from './authoring-emitter.mjs'
 
+// Power consumes every value. An absent conditional branch is an empty list, not zero.
+function powerValues(value) {
+  if (Number.isFinite(value)) return JSON.stringify([value])
+  if (fields(value, ['type', 'selector']) && value.type === 'dynamic')
+    return selectedNumber(value.selector, undefined, undefined, 'all', 'skill')
+  if (fields(value, ['type', 'condition', 'trueValue', 'falseValue']) && value.type === 'conditional') {
+    const when = condition(value.condition, 'skill')
+    const yes = powerValues(value.trueValue)
+    const no = value.falseValue === 0 ? '[]' : powerValues(value.falseValue)
+    if (when && yes && no) return `values.choose(${when},${yes},${no})`
+  }
+}
+
 /** C07: explicit selector spelling repair on a copy; records every changed source node. */
 export function repairSkillSelector(definition) {
   const paths = []
@@ -54,10 +67,7 @@ export function classifySkillPower(original) {
   if (a.target !== 'usingSkillContext' && !(fields(a.target, ['base']) && a.target.base === 'usingSkillContext'))
     return { reason: 'unsupported target chain' }
   const amount = Number.isFinite(a.value) ? a.value : undefined
-  const value =
-    fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic'
-      ? selectedNumber(a.value.selector, undefined, undefined, 'all', 'skill')
-      : undefined
+  const value = amount === undefined ? powerValues(a.value) : undefined
   if (amount === undefined && !value) return { reason: 'unsupported power value' }
   const when = 'condition' in d ? condition(d.condition, 'skill') : '() => true'
   if (!when) return { reason: 'condition needs a separate mapping' }

@@ -11,7 +11,7 @@
 
 ## Behavior evidence
 
-`pnpm test:effect-authoring-design` runs 34 authoring scenarios and the existing 19 value-binding tests against the source implementation. Scenarios include collection versus execution time, independent actions, lazy branches, one numeric read per operator, direct HP assignment without healing, `spe` versus `spd`, captured instance/followed stack, followed instance/per-entry captures, removal, replacement, same-instance re-entry without intermediate reads, initial absence, source cleanup, real switching, duplicate keys and self-dependency rejection.
+`pnpm test:effect-authoring-design` runs 35 authoring scenarios and the existing 19 value-binding tests against the source implementation. Scenarios include collection versus execution time, independent actions, lazy branches, one numeric read per operator, direct HP assignment without healing, `spe` versus `spd`, captured instance/followed stack, followed instance/per-entry captures, removal, replacement, same-instance re-entry without intermediate reads, initial absence, source cleanup, real switching, duplicate keys and self-dependency rejection.
 
 `official-authored.test.ts` compares three non-persistent candidates against current production YAML through the legacy parser and real V4 dispatch: skill/mark sources, missing prerequisite, wrong owner, cancellation, late HP/maxHP/owner changes, consumption hooks, and twelve exact HP threshold values. It compares state, modifier results, effect success/hooks and subsequent RNG. Sixty-six behavioral cases and a four-ID source-hash check pass. This does not constitute full-game or checkpoint acceptance.
 
@@ -43,4 +43,6 @@ Relation observation now initializes with Pet, Mark and Skill construction and s
 
 ## Final validation
 
-Final rebuilt artifacts pass all 9,500 V4 tests across 43 files, plus 53 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.
+Final rebuilt artifacts pass all 9,620 V4 tests across 43 files, plus 54 source authoring/binding tests. V4 and authoring typechecks, declaration build, scoped/root lint, formatting and source provenance checks pass. Standards and Spec follow-ups confirmed the reported fixes; the legacy historical-body guard now uses a pinned digest rather than requiring full Git history. Node and real Chrome checkpoint continuation also agree after the persistent factory changes. No production loader cutover is implied by these results.
+
+Conditional power list tests verify lazy nested branches at each action: an empty list causes no write, while `[0]` causes a zero write. The existing generic `values.choose` interface handles these lists without a new runtime API.

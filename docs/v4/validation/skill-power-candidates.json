@@ -833,6 +833,60 @@
       "status": "generated-correction-candidate"
     },
     {
+      "id": "effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/280",
+      "definitionSha256": "4f0d6406e94492e8146e2fba8cf9a573ce6ca5ab385dbc145ba0b08751e33028",
+      "recipe": {
+        "id": "effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_bingshuanglingyu\").condition(checks.exists()),[150],values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_bingzhilingyu\").condition(checks.exists()),[50],[]))",
+        "when": "conditions.selfUsesSkill",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/272",
+      "definitionSha256": "7bbe8e37a5cb46f76aad5e64a3e2e8be9d3777ae13b808cb607f15ea196ed5cd",
+      "recipe": {
+        "id": "effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_diancilingyu\").condition(checks.exists()),[150],values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_dianzhilingyu\").condition(checks.exists()),[50],[]))",
+        "when": "conditions.selfUsesSkill",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/284",
+      "definitionSha256": "a31d2d24f9066b5abb4f929285af53f07ce5107d5abaf1cb4f6c5623b645ccbf",
+      "recipe": {
+        "id": "effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "operation": "addPower",
+        "value": "values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_fengbaolingyu\").condition(checks.exists()),[150],values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_fengzhilingyu\").condition(checks.exists()),[50],[]))",
+        "when": "conditions.selfUsesSkill",
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "C",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_skill_power_2x_below_quarter_hp",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/75",
@@ -1764,27 +1818,6 @@
       "sourcePath": "/529",
       "definitionSha256": "a49a810cddb50ea0df6800bb5563ddc36a308e72dd9b0e2fe458f72d8b90177d",
       "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/280",
-      "definitionSha256": "4f0d6406e94492e8146e2fba8cf9a573ce6ca5ab385dbc145ba0b08751e33028",
-      "reason": "unsupported power value"
-    },
-    {
-      "id": "effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/272",
-      "definitionSha256": "7bbe8e37a5cb46f76aad5e64a3e2e8be9d3777ae13b808cb607f15ea196ed5cd",
-      "reason": "unsupported power value"
-    },
-    {
-      "id": "effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/284",
-      "definitionSha256": "a31d2d24f9066b5abb4f929285af53f07ce5107d5abaf1cb4f6c5623b645ccbf",
-      "reason": "unsupported power value"
     },
     {
       "id": "effect_skill_power_4x_10_percent",

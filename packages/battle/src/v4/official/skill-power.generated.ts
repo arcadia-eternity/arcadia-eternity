@@ -7,6 +7,7 @@ import {
   targets,
   checks,
   ops,
+  values,
   type EffectFrame,
 } from '../content/authoring'
 export function createGeneratedSkillPowerEffects() {
@@ -706,6 +707,69 @@ export function createGeneratedSkillPowerEffects() {
               .select(event => event.power)
               .all()
               .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 1 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            values.choose(
+              targets.ownerMarks.where(mark => mark.baseId === 'mark_bingshuanglingyu').condition(checks.exists()),
+              [150],
+              values.choose(
+                targets.ownerMarks.where(mark => mark.baseId === 'mark_bingzhilingyu').condition(checks.exists()),
+                [50],
+                [],
+              ),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            values.choose(
+              targets.ownerMarks.where(mark => mark.baseId === 'mark_diancilingyu').condition(checks.exists()),
+              [150],
+              values.choose(
+                targets.ownerMarks.where(mark => mark.baseId === 'mark_dianzhilingyu').condition(checks.exists()),
+                [50],
+                [],
+              ),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(
+          ops.addPower(
+            values.choose(
+              targets.ownerMarks.where(mark => mark.baseId === 'mark_fengbaolingyu').condition(checks.exists()),
+              [150],
+              values.choose(
+                targets.ownerMarks.where(mark => mark.baseId === 'mark_fengzhilingyu').condition(checks.exists()),
+                [50],
+                [],
+              ),
+            ),
           ),
         ),
       }),

@@ -901,3 +901,55 @@ it('player queries use the direct skill actor, requery ownership, then fall back
   )
   expect(seen).toEqual([f.b.id, 7, f.b.id, 7])
 })
+
+it('conditional power lists distinguish no branch from zero and read only the selected branch per action', () => {
+  const f = fixture()
+  let high = true
+  let low = true
+  const reads: string[] = []
+  const writes: number[] = []
+  const addPower = f.use.addPower.bind(f.use)
+  f.use.addPower = amount => {
+    writes.push(amount)
+    addPower(amount)
+  }
+  const branch = (name: string, amount: number) =>
+    targets.ownerPet
+      .select(() => {
+        reads.push(name)
+        return amount
+      })
+      .all()
+  const selected = values.choose(
+    () => high,
+    branch('high', 150),
+    values.choose(
+      () => {
+        reads.push('low-condition')
+        return low
+      },
+      branch('low', 50),
+      [],
+    ),
+  )
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/conditional-power-lists',
+      on: 'BeforeHit',
+      execute(ctx) {
+        const apply = contexts.skillUse.apply(ops.addPower(selected))
+        apply(ctx)
+        high = false
+        apply(ctx)
+        low = false
+        apply(ctx)
+        contexts.skillUse.apply(ops.addPower(values.choose(() => true, [0], [])))(ctx)
+      },
+    }),
+  )
+  f.use.power = 83
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(reads).toEqual(['high', 'low-condition', 'low', 'low-condition'])
+  expect(writes).toEqual([150, 50, 0])
+  expect(f.use.power).toBe(283)
+})

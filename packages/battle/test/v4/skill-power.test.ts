@@ -96,6 +96,10 @@ function supportIds(nodes: { [key: string]: unknown }[]) {
     ),
   ]
 }
+const branchVariants = ['lower-branch', 'no-branch', 'late-lower-branch', 'late-no-branch'] as const
+function conditionalPower(r: RecordEntry) {
+  return definitions.get(r.id).apply.value?.type === 'conditional'
+}
 const fieldVariants = ['wrong-fields', 'missing-fields', 'late-fields'] as const
 const fieldIds = new Set([
   'effect_ability_damage_amplify_10_percent_weight_100kg',
@@ -166,7 +170,8 @@ function run(
     | (typeof variants)[number]
     | (typeof dynamicVariants)[number]
     | (typeof orderVariants)[number]
-    | (typeof fieldVariants)[number],
+    | (typeof fieldVariants)[number]
+    | (typeof branchVariants)[number],
 ) {
   const f = makeScenario(328),
     { battle, a, b } = f
@@ -193,6 +198,12 @@ function run(
       }
     }
   }
+  const selectBranch = (lower: boolean) => {
+    const keep = lower ? supportIds(nodes)[0] : undefined
+    for (const mark of [...pet.marks])
+      if (supportIds(nodes).includes(mark.baseId) && mark.baseId !== keep) pet.marks.splice(pet.marks.indexOf(mark), 1)
+  }
+  if (variant === 'lower-branch' || variant === 'no-branch') selectBranch(variant === 'lower-branch')
   pet.lastSkill = skill
   const periodic = nodes.some(n => n.type === 'continuousUseSkill')
   pet.lastSkillUsedTimes = periodic ? (variant === 'phase' ? 1 : variant === 'wrong-count' ? 3 : 2) : 3
@@ -255,6 +266,8 @@ function run(
           use.power = 101
           use.element = Element.Trait
         }
+        if (variant === 'late-lower-branch' || variant === 'late-no-branch')
+          selectBranch(variant === 'late-lower-branch')
         if (variant === 'late-fields') fieldsFor(r, battle, false)
         if (variant === 'late-order') {
           use.parent.appledContexts.reverse()
@@ -292,6 +305,7 @@ function run(
 }
 // Explicit expected contributions, independent of the emitted expression and legacy interpreter.
 function expectedDynamic(id: Id, kind: 'skill' | 'mark' | 'global', phase: boolean): number {
+  if (id.startsWith('effect_skill_power_100_if_')) return 150
   if (id === 'effect_skill_consume_xinzhiyinji_power_2x') return 83
   if (id === 'effect_skill_add_power_10_per_opponent_manxingduyao') return 30
   if (id === 'effect_mark_add_power_stack') return kind === 'skill' ? 0 : 3
@@ -346,6 +360,7 @@ for (const r of records) {
       ...(r.recipe.value ? dynamicVariants : []),
       ...(hasOrderCondition(r) ? orderVariants : []),
       ...(fieldIds.has(r.id) ? fieldVariants : []),
+      ...(conditionalPower(r) ? branchVariants : []),
     ])(`${r.id} ${kind}: %s`, variant => {
       const actual = run(r, true, kind, variant)
       expect(actual).toEqual(run(r, false, kind, variant))
@@ -353,6 +368,10 @@ for (const r of records) {
       if (variant === 'wrong-fields' || (variant === 'missing-fields' && /weight|height|heavier/.test(r.id))) {
         expect(actual.trace).not.toContain('admitted')
         expect(actual.power).toBe(83)
+      }
+      if (conditionalPower(r) && (branchVariants as readonly string[]).includes(variant)) {
+        expect(actual.trace).toContain('admitted')
+        expect(actual.power).toBe(variant.includes('lower') ? 133 : 83)
       }
       if (variant === 'normal' || variant === 'phase' || variant === 'late-fields') {
         expect(actual.trace).toContain('admitted')
