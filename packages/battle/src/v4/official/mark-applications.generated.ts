@@ -2519,6 +2519,19 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         ),
       }),
     ),
+    effect_skill_add_mark_opponent_zhongdu_if_3_hits: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_mark_opponent_zhongdu_if_3_hits',
+        on: ['BeforeMultiHit'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
+          const right = 3
+          return left !== undefined && right !== undefined && left === right
+        }),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+      }),
+    ),
     effect_skill_add_mark_opponent_zisun: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zisun',

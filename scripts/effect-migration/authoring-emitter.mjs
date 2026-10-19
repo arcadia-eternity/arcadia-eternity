@@ -123,6 +123,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         step.type === 'selectPath' &&
         (step.arg === 'stack' ||
           (s.base === 'damageContext' && step.arg === 'damageResult') ||
+          (domain === 'skill' && s.base === 'usingSkillContext' && step.arg === 'multihitResult') ||
           (domain === 'skill' &&
             ['self', 'opponent'].includes(s.base) &&
             ['stat.spa', 'stat.atk'].includes(step.arg)) ||
@@ -155,6 +156,8 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         code += `.select(battle => battle.currentTurn)${terminal}`
       else if (s.base === 'damageContext' && name === 'damageResult')
         code += `.select(event => event.damageResult)${terminal}`
+      else if (domain === 'skill' && s.base === 'usingSkillContext' && name === 'multihitResult')
+        code += `.select(event => event.multihitResult)${terminal}`
       else if (collection && s.base === 'usingSkillContext' && name === 'power')
         code += `.select(event => event.power)${terminal}`
       else return
@@ -411,9 +414,13 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
   ) {
     // Legacy compare checks every member with some(); only single-entity roots may use first().
     if (
-      !['self', 'opponent', 'mark', 'damageContext', ...(domain === 'skill' ? ['selfPlayer', 'battle'] : [])].includes(
-        c.target?.base,
-      )
+      ![
+        'self',
+        'opponent',
+        'mark',
+        'damageContext',
+        ...(domain === 'skill' ? ['selfPlayer', 'battle', 'usingSkillContext'] : []),
+      ].includes(c.target?.base)
     )
       return
     const left = selectedNumber(c.target, undefined, undefined, 'first', domain),

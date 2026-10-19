@@ -50,6 +50,7 @@ interface RecordEntry {
     stack?: number
     duration?: number
     triggers: (
+      | 'BeforeMultiHit'
       | 'BeforeHit'
       | 'OnHit'
       | 'OnMiss'

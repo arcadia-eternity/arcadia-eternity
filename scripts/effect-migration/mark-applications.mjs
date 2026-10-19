@@ -86,6 +86,9 @@ export function classifyMarkApplication(original) {
     (triggers.length === 1 &&
       ['OnMarkDestroy', 'OnMarkDurationEnd'].includes(triggers[0]) &&
       !('condition' in definition)) ||
+    (triggers.length === 1 &&
+      triggers[0] === 'BeforeMultiHit' &&
+      requiredCondition(definition.condition, 'selfUseSkill')) ||
     (triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) &&
       (requiredCondition(definition.condition, 'selfUseSkill') ||
         requiredCondition(definition.condition, 'selfBeSkillTarget'))) ||

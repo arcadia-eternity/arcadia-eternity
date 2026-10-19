@@ -33,7 +33,7 @@ type RecordEntry = {
     markId: string
     target: 'self' | 'opponent'
     stack?: number
-    triggers: ('OnHit' | 'OnMiss')[]
+    triggers: ('OnHit' | 'OnMiss' | 'BeforeMultiHit')[]
   }
   dependency: { sourceFile: string }
 }
@@ -96,7 +96,8 @@ function run(
   native: boolean,
   kind: 'skill' | 'mark',
   variant: (typeof variants)[number],
-  trigger: 'OnHit' | 'OnMiss',
+  trigger: 'OnHit' | 'OnMiss' | 'BeforeMultiHit',
+  counts?: { requested: number; computed: number; hit?: boolean },
 ) {
   const { battle, a, b, debuff } = makeScenario(31)
   battles.push(battle)
@@ -117,7 +118,11 @@ function run(
   const use = new UseSkillContext(new TurnContext(battle), a, owner, AttackTargetOpinion.opponent, selectedSkill)
   use.updateActualTarget()
   function setCondition(valid: boolean) {
-    if (r.id.includes('xifamihuo')) selectedSkill.tags.splice(0, selectedSkill.tags.length, ...(valid ? ['xifa'] : []))
+    if (r.id.endsWith('_if_3_hits')) {
+      use.multihit = valid ? 3 : 2
+      use.multihitResult = valid ? 3 : 2
+    } else if (r.id.includes('xifamihuo'))
+      selectedSkill.tags.splice(0, selectedSkill.tags.length, ...(valid ? ['xifa'] : []))
     else if (r.id.includes('fenshenhying'))
       Object.defineProperty(selectedSkill.base, 'id', {
         configurable: true,
@@ -133,6 +138,10 @@ function run(
         : Category.Status
   }
   setCondition(variant !== 'wrong-condition')
+  if (counts) {
+    use.multihit = counts.requested
+    use.multihitResult = counts.computed
+  }
   const base = marks.get(r.recipe.markId)!,
     repo = DataRepository.getInstance(),
     previous = repo.marks.get(base.id)
@@ -152,7 +161,7 @@ function run(
         ctx.trigger !== EffectTrigger.BeforeEffect ||
         (ctx.parent instanceof EffectContext && ctx.parent.effect?.id === r.id),
       apply(ctx) {
-        if (ctx.trigger === EffectTrigger.BeforeMultiHit) ctx.parent.hitResult = trigger === 'OnHit'
+        if (ctx.trigger === EffectTrigger.BeforeMultiHit) ctx.parent.hitResult = counts?.hit ?? trigger !== 'OnMiss'
         if (ctx.trigger === EffectTrigger.BeforeEffect && ctx.parent instanceof EffectContext) {
           if (variant === 'late-condition') setCondition(false)
           if (variant === 'late-owner') source.owner = b.activePet
@@ -176,7 +185,7 @@ function run(
       const phase = new SkillPhase(battle, a, owner, AttackTargetOpinion.opponent, selectedSkill, use.parent, use)
       phase.initialize()
       phase.execute()
-    } else battle.applyEffects(use, trigger === 'OnHit' ? EffectTrigger.OnHit : EffectTrigger.OnMiss)
+    } else battle.applyEffects(use, EffectTrigger[trigger])
     return {
       inputs,
       marks: [...a.team, ...b.team].flatMap(pet =>
@@ -234,5 +243,32 @@ for (const r of records) {
         }
       })
 }
-it('covers all seven corrected skill-category, tag and identity mark applications', () =>
-  expect(records).toHaveLength(7))
+it('covers all eight corrected skill-context mark applications', () => expect(records).toHaveLength(8))
+
+for (const kind of ['skill', 'mark'] as const)
+  it.each([
+    { requested: 3, computed: 0 },
+    { requested: 3, computed: 2 },
+    { requested: 3, computed: 4 },
+    { requested: 4, computed: 3 },
+  ])(`three-hit admission reads the computed result for ${kind}: %j`, counts => {
+    const record = records.find(r => r.id === 'effect_skill_add_mark_opponent_zhongdu_if_3_hits')!
+    const actual = run(record, true, kind, 'normal', 'BeforeMultiHit', counts)
+    expect(actual).toEqual(run(record, false, kind, 'normal', 'BeforeMultiHit', counts))
+    expect(actual.inputs).toHaveLength(counts.computed === 3 ? 1 : 0)
+    expect(actual.marks).toHaveLength(counts.computed === 3 ? 1 : 0)
+    expect(actual.nextRandom).toBe(new GameRng(31).next())
+  })
+
+for (const kind of ['skill', 'mark'] as const)
+  it.each([
+    { requested: 2, computed: 3, hit: true },
+    { requested: 3, computed: 0, hit: false },
+    { requested: 4, computed: 3, hit: true },
+  ])(`three-hit admission follows real SkillPhase calculation before hit handling for ${kind}: %j`, counts => {
+    const record = records.find(r => r.id === 'effect_skill_add_mark_opponent_zhongdu_if_3_hits')!
+    const actual = run(record, true, kind, 'real-skill', 'BeforeMultiHit', counts)
+    expect(actual).toEqual(run(record, false, kind, 'real-skill', 'BeforeMultiHit', counts))
+    expect(actual.inputs).toHaveLength(counts.requested === 3 ? 1 : 0)
+    expect(actual.marks).toHaveLength(counts.requested === 3 ? 1 : 0)
+  })

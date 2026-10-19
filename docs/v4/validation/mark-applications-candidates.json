@@ -4822,6 +4822,31 @@
       }
     },
     {
+      "id": "effect_skill_add_mark_opponent_zhongdu_if_3_hits",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/631",
+      "definitionSha256": "ed2540e6ac8891c8a970eab4453cfd2cb563bbb0f2d0eead385cbe946fa91545",
+      "recipe": {
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "id": "effect_skill_add_mark_opponent_zhongdu_if_3_hits",
+        "priority": 0,
+        "triggers": ["BeforeMultiHit"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(contexts.skillUse.select(event => event.multihitResult).first());const right=3;return left!==undefined && right!==undefined && left === right}))",
+        "additionalDecisions": ["C07"],
+        "markId": "mark_zhongdu"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_zhongdu",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/35",
+        "definitionSha256": "c05f250d15e2fc7c0044e1eceb3d336ce5b6766cc24330a65f5999f508b49db1",
+        "effectIds": ["effect_mark_turn_damage", "effect_mark_decrease_heal"]
+      }
+    },
+    {
       "id": "effect_skill_add_mark_opponent_zisun",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/667",
@@ -6943,13 +6968,6 @@
       "sourcePath": "/633",
       "definitionSha256": "9c2d18727239e17c6a426922eedc728b64be3ca7e29f35537d686926bb85b8b7",
       "reason": "Missing mark dependency: mark_liuxue"
-    },
-    {
-      "id": "effect_skill_add_mark_opponent_zhongdu_if_3_hits",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/631",
-      "definitionSha256": "ed2540e6ac8891c8a970eab4453cfd2cb563bbb0f2d0eead385cbe946fa91545",
-      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_skill_add_mark_zhaocai_or_jinbao",

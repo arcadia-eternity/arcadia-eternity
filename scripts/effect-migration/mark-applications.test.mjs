@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 277,
+    generated: 278,
     protected: 2,
     dependencies: 188,
-    rejected: 8,
+    rejected: 7,
   })
 })
 
@@ -407,5 +407,31 @@ test('damage-result comparison emits one configured threshold and a scoped damag
   assert.ok(classifyMarkApplication(d).reason)
   d.condition.conditions[1].target.chain[0].arg = 'damageResult'
   d.condition.conditions[1].evaluator.value.unknown = true
+  assert.ok(classifyMarkApplication(d).reason)
+})
+
+test('before-multihit admission reads the computed result and requires the skill-owner guard', () => {
+  const d = {
+    ...source(),
+    trigger: 'BeforeMultiHit',
+    condition: {
+      type: 'every',
+      conditions: [
+        { type: 'selfUseSkill' },
+        {
+          type: 'evaluate',
+          target: { base: 'useSkillContext', chain: [{ type: 'selectPath', arg: 'multihitResult' }] },
+          evaluator: { type: 'compare', operator: '==', value: 3 },
+        },
+      ],
+    },
+  }
+  assert.match(
+    classifyMarkApplication(d).when,
+    /contexts\.skillUse\.select\(event => event\.multihitResult\)\.first\(\)/,
+  )
+  assert.ok(classifyMarkApplication({ ...d, condition: { type: 'selfBeSkillTarget' } }).reason)
+  assert.ok(classifyMarkApplication({ ...d, trigger: ['BeforeMultiHit', 'OnDamage'] }).reason)
+  d.condition.conditions[1].target.chain[0].arg = 'currentHitCount'
   assert.ok(classifyMarkApplication(d).reason)
 })
