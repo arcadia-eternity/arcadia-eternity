@@ -13,7 +13,7 @@ function normalize(v) {
       : v
 }
 function root(s, domain = 'damage') {
-  if (domain === 'skill' && s === 'selfPlayer') return 'targets.selfPlayer'
+  if (['skill', 'damage'].includes(domain) && ['selfPlayer', 'opponentPlayer'].includes(s)) return `targets.${s}`
   if (domain === 'skill' && s === 'battle') return 'contexts.battle'
   if (s === 'self') return 'targets.ownerPet'
   if (s === 'opponent') return 'targets.opponentActive'
@@ -117,6 +117,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         fields(e, ['type', 'arg']) &&
         e.type === 'dynamic' &&
         (e.arg === 'lastSkillUsedTimes' ||
+          (s.base === 'damageContext' && e.arg === 'damageResult') ||
           (domain === 'skill' && ['weight', 'height', 'level', 'maxRage', 'currentTurn', 'duration'].includes(e.arg)))
       )
         name = e.arg
@@ -152,7 +153,11 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         code += `.select(pet => pet.${name})${terminal}`
         optional = name !== 'level'
         if (collection && optional) return
-      } else if (domain === 'skill' && s.base === 'selfPlayer' && ['rage', 'maxRage'].includes(name))
+      } else if (
+        ['skill', 'damage'].includes(domain) &&
+        ['selfPlayer', 'opponentPlayer'].includes(s.base) &&
+        ['rage', 'maxRage'].includes(name)
+      )
         code += `.select(player => player.${name === 'rage' ? 'currentRage' : name})${terminal}`
       else if (domain === 'skill' && s.base === 'battle' && name === 'currentTurn')
         code += `.select(battle => battle.currentTurn)${terminal}`
@@ -498,8 +503,8 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
         'mark',
         'damageContext',
         'stackContext',
-        ...(['skill', 'damage'].includes(domain) ? ['usingSkillContext'] : []),
-        ...(domain === 'skill' ? ['selfPlayer', 'battle'] : []),
+        ...(['skill', 'damage'].includes(domain) ? ['usingSkillContext', 'selfPlayer', 'opponentPlayer'] : []),
+        ...(domain === 'skill' ? ['battle'] : []),
       ].includes(c.target?.base)
     )
       return

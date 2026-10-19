@@ -129,6 +129,8 @@ export declare const targets: {
   readonly ownerPet: Selector<Pet>
   /** Direct skill actor owner; otherwise the source pet owner. */
   readonly selfPlayer: Selector<Player>
+  /** Direct skill target owner; otherwise the source pet owner's opponent. Requeried on use. */
+  readonly opponentPlayer: Selector<Player>
   readonly opponentActive: Selector<Pet>
   /** Direct skill target marks; otherwise the opposing active pet marks. Requeried on use. */
   readonly opponentMarks: Selector<MarkInstance>

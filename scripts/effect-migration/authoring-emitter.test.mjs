@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { condition } from './authoring-emitter.mjs'
+import { condition, number } from './authoring-emitter.mjs'
 
 test('element equality retains first-item and empty-selection semantics', () => {
   for (const base of ['self', 'opponent'])
@@ -122,4 +122,38 @@ test('dynamic clamps pair by index, default absent limits to zero, and require e
           assert.deepEqual(actual, consumption === 'first' ? expected[0] : expected)
         }
     }
+})
+
+test('player comparisons and dynamic damage-result extraction preserve typed queries', () => {
+  const selection = base => ({ base, chain: [{ type: 'select', arg: { type: 'base', arg: 'rage' } }] })
+  for (const domain of ['skill', 'damage']) {
+    const code = condition(
+      {
+        type: 'evaluate',
+        target: selection('selfPlayer'),
+        evaluator: {
+          type: 'compare',
+          operator: '<',
+          value: { type: 'dynamic', selector: selection('opponentPlayer') },
+        },
+      },
+      domain,
+    )
+    assert.match(code, /targets.selfPlayer.select/)
+    assert.match(code, /targets.opponentPlayer.select/)
+    assert.match(code, /left!==undefined && right!==undefined && left < right/)
+  }
+  const value = {
+    type: 'dynamic',
+    selector: {
+      base: 'damageContext',
+      chain: [
+        { type: 'select', arg: { type: 'dynamic', arg: 'damageResult' } },
+        { type: 'divide', arg: 2 },
+      ],
+    },
+  }
+  assert.match(number(value, [], 'damage', 'damage').code, /contexts.damage.select.*damageResult.*Math.floor/)
+  value.selector.chain[0].arg.arg = 'unknown'
+  assert.equal(number(value, [], 'damage', 'damage'), undefined)
 })

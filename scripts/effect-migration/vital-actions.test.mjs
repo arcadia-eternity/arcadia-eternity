@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 27, rejected: 23, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 30, rejected: 20, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')

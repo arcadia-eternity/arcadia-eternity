@@ -13,6 +13,19 @@ import {
 } from '../content/authoring'
 export function createGeneratedVitalActions() {
   return Object.freeze({
+    effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end',
+        on: 'TurnEnd',
+        priority: 0,
+        when: conditions.all(conditions.ownerIsActive, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+          const right = ctx.read(targets.opponentPlayer.select(player => player.currentRage).first())
+          return left !== undefined && right !== undefined && left < right
+        }),
+        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(15))),
+      }),
+    ),
     effect_ability_add_rage_5_when_attack_opponent_has_tongjiling: compileEffect(
       defineEffect({
         id: 'effect_ability_add_rage_5_when_attack_opponent_has_tongjiling',
@@ -46,6 +59,50 @@ export function createGeneratedVitalActions() {
                 .select(pet => pet.stat.maxHp)
                 .first()
                 .map(n => Math.floor(n / 16)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_ability_heal_1_8_max_hp_when_rage_gt_opponent: compileEffect(
+      defineEffect({
+        id: 'effect_ability_heal_1_8_max_hp_when_rage_gt_opponent',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+          const right = ctx.read(targets.opponentPlayer.select(player => player.currentRage).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              targets.ownerPet
+                .select(pet => pet.stat.maxHp)
+                .first()
+                .map(n => Math.floor(n / 8)),
+            ),
+          ),
+        ),
+      }),
+    ),
+    effect_ability_heal_half_damage_when_rage_lt_opponent: compileEffect(
+      defineEffect({
+        id: 'effect_ability_heal_half_damage_when_rage_lt_opponent',
+        on: 'OnDamage',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
+          const right = ctx.read(targets.opponentPlayer.select(player => player.currentRage).first())
+          return left !== undefined && right !== undefined && left < right
+        }),
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.heal(
+              contexts.damage
+                .select(event => event.damageResult)
+                .first()
+                .map(n => Math.floor(n / 2)),
             ),
           ),
         ),

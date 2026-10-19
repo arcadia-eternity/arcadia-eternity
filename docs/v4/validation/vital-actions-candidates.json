@@ -2,6 +2,22 @@
   "formatVersion": 1,
   "records": [
     {
+      "id": "effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/75",
+      "definitionSha256": "67790006c1185c5fed66bacd53b26dcc3157ad3f5e99c4c7283826dd8ea1437e",
+      "recipe": {
+        "id": "effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end",
+        "trigger": "TurnEnd",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerIsActive,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=ctx.read(targets.opponentPlayer.select(player => player.currentRage).first());return left!==undefined && right!==undefined && left < right}))",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.addRage(15))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_ability_add_rage_5_when_attack_opponent_has_tongjiling",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/79",
@@ -31,6 +47,48 @@
           {
             "sourcePath": "/apply",
             "code": "targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 16))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_heal_1_8_max_hp_when_rage_gt_opponent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/27",
+      "definitionSha256": "07afa84c2c8bc36e11dddadad85d7a830ea9a87acfb5f8055905b9d9faf00f4c",
+      "recipe": {
+        "id": "effect_ability_heal_1_8_max_hp_when_rage_gt_opponent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=ctx.read(targets.opponentPlayer.select(player => player.currentRage).first());return left!==undefined && right!==undefined && left > right}))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 8))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_heal_half_damage_when_rage_lt_opponent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/26",
+      "definitionSha256": "01d8d50a0d83c6a34aa0d9a4f09ababb98e596bb9cee41501f13fc0db2107832",
+      "recipe": {
+        "id": "effect_ability_heal_half_damage_when_rage_lt_opponent",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=ctx.read(targets.opponentPlayer.select(player => player.currentRage).first());return left!==undefined && right!==undefined && left < right}))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.heal(contexts.damage.select(event => event.damageResult).first().map(n => Math.floor(n / 2))))"
           }
         ],
         "repairedPaths": []
@@ -519,32 +577,11 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/75",
-      "definitionSha256": "67790006c1185c5fed66bacd53b26dcc3157ad3f5e99c4c7283826dd8ea1437e",
-      "reason": "condition needs a separate mapping"
-    },
-    {
       "id": "effect_ability_add_rage_5_when_first_attack",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/70",
       "definitionSha256": "aacd731ab2f0eb89eee73595642749a20ac2ca5c1c8ae5fc1567091a74c8a0c5",
       "reason": "order correction needs a source mapping"
-    },
-    {
-      "id": "effect_ability_heal_1_8_max_hp_when_rage_gt_opponent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/27",
-      "definitionSha256": "07afa84c2c8bc36e11dddadad85d7a830ea9a87acfb5f8055905b9d9faf00f4c",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_ability_heal_half_damage_when_rage_lt_opponent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/26",
-      "definitionSha256": "01d8d50a0d83c6a34aa0d9a4f09ababb98e596bb9cee41501f13fc0db2107832",
-      "reason": "condition needs a separate mapping"
     },
     {
       "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",

@@ -1393,3 +1393,78 @@ it('switch queries requery nearest context while the outgoing predicate requires
   f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(nested))
   expect(results).toEqual(['A/reserve', 'A/lead'])
 })
+
+it('opponent player requery uses the direct target and source fallback in nested contexts', () => {
+  const f = fixture()
+  f.use.updateActualTarget()
+  const query = targets.opponentPlayer.first()
+  const seen: unknown[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/opponent-player-query',
+      on: ['BeforeHit', 'BeforeEffect'],
+      execute(ctx) {
+        seen.push(ctx.read(query)?.id)
+        f.use.actualTarget = f.a.activePet
+        seen.push(ctx.read(query)?.id)
+        f.skill.setOwner(f.b.activePet)
+        seen.push(ctx.read(query)?.id)
+      },
+    }),
+  )
+  f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))
+  expect(seen).toEqual([f.b.id, f.a.id, f.a.id])
+  seen.length = 0
+  f.use.actualTarget = f.b.activePet
+  f.battle.executionBudget.run(0, () =>
+    effect.innerApply(new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
+  )
+  expect(seen).toEqual([f.a.id, f.a.id, f.a.id])
+})
+
+it.each(['capture', 'follow'] as const)('%s opponent rage keeps the explicit timing policy', mode => {
+  const f = fixture()
+  f.b.currentRage = 80
+  const query = targets.opponentPlayer.select(player => player.currentRage).first()
+  const plan =
+    mode === 'capture'
+      ? query.capture({ key: 'opponent-rage', scope: 'binding' })
+      : query.follow({ key: 'opponent-rage' })
+  const initial = f.owner.stat.spe
+  f.add('test/rage-speed', [penalty(plan.map(n => -n))])
+  expect(f.owner.stat.spe).toBe(initial - 80)
+  f.b.currentRage = 30
+  expect(f.owner.stat.spe).toBe(initial - (mode === 'capture' ? 80 : 30))
+})
+
+it('persistent self-player and opponent-mark queries use source identity without a trigger event', () => {
+  const f = fixture()
+  f.a.currentRage = 20
+  const ownRage = targets.selfPlayer
+    .select(player => player.currentRage)
+    .first()
+    .follow({ key: 'own-rage' })
+  f.add('test/own-rage-speed', [
+    penalty(
+      ownRage.map(n => -n),
+      'own-rage-penalty',
+    ),
+  ])
+  const initial = f.owner.stat.spe
+  f.a.currentRage = 30
+  expect(f.owner.stat.spe).toBe(initial - 10)
+  const count = targets.opponentMarks
+    .all()
+    .map(marks => marks.length)
+    .follow({ key: 'opponent-mark-count' })
+  const before = f.owner.stat.spe
+  f.add('test/opponent-mark-count', [
+    penalty(
+      count.map(n => -n),
+      'mark-count-penalty',
+    ),
+  ])
+  const base = new BaseMark('test/opponent-support' as baseMarkId, [], f.debuff.config)
+  f.battle.addMark(new AddMarkContext(f.ctx, f.b.activePet, base))
+  expect(f.owner.stat.spe).toBe(before - 1)
+})

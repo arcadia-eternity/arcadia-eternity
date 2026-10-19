@@ -254,23 +254,36 @@ function owner(ctx: Frame): Pet | undefined {
   const source = scope(ctx).source
   return source.owner instanceof Pet ? source.owner : undefined
 }
+function directSkillEvent(ctx: Frame): UseSkillContext | undefined {
+  const event = engines.get(ctx)?.parent
+  return event instanceof UseSkillContext ? event : undefined
+}
 export const targets: typeof C.targets = {
   ownerPet: selector(ctx => {
     const pet = owner(ctx)
     return pet ? [pet] : []
   }),
   selfPlayer: selector(ctx => {
-    const event = engine(ctx).parent
-    const player = event instanceof UseSkillContext ? event.pet.owner : owner(ctx)?.owner
+    const event = directSkillEvent(ctx)
+    const player = event ? event.pet.owner : owner(ctx)?.owner
     return player ? [player] : []
+  }),
+  opponentPlayer: selector(ctx => {
+    const event = directSkillEvent(ctx)
+    if (event) {
+      const player = event.actualTarget?.owner
+      return player ? [player] : []
+    }
+    const player = owner(ctx)?.owner
+    return player ? [scope(ctx).battle.getOpponent(player)] : []
   }),
   opponentActive: selector(ctx => {
     const player = owner(ctx)?.owner
     return player ? [scope(ctx).battle.getOpponent(player).activePet] : []
   }),
   opponentMarks: selector(ctx => {
-    const event = engine(ctx).parent
-    if (event instanceof UseSkillContext) return [...event.actualTarget!.marks]
+    const event = directSkillEvent(ctx)
+    if (event) return [...event.actualTarget!.marks]
     const player = owner(ctx)?.owner
     return player ? [...scope(ctx).battle.getOpponent(player).activePet.marks] : []
   }),

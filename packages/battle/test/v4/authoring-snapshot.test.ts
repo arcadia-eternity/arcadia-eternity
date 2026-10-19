@@ -31,8 +31,37 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
-type Mode = 'capture' | 'follow' | 'entry' | 'official' | 'parameter-capture' | 'parameter-follow'
+type Mode =
+  | 'capture'
+  | 'follow'
+  | 'entry'
+  | 'official'
+  | 'parameter-capture'
+  | 'parameter-follow'
+  | 'rage-capture'
+  | 'rage-follow'
 function definition(mode: Mode, custom = false) {
+  if (mode === 'rage-capture' || mode === 'rage-follow') {
+    const query = targets.opponentPlayer.select(player => -player.currentRage).first()
+    const value =
+      mode === 'rage-capture' ? query.capture({ key: 'rage', scope: 'binding' }) : query.follow({ key: 'rage' })
+    return compileEffect(
+      defineEffect({
+        id: 'snapshot/opponent-rage',
+        on: 'OnMarkCreated',
+        execute: targets.ownerPet.apply(
+          ops.bindAttribute({
+            key: 'speed',
+            attribute: 'spe',
+            operation: 'delta',
+            value,
+            lifetime: 'sourceMark',
+            missing: 'detach',
+          }),
+        ),
+      }),
+    )
+  }
   if (mode === 'parameter-capture' || mode === 'parameter-follow') {
     const amount = effectAuthoring.numberParam({ default: -25, legacyAliases: ['snapshot.amount'] })
     const value =
@@ -110,6 +139,7 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
     keepOnSwitchOut: true,
   })
   if (!missing) f.battle.addMark(new AddMarkContext(setup, pet, markBase, 2))
+  if (mode === 'rage-capture' || mode === 'rage-follow') f.b.currentRage = 80
   const effect = definition(mode, custom)
   effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
   const sourceBase = new BaseMark('snapshot/source' as baseMarkId, [effect], {
@@ -130,6 +160,10 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
     const source = pet.marks.find(m => m.baseId === 'snapshot/source')!
     f.battle.configSystem.set(parameterAddress(effect.id, 'parameters', 'amount'), -35, source)
     expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 265)
+  }
+  if (mode === 'rage-capture' || mode === 'rage-follow') {
+    f.b.currentRage = 30
+    expect(pet.stat.spe).toBe(mode === 'rage-capture' ? 220 : 270)
   }
   const original = catalog(mode, custom)
   // The export catalog must register the actual live effect identity; use its static plans.
@@ -344,3 +378,16 @@ it.each(['parameter-capture', 'parameter-follow'] as const)(
     cleanup()
   },
 )
+
+it.each(['rage-capture', 'rage-follow'] as const)('restores %s with fresh player identities', async mode => {
+  const { restored, catalog } = await checkpoint(mode)
+  expect(restored.playerA.activePet.stat.spe).toBe(mode === 'rage-capture' ? 220 : 270)
+  restored.playerB.currentRage = 45
+  expect(restored.playerA.activePet.stat.spe).toBe(mode === 'rage-capture' ? 220 : 255)
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(restored, catalog)))
+  await restored.cleanup()
+  const twice = restoreBattle(saved, catalog)
+  battles.push(twice)
+  twice.playerB.currentRage = 55
+  expect(twice.playerA.activePet.stat.spe).toBe(mode === 'rage-capture' ? 220 : 245)
+})

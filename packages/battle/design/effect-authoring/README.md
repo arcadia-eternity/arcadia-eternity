@@ -63,3 +63,9 @@ TypeScript 无法证明任意回调纯净，也无法保证节点 key 在运行�
 关系通知现位于 `src/v4/values/relations.ts`，由 Pet、Mark、Skill 构造器及存档恢复初始化，作者 API 不再按需改写领域对象。提前保留的 `pet.marks` 句柄也能通知选择器；整表赋值复制成员数组，之后应通过 `pet.marks` 修改集合，原始传入数组和已替换的旧句柄都不能影响或通知当前集合。列表方法完成后通知一次，直接索引与 length 修改也会通知。其余同步依赖、预算、capture 状态、modifier 及清理均复用现有 V4 实现，没有引入 RxJS。详见 [领域关系验证](../../../../docs/v4/validation/domain-relations.md)。
 
 `targets.selfPlayer` 在直接技能上下文读取施放者所属玩家，其他上下文读取效果所有者所属玩家；每次查询重新获取归属。`contexts.battle` 提供当前战斗对象。体重、身高条件读取 Pet 的可选原始字段，与属性系统的回退值区分；缺失时不自动补值。
+
+### 玩家查询与持久绑定
+
+`targets.opponentPlayer` 在直接技能上下文读取实际目标的所属玩家；嵌套或其他上下文读取效果所有者所属玩家的对手。它与 `selfPlayer` 每次使用都重新查询，不把“对手”固定成最初的玩家引用。直接技能目标重定向时，以实际目标为准。
+
+持久绑定不携带临时事件。`selfPlayer`、`opponentPlayer` 和 `opponentMarks` 在该环境按来源身份查询。先选择怒气再 capture 会保留绑定建立时的数值；follow 则随怒气变化更新。两种方式均已通过新目录实例的 JSON 保存恢复验证。

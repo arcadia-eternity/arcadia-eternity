@@ -55,6 +55,9 @@ const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
   }),
 )
 const expected: Record<Id, number> = {
+  effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end: 15,
+  effect_ability_heal_1_8_max_hp_when_rage_gt_opponent: 250,
+  effect_ability_heal_half_damage_when_rage_lt_opponent: 50,
   effect_ability_add_rage_5_when_attack_opponent_has_tongjiling: 5,
   effect_ability_heal_1_16_when_qingtian: 125,
   effect_ability_huafenmiman_damage_opponent_25_per_turn: 25,
@@ -106,6 +109,7 @@ const variants = [
   'late-value',
   'late-owner',
   'late-slot',
+  'late-rage',
   'cancel',
   'inactive',
   'wrong-owner',
@@ -119,7 +123,13 @@ function run(
   native: boolean,
   kind: 'skill' | 'mark',
   variant: (typeof variants)[number],
-  options: { damageResult?: number; multihit?: number; currentHp?: number } = {},
+  options: {
+    damageResult?: number
+    multihit?: number
+    currentHp?: number
+    selfRage?: number
+    opponentRage?: number
+  } = {},
 ) {
   const d = definitions.get(id)!,
     { battle, a, b, debuff } = makeScenario(1301)
@@ -129,8 +139,9 @@ function run(
     p.attributeSystem.updateBaseValue('maxHp', 2001)
     p.currentHp = options.currentHp ?? 500
   }
-  a.currentRage = 60
-  b.currentRage = 60
+  a.currentRage = options.selfRage ?? 60
+  b.currentRage =
+    options.opponentRage ?? (id.includes('rage_gt_opponent') ? 40 : id.includes('rage_lt_opponent') ? 80 : 60)
   const skill = new SkillInstance(
     new BaseSkill(
       'fixture/vital-action' as baseSkillId,
@@ -232,6 +243,10 @@ function run(
         }
         if (variant === 'late-owner') source.owner = a.team[1]
         if (variant === 'late-slot') b.activePet = b.team[1]
+        if (variant === 'late-rage') {
+          a.currentRage = 0
+          b.currentRage = 0
+        }
       },
     }),
   )
@@ -361,6 +376,30 @@ for (const kind of ['skill', 'mark'] as const) {
         const result = run('effect_skill_heal_half_damage_dealt_if_3_hits', native, kind, 'normal', { multihit })
         expect(result.admitted).toBe(multihit === 3 ? 1 : 0)
         expect(result.events.map(e => e.amount)).toEqual(multihit === 3 ? [50] : [])
+      })
+    }
+  }
+}
+
+for (const id of [
+  'effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end',
+  'effect_ability_heal_1_8_max_hp_when_rage_gt_opponent',
+  'effect_ability_heal_half_damage_when_rage_lt_opponent',
+] as const) {
+  for (const kind of ['skill', 'mark'] as const) {
+    for (const native of [false, true]) {
+      for (const opponentRage of [59, 60, 61]) {
+        it(`rage comparison boundary ${id}/${kind}/${native}/${opponentRage}`, () => {
+          const expectedAdmission = id.includes('rage_gt_opponent') ? opponentRage < 60 : opponentRage > 60
+          const result = run(id, native, kind, 'normal', { selfRage: 60, opponentRage })
+          expect(result.admitted).toBe(Number(expectedAdmission))
+          expect(result.events.map(e => e.amount)).toEqual(expectedAdmission ? [expected[id]] : [])
+        })
+      }
+      it(`admitted rage comparison is not reevaluated ${id}/${kind}/${native}`, () => {
+        const result = run(id, native, kind, 'late-rage')
+        expect(result.admitted).toBe(1)
+        expect(result.events.map(e => e.amount)).toEqual([expected[id]])
       })
     }
   }

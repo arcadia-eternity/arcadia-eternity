@@ -213,3 +213,9 @@ Twenty-seven single-action candidates now reuse the typed authoring operators an
 All 770 public differential/boundary checks, 107 generator tests, 69 authoring design tests, V4 types/lint, declarations and provenance pass. Both review axes pass. Independent assertions lock down 0.33 reflection, clamping, half-HP admission and exact three-hit healing. Late changes exercise execution-time target and value queries. Real OnDefeat uses SkillPhase. New fixture entities use setOwner to participate in battle cleanup. See [single vital action evidence](validation/vital-actions.md); the complete passing run is /tmp/vital-actions-tests-clean.log.
 
 These candidates remain U; full-game/checkpoint evidence and production admission remain pending. Scoped checks do not supersede the prior non-green full V4 regression.
+
+## Player rage comparisons and persistent query fallback (2026-10-20)
+
+Three additional single-vital candidates compare both players' rage, bringing that catalog to 30 candidates, 20 rejected and 27 retained. The authoring API now exposes opponentPlayer and shares direct-skill-context detection among player/mark queries. Persistent bindings query source identity without reading a transient event. No production catalog switch is included.
+
+All 959 public single-vital tests, 73 design tests, 39 binding/boundary/checkpoint tests and 108 generator tests pass, as do types/lint, declarations and provenance. Both review axes pass. Tests independently check strict rage boundaries, admission retained after rage changes, direct target redirection, nested source fallback, capture/follow changes and two JSON restorations with fresh player identities. See [player comparison evidence](validation/vital-actions.md). Candidates remain U pending full-game and production gates; the prior full V4 regression status is unchanged.
