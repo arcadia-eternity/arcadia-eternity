@@ -984,3 +984,207 @@ it('parameterized probability rereads at admission and keeps one draw for zero a
   expect(outcomes).toEqual([false, true, false])
   expect(draws).toBe(3)
 })
+
+it('mark application reads ordered inputs once per action and shares them across selected targets', () => {
+  const f = fixture()
+  const base = new BaseMark('test/ordered-mark' as baseMarkId, [], { ...f.debuff.config, maxStacks: 10 })
+  let stack = 2
+  let duration = 3
+  const reads: string[] = []
+  const markValue = targets.ownerPet
+    .select(() => {
+      reads.push('mark')
+      return base
+    })
+    .first()
+  const options = {
+    stack: targets.ownerPet
+      .select(() => {
+        reads.push('stack')
+        return stack
+      })
+      .first(),
+    duration: targets.ownerPet
+      .select(() => {
+        reads.push('duration')
+        return duration
+      })
+      .first(),
+  }
+  const apply = ops.addMark(markValue, options)
+  options.stack = targets.ownerPet.select(() => 999).first()
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/mark-read-order',
+      on: 'BeforeHit',
+      execute(ctx) {
+        apply(ctx, [f.owner, f.b.activePet])
+        stack = 4
+        duration = 5
+        apply(ctx, [f.a.team[1]])
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(reads).toEqual(['mark', 'stack', 'duration', 'mark', 'stack', 'duration'])
+  expect(
+    [f.owner, f.b.activePet, f.a.team[1]].map(pet => {
+      const mark = pet.marks.find(mark => mark.base === base)!
+      return [mark.stack, mark.duration]
+    }),
+  ).toEqual([
+    [2, 3],
+    [2, 3],
+    [4, 5],
+  ])
+})
+
+it('missing marks skip option reads; missing options use base defaults while explicit zero stays zero', () => {
+  const f = fixture()
+  const base = new BaseMark('test/default-mark' as baseMarkId, [], { ...f.debuff.config, maxStacks: 5, duration: 7 })
+  const absent = targets.ownerMarks.where(() => false)
+  const missingMark = absent.select(mark => mark.base).first()
+  const missingNumber = absent.select(mark => mark.stack).first()
+  const inputs: number[][] = []
+  const add = f.owner.addMark.bind(f.owner)
+  f.owner.addMark = context => {
+    inputs.push([context.stack, context.duration])
+    return add(context)
+  }
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/mark-defaults',
+      on: 'BeforeHit',
+      execute(ctx) {
+        targets.ownerPet.apply(
+          ops.addMark(missingMark, {
+            stack: targets.ownerPet
+              .select(() => {
+                throw new Error('unselected option')
+              })
+              .first(),
+          }),
+        )(ctx)
+        targets.ownerPet.apply(ops.addMark(base, { stack: missingNumber, duration: missingNumber }))(ctx)
+        targets.ownerPet.apply(ops.addMark(base, { stack: 0, duration: 0 }))(ctx)
+        contexts.battle.apply(ops.addMark(base))(ctx)
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(inputs).toEqual([
+    [5, 7],
+    [0, 0],
+  ])
+  expect(f.battle.marks.some(mark => mark.base === base)).toBe(true)
+})
+
+it('mark application rejects foreign targets before writes and rechecks ownership after value callbacks', () => {
+  const f = fixture(),
+    foreign = fixture()
+  const base = new BaseMark('test/guarded-mark' as baseMarkId, [], f.debuff.config)
+  let reads = 0
+  const value = targets.ownerPet
+    .select(() => {
+      reads++
+      return 2
+    })
+    .first()
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/mark-ownership',
+      on: 'BeforeHit',
+      execute(ctx) {
+        expect(() => ops.addMark(base, { stack: value })(ctx, [f.owner, foreign.owner])).toThrow('Cross-battle')
+        expect(reads).toBe(0)
+        const move = targets.ownerPet
+          .select(() => {
+            f.owner.owner = foreign.a
+            return 2
+          })
+          .first()
+        try {
+          expect(() => ops.addMark(base, { stack: move })(ctx, [f.owner])).toThrow('Cross-battle')
+        } finally {
+          f.owner.owner = f.a
+        }
+        expect(() => ops.addMark(base, { duration: Infinity })(ctx, [f.owner])).toThrow('finite numeric')
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(f.owner.marks.some(mark => mark.base === base)).toBe(false)
+  expect(foreign.owner.marks.some(mark => mark.base === base)).toBe(false)
+})
+
+it('later mark actions requery owner and numeric sources after a creation hook moves the effect source', () => {
+  const f = fixture()
+  f.owner.currentHp = 3
+  f.a.team[1].currentHp = 5
+  const first = new BaseMark(
+    'test/first-requery-mark' as baseMarkId,
+    [
+      new Effect<EffectTrigger>(
+        'test/move-mark-source' as effectId,
+        [EffectTrigger.OnMarkCreated],
+        () => {
+          f.skill.owner = f.a.team[1]
+        },
+        0,
+      ),
+    ],
+    { ...f.debuff.config, maxStacks: 10 },
+  )
+  const second = new BaseMark('test/second-requery-mark' as baseMarkId, [], { ...f.debuff.config, maxStacks: 10 })
+  const stack = targets.ownerPet.select(pet => pet.currentHp).first()
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/mark-requery',
+      on: 'BeforeHit',
+      execute: actions.sequence(
+        targets.ownerPet.apply(ops.addMark(first, { stack })),
+        targets.ownerPet.apply(ops.addMark(second, { stack })),
+      ),
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(f.owner.marks.find(mark => mark.base === first)?.stack).toBe(3)
+  expect(f.owner.marks.some(mark => mark.base === second)).toBe(false)
+  expect(f.a.team[1].marks.find(mark => mark.base === second)?.stack).toBe(5)
+})
+
+it('mark creation hooks cannot move a later selected target into another battle before its write', () => {
+  const f = fixture(),
+    foreign = fixture()
+  const later = f.b.activePet
+  const base = new BaseMark(
+    'test/mark-hook-guard' as baseMarkId,
+    [
+      new Effect<EffectTrigger>(
+        'test/move-later-owner' as effectId,
+        [EffectTrigger.OnMarkCreated],
+        () => {
+          later.owner = foreign.a
+        },
+        0,
+      ),
+    ],
+    f.debuff.config,
+  )
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/mark-hook-ownership',
+      on: 'BeforeHit',
+      execute(ctx) {
+        try {
+          expect(() => ops.addMark(base)(ctx, [f.owner, later])).toThrow('Cross-battle')
+        } finally {
+          later.owner = f.b
+        }
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  expect(f.owner.marks.some(mark => mark.base === base)).toBe(true)
+  expect(later.marks.some(mark => mark.base === base)).toBe(false)
+})

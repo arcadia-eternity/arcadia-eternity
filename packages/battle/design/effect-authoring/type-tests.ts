@@ -236,3 +236,13 @@ contexts.skillUse.apply(ops.amplifyPower(numberParam({ default: 1.5 })))
 contexts.heal.apply(ops.addPower(20))
 // @ts-expect-error Numeric collection, not pets.
 contexts.skillUse.apply(ops.addPower(targets.ownerPet.all()))
+
+const selectedBaseMark = targets.ownerMarks.select(mark => mark.base).first()
+targets.ownerPet.apply(ops.addMark(selectedBaseMark, { stack: requiredSum, duration: optionalSum }))
+contexts.battle.apply(ops.addMark(selectedBaseMark))
+// @ts-expect-error Mark instances are not mark definitions.
+ops.addMark(targets.sourceMark.first())
+// @ts-expect-error Mark application requires an owner, not a skill context.
+contexts.skillUse.apply(ops.addMark(selectedBaseMark))
+// @ts-expect-error Persistent plans are not instant stack inputs.
+ops.addMark(selectedBaseMark, { stack: capturedInstancePenalty })

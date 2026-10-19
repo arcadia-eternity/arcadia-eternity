@@ -1,7 +1,7 @@
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
 import type { DamageContext, HealContext, TriggerContextMap, UseSkillContext } from '../../context'
 import type { NativeEffectTrigger } from '../../content/native-effect'
-import type { MarkInstance } from '../../mark'
+import type { BaseMark, MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
 import type { Player } from '../../player'
 import type { Battle } from '../../battle'
@@ -167,6 +167,11 @@ export declare const values: {
 type NumericInput = number | Value<number, Presence>
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */
+  readonly addMark: (
+    mark: BaseMark | Value<BaseMark, Presence>,
+    options?: { stack?: NumericInput; duration?: NumericInput },
+  ) => Operator<Pet | Battle>
   /** Read once per selected context; apply every number in order, with no rounding. */
   readonly addPower: (amount: PowerInput) => Operator<UseSkillContext>
   readonly amplifyPower: (amount: PowerInput) => Operator<UseSkillContext>

@@ -1,5 +1,6 @@
 import { type effectId, type EffectTrigger, type StatTypeWithoutHp } from '@arcadia-eternity/const'
 import {
+  AddMarkContext,
   DamageContext,
   HealContext,
   UseSkillContext,
@@ -9,7 +10,7 @@ import {
 } from '../../context'
 import { Pet } from '../../pet'
 import { SkillInstance } from '../../skill'
-import { MarkInstanceImpl } from '../../mark'
+import { BaseMark, MarkInstanceImpl } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
 import type { SnapshotCatalog } from '../../snapshot'
 import type { Effect } from '../../effect'
@@ -468,6 +469,30 @@ function modifyPower(
   }
 }
 export const ops: typeof C.ops = {
+  addMark: (mark, input = {}) => {
+    const { stack, duration } = input
+    return (ctx, selected) => {
+      const source = engine(ctx)
+      const validate = (target: Pet | Battle) => {
+        if (target !== source.battle) assertWriteTarget(ctx, target)
+      }
+      selected.forEach(validate)
+      const base = mark instanceof BaseMark ? mark : read(ctx, mark)
+      if (base === undefined) return
+      if (!(base instanceof BaseMark)) throw new Error('Expected a base mark')
+      const count = read(ctx, stack)
+      const turns = read(ctx, duration)
+      for (const amount of [count, turns])
+        if (amount !== undefined && (typeof amount !== 'number' || !Number.isFinite(amount)))
+          throw new Error('Expected finite numeric input')
+      for (const target of selected) {
+        validate(target)
+        target.addMark(
+          new AddMarkContext(source, target, base, count as number | undefined, turns as number | undefined),
+        )
+      }
+    }
+  },
   addPower: input => modifyPower(input, (event, amount) => event.addPower(amount)),
   amplifyPower: input => modifyPower(input, (event, amount) => event.amplifyPower(amount)),
   modifyDamage: input => modifyContext(input, 'damage'),
