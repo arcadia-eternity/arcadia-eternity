@@ -38,10 +38,10 @@ test('rejects extra semantics rather than silently dropping them', () => {
 })
 test('regenerates the exact current native source and dependency ledger without writes', async () => {
   assert.deepEqual(await generateMarkApplications({ check: true }), {
-    generated: 264,
+    generated: 267,
     protected: 2,
     dependencies: 180,
-    rejected: 21,
+    rejected: 18,
   })
 })
 
@@ -247,4 +247,53 @@ test('accepts unconditional fixed mark lifecycle actions and retains strict stag
     assert.ok(classifyMarkApplication({ ...d, trigger, condition: { type: 'selfUseSkill' } }).reason)
     assert.ok(classifyMarkApplication({ ...d, trigger: [trigger, 'OnHit'] }).reason)
   }
+})
+
+test('requires a mandatory damaged-owner guard at damage stages', () => {
+  const d = { ...source(), trigger: 'PostDamage', condition: { type: 'selfBeDamaged' } }
+  assert.equal(classifyMarkApplication(d).when, 'conditions.selfBeDamaged')
+  assert.ok(classifyMarkApplication({ ...d, condition: { type: 'selfUseSkill' } }).reason)
+  assert.ok(
+    classifyMarkApplication({ ...d, condition: { type: 'some', conditions: [d.condition, { type: 'selfUseSkill' }] } })
+      .reason,
+  )
+  assert.ok(classifyMarkApplication({ ...d, trigger: ['PostDamage', 'OnHit'] }).reason)
+})
+
+test('damage-stage checkSelf retains target ownership in nested admission and option branches', () => {
+  for (const trigger of ['OnDamage', 'PostDamage']) {
+    const d = {
+      ...source(),
+      trigger,
+      condition: {
+        type: 'every',
+        conditions: [
+          { type: 'selfBeDamaged' },
+          { type: 'not', condition: { type: 'not', condition: { type: 'checkSelf' } } },
+        ],
+      },
+    }
+    d.apply.stack = {
+      type: 'conditional',
+      condition: { type: 'checkSelf' },
+      trueValue: 2,
+      falseValue: 1,
+    }
+    const recipe = classifyMarkApplication(d)
+    assert.equal(
+      recipe.when,
+      'conditions.all(conditions.selfBeDamaged,conditions.not(conditions.not(conditions.selfBeDamaged)))',
+    )
+    assert.equal(recipe.stackValue, 'values.choose(conditions.selfBeDamaged,2,1)')
+  }
+  assert.equal(
+    classifyMarkApplication({
+      ...source(),
+      condition: {
+        type: 'every',
+        conditions: [{ type: 'selfUseSkill' }, { type: 'checkSelf' }],
+      },
+    }).when,
+    'conditions.all(conditions.selfUsesSkill,conditions.ownerUsesSkill)',
+  )
 })

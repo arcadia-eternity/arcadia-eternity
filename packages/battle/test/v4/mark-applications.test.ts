@@ -29,6 +29,7 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { thresholdSeeds } from './probability-threshold'
 
 type Candidates = ReturnType<typeof createGeneratedMarkApplications>
 interface RecordEntry {
@@ -55,6 +56,8 @@ interface RecordEntry {
       | 'OnBattleStart'
       | 'OnMarkDestroy'
       | 'OnMarkDurationEnd'
+      | 'OnDamage'
+      | 'PostDamage'
     )[]
   }
   dependency: { id: string; sourceFile: string; definitionSha256: string; effectIds: string[] }
@@ -700,17 +703,6 @@ it('covers dynamic/parameterized options while retaining the handwritten shield 
     false,
   )
 })
-
-// Exercise both sides within one percentage point of the declared threshold.
-function thresholdSeeds(percent: number): number[] {
-  const result: (number | undefined)[] = [undefined, undefined]
-  for (let seed = 0; seed < 10000 && result.some(value => value === undefined); seed++) {
-    const draw = new GameRng(seed).next() * 100
-    if (Math.abs(draw - percent) < 1) result[draw < percent ? 0 : 1] ??= seed
-  }
-  if (result.some(value => value === undefined)) throw new Error(`Cannot bracket probability ${percent}`)
-  return result as number[]
-}
 
 for (const record of probabilityRecords)
   for (const kind of ['skill', 'mark'] as const)

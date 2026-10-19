@@ -275,6 +275,15 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
       }),
     ),
+    effect_emblem_add_xukongtizhi_when_opponent_hit_self: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_add_xukongtizhi_when_opponent_hit_self',
+        on: ['PostDamage'],
+        priority: 0,
+        when: conditions.selfBeDamaged,
+        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 5 })),
+      }),
+    ),
     effect_mark_on_duration_end_add_mark_penti: compileEffect(
       defineEffect({
         id: 'effect_mark_on_duration_end_add_mark_penti',
@@ -300,6 +309,28 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
         priority: 0,
         when: () => true,
         execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tizhongjiangdi')!)),
+      }),
+    ),
+    effect_mark_paralyze_on_physical_50_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_paralyze_on_physical_50_percent',
+        on: ['OnDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
+          conditions.chance(50),
+        ),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+      }),
+    ),
+    effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent',
+        on: ['PostDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfBeDamaged, conditions.chance(50)),
+        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
       }),
     ),
     effect_skill_add_first_turn_mark_on_switch_in: compileEffect(

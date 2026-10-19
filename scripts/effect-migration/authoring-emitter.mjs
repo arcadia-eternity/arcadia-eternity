@@ -277,13 +277,19 @@ function condition(c, domain = 'damage', parameters, path = 'condition') {
     if (c.type === 'opponentHasMark')
       return `targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === ${q(c.baseId)})))`
   }
+  if (
+    fields(c, ['type', 'target', 'evaluator']) &&
+    c.type === 'evaluate' &&
+    c.target === 'self' &&
+    fields(c.evaluator, ['type', 'percent']) &&
+    c.evaluator.type === 'probability'
+  ) {
+    const percent = number(c.evaluator.percent, parameters, `${path}_percent`, domain)
+    if (percent && (percent.literal || percent.required)) return `conditions.chance(${percent.code})`
+  }
   if (domain === 'skill' && fields(c, ['type', 'target', 'evaluator']) && c.type === 'evaluate') {
     const target = c.target,
       evaluator = c.evaluator
-    if (target === 'self' && fields(evaluator, ['type', 'percent']) && evaluator.type === 'probability') {
-      const percent = number(evaluator.percent, parameters, `${path}_percent`, domain)
-      if (percent && (percent.literal || percent.required)) return `conditions.chance(${percent.code})`
-    }
     if (
       fields(target, ['base', 'chain']) &&
       ['self', 'opponent'].includes(target.base) &&

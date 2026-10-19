@@ -24,12 +24,12 @@ const fields = (value, required, optional = []) =>
   !Array.isArray(value) &&
   required.every(key => Object.hasOwn(value, key)) &&
   Object.keys(value).every(key => [...required, ...optional].includes(key))
-const selfCondition = condition =>
-  (fields(condition, ['type']) && condition.type === 'selfUseSkill') ||
+const requiredCondition = (condition, type) =>
+  (fields(condition, ['type']) && condition.type === type) ||
   (fields(condition, ['type', 'conditions']) &&
     condition.type === 'every' &&
     Array.isArray(condition.conditions) &&
-    condition.conditions.some(selfCondition))
+    condition.conditions.some(item => requiredCondition(item, type)))
 export function classifyMarkApplication(definition) {
   if (
     !fields(definition, ['id', 'trigger', 'priority', 'apply'], ['condition', 'tags']) ||
@@ -57,26 +57,29 @@ export function classifyMarkApplication(definition) {
     !action.mark.value
   )
     return { reason: 'requires a fixed base mark reference' }
+  const triggers = Array.isArray(definition.trigger) ? definition.trigger : [definition.trigger]
+  const damageStage = triggers.every(trigger => ['OnDamage', 'PostDamage'].includes(trigger))
+  const domain = damageStage ? 'damage' : 'skill'
   const parameters = []
-  const when = 'condition' in definition ? condition(definition.condition, 'skill', parameters) : '() => true'
+  const when = 'condition' in definition ? condition(definition.condition, domain, parameters) : '() => true'
   const options = {}
   // Match legacy declaration order; runtime consumption remains stack then duration.
   for (const key of ['duration', 'stack']) {
     if (!Object.hasOwn(action, key)) continue
-    const value = number(action[key], parameters, key, 'skill')
+    const value = number(action[key], parameters, key, domain)
     if (!value) return { reason: 'unsupported stack/duration value' }
     // Literal zero was omitted by the parser; a queried/configured zero reaches AddMarkContext.
     if (value.literal) {
       if (action[key]) options[key] = action[key]
     } else options[`${key}Value`] = value.code
   }
-  const triggers = Array.isArray(definition.trigger) ? definition.trigger : [definition.trigger]
   const supportedStage =
+    (damageStage && requiredCondition(definition.condition, 'selfBeDamaged')) ||
     (triggers.length === 1 &&
       ['OnMarkDestroy', 'OnMarkDurationEnd'].includes(triggers[0]) &&
       !('condition' in definition)) ||
     (triggers.every(trigger => ['BeforeHit', 'OnHit', 'OnMiss'].includes(trigger)) &&
-      selfCondition(definition.condition)) ||
+      requiredCondition(definition.condition, 'selfUseSkill')) ||
     (triggers.length === 1 &&
       triggers[0] === 'OnSwitchIn' &&
       fields(definition.condition, ['type']) &&

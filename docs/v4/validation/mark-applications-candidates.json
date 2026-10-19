@@ -188,6 +188,30 @@
       }
     },
     {
+      "id": "effect_emblem_add_xukongtizhi_when_opponent_hit_self",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/21",
+      "definitionSha256": "fde004c0a1a9129505ebe8f95ff57cece8c5e669247bc98d94f3e7b39f5f51ba",
+      "recipe": {
+        "id": "effect_emblem_add_xukongtizhi_when_opponent_hit_self",
+        "priority": 0,
+        "triggers": ["PostDamage"],
+        "target": "self",
+        "when": "conditions.selfBeDamaged",
+        "markId": "mark_xukongtizhi",
+        "stack": 5
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_xukongtizhi",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/113",
+        "definitionSha256": "e76eacdfd15e9a02d4f634fb2488477908d2524f114a27179f32fcb77c2e6c84",
+        "effectIds": ["effect_mark_xukongtizhi_evasion", "effect_mark_xukongtizhi_consume_on_evasion"]
+      }
+    },
+    {
       "id": "effect_mark_on_duration_end_add_mark_penti",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/183",
@@ -278,6 +302,52 @@
         "sourcePath": "/82",
         "definitionSha256": "8939906b1a0b76b51b85002de5263a54b88fa4beab0bed0bd99e4c078a28919f",
         "effectIds": []
+      }
+    },
+    {
+      "id": "effect_mark_paralyze_on_physical_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/100",
+      "definitionSha256": "5839b26e0a731320e34f95fbadc0b24e816e4b735c0b82e4e4df597da5e6ffa0",
+      "recipe": {
+        "id": "effect_mark_paralyze_on_physical_50_percent",
+        "priority": 0,
+        "triggers": ["OnDamage"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfBeDamaged,contexts.damage.condition((_ctx,events) => events[0]?.damageType === \"Physical\"),conditions.chance(50))",
+        "markId": "mark_mabi"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_mabi",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/13",
+        "definitionSha256": "f145e720695b99eb6e75e404ec2db842013fa52c216082fc8267db3fd4bd16fb",
+        "effectIds": ["effect_mark_40probability_stun"]
+      }
+    },
+    {
+      "id": "effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/55",
+      "definitionSha256": "003bde408fb035bf69ea1b013815f9f0f0ff495147faeda07ef048d244df80b6",
+      "recipe": {
+        "id": "effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent",
+        "priority": 0,
+        "triggers": ["PostDamage"],
+        "target": "opponent",
+        "when": "conditions.all(conditions.selfBeDamaged,conditions.chance(50))",
+        "markId": "mark_zhongdu"
+      },
+      "classification": "U",
+      "status": "generated-candidate",
+      "dependency": {
+        "id": "mark_zhongdu",
+        "sourceFile": "packs/base/data/mark.yaml",
+        "sourcePath": "/35",
+        "definitionSha256": "c05f250d15e2fc7c0044e1eceb3d336ce5b6766cc24330a65f5999f508b49db1",
+        "effectIds": ["effect_mark_turn_damage", "effect_mark_decrease_heal"]
       }
     },
     {
@@ -6627,13 +6697,6 @@
       "reason": "requires one addMark action on self/opponent/battle"
     },
     {
-      "id": "effect_emblem_add_xukongtizhi_when_opponent_hit_self",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
-      "sourcePath": "/21",
-      "definitionSha256": "fde004c0a1a9129505ebe8f95ff57cece8c5e669247bc98d94f3e7b39f5f51ba",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
       "id": "effect_mark_add_damage_increase_25_on_switch_in",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/136",
@@ -6646,20 +6709,6 @@
       "sourcePath": "/7",
       "definitionSha256": "7273ebc23abbc88ddd8ba740b1c9ec99093417e5a0bda91d8453c440f7948b08",
       "reason": "requires a fixed base mark reference"
-    },
-    {
-      "id": "effect_mark_paralyze_on_physical_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/100",
-      "definitionSha256": "5839b26e0a731320e34f95fbadc0b24e816e4b735c0b82e4e4df597da5e6ffa0",
-      "reason": "unsupported condition/trigger combination"
-    },
-    {
-      "id": "effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/55",
-      "definitionSha256": "003bde408fb035bf69ea1b013815f9f0f0ff495147faeda07ef048d244df80b6",
-      "reason": "unsupported condition/trigger combination"
     },
     {
       "id": "effect_mark_yingfeng_heal_50_on_evasion_in_yemu",
