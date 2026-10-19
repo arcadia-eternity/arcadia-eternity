@@ -72,6 +72,8 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
       : members(a.target, domain)
   if (!target) return
   if (a.type === 'destroyMark') return `${target}.apply(ops.removeMark())`
-  if (!Number.isFinite(a.value)) return
-  return `${target}.apply(ops.consumeStacks(${JSON.stringify(a.value)}))`
+  if (!Number.isFinite(a.value) && a.value?.type !== 'raw:number') return
+  const amount = number(a.value, parameters, path, domain)
+  if (!amount) return
+  return `${target}.apply(ops.consumeStacks(${amount.code}))`
 }

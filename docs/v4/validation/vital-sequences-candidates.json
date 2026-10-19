@@ -50,6 +50,29 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_mark_explode_on_stack_over_100",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/115",
+      "definitionSha256": "986c6c4c9ad896752362ab02eecf7826d38e0c8c05072749933da26ac9c85fbd",
+      "recipe": {
+        "id": "effect_mark_explode_on_stack_over_100",
+        "trigger": "OnStack",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,((ctx: EffectFrame) => {const left=ctx.read(contexts.stack.select(event => event.stacksAfter).first());const right=100;return left!==undefined && right!==undefined && left >= right}))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.dealDamage(parameters.action0_value))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.consumeStacks(parameters.action1_value))" }
+        ],
+        "parameters": [
+          { "name": "action0_value", "value": 100, "configId": "yinbo_damage_value" },
+          { "name": "action1_value", "value": 100, "configId": "yinbo_consume_stacks_value" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_mark_heal_self_1_16_turnEnd",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/70",
@@ -372,13 +395,6 @@
     }
   ],
   "rejected": [
-    {
-      "id": "effect_mark_explode_on_stack_over_100",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/115",
-      "definitionSha256": "986c6c4c9ad896752362ab02eecf7826d38e0c8c05072749933da26ac9c85fbd",
-      "reason": "unsupported trigger"
-    },
     {
       "id": "effect_mark_self_damage_50_percent_once",
       "sourceFile": "packs/base/data/effect_mark.yaml",

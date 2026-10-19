@@ -10,6 +10,7 @@ import {
   ops,
   actions,
   values,
+  type EffectFrame,
 } from '../content/authoring'
 export function createGeneratedVitalSequences() {
   return Object.freeze({
@@ -78,6 +79,37 @@ export function createGeneratedVitalSequences() {
         ),
       }),
     ),
+    effect_mark_explode_on_stack_over_100: (() => {
+      const parameters = {
+        action0_value: numberParam({
+          default: 100,
+          tags: [],
+          legacyAliases: ['effect_mark_explode_on_stack_over_100.yinbo_damage_value'],
+        }),
+        action1_value: numberParam({
+          default: 100,
+          tags: [],
+          legacyAliases: ['effect_mark_explode_on_stack_over_100.yinbo_consume_stacks_value'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_explode_on_stack_over_100',
+          on: 'OnStack',
+          priority: 0,
+          parameters,
+          when: conditions.all(conditions.sourceOwnsEvent, (ctx: EffectFrame) => {
+            const left = ctx.read(contexts.stack.select(event => event.stacksAfter).first())
+            const right = 100
+            return left !== undefined && right !== undefined && left >= right
+          }),
+          execute: actions.sequence(
+            targets.ownerPet.apply(ops.dealDamage(parameters.action0_value)),
+            targets.sourceMark.apply(ops.consumeStacks(parameters.action1_value)),
+          ),
+        }),
+      )
+    })(),
     effect_mark_heal_self_1_16_turnEnd: compileEffect(
       defineEffect({
         id: 'effect_mark_heal_self_1_16_turnEnd',

@@ -28,7 +28,7 @@ test('rejects unsupported whole lists rather than dropping fields', () => {
       d.apply.push({ type: 'unknown' })
     },
     d => {
-      d.trigger = 'OnStack'
+      d.trigger = 'OnStackBefore'
     },
     d => {
       d.apply[0].extra = 1
@@ -46,8 +46,8 @@ test('keeps raw numeric parameters as editable authored parameters', () => {
   assert.deepEqual(r.parameters, [{ name: 'action0_value', value: 3, configId: 'amount', tags: ['heal'] }])
   assert.match(r.actions[0].code, /parameters.action0_value/)
 })
-test('reproduces sixteen vital candidates and three unsupported lists', async () =>
-  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 16, rejected: 3 }))
+test('reproduces seventeen vital candidates and two unsupported lists', async () =>
+  assert.deepEqual(await generateVitalSequences({ check: true }), { generated: 17, rejected: 2 }))
 
 test('turn-end and damage queries retain their distinct admission and value sources', () => {
   const d = source()
@@ -152,5 +152,32 @@ test('conditional divisors only admit finite nonzero branches and opponent mark 
   }
   divisor.trueValue = 2
   divisor.condition = { type: 'checkSelf' }
+  assert.ok(classifyVitalSequence(d).reason)
+})
+
+test('stack sequences retain event values and separate configurable consumption', () => {
+  const d = source()
+  d.trigger = 'OnStack'
+  d.condition = {
+    type: 'every',
+    conditions: [
+      { type: 'checkSelf' },
+      {
+        type: 'evaluate',
+        target: { base: 'stackContext', chain: [{ type: 'selectPath', arg: 'stacksAfter' }] },
+        evaluator: { type: 'compare', operator: '>=', value: 100 },
+      },
+    ],
+  }
+  d.apply = [
+    { type: 'dealDamage', target: 'self', value: { type: 'raw:number', value: 100, configId: 'damage' } },
+    { type: 'consumeStacks', target: 'mark', value: { type: 'raw:number', value: 100, configId: 'consume' } },
+  ]
+  const r = classifyVitalSequence(d)
+  assert.ok(!r.reason, r.reason)
+  assert.match(r.when, /sourceOwnsEvent.*contexts.stack.select/)
+  assert.match(r.actions[1].code, /targets.sourceMark.apply\(ops.consumeStacks\(parameters.action1_value/)
+  assert.equal(r.parameters.length, 2)
+  d.condition.conditions[1].target.chain[0].arg = 'unknown'
   assert.ok(classifyVitalSequence(d).reason)
 })

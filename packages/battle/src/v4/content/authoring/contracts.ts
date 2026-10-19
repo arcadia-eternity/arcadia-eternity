@@ -1,6 +1,7 @@
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
 import type {
   AddMarkContext,
+  StackContext,
   DamageContext,
   HealContext,
   TriggerContextMap,
@@ -138,6 +139,8 @@ export declare const contexts: {
   readonly battle: Selector<Battle>
   /** Nearest mark-application ancestor, queried independently on every read. */
   readonly addMark: Selector<AddMarkContext>
+  /** Nearest stacking ancestor, queried independently on each use. */
+  readonly stack: Selector<StackContext>
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
   readonly heal: Selector<HealContext>
@@ -232,6 +235,7 @@ export declare const ops: {
   readonly addRage: (amount: NumericInput) => Operator<Pet | Player>
   /** Remove through the mark lifecycle in selection order; already inactive marks are no-ops. */
   readonly removeMark: () => Operator<MarkInstance>
+  /** The current source mark remains consumable after its owner detaches. */
   readonly consumeStacks: (amount: NumericInput) => Operator<MarkInstance>
   readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
   readonly assign: (value: NumericInput) => Operator<WritableRef<number>>

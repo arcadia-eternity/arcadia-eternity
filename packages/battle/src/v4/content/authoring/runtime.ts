@@ -298,6 +298,10 @@ export const contexts: typeof C.contexts = {
     const event = nearestContext(ctx, AddMarkContext)
     return event ? [event] : []
   }),
+  stack: selector(ctx => {
+    const event = nearestContext(ctx, StackContext)
+    return event ? [event] : []
+  }),
   damage: selector(ctx => {
     const event = nearestContext(ctx, DamageContext)
     return event ? [event] : []
@@ -486,14 +490,15 @@ function assertWriteTarget(ctx: Frame, input: unknown): void {
 function numeric<T>(
   input: number | C.Value<number, C.Presence>,
   apply: (ctx: Frame, target: T, amount: number) => void,
+  validate: (ctx: Frame, target: T) => void = assertWriteTarget,
 ): C.Operator<T> {
   return (ctx, selected) => {
-    for (const target of selected) assertWriteTarget(ctx, target)
+    for (const target of selected) validate(ctx, target)
     const amount = read(ctx, input)
     if (amount === undefined) return
     if (typeof amount !== 'number' || !Number.isFinite(amount)) throw new Error('Expected finite numeric input')
     for (const target of selected) {
-      assertWriteTarget(ctx, target)
+      validate(ctx, target)
       apply(ctx, target, amount)
     }
   }
@@ -630,7 +635,16 @@ export const ops: typeof C.ops = {
       source.battle.removeMark(new RemoveMarkContext(source, mark))
     }
   },
-  consumeStacks: amount => numeric(amount, (ctx, mark, n) => mark.consumeStack(engine(ctx), n)),
+  consumeStacks: amount =>
+    numeric(
+      amount,
+      (ctx, mark, n) => mark.consumeStack(engine(ctx), n),
+      (ctx, mark) => {
+        // The effect retains its source identity after detachment; consuming that source still applies.
+        if (mark instanceof MarkInstanceImpl && mark.owner === null && mark === engine(ctx).source) return
+        assertWriteTarget(ctx, mark)
+      },
+    ),
   changeStatStage: (stat, amount) =>
     numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
   assign: amount =>

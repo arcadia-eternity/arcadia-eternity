@@ -19,6 +19,7 @@ function root(s, domain = 'damage') {
   if (s === 'opponent') return 'targets.opponentActive'
   if (s === 'mark') return 'targets.sourceMark'
   if (s === 'selfMarks') return 'targets.ownerMarks'
+  if (s === 'stackContext') return 'contexts.stack'
   if (s === 'damageContext') return 'contexts.damage'
   if (s === 'usingSkillContext') return 'contexts.skillUse'
   if (s === 'opponentMarks') return 'targets.opponentMarks'
@@ -123,6 +124,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         step.type === 'selectPath' &&
         (step.arg === 'stack' ||
           (s.base === 'damageContext' && step.arg === 'damageResult') ||
+          (s.base === 'stackContext' && step.arg === 'stacksAfter') ||
           (['skill', 'damage'].includes(domain) && s.base === 'usingSkillContext' && step.arg === 'multihitResult') ||
           (domain === 'skill' &&
             ['self', 'opponent'].includes(s.base) &&
@@ -154,6 +156,8 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         code += `.select(player => player.${name === 'rage' ? 'currentRage' : name})${terminal}`
       else if (domain === 'skill' && s.base === 'battle' && name === 'currentTurn')
         code += `.select(battle => battle.currentTurn)${terminal}`
+      else if (s.base === 'stackContext' && name === 'stacksAfter')
+        code += `.select(event => event.stacksAfter)${terminal}`
       else if (s.base === 'damageContext' && name === 'damageResult')
         code += `.select(event => event.damageResult)${terminal}`
       else if (['skill', 'damage'].includes(domain) && s.base === 'usingSkillContext' && name === 'multihitResult')
@@ -478,6 +482,7 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
         'opponent',
         'mark',
         'damageContext',
+        'stackContext',
         ...(['skill', 'damage'].includes(domain) ? ['usingSkillContext'] : []),
         ...(domain === 'skill' ? ['selfPlayer', 'battle'] : []),
       ].includes(c.target?.base)
