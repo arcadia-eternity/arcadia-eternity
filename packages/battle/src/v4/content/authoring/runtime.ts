@@ -453,6 +453,20 @@ export const conditions: typeof C.conditions = {
     return pet !== undefined && ctx.event instanceof UseSkillContext && pet === ctx.event.actualTarget
   },
   ownerSwitchesIn: ctx => ctx.event instanceof SwitchPetContext && owner(ctx) === ctx.event.switchInPet,
+  ownerLosesSwitchRage: ctx => {
+    const pet = owner(ctx),
+      event = ctx.event
+    return (
+      pet !== undefined &&
+      event instanceof RageContext &&
+      event.modifiedType === 'reduce' &&
+      event.reason === 'switch' &&
+      event.parent instanceof SwitchPetContext &&
+      event.target === event.parent.origin &&
+      pet === event.parent.switchOutPet &&
+      pet.owner === event.target
+    )
+  },
   ownerSwitchesOut: ctx => {
     const pet = owner(ctx)
     return pet !== undefined && ctx.event instanceof SwitchPetContext && pet === ctx.event.switchOutPet

@@ -377,13 +377,14 @@ export class RageContext extends Context {
   public rageChangeResult = 0
   private gainLimit = Infinity
   constructor(
-    public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext,
+    public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext | SwitchPetContext,
     public target: Player,
     public reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect',
     public modifiedType: 'setting' | 'add' | 'reduce',
     public value: number,
     public ignoreRageObtainEfficiency: boolean = false,
     public modified: [number, number] = [0, 0],
+    public readonly rounding: 'floor' | 'none' = 'floor',
   ) {
     super(parent)
     this.battle = parent.battle
@@ -393,7 +394,8 @@ export class RageContext extends Context {
     const percentModifier = 1 + this.modified[0] / 100
     const deltaModifier = this.modified[1]
     const amount = this.value * percentModifier + deltaModifier
-    this.rageChangeResult = Math.floor(this.modifiedType === 'add' ? Math.min(amount, this.gainLimit) : amount)
+    const limited = this.modifiedType === 'add' ? Math.min(amount, this.gainLimit) : amount
+    this.rageChangeResult = this.rounding === 'floor' ? Math.floor(limited) : limited
   }
 
   /** Gain limits compose by minimum and apply after every numeric modifier. */

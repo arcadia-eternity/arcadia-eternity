@@ -189,6 +189,8 @@ export declare const conditions: {
   readonly ownerSwitchesIn: Condition
   /** Source pet is the outgoing pet of the direct switch context. */
   readonly ownerSwitchesOut: Condition
+  /** Direct switch-rage loss belongs to the source pet that is being switched out. */
+  readonly ownerLosesSwitchRage: Condition
   /** Source pet currently occupies its player's active position. */
   readonly ownerIsActive: Condition
   /** Nearest skill and turn ancestors; first executed skill / last planned skill in queue order. */

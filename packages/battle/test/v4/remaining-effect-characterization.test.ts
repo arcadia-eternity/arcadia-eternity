@@ -84,7 +84,7 @@ it('legacy rage cap is overwritten by subsequent rage computation', () => {
   expect(event.rageChangeResult).toBe(20)
   expect(f.a.currentRage).toBe(20)
 })
-it('legacy switching directly reduces rage without offering the protection trigger', () => {
+it('legacy direct-switch predicate cannot protect the nested switch-rage event', () => {
   const f = fixture('effect_mark_prevent_rage_loss_on_switch')
   f.a.settingRage(100)
   const phase = new SwitchPetPhase(f.battle, f.a, f.a.team[1], f.turn)

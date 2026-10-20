@@ -1,0 +1,13 @@
+{
+  "records": [
+    {
+      "id": "effect_mark_prevent_rage_loss_on_switch",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/187",
+      "definitionSha256": "ad473f53cd19fa2bc5b9c43786c6d2fc0e1a5800b4be69c56fc8856296fdf6ed",
+      "status": "handwritten-candidate",
+      "decisions": ["User-approved switch loss cancellation through RagePhase and one-use mark removal"],
+      "nativeFile": "packages/battle/src/v4/official/switch-rage-protection.ts"
+    }
+  ]
+}
