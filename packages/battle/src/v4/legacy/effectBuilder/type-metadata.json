@@ -1356,6 +1356,13 @@
       "a": false
     },
     {
+      "n": "currentHitCount",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
       "n": "damageType",
       "t": "DamageType.Physical | DamageType.Special | DamageType.Effect",
       "iu": true,

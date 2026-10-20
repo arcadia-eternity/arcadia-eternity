@@ -269,7 +269,13 @@ function run(
       variant === 'turn-first' ? [a.activePet, b.activePet] : [b.activePet, a.activePet],
     )
     const own = executed.find(c => c.pet === a.activePet)!
-    return { admitted, hits: own.currentHitCount, initial: own.multihit, remaining: own.multihitResult, next: random() }
+    return {
+      admitted,
+      cursor: own.currentHitCount,
+      initial: own.multihit,
+      resolvedHits: own.multihitResult,
+      next: random(),
+    }
   } else if (variant === 'phase' || variant === 'miss') {
     use.hitOverrides.push({ willHit: variant !== 'miss', priority: 1000 })
     const p = new SkillPhase(battle, a, a.activePet, AttackTargetOpinion.opponent, skill, turn, use)
@@ -283,8 +289,8 @@ function run(
   return {
     admitted,
     initial: use.multihit,
-    remaining: use.multihitResult,
-    hits: use.currentHitCount,
+    resolvedHits: use.multihitResult,
+    cursor: use.currentHitCount,
     stack: mark.stack,
     events,
     snapshots,
@@ -300,7 +306,7 @@ for (const native of [false, true]) {
   for (const counts of [[], [2, 7], [7, 2]]) {
     it(`add reads all selected stacks ${native}/${counts}`, () => {
       const r = run('effect_skill_add_hit_result_ruodian', native, 'skill', 'normal', { counts })
-      expect(r.remaining).toBe(2 + counts.reduce((a, b) => a + b, 0))
+      expect(r.resolvedHits).toBe(2 + counts.reduce((a, b) => a + b, 0))
     })
     it(`set reads first duration ${native}/${counts}`, () => {
       const r = run('effect_skill_multihit_by_shahezhili_turns', native, 'skill', 'normal', { counts })
@@ -309,27 +315,27 @@ for (const native of [false, true]) {
   }
   it(`early additions are overwritten when initial hits resolve ${native}`, () => {
     const r = run('effect_skill_add_hit_result_ruodian', native, 'skill', 'phase', { counts: [2, 7] })
-    expect(r.hits).toBe(2)
-    expect(r.remaining).toBe(0)
+    expect(r.cursor).toBe(3)
+    expect(r.resolvedHits).toBe(2)
     expect(r.events).toEqual(['OnHit', 'OnHit'])
   })
   for (const uses of [1, 2, 3, 4, 5]) {
     it(`usage counts at execution ${native}/${uses}`, () => {
       const r = run('effect_skill_add_multihit_per_usetime', native, 'skill', 'phase', { uses })
-      expect(r.hits).toBe(2 + Math.min(uses - 1, 3))
+      expect(r.cursor).toBe(3 + Math.min(uses - 1, 3))
       const reduced = run('effect_skill_reduce_multihit_on_consecutive_hits_1_max_2', native, 'skill', 'phase', {
         uses,
       })
-      expect(reduced.hits).toBe(2 - Math.min(uses - 1, 2))
+      expect(reduced.cursor).toBe(3 - Math.min(uses - 1, 2))
     })
   }
   it(`late stage adds one hit and misses stop at first attempt ${native}`, () => {
     const r = run('effect_ability_add_multihit_1_on_multihit_skill', native, 'mark', 'phase')
-    expect(r.hits).toBe(3)
+    expect(r.cursor).toBe(4)
     expect(r.events).toHaveLength(3)
     const miss = run('effect_ability_add_multihit_1_on_multihit_skill', native, 'mark', 'miss')
-    expect(miss.hits).toBe(1)
-    expect(miss.remaining).toBe(3)
+    expect(miss.cursor).toBe(1)
+    expect(miss.resolvedHits).toBe(3)
     expect(miss.events).toEqual(['OnMiss'])
   })
 }
@@ -411,13 +417,13 @@ for (const native of [false, true]) {
     it(`ability requires resolved count above one ${native}/${initial}`, () => {
       const r = run('effect_ability_add_multihit_1_on_multihit_skill', native, 'mark', 'normal', { initial })
       expect(r.admitted).toBe(Number(initial > 1))
-      expect(r.remaining).toBe(initial + Number(initial > 1))
+      expect(r.resolvedHits).toBe(initial + Number(initial > 1))
     })
   for (const id of ['effect_mark_shuangrenzhan_add_2_hits', 'effect_mark_shuangpozhan_add_2_hits'] as const)
     it(`last source stack still appends both hits ${native}/${id}`, () => {
       const r = run(id, native, 'mark', 'normal', { sourceStack: 1 })
       expect(r.admitted).toBe(1)
-      expect(r.remaining).toBe(4)
+      expect(r.resolvedHits).toBe(4)
       expect(r.stack).toBe(0)
     })
 }
@@ -429,7 +435,7 @@ for (const id of ids.filter(id => id.endsWith('_first') || id.endsWith('_last'))
         expect(actual).toEqual(run(id, false, kind, variant))
         const allowed = id.endsWith('_first') ? variant === 'turn-first' : variant === 'turn-second'
         expect(actual.admitted).toBe(Number(allowed))
-        expect(actual.hits).toBe(allowed ? 4 : 1)
+        expect(actual.cursor).toBe(allowed ? 5 : 2)
       })
 
 for (const operation of ['addMultihitResult', 'setMultihit'] as const)

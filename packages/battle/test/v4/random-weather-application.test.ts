@@ -26,29 +26,7 @@ const id = 'effect_skill_set_field_qingtian_or_yemu'
 const load = (name: string): { id: string }[] =>
   parse(readFileSync(new URL(`../../../../packs/base/data/${name}.yaml`, import.meta.url), 'utf8'), { merge: true })
 const definition = load('effect_skill').find(d => d.id === id)!
-const corrected = structuredClone(definition) as unknown as {
-  apply: { mark: { type: string } }
-  condition: { type: string; conditions?: { type: string; target?: { base: string; chain: { arg: string }[] } }[] }
-}
-corrected.apply.mark.type = 'selector'
-corrected.condition.conditions![1].target!.base = 'usingSkillContext'
-const withUnknownField = structuredClone(corrected)
-// C13 reference: retain the old parser's source ownership and random action, add the new
-// ordinal predicate explicitly. Frozen legacy metadata has no currentHitCount path.
-corrected.condition = { type: 'selfUseSkill' }
-const legacyAction = EffectParser.parse(corrected)
-const oracle = defineNativeEffect({
-  id: id as effectId,
-  triggers: [EffectTrigger.OnHit],
-  priority: 0,
-  when(ctx) {
-    if (!legacyAction.condition!(ctx)) return false
-    let event: unknown = ctx.parent
-    while (event && !(event instanceof UseSkillContext)) event = (event as { parent?: unknown }).parent
-    return event instanceof UseSkillContext && event.currentHitCount === 1
-  },
-  apply: ctx => legacyAction.innerApply(ctx),
-})
+const oracle = EffectParser.parse(definition)
 const markDefinitions = load('mark_global')
 const marks = new Map<string, BaseMark>(
   randomWeatherDependencies.map(id => [
@@ -118,7 +96,7 @@ function run(native: boolean, kind: 'skill' | 'mark', variant: (typeof variants)
   use.updateActualTarget()
   use.currentHitCount = variant === 'zero' ? 0 : variant === 'second' ? 2 : 1
   const inputs: { id: string; stack: number; duration: number; hit: number }[] = []
-  const hits: { on: string; index: number; remaining: number }[] = []
+  const hits: { on: string; index: number; resolvedHits: number }[] = []
   const starts: number[] = []
   const beforeMultiHit: number[] = []
   b.activePet.skills[0].effects.push(
@@ -160,7 +138,7 @@ function run(native: boolean, kind: 'skill' | 'mark', variant: (typeof variants)
           ctx.trigger === EffectTrigger.OnHit ||
           ctx.trigger === EffectTrigger.OnMiss
         ) {
-          hits.push({ on: ctx.trigger, index: ctx.parent.currentHitCount, remaining: ctx.parent.multihitResult })
+          hits.push({ on: ctx.trigger, index: ctx.parent.currentHitCount, resolvedHits: ctx.parent.multihitResult })
           if (ctx.trigger === EffectTrigger.OnHit && ctx.parent.currentHitCount === 1) {
             if (variant === 'real-extend') ctx.parent.multihitResult += 1
             if (variant === 'real-shorten') ctx.parent.multihitResult = 1
@@ -204,7 +182,7 @@ function run(native: boolean, kind: 'skill' | 'mark', variant: (typeof variants)
       starts,
       beforeMultiHit,
       count: use.currentHitCount,
-      remaining: use.multihitResult,
+      resolvedHits: use.multihitResult,
       fields: battle.marks.map(m => ({ id: m.baseId, duration: m.duration, stack: m.stack })),
       nextRandom: battle.random(),
     }
@@ -224,15 +202,15 @@ for (const kind of ['skill', 'mark'] as const)
         !['second', 'zero', 'missing-context', 'cancel-effect', 'real-zero', 'real-miss', 'real-disabled'].includes(
           variant,
         ) && !(variant === 'other-skill' && kind === 'skill')
-      expect(actual.inputs).toHaveLength(admitted ? (variant === 'real-reuse' ? 2 : 1) : 0)
+      expect(actual.inputs).toHaveLength(admitted ? 1 : 0)
       if (!variant.startsWith('real-')) {
         const rng = new GameRng(seed)
         if (admitted) expect(actual.inputs[0].id).toBe(rng.shuffle([...randomWeatherDependencies])[0])
         expect(actual.nextRandom).toBe(rng.next())
       } else {
-        expect(actual.starts).toEqual(variant === 'real-reuse' ? [0, 0] : [0])
+        expect(actual.starts).toEqual(variant === 'real-reuse' ? [1, 3] : [1])
         expect(actual.beforeMultiHit).toEqual(
-          variant === 'real-disabled' ? [] : variant === 'real-reuse' ? [0, 0] : [0],
+          variant === 'real-disabled' ? [] : variant === 'real-reuse' ? [1, 3] : [1],
         )
         const count =
           variant === 'real-disabled' || variant === 'real-zero'
@@ -242,19 +220,19 @@ for (const kind of ['skill', 'mark'] as const)
               : variant === 'real-three' || variant === 'real-extend'
                 ? 3
                 : 2
-        expect(actual.count).toBe(count)
+        expect(actual.count).toBe(variant === 'real-miss' || variant === 'real-late-miss' ? count : count + 1)
         expect(actual.hits.filter(h => h.on === 'BeforeHit').map(h => h.index)).toEqual(
           variant === 'real-disabled' || variant === 'real-zero' || variant === 'real-miss'
             ? []
             : variant === 'real-reuse'
-              ? [1, 2, 1, 2]
+              ? [1, 2]
               : variant === 'real-late-miss'
                 ? [1]
                 : Array.from({ length: count }, (_, i) => i + 1),
         )
         if (variant === 'real-late-miss') expect(actual.hits.at(-1)).toMatchObject({ on: 'OnMiss', index: 2 })
         if (variant === 'real-two')
-          expect(actual.hits.filter(h => h.on === 'OnHit').map(h => h.remaining)).toEqual([2, 1])
+          expect(actual.hits.filter(h => h.on === 'OnHit').map(h => h.resolvedHits)).toEqual([2, 2])
       }
       if (variant === 'cancel-add' || !admitted) expect(actual.fields).toEqual([])
       else {
@@ -273,15 +251,15 @@ it('requires exact ordered weather dependencies and copies resolved membership',
   expect(candidate.id).toBe(id)
   expect(suppliedCatalog.size).toBe(0)
 })
-it('pins source corrections, the missing ordinal path and both dependencies', () => {
-  expect(() => EffectParser.parse(definition)).toThrow()
-  expect(() => EffectParser.parse(withUnknownField)).toThrow(/currentHitCount/)
+it('parses unchanged historical source and pins both dependencies', () => {
+  expect(() => EffectParser.parse(definition)).not.toThrow()
   const record = JSON.parse(
     readFileSync(new URL('../../../../docs/v4/validation/random-weather-application.json', import.meta.url), 'utf8'),
   )
   const hash = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex')
   expect(record.definitionSha256).toBe(hash(definition))
-  expect(record.decisions).toEqual(['C07', 'C10', 'C13'])
+  expect(record.decisions).toEqual([])
+  expect(record.historicalReference).toBe('61c349fa7ca35c392b0e751c9238759b02aefcb3')
   expect(record.dependencies.map((d: { id: string }) => d.id)).toEqual([...randomWeatherDependencies])
   for (const dep of record.dependencies)
     expect(dep.definitionSha256).toBe(hash(markDefinitions.find(d => d.id === dep.id)))

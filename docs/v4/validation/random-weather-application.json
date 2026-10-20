@@ -5,26 +5,8 @@
   "definitionSha256": "5b5bf6ada5d715738760790e03dab75a9e0807499a83bca586df132ddba28bca",
   "classification": "U",
   "status": "handwritten-candidate",
-  "decisions": ["C07", "C10", "C13"],
-  "corrections": [
-    {
-      "decision": "C07",
-      "path": "/condition/conditions/1/target/base",
-      "before": "useSkillContext",
-      "after": "usingSkillContext"
-    },
-    {
-      "decision": "C10",
-      "path": "/apply/mark/type",
-      "before": "selectorValue",
-      "after": "selector"
-    },
-    {
-      "decision": "C13",
-      "field": "UseSkillContext.currentHitCount",
-      "semantics": "Zero before attempts; one-based ordinal assigned before each hit or miss attempt; independent of mutable remaining multihitResult; reset at skill execution start."
-    }
-  ],
+  "decisions": [],
+  "corrections": [],
   "dependencies": [
     {
       "id": "mark_global_qingtian",
@@ -38,5 +20,7 @@
       "definitionSha256": "f80de69c5172ac710b3dc5a884c84001a6b7b2640c0f840bb43863d523789802",
       "effectIds": ["effect_global_power_35_percent_shadow_trait"]
     }
-  ]
+  ],
+  "historicalReference": "61c349fa7ca35c392b0e751c9238759b02aefcb3",
+  "semantics": "currentHitCount begins at one and is the loop cursor; multihitResult is the resolved total. Successful completion advances the cursor beyond the total; misses break without incrementing. Reusing a context does not reset its cursor."
 }

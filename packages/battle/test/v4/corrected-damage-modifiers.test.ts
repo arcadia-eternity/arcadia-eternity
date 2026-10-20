@@ -155,7 +155,7 @@ function run(spec: Spec, native: boolean, kind: 'skill' | 'mark', variant: (type
         : use
   const damage = new DamageContext(parent, actor, victim, 200, DamageType.Effect)
   damage.element = Element.Light // Skill element/category must come from skill ancestry, not this event.
-  const seen: { modified: number[]; remaining: number; ordinal: number }[] = []
+  const seen: { modified: number[]; resolvedHits: number; ordinal: number }[] = []
   b.team[1].skills[0].effects.push(
     defineNativeEffect({
       id: 'fixture/corrected-damage-hook' as effectId,
@@ -171,7 +171,11 @@ function run(spec: Spec, native: boolean, kind: 'skill' | 'mark', variant: (type
           if (variant === 'cancel') ctx.parent.available = false
         }
         if (ctx.trigger === EffectTrigger.OnDamage)
-          seen.push({ modified: [...ctx.parent.modified], remaining: use.multihitResult, ordinal: use.currentHitCount })
+          seen.push({
+            modified: [...ctx.parent.modified],
+            resolvedHits: use.multihitResult,
+            ordinal: use.currentHitCount,
+          })
       },
     }),
   )
@@ -208,8 +212,8 @@ for (const spec of specs) {
       const actual = run(spec, true, kind, variant)
       expect(actual).toEqual(run(spec, false, kind, variant))
       if (variant === 'real-three') {
-        const expected = [3, 2, 1].map(remaining =>
-          spec.field === 'multihitResult' && (spec.delta ? remaining !== 3 : remaining <= 1)
+        const expected = [3, 3, 3].map(resolvedHits =>
+          spec.field === 'multihitResult' && (spec.delta ? resolvedHits !== 3 : resolvedHits <= 1)
             ? [0, 0]
             : [spec.percent, spec.delta],
         )

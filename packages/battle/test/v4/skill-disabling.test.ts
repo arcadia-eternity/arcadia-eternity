@@ -179,7 +179,7 @@ function run(
     rage: a.currentRage,
     lostHp: hp - b.activePet.currentHp,
     trace,
-    hits: use.currentHitCount,
+    cursor: use.currentHitCount,
     appeared: skill.appeared,
     uses: a.activePet.lastSkillUsedTimes,
   }
@@ -199,7 +199,7 @@ for (const id of ids)
       admitted: 1,
       rage: 100,
       lostHp: 0,
-      hits: 0,
+      cursor: 1,
       trace: [],
       appeared: true,
       uses: 1,

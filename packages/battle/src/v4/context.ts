@@ -151,8 +151,8 @@ export class UseSkillContext extends Context {
   hitResult: boolean = false
   crit: boolean = false
   multihitResult = 1
-  /** One-based attempted hit ordinal; zero before the first attempt. Independent of remaining hits. */
-  currentHitCount = 0
+  /** One-based loop cursor; advances past the resolved total on completion, but not on a miss. */
+  currentHitCount = 1
 
   damageType: DamageType = DamageType.Physical
   typeMultiplier = 1

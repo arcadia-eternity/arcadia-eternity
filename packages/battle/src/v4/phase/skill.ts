@@ -63,7 +63,6 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
  * This function contains the core skill execution logic
  */
 export function executeSkillOperation(context: UseSkillContext, battle: Battle): void {
-  context.currentHitCount = 0
   // Update skill usage tracking
   if (context.pet.lastSkill && context.pet.lastSkill.baseId === context.skill.baseId) {
     context.pet.lastSkillUsedTimes += 1
@@ -122,9 +121,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     battle.applyEffects(context, EffectTrigger.BeforeMultiHit)
 
     // Execute multihit loop
-    let attemptedHits = 0
-    for (; context.multihitResult > 0; context.multihitResult--) {
-      context.currentHitCount = ++attemptedHits
+    for (; context.currentHitCount <= context.multihitResult; context.currentHitCount++) {
       // Hit check
       if (!context.hitResult) {
         battle.emitMessage(BattleMessageType.SkillMiss, {

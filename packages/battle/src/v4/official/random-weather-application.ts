@@ -3,7 +3,7 @@ import { compileEffect, conditions, contexts, defineEffect, ops, selectFrom } fr
 
 export const randomWeatherDependencies = Object.freeze(['mark_global_qingtian', 'mark_global_yemu'] as const)
 
-/** C10/C07 source corrections and C13 attempted-hit semantics; candidate pending dependency closure. */
+/** Historical first-hit cursor semantics; candidate pending dependency closure. */
 export function createRandomWeatherApplication(marks: ReadonlyMap<string, BaseMark>) {
   const choices = randomWeatherDependencies.map(id => {
     const mark = marks.get(id)

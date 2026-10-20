@@ -31,7 +31,7 @@
       "destination": "packages/battle/src/v4/context.ts",
       "sourceBlob": "f65a016fe5b37b6825235b6fd3795f5f5068bfad",
       "sourceSha256": "ee67306512235f7be6b921316ee46da58478fa1c2dfb9b5efc63fcdfa9eda763",
-      "portedSha256": "b1341f879d2d5448019f4985ca5223b3e2ba7478bd9e9c9a520f43ca899adb32",
+      "portedSha256": "1b48535aa4f2ca59fc172fcd960bda6cd6dfd2c613bab1680144d189a8d89312",
       "changed": true
     },
     {
@@ -247,7 +247,7 @@
       "destination": "packages/battle/src/v4/phase/skill.ts",
       "sourceBlob": "c9caafaaa2e664d778a82aa8823c94479eb1efa7",
       "sourceSha256": "86f6f38264bc07ec9b8e735d2731152aca5b1bc15b7be25f0fcaa55994267fd4",
-      "portedSha256": "b9e6b04087dcd510b95aeab5b961265048c7453f28550002f9fe72b63629cfff",
+      "portedSha256": "1474b8d182ba3a5beb665c327b4be71aa0eca325c18c617fc779c2918b2c3023",
       "changed": true
     },
     {
@@ -415,8 +415,8 @@
       "destination": "packages/battle/src/v4/legacy/effectBuilder/type-metadata.json",
       "sourceBlob": "521945066501cd689f1b31a88285773db57df063",
       "sourceSha256": "dd3a86c61b5faf95cfd1ba58a63c0a0a0b4e1373bfe7a91c3457e77dc3315f57",
-      "portedSha256": "dd3a86c61b5faf95cfd1ba58a63c0a0a0b4e1373bfe7a91c3457e77dc3315f57",
-      "changed": false
+      "portedSha256": "e3f1c4525325874e6271bbddd23f5a54b491dd5da62f42d83014952d0e493e4e",
+      "changed": true
     },
     {
       "original": "packages/parser/src/parseEffect.ts",

@@ -217,14 +217,14 @@ function run(spec: Spec, native: boolean, kind: 'skill' | 'mark', variant: (type
   }
   if (variant === 'false') mismatch()
   if (variant === 'wrong-owner') source.owner = owner.owner!.team[1]
-  const events: { remaining: number; ordinal: number; alive: boolean }[] = []
+  const events: { resolvedHits: number; ordinal: number; alive: boolean }[] = []
   b.team[1].skills[0].effects.push(
     defineNativeEffect({
       id: 'fixture/timing-hook' as effectId,
       triggers: [EffectTrigger.BeforeEffect],
       when: ctx => ctx.parent instanceof EffectContext && ctx.parent.effect?.id === spec.id,
       apply(ctx) {
-        events.push({ remaining: use.multihitResult, ordinal: use.currentHitCount, alive: victim.isAlive })
+        events.push({ resolvedHits: use.multihitResult, ordinal: use.currentHitCount, alive: victim.isAlive })
         if (variant === 'late-condition') mismatch()
         if (variant === 'late-owner') source.owner = owner.owner!.team[1]
         if (variant === 'late-active') {
@@ -288,13 +288,14 @@ for (const spec of specs as readonly Spec[]) {
       expect(actual).toEqual(run(spec, false, kind, variant))
       const admitted =
         !['false', 'wrong-owner', 'cancel', 'missing-skill'].includes(variant) &&
-        !(variant === 'nested' && (spec.defensive || spec.last)) &&
+        !(variant === 'nested' && spec.defensive) &&
         !(variant === 'other-skill' && !spec.defensive && kind === 'skill')
       if (admitted) {
         expect(actual.levels.flat()).toEqual([{ stat: spec.stat, level: spec.amount }])
         expect(actual.events).toHaveLength(1)
       } else expect(actual.levels.flat()).toEqual([])
-      if (variant === 'phase' && spec.hits) expect(actual.events).toEqual([{ remaining: 3, ordinal: 0, alive: true }])
+      if (variant === 'phase' && spec.hits)
+        expect(actual.events).toEqual([{ resolvedHits: 3, ordinal: 1, alive: true }])
       if (variant === 'phase' && spec.on === EffectTrigger.OnDefeat) expect(actual.events[0].alive).toBe(false)
       if (variant === 'late-owner' && !spec.defensive && spec.amount > 0)
         expect(actual.levels[1]).toEqual([{ stat: spec.stat, level: spec.amount }])
