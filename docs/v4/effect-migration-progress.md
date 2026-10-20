@@ -6,6 +6,8 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 
 ## Evidence as of 2026-10-20
 
+**Historical baseline review is open.** Later V1 contains implementations previously treated as missing. C07/C08/C14/C15 and their dependent candidates require renewed semantic acceptance; coverage totals below count artifacts only. See [historical audit](validation/historical-v1-audit.md). Further migration must use that evidence rather than infer absence from the older imported oracle.
+
 - Six persistent skill-flag candidates now use shared action-time skill queries and `ops.setSkillSureHit`. 91 public cases and two additional runtime checks cover legacy array-filter semantics, instance/context read timing, source lifetime, ownership checks and fresh-catalog JSON restoration. Candidate coverage is 1012/1065 (53 uncovered); full-game/production admission remains pending. See [skill flag evidence](validation/skill-flags.md).
 
 - A skill-power batch now emits 104 correction candidates (83 literal, 18 dynamic, three conditional), covering every current single-action power definition. 2,747 checks cover original parser rejections, corrected-reference behavior, real SkillPhase execution, global-mark sources, full games/fresh-catalog JSON continuation, HP/rage/message order and RNG. Sixteen generator checks and the unchanged damage generation pass; both harness reviews and post-checkpoint activation assertions pass; all 9,780 V4 regression tests pass after C08. See [turn-order scope and evidence](validation/turn-order.md). See [skill-power evidence](validation/skill-power.md). These 104 records use C07; four additionally require the reviewed C08 turn-order repair and three require [C09 path corrections](validation/skill-path-correction.md); production admission remains pending. Source YAML and the production loader are unchanged.
@@ -406,7 +408,7 @@ All 87 scoped public checks pass, including complete games and fresh-factory che
 
 ## Inclusive random damage and candidate inventory (2026-10-20)
 
-Two random fixed-damage candidates now use the shared immediate `values.randomInt` API. C14 explicitly defines [30,70] inclusive; V1 has no sampleBetween implementation, and V2 adds an extra upper endpoint. Conditions/cancellation do not draw, repeated execution draws again, and persistent capture/follow is rejected before RNG access.
+Two random fixed-damage candidates now use the shared immediate `values.randomInt` API. C14 explicitly defines [30,70] inclusive; The imported oracle lacks sampleBetween, while later V1 does implement it; the earlier C14 rationale is superseded by the historical audit. V2 adds an extra upper endpoint. Conditions/cancellation do not draw, repeated execution draws again, and persistent capture/follow is rejected before RNG access.
 
 All 263 public cases, 83 design runtime tests and 176 generator/inventory checks pass, along with battle types/lint, declarations and provenance. Both effects pass full-game and fresh-factory checkpoint comparisons against an independent reference. The separate design-directory typecheck retains its pre-existing nested-context error. See [C14 evidence](validation/damage-modifiers.md).
 

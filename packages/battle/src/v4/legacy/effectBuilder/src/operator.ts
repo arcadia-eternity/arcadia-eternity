@@ -1,3 +1,4 @@
+import { RagePhase } from '../../../phase/rage'
 import {
   AddMarkContext,
   BaseMark,
@@ -272,6 +273,19 @@ export const Operators = {
           new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'add', _value[0]),
         ),
       )
+    },
+
+  setRage:
+    (value: ValueSource<number>): Operator<Pet | Player> =>
+    (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(target => {
+        const player = target instanceof Player ? target : target.owner!
+        const ragePhase = new RagePhase(context.battle, context, player, 'effect', 'setting', _value[0])
+        context.battle.phaseManager.registerPhase(ragePhase)
+        context.battle.phaseManager.executePhase(ragePhase.id)
+      })
     },
 
   modifyStat:

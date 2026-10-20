@@ -1,0 +1,1346 @@
+{
+  "revision": "61c349fa7ca35c392b0e751c9238759b02aefcb3",
+  "scope": "Historical existence audit only; source presence does not prove behavioral equivalence or production acceptance.",
+  "records": [
+    {
+      "kind": "parser",
+      "historicalPath": "packages/parser/src/parseEffect.ts",
+      "importedPath": "packages/battle/src/v4/legacy/parser/parseEffect.ts",
+      "historicalSha256": "d72872a88ecf74179dba071398a7b6015841b4143ffb8c3a7c156b40765ac29c",
+      "importedSha256": "b7b37a535665b40fe8b61ca2c04bb9f8116ec4ca908a7b3ecde47e8308bb0574",
+      "missingNames": ["addTemporaryEffect", "avg", "executeActions", "sampleBetween", "setIgnoreShield"],
+      "evidence": {
+        "setRage": {
+          "historicalLines": [437, 739, 741],
+          "importedLines": [426, 716, 718]
+        },
+        "sampleBetween": {
+          "historicalLines": [292, 294],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [109, 591],
+          "importedLines": [109, 111, 114, 115]
+        },
+        "selfBeDamaged": {
+          "historicalLines": [1064, 1065],
+          "importedLines": [1025, 1026]
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [1088, 1089],
+          "importedLines": [1049, 1050]
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [1090, 1091],
+          "importedLines": [1051, 1052]
+        },
+        "setIgnoreShield": {
+          "historicalLines": [461, 1383, 1384],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [543, 1032, 1034],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [545, 1039, 1042],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [235, 237],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "pushContext": {
+          "historicalLines": [],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "operators",
+      "historicalPath": "packages/effectBuilder/src/operator.ts",
+      "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/operator.ts",
+      "historicalSha256": "998d4228d727e6e5520131fc39684e3ac364a4f17d5b79c2278938d939ac598c",
+      "importedSha256": "c0fb7f6cf5c00470635890d95ab6bd4c949a23c82aaa2c4363a4885438c1482b",
+      "missingNames": ["addTemporaryEffect", "executeActions", "setIgnoreShield"],
+      "evidence": {
+        "setRage": {
+          "historicalLines": [301],
+          "importedLines": [278]
+        },
+        "sampleBetween": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selfBeDamaged": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "setIgnoreShield": {
+          "historicalLines": [900, 903],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [1838, 1899],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [1845, 1868],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "pushContext": {
+          "historicalLines": [],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "conditions",
+      "historicalPath": "packages/effectBuilder/src/condition.ts",
+      "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/condition.ts",
+      "historicalSha256": "033c92a64ff3642e2047492f5267c533a7a0c2cb47ec46f81f8e39753ecb73e8",
+      "importedSha256": "9e0379536306ed6cc87b7a07f217be84ab00bc30acf193f6099596a11ff8ce83",
+      "missingNames": [],
+      "evidence": {
+        "setRage": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "sampleBetween": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selfBeDamaged": {
+          "historicalLines": [126],
+          "importedLines": [122]
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [316],
+          "importedLines": [310]
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [341],
+          "importedLines": [334]
+        },
+        "setIgnoreShield": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "pushContext": {
+          "historicalLines": [],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "selectors",
+      "historicalPath": "packages/effectBuilder/src/selector.ts",
+      "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/selector.ts",
+      "historicalSha256": "fd5244047ea218d2f27dde8eea9778cb8cfa145d9370c1fdb39f95f2304b8817",
+      "importedSha256": "8818f9bbcbd5b4001d1b4c6513cd1bb0fa635f125f4484b177e42783429b8a5e",
+      "evidence": {
+        "setRage": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "sampleBetween": {
+          "historicalLines": [483],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selfBeDamaged": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "setIgnoreShield": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [354, 355, 356],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "pushContext": {
+          "historicalLines": [],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "dsl",
+      "historicalPath": "packages/schema/src/effectDsl.ts",
+      "importedPath": "packages/battle/src/v4/legacy/schema/effectDsl.ts",
+      "historicalSha256": "53ece48fad39003a490c1d58113fe8d9235c21a489fcce6e52e05a060107d8f1",
+      "importedSha256": "acf2d58124d724b3ebfed2c93da7daaf9fbbc70e00cbbd1fe8a3fd6797126d6c",
+      "evidence": {
+        "setRage": {
+          "historicalLines": [205],
+          "importedLines": [204]
+        },
+        "sampleBetween": {
+          "historicalLines": [853],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [696],
+          "importedLines": []
+        },
+        "selfBeDamaged": {
+          "historicalLines": [904],
+          "importedLines": [859]
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [943],
+          "importedLines": [890]
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [946],
+          "importedLines": [893]
+        },
+        "setIgnoreShield": {
+          "historicalLines": [288],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [558],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [563],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [808],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "pushContext": {
+          "historicalLines": [],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "schema",
+      "historicalPath": "packages/schema/src/effectSchema.ts",
+      "importedPath": "packages/battle/src/v4/legacy/schema/effectSchema.ts",
+      "historicalSha256": "8dbbdb3e6540b60212b76df2859d5def92b6f27d4bc0839923a4b9323fe9d444",
+      "importedSha256": "5fe1f87c6b41acfd18003571c6faefd1629a624f013b91037ca8f7773e29de78",
+      "evidence": {
+        "setRage": {
+          "historicalLines": [456],
+          "importedLines": [464]
+        },
+        "sampleBetween": {
+          "historicalLines": [178],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [96, 97, 201, 217],
+          "importedLines": [90, 119, 239]
+        },
+        "selfBeDamaged": {
+          "historicalLines": [248],
+          "importedLines": [811]
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [291],
+          "importedLines": [850]
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [292],
+          "importedLines": [853]
+        },
+        "setIgnoreShield": {
+          "historicalLines": [492],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [699],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [701],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [166],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "pushContext": {
+          "historicalLines": [],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "rage-phase",
+      "historicalPath": "packages/battle/src/phases/rage.ts",
+      "importedPath": "packages/battle/src/v4/phase/rage.ts",
+      "historicalSha256": "915c365a2e0676e0118985b5a715169f15251d40b7bfe1a84cdd1d0cb6835a25",
+      "importedSha256": "d402571653a79bc807d16477d616f76b60c715d34cd6566445ee0a83a817c45d",
+      "evidence": {
+        "setRage": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "sampleBetween": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selfBeDamaged": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "setIgnoreShield": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [58],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [68],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [65],
+          "importedLines": [60]
+        },
+        "OnRageLoss": {
+          "historicalLines": [75],
+          "importedLines": [66]
+        },
+        "pushContext": {
+          "historicalLines": [],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "turn-phase",
+      "historicalPath": "packages/battle/src/phases/turn.ts",
+      "importedPath": "packages/battle/src/v4/phase/turn.ts",
+      "historicalSha256": "9563b4c3bbf0f610c0fb08c3c2fe026960b5f9b09a89e4a8bbed6baa44e08491",
+      "importedSha256": "020345ede4c7d8c869fd7320f3148ecbd374651b6b25e100111f4c166110d11a",
+      "evidence": {
+        "setRage": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "sampleBetween": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selfBeDamaged": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "setIgnoreShield": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "OnRageLoss": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "pushContext": {
+          "historicalLines": [60, 81],
+          "importedLines": []
+        }
+      }
+    },
+    {
+      "kind": "context",
+      "historicalPath": "packages/battle/src/context.ts",
+      "importedPath": "packages/battle/src/v4/context.ts",
+      "historicalSha256": "9303a3ed27066c1bcead8a4ec05cff820852105ac43d8fa60cbf276bcd4da394",
+      "importedSha256": "0be1d50be76305d2efc0f466a4652b3417f05185ff4e085d18367778be2cb615",
+      "evidence": {
+        "setRage": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "sampleBetween": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selectorValue": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "selfBeDamaged": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isFirstSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "isLastSkillUsedThisTurn": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "setIgnoreShield": {
+          "historicalLines": [326],
+          "importedLines": []
+        },
+        "executeActions": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "addTemporaryEffect": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "avg": {
+          "historicalLines": [],
+          "importedLines": []
+        },
+        "BeforeRageGain": {
+          "historicalLines": [691],
+          "importedLines": []
+        },
+        "BeforeRageLoss": {
+          "historicalLines": [692],
+          "importedLines": []
+        },
+        "OnRageGain": {
+          "historicalLines": [693],
+          "importedLines": [670]
+        },
+        "OnRageLoss": {
+          "historicalLines": [694],
+          "importedLines": [671]
+        },
+        "pushContext": {
+          "historicalLines": [101],
+          "importedLines": [109]
+        }
+      }
+    }
+  ],
+  "effects": [
+    {
+      "id": "effect_ability_damage_reduction_below_25_percent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/2",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_physical_damage_reduction_below_25_percent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/5",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_physical_damage_30_percent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/28",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_increase_special_damage_taken_15_percent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/29",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_10_percent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/33",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_10_percent_has_shazhidanke",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/34",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_damage_reduction_10",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/36",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_10_if_has_mark_huanxiang",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/48",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_damage_boost_10_percent_when_first",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/49",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_ability_damage_reduction_10_percent_when_last",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/50",
+      "types": ["isLastSkillUsedThisTurn", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_damage_reduction_50_percent_at_full_hp",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/53",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_gugao_prevent_rage_when_opponent_use_skill",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/59",
+      "types": ["BeforeRageGain"]
+    },
+    {
+      "id": "effect_ability_keep_rage_at_least_25",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/65",
+      "types": ["OnRageGain", "OnRageLoss", "setRage"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_when_max_hp_over_500",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/66",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_fixed_damage_15_when_has_penti",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/68",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_add_rage_5_when_first_attack",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/70",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_ability_reduce_special_damage_10_percent",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/78",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/80",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_emblem_increase_rage_on_damage",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/1",
+      "types": ["BeforeRageGain", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_emblem_add_xukongtizhi_when_opponent_hit_self",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/21",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_emblem_yuren_dealdamage_on_physical_skill",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/48",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_emblem_xianzhi_crit_rate_5_percent_if_first",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/49",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_mark_onDamage_recovery",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/3",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_onCritDamage_recovery",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/4",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_onDamage_over100_recovery",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/6",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/24",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_50",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/25",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_once",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/26",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_once",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/27",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_set_health_to_1_on_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/33",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_zhongzinengliang_damage_reduction",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/34",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_absorb_damage_to_heal",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/46",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_special_damage_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/47",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_physical_damage_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/48",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_with_weight",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/50",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/52",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/55",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_damage_1_4",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/58",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_taken_damage_30_xstack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/69",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_limit_rage_gain",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/73",
+      "types": ["BeforeRageGain"]
+    },
+    {
+      "id": "effect_mark_double_physical_damage_taken",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/77",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_physical_damage_30",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/79",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_75_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/81",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_10_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/95",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_20_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/97",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_special_damage_30",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/99",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_paralyze_on_physical_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/100",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_increase_damage_taken_once_50_percent_double_effect_if_frozen",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/101",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_block_damage_under_60",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/103",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_rage_on_damage_10_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/107",
+      "types": ["BeforeRageGain", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_rage_on_damage_20_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/108",
+      "types": ["BeforeRageGain", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_double_special_damage_taken",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/113",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_hongbaoshizhiguang_add_200_fixed_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/117",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_lanbaoshizhiguang_add_200_fixed_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/118",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_block_next_special_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/119",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_special_damage_reduction_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/121",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_15_percent_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/123",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_jiguang_add_200_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/125",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_jueying_add_200_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/126",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/127",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_baiyapo_add_damage_based_on_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/129",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_heiyapao_add_damage_based_on_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/130",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_next_skill_damage_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/131",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_15_percent_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/132",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_30_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/135",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_damage_cap_half_max_hp",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/139",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_15_percent_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/140",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_special_damage_50_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/142",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_add_damage_taken_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/143",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_buxieanguang_reduce_light_damage_half",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/147",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_add_crit_on_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/154",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_25_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/156",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_fantan_reflect_damage_1_3",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/159",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_shiguangchongsheng",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/162",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/163",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_stack_mark_with_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/166",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_opponent_rage_15_if_damage_below_75",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/169",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_block_climax_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/170",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_fire_damage_half",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/171",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_clear_rage_on_turn_start",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/173",
+      "types": ["setRage"]
+    },
+    {
+      "id": "effect_mark_clear_rage_on_switch_out",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/174",
+      "types": ["setRage"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_by_25_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/176",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_special_damage_max_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/180",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_raise_def_1_when_hit_and_remove_self",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/182",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_prevent_rage_loss_on_switch",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/187",
+      "types": ["BeforeRageLoss"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_40",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/202",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_skill_power_2x_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/203",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_shanbi_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/217",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_power_2x_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/289",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shiming_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/299",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_crit_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/305",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_set_field_qingtian_or_yemu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/306",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_add_mark_zhaocai_or_jinbao",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/462",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_add_power_40_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/473",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_power_40_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/474",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_multihit_4_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/475",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_multihit_4_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/476",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/477",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/478",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_50_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/481",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_50_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/482",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/485",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_sure_hit_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/495",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_crit_rate_50_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/496",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_crit_rate_65_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/500",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_ignore_opponent_shield_if_has_shunliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/540",
+      "types": ["setIgnoreShield"]
+    },
+    {
+      "id": "effect_skill_add_rage_15_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/542",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_set_opponent_rage_to_self",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/561",
+      "types": ["setRage"]
+    },
+    {
+      "id": "effect_skill_fixed_damage_30_70_if_opponent_has_cuimian",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/601",
+      "types": ["sampleBetween", "selectorValue"]
+    },
+    {
+      "id": "effect_skill_fixed_damage_30_70",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/607",
+      "types": ["sampleBetween", "selectorValue"]
+    },
+    {
+      "id": "effect_skill_random_xifa_effect",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/649",
+      "types": ["addTemporaryEffect", "selectorValue"]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/654",
+      "types": ["executeActions", "selectorValue"]
+    },
+    {
+      "id": "effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/657",
+      "types": ["executeActions", "selectorValue"]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/666",
+      "types": ["executeActions", "selectorValue"]
+    },
+    {
+      "id": "effect_skill_add_damage_50_percent_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/689",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/690",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/692",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/693",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_multihit_4_times_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/695",
+      "types": ["isLastSkillUsedThisTurn"]
+    }
+  ]
+}

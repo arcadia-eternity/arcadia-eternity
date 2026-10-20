@@ -1,5 +1,7 @@
 # Native damage modifier candidates
 
+> Historical baseline review (2026-10-20): later V1 provides behavior missing from the imported oracle. Claims below about C07/C08/C14/C15 require revalidation; see [the audit](historical-v1-audit.md). Earlier passing tests establish agreement with the imported/corrected reference, not with final V1.
+
 The offline generator recognizes 103 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 13 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
 
 ## Authoring target
@@ -98,7 +100,7 @@ All six full-game/checkpoint comparisons and the source-hash/catalog check pass,
 
 ## C14: inclusive random fixed damage (2026-10-20)
 
-`effect_skill_fixed_damage_30_70` and `effect_skill_fixed_damage_30_70_if_opponent_has_cuimian` now use `values.randomInt(30, 70)`. C14 is an explicit semantic completion, not an equivalence claim for an executable V1 source: V1 rejects selectorValue, and changing that tag to selector still leaves the unsupported sampleBetween step. The V2 implementation passes secondVal + 1 to an inclusive GameRng.nextInt and can produce 71. The candidate contract is the inclusive interval named by the effects and their [30,70] source values. Both exact source shapes are checked; unknown IDs and changed endpoints are rejected. Source YAML and the legacy parser remain unchanged.
+`effect_skill_fixed_damage_30_70` and `effect_skill_fixed_damage_30_70_if_opponent_has_cuimian` now use `values.randomInt(30, 70)`. The original C14 rationale was based only on the older imported oracle, which rejects selectorValue and sampleBetween. That rationale is withdrawn: later V1 implements both and samples the same inclusive bounds. Historical-oracle comparison and metadata reclassification remain pending. The V2 implementation passes secondVal + 1 to an inclusive GameRng.nextInt and can produce 71. The candidate contract is the inclusive interval named by the effects and their [30,70] source values. Both exact source shapes are checked; unknown IDs and changed endpoints are rejected. Source YAML and the legacy parser remain unchanged.
 
 The new Value validates safe integer endpoints and width at declaration, draws through battle RNG only when read, and returns a fresh number on each read. Every read consumes exactly one draw, even for a single-point interval. Persistent capture/follow rejects before drawing. No standalone RNG or stream is introduced.
 

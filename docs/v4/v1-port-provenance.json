@@ -367,7 +367,7 @@
       "destination": "packages/battle/src/v4/legacy/effectBuilder/src/operator.ts",
       "sourceBlob": "50c484263b798bae164dc905c9c2e867a00445bc",
       "sourceSha256": "e3de54fd2fbee59b779bcc316000bf3dfcf323bfd64cfd747056c3166b2c6704",
-      "portedSha256": "48239ac257c1070f2f03ddf0acdf5fea20ad82729fa28cafea8c3dbe7e1b2619",
+      "portedSha256": "c0fb7f6cf5c00470635890d95ab6bd4c949a23c82aaa2c4363a4885438c1482b",
       "changed": true
     },
     {
@@ -423,7 +423,7 @@
       "destination": "packages/battle/src/v4/legacy/parser/parseEffect.ts",
       "sourceBlob": "c78b8c8fa2033c22e1708e3eaf201be11dc0de58",
       "sourceSha256": "e9c8b4a65333e235c54e12fe76235c5851a77c7f86b7582f39f5a058e19c277b",
-      "portedSha256": "312932f7a173a0ec1c8192c3efab6595598a96638a082dd5ff3f2b17e1f875ee",
+      "portedSha256": "b7b37a535665b40fe8b61ca2c04bb9f8116ec4ca908a7b3ecde47e8308bb0574",
       "changed": true
     },
     {
@@ -431,7 +431,7 @@
       "destination": "packages/battle/src/v4/legacy/schema/effectDsl.ts",
       "sourceBlob": "3f5e64c1231578f9ccfda6d9d7c70b84564a229a",
       "sourceSha256": "9eab53a7f82f7bb7454538c030b4601bca50a83278dab0b1e67983f74db81d24",
-      "portedSha256": "84f626362843f10e0f7e48036e22da593c954cfdad6fe2096349649caacc5953",
+      "portedSha256": "acf2d58124d724b3ebfed2c93da7daaf9fbbc70e00cbbd1fe8a3fd6797126d6c",
       "changed": true
     },
     {
@@ -447,7 +447,7 @@
       "destination": "packages/battle/src/v4/legacy/schema/effectSchema.ts",
       "sourceBlob": "edcc390451d889f44507c6f85c82fa67557001ca",
       "sourceSha256": "42490c642ce44821305804e4be4603649b3fd0ab960fde446ded9de597c644c7",
-      "portedSha256": "70da9d40a51b04df747cc18e281d53d0603ccf3c4727c7e559003c2b50697d54",
+      "portedSha256": "5fe1f87c6b41acfd18003571c6faefd1629a624f013b91037ca8f7773e29de78",
       "changed": true
     },
     {

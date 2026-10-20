@@ -423,6 +423,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseTransferStatStage(effectId, dsl)
     case 'addRage':
       return parseAddRageAction(effectId, dsl)
+    case 'setRage':
+      return parseSetRageAction(effectId, dsl)
     case 'amplifyPower':
       return parseAmplifyPowerAction(effectId, dsl)
     case 'addPower':
@@ -708,6 +710,12 @@ export function parseTransferStatStage(effectId: string, dsl: Extract<OperatorDS
 export function parseAddRageAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addRage' }>) {
   return parseSelector<Player>(effectId, dsl.target).apply(
     Operators.addRage(parseValue(effectId, dsl.value) as ValueSource<number>),
+  )
+}
+
+export function parseSetRageAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setRage' }>) {
+  return parseSelector<Player | Pet>(effectId, dsl.target).apply(
+    Operators.setRage(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 

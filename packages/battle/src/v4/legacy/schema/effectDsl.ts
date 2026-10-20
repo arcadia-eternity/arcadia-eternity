@@ -200,6 +200,12 @@ export type AddRageOperator = {
   value: Value
 }
 
+export type SetRageOperator = {
+  type: 'setRage'
+  target: SelectorDSL
+  value: Value
+}
+
 export type AmplifyPowerOperator = {
   type: 'amplifyPower'
   target: SelectorDSL
@@ -567,6 +573,7 @@ export type OperatorDSL =
   | ReverseStatStageOperator
   | TransferStatStageOperator
   | AddRageOperator
+  | SetRageOperator
   | AmplifyPowerOperator
   | AddPowerOperator
   | AddCritRateOperator

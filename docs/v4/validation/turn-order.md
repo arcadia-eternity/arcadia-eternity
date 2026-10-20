@@ -1,5 +1,7 @@
 # C08: record the actual turn schedule
 
+> Historical baseline review (2026-10-20): later V1 provides behavior missing from the imported oracle. Claims below about C07/C08/C14/C15 require revalidation; see [the audit](historical-v1-audit.md). Earlier passing tests establish agreement with the imported/corrected reference, not with final V1.
+
 C08 corrects a missing domain-state update in `phase/turn.ts`. The executor sorted and dispatched phases but never populated `TurnContext.contexts`, `contextQueue` or `appledContexts`. First/last skill conditions therefore remained false in complete games, even after C07 repaired selector spelling.
 
 ## Selected behavior
