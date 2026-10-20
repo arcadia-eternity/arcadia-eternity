@@ -349,6 +349,10 @@ export const contexts: typeof C.contexts = {
     const event = nearestContext(ctx, DamageContext)
     return event ? [event] : []
   }),
+  rage: selector(ctx => {
+    const event = nearestContext(ctx, RageContext)
+    return event ? [event] : []
+  }),
   heal: selector(ctx => {
     const event = nearestContext(ctx, HealContext)
     return event ? [event] : []
@@ -389,6 +393,19 @@ export const conditions: typeof C.conditions = {
   skillActorDiffersFromOwner(ctx) {
     const skill = contexts.nearestSkillUse(ctx)
     return !!skill && engine(ctx).source.owner !== skill.pet
+  },
+  ownerReceivesDamageRage(ctx) {
+    const event = ctx.event,
+      sourceOwner = engine(ctx).source.owner
+    return (
+      event instanceof RageContext &&
+      event.reason === 'damage' &&
+      event.modifiedType === 'add' &&
+      event.parent instanceof UseSkillContext &&
+      sourceOwner instanceof Pet &&
+      event.parent.actualTarget === sourceOwner &&
+      sourceOwner.owner === event.target
+    )
   },
   ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
   sourceOwnsEvent: ctx => {
@@ -602,8 +619,8 @@ function numeric<T>(
     }
   }
 }
-/** Both modifiers share ordering, missing-input and battle ownership rules. */
-function modifyContext<T extends DamageContext | HealContext>(
+/** Context modifiers share ordering, missing-input and battle ownership rules. */
+function modifyContext<T extends DamageContext | HealContext | RageContext>(
   input: { percent: number | C.Value<number, C.Presence>; delta: number | C.Value<number, C.Presence> },
   kind: string,
 ): C.Operator<T> {
@@ -848,6 +865,7 @@ export const ops: typeof C.ops = {
       }
     },
   modifyHeal: input => modifyContext(input, 'heal'),
+  modifyRage: input => modifyContext(input, 'rage'),
   heal: amount =>
     numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)

@@ -114,3 +114,4 @@ export {
   createGeneratedCompoundActions,
   generatedCompoundActionDependencies,
 } from './src/v4/official/compound-actions.generated'
+export { generatedRageModifiers, createGeneratedRageModifiers } from './src/v4/official/rage-modifiers.generated'

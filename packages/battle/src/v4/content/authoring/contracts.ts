@@ -5,6 +5,7 @@ import type {
   StackContext,
   DamageContext,
   HealContext,
+  RageContext,
   TriggerContextMap,
   UseSkillContext,
   SwitchPetContext,
@@ -156,6 +157,7 @@ export declare const contexts: {
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
   readonly heal: Selector<HealContext>
+  readonly rage: Selector<RageContext>
   readonly skillUse: Selector<UseSkillContext>
   /** Nearest switch ancestor, requeried independently on each use. */
   readonly switchPet: Selector<SwitchPetContext>
@@ -171,6 +173,8 @@ export declare const conditions: {
   readonly skillActorDiffersFromOwner: Condition
   /** Direct skill event owned by this source; unlike selfUsesSkill, no skill identity restriction. */
   readonly ownerUsesSkill: Condition
+  /** Direct damage-rage gain: current skill target is the source pet, and its player receives the rage. */
+  readonly ownerReceivesDamageRage: Condition
   /** Legacy checkSelf: compare source ownership with the subject of the direct event. */
   readonly sourceOwnsEvent: Condition
   /** Source pet is the actual target of the direct skill event. */
@@ -290,6 +294,7 @@ export declare const ops: {
   /** Mark unavailable at execution time; does not undo damage already applied. */
   readonly preventDamage: () => Operator<DamageContext>
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
+  readonly modifyRage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<RageContext>
   readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
   /** Read min then max once; each present bound replaces that bound without recalculating damage. */

@@ -334,3 +334,7 @@ const randomAmount: Value<number> = values.randomInt(30, 70)
 contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: randomAmount }))
 // @ts-expect-error Random range bounds are numeric, not strings.
 values.randomInt('30', 70)
+
+contexts.rage.apply(ops.modifyRage({ percent: 20, delta: 0 }))
+// @ts-expect-error A heal context is not a rage context.
+contexts.heal.apply(ops.modifyRage({ percent: 20, delta: 0 }))

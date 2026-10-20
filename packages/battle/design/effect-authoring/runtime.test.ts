@@ -4,6 +4,7 @@ import {
   BaseMark,
   DamageContext,
   HealContext,
+  RageContext,
   Signal,
   GameRng,
   ConfigModifier,
@@ -1476,7 +1477,7 @@ it.each([false, true])('conditional checkSelf uses the direct event subject, nes
   const effect = compileEffect(
     defineEffect({
       id: 'test/conditional-event-owner',
-      on: 'PostDamage',
+      on: ['PostDamage', 'BeforeEffect'],
       execute(ctx) {
         answers.push(ctx.read(values.choose(conditions.sourceOwnsEvent, 10, 20)))
       },
@@ -1484,12 +1485,14 @@ it.each([false, true])('conditional checkSelf uses the direct event subject, nes
   )
   for (const matches of [false, true]) {
     const damage = new DamageContext(f.use, f.owner, matches ? f.owner : f.b.activePet, 100)
-    const parent = nested
-      ? new EffectContext(damage, EffectTrigger.OnDamage, matches ? f.skill : f.b.activePet.skills[0])
-      : damage
-    f.battle.executionBudget.run(0, () =>
-      effect.innerApply(new EffectContext(parent, EffectTrigger.PostDamage, f.skill)),
-    )
+    const event = nested
+      ? new EffectContext(
+          new EffectContext(damage, EffectTrigger.OnDamage, matches ? f.skill : f.b.activePet.skills[0]),
+          EffectTrigger.BeforeEffect,
+          f.skill,
+        )
+      : new EffectContext(damage, EffectTrigger.PostDamage, f.skill)
+    f.battle.executionBudget.run(0, () => effect.innerApply(event))
   }
   expect(answers).toEqual([20, 10])
 })
@@ -1541,4 +1544,60 @@ it.each(['capture', 'follow'] as const)('random integer values reject persistent
   )
   expect(f.owner.stat.spe).toBe(speed)
   expect(f.battle.random()).toBe(new GameRng(201).next())
+})
+
+it('rage modifiers query ancestry afresh and read both inputs in order even when one is missing', () => {
+  const f = fixture(),
+    trace: string[] = []
+  let missing = false
+  const percent = targets.ownerPet
+    .where(() => {
+      trace.push('percent')
+      return !missing
+    })
+    .select(() => 20)
+    .first()
+  const delta = targets.ownerPet
+    .select(() => {
+      trace.push('delta')
+      return 3
+    })
+    .first()
+  const rage = new RageContext(f.use, f.a, 'damage', 'add', 19)
+  const nested = new EffectContext(rage, EffectTrigger.OnRageGain, f.skill)
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/rage-query',
+      on: 'BeforeEffect',
+      execute: contexts.rage.apply(ops.modifyRage({ percent, delta })),
+    }),
+  )
+  const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
+  f.battle.executionBudget.run(0, () => effect.innerApply(ctx))
+  missing = true
+  f.battle.executionBudget.run(0, () => effect.innerApply(ctx))
+  expect(rage.modified).toEqual([20, 3])
+  expect(trace).toEqual(['percent', 'delta', 'percent', 'delta'])
+})
+it('rage modifiers reject foreign contexts before reading either amount', () => {
+  const f = fixture(),
+    other = fixture()
+  let reads = 0
+  const amount = targets.ownerPet
+    .select(() => {
+      reads++
+      return 5
+    })
+    .first()
+  const foreign = new RageContext(other.use, other.a, 'damage', 'add', 19)
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/rage-cross-battle',
+      on: 'BeforeHit',
+      execute: selectFrom([foreign]).apply(ops.modifyRage({ percent: amount, delta: amount })),
+    }),
+  )
+  expect(() => f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))).toThrow('Cross-battle rage context')
+  expect(reads).toBe(0)
+  expect(foreign.modified).toEqual([0, 0])
 })

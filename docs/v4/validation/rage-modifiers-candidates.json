@@ -1,0 +1,102 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_emblem_increase_rage_on_damage",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/1",
+      "definitionSha256": "52eef589e419c459fc50bb445668da181aa224d5c9dbe20018979d479c8d5e36",
+      "recipe": {
+        "id": "effect_emblem_increase_rage_on_damage",
+        "percent": 20,
+        "delta": 0,
+        "trigger": "OnRageGain",
+        "condition": "ownerReceivesDamageRage",
+        "decisions": ["C15"],
+        "corrections": [
+          {
+            "path": "/trigger",
+            "before": "BeforeRageGain",
+            "after": "OnRageGain"
+          },
+          {
+            "path": "/condition",
+            "before": {
+              "type": "selfBeDamaged"
+            },
+            "after": {
+              "condition": "ownerReceivesDamageRage"
+            }
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_increase_rage_on_damage_10_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/107",
+      "definitionSha256": "fcaa2d5b1b3cd209f13438b2cdc6f843c059b5b3f6728d563b63c7c8c019cca9",
+      "recipe": {
+        "id": "effect_mark_increase_rage_on_damage_10_percent",
+        "percent": 10,
+        "delta": 0,
+        "trigger": "OnRageGain",
+        "condition": "ownerReceivesDamageRage",
+        "decisions": ["C15"],
+        "corrections": [
+          {
+            "path": "/trigger",
+            "before": "BeforeRageGain",
+            "after": "OnRageGain"
+          },
+          {
+            "path": "/condition",
+            "before": {
+              "type": "selfBeDamaged"
+            },
+            "after": {
+              "condition": "ownerReceivesDamageRage"
+            }
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_increase_rage_on_damage_20_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/108",
+      "definitionSha256": "f52687dd1c81b3698ba1c274f8d7f0a72453f5199ed8dd7d2831291f62b05bc0",
+      "recipe": {
+        "id": "effect_mark_increase_rage_on_damage_20_percent",
+        "percent": 20,
+        "delta": 0,
+        "trigger": "OnRageGain",
+        "condition": "ownerReceivesDamageRage",
+        "decisions": ["C15"],
+        "corrections": [
+          {
+            "path": "/trigger",
+            "before": "BeforeRageGain",
+            "after": "OnRageGain"
+          },
+          {
+            "path": "/condition",
+            "before": {
+              "type": "selfBeDamaged"
+            },
+            "after": {
+              "condition": "ownerReceivesDamageRage"
+            }
+          }
+        ]
+      },
+      "classification": "U",
+      "status": "generated-correction-candidate"
+    }
+  ],
+  "rejected": []
+}
