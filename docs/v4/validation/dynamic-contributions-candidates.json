@@ -1,0 +1,226 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_mark_add_atk_stack_x35",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/158",
+      "definitionSha256": "7006eb07dd9bf7a67149889028acba34e0c10729bdfe7888f2b41df5529b7573",
+      "recipe": {
+        "id": "effect_mark_add_atk_stack_x35",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"atk\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*35)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_weight_stack_x50",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/49",
+      "definitionSha256": "e60001692de35b690766bd6b9eeeeba53b64b44392744fe41451ada6f11fbd03",
+      "recipe": {
+        "id": "effect_mark_add_weight_stack_x50",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"weight\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*50)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_def_boost_25_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/137",
+      "definitionSha256": "56f66e7d6c54ed4a9d4f11d78528319c2d55a6170bf7fbc2f777a8d66f6754ed",
+      "recipe": {
+        "id": "effect_mark_def_boost_25_per_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"def\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*25)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_accuracy_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/37",
+      "definitionSha256": "4eaac99339528846ff952516cf21de66c4d965846ec439e54d2f82e36452ecd1",
+      "recipe": {
+        "id": "effect_mark_increase_accuracy_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"accuracy\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_raise_spe_by_25_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/175",
+      "definitionSha256": "98f69ddc982209c40f553dcfac837054e640994279d6bf3d5a4b25823194aafa",
+      "recipe": {
+        "id": "effect_mark_raise_spe_by_25_per_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"spe\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*25)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_accuracy_5_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/144",
+      "definitionSha256": "dd100de6691a7ecc14047f27378c979a97dacd44351a95bc212716d1472303c2",
+      "recipe": {
+        "id": "effect_mark_reduce_accuracy_5_per_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"accuracy\",operation:\"delta\",value:bindings.combine(targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}),parameters.action0_value_factor.capture({key:\"factor\",scope:\"binding\"}),(stack,factor)=>Math.floor(stack*factor)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "parameters": [{ "name": "action0_value_factor", "value": -5, "configId": "reduce_accuracy_per_stack" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_accuracy_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/42",
+      "definitionSha256": "a49856735ef39ff981531d2e39f8b50a53977933d373d8d62f2acf5409d5ed85",
+      "recipe": {
+        "id": "effect_mark_reduce_accuracy_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"accuracy\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*-1)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_speed_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/172",
+      "definitionSha256": "77c2502ef3e84552253eeae40eb671edfb3a0b9efe9c5151ba95d0292658e25c",
+      "recipe": {
+        "id": "effect_mark_reduce_speed_with_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"spe\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*-1)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_spa_boost_25_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/138",
+      "definitionSha256": "d7adc79852329e3b3d086e9b2c5092dfca907ffee45ce6799dfc3155b128346d",
+      "recipe": {
+        "id": "effect_mark_spa_boost_25_per_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"spa\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*25)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_xukongtizhi_evasion",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/85",
+      "definitionSha256": "7e526a7b4efb261579fcba9ea7690a334df10c4d1cf23fb601109f261295e88d",
+      "recipe": {
+        "id": "effect_mark_xukongtizhi_evasion",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"evasion\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.min(stack,100)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": [],
+  "retained": [
+    {
+      "id": "effect_mark_reduce_speed_ruodian",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/23",
+      "definitionSha256": "bf8d85bf6e6765aa8b58be8a3a6cc9dc6a1ebe96d9aaccc8dd5b08ea7b78a3c0",
+      "ownerLedgers": ["docs/v4/validation/authoring-api-candidates.json"]
+    }
+  ]
+}

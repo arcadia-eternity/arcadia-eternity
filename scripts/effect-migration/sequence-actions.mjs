@@ -1,3 +1,4 @@
+import { stackBinding, bindStackAttribute } from './stack-binding.mjs'
 import { fields, members, number, selectedNumber } from './authoring-emitter.mjs'
 import { classifySkillOutcome } from './skill-outcomes.mjs'
 import { classifySkillPower } from './skill-power.mjs'
@@ -60,35 +61,26 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     }
     if (!selected) return
     if (target === 'self' && fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic') {
-      const query = a.value.selector
-      if (
-        fields(query, ['base', 'chain']) &&
-        query.base === 'mark' &&
-        Array.isArray(query.chain) &&
-        query.chain.length === 2
-      ) {
-        const [attribute, multiply] = query.chain
-        if (
-          fields(attribute, ['type', 'arg']) &&
-          attribute.type === 'selectAttribute$' &&
-          attribute.arg === 'stack' &&
-          fields(multiply, ['type', 'arg']) &&
-          multiply.type === 'multiply'
-        ) {
-          const factor = number(multiply.arg, parameters, `${path}_factor`, domain)
-          if (
-            factor &&
-            !factor.literal &&
-            fields(multiply.arg, ['type', 'configId', 'value']) &&
-            multiply.arg.type === 'raw:number'
-          )
-            return `${selected}.apply(ops.bindAttribute({key:${JSON.stringify(`${path}_binding`)},attribute:${JSON.stringify(a.stat)},operation:${JSON.stringify(a.modifierType)},value:bindings.combine(targets.sourceMark.first().capture({key:"source",scope:"binding"}).attribute("stack").follow({key:"stack"}),${factor.code}.capture({key:"factor",scope:"binding"}),(stack,factor)=>Math.floor(stack*factor)),stacking:"append",lifetime:"sourceMark",missing:"detach"}))`
-        }
-      }
+      const binding = stackBinding(a.value.selector, parameters, path, domain)
+      if (binding) return bindStackAttribute(selected, a.stat, a.modifierType, binding, path)
     }
     const value = number(a.value, parameters, path, domain)?.code
     if (!value) return
     return `${selected}.apply(ops.${operation}(${JSON.stringify(a.stat)},${JSON.stringify(a.modifierType)},${value}))`
+  }
+  if (a?.type === 'addDynamicAttributeModifier') {
+    if (
+      !fields(a, ['type', 'target', 'stat', 'modifierType', 'observableValue']) ||
+      !(a.target === 'self' || (fields(a.target, ['base']) && a.target.base === 'self')) ||
+      !['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion', 'critRate', 'ragePerTurn', 'weight'].includes(
+        a.stat,
+      ) ||
+      !['delta', 'percent', 'override'].includes(a.modifierType)
+    )
+      return
+    const binding = stackBinding(a.observableValue, parameters, path, domain)
+    if (!binding) return
+    return bindStackAttribute('targets.ownerPet', a.stat, a.modifierType, binding, path)
   }
   if (a?.type === 'stun') {
     if (!fields(a, ['type', 'target']) || a.target !== 'usingSkillContext') return

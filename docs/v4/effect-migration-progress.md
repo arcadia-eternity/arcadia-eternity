@@ -329,3 +329,9 @@ The 401 public regression checks, 149 generator tests, 75 design tests, scoped t
 The outstanding crit-per-stack contribution now captures its source and configured multiplier while following stack changes. Shared binding composition preserves eager/error-aware evaluation; explicit append mode retains independently captured contributions on repeated installation. The attribute ledger now generates all 21 entries with no rejection.
 
 All 415 scoped public tests, 150 generator tests, 75 design tests, types/lint, declarations and provenance pass; both review axes pass. A fresh-factory JSON checkpoint verifies independent captured factors and cleanup after restoration. See [live contribution evidence](validation/live-stack-contribution.md). Full-game and production gates remain pending.
+
+## Source-stack dynamic contributions (2026-10-20)
+
+Ten dynamic attribute candidates now reuse the source-capture/stack-follow emitter. Bare stack, floor multiplication, fractional clamp behavior, captured configuration and repeated append semantics are preserved. The existing weakness selector candidate remains owned by the authoring API ledger.
+
+The 343 public regression checks include fresh-factory JSON checkpoints for every new candidate. All 153 generator tests, 75 design tests, scoped types/lint, declarations and provenance pass. Both review axes pass. See [dynamic contribution evidence](validation/dynamic-contributions.md). Candidates remain U pending full-game and production admission.

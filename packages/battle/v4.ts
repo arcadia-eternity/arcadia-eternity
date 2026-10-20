@@ -87,3 +87,8 @@ export {
   generatedAttributeContributions,
   createGeneratedAttributeContributions,
 } from './src/v4/official/attribute-contributions.generated'
+
+export {
+  generatedDynamicContributions,
+  createGeneratedDynamicContributions,
+} from './src/v4/official/dynamic-contributions.generated'

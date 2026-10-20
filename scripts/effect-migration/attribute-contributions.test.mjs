@@ -14,7 +14,7 @@ test('keeps stat identity and missing conditions', () => {
   assert.equal(r.when, '() => true')
   assert.match(r.actions[0].code, /"spe","delta",5/)
 })
-test('rejects unsupported phase scopes, attributes, operations and live reads', () => {
+test('rejects unsupported phase scopes, attributes, operations and unsupported live reads', () => {
   for (const mutate of [
     d => (d.apply.phaseType = 'turn'),
     d => (d.apply.stat = 'foo'),
@@ -22,7 +22,7 @@ test('rejects unsupported phase scopes, attributes, operations and live reads', 
     d =>
       (d.apply.value = {
         type: 'dynamic',
-        selector: { base: 'mark', chain: [{ type: 'selectAttribute$', arg: 'stack' }] },
+        selector: { base: 'mark', chain: [{ type: 'selectAttribute$', arg: 'currentHp' }] },
       }),
   ]) {
     const d = source()
