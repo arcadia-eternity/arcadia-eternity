@@ -1,0 +1,216 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_skill_clear_opponent_atk_spa_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/206",
+      "definitionSha256": "b61294b08f25313d892fb99025ad48aaff0b3ce3d3da2fc5c41e2652b26ff7c5",
+      "recipe": {
+        "id": "effect_skill_clear_opponent_atk_spa_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.clearStatStages({stats:[\"atk\",\"spa\"],strategy:\"positive\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_opponent_def_spd_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/208",
+      "definitionSha256": "a56b3cd03a3b18143c2dc6426a0a67c4c2148f06c927d3502be94c7455b1b67c",
+      "recipe": {
+        "id": "effect_skill_clear_opponent_def_spd_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.clearStatStages({stats:[\"def\",\"spd\"],strategy:\"positive\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_opponent_def_stage_if_has_mark_yinghua",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/130",
+      "definitionSha256": "7571018496c7e86110810d43c435706625694291f70e58f4031ce247fd375a42",
+      "recipe": {
+        "id": "effect_skill_clear_opponent_def_stage_if_has_mark_yinghua",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_yinghua\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.clearStatStages({stats:[\"def\"],strategy:\"positive\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/131",
+      "definitionSha256": "df76e69ed904d0d304f7e961adefc317f21eac469f3944574663c685e0e8a9cf",
+      "recipe": {
+        "id": "effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_yinghua\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.clearStatStages({stats:[\"spd\"],strategy:\"positive\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_opponent_spe_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/207",
+      "definitionSha256": "879152b727669220ee5fcd0d6b3f74d5de9730050fb8d5b59951627a3e532cfd",
+      "recipe": {
+        "id": "effect_skill_clear_opponent_spe_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.clearStatStages({stats:[\"spe\"],strategy:\"positive\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_self_negative_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/257",
+      "definitionSha256": "1138ad76551fef338ca00d4380557790b4d9e6309375275c414d096d43452685",
+      "recipe": {
+        "id": "effect_skill_clear_self_negative_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.clearStatStages({stats:[],strategy:\"negative\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_self_negative_stage_if_field_yemu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/422",
+      "definitionSha256": "11a8ea9322d4e53dcadc92843c9e087c7e7ac900ee1457b1f30debc0e1160e6d",
+      "recipe": {
+        "id": "effect_skill_clear_self_negative_stage_if_field_yemu",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.battle.flatMap(battle => battle.marks).where(mark => mark.baseId === \"mark_global_yemu\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.clearStatStages({stats:[],strategy:\"negative\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/74",
+      "definitionSha256": "25babe84f244f5ec863e06197a1eeb712c102cef9561c8cc039f4e66bd8e9ed1",
+      "recipe": {
+        "id": "effect_skill_clear_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.clearStatStages({stats:[],strategy:\"negative\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_opponent_clear_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/73",
+      "definitionSha256": "534c8891025f47683deb7b2b93545974e8a8c63ba144fbca6bc410378f66c401",
+      "recipe": {
+        "id": "effect_skill_opponent_clear_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.clearStatStages({stats:[],strategy:\"positive\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_opponent_clear_stage_hit_or_miss",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/390",
+      "definitionSha256": "bfe0d96ddd029cc8e5370ca8c6185af87e0c88872d87ac4c34d2e7256da77868",
+      "recipe": {
+        "id": "effect_skill_opponent_clear_stage_hit_or_miss",
+        "trigger": ["BeforeHit", "OnMiss"],
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.clearStatStages({stats:[],strategy:\"positive\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

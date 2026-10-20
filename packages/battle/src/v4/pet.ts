@@ -465,7 +465,17 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     cleanStageStrategy = CleanStageStrategy.positive,
     ...statTypes: StatTypeWithoutHp[]
   ) {
-    if (!statTypes || statTypes.length === 0) {
+    for (const mark of this.getClearableStatStageMarks(cleanStageStrategy, ...statTypes)) {
+      context.battle.removeMark(new RemoveMarkContext(context, mark))
+    }
+  }
+
+  /** Snapshot each stat's members when reached, then test each level immediately before yielding. */
+  public *getClearableStatStageMarks(
+    cleanStageStrategy = CleanStageStrategy.positive,
+    ...statTypes: StatTypeWithoutHp[]
+  ): Generator<StatLevelMarkInstanceImpl> {
+    if (statTypes.length === 0) {
       statTypes = [
         StatTypeWithoutHp.atk,
         StatTypeWithoutHp.def,
@@ -474,26 +484,21 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
         StatTypeWithoutHp.spe,
       ]
     }
-    statTypes.forEach(statType => {
-      // Find all stat stage marks for this stat type
+    for (const statType of statTypes) {
       const statStageMarks = this.marks.filter(
-        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
-      ) as StatLevelMarkInstanceImpl[]
-
-      statStageMarks.forEach(mark => {
+        (mark): mark is StatLevelMarkInstanceImpl =>
+          mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
+      )
+      for (const mark of statStageMarks) {
         const stage = mark.level
-        const shouldClear =
+        if (
           cleanStageStrategy === CleanStageStrategy.all ||
           (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
           (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
-
-        if (shouldClear) {
-          // Use RemoveMarkPhase for unified mark destruction
-          const removeMarkContext = new RemoveMarkContext(context, mark)
-          context.battle.removeMark(removeMarkContext)
-        }
-      })
-    })
+        )
+          yield mark
+      }
+    }
   }
 
   // 反转能力等级（正变负，负变正）

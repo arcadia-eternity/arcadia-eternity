@@ -69,6 +69,16 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     if (recipe.reason || recipe.parameters?.length) return
     return `contexts.skillUse.apply(ops.${recipe.operation}(${recipe.value ?? recipe.amount}))`
   }
+  if (a?.type === 'clearStatStage') {
+    if (!fields(a, ['type', 'target', ...['statType', 'cleanStageStrategy'].filter(key => Object.hasOwn(a, key))]))
+      return
+    if (!['self', 'opponent'].includes(a.target)) return
+    const strategy = a.cleanStageStrategy ?? 'positive'
+    if (!['positive', 'negative', 'all'].includes(strategy) || a.cleanStageStrategy === null) return
+    const stats = !Object.hasOwn(a, 'statType') ? [] : Array.isArray(a.statType) ? a.statType : [a.statType]
+    if (!stats.every(stat => ['atk', 'def', 'spa', 'spd', 'spe'].includes(stat))) return
+    return `targets.${a.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.clearStatStages({stats:${JSON.stringify(stats)},strategy:${JSON.stringify(strategy)}}))`
+  }
   if (a?.type === 'statStageBuff') {
     if (!fields(a, ['type', 'target', 'statType', 'value']) || !Number.isFinite(a.value)) return
     const target = typeof a.target === 'string' ? a.target : fields(a.target, ['base']) ? a.target.base : undefined

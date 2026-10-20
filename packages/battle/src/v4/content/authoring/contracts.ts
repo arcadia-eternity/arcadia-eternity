@@ -243,6 +243,11 @@ export declare const ops: {
   readonly addStacks: (amount: NumericInput) => Operator<MarkInstance>
   /** The current source mark remains consumable after its owner detaches. */
   readonly consumeStacks: (amount: NumericInput) => Operator<MarkInstance>
+  /** Remove stage marks through their lifecycle; omitted/empty stats means all five stats. */
+  readonly clearStatStages: (options?: {
+    stats?: readonly ('atk' | 'def' | 'spa' | 'spd' | 'spe')[]
+    strategy?: 'positive' | 'negative' | 'all'
+  }) => Operator<Pet>
   readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
   readonly assign: (value: NumericInput) => Operator<WritableRef<number>>
   readonly bindAttribute: (options: {

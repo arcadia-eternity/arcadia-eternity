@@ -1,4 +1,9 @@
-import { type effectId, type EffectTrigger, type StatTypeWithoutHp } from '@arcadia-eternity/const'
+import {
+  type effectId,
+  type EffectTrigger,
+  type StatTypeWithoutHp,
+  type CleanStageStrategy,
+} from '@arcadia-eternity/const'
 import {
   AddMarkContext,
   DamageContext,
@@ -684,6 +689,20 @@ export const ops: typeof C.ops = {
         validated.add(mark)
       },
     )(ctx, selected)
+  },
+  clearStatStages: (options = {}) => {
+    const stats = [...(options.stats ?? [])] as StatTypeWithoutHp[]
+    const strategy = (options.strategy ?? 'positive') as CleanStageStrategy
+    return (ctx, selected) => {
+      for (const pet of selected) assertWriteTarget(ctx, pet)
+      for (const pet of selected) {
+        assertWriteTarget(ctx, pet)
+        for (const mark of pet.getClearableStatStageMarks(strategy, ...stats)) {
+          assertWriteTarget(ctx, pet)
+          ops.removeMark()(ctx, [mark])
+        }
+      }
+    }
   },
   changeStatStage: (stat, amount) =>
     numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),

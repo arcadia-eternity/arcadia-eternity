@@ -287,3 +287,9 @@ All 294 public stack-gain/consumption/ownership checks, 127 generator tests, 75 
 Five independent damage threshold effects now have generated candidates. The reusable setDamageThreshold API reads once, replaces only supplied bounds and does not recalculate damage. Migration preserves literal-zero omission, upper-after-lower ordering, non-pet pre-calculation bypass and the save-hp effect's existing post-deduction timing.
 
 All 1,773 public regression checks and the final 161-case threshold suite pass, alongside 130 generator tests, 75 design tests, types/lint, declarations and provenance. Both review axes pass. See [threshold evidence](validation/damage-thresholds.md). Full-game/checkpoint and production gates remain pending.
+
+## Stat stage clearing (2026-10-20)
+
+Ten independent stage-clearing effects now have generated candidates. The reusable clearStatStages operation preserves positive defaults, empty/all selection, explicit stat order, spd/spe identity and destruction callbacks. Domain and authoring share a lazy traversal, with the authoring adapter checking Pet and Mark ownership before every removal, including transfers during an earlier callback.
+
+The final 396-case public regression and ten focused lifecycle cases pass, alongside 133 generator tests, 75 design tests, types/lint, declarations and reviewed provenance. Both review axes pass. See [stage clearing evidence](validation/stat-stage-clears.md). Full-game/checkpoint and production gates remain pending.
