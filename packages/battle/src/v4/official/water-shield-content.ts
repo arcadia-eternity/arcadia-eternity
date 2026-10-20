@@ -5,6 +5,19 @@ import { Pet } from '../pet'
 import { defineNativeEffect } from '../content/native-effect'
 import { createOfficialWaterShieldCandidate } from './shield'
 
+export function createWaterShieldDestruction(amplification: BaseMark) {
+  if (amplification.id !== 'mark_shanghaizengjia')
+    throw new Error('Water shield destruction requires mark_shanghaizengjia')
+  return defineNativeEffect({
+    id: 'effect_mark_onDestroy_add_mark_shanghaizengjia' as effectId,
+    triggers: [EffectTrigger.OnMarkDestroy],
+    apply(context) {
+      const target = context.source.owner
+      if (target instanceof Pet) target.addMark(new AddMarkContext(context, target, amplification, 100))
+    },
+  })
+}
+
 /** Native dependency-closed candidate. Current YAML loader acceptance remains a separate gate. */
 export function createOfficialWaterShieldContent() {
   const amplify = defineNativeEffect({
@@ -30,14 +43,7 @@ export function createOfficialWaterShieldContent() {
     transferOnSwitch: false,
     inheritOnFaint: false,
   })
-  const onDestroy = defineNativeEffect({
-    id: 'effect_mark_onDestroy_add_mark_shanghaizengjia' as effectId,
-    triggers: [EffectTrigger.OnMarkDestroy],
-    apply(context) {
-      const target = context.source.owner
-      if (target instanceof Pet) target.addMark(new AddMarkContext(context, target, amplification, 100))
-    },
-  })
+  const onDestroy = createWaterShieldDestruction(amplification)
   const shield = new BaseMark(
     'mark_shuiwenpingzhang' as baseMarkId,
     [onDestroy],

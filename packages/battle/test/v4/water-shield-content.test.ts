@@ -19,6 +19,7 @@ import {
   EffectTrigger,
   Category,
   DamageContext,
+  DamageType,
   EffectContext,
   TurnContext,
   UseSkillContext,
@@ -280,10 +281,10 @@ it('absorbs real damage, creates the downstream mark on exhaustion, and consumes
       const shield = pet.marks[0],
         initialHp = pet.currentHp,
         initialShield = shield.stack
-      const first = new DamageContext(use, f.b.activePet, pet, 20)
+      const first = new DamageContext(use, f.b.activePet, pet, 20, DamageType.Physical)
       pet.damage(first)
       const partial = { hp: pet.currentHp, stack: shield.stack, damage: first.damageResult }
-      const second = new DamageContext(use, f.b.activePet, pet, shield.stack + 10)
+      const second = new DamageContext(use, f.b.activePet, pet, shield.stack + 10, DamageType.Physical)
       pet.damage(second)
       const after = {
         hp: pet.currentHp,

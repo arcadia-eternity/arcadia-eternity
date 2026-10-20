@@ -129,6 +129,10 @@ export function registerEffect(catalog: SnapshotCatalog, effect: Effect<EffectTr
     bindings.map(binding => binding.definition),
   )
 }
+/** Identify compiled metadata without treating unrecognized effects as authored. */
+export function hasAuthoredParameters(effect: Effect<EffectTrigger>): boolean {
+  return compiledParameters.has(effect)
+}
 /** Install in each new battle; restored configuration already contains the saved parameter state. */
 export function effectParameters(effect: Effect<EffectTrigger>) {
   const parameters = compiledParameters.get(effect)
