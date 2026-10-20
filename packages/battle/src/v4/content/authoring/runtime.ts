@@ -653,6 +653,7 @@ export const ops: typeof C.ops = {
       source.battle.removeMark(new RemoveMarkContext(source, mark))
     }
   },
+  addStacks: amount => numeric(amount, (_ctx, mark, n) => mark.addStack(n), assertMarkLifecycleTarget),
   consumeStacks: amount => (ctx, selected) => {
     // A removal callback may detach a later member of this operation's selected collection.
     // Keep that identity valid only for this invocation, after initial ownership validation.

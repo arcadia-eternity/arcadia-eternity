@@ -46,7 +46,7 @@ it('snapshots declaration defaults and parameter tables before compilation', () 
   f.battle.applyEffects(new TurnContext(f.battle), EffectTrigger.TurnStart, source)
   expect(observed).toEqual([10, true])
 })
-it.each(['heal', 'stage', 'assign', 'consume'] as const)(
+it.each(['heal', 'stage', 'assign', 'consume', 'add-stacks'] as const)(
   'rejects cross-battle %s without mutating either battle',
   kind => {
     const f = fixture(),
@@ -66,7 +66,7 @@ it.each(['heal', 'stage', 'assign', 'consume'] as const)(
           ? selected.apply(ops.changeStatStage('def', 1))
           : kind === 'assign'
             ? selected.property('currentHp').apply(ops.assign(5))
-            : targets.ownerPet.select(() => mark).apply(ops.consumeStacks(1))
+            : targets.ownerPet.select(() => mark).apply(kind === 'consume' ? ops.consumeStacks(1) : ops.addStacks(1))
     const effect = compileEffect(defineEffect({ id: 'cross-battle', on: 'TurnStart', execute: action }))
     const context = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, source, effect)
     const before = target.stat.def

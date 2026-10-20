@@ -76,16 +76,16 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     }
     return `targets.${target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.changeStatStage(${JSON.stringify(a.statType)},${a.value}))`
   }
-  if (!['consumeStacks', 'destroyMark'].includes(a?.type)) return
-  if (!fields(a, ['type', 'target', ...(a.type === 'consumeStacks' ? ['value'] : [])])) return
+  if (!['consumeStacks', 'destroyMark', 'addStacks'].includes(a?.type)) return
+  if (!fields(a, ['type', 'target', ...(a.type !== 'destroyMark' ? ['value'] : [])])) return
   const target =
     a.target === 'mark' || (fields(a.target, ['base']) && a.target.base === 'mark')
       ? 'targets.sourceMark'
       : members(a.target, domain)
   if (!target) return
   if (a.type === 'destroyMark') return `${target}.apply(ops.removeMark())`
-  if (!Number.isFinite(a.value) && a.value?.type !== 'raw:number') return
+  if (a.type !== 'addStacks' && !Number.isFinite(a.value) && a.value?.type !== 'raw:number') return
   const amount = number(a.value, parameters, path, domain)
   if (!amount) return
-  return `${target}.apply(ops.consumeStacks(${amount.code}))`
+  return `${target}.apply(ops.${a.type}(${amount.code}))`
 }

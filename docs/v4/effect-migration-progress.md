@@ -275,3 +275,9 @@ Seven independent consumeStacks effects now have generated candidates with no re
 Differential tests exposed and fixed a shared lifecycle mismatch: a later selected mark removed by an earlier target's callback must still receive consumption. The runtime permits this only for an identity already validated in the current invocation that is now inactive and ownerless; initial invalid targets, foreign ownership and cross-invocation reuse remain rejected.
 
 All 756 public regression checks across six suites and the final 239-case consumption suite pass, along with 124 generator tests, 75 design tests, types/lint, declarations and provenance. Both review axes pass. Real two-hit execution verifies per-hit consumption. See [stack consumption evidence](validation/mark-consumption.md). Full-game/checkpoint and production gates remain pending.
+
+## Direct mark stack gains (2026-10-20)
+
+The two direct addStacks effects now have generated candidates. A reusable typed operation preserves direct addition, current maxStacks, the zero lower bound and fractional values without entering mark creation/stacking phases. The damage effect retains its direct-event condition and execution-time floor(damageResult \* 0.5), including overkill behavior.
+
+All 294 public stack-gain/consumption/ownership checks, 127 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. See [stack gain evidence](validation/mark-stack-gains.md). Full-game/checkpoint and production gates remain pending.

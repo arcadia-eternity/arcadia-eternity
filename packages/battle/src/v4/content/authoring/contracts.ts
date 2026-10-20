@@ -237,6 +237,8 @@ export declare const ops: {
   readonly addRage: (amount: NumericInput) => Operator<Pet | Player>
   /** Remove through the mark lifecycle in selection order; already inactive marks are no-ops. */
   readonly removeMark: () => Operator<MarkInstance>
+  /** Add directly, capped by current maxStacks; no mark creation or stacking phase. */
+  readonly addStacks: (amount: NumericInput) => Operator<MarkInstance>
   /** The current source mark remains consumable after its owner detaches. */
   readonly consumeStacks: (amount: NumericInput) => Operator<MarkInstance>
   readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
