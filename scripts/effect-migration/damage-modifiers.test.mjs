@@ -77,7 +77,7 @@ test('rejects unhandled fields, invalid parameters, target chains, nonfinite num
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 82, protected: 1, rejected: 34 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 89, protected: 1, rejected: 27 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -195,4 +195,20 @@ test('C07 shares nearest-skill scalar queries with damage admission without chan
     d.condition.conditions[1].target.chain[0].arg = 'currentHitCount'
     assert.ok(classifyDamageModifier(d).reason)
   }
+})
+
+test('damage order mappings require the exact recorded ID, path and predicate', () => {
+  const d = source()
+  d.id = 'effect_skill_add_fixed_damage_50_if_first'
+  d.condition = { type: 'every', conditions: [{ type: 'selfUseSkill' }, { type: 'isFirstSkillUsedThisTurn' }] }
+  const r = classifyDamageModifier(d)
+  assert.match(r.when, /conditions.firstSkillThisTurn/)
+  assert.deepEqual(r.additionalDecisions, ['C08'])
+  assert.deepEqual(r.orderConditions, [{ path: '/condition/conditions/1', condition: 'isFirstSkillUsedThisTurn' }])
+  assert.ok(classifyDamageModifier({ ...d, id: 'unrecorded' }).reason)
+  d.condition.conditions.reverse()
+  assert.ok(classifyDamageModifier(d).reason)
+  d.condition.conditions.reverse()
+  d.condition.conditions[1].type = 'isLastSkillUsedThisTurn'
+  assert.ok(classifyDamageModifier(d).reason)
 })

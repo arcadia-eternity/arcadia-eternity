@@ -6,6 +6,19 @@ import { format, resolveConfig } from 'prettier'
 
 import { fields, normalize, number, condition } from './authoring-emitter.mjs'
 import { repairSkillSelector } from './skill-context-corrections.mjs'
+import { turnOrderReferences } from './turn-order.mjs'
+const orderMappings = {
+  effect_ability_damage_boost_10_percent_when_first: ['/condition/conditions/1', 'isFirstSkillUsedThisTurn'],
+  effect_ability_damage_reduction_10_percent_when_last: [
+    '/condition/conditions/1/condition',
+    'isLastSkillUsedThisTurn',
+  ],
+  effect_skill_damage_increase_30_percent_if_first: ['/condition/conditions/1', 'isFirstSkillUsedThisTurn'],
+  effect_skill_damage_increase_30_percent_if_last: ['/condition/conditions/1', 'isLastSkillUsedThisTurn'],
+  effect_skill_add_fixed_damage_50_if_first: ['/condition/conditions/1', 'isFirstSkillUsedThisTurn'],
+  effect_skill_add_fixed_damage_50_if_last: ['/condition/conditions/1', 'isLastSkillUsedThisTurn'],
+  effect_skill_add_damage_50_percent_if_last: ['/condition/conditions/1', 'isLastSkillUsedThisTurn'],
+}
 const q = JSON.stringify
 export function classifyDamageModifier(original) {
   const { definition: d, paths } = repairSkillSelector(original)
@@ -42,15 +55,24 @@ export function classifyDamageModifier(original) {
     !(a.target === 'damageContext' || (fields(a.target, ['base']) && a.target.base === 'damageContext'))
   )
     return { reason: 'requires an unchained damage-context target' }
+  const orderConditions = turnOrderReferences(d)
+  const mapping = orderMappings[d.id]
+  const expectedOrder = mapping ? [{ path: mapping[0], condition: mapping[1] }] : []
+  if (JSON.stringify(orderConditions) !== JSON.stringify(expectedOrder))
+    return { reason: 'order correction needs an exact source mapping' }
   const parameters = []
-  const when = condition(d.condition),
+  const when = condition(d.condition, 'damage', undefined, 'condition', { turnOrder: !!mapping }),
     percent = number(a.percent, parameters, 'percent'),
     delta = number(a.delta, parameters, 'delta')
   if (!when) return { reason: 'condition requires a separate semantic mapping' }
   if (!percent || !delta) return { reason: 'numeric value or parameter requires a separate semantic mapping' }
   return {
     id: d.id,
-    ...(paths.length ? { selectorRepairs: paths, additionalDecisions: ['C07'] } : {}),
+    ...(paths.length ? { selectorRepairs: paths } : {}),
+    ...(orderConditions.length ? { orderConditions } : {}),
+    ...(paths.length || orderConditions.length
+      ? { additionalDecisions: [...(paths.length ? ['C07'] : []), ...(orderConditions.length ? ['C08'] : [])] }
+      : {}),
     priority: d.priority,
     triggers,
     when,

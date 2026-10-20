@@ -114,6 +114,29 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_ability_damage_boost_10_percent_when_first",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/49",
+      "definitionSha256": "c20a7918b36bbafab082d0a58063044301ab835a775e6c41ebfc1b63eb2d5222",
+      "recipe": {
+        "id": "effect_ability_damage_boost_10_percent_when_first",
+        "orderConditions": [
+          {
+            "path": "/condition/conditions/1",
+            "condition": "isFirstSkillUsedThisTurn"
+          }
+        ],
+        "additionalDecisions": ["C08"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "percent": "10",
+        "delta": "0"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_ability_damage_reduction_10",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/36",
@@ -125,6 +148,29 @@
         "when": "conditions.selfBeDamaged",
         "percent": "0",
         "delta": "-10"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_damage_reduction_10_percent_when_last",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/50",
+      "definitionSha256": "a4a2c2a6fa82c103edc9748260c5cabfe80147640640c62657da8c0d205c0b96",
+      "recipe": {
+        "id": "effect_ability_damage_reduction_10_percent_when_last",
+        "orderConditions": [
+          {
+            "path": "/condition/conditions/1/condition",
+            "condition": "isLastSkillUsedThisTurn"
+          }
+        ],
+        "additionalDecisions": ["C08"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfBeDamaged,conditions.not(conditions.lastSkillThisTurn))",
+        "percent": "-10",
+        "delta": "0"
       },
       "classification": "U",
       "status": "generated-candidate"
@@ -1036,6 +1082,29 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_skill_add_damage_50_percent_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/689",
+      "definitionSha256": "69cd9e2db20d9f1b8026a908bce89d23d2ac5dee51cf697f07b613d6b10c1cfe",
+      "recipe": {
+        "id": "effect_skill_add_damage_50_percent_if_last",
+        "orderConditions": [
+          {
+            "path": "/condition/conditions/1",
+            "condition": "isLastSkillUsedThisTurn"
+          }
+        ],
+        "additionalDecisions": ["C08"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.lastSkillThisTurn)",
+        "percent": "50",
+        "delta": "0"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_skill_add_damage_80_if_opponent_has_mark_zhongdu",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/443",
@@ -1140,6 +1209,52 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_skill_add_fixed_damage_50_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/481",
+      "definitionSha256": "00a89811348c5cb512b33e26a750010feb11340c472fc8d31038db370dc3fd37",
+      "recipe": {
+        "id": "effect_skill_add_fixed_damage_50_if_first",
+        "orderConditions": [
+          {
+            "path": "/condition/conditions/1",
+            "condition": "isFirstSkillUsedThisTurn"
+          }
+        ],
+        "additionalDecisions": ["C08"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "percent": "0",
+        "delta": "50"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_50_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/482",
+      "definitionSha256": "1b8f0f17315e38c7ed18461a7f753e9b845820d82375d706dec788a2055d4f30",
+      "recipe": {
+        "id": "effect_skill_add_fixed_damage_50_if_last",
+        "orderConditions": [
+          {
+            "path": "/condition/conditions/1",
+            "condition": "isLastSkillUsedThisTurn"
+          }
+        ],
+        "additionalDecisions": ["C08"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.lastSkillThisTurn)",
+        "percent": "0",
+        "delta": "50"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_skill_add_fixed_damage_55",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/523",
@@ -1174,6 +1289,52 @@
             "configId": "fixed_damage_percent"
           }
         ]
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_first",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/477",
+      "definitionSha256": "44e5fc77556b791b15db4b1d6b70f832f281d247c7380e685f4d94919105675f",
+      "recipe": {
+        "id": "effect_skill_damage_increase_30_percent_if_first",
+        "orderConditions": [
+          {
+            "path": "/condition/conditions/1",
+            "condition": "isFirstSkillUsedThisTurn"
+          }
+        ],
+        "additionalDecisions": ["C08"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.firstSkillThisTurn)",
+        "percent": "30",
+        "delta": "0"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_last",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/478",
+      "definitionSha256": "74bab362ecb11c3601e3ea3a88616de89b608f4b8fdde7e8c7951c61cb137815",
+      "recipe": {
+        "id": "effect_skill_damage_increase_30_percent_if_last",
+        "orderConditions": [
+          {
+            "path": "/condition/conditions/1",
+            "condition": "isLastSkillUsedThisTurn"
+          }
+        ],
+        "additionalDecisions": ["C08"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.lastSkillThisTurn)",
+        "percent": "30",
+        "delta": "0"
       },
       "classification": "U",
       "status": "generated-candidate"
@@ -1388,20 +1549,6 @@
       "reason": "condition requires a separate semantic mapping"
     },
     {
-      "id": "effect_ability_damage_boost_10_percent_when_first",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/49",
-      "definitionSha256": "c20a7918b36bbafab082d0a58063044301ab835a775e6c41ebfc1b63eb2d5222",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
-      "id": "effect_ability_damage_reduction_10_percent_when_last",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
-      "sourcePath": "/50",
-      "definitionSha256": "a4a2c2a6fa82c103edc9748260c5cabfe80147640640c62657da8c0d205c0b96",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
       "id": "effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian",
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/69",
@@ -1542,13 +1689,6 @@
       "reason": "requires a supported damage stage"
     },
     {
-      "id": "effect_skill_add_damage_50_percent_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/689",
-      "definitionSha256": "69cd9e2db20d9f1b8026a908bce89d23d2ac5dee51cf697f07b613d6b10c1cfe",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
       "id": "effect_skill_add_damage_spa_sixth",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/381",
@@ -1556,39 +1696,11 @@
       "reason": "numeric value or parameter requires a separate semantic mapping"
     },
     {
-      "id": "effect_skill_add_fixed_damage_50_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/481",
-      "definitionSha256": "00a89811348c5cb512b33e26a750010feb11340c472fc8d31038db370dc3fd37",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
-      "id": "effect_skill_add_fixed_damage_50_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/482",
-      "definitionSha256": "1b8f0f17315e38c7ed18461a7f753e9b845820d82375d706dec788a2055d4f30",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
       "id": "effect_skill_damage_by_opponent_weight",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/308",
       "definitionSha256": "cedc37364276328df3f9122cbb20cc9e9f185b1c338dd119cb2fb4ade59b02b7",
       "reason": "numeric value or parameter requires a separate semantic mapping"
-    },
-    {
-      "id": "effect_skill_damage_increase_30_percent_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/477",
-      "definitionSha256": "44e5fc77556b791b15db4b1d6b70f832f281d247c7380e685f4d94919105675f",
-      "reason": "condition requires a separate semantic mapping"
-    },
-    {
-      "id": "effect_skill_damage_increase_30_percent_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/478",
-      "definitionSha256": "74bab362ecb11c3601e3ea3a88616de89b608f4b8fdde7e8c7951c61cb137815",
-      "reason": "condition requires a separate semantic mapping"
     },
     {
       "id": "effect_skill_fixed_damage_30_70",

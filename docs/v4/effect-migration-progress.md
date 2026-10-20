@@ -377,3 +377,9 @@ All 585 distinct public cases pass across the complete 581-case run and four add
 The existing stage catalog now includes the remaining standalone reversal effect, with eleven generated candidates and zero rejections. It reuses the current-owner selector and existing reversal lifecycle, preserving the original negative level when an indestructible mark blocks both removal attempts. No runtime or YAML changes were needed.
 
 All 395 distinct public cases have passing evidence across the original run and the focused 35-case recheck; all 170 generator tests, battle types/lint, declarations and unchanged provenance pass. See [stage evidence](validation/stat-stage-clears.md) for the initial expectation failures and timeout reruns. Coverage inventory now includes singular candidate ledgers as well as record arrays: 86 official definitions remain without candidates. Full-game/checkpoint and production admission remain open.
+
+## Damage-stage turn-order conditions (2026-10-20)
+
+Seven damage candidates now have exact C08 mappings and reuse existing typed order conditions. Their direct-context restriction is preserved: the six positive-order definitions remain inactive on damage events, while the negated defensive condition still applies. This behavior is documented rather than silently broadened to ancestor lookup.
+
+All 127 scoped public cases pass, including complete games and fresh-factory checkpoint continuations for all seven candidates. All 171 generator tests, battle types/lint, declarations and unchanged provenance pass. See [damage evidence](validation/damage-modifiers.md). The damage catalog now generates 89 candidates, retains one handwritten owner and rejects 27; overall official coverage still has 79 definitions without candidates. Production migration remains open.

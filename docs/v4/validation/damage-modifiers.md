@@ -1,6 +1,6 @@
 # Native damage modifier candidates
 
-The offline generator recognizes 82 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 34 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
+The offline generator recognizes 89 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 27 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
 
 ## Authoring target
 
@@ -55,3 +55,13 @@ pnpm test:effect-authoring-design
 ```
 
 C07 integration validation: the damage and stat-stage public suites pass all 3,759 cases together, including the 150 corrected damage cases; all 60 generator checks, typechecks, lint, declaration build and source provenance pass. Final integration reviews pass. The preceding complete regression on `1eae7424` had 19 timeouts (all passed isolated reruns) and is not reported as green; see the migration progress ledger.
+
+## Damage-stage turn-order conditions (2026-10-20)
+
+Seven additional definitions now use the existing typed first/last-skill predicates. Admission requires an exact C08 mapping of effect ID, condition path and predicate; unknown IDs, moved nodes and changed predicates are rejected. Their ledger recipes retain these mappings. The generator enables turn-order emission only for this recorded scope; other catalogs reproduce unchanged.
+
+These predicates deliberately require a direct UseSkillContext whose parent is a TurnContext. OnBeforeCalculateDamage provides a DamageContext, so both first/last predicates return false even when its ancestor skill is first or last. Six positive-order effects consequently do not apply. The defensive `effect_ability_damage_reduction_10_percent_when_last` negates the last predicate and applies -10 percent to damage received by its owner. This preserves current behavior, including the mismatch with those effect names; changing predicates to search ancestors is a separate semantic decision. No source YAML or runtime change is included.
+
+All 112 focused public cases pass against unchanged legacy definitions and independent modifier/admission assertions, covering Mark/Skill sources, first/last/empty turn queues, extra context nesting, wrong owner, cancellation, repeat execution and real damage phases. Seven full games and seven fresh-factory checkpoint games match the legacy event sequence, application count, final HP, winner, turn and RNG state. No-op effects explicitly require zero applications; the defensive effect requires actual applications. The source-hash/catalog check also passes: 127 distinct public cases total.
+
+All 171 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-order-tests.log`, `/tmp/damage-order-games.log`, `/tmp/damage-order-generators.log` and `/tmp/damage-order-{types,lint,declarations,provenance}.log`. Production loading and overall migration admission remain pending.

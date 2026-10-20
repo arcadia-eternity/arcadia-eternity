@@ -102,6 +102,15 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       }),
     ),
+    effect_ability_damage_boost_10_percent_when_first: compileEffect(
+      defineEffect({
+        id: 'effect_ability_damage_boost_10_percent_when_first',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+      }),
+    ),
     effect_ability_damage_reduction_10: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_reduction_10',
@@ -109,6 +118,15 @@ export function createGeneratedDamageModifierEffects() {
         priority: 0,
         when: conditions.selfBeDamaged,
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -10 })),
+      }),
+    ),
+    effect_ability_damage_reduction_10_percent_when_last: compileEffect(
+      defineEffect({
+        id: 'effect_ability_damage_reduction_10_percent_when_last',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfBeDamaged, conditions.not(conditions.lastSkillThisTurn)),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_damage_reduction_50_percent_at_full_hp: compileEffect(
@@ -823,6 +841,15 @@ export function createGeneratedDamageModifierEffects() {
         ),
       }),
     ),
+    effect_skill_add_damage_50_percent_if_last: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_damage_50_percent_if_last',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+      }),
+    ),
     effect_skill_add_damage_80_if_opponent_has_mark_zhongdu: (() => {
       const parameters = { delta: numberParam({ default: 80, tags: [], legacyAliases: [] }) }
       return compileEffect(
@@ -914,6 +941,24 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
       }),
     ),
+    effect_skill_add_fixed_damage_50_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_fixed_damage_50_if_first',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
+      }),
+    ),
+    effect_skill_add_fixed_damage_50_if_last: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_fixed_damage_50_if_last',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
+      }),
+    ),
     effect_skill_add_fixed_damage_55: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_55',
@@ -951,6 +996,24 @@ export function createGeneratedDamageModifierEffects() {
         }),
       )
     })(),
+    effect_skill_damage_increase_30_percent_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_damage_increase_30_percent_if_first',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 30, delta: 0 })),
+      }),
+    ),
+    effect_skill_damage_increase_30_percent_if_last: compileEffect(
+      defineEffect({
+        id: 'effect_skill_damage_increase_30_percent_if_last',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 30, delta: 0 })),
+      }),
+    ),
     effect_skill_damage_increase_50_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_increase_50_if_has_jinbao',

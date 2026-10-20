@@ -46,6 +46,7 @@ interface Entry {
   recipe: {
     triggers: ('OnBeforeCalculateDamage' | 'OnDamage')[]
     selectorRepairs?: string[]
+    orderConditions?: { path: string; condition: string }[]
     consumesStacks?: number
     tags?: string[]
     parameters?: { name: string; value: number; configId?: string }[]
@@ -60,7 +61,9 @@ const manifest: { records: (Omit<Entry, 'recipe'> & { recipe: Entry['recipe'] | 
   readFileSync(new URL('../../../../docs/v4/validation/damage-modifiers-candidates.json', import.meta.url), 'utf8'),
 )
 const allRecords = manifest.records.filter((r): r is Entry => r.status === 'generated-candidate' && r.recipe !== null)
-const records = allRecords.filter(r => !r.recipe.selectorRepairs?.length)
+// Direct-context order behavior is covered by damage-order-modifiers.test.ts.
+const records = allRecords.filter(r => !r.recipe.selectorRepairs?.length && !r.recipe.orderConditions?.length)
+const orderRecords = allRecords.filter(r => r.recipe.orderConditions?.length)
 const files = new Map<string, Definition[]>()
 for (const r of allRecords)
   if (!files.has(r.sourceFile))
@@ -70,7 +73,10 @@ for (const r of allRecords)
     )
 // Parse once before constructing battles: raw parameters belong to the oracle's global content registry.
 const oracles = new Map(
-  records.map(r => [r.id, EffectParser.parse(files.get(r.sourceFile)!.find(d => d.id === r.id)!)]),
+  [...records, ...orderRecords].map(r => [
+    r.id,
+    EffectParser.parse(files.get(r.sourceFile)!.find(d => d.id === r.id)!),
+  ]),
 )
 function parameterKey(r: Entry, battle: Battle, native: boolean, name: string) {
   if (native) return parameterAddress(r.id, 'parameters', name)
@@ -469,7 +475,9 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
   await run
   expect(battle.phaseManager.getPhasesByState(PhaseState.Failed)).toEqual([])
   expect(battle.victor).toBeDefined()
-  expect(applications).toBeGreaterThan(0)
+  if (r.recipe.orderConditions?.length && r.id !== 'effect_ability_damage_reduction_10_percent_when_last')
+    expect(applications).toBe(0)
+  else expect(applications).toBeGreaterThan(0)
   const result = {
     trace,
     applications,
@@ -486,3 +494,13 @@ for (const r of records)
     const expected = await game(r, false, false)
     expect(await game(r, true, checkpoint)).toEqual(expected)
   })
+
+for (const r of orderRecords)
+  it.each([false, true])(
+    `${r.id}: damage order full game with checkpoint=%s`,
+    async checkpoint => {
+      const expected = await game(r, false, false)
+      expect(await game(r, true, checkpoint)).toEqual(expected)
+    },
+    30000,
+  )
