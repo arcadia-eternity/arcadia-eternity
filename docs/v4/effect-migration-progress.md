@@ -401,3 +401,11 @@ The damage catalog generates 98 candidates, retains one handwritten owner and re
 Three damage candidates now reuse current skill-element/owner-element equality and opponent-actor queries. Opponent mark selection queries the current active slot at admission; later changes do not recheck an admitted condition.
 
 All 87 scoped public checks pass, including complete games and fresh-factory checkpoint continuations for all three candidates. All 174 generator tests, battle types/lint, declarations and provenance pass. See [damage evidence](validation/damage-modifiers.md). The damage catalog generates 101 candidates, retains one handwritten owner and rejects 15. Overall coverage has 67 definitions without candidates; production migration remains open.
+
+## Inclusive random damage and candidate inventory (2026-10-20)
+
+Two random fixed-damage candidates now use the shared immediate `values.randomInt` API. C14 explicitly defines [30,70] inclusive; V1 has no sampleBetween implementation, and V2 adds an extra upper endpoint. Conditions/cancellation do not draw, repeated execution draws again, and persistent capture/follow is rejected before RNG access.
+
+All 263 public cases, 83 design runtime tests and 176 generator/inventory checks pass, along with battle types/lint, declarations and provenance. Both effects pass full-game and fresh-factory checkpoint comparisons against an independent reference. The separate design-directory typecheck retains its pre-existing nested-context error. See [C14 evidence](validation/damage-modifiers.md).
+
+`node scripts/effect-migration/coverage.mjs` now checks candidate ownership across all validation JSON files, validating current definition hashes. It recognizes older status-less stat-stage records and the three insertion-order-hashed standalone handwritten ledgers. Previous filename-based counts omitted curse status selection, random weather and random fortune marks. With those previously implemented candidates included and the two new effects, coverage is 1003 of 1065 official definitions; 62 have no candidate. `--uncovered` lists their exact IDs. This inventory measures candidate ownership only and does not establish production or behavioral acceptance.

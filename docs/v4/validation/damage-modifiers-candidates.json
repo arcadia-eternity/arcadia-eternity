@@ -1687,6 +1687,52 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_skill_fixed_damage_30_70",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/607",
+      "definitionSha256": "43590d6cdca8f22586f22cb9e408381f0f7c9afa90425da267bb08cc9dd3eba1",
+      "recipe": {
+        "id": "effect_skill_fixed_damage_30_70",
+        "rangeDecision": {
+          "decision": "C14",
+          "path": "/apply/delta",
+          "min": 30,
+          "max": 70
+        },
+        "additionalDecisions": ["C14"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.selfUsesSkill",
+        "percent": "0",
+        "delta": "values.randomInt(30,70)"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_fixed_damage_30_70_if_opponent_has_cuimian",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/601",
+      "definitionSha256": "ca013b86e6e586526c4eae25a74ac43a4d73c7b9eeabc04e7dcc486096c3a86e",
+      "recipe": {
+        "id": "effect_skill_fixed_damage_30_70_if_opponent_has_cuimian",
+        "rangeDecision": {
+          "decision": "C14",
+          "path": "/apply/delta",
+          "min": 30,
+          "max": 70
+        },
+        "additionalDecisions": ["C14"],
+        "priority": 0,
+        "triggers": ["OnBeforeCalculateDamage"],
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_cuimian\"))))",
+        "percent": "0",
+        "delta": "values.randomInt(30,70)"
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_skill_fixed_damage_40",
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/367",
@@ -1930,20 +1976,6 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/308",
       "definitionSha256": "cedc37364276328df3f9122cbb20cc9e9f185b1c338dd119cb2fb4ade59b02b7",
-      "reason": "numeric value or parameter requires a separate semantic mapping"
-    },
-    {
-      "id": "effect_skill_fixed_damage_30_70",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/607",
-      "definitionSha256": "43590d6cdca8f22586f22cb9e408381f0f7c9afa90425da267bb08cc9dd3eba1",
-      "reason": "numeric value or parameter requires a separate semantic mapping"
-    },
-    {
-      "id": "effect_skill_fixed_damage_30_70_if_opponent_has_cuimian",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
-      "sourcePath": "/601",
-      "definitionSha256": "ca013b86e6e586526c4eae25a74ac43a4d73c7b9eeabc04e7dcc486096c3a86e",
       "reason": "numeric value or parameter requires a separate semantic mapping"
     },
     {

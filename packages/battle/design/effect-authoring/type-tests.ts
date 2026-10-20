@@ -329,3 +329,8 @@ actions.choose<'OnDamage'>(() => true, branchDamage)
 actions.choose<'OnDamage'>(() => true, branchDamage, branchHit)
 // @ts-expect-error Branch conditions return boolean.
 actions.choose(() => 1, branchDamage)
+
+const randomAmount: Value<number> = values.randomInt(30, 70)
+contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: randomAmount }))
+// @ts-expect-error Random range bounds are numeric, not strings.
+values.randomInt('30', 70)

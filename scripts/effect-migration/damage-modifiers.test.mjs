@@ -77,7 +77,7 @@ test('rejects unhandled fields, invalid parameters, target chains, nonfinite num
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 101, protected: 1, rejected: 15 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 103, protected: 1, rejected: 13 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -280,5 +280,18 @@ test('damage conditions support opponent skill actors and exact dynamic own-elem
   }
   assert.match(classifyDamageModifier(d).when, /event.element.*pet.element/)
   d.condition.evaluator.value.selector.chain[0].arg = 'category'
+  assert.ok(classifyDamageModifier(d).reason)
+})
+
+test('inclusive random damage requires the two exact C14 source definitions', () => {
+  const d = source()
+  d.id = 'effect_skill_fixed_damage_30_70'
+  d.apply.delta = { type: 'selectorValue', value: [30, 70], chain: [{ type: 'sampleBetween' }] }
+  const r = classifyDamageModifier(d)
+  assert.equal(r.delta, 'values.randomInt(30,70)')
+  assert.deepEqual(r.rangeDecision, { decision: 'C14', path: '/apply/delta', min: 30, max: 70 })
+  assert.deepEqual(r.additionalDecisions, ['C14'])
+  assert.ok(classifyDamageModifier({ ...d, id: 'unknown' }).reason)
+  d.apply.delta.value = [30, 71]
   assert.ok(classifyDamageModifier(d).reason)
 })

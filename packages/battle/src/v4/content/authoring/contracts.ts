@@ -221,6 +221,9 @@ export declare const bindings: {
   ) => BindingValue<R, 'optional' extends PA | PB ? 'optional' : 'required'>
 }
 export declare const values: {
+  /** Inclusive safe-integer bounds; draw once on each immediate read, never in a persistent plan. */
+  readonly randomInt: (min: number, max: number) => Value<number>
+
   /** Read left then right once, including an absent left; project only when both exist. */
   readonly combine: <A, B, R, PA extends Presence, PB extends Presence>(
     left: Value<A, PA>,

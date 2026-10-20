@@ -1,6 +1,6 @@
 # Native damage modifier candidates
 
-The offline generator recognizes 101 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 15 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
+The offline generator recognizes 103 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 13 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
 
 ## Authoring target
 
@@ -95,3 +95,13 @@ Three further candidates compare the current UseSkillContext element with the cu
 All 80 focused cases pass against independent legacy references and explicit admission/modifier expectations. Coverage includes both Mark and Skill sources, different elements, wrong actor, absent support, nested contexts, cancellation, repetition, real damage phases and changes to owner, element, support and active opponent. Switching the opposing slot before admission queries the new occupant. Changes after BeforeEffect admission do not rerun the condition.
 
 All six full-game/checkpoint comparisons and the source-hash/catalog check pass, bringing this batch to 87 distinct scoped public checks. The game fixtures use Normal skills to match the fixture pets; fresh factories are registered for restored candidates. Event types, application counts, final HP, winner, turn and RNG match. All 174 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-element-tests.log`, `/tmp/damage-element-games.log`, `/tmp/damage-element-generators.log`, and `/tmp/damage-element-{types,lint,declarations,provenance}.log`. Overall production admission remains open.
+
+## C14: inclusive random fixed damage (2026-10-20)
+
+`effect_skill_fixed_damage_30_70` and `effect_skill_fixed_damage_30_70_if_opponent_has_cuimian` now use `values.randomInt(30, 70)`. C14 is an explicit semantic completion, not an equivalence claim for an executable V1 source: V1 rejects selectorValue, and changing that tag to selector still leaves the unsupported sampleBetween step. The V2 implementation passes secondVal + 1 to an inclusive GameRng.nextInt and can produce 71. The candidate contract is the inclusive interval named by the effects and their [30,70] source values. Both exact source shapes are checked; unknown IDs and changed endpoints are rejected. Source YAML and the legacy parser remain unchanged.
+
+The new Value validates safe integer endpoints and width at declaration, draws through battle RNG only when read, and returns a fresh number on each read. Every read consumes exactly one draw, even for a single-point interval. Persistent capture/follow rejects before drawing. No standalone RNG or stream is introduced.
+
+All 258 focused public cases pass against an independently implemented floor(random \* 41) + 30 reference and seeded RNG expectations. They cover eight seeds, both source kinds, absent condition support, wrong owner, late owner/support changes, cancellation, repetition and real damage phases. Source rejection and exact C14 metadata are pinned. All four complete-game/fresh-factory checkpoint comparisons and the source/catalog check pass: 263 distinct public cases. Restored event types, application count, HP, winner, turn and next RNG match the independent reference.
+
+All 83 design runtime tests pass, including both endpoints across 400 reads, declaration-time validation and persistent-plan rejection without mutation or RNG consumption. New type assertions pass; the separate design-directory typecheck still reports only its pre-existing nested-context error at runtime.test.ts:1491. Battle types/lint, declarations and unchanged provenance pass. The 175 existing generator checks and the added coverage check pass (176 total). Logs: `/tmp/damage-random-{tests,games,design,generators,coverage,types,lint,declarations,provenance}.log`; `/tmp/damage-random-design-types-final.log` records the separate baseline error. Overall production admission remains open.

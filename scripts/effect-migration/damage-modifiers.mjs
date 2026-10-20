@@ -19,6 +19,7 @@ const orderMappings = {
   effect_skill_add_fixed_damage_50_if_last: ['/condition/conditions/1', 'isLastSkillUsedThisTurn'],
   effect_skill_add_damage_50_percent_if_last: ['/condition/conditions/1', 'isLastSkillUsedThisTurn'],
 }
+const rangeIds = new Set(['effect_skill_fixed_damage_30_70', 'effect_skill_fixed_damage_30_70_if_opponent_has_cuimian'])
 const q = JSON.stringify
 export function classifyDamageModifier(original) {
   const { definition: spelling, paths } = repairSkillSelector(original)
@@ -65,10 +66,24 @@ export function classifyDamageModifier(original) {
   const expectedOrder = mapping ? [{ path: mapping[0], condition: mapping[1] }] : []
   if (JSON.stringify(orderConditions) !== JSON.stringify(expectedOrder))
     return { reason: 'order correction needs an exact source mapping' }
+  const rangeDecision = rangeIds.has(d.id) ? { decision: 'C14', path: '/apply/delta', min: 30, max: 70 } : undefined
+  if (
+    rangeDecision &&
+    !(
+      fields(a.delta, ['type', 'value', 'chain']) &&
+      a.delta.type === 'selectorValue' &&
+      JSON.stringify(a.delta.value) === '[30,70]' &&
+      Array.isArray(a.delta.chain) &&
+      a.delta.chain.length === 1 &&
+      fields(a.delta.chain[0], ['type']) &&
+      a.delta.chain[0].type === 'sampleBetween'
+    )
+  )
+    return { reason: 'C14 source range changed' }
   const parameters = []
   const when = condition(d.condition, 'damage', undefined, 'condition', { turnOrder: !!mapping, defensiveSkill: true }),
     percent = number(a.percent, parameters, 'percent'),
-    delta = number(a.delta, parameters, 'delta')
+    delta = rangeDecision ? { code: 'values.randomInt(30,70)' } : number(a.delta, parameters, 'delta')
   if (!when) return { reason: 'condition requires a separate semantic mapping' }
   if (!percent || !delta) return { reason: 'numeric value or parameter requires a separate semantic mapping' }
   return {
@@ -76,12 +91,14 @@ export function classifyDamageModifier(original) {
     ...(paths.length ? { selectorRepairs: paths } : {}),
     ...(orderConditions.length ? { orderConditions } : {}),
     ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
-    ...(paths.length || orderConditions.length || repaired.changes.length
+    ...(rangeDecision ? { rangeDecision } : {}),
+    ...(paths.length || orderConditions.length || repaired.changes.length || rangeDecision
       ? {
           additionalDecisions: [
             ...(paths.length ? ['C07'] : []),
             ...(orderConditions.length ? ['C08'] : []),
             ...(repaired.changes.length ? ['C09'] : []),
+            ...(rangeDecision ? ['C14'] : []),
           ],
         }
       : {}),

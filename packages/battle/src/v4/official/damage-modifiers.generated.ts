@@ -1247,6 +1247,29 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
+    effect_skill_fixed_damage_30_70: compileEffect(
+      defineEffect({
+        id: 'effect_skill_fixed_damage_30_70',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: values.randomInt(30, 70) })),
+      }),
+    ),
+    effect_skill_fixed_damage_30_70_if_opponent_has_cuimian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_fixed_damage_30_70_if_opponent_has_cuimian',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
+          ),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: values.randomInt(30, 70) })),
+      }),
+    ),
     effect_skill_fixed_damage_40: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_40',

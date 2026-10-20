@@ -507,6 +507,11 @@ export const bindings: typeof C.bindings = {
   },
 }
 export const values: typeof C.values = {
+  randomInt: (min, max) => {
+    if (!Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min > max || !Number.isSafeInteger(max - min + 1))
+      throw new Error('Invalid random integer range')
+    return value(ctx => engine(ctx).battle.randomInt(min, max))
+  },
   combine<A, B, R, PA extends C.Presence, PB extends C.Presence>(
     left: C.Value<A, PA>,
     right: C.Value<B, PB>,

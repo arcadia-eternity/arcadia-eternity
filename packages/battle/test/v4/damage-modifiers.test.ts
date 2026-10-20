@@ -46,6 +46,7 @@ interface Entry {
   recipe: {
     triggers: ('OnBeforeCalculateDamage' | 'OnDamage')[]
     selectorRepairs?: string[]
+    rangeDecision?: { decision: string; path: string; min: number; max: number }
     orderConditions?: { path: string; condition: string }[]
     pathRepairs?: { path: string; before: string; after: string }[]
     consumesStacks?: number
@@ -67,6 +68,7 @@ const elementIds = new Set<string>([
   'effect_mark_increase_self_element_damage_10_percent',
   'effect_mark_increase_self_element_damage_20_percent',
 ])
+const rangeRecords = allRecords.filter(r => r.recipe.rangeDecision)
 const elementRecords = allRecords.filter(r => elementIds.has(r.id))
 // Direct-context order behavior is covered by damage-order-modifiers.test.ts.
 const records = allRecords.filter(
@@ -74,7 +76,8 @@ const records = allRecords.filter(
     !r.recipe.selectorRepairs?.length &&
     !r.recipe.orderConditions?.length &&
     !r.recipe.pathRepairs?.length &&
-    !elementIds.has(r.id),
+    !elementIds.has(r.id) &&
+    !r.recipe.rangeDecision,
 )
 const orderRecords = allRecords.filter(r => r.recipe.orderConditions?.length)
 const skillPathRecords = allRecords.filter(r => r.recipe.pathRepairs?.length)
@@ -87,8 +90,25 @@ for (const r of allRecords)
     )
 // Parse once before constructing battles: raw parameters belong to the oracle's global content registry.
 const oracles = new Map(
-  [...records, ...orderRecords, ...skillPathRecords, ...elementRecords].map(r => {
+  [...records, ...orderRecords, ...skillPathRecords, ...elementRecords, ...rangeRecords].map(r => {
     const original = files.get(r.sourceFile)!.find(d => d.id === r.id)!
+    if (r.recipe.rangeDecision) {
+      const corrected = structuredClone(original)
+      corrected.apply = { ...(corrected.apply as object), delta: 0 }
+      const parsed = EffectParser.parse(corrected)
+      return [
+        r.id,
+        defineNativeEffect({
+          id: r.id as effectId,
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
+          when: parsed.condition,
+          apply(ctx) {
+            ctx.parent.addModified(0, Math.floor(ctx.battle.random() * 41) + 30)
+          },
+        }),
+      ]
+    }
+
     if (!r.recipe.pathRepairs?.length && !elementIds.has(r.id)) return [r.id, EffectParser.parse(original)]
     const corrected = structuredClone(original)
     for (const node of objects(corrected)) {
@@ -555,6 +575,16 @@ for (const r of skillPathRecords)
 for (const r of elementRecords)
   it.each([false, true])(
     `${r.id}: element condition full game with checkpoint=%s`,
+    async checkpoint => {
+      const expected = await game(r, false, false)
+      expect(await game(r, true, checkpoint)).toEqual(expected)
+    },
+    30000,
+  )
+
+for (const r of rangeRecords)
+  it.each([false, true])(
+    `${r.id}: integer range full game with checkpoint=%s`,
     async checkpoint => {
       const expected = await game(r, false, false)
       expect(await game(r, true, checkpoint)).toEqual(expected)

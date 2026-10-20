@@ -1493,3 +1493,52 @@ it.each([false, true])('conditional checkSelf uses the direct event subject, nes
   }
   expect(answers).toEqual([20, 10])
 })
+
+it('inclusive random values read afresh, include both endpoints and consume one draw even for a singleton', () => {
+  const f = fixture(),
+    expected = new GameRng(201)
+  const query = values.randomInt(30, 70),
+    samples: number[] = []
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/random-int',
+      on: 'BeforeHit',
+      execute(ctx) {
+        for (let i = 0; i < 400; i++) samples.push(ctx.read(query))
+        samples.push(ctx.read(values.randomInt(7, 7)))
+      },
+    }),
+  )
+  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  const independent = Array.from({ length: 400 }, () => Math.floor(expected.next() * 41) + 30)
+  expected.next()
+  expect(samples).toEqual([...independent, 7])
+  expect(samples).toContain(30)
+  expect(samples).toContain(70)
+  expect(f.battle.random()).toBe(expected.next())
+})
+for (const [min, max] of [
+  [NaN, 2],
+  [0, Infinity],
+  [0.5, 2],
+  [3, 2],
+  [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+])
+  it(`random values reject invalid bounds ${min}/${max} at declaration`, () => {
+    expect(() => values.randomInt(min, max)).toThrow('Invalid random integer range')
+  })
+it.each(['capture', 'follow'] as const)('random integer values reject persistent %s without consuming RNG', mode => {
+  const f = fixture(),
+    mark = f.add('test/random-integer-binding'),
+    speed = f.owner.stat.spe
+  const query = values.randomInt(30, 70)
+  const plan =
+    mode === 'capture' ? query.capture({ key: 'random-int', scope: 'binding' }) : query.follow({ key: 'random-int' })
+  const effect = penalty(plan, `test/random-int-${mode}`)
+  const ctx = new EffectContext(new AddMarkContext(f.ctx, f.owner, mark.base), EffectTrigger.OnMarkCreated, mark)
+  expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))).toThrow(
+    'Persistent queries',
+  )
+  expect(f.owner.stat.spe).toBe(speed)
+  expect(f.battle.random()).toBe(new GameRng(201).next())
+})
