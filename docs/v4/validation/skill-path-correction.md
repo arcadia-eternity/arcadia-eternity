@@ -66,3 +66,7 @@ effect_mark_self_damage_25_percent repairs /condition/conditions/2/target/chain/
 ## Attack-threshold priority
 
 `effect_skill_priority_plus_1_if_atk_over_500` repairs `/condition/conditions/1/target/chain/0/arg` from `atk` to `stat.atk` after C07. Pet exposes its current attack through stat.atk, not a direct atk property. Original and spelling-only parsing failures, exact repair metadata, independent reference behavior, 500/501 boundaries and late attack changes are covered by [numeric reference evidence](skill-numeric-references.md). No global alias or source YAML change is added.
+
+## Shandianluoyin ordered application
+
+`effect_mark_shandianluoyin_paralyze` repairs `/condition/conditions/1/target/chain/0/arg` from `skillId` to `skill` after C07. The resulting condition still compares the actual used skill's base ID with `skill_shandianluoyin`, then applies mabi before destroying its source. Original and spelling-only parsing failures, exact metadata, independently repaired behavior and fresh-factory checkpoints are covered by [compound action evidence](compound-actions.md).

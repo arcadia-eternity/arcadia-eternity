@@ -109,3 +109,8 @@ export {
   createGeneratedConditionalActions,
   generatedConditionalActionDependencies,
 } from './src/v4/official/conditional-actions.generated'
+
+export {
+  createGeneratedCompoundActions,
+  generatedCompoundActionDependencies,
+} from './src/v4/official/compound-actions.generated'

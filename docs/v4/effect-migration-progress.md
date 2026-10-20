@@ -365,3 +365,9 @@ All 244 scoped public tests, 163 generator tests and 75 design runtime tests pas
 All 24 top-level conditional definitions now have candidates using lazy `actions.choose` composition. Nested probabilities draw only when reached; both branches register persistent binding declarations; mark dependencies are validated and retained by the factory. The new stage reversal operation delegates to the existing lifecycle method. Literal multihit `[5,8]` retains the legacy first-item value 5, not a random range.
 
 All 412 new public cases pass, including a fresh-factory checkpoint continuation for every candidate. Another 377 unchanged related regressions passed, for 789 distinct scoped cases. All 166 generator tests, 75 design runtime tests, battle types/lint, declarations and provenance pass. The pre-existing design-directory type error remains separate. See [conditional action evidence](validation/conditional-actions.md). Complete-game, downstream dependency closure and production admission remain open.
+
+## Ordered compound actions (2026-10-20)
+
+Thirty-four remaining action lists now use shared mark-value, numeric-option and stack-context emitters. Conditional mark values are resolved lazily; each action requeries its own target. A consumption callback that changes the active opponent is observed by the subsequent addMark action. Ten existing owners are retained. Transfer-to-opponent and the unsupported BeforeRageLoss definition remain explicit rejections.
+
+All 585 distinct public cases pass across the complete 581-case run and four added independent tests, including checkpoints for every candidate. All 169 generator tests, 75 design runtime tests, battle types/lint, declarations and unchanged provenance pass. See [compound action evidence](validation/compound-actions.md). Complete-game, downstream dependency closure and production admission remain open.

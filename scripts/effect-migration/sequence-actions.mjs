@@ -1,3 +1,4 @@
+import { markArgument } from './mark-argument.mjs'
 import { skillSelection } from './skill-selection.mjs'
 import { stackBinding, bindStackAttribute } from './stack-binding.mjs'
 import { fields, members, number, selectedNumber, condition } from './authoring-emitter.mjs'
@@ -32,16 +33,22 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
   }
   if (a?.type === 'addMark' && markDependencies) {
     if (
-      !fields(a, ['type', 'target', 'mark']) ||
-      !['self', 'opponent'].includes(a.target) ||
-      !fields(a.mark, ['type', 'value']) ||
-      a.mark.type !== 'entity:baseMark' ||
-      typeof a.mark.value !== 'string' ||
-      !a.mark.value
+      !fields(a, ['type', 'target', 'mark', ...['stack', 'duration'].filter(k => Object.hasOwn(a, k))]) ||
+      !['self', 'opponent'].includes(a.target)
     )
       return
-    markDependencies.add(a.mark.value)
-    return `targets.${a.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.addMark(resolved.get(${JSON.stringify(a.mark.value)})!))`
+    const mark = markArgument(a.mark, domain, parameters, `${path}_mark`, markDependencies, sequenceConditionOptions)
+    if (!mark) return
+    const options = []
+    for (const key of ['stack', 'duration']) {
+      if (!Object.hasOwn(a, key)) continue
+      // The legacy parser treats a literal zero as an omitted option.
+      if (a[key] === 0) continue
+      const value = number(a[key], parameters, `${path}_${key}`, domain)?.code
+      if (!value) return
+      options.push(`${key}:${value}`)
+    }
+    return `targets.${a.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.addMark(${mark}${options.length ? `,{${options.join(',')}}` : ''}))`
   }
   if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
   if (a?.type === 'addAttributeModifier') {
@@ -311,7 +318,13 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
       : members(a.target, domain)
   if (!target) return
   if (a.type === 'destroyMark') return `${target}.apply(ops.removeMark())`
-  if (a.type !== 'addStacks' && !Number.isFinite(a.value) && a.value?.type !== 'raw:number') return
+  if (
+    a.type !== 'addStacks' &&
+    !Number.isFinite(a.value) &&
+    a.value?.type !== 'raw:number' &&
+    !(markDependencies && a.type === 'consumeStacks' && a.value?.type === 'dynamic')
+  )
+    return
   const amount = number(a.value, parameters, path, domain)
   if (!amount) return
   return `${target}.apply(ops.${a.type}(${amount.code}))`
