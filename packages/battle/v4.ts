@@ -80,3 +80,5 @@ export {
   generatedEventCancellation,
   createGeneratedEventCancellation,
 } from './src/v4/official/event-cancellation.generated'
+
+export { generatedSkillDisabling, createGeneratedSkillDisabling } from './src/v4/official/skill-disabling.generated'

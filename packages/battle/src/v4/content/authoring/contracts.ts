@@ -216,8 +216,8 @@ type NumericInput = number | Value<number, Presence>
 type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
-  /** Cancel a pending application or outer effect; no rollback of prior writes. */
-  readonly disableContext: () => Operator<AddMarkContext | EffectContext<EffectTrigger>>
+  /** Cancel a pending skill, mark application or outer effect; no rollback of prior writes. */
+  readonly disableContext: () => Operator<UseSkillContext | AddMarkContext | EffectContext<EffectTrigger>>
   /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */
   readonly addMark: (
     mark: BaseMark | Value<BaseMark, Presence>,

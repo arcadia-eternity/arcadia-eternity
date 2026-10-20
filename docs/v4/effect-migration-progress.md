@@ -311,3 +311,9 @@ The 559-case public regression, 139 generator tests, 75 design tests, types/lint
 Ten cancellation candidates now cover pending mark applications and outer effects. Shared APIs query the nearest outer effect and validate battle ownership before each cancellation. Eight exact C09 repairs are independently verified; legacy first-tag extraction and direct applicant/recipient ownership remain intact.
 
 The 238 public tests, 142 generator tests, 75 design tests, scoped types/lint, declarations and unchanged provenance pass. Two definitions remain explicitly rejected because BeforeRageGain and OnBeforeConsumeStack lack the required V1 lifecycle support. See [cancellation evidence](validation/event-cancellation.md). Candidates remain U pending complete-game/checkpoint and production gates.
+
+## Skill disabling (2026-10-20)
+
+Four stun/taunt candidates reuse the cancellation operation for skill-use contexts. All C07 spelling repairs are independently checked. Direct ownership, current context category, probability short-circuiting and pre-rage cancellation timing remain intact, including earlier skill appearance/use-count tracking.
+
+All 464 public regression tests, 145 generator tests, 75 design tests, scoped types/lint, declarations and provenance pass. Both review axes pass. See [skill disabling evidence](validation/skill-disabling.md). Candidates remain U pending complete-game/checkpoint and production gates.

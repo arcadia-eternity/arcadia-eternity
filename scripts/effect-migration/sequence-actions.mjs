@@ -11,6 +11,10 @@ const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss',
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
+  if (a?.type === 'stun') {
+    if (!fields(a, ['type', 'target']) || a.target !== 'usingSkillContext') return
+    return 'contexts.skillUse.apply(ops.disableContext())'
+  }
   if (a?.type === 'disableContext') {
     if (!fields(a, ['type', 'target'])) return
     if (!['addMarkContext', 'effectContext'].includes(a.target)) return
