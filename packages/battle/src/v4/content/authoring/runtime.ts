@@ -23,7 +23,7 @@ import {
 import { Pet } from '../../pet'
 import { Player } from '../../player'
 import { RagePhase } from '../../phase/rage'
-import { SkillInstance } from '../../skill'
+import { BaseSkill, SkillInstance } from '../../skill'
 import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, type MarkInstance } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
 import type { SnapshotCatalog } from '../../snapshot'
@@ -1013,6 +1013,25 @@ export const ops: typeof C.ops = {
       if (!write) throw new Error('Foreign write reference')
       write.set(n)
     }),
+  transformSkill: base => (ctx, selected) => {
+    for (const target of selected) assertWriteTarget(ctx, target)
+    const prototype = read(ctx, base)
+    if (prototype === undefined) return
+    if (!(prototype instanceof BaseSkill)) throw new Error('Expected skill prototype')
+    for (const target of selected) assertWriteTarget(ctx, target)
+    for (const target of selected) {
+      assertWriteTarget(ctx, target)
+      const source = engine(ctx)
+      source.battle.transformationSystem.applyTransformation(target, prototype, 'temporary', 0, source.source)
+    }
+  },
+  removeSkillTransformation: () => (ctx, selected) => {
+    for (const target of selected) assertWriteTarget(ctx, target)
+    for (const target of selected) {
+      assertWriteTarget(ctx, target)
+      engine(ctx).battle.transformationSystem.removeTransformation(target)
+    }
+  },
   bindAttribute: input => bindAttributeOperator<Pet>(input),
   bindSkillAttribute: input => bindAttributeOperator<SkillInstance>(input),
 }

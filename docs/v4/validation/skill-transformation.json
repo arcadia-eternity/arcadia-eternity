@@ -1,0 +1,32 @@
+{
+  "records": [
+    {
+      "id": "effect_skill_clear_transform_when_use",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/379",
+      "definitionSha256": "e9074f6a34593dbf8bcebcc640d4d0dfe34b5b72f060d2315634d87203e2e329",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/skill-transformation.ts"
+    },
+    {
+      "id": "effect_skill_change_to_used_skill",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/378",
+      "definitionSha256": "79249e72c846633039958697ad70facaba044fbdc26b3c46a00d79cdcf43dd6e",
+      "status": "handwritten-candidate",
+      "decisions": ["C09", "C19"],
+      "corrections": [
+        {
+          "decision": "C09",
+          "reason": "UseSkillContext exposes skill, not skillId; both action and comparison paths are repaired."
+        },
+        {
+          "decision": "C19",
+          "reason": "Transformation requires a BaseSkill prototype. Replace select baseId (string) with selectPath base (prototype), rather than passing an identifier to the strategy."
+        }
+      ],
+      "nativeFile": "packages/battle/src/v4/official/skill-transformation.ts"
+    }
+  ]
+}

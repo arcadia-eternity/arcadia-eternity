@@ -16,7 +16,7 @@ import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { BaseMark, MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
 import type { Player } from '../../player'
-import type { SkillInstance } from '../../skill'
+import type { BaseSkill, SkillInstance } from '../../skill'
 import type { Battle } from '../../battle'
 
 export type EventMap = { [K in NativeEffectTrigger as `${K}`]: TriggerContextMap[K] }
@@ -255,6 +255,10 @@ export declare const ops: {
   readonly setRage: (value: NumericInput) => Operator<Pet | Player>
   /** Assign a persistent instance flag; unlike setSureHit this does not create a use-context override. */
   readonly setSkillSureHit: (value: boolean | Value<boolean, Presence>) => Operator<SkillInstance>
+  /** Read a prototype once, then install a temporary priority-zero transformation preserving effects. */
+  readonly transformSkill: (base: Value<BaseSkill, Presence>) => Operator<SkillInstance>
+  /** Remove the latest transformation record through the existing lifecycle; older records can remain. */
+  readonly removeSkillTransformation: () => Operator<SkillInstance>
   /** Sample amount then priority separately per target; source marks own cleanup. */
   readonly addAttributeModifier: (
     attribute: keyof PetAttributes,
