@@ -387,3 +387,9 @@ targets.sourceMark.apply(
 targets.opponentActive.apply(ops.executeKill())
 // @ts-expect-error Execution accepts pets, not source marks.
 targets.sourceMark.apply(ops.executeKill())
+
+contexts.skillUse.apply(ops.setSkill(targets.selfAvailableSkills.shuffled().first(), true))
+// @ts-expect-error Replacement requires a skill, not a pet.
+ops.setSkill(targets.ownerPet.first(), true)
+// @ts-expect-error setSkill mutates a skill-use context, not a skill instance.
+targets.selfSkills.apply(ops.setSkill(targets.selfAvailableSkills.first()))

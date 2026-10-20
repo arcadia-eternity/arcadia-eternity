@@ -282,13 +282,20 @@ function directSkillEvent(ctx: Frame): UseSkillContext | undefined {
   const event = engines.get(ctx)?.parent
   return event instanceof UseSkillContext ? event : undefined
 }
+function skillActorOrOwner(ctx: Frame): Pet | undefined {
+  return directSkillEvent(ctx)?.pet ?? owner(ctx)
+}
 export const targets: typeof C.targets = {
   sourceSkill: selector(ctx => {
     const source = scope(ctx).source
     return source instanceof SkillInstance ? [source] : []
   }),
   selfTeam: selector(ctx => [...(directSkillEvent(ctx)?.pet.owner?.team ?? owner(ctx)?.owner?.team ?? [])]),
-  selfSkills: selector(ctx => [...(directSkillEvent(ctx)?.pet.skills ?? owner(ctx)?.skills ?? [])]),
+  selfSkills: selector(ctx => [...(skillActorOrOwner(ctx)?.skills ?? [])]),
+  selfAvailableSkills: selector(ctx => {
+    const pet = skillActorOrOwner(ctx)
+    return pet ? pet.skills.filter(skill => skill.rage <= pet.currentRage) : []
+  }),
   ownerPet: selector(ctx => {
     const pet = owner(ctx)
     return pet ? [pet] : []
@@ -791,6 +798,20 @@ function parameterModifier(
   }
 }
 export const ops: typeof C.ops = {
+  setSkill:
+    (input, updateConfig = false) =>
+    (ctx, selected) => {
+      for (const event of selected) assertWriteTarget(ctx, event)
+      const skill = read(ctx, input) as SkillInstance | undefined
+      if (skill === undefined) return
+      if (!(skill instanceof SkillInstance)) throw new Error('Expected skill instance')
+      assertWriteTarget(ctx, skill)
+      for (const event of selected) {
+        assertWriteTarget(ctx, event)
+        assertWriteTarget(ctx, skill)
+        event.setSkill(skill, updateConfig)
+      }
+    },
   executeKill: () => (ctx, selected) => {
     for (const target of selected) assertWriteTarget(ctx, target)
     for (const target of selected) {

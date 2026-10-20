@@ -138,6 +138,8 @@ export declare const targets: {
   readonly ownerPet: Selector<Pet>
   readonly selfTeam: Selector<Pet>
   readonly selfSkills: Selector<SkillInstance>
+  /** Direct skill actor's affordable skills; otherwise the source owner's affordable skills. */
+  readonly selfAvailableSkills: Selector<SkillInstance>
   readonly sourceSkill: Selector<SkillInstance>
   /** Direct skill actor owner; otherwise the source pet owner. */
   readonly selfPlayer: Selector<Player>
@@ -330,6 +332,8 @@ export declare const ops: {
   readonly setSureNoCrit: (priority?: number) => Operator<UseSkillContext>
   /** Read once at execution; absent target skips without changing the current target. */
   readonly setActualTarget: (target: Value<Pet, Presence>) => Operator<UseSkillContext>
+  /** Read one skill once; optionally refresh the use fields through UseSkillContext.setSkill. */
+  readonly setSkill: (skill: Value<SkillInstance, Presence>, updateConfig?: boolean) => Operator<UseSkillContext>
   readonly setIgnoreStageStrategy: (
     strategy: StageStrategy | Value<StageStrategy, Presence>,
   ) => Operator<UseSkillContext>
