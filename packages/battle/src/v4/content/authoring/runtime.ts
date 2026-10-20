@@ -414,6 +414,10 @@ export const conditions: typeof C.conditions = {
     const skill = contexts.nearestSkillUse(ctx)
     return !!skill && engine(ctx).source.owner !== skill.pet
   },
+  ownerReceivesRage(ctx) {
+    const pet = owner(ctx)
+    return pet !== undefined && ctx.event instanceof RageContext && pet.owner === ctx.event.target
+  },
   ownerReceivesDamageRage(ctx) {
     const event = ctx.event,
       sourceOwner = engine(ctx).source.owner
@@ -987,6 +991,14 @@ export const ops: typeof C.ops = {
     },
   modifyHeal: input => modifyContext(input, 'heal'),
   modifyRage: input => modifyContext(input, 'rage'),
+  limitRageGain: maximum =>
+    numeric(
+      maximum,
+      (_ctx, event, amount) => event.limitGain(amount),
+      (ctx, event) => {
+        if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle rage context')
+      },
+    ),
   heal: amount =>
     numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)

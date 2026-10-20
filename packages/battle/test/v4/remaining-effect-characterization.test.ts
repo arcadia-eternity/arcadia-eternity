@@ -74,9 +74,10 @@ it('legacy inverse-current effect has no damage context at its skill-check trigg
 it('legacy rage cap is overwritten by subsequent rage computation', () => {
   const f = fixture('effect_mark_limit_rage_gain')
   f.a.settingRage(0)
-  const event = new RageContext(f.turn, f.a, 'effect', 'add', 20)
+  const event = new RageContext(f.use, f.a, 'damage', 'add', 20)
+  event.rageChangeResult = 10
   f.battle.applyEffects(event, EffectTrigger.BeforeRageGain, f.source)
-  expect(event.rageChangeResult).toBe(0)
+  expect(event.rageChangeResult).toBe(3)
   const phase = new RagePhase(f.battle, f.turn, f.a, 'effect', 'add', 20, false, [0, 0], undefined, event)
   phase.initialize()
   phase.execute()

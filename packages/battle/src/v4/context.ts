@@ -375,6 +375,7 @@ export class RageContext extends Context {
   public readonly battle: Battle
   public available: boolean = true
   public rageChangeResult = 0
+  private gainLimit = Infinity
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext,
     public target: Player,
@@ -391,7 +392,14 @@ export class RageContext extends Context {
   updateRageChangeResult() {
     const percentModifier = 1 + this.modified[0] / 100
     const deltaModifier = this.modified[1]
-    this.rageChangeResult = Math.floor(this.value * percentModifier + deltaModifier)
+    const amount = this.value * percentModifier + deltaModifier
+    this.rageChangeResult = Math.floor(this.modifiedType === 'add' ? Math.min(amount, this.gainLimit) : amount)
+  }
+
+  /** Gain limits compose by minimum and apply after every numeric modifier. */
+  limitGain(maximum: number): void {
+    if (!Number.isFinite(maximum) || maximum < 0) throw new Error('Expected non-negative finite rage gain limit')
+    this.gainLimit = Math.min(this.gainLimit, maximum)
   }
 
   addModified: (percent: number, delta: number) => void = (percent, delta) => {

@@ -153,3 +153,5 @@ export { createOfficialEffectCandidates } from './src/v4/official/candidate-cata
 export { createWeightDamageEffects } from './src/v4/official/weight-damage'
 
 export { createStackDamageEffects } from './src/v4/official/stack-damage'
+
+export { createRageGainLimit } from './src/v4/official/rage-gain-limit'

@@ -53,6 +53,7 @@ import { createGeneratedStatStageSequences } from './stat-stage-sequences.genera
 import { createTaggedParameterModifiers } from './tagged-parameters'
 import { createGeneratedVitalActions } from './vital-actions.generated'
 import { createGeneratedVitalSequences } from './vital-sequences.generated'
+import { createRageGainLimit } from './rage-gain-limit'
 import { createStackDamageEffects } from './stack-damage'
 import { createWeightDamageEffects } from './weight-damage'
 import { createWeaknessTransfer } from './weakness-transfer'
@@ -137,6 +138,7 @@ export function createOfficialEffectCandidates(marks: ReadonlyMap<string, BaseMa
   add('tagged-parameters', createTaggedParameterModifiers())
   add('vital-actions.generated', createGeneratedVitalActions())
   add('vital-sequences.generated', createGeneratedVitalSequences())
+  add('rage-gain-limit', createRageGainLimit())
   add('stack-damage', createStackDamageEffects())
   add('weight-damage', createWeightDamageEffects())
   add('weakness-transfer', createWeaknessTransfer())

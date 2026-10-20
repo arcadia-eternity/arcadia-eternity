@@ -1,0 +1,13 @@
+{
+  "records": [
+    {
+      "id": "effect_mark_limit_rage_gain",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/73",
+      "definitionSha256": "a485add64697f31de266fc93fc9591ef8de416c4421a8440262898551965fc81",
+      "status": "handwritten-candidate",
+      "decisions": ["User-approved final gain cap for all rage gain reasons, not the overwritten provisional result"],
+      "nativeFile": "packages/battle/src/v4/official/rage-gain-limit.ts"
+    }
+  ]
+}

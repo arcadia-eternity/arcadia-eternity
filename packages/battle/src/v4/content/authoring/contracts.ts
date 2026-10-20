@@ -207,6 +207,8 @@ export declare const conditions: {
   ) => Condition
   /** Nearest damage target belongs to a different player than the source pet. */
   readonly damageTargetBelongsToOtherPlayer: Condition
+  /** Direct rage event belongs to the source pet's player, regardless of reason. */
+  readonly ownerReceivesRage: Condition
   readonly selfBeDamaged: Condition
   readonly selfBeHealed: Condition
   /** One battle RNG draw on each call, including 0 and 100; short-circuiting is owned by the caller. */
@@ -349,6 +351,8 @@ export declare const ops: {
   /** Mark unavailable at execution time; does not undo damage already applied. */
   readonly preventDamage: () => Operator<DamageContext>
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
+  /** Cap the final gain after modifiers; multiple caps combine by minimum. */
+  readonly limitRageGain: (maximum: NumericInput) => Operator<RageContext>
   readonly modifyRage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<RageContext>
   readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
