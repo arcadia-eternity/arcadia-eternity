@@ -18,6 +18,7 @@ import {
   EffectContext,
   RageContext,
   StackContext,
+  ConsumeStackContext,
   RemoveMarkContext,
 } from '../../context'
 import { Pet } from '../../pet'
@@ -366,6 +367,10 @@ export const contexts: typeof C.contexts = {
     const event = nearestContext(ctx, SwitchPetContext)
     return event ? [event] : []
   }),
+  consumeStack: selector(ctx => {
+    const event = nearestContext(ctx, ConsumeStackContext)
+    return event ? [event] : []
+  }),
   nearestSkillUse: ctx => nearestContext(ctx, UseSkillContext),
 }
 function skillOrder(position: 'first' | 'last'): C.Condition {
@@ -423,6 +428,7 @@ export const conditions: typeof C.conditions = {
     if (event instanceof EffectContext) return sourceOwner === event.source.owner
     if (event instanceof SwitchPetContext) return sourceOwner === event.switchInPet
     if (event instanceof StackContext) return sourceOwner === event.existingMark.owner
+    if (event instanceof ConsumeStackContext) return sourceOwner === event.mark.owner
     return false
   },
   ownerIsSkillTarget: ctx => {

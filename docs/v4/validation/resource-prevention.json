@@ -1,0 +1,28 @@
+{
+  "records": [
+    {
+      "id": "effect_mark_zhenshihuanxiang_prevent_consume",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/151",
+      "definitionSha256": "4e11b3e660d8b33a0061d4756bd6232dd82cee0f81beda4539f520dbffb9b037",
+      "status": "handwritten-candidate",
+      "decisions": ["C09"],
+      "corrections": [
+        {
+          "decision": "C09",
+          "reason": "ConsumeStackContext has mark, not markId. Restore the actual instance path before selecting baseId."
+        }
+      ],
+      "nativeFile": "packages/battle/src/v4/official/resource-prevention.ts"
+    },
+    {
+      "id": "effect_ability_gugao_prevent_rage_when_opponent_use_skill",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/59",
+      "definitionSha256": "cb45eebe7074657703dd656a5bf387cbe5fa89fca4e3bb8958d900fd43e278c5",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/resource-prevention.ts"
+    }
+  ]
+}

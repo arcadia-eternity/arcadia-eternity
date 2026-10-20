@@ -133,3 +133,5 @@ export { createFractionalHealing } from './src/v4/official/fractional-healing'
 export { createAutomaticStackConsumption } from './src/v4/official/automatic-stack-consumption'
 
 export { createSkillTransformationRemoval, createSkillTransformationCopy } from './src/v4/official/skill-transformation'
+
+export { createResourcePrevention } from './src/v4/official/resource-prevention'

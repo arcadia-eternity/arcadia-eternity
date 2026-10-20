@@ -4,6 +4,7 @@ import type {
   AddMarkContext,
   EffectContext,
   StackContext,
+  ConsumeStackContext,
   DamageContext,
   HealContext,
   RageContext,
@@ -155,6 +156,7 @@ export declare const contexts: {
   readonly addMark: Selector<AddMarkContext>
   /** Nearest stacking ancestor, queried independently on each use. */
   readonly stack: Selector<StackContext>
+  readonly consumeStack: Selector<ConsumeStackContext>
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
   readonly heal: Selector<HealContext>
@@ -273,8 +275,10 @@ export declare const ops: {
     options?: { priority?: NumericInput; lifetime?: 'sourceMark' | 'sourceMarkOrTargetSkill' },
   ) => Operator<SkillInstance>
 
-  /** Cancel a pending skill, mark application or outer effect; no rollback of prior writes. */
-  readonly disableContext: () => Operator<UseSkillContext | AddMarkContext | EffectContext<EffectTrigger>>
+  /** Cancel a pending skill, mark application, rage change, stack consumption or outer effect; no rollback of prior writes. */
+  readonly disableContext: () => Operator<
+    UseSkillContext | AddMarkContext | RageContext | ConsumeStackContext | EffectContext<EffectTrigger>
+  >
   /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */
   readonly addMark: (
     mark: BaseMark | Value<BaseMark, Presence>,

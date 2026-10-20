@@ -351,3 +351,15 @@ targets.selfSkills.apply(ops.setIgnoreShield())
 contexts.skillUse.apply(ops.setSkillSureHit(true))
 // @ts-expect-error Skill flags require booleans.
 ops.setSkillSureHit(1)
+
+const consumptionEvent = defineEffect({
+  id: 'type-test/consumption-context',
+  on: 'OnBeforeConsumeStack',
+  execute(ctx) {
+    exact<Equal<typeof ctx.event, import('../../src/v4/context').ConsumeStackContext>>(true)
+    contexts.consumeStack.apply(ops.disableContext())(ctx)
+  },
+})
+contexts.rage.apply(ops.disableContext())
+// @ts-expect-error Pet is not a cancellable context.
+targets.ownerPet.apply(ops.disableContext())
