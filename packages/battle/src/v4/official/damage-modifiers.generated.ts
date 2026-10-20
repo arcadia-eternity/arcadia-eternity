@@ -1035,6 +1035,23 @@ export function createGeneratedDamageModifierEffects() {
         ),
       }),
     ),
+    effect_skill_add_damage_spa_sixth: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_damage_spa_sixth',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.damage.apply(
+          ops.modifyDamage({
+            percent: 0,
+            delta: targets.ownerPet
+              .select(pet => pet.stat.spa)
+              .first()
+              .map(n => Math.floor(n / 6)),
+          }),
+        ),
+      }),
+    ),
     effect_skill_add_fixed_damage_100_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_100_if_has_jinbao',
@@ -1283,6 +1300,32 @@ export function createGeneratedDamageModifierEffects() {
               .select(pet => pet.stat.maxHp)
               .first()
               .map(n => Math.floor(n / 8)),
+          }),
+        ),
+      }),
+    ),
+    effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500: compileEffect(
+      defineEffect({
+        id: 'effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          (ctx: EffectFrame) => {
+            const left = ctx.read(targets.ownerPet.select(pet => pet.stat.atk).first())
+            const right = 500
+            return left !== undefined && right !== undefined && left > right
+          },
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_qianggong').condition(checks.exists()),
+        ),
+        execute: contexts.damage.apply(
+          ops.modifyDamage({
+            percent: 0,
+            delta: targets.ownerMarks
+              .where(mark => mark.baseId === 'mark_qianggong')
+              .select(mark => mark.stack)
+              .first()
+              .map(n => Math.floor(n * 35)),
           }),
         ),
       }),

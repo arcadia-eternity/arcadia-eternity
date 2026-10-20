@@ -74,3 +74,7 @@ effect_mark_self_damage_25_percent repairs /condition/conditions/2/target/chain/
 ## Damage skill identity and tags
 
 The Yutu-tag and Quan-tag damage definitions, Zhongji damage, and Hongbaoshi/Lanbaoshi/Jiguang/Jueying fixed-damage definitions repair `/condition/conditions/1/target/chain/0/arg` from `skillId` to `skill` after C07. Each mapping is exact per ID, with original/spelling-only parse failures, independent corrected references, complete tag collection checks, wrong-skill rejection, live parameter reads and source consumption verified. All seven also pass full-game and fresh-factory checkpoint comparisons. See [damage evidence](damage-modifiers.md).
+
+## Damage stat values
+
+`effect_skill_add_damage_spa_sixth` repairs `/apply/delta/selector/chain/0/arg/arg` from `spa` to `stat.spa` on a dynamic extractor. `effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500` repairs `/condition/conditions/1/target/chain/0/arg` from `atk` to `stat.atk`. Both original parse failures and exact records are verified, with independent 500/501 and floor expectations, late reads, complete games and fresh-factory checkpoints. See [damage evidence](damage-modifiers.md).

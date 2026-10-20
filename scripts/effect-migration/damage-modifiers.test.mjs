@@ -77,7 +77,7 @@ test('rejects unhandled fields, invalid parameters, target chains, nonfinite num
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 96, protected: 1, rejected: 20 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 98, protected: 1, rejected: 18 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -240,5 +240,25 @@ test('skill identity damage corrections reject source drift and retain both repa
     { path: '/condition/conditions/1/target/chain/0/arg', before: 'skillId', after: 'skill' },
   ])
   d.condition.conditions[1].target.chain[0].arg = 'skill'
+  assert.ok(classifyDamageModifier(d).reason)
+})
+
+test('damage Pet-stat mapping requires corrected paths and floors the sixth', () => {
+  const d = source()
+  d.id = 'effect_skill_add_damage_spa_sixth'
+  d.apply.delta = {
+    type: 'dynamic',
+    selector: {
+      base: 'self',
+      chain: [
+        { type: 'select', arg: { type: 'dynamic', arg: 'spa' } },
+        { type: 'divide', arg: 6 },
+      ],
+    },
+  }
+  const r = classifyDamageModifier(d)
+  assert.match(r.delta, /pet.stat.spa.*Math.floor\(n \/ 6\)/)
+  assert.deepEqual(r.pathRepairs, [{ path: '/apply/delta/selector/chain/0/arg/arg', before: 'spa', after: 'stat.spa' }])
+  d.apply.delta.selector.chain[0].arg.arg = 'stat.spa'
   assert.ok(classifyDamageModifier(d).reason)
 })

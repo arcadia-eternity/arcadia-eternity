@@ -389,3 +389,9 @@ All 127 scoped public cases pass, including complete games and fresh-factory che
 Seven further damage candidates use exact C07/C09 skill-context corrections, shared tag/ID selectors and existing action-time parameter reads. Automatic source-stack consumption and one-stack destruction remain intact.
 
 All 176 scoped public cases pass, including complete games and fresh-factory checkpoint continuations for every candidate. All 172 generator tests, battle types/lint, declarations and unchanged provenance pass. See [damage evidence](validation/damage-modifiers.md). The damage catalog generates 96 candidates, retains one handwritten owner and rejects 20. Overall official coverage has 72 definitions without candidates; overall production admission remains open.
+
+## Damage stat values (2026-10-20)
+
+Two damage candidates now read corrected Pet stat paths through shared queries, preserving admission-time attack checks and operation-time special attack / qianggong stack reads. All 58 scoped public checks, including full-game/checkpoint comparisons and three probes of outstanding invalid-value behavior, pass. All 173 generator tests, battle types/lint, declarations and provenance pass.
+
+The damage catalog generates 98 candidates, retains one handwritten owner and rejects 18. Overall coverage has 70 definitions without candidates. Missing-weight and unwrapped reactive-stack NaN behavior is explicitly characterized and remains unresolved rather than counted as complete. See [damage evidence](validation/damage-modifiers.md). Production admission remains open.

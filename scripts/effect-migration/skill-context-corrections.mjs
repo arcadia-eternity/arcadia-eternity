@@ -20,6 +20,10 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_skill_add_damage_spa_sixth: [['/apply/delta/selector/chain/0/arg/arg', 'spa', 'stat.spa', 'dynamic']],
+  effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500: [
+    ['/condition/conditions/1/target/chain/0/arg', 'atk', 'stat.atk'],
+  ],
   effect_ability_add_damage_40_if_using_yutu_skill: [
     ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
   ],

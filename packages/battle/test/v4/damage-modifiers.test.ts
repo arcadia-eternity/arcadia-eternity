@@ -63,7 +63,9 @@ const manifest: { records: (Omit<Entry, 'recipe'> & { recipe: Entry['recipe'] | 
 )
 const allRecords = manifest.records.filter((r): r is Entry => r.status === 'generated-candidate' && r.recipe !== null)
 // Direct-context order behavior is covered by damage-order-modifiers.test.ts.
-const records = allRecords.filter(r => !r.recipe.selectorRepairs?.length && !r.recipe.orderConditions?.length)
+const records = allRecords.filter(
+  r => !r.recipe.selectorRepairs?.length && !r.recipe.orderConditions?.length && !r.recipe.pathRepairs?.length,
+)
 const orderRecords = allRecords.filter(r => r.recipe.orderConditions?.length)
 const skillPathRecords = allRecords.filter(r => r.recipe.pathRepairs?.length)
 const files = new Map<string, Definition[]>()
@@ -82,6 +84,14 @@ const oracles = new Map(
     for (const node of objects(corrected)) {
       if (node.base === 'useSkillContext') node.base = 'usingSkillContext'
       if (node.type === 'selectPath' && node.arg === 'skillId') node.arg = 'skill'
+      if (r.id === 'effect_skill_add_damage_spa_sixth' && node.type === 'dynamic' && node.arg === 'spa')
+        node.arg = 'stat.spa'
+      if (
+        r.id === 'effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500' &&
+        node.type === 'selectPath' &&
+        node.arg === 'atk'
+      )
+        node.arg = 'stat.atk'
     }
     return [r.id, EffectParser.parse(corrected)]
   }),
@@ -340,6 +350,8 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
   const originalEffects = allPets.flatMap(p => p.baseSkills.flatMap(s => s.effects))
   for (const pet of allPets) {
     pet.attributeSystem.updateBaseValue('maxHp', 801)
+    if (r.id === 'effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500')
+      pet.attributeSystem.updateBaseValue('atk', 601)
     pet.currentHp = nodes.some(n => n.operator === '==') ? 801 : 100
     pet.lastSkillUsedTimes = 3
     const base = new BaseSkill(

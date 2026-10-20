@@ -1,6 +1,6 @@
 # Native damage modifier candidates
 
-The offline generator recognizes 96 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 20 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
+The offline generator recognizes 98 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 18 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
 
 ## Authoring target
 
@@ -77,3 +77,13 @@ All 161 focused cases pass, including both source kinds, wrong owner/skill, nest
 All fourteen full-game/checkpoint comparisons and the source/catalog check pass, for 176 distinct scoped public cases. Fresh effect factories are registered on checkpoint restoration. The fixed-ID game fixtures use identical skill definitions with power 300 to complete inside the existing 12-turn bound; the initial power-30 Zhongji fixtures exceeded that bound. Battle event types, application counts, HP, winner, turn and RNG match the corrected legacy reference.
 
 All 172 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-selection-tests-final.log`, `/tmp/damage-selection-games-final.log`, `/tmp/damage-selection-generators.log` and `/tmp/damage-selection-{types-final,lint-final,declarations,provenance}.log`. These remain candidates pending overall migration/production admission.
+
+## Damage stat values (2026-10-20)
+
+Two further candidates use exact C09 repairs: `effect_skill_add_damage_spa_sixth` reads `stat.spa` instead of the nonexistent direct `spa` path; `effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500` compares `stat.atk` instead of direct `atk`. The shared numeric emitter admits these explicit Pet stat paths in damage contexts. Original parsing failures, exact repair metadata and source-drift rejection are verified.
+
+The special-attack formula samples the current owner's stat at operation time and floors division by six. The attack threshold is checked during admission; changing attack afterward does not rerun it. The subsequent qianggong query reads the then-current owner's marks and consumes the first selected stack value, retaining the legacy behavior with duplicate matching marks. Late owner/stat/stack changes, support removal, attack 500/501 boundaries, cancellation, repetition and real damage phases are covered. Independently changing spd and spe does not change the special-attack formula.
+
+All 50 focused cases and five source/full-game/checkpoint checks pass. A fresh factory is used for each restored candidate; full-game event types, applications, final HP, winner, turn and RNG match independently repaired legacy definitions. Three additional legacy probes pass and establish outstanding defects: missing `pet.weight` propagates NaN while zero weight remains valid; `selectAttribute$('stack')` returns a ReactiveValue which legacy addModified does not unwrap, resulting in a string delta and NaN damage. Those definitions remain rejected and are not counted as migrated. The probes currently characterize their legacy behavior; they do not define the future numeric-value policy.
+
+Total: 58 distinct scoped public checks, 173 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-stat-tests.log`, `/tmp/damage-stat-games.log`, `/tmp/damage-stat-unmapped.log`, `/tmp/damage-stat-generators.log`, and `/tmp/damage-stat-{types-final,lint-final,declarations,provenance}.log`. Overall production admission remains open.
