@@ -1,0 +1,163 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_ability_multi_hit_skills_sure_hit",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/74",
+      "definitionSha256": "26be2d6e746cd62044a926995bae4ea683c94e64430fe5aa99fe0a999dd5b7ce",
+      "recipe": {
+        "id": "effect_ability_multi_hit_skills_sure_hit",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (Array.isArray(skill.multihit) ? skill.multihit[0] : skill.multihit) !== 1).apply(ops.setSkillSureHit(true))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_fenshenshu_set_sure_hit",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/36",
+      "definitionSha256": "2f05dbacef463fcc8cd294cab04d25467f1c63fe3674aa6eae98d0481eab7ba8",
+      "recipe": {
+        "id": "effect_emblem_fenshenshu_set_sure_hit",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.baseId as string) === \"skill_fenshenshu\").apply(ops.setSkillSureHit(true))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_jihuo_fire_skill_sure_hit",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/41",
+      "definitionSha256": "a3c466faad9dcda5a599ad1025a20d5407132716101ed5c6b3d057e79f76b72c",
+      "recipe": {
+        "id": "effect_emblem_jihuo_fire_skill_sure_hit",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "conditions.all(targets.selfSkills.where(skill => (skill.element as string) === \"Fire\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.element as string) === \"Fire\").apply(ops.setSkillSureHit(true))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_pofangyiji_sure_hit",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/30",
+      "definitionSha256": "f22e431beb195f6b80528c3fc0c1a3c4c2823a4a3f8f4efe9fe7927588c4084a",
+      "recipe": {
+        "id": "effect_emblem_pofangyiji_sure_hit",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.baseId as string) === \"skill_pofangyiji\").apply(ops.setSkillSureHit(true))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_skill_kaowenzhe_sure_hit",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/70",
+      "definitionSha256": "fbf530df3a38f66c06034140c5fb4bbfceeda10e90fc85742bf74ed699a24145",
+      "recipe": {
+        "id": "effect_emblem_skill_kaowenzhe_sure_hit",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.baseId as string) === \"skill_kaowenzhe\").apply(ops.setSkillSureHit(true))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_skill_tongjiling_sure_hit",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/71",
+      "definitionSha256": "8a44e3dde1d10ea282ed4dae13f2ab2531a9174973dc9afe6011c3a3605df855",
+      "recipe": {
+        "id": "effect_emblem_skill_tongjiling_sure_hit",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.baseId as string) === \"skill_tongjiling\").apply(ops.setSkillSureHit(true))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "effect_emblem_yinji_reduce_rage_cost_xinzhiyinji",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/18",
+      "definitionSha256": "f7ff61717b29b26f5d86e31029ee55a7c3c9690fcc314d61b07477fdd9bbcd67",
+      "reason": "unsupported trigger"
+    },
+    {
+      "id": "effect_mark_limit_rage_gain",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/73",
+      "definitionSha256": "a485add64697f31de266fc93fc9591ef8de416c4421a8440262898551965fc81",
+      "reason": "unsupported trigger"
+    },
+    {
+      "id": "effect_mark_set_health_to_1_on_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/33",
+      "definitionSha256": "2c246ead16265374d0397691fca1e3dc8b3e3c70d6d82700762f6a433548a67b",
+      "reason": "unsupported trigger"
+    }
+  ],
+  "retained": [
+    {
+      "id": "effect_mark_shiguangchongsheng",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/162",
+      "definitionSha256": "9aafce55ffd8dc0dfd82890fc4d985fe3ec0e8aa88977f1c11ba5ca4acc96008",
+      "ownerLedgers": ["docs/v4/validation/authoring-api-candidates.json"]
+    }
+  ]
+}

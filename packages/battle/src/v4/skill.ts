@@ -148,7 +148,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   public readonly element: Element
   public readonly target: AttackTargetOpinion = AttackTargetOpinion.opponent
   public readonly multihit: [number, number] | number = 1
-  public readonly sureHit: boolean = false
+  public sureHit: boolean = false
   public readonly sureCrit: boolean = false
   public readonly ignoreShield: boolean = false
   public readonly tags: string[] = []

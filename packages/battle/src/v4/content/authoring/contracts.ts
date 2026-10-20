@@ -244,6 +244,8 @@ type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type StageStrategy = 'none' | 'all' | 'positive' | 'negative'
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  /** Assign a persistent instance flag; unlike setSureHit this does not create a use-context override. */
+  readonly setSkillSureHit: (value: boolean | Value<boolean, Presence>) => Operator<SkillInstance>
   /** Sample amount then priority separately per target; source marks own cleanup. */
   readonly addAttributeModifier: (
     attribute: keyof PetAttributes,

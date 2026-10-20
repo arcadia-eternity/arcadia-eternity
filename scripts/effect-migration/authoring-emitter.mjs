@@ -1,5 +1,5 @@
-const fields = (v, keys) =>
-  v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).sort().join(',') === [...keys].sort().join(',')
+import { fields } from './emitter-shapes.mjs'
+import { skillSelection } from './skill-selection.mjs'
 const q = JSON.stringify
 function normalize(v) {
   return Array.isArray(v)
@@ -592,6 +592,10 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
   )
     return '((ctx: EffectFrame) => ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()))'
   if (fields(e, ['type']) && e.type === 'exist') {
+    if (domain === 'skill' && c.target?.base === 'selfSkills') {
+      const skills = skillSelection(c.target)
+      return skills ? `${skills}.condition(checks.exists())` : undefined
+    }
     const ms = members(c.target, domain)
     if (ms) return `${ms}.condition(checks.exists())`
   }

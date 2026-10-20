@@ -107,6 +107,20 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     if (!value) return
     return `${selected}.apply(ops.${operation}(${JSON.stringify(a.stat)},${JSON.stringify(a.modifierType)},${value}))`
   }
+  if (a?.type === 'setValue' && fields(a, ['type', 'target', 'value']) && typeof a.value === 'boolean') {
+    const target = a.target
+    if (
+      !fields(target, ['base', 'chain']) ||
+      target.base !== 'selfSkills' ||
+      !Array.isArray(target.chain) ||
+      !target.chain.length
+    )
+      return
+    const last = target.chain.at(-1)
+    if (!fields(last, ['type', 'arg']) || last.type !== 'selectProp' || last.arg !== 'sureHit') return
+    const selected = skillSelection({ ...target, chain: target.chain.slice(0, -1) })
+    return selected ? `${selected}.apply(ops.setSkillSureHit(${a.value}))` : undefined
+  }
   if (a?.type === 'addSkillAttributeModifier') {
     if (
       !fields(a, ['type', 'target', 'attribute', 'modifierType', 'value']) ||

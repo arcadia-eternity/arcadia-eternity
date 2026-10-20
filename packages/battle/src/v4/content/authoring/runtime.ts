@@ -762,6 +762,16 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
   }
 }
 export const ops: typeof C.ops = {
+  setSkillSureHit: input => (ctx, selected) => {
+    for (const skill of selected) assertWriteTarget(ctx, skill)
+    const flag = read(ctx, input)
+    if (flag === undefined) return
+    if (typeof flag !== 'boolean') throw new Error('Expected boolean input')
+    for (const skill of selected) {
+      assertWriteTarget(ctx, skill)
+      skill.sureHit = flag
+    }
+  },
   addAttributeModifier,
   addSkillAttributeModifier: (attribute, operation, amount, options = {}) =>
     addAttributeModifier(attribute, operation, amount, options.priority, options.lifetime),

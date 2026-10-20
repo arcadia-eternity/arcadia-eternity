@@ -1,4 +1,4 @@
-import { fields } from './authoring-emitter.mjs'
+import { fields } from './emitter-shapes.mjs'
 /** Fresh skill membership and filters; no guessed field aliases. */
 export function skillSelection(target) {
   if (target === 'skill') return 'targets.sourceSkill'
@@ -27,6 +27,16 @@ export function skillSelection(target) {
     ) {
       if (!fields(e, ['type', 'value']) || !['same', 'notSame'].includes(e.type) || typeof e.value !== 'string') return
       code += `.where(skill => (skill.${x.arg} as string) ${e.type === 'same' ? '===' : '!=='} ${JSON.stringify(e.value)})`
+      continue
+    }
+    if (
+      x.type === 'dynamic' &&
+      x.arg === 'multihit' &&
+      fields(e, ['type', 'value']) &&
+      e.type === 'notSame' &&
+      e.value === 1
+    ) {
+      code += '.where(skill => (Array.isArray(skill.multihit) ? skill.multihit[0] : skill.multihit) !== 1)'
       continue
     }
     if (

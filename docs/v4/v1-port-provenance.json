@@ -287,7 +287,7 @@
       "destination": "packages/battle/src/v4/skill.ts",
       "sourceBlob": "c253cc764a3582e44dea435001ffd1a3fc642667",
       "sourceSha256": "73d62ec770232e537f77def05d8ba09c8d308829bdbf29205056f4575ceefbd1",
-      "portedSha256": "9d4e42257c9367f9f826b4043ebf847449c51b97d21ce801dc67dcb6004bb4b3",
+      "portedSha256": "0560ee973f4c18ad42c05f7fb7a7e25fe63d6c36d464029a21e57a19948298b1",
       "changed": true
     },
     {

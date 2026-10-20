@@ -338,3 +338,9 @@ values.randomInt('30', 70)
 contexts.rage.apply(ops.modifyRage({ percent: 20, delta: 0 }))
 // @ts-expect-error A heal context is not a rage context.
 contexts.heal.apply(ops.modifyRage({ percent: 20, delta: 0 }))
+
+targets.selfSkills.apply(ops.setSkillSureHit(true))
+// @ts-expect-error Persistent skill assignment does not accept a use context.
+contexts.skillUse.apply(ops.setSkillSureHit(true))
+// @ts-expect-error Skill flags require booleans.
+ops.setSkillSureHit(1)

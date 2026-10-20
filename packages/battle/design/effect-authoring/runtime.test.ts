@@ -1601,3 +1601,61 @@ it('rage modifiers reject foreign contexts before reading either amount', () => 
   expect(reads).toBe(0)
   expect(foreign.modified).toEqual([0, 0])
 })
+it('skill instance flags read once per application, can clear, and skip missing values', () => {
+  const f = fixture()
+  const bases = f.owner.skills.map(s => s.base.sureHit)
+  let reads = 0
+  let flag: boolean | undefined = true
+  const input = targets.ownerPet
+    .where(() => {
+      reads++
+      return flag !== undefined
+    })
+    .select(() => flag ?? false)
+    .first()
+  const effect = compileEffect(
+    defineEffect({
+      id: 'test/skill-flags',
+      on: 'BeforeHit',
+      execute: targets.selfSkills.apply(ops.setSkillSureHit(input)),
+    }),
+  )
+  const apply = () => f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))
+  apply()
+  expect(reads).toBe(1)
+  expect(f.owner.skills.every(s => s.sureHit)).toBe(true)
+  flag = undefined
+  apply()
+  expect(f.owner.skills.every(s => s.sureHit)).toBe(true)
+  flag = false
+  apply()
+  expect(reads).toBe(3)
+  expect(f.owner.skills.every(s => !s.sureHit)).toBe(true)
+  expect(f.owner.skills.map(s => s.base.sureHit)).toEqual(bases)
+})
+it('skill instance assignments reject foreign targets before reads and recheck after reads', () => {
+  const f = fixture(),
+    other = fixture()
+  let reads = 0
+  f.skill.sureHit = false
+  const input = targets.ownerPet
+    .select(() => {
+      reads++
+      f.skill.setOwner(other.owner)
+      return true
+    })
+    .first()
+  const make = (skill: typeof f.skill) =>
+    compileEffect(
+      defineEffect({
+        id: 'test/skill-flags-boundary',
+        on: 'BeforeHit',
+        execute: selectFrom([skill]).apply(ops.setSkillSureHit(input)),
+      }),
+    )
+  expect(() => f.battle.executionBudget.run(0, () => make(other.skill).innerApply(f.ctx))).toThrow()
+  expect(reads).toBe(0)
+  expect(() => f.battle.executionBudget.run(0, () => make(f.skill).innerApply(f.ctx))).toThrow()
+  expect(reads).toBe(1)
+  expect(f.skill.sureHit).toBe(false)
+})
