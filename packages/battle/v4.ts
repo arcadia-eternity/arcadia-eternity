@@ -70,3 +70,8 @@ export {
 export { generatedStatStageClears, createGeneratedStatStageClears } from './src/v4/official/stat-stage-clears.generated'
 
 export { generatedMultihit, createGeneratedMultihit } from './src/v4/official/multihit.generated'
+
+export {
+  generatedMarkApplicationSettings,
+  createGeneratedMarkApplicationSettings,
+} from './src/v4/official/mark-application-settings.generated'

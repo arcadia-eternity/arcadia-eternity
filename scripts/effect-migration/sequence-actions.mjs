@@ -11,6 +11,16 @@ const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss',
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
+  if (['setMarkDuration', 'setMarkStack', 'setMarkMaxStack'].includes(a?.type)) {
+    if (!fields(a, ['type', 'target', 'value'])) return
+    if (!(a.target === 'addMarkContext' || (fields(a.target, ['base']) && a.target.base === 'addMarkContext'))) return
+    const value =
+      fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic'
+        ? selectedNumber(a.value.selector, parameters, path, 'all', domain)
+        : number(a.value, parameters, path, domain)?.code
+    if (!value) return
+    return `contexts.addMark.apply(ops.${a.type}(${value}))`
+  }
   if (['addMultihitResult', 'setMultihit'].includes(a?.type)) {
     if (!fields(a, ['type', 'target', 'value'])) return
     if (!(a.target === 'usingSkillContext' || (fields(a.target, ['base']) && a.target.base === 'usingSkillContext')))

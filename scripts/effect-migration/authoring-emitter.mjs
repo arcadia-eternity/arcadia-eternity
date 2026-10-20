@@ -19,6 +19,7 @@ function root(s, domain = 'damage') {
   if (s === 'opponent') return 'targets.opponentActive'
   if (s === 'mark') return 'targets.sourceMark'
   if (s === 'selfMarks') return 'targets.ownerMarks'
+  if (s === 'addMarkContext') return 'contexts.addMark'
   if (s === 'stackContext') return 'contexts.stack'
   if (s === 'damageContext') return 'contexts.damage'
   if (s === 'usingSkillContext') return 'contexts.skillUse'
@@ -109,7 +110,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         step.type === 'select' &&
         fields(e, ['type', 'arg']) &&
         e.type === 'base' &&
-        ['stack', 'currentHp', 'maxHp', 'rage'].includes(e.arg)
+        ['stack', 'currentHp', 'maxHp', 'rage', ...(domain === 'mark' ? ['duration'] : [])].includes(e.arg)
       )
         name = e.arg
       else if (
@@ -117,6 +118,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         fields(e, ['type', 'arg']) &&
         e.type === 'dynamic' &&
         (e.arg === 'lastSkillUsedTimes' ||
+          (domain === 'mark' && s.base === 'addMarkContext' && e.arg === 'duration') ||
           (s.base === 'damageContext' && e.arg === 'damageResult') ||
           (domain === 'skill' && ['self', 'opponent'].includes(s.base) && ['stat.spa', 'stat.def'].includes(e.arg)) ||
           (domain === 'skill' && ['weight', 'height', 'level', 'maxRage', 'currentTurn', 'duration'].includes(e.arg)))
@@ -134,7 +136,9 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
           (collection && s.base === 'usingSkillContext' && step.arg === 'power'))
       )
         name = step.arg
-      if (
+      if (domain === 'mark' && s.base === 'addMarkContext' && ['stack', 'duration'].includes(name))
+        code += `.select(event => event.${name})${terminal}`
+      else if (
         ['mark', 'selfMarks', 'opponentMarks'].includes(s.base) &&
         (name === 'stack' || (domain === 'skill' && name === 'duration'))
       )
@@ -307,6 +311,8 @@ function number(v, parameters, path, domain = 'damage', options = {}) {
 function condition(c, domain = 'damage', parameters, path = 'condition', options = {}) {
   if (fields(c, ['type'])) {
     if (domain === 'switch' && c.type === 'selfSwitchOut') return 'conditions.ownerSwitchesOut'
+    if (domain === 'mark' && c.type === 'selfAddMark') return 'conditions.ownerAddsMark'
+    if (domain === 'mark' && c.type === 'selfBeAddMark') return 'conditions.ownerReceivesMark'
     if (domain === 'switch' && c.type === 'selfSwitchIn') return 'conditions.ownerSwitchesIn'
     if (domain === 'skill' && c.type === 'petIsActive') return 'conditions.ownerIsActive'
     if (domain === 'skill' && c.type === 'isFirstSkillUsedThisTurn') return 'conditions.firstSkillThisTurn'
@@ -325,6 +331,32 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
             : 'conditions.selfBeDamaged'
     if (domain === 'skill' && c.type === 'selfBeSkillTarget') return 'conditions.ownerIsSkillTarget'
     if (c.type === 'selfBeDamaged' && domain === 'damage') return 'conditions.selfBeDamaged'
+  }
+  if (
+    domain === 'mark' &&
+    fields(c, ['type', 'check']) &&
+    c.type === 'statStageChange' &&
+    ['up', 'down', 'all'].includes(c.check)
+  )
+    return `conditions.any(${['atk', 'def', 'spa', 'spd', 'spe'].map(stat => `conditions.statStageChange(${q(stat)},${q(c.check)})`).join(',')})`
+  if (domain === 'mark' && fields(c, ['type', 'target', 'evaluator']) && c.type === 'evaluate') {
+    const t = c.target,
+      e = c.evaluator
+    if (
+      fields(t, ['base', 'chain']) &&
+      t.base === 'addMarkContext' &&
+      Array.isArray(t.chain) &&
+      t.chain.length === 1 &&
+      fields(t.chain[0], ['type', 'arg']) &&
+      t.chain[0].type === 'selectPath' &&
+      t.chain[0].arg === 'baseMark.id' &&
+      fields(e, ['type', 'value'])
+    ) {
+      if (e.type === 'same' && typeof e.value === 'string')
+        return `contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === ${q(e.value)})`
+      if (e.type === 'anyOf' && Array.isArray(e.value) && e.value.every(v => typeof v === 'string'))
+        return `contexts.addMark.condition((_ctx,events) => events.some(event => (${q(e.value)} as string[]).includes(event.baseMark.id)))`
+    }
   }
   if (
     domain === 'skill' &&

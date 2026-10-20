@@ -404,6 +404,7 @@ export const conditions: typeof C.conditions = {
   },
   ownerAddsMark: ctx =>
     ctx.event instanceof AddMarkContext && engine(ctx).source.owner === ctx.event.parent.source.owner,
+  ownerReceivesMark: ctx => ctx.event instanceof AddMarkContext && engine(ctx).source.owner === ctx.event.target,
   statStageChange: (stat, direction) => ctx => {
     if (!(ctx.event instanceof AddMarkContext)) return false
     const mark = ctx.event.baseMark
@@ -566,6 +567,27 @@ function modifySkillValues(
     })
   }
 }
+/** Mark application setters read once and cycle values over targets, rather than re-reading per target. */
+function setMarkApplicationValue(
+  input: Parameters<typeof C.ops.setMarkDuration>[0],
+  apply: (event: AddMarkContext, value: number) => void,
+): C.Operator<AddMarkContext> {
+  return (ctx, selected) => {
+    const validate = (event: AddMarkContext) => {
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle mark application context')
+    }
+    selected.forEach(validate)
+    const result = read(ctx, input)
+    const amounts = result === undefined ? [] : Array.isArray(result) ? result : [result]
+    selected.forEach((event, index) => {
+      const amount = amounts[index % amounts.length]
+      if (amount === undefined) return
+      validate(event)
+      if (typeof amount !== 'number' || !Number.isFinite(amount)) throw new Error('Expected finite numeric input')
+      apply(event, amount)
+    })
+  }
+}
 /** Accuracy consumes the first value once, even when more than one context is selected. */
 function modifyAccuracy(input: Parameters<typeof C.ops.addAccuracy>[0], set: boolean): C.Operator<UseSkillContext> {
   return (ctx, selected) => {
@@ -616,6 +638,9 @@ export const ops: typeof C.ops = {
       }
     }
   },
+  setMarkDuration: input => setMarkApplicationValue(input, (event, amount) => event.setDuration(amount)),
+  setMarkStack: input => setMarkApplicationValue(input, (event, amount) => event.setStack(amount)),
+  setMarkMaxStack: input => setMarkApplicationValue(input, (event, amount) => event.setMaxStack(amount)),
   addPower: input => modifySkillValues(input, (event, amount) => event.addPower(amount)),
   amplifyPower: input => modifySkillValues(input, (event, amount) => event.amplifyPower(amount)),
   addCritRate: input => modifySkillValues(input, (event, amount) => event.addCritRate(amount)),

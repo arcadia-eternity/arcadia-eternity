@@ -20,6 +20,42 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_emblem_set_zhongdu_duration_2: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_decrease_liuxie_duration_1: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_decrease_shiming_duration_1: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_add_manxingduyao_maxstack_4: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_add_xingzhili_duration: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_add_shaoshang_duration: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_add_xuanyun_duration: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_add_mark_yanhuo_duration_1: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_add_zhenjiu_duration_1: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_dadiqiang_duration_boost_1: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_shazhidanke_max_stack_4: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_yaoling_extend_zhaocai_jinbao_duration: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_extend_bizhong_duration_5: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_increase_huohuanzhixin_maxstacks_4: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_emblem_increase_leishenjuexing_duration_1: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
+  effect_mark_double_mark_yanhuo_duration: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],
+  ],
   effect_mark_shuangrenzhan_add_2_hits: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_mark_shuangpozhan_add_2_hits: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_emblem_add_rage_5_when_use_feixuanzhiguang: [

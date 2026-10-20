@@ -1,0 +1,15 @@
+# Mark application settings candidates
+
+Seventeen independent effects now have generated candidates: thirteen duration assignments, three maximum-stack assignments, and one initial-stack assignment. There are zero rejections. They remain U candidates; the production loader and original YAML are unchanged.
+
+Three authoring setters reuse AddMarkContext.setDuration, setStack and setMaxStack. Their shared adapter reads the value once, then distributes the resulting numbers cyclically over selected contexts. For example, values [2, 7] and three contexts assign [2, 7, 2]. Empty or absent values skip writes. Negative and fractional values are retained without invented rounding. Context battle ownership is validated before reading and again before each write, including a later context changed by an earlier setter. Nonfinite consumed values are rejected.
+
+These actions edit pending application settings. Duration and initial stack are independent fields; changing maxStacks updates the context config without changing its initial stack or the base mark configuration. Real creation and stacking continue through the original domain lifecycle. Candidate constants preserve assignment semantics even when an effect ID says add, decrease or boost. Source mark references such as zhenjiu targeting mark_mianyibuliang and dadiqiang targeting mark_yinghua remain as written.
+
+Sixteen definitions reference the nonexistent baseMarkId field in the direct condition selector. C09 repairs each named node to baseMark.id, preserving the string comparison. Each source hash, exact path and before/after value is recorded in the ledger; original parsing failure is tested independently. The xuruo stack effect needs no correction. Its down-stage predicate tests BaseStatLevelMark.initialLevel, independently of the mutable application stack, across atk, def, spa, spd and spe.
+
+Reusable ownerAddsMark and ownerReceivesMark predicates preserve direct-event ancestry and distinguish applicant ownership from target ownership. Conditions run at admission; actions re-query context values after BeforeEffect. Tests exercise changed duration/stack/base/owner, cancellation, wrong applicant/target/base, nested and repeated events, real mark creation and stacking, the last source-stack consumption, both identities in the anyOf condition, probability threshold boundaries, and cyclic distribution/ownership/numeric boundaries.
+
+Verification: 559 public checks pass across the new suite and the existing stat-stage mark-event suite. All 139 generator tests, 75 design tests, V4 types/lint, declarations and unchanged provenance pass. Both review axes approve the batch. The first run had two fixture failures from assigning the read-only stack property of a stat-level mark; the fixture now uses its level field and the final run passes.
+
+Evidence: /tmp/mark-settings-tests-final-verified.log; /tmp/mark-settings-generators.log; /tmp/mark-settings-{types,lint,declarations,design,provenance}-verified.log. Complete-game/checkpoint and production admission remain pending. This scoped result does not supersede the incomplete expanded regression documented in multihit.md.

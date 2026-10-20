@@ -299,3 +299,9 @@ The final 396-case public regression and ten focused lifecycle cases pass, along
 Eighteen independent multihit candidates now emit without rejection: seven additive resolved-count actions and eleven initial scalar-count assignments. Shared authoring operations preserve per-context reads, complete-list addition versus first-value assignment, and the source's AfterUseSkillCheck/BeforeMultiHit timing. Four probability effects retain scoped and tagged editable parameters. All records carry C07, with two exact C09 skill-path repairs and three C08 order corrections.
 
 All 611 multihit public tests, 136 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. An expanded old-suite run was terminated after accumulating timeout failures; all 41 selected failures pass isolated rechecks with the same timeout. That expanded run remains incomplete. See [multihit evidence](validation/multihit.md) for timing, real-turn order tests and exact verification scope. These remain U candidates pending complete-game/checkpoint and production gates.
+
+## Pending mark settings (2026-10-20)
+
+Seventeen duration, initial-stack and maximum-stack candidates now emit without rejection. Shared setters preserve a single value read followed by cyclic distribution over contexts, and use the existing mark-application lifecycle. Sixteen exact C09 repairs map baseMarkId to baseMark.id; the xuruo stage/probability predicate is unchanged.
+
+The 559-case public regression, 139 generator tests, 75 design tests, types/lint, declarations and provenance pass; both review axes pass. See [mark application setting evidence](validation/mark-application-settings.md). Candidates remain U pending complete-game/checkpoint and production gates.

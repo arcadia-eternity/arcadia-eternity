@@ -178,6 +178,8 @@ export declare const conditions: {
   readonly everyNthUse: (times: number) => Condition
   /** Direct mark application initiated by a source with the same owner; not target ownership. */
   readonly ownerAddsMark: Condition
+  /** Direct application target equals the source owner, including a battle owner. */
+  readonly ownerReceivesMark: Condition
   /** Direct event base-mark identity and initial sign, independent of its mutable stack. */
   readonly statStageChange: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', direction: 'up' | 'down' | 'all') => Condition
   readonly selfBeDamaged: Condition
@@ -215,6 +217,10 @@ export declare const ops: {
   ) => Operator<Pet | Battle>
   /** Read once per selected context; apply every number in order, with no rounding. */
   readonly addPower: (amount: PowerInput) => Operator<UseSkillContext>
+  /** Read once; cycle the supplied values over selected application contexts. Empty input skips. */
+  readonly setMarkDuration: (amount: PowerInput) => Operator<AddMarkContext>
+  readonly setMarkStack: (amount: PowerInput) => Operator<AddMarkContext>
+  readonly setMarkMaxStack: (amount: PowerInput) => Operator<AddMarkContext>
   readonly amplifyPower: (amount: PowerInput) => Operator<UseSkillContext>
   /** Read once per selected skill context and apply every supplied value in order, clamping each update. */
   readonly addCritRate: (amount: PowerInput) => Operator<UseSkillContext>
