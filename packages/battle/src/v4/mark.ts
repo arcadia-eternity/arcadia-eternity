@@ -97,6 +97,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   get stack(): number
   set stack(value: number)
   get baseId(): baseMarkId
+  registerBattle(battle: Battle): void
   setOwner(owner: MarkOwner, emitter: Emitter<Events>): void
   attachTo(target: MarkOwner): void
   detach(): void
@@ -250,11 +251,13 @@ export class MarkInstanceImpl implements MarkInstance {
     this.emitter = emitter
 
     // Set battleId for attribute system
-    if (owner instanceof Pet && owner.owner?.battle) {
-      this.attributeSystem.setBattleId(owner.owner.battle.id)
-    } else if (owner instanceof Battle) {
-      this.attributeSystem.setBattleId(owner.id)
-    }
+    const battle = owner instanceof Pet ? owner.owner?.battle : owner
+    if (battle) this.registerBattle(battle)
+  }
+
+  /** Track lifetime without assigning an owner to an incoming stacking operand. */
+  registerBattle(battle: Battle): void {
+    this.attributeSystem.setBattleId(battle.id)
   }
 
   attachTo(target: Battle | Pet) {
@@ -390,10 +393,9 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     this.stageMultiplier$ = projectValue(this.statLevelAttributeSystem.getAttribute$('level'), 'stage')
   }
 
-  override setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
-    super.setOwner(owner, emitter)
-    const battleId = owner instanceof Pet ? owner.owner?.battle?.id : owner.id
-    if (battleId) this.statLevelAttributeSystem.setBattleId(battleId)
+  override registerBattle(battle: Battle): void {
+    super.registerBattle(battle)
+    this.statLevelAttributeSystem.setBattleId(battle.id)
   }
 
   // level的getter和setter，操作attributeSystem

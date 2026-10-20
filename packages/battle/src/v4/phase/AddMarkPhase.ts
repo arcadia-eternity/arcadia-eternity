@@ -88,6 +88,7 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
     stack: context.stack ?? context.config?.maxStacks,
   }
   const newMark = context.baseMark.createInstance(config)
+  newMark.registerBattle(battle)
 
   // Check for existing stat level mark of the same stat type
   let existingStatLevelMark: StatLevelMarkInstanceImpl | undefined

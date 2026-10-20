@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
+  AttributeSystem,
   createGeneratedMarkApplications,
   generatedMarkApplicationDependencies,
   defineNativeEffect,
@@ -107,9 +108,14 @@ const oracles = new Map(
     }),
 )
 const battles: Battle[] = []
+let baselineInstances = 0
+beforeEach(() => {
+  baselineInstances = AttributeSystem.getGlobalMemoryStats().totalInstances
+})
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
+  expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baselineInstances)
 })
 
 const consecutiveStackId = 'effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20'
@@ -162,7 +168,7 @@ function admissionState(
     battle.marks.splice(0, battle.marks.length, ...battle.marks.filter(mark => mark.baseId !== 'mark_global_yemu'))
     if (valid) {
       const mark = baseMarks.get('mark_global_yemu')!.createInstance()
-      mark.owner = battle
+      mark.setOwner(battle, battle.emitter)
       battle.marks.push(mark)
     }
   }
@@ -172,7 +178,7 @@ function admissionState(
     pet.marks.splice(0, pet.marks.length, ...pet.marks.filter(mark => mark.baseId !== support[1]))
     if (valid) {
       const instance = new BaseMark(support[1] as baseMarkId, []).createInstance()
-      instance.owner = pet
+      instance.setOwner(pet, battle.emitter)
       pet.marks.push(instance)
     }
   }
@@ -446,7 +452,7 @@ function run(
               for (const count of duplicate ? [amount, 23] : [amount]) {
                 const base = support[1] === mark.id ? mark : new BaseMark(support[1] as baseMarkId, [])
                 const instance = base.createInstance({ stack: count, config: { maxStacks: 10000 } })
-                instance.owner = pet
+                instance.setOwner(pet, battle.emitter)
                 pet.marks.push(instance)
               }
             }

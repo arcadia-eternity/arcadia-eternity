@@ -71,7 +71,7 @@
       "destination": "packages/battle/src/v4/mark.ts",
       "sourceBlob": "e87faf945537770f069ce9e9859f52036533c7ee",
       "sourceSha256": "4a5bcfd9ec774d352f04bd2fdc39333e0825641710b7ae63b919d42f0de597a1",
-      "portedSha256": "4c8ffc970a2cde3e51c72e39ec88c1d8574eedee1d104d627b8c70b839b12092",
+      "portedSha256": "e29c67cd9ae3ad8761fb0d8a891aa00beaa4c6856f97142ba9272375a8849211",
       "changed": true
     },
     {
@@ -87,7 +87,7 @@
       "destination": "packages/battle/src/v4/phase/AddMarkPhase.ts",
       "sourceBlob": "6d9161d9063befd22dd709503b947d19beb4d808",
       "sourceSha256": "c53a6bed97412c9ddcd157ad496d0cb0aba7abb9fff74c6025d6e3903357122c",
-      "portedSha256": "caa9ad06e865b8c026005811c4514c2170867b2af4416a512d960b90ed3aadc3",
+      "portedSha256": "2c55383179f49ad6a80de84fd36c1dc432282bc7dd3b32525b2fa3814a4b551f",
       "changed": true
     },
     {
