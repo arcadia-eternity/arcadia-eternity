@@ -175,7 +175,7 @@
       "destination": "packages/battle/src/v4/phase/damage.ts",
       "sourceBlob": "8aa22958fb08c035893566db51f543a2f271370a",
       "sourceSha256": "7e4bb7b7d45c462b2d1a98e1a6db8586ca2701da884d8aa01268eb4b2ba457ec",
-      "portedSha256": "7b70264979d0ea516f9581211f2a6ff08d9e32a8a3b264d84274803d3f973e4a",
+      "portedSha256": "85ae310680fa91503abef02a9b495c1fbe291e9f09c5fe2f0d3f9a5b8c942440",
       "changed": true
     },
     {
@@ -247,7 +247,7 @@
       "destination": "packages/battle/src/v4/phase/skill.ts",
       "sourceBlob": "c9caafaaa2e664d778a82aa8823c94479eb1efa7",
       "sourceSha256": "86f6f38264bc07ec9b8e735d2731152aca5b1bc15b7be25f0fcaa55994267fd4",
-      "portedSha256": "e029f9722942cc3978ccff8b3cf1426bdd5f665a1665709e7d9b585f764e9cfd",
+      "portedSha256": "77173699f37f8563a0238db053b018579ae17dc3bd4636cb117f186c24c9645f",
       "changed": true
     },
     {

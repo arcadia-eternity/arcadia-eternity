@@ -145,7 +145,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
 
           const damageContext = new DamageContext(
             context,
-            context.pet,
+            context.skill,
             context.actualTarget,
             context.baseDamage,
             context.damageType,
@@ -162,11 +162,13 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
           // Apply damage
           context.actualTarget.damage(damageContext)
 
-          // Target gains rage from taking damage
-          const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
-          context.actualTarget.owner!.addRage(
-            new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
-          )
+          // A cancelled damage operation must not dispatch damage-derived rage, even with a zero amount.
+          if (damageContext.available) {
+            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
+            context.actualTarget.owner!.addRage(
+              new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
+            )
+          }
         }
 
         battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects

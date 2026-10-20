@@ -2,7 +2,7 @@ import { EffectTrigger, BattleMessageType, DamageType, Element } from '@arcadia-
 import { SynchronousPhase } from './base'
 import { DamageContext } from '../context'
 import type { Battle } from '../battle'
-import { Pet } from '../pet'
+import type { Pet } from '../pet'
 import type { MarkInstance } from '../mark'
 import type { SkillInstance } from '../skill'
 
@@ -33,20 +33,23 @@ export class DamagePhase extends SynchronousPhase<DamageContext> {
   }
 
   protected createContext(): DamageContext {
-    return this.existingContext ?? new DamageContext(
-      this.parentContext,
-      this.source,
-      this.target,
-      this.baseDamage,
-      this.damageType,
-      this.crit,
-      this.effectiveness,
-      this.ignoreShield,
-      this.randomFactor,
-      this.modified,
-      this.minThreshold,
-      this.maxThreshold,
-      this.element,
+    return (
+      this.existingContext ??
+      new DamageContext(
+        this.parentContext,
+        this.source,
+        this.target,
+        this.baseDamage,
+        this.damageType,
+        this.crit,
+        this.effectiveness,
+        this.ignoreShield,
+        this.randomFactor,
+        this.modified,
+        this.minThreshold,
+        this.maxThreshold,
+        this.element,
+      )
     )
   }
 
@@ -63,8 +66,8 @@ export class DamagePhase extends SynchronousPhase<DamageContext> {
  * This function contains the core damage calculation and application logic
  */
 export function executeDamageOperation(context: DamageContext, battle: Battle): void {
-  // Handle damage from pets (skills) vs other sources differently
-  if (context.source instanceof Pet) {
+  // Physical and special damage use the skill-damage lifecycle regardless of source identity.
+  if ([DamageType.Physical, DamageType.Special].includes(context.damageType)) {
     battle.applyEffects(context, EffectTrigger.OnBeforeCalculateDamage)
     context.updateDamageResult()
 
@@ -87,7 +90,7 @@ export function executeDamageOperation(context: DamageContext, battle: Battle): 
       })
     }
   } else {
-    // For non-pet sources (marks, effects), just calculate damage
+    // Effect damage bypasses the skill-damage hooks and shields.
     context.updateDamageResult()
   }
 
@@ -108,8 +111,8 @@ export function executeDamageOperation(context: DamageContext, battle: Battle): 
     damageType: context.damageType,
   })
 
-  // Apply post-damage effects for pet sources
-  if (context.source instanceof Pet) {
+  // Apply post-damage effects for physical and special damage.
+  if ([DamageType.Physical, DamageType.Special].includes(context.damageType)) {
     battle.applyEffects(context, EffectTrigger.PostDamage)
     if (context.crit) {
       battle.applyEffects(context, EffectTrigger.OnCritPostDamage) // Trigger crit post-damage effects

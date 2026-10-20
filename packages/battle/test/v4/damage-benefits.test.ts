@@ -167,7 +167,7 @@ function run(id: Id, native: boolean, kind: 'skill' | 'mark', variant: (typeof v
     owner,
     b.activePet,
     ['threshold', 'late-threshold'].includes(variant) ? 100 : variant === 'below' ? 99 : 101,
-    DamageType.Effect,
+    DamageType.Physical,
     variant !== 'not-crit',
     1,
     variant === 'ignore-shield',
@@ -259,7 +259,7 @@ async function restoredDamage(id: Id, native: boolean, checkpoint: boolean) {
     b.activePet.currentHp = 501
     a.currentRage = 30
     const use = new UseSkillContext(new TurnContext(battle), a, a.activePet, AttackTargetOpinion.opponent, skill)
-    b.activePet.damage(new DamageContext(use, a.activePet, b.activePet, 101, DamageType.Effect, true))
+    b.activePet.damage(new DamageContext(use, a.activePet, b.activePet, 101, DamageType.Physical, true))
     values.push({ hp: a.activePet.currentHp, rage: a.currentRage, targetHp: b.activePet.currentHp })
     expect(battle.phaseManager.getPhasesByState(PhaseState.Failed)).toEqual([])
   }

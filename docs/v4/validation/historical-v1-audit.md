@@ -66,7 +66,7 @@ Seven damage-order definitions pass 112 focused comparisons and 14 full-game/che
 
 The working model and selector metadata now expose the historical currentHitCount initializer of one. Skill execution uses the historical cursor/total loop without resetting the cursor or decrementing multihitResult. The weather candidate now compares against unchanged YAML, and its C07/C10/C13 corrections are withdrawn. See [cursor semantics and evidence](random-weather-application.md).
 
-Inspection of that loop also identifies a separate, unresolved damage boundary: later V1 passes the SkillInstance to DamagePhase and classifies physical/special processing by DamageType; the current port passes the Pet and branches on source instanceof Pet. Later V1 also skips damage-derived rage when its damage context was cancelled. The reproducible audit now includes damage.ts and relevant line references. Restoring the loop alone does not resolve or approve these source/classification/cancellation differences.
+Inspection of that loop identified a separate damage boundary: later V1 passes the SkillInstance to DamagePhase and classifies physical/special processing by DamageType; the imported port passed the Pet and branched on source instanceof Pet. Later V1 also skips damage-derived rage when its damage context was cancelled. These three differences are now reconciled together, with focused evidence recorded below. The reproducible audit includes damage.ts and relevant line references.
 
 ## Action-selection characterization
 
@@ -91,7 +91,7 @@ A further source inspection against `61c349fa7ca35c392b0e751c9238759b02aefcb3` d
 
 The historical operator file contains the configuration, transformation and consumption operations above; historical `config.ts` and `transformation.ts` contain their underlying systems. Current source inspection also confirms those systems remain present. Method presence does not justify copying the old implementations wholesale: for example, the legacy configuration adapter generates IDs from wall-clock time/randomness and has a global/zero fallback for unregistered keys. The native parameter integration must handle these choices explicitly.
 
-A genuine unresolved port difference remains in damage processing: current `phase/damage.ts` branches on `source instanceof Pet`, whereas the pinned later V1 branches on physical/special damage type. The SkillPhase source argument and cancelled-damage rage behavior also require joint reconciliation, as recorded above. A parser-name inventory cannot detect these differences.
+The damage inspection also found method-body differences invisible to a parser-name inventory: damage classification, the SkillPhase source argument and cancelled-damage rage dispatch. The restoration below reconciles these against the pinned later V1.
 
 The initial inventory changed no production registration or runtime; the subsequent consumption restoration below addresses the discovered method-body omission. Existing candidate coverage (including uncommitted candidates) is not evidence that these execution chains have passed end-to-end acceptance.
 
@@ -108,3 +108,9 @@ Restoration validation: 10 dedicated historical checks (including a whitespace-n
 ## Skill-use completion event
 
 Later V1 dispatches EffectTrigger.SkillUseEnd after MarkCleanupPhase in the skill operation's finally block. The imported port emitted the similarly named message without dispatching effects. The event is now restored at the historical position, with native trigger admission and UseSkillContext typing. Early failures before the try block still do not dispatch completion; misses and completed multihit execution do. See [automatic consumption](automatic-stack-consumption.md). The audit now records this dispatch and both source definitions using the trigger.
+
+## Damage lifecycle restoration
+
+The working damage operation now dispatches calculation, shield and post-damage hooks by Physical/Special damage type, independently of whether the source is a Pet, SkillInstance or MarkInstance. Effect damage retains OnDamage and the damage message but bypasses those skill-damage hooks. SkillPhase supplies its SkillInstance as the source, and cancelled damage does not dispatch damage-derived rage. A normally completed zero-damage operation still dispatches the zero-valued rage event. The existing explicit cancellation result of zero is retained.
+
+`historical-damage-lifecycle.test.ts` covers 36 source/type/variant combinations with ordered hooks and messages, source identity and HP assertions, plus three real SkillPhase cases. The two public-bundle runs pass 1,872 checks across seven suites: historical lifecycle, historical fixes, vital operators, damage/rage sequence, snapshots, damage benefits and damage modifiers. Existing benefit fixtures now explicitly use Physical damage when testing physical-damage hooks; Effect bypass behavior remains independently asserted in the new matrix. The source assertion in the real skill rage probe now expects the actual SkillInstance. No production YAML was changed. These focused checks do not establish full-game equivalence for every affected candidate.

@@ -194,7 +194,8 @@ function run(native: boolean, kind: 'skill' | 'mark', variant: (typeof variants)
       defineNativeEffect({
         id: 'fixture/rage-damage-probe' as effectId,
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        when: c => c.parent instanceof DamageContext && c.parent.source === a.activePet,
+        when: c =>
+          c.parent instanceof DamageContext && c.parent.source === (variant === 'skill-phase' ? skill : a.activePet),
         apply() {
           reached++
         },

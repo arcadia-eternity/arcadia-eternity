@@ -2,6 +2,7 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   BaseSkill,
   DamageContext,
+  DamageType,
   RageContext,
   Effect,
   type effectId,
@@ -115,7 +116,7 @@ it('sets rejected damage to zero and retains the caller context', () => {
       0,
     ),
   )
-  const ctx = new DamageContext(context(battle), b.activePet, a.activePet, 30)
+  const ctx = new DamageContext(context(battle), b.activePet, a.activePet, 30, DamageType.Physical)
   const hp = a.activePet.currentHp
   a.activePet.damage(ctx)
   expect(a.activePet.currentHp).toBe(hp)
