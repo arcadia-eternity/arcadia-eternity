@@ -228,6 +228,22 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_mark_dingshizhadan_on_duration_end_deal_damage_50",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/160",
+      "definitionSha256": "4674ae32b62e1325e300928f5250bf04107d1a2502b8c729de6819c7f4d9cea4",
+      "recipe": {
+        "id": "effect_mark_dingshizhadan_on_duration_end_deal_damage_50",
+        "trigger": "OnMarkDurationEnd",
+        "priority": 0,
+        "when": "conditions.ownerIsActive",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.dealDamage(50))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_mark_fantan_reflect_damage_1_3",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/159",
@@ -241,6 +257,27 @@
           {
             "sourcePath": "/apply",
             "code": "targets.opponentActive.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first().map(n => Math.floor(n * 0.33))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_heal_all_hp_on_expire",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/72",
+      "definitionSha256": "e0eca0ea06fe49005f328f093afcd283d5daa9686a80491d04a697dd3318d052",
+      "recipe": {
+        "id": "effect_mark_heal_all_hp_on_expire",
+        "trigger": "OnMarkDurationEnd",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first()))"
           }
         ],
         "repairedPaths": []
@@ -301,6 +338,38 @@
             "code": "targets.opponentActive.apply(ops.dealDamage(values.combine(contexts.damage.select(event => event.damageResult).first(),targets.ownerPet.select(pet => pet.stat.maxHp).all(),(n,limits) => Math.min(n,limits[0] ?? 0))))"
           }
         ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_self_damage_on_expire",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/28",
+      "definitionSha256": "299532649938023bfbdfd21cb5f82e138879409e983790e73759e6c971ec0a16",
+      "recipe": {
+        "id": "effect_mark_self_damage_on_expire",
+        "trigger": "OnMarkDurationEnd",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.dealDamage(300))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_shijianzhadan_on_duration_end_deal_damage_50",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/161",
+      "definitionSha256": "4fa34b391d6408e563b684f273dfd92a0cb6b5f3c8637a9a585b24d11fa37fc0",
+      "recipe": {
+        "id": "effect_mark_shijianzhadan_on_duration_end_deal_damage_50",
+        "trigger": "OnMarkDurationEnd",
+        "priority": 0,
+        "when": "conditions.ownerIsActive",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.dealDamage(100))" }],
         "repairedPaths": []
       },
       "classification": "U",
@@ -758,20 +827,6 @@
       "reason": "condition needs a separate mapping"
     },
     {
-      "id": "effect_mark_dingshizhadan_on_duration_end_deal_damage_50",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/160",
-      "definitionSha256": "4674ae32b62e1325e300928f5250bf04107d1a2502b8c729de6819c7f4d9cea4",
-      "reason": "unsupported trigger"
-    },
-    {
-      "id": "effect_mark_heal_all_hp_on_expire",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/72",
-      "definitionSha256": "e0eca0ea06fe49005f328f093afcd283d5daa9686a80491d04a697dd3318d052",
-      "reason": "unsupported definition fields"
-    },
-    {
       "id": "effect_mark_reduce_opponent_rage_15_if_damage_below_75",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/169",
@@ -784,20 +839,6 @@
       "sourcePath": "/150",
       "definitionSha256": "b7c051eadd759e3037ca6db175cf9b1488ac4f0c64698ccb81e0efd900aef2da",
       "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_mark_self_damage_on_expire",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/28",
-      "definitionSha256": "299532649938023bfbdfd21cb5f82e138879409e983790e73759e6c971ec0a16",
-      "reason": "unsupported definition fields"
-    },
-    {
-      "id": "effect_mark_shijianzhadan_on_duration_end_deal_damage_50",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/161",
-      "definitionSha256": "4fa34b391d6408e563b684f273dfd92a0cb6b5f3c8637a9a585b24d11fa37fc0",
-      "reason": "unsupported trigger"
     },
     {
       "id": "effect_skill_heal_quarter_if_guanghuilingyu",

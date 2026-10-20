@@ -214,6 +214,15 @@ export function createGeneratedVitalActions() {
         ),
       }),
     ),
+    effect_mark_dingshizhadan_on_duration_end_deal_damage_50: compileEffect(
+      defineEffect({
+        id: 'effect_mark_dingshizhadan_on_duration_end_deal_damage_50',
+        on: 'OnMarkDurationEnd',
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: actions.sequence(targets.ownerPet.apply(ops.dealDamage(50))),
+      }),
+    ),
     effect_mark_fantan_reflect_damage_1_3: compileEffect(
       defineEffect({
         id: 'effect_mark_fantan_reflect_damage_1_3',
@@ -229,6 +238,17 @@ export function createGeneratedVitalActions() {
                 .map(n => Math.floor(n * 0.33)),
             ),
           ),
+        ),
+      }),
+    ),
+    effect_mark_heal_all_hp_on_expire: compileEffect(
+      defineEffect({
+        id: 'effect_mark_heal_all_hp_on_expire',
+        on: 'OnMarkDurationEnd',
+        priority: 0,
+        when: () => true,
+        execute: actions.sequence(
+          targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first())),
         ),
       }),
     ),
@@ -282,6 +302,24 @@ export function createGeneratedVitalActions() {
             ),
           ),
         ),
+      }),
+    ),
+    effect_mark_self_damage_on_expire: compileEffect(
+      defineEffect({
+        id: 'effect_mark_self_damage_on_expire',
+        on: 'OnMarkDurationEnd',
+        priority: 0,
+        when: () => true,
+        execute: actions.sequence(targets.ownerPet.apply(ops.dealDamage(300))),
+      }),
+    ),
+    effect_mark_shijianzhadan_on_duration_end_deal_damage_50: compileEffect(
+      defineEffect({
+        id: 'effect_mark_shijianzhadan_on_duration_end_deal_damage_50',
+        on: 'OnMarkDurationEnd',
+        priority: 0,
+        when: conditions.ownerIsActive,
+        execute: actions.sequence(targets.ownerPet.apply(ops.dealDamage(100))),
       }),
     ),
     effect_mark_turn_damage: compileEffect(

@@ -24,7 +24,7 @@ export function classifySequence(original, profile) {
       'id',
       'trigger',
       'priority',
-      'condition',
+      ...(!profile.optionalCondition || 'condition' in d ? ['condition'] : []),
       'apply',
       ...['tags', 'consumesStacks'].filter(k => Object.hasOwn(d, k)),
     ]) ||
@@ -57,7 +57,12 @@ export function classifySequence(original, profile) {
     return { reason: 'order correction needs an exact source mapping' }
   const domain = profile.domain ?? (d.trigger === 'OnDamage' ? 'damage' : 'skill')
   const parameters = []
-  const when = condition(d.condition, domain, parameters, 'condition', sequenceConditionOptions)
+  const when =
+    'condition' in d
+      ? condition(d.condition, domain, parameters, 'condition', sequenceConditionOptions)
+      : profile.optionalCondition
+        ? '() => true'
+        : undefined
   if (!when || parameters.length) return { reason: 'condition needs a separate mapping' }
   const actions = sourceActions.map((a, i) => ({
     sourcePath: profile.singleAction ? '/apply' : `/apply/${i}`,

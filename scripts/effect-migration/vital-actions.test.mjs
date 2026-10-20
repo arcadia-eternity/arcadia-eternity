@@ -32,7 +32,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
     d => (d.apply = [d.apply]),
     d => (d.apply.extra = true),
     d => (d.apply.value.selector.chain[1].arg = { type: 'raw:number', value: 8 }),
-    d => (d.trigger = 'OnMarkDurationEnd'),
+    d => (d.trigger = 'BattleStart'),
   ]) {
     const d = source()
     mutate(d)
@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 38, rejected: 12, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 42, rejected: 8, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')
@@ -146,4 +146,13 @@ test('stat-path corrections and paired hit triggers remain exact', () => {
       assert.ok(classifyVitalAction(changed).reason)
     }
   }
+})
+
+test('expiry supports missing conditions but does not erase malformed ones', () => {
+  const d = source()
+  d.trigger = 'OnMarkDurationEnd'
+  delete d.condition
+  assert.equal(classifyVitalAction(d).when, '() => true')
+  d.condition = null
+  assert.ok(classifyVitalAction(d).reason)
 })

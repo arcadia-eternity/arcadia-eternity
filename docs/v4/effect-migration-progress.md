@@ -243,3 +243,9 @@ All 1,258 public single-vital checks, 113 generator tests, 75 design tests, V4 t
 Two named C09 candidates correct dynamic Pet attribute paths to stat.spa/stat.def, then preserve spa/6 miss damage and def/4 hit-or-miss healing. The latter remains one multi-trigger effect. The single-vital catalog now contains 38 emitted, 12 rejected and 27 retained definitions; all prior records reproduce unchanged.
 
 All 1,336 public single-vital checks, 114 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. Original parse failures, exact repair guards, distinct stats, nondivisible inputs, late changes and actual hit/miss SkillPhase amounts are covered. See [attribute-derived evidence](validation/vital-actions.md). These remain correction candidates pending full-game/checkpoint and production gates.
+
+## Mark expiration actions (2026-10-20)
+
+Four OnMarkDurationEnd candidates retain action-before-removal semantics: unconditional 300 self-damage and full healing, plus active-owner bomb damage of 50/100. Missing conditions are supported through an explicit profile option; malformed present conditions remain rejected. The single-vital catalog now contains 42 emitted, 8 rejected and 27 retained entries. No runtime or production-loading change is included.
+
+All 1,472 public single-vital checks, 115 generator tests, 75 design tests, types/lint, declarations and provenance pass. Actual MarkUpdatePhase tests cover late values, cancellation with cleanup, inactive owners, duration/persistent non-expiry, repeated update and independent final HP. See [expiration evidence](validation/vital-actions.md). Full-game/checkpoint and production gates remain pending.

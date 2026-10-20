@@ -20,6 +20,7 @@ import {
   HealContext,
   RageContext,
   DamagePhase,
+  MarkUpdatePhase,
   SkillPhase,
   DamageType,
   AttackTargetOpinion,
@@ -40,7 +41,7 @@ interface SourceDefinition {
   id: string
   trigger: string | string[]
   apply?: { value: { selector: { chain: { arg: { arg: string } }[] } } }
-  condition: { conditions?: { target?: { base: string } }[] }
+  condition?: { conditions?: { target?: { base: string } }[] }
 }
 const definitions = new Map<string, SourceDefinition>()
 for (const name of ['global', 'ability', 'emblem', 'mark', 'skill'])
@@ -53,13 +54,17 @@ const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
   ledger.records.map((r: { id: Id }) => {
     const d = structuredClone(definitions.get(r.id)!)
     if (r.id === 'effect_skill_heal_half_damage_dealt_if_3_hits')
-      d.condition.conditions![1].target!.base = 'usingSkillContext'
+      d.condition!.conditions![1].target!.base = 'usingSkillContext'
     if (r.id === 'effect_skill_deal_damage_spa_sixth_on_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.spa'
     if (r.id === 'effect_skill_heal_self_def_quarter_hit_or_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.def'
     return [r.id, EffectParser.parse(d)]
   }),
 )
 const expected: Record<Id, number> = {
+  effect_mark_dingshizhadan_on_duration_end_deal_damage_50: 50,
+  effect_mark_shijianzhadan_on_duration_end_deal_damage_50: 100,
+  effect_mark_self_damage_on_expire: 300,
+  effect_mark_heal_all_hp_on_expire: 2001,
   effect_skill_deal_damage_spa_sixth_on_miss: 101,
   effect_skill_heal_self_def_quarter_hit_or_miss: 101,
   effect_skill_heal_70_double_if_field_yemu: 140,
@@ -149,6 +154,10 @@ function run(
     trackBranchReads?: boolean
     trigger?: 'OnHit' | 'OnMiss'
     attribute?: number
+    expire?: boolean
+    duration?: number
+    persistent?: boolean
+    repeatExpiry?: boolean
     branchParameters?: { yes: number; no: number }
     lateBranchParameters?: { yes: number; no: number }
   } = {},
@@ -189,6 +198,7 @@ function run(
   const mark = new BaseMark('fixture/vital-action' as baseMarkId, [], {
     ...debuff.config,
     duration: -1,
+    persistent: options.persistent ?? false,
     maxStacks: 20,
   }).createInstance()
   mark.setOwner(a.activePet, battle.emitter)
@@ -240,7 +250,7 @@ function run(
     }
   }
   if (variant === 'missing-support') removeSupports()
-  const defensive = JSON.stringify(d.condition).includes('selfBeDamaged'),
+  const defensive = JSON.stringify(d.condition ?? {}).includes('selfBeDamaged'),
     attacker = defensive ? b : a,
     victim = defensive ? a : b
   const turn = new TurnContext(battle),
@@ -343,8 +353,18 @@ function run(
     executeTurnOperation(turn, battle)
     const actors = turn.appledContexts.filter((c): c is UseSkillContext => c instanceof UseSkillContext).map(c => c.pet)
     expect(actors).toEqual(variant === 'turn-first' ? [a.activePet, b.activePet] : [b.activePet, a.activePet])
-  } else if (variant === 'phase') {
-    if (trigger === 'TurnEnd') {
+  } else if (variant === 'phase' || options.expire) {
+    if (trigger === 'OnMarkDurationEnd') {
+      mark.duration = options.duration ?? 1
+      const p = new MarkUpdatePhase(battle, turn, mark)
+      p.initialize()
+      p.execute()
+      if (options.repeatExpiry) {
+        const again = new MarkUpdatePhase(battle, turn, mark)
+        again.initialize()
+        again.execute()
+      }
+    } else if (trigger === 'TurnEnd') {
       a.selection = { player: a.id, type: 'do-nothing' }
       b.selection = { player: b.id, type: 'do-nothing' }
       executeTurnOperation(turn, battle)
@@ -360,13 +380,20 @@ function run(
       p.execute()
     }
   } else {
-    const parent = trigger === 'TurnEnd' ? turn : ['OnHit', 'OnMiss', 'BeforeHit'].includes(trigger) ? use : damage
+    const parent = ['TurnEnd', 'OnMarkDurationEnd'].includes(trigger)
+      ? turn
+      : ['OnHit', 'OnMiss', 'BeforeHit'].includes(trigger)
+        ? use
+        : damage
     const event = variant === 'nested' ? new EffectContext(parent, EffectTrigger.BeforeEffect, source) : parent
     battle.applyEffects<EffectTrigger>(event, EffectTrigger[trigger as keyof typeof EffectTrigger], source)
     if (variant === 'repeat')
       battle.applyEffects<EffectTrigger>(event, EffectTrigger[trigger as keyof typeof EffectTrigger], source)
   }
   return {
+    markActive: mark.isActive,
+    markHasOwner: mark.owner !== null,
+    duration: mark.duration,
     branchReads,
     admitted,
     events,
@@ -399,7 +426,9 @@ for (const id of Object.keys(expected) as Id[]) {
     if (r.recipe.repairedPaths.length || r.recipe.pathRepairs) expect(() => EffectParser.parse(d)).toThrow()
   })
   for (const kind of ['skill', 'mark'] as const)
-    for (const variant of variants)
+    for (const variant of variants.filter(
+      v => !(v === 'phase' && kind === 'skill' && definitions.get(id)!.trigger === 'OnMarkDurationEnd'),
+    ))
       it(`${id} ${kind} ${variant}`, () => {
         const actual = run(id, true, kind, variant)
         expect(actual).toEqual(run(id, false, kind, variant))
@@ -614,5 +643,51 @@ for (const [id, stat, triggers, divisor] of [
         })
       }
     }
+  }
+}
+
+for (const id of [
+  'effect_mark_dingshizhadan_on_duration_end_deal_damage_50',
+  'effect_mark_shijianzhadan_on_duration_end_deal_damage_50',
+  'effect_mark_self_damage_on_expire',
+  'effect_mark_heal_all_hp_on_expire',
+] as const) {
+  for (const variant of ['normal', 'late-value', 'cancel', 'inactive'] as const) {
+    it(`expiry lifecycle ${id}/${variant}`, () => {
+      const options = { expire: true, repeatExpiry: true }
+      const actual = run(id, true, 'mark', variant, options)
+      expect(actual).toEqual(run(id, false, 'mark', variant, options))
+      const admitted =
+        variant !== 'inactive' ||
+        id === 'effect_mark_self_damage_on_expire' ||
+        id === 'effect_mark_heal_all_hp_on_expire'
+      expect(actual.admitted).toBe(Number(admitted))
+      expect(actual.events.map(e => e.amount)).toEqual(
+        admitted && variant !== 'cancel'
+          ? [id === 'effect_mark_heal_all_hp_on_expire' && variant === 'late-value' ? 1001 : expected[id]]
+          : [],
+      )
+      const expectedHp =
+        !admitted || variant === 'cancel' || (variant === 'inactive' && id === 'effect_mark_heal_all_hp_on_expire')
+          ? 500
+          : id === 'effect_mark_heal_all_hp_on_expire'
+            ? variant === 'late-value'
+              ? 1001
+              : 2001
+            : 500 - expected[id]
+      expect(actual.hp[0]).toBe(expectedHp)
+      expect(actual.markActive).toBe(false)
+      expect(actual.markHasOwner).toBe(false)
+    })
+  }
+  for (const options of [{ duration: 2 }, { duration: 1, persistent: true }]) {
+    it(`nonexpired mark ${id}/${JSON.stringify(options)}`, () => {
+      const actual = run(id, true, 'mark', 'normal', { ...options, expire: true })
+      expect(actual).toEqual(run(id, false, 'mark', 'normal', { ...options, expire: true }))
+      expect(actual.admitted).toBe(0)
+      expect(actual.events).toEqual([])
+      expect(actual.markActive).toBe(true)
+      expect(actual.markHasOwner).toBe(true)
+    })
   }
 }
