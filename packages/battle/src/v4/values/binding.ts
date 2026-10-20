@@ -4,9 +4,10 @@ import { derived, ReactiveValue, describeValue, checkValueRead, getValueRecipe }
 import { Modifier, DurationType } from '../attributeSystem'
 import type { MarkInstance } from '../mark'
 import { Pet } from '../pet'
+import type { SkillInstance } from '../skill'
 import type { StatTypeOnBattle } from '@arcadia-eternity/const'
 import { Evaluation, emptyBindingState, BindingStateError, type ValueDefinition, type BindingState } from './plan'
-import { traceReads, type BindingTarget } from './dependencies'
+import { traceReads, bindingEntity, bindingOwner, type BindingTarget } from './dependencies'
 import { describeCleanup, getModifierCleanup } from '../snapshotBindings'
 
 /** Recoverable absence; unlike invalid plans this may wait for a structural update. */
@@ -76,8 +77,9 @@ export function bindValue<A>(
   restoring = false,
   allowInitialMissing = false,
 ): BoundValue {
-  if (!target.pet.attributeSystem.hasAttribute(target.attribute)) throw new Error('Invalid binding target attribute')
-  const battle = target.pet.owner?.battle
+  if (!bindingEntity(target).attributeSystem.hasAttribute(target.attribute))
+    throw new Error('Invalid binding target attribute')
+  const battle = bindingOwner(target)?.owner?.battle
   if (!battle) throw new Error('Value binding requires a Battle')
   const plan = definition.build(args)
   const dependencies = new Set<ReactiveValue<unknown>>()
@@ -182,13 +184,13 @@ export function validateBindingState(input: unknown): asserts input is BindingSt
   }
 }
 export interface InstallValueModifier<A> {
+  target: Pet | SkillInstance
+  attribute: `${StatTypeOnBattle}` | 'power' | 'rage' | 'priority'
   definition: ValueDefinition<A>
   args: A
   source: MarkInstance
   effectId: string
   bindingKey: string
-  target: Pet
-  attribute: `${StatTypeOnBattle}`
   operation: 'delta' | 'override' | 'percent'
   priority?: number
   /** Append independent contributions; replacement remains the default. */
@@ -225,15 +227,13 @@ export function installValueModifier<A>(options: InstallValueModifier<A>): Value
   if (options.definition.source && options.definition.source(options.args) !== options.source)
     throw new Error('Invalid bound contribution source')
   const sourceBattle = options.source.owner instanceof Pet ? options.source.owner.owner?.battle : options.source.owner
-  if (!sourceBattle || options.target.owner?.battle !== sourceBattle) throw new Error('Cross-battle value binding')
-  const bound = bindValue(
-    options.definition,
-    options.args,
-    { pet: options.target, attribute: options.attribute },
-    undefined,
-    false,
-    options.allowInitialMissing,
-  )
+  const target: BindingTarget =
+    options.target instanceof Pet
+      ? { pet: options.target, attribute: options.attribute }
+      : { skill: options.target, attribute: options.attribute }
+  if (!sourceBattle || bindingOwner(target)?.owner?.battle !== sourceBattle)
+    throw new Error('Cross-battle value binding')
+  const bound = bindValue(options.definition, options.args, target, undefined, false, options.allowInitialMissing)
   const id = JSON.stringify([
     options.source.id,
     options.effectId,

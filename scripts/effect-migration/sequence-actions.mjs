@@ -78,6 +78,10 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
       return
     const selected = skillSelection(a.target)
     if (!selected) return
+    if (trigger === 'OnMarkCreated' && fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic') {
+      const binding = stackBinding(a.value.selector, parameters, path, domain)
+      if (binding) return bindStackAttribute(selected, a.attribute, a.modifierType, binding, path, 'bindSkillAttribute')
+    }
     const value = number(a.value, parameters, path, domain)?.code
     if (!value) return
     return `${selected}.apply(ops.addSkillAttributeModifier(${JSON.stringify(a.attribute)},${JSON.stringify(a.modifierType)},${value},{lifetime:"sourceMarkOrTargetSkill"}))`

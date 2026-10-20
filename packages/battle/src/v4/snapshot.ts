@@ -41,7 +41,7 @@ import {
 } from './reactiveValue'
 import { getCleanupBinding, getModifierCleanup, describeCleanup } from './snapshotBindings'
 import { bindValue, RestoredBoundValue, validateBindingState, type BoundValue } from './values/binding'
-import type { BindingTarget } from './values/dependencies'
+import { bindingEntity, bindingOwner, type BindingTarget } from './values/dependencies'
 import type { ValueDefinition, BindingState } from './values/plan'
 import { initializeOwnerRelations, initializePetRelations, initializePlayerRelations } from './values/relations'
 
@@ -205,8 +205,10 @@ function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
         typeof recipe.key !== 'string' ||
         !recipe.target ||
         typeof recipe.target !== 'object' ||
-        !('pet' in recipe.target) ||
-        !(recipe.target.pet instanceof Pet) ||
+        !(
+          ('pet' in recipe.target && !('skill' in recipe.target) && recipe.target.pet instanceof Pet) ||
+          ('skill' in recipe.target && !('pet' in recipe.target) && recipe.target.skill instanceof SkillInstance)
+        ) ||
         !('attribute' in recipe.target) ||
         typeof recipe.target.attribute !== 'string'
       )
@@ -650,16 +652,19 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
           const recipe = getValueRecipe(modifier.value)
           if (recipe?.type !== 'bound') continue
           const target = recipe.target as BindingTarget
+          const entity = bindingEntity(target)
+          const targetOwner = bindingOwner(target)
           const source = modifier.source
           const owner = source?.owner
           const players = [battle.playerA, battle.playerB]
           if (
             ownedValues.has(modifier.value) ||
-            target.pet.attributeSystem !== object ||
+            entity.attributeSystem !== object ||
             target.attribute !== key ||
-            !target.pet.owner ||
-            !players.includes(target.pet.owner) ||
-            !target.pet.owner.team.includes(target.pet) ||
+            !targetOwner?.owner ||
+            !players.includes(targetOwner.owner) ||
+            !targetOwner.owner.team.includes(targetOwner) ||
+            (entity instanceof SkillInstance && !targetOwner.skills.includes(entity)) ||
             !(source instanceof MarkInstanceImpl) ||
             !owner ||
             !owner.marks.includes(source) ||

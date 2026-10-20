@@ -294,14 +294,18 @@ export declare const ops: {
   }) => Operator<Pet>
   readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
   readonly assign: (value: NumericInput) => Operator<WritableRef<number>>
-  readonly bindAttribute: (options: {
-    key: string
-    attribute: keyof PetAttributes
-    operation: 'delta' | 'percent' | 'override'
-    value: BindingValue<number, Presence>
-    /** Replace the existing contribution by default; append preserves repeated installations. */
-    stacking?: 'replace' | 'append'
-    lifetime: 'sourceMark'
-    missing: 'detach'
-  }) => Operator<Pet>
+  readonly bindAttribute: (options: AttributeBindingOptions<keyof PetAttributes>) => Operator<Pet>
+  readonly bindSkillAttribute: (
+    options: AttributeBindingOptions<'power' | 'accuracy' | 'rage' | 'priority'>,
+  ) => Operator<SkillInstance>
+}
+export interface AttributeBindingOptions<A extends string> {
+  key: string
+  attribute: A
+  operation: 'delta' | 'percent' | 'override'
+  value: BindingValue<number, Presence>
+  /** Replace the existing contribution by default; append preserves repeated installations. */
+  stacking?: 'replace' | 'append'
+  lifetime: 'sourceMark'
+  missing: 'detach'
 }

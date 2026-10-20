@@ -121,6 +121,34 @@ export function createGeneratedSkillContributions() {
         ),
       }),
     ),
+    effect_mark_amplify_power_20x_stack: compileEffect(
+      defineEffect({
+        id: 'effect_mark_amplify_power_20x_stack',
+        on: 'OnMarkCreated',
+        priority: 0,
+        when: () => true,
+        execute: actions.sequence(
+          targets.selfSkills
+            .where(skill => (skill.category as string) !== 'Status')
+            .apply(
+              ops.bindSkillAttribute({
+                key: 'action0_value_binding',
+                attribute: 'power',
+                operation: 'delta',
+                value: targets.sourceMark
+                  .first()
+                  .capture({ key: 'source', scope: 'binding' })
+                  .attribute('stack')
+                  .follow({ key: 'stack' })
+                  .map(stack => Math.floor(stack * 20)),
+                stacking: 'append',
+                lifetime: 'sourceMark',
+                missing: 'detach',
+              }),
+            ),
+        ),
+      }),
+    ),
     effect_mark_anyingzhiguang_power_min_100: compileEffect(
       defineEffect({
         id: 'effect_mark_anyingzhiguang_power_min_100',

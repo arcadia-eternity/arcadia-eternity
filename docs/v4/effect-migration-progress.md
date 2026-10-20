@@ -341,3 +341,9 @@ The 343 public regression checks include fresh-factory JSON checkpoints for ever
 Thirteen static skill contribution candidates now preserve dedicated legacy source binding through an explicit lifetime option. Source-skill identity and fresh skill filtering are reusable. The live stack-to-skill-power definition remains rejected until persistent bindings support skill targets.
 
 All 605 public regression tests, 156 generator tests, 75 design tests, scoped types/lint, declarations and provenance pass; both review axes pass. Checkpoints cover every new candidate with both Mark and Skill sources and assert restored contribution identity. See [skill contribution evidence](validation/skill-contributions.md). Full-game and production gates remain open.
+
+## Live skill contribution (2026-10-20)
+
+The remaining stack-to-skill-power candidate now uses a shared persistent installer with Skill targets. Source identity is captured, stack follows, each application requeries skills, and repeated applications append independent contributions. Pet snapshot recipes keep their existing shape; Skill recipes receive ownership and dependency checks.
+
+All 266 distinct scoped public tests, 157 generator tests and 75 design runtime tests pass, along with battle types/lint, declarations and provenance. The separate design-directory typecheck exposes an existing nested-context error at `runtime.test.ts:1491`; new skill binding type assertions pass. The skill contribution ledger now has 14 generated / 0 rejected entries. See [skill contribution evidence](validation/skill-contributions.md). Full-game and production admission remain open.

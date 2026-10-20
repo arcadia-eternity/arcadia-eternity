@@ -191,6 +191,27 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_mark_amplify_power_20x_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/122",
+      "definitionSha256": "1ebccb962ba2c74a20c91c5f5ab6b08d5c9c8177e1dbb50a5ef95b685f1732c3",
+      "recipe": {
+        "id": "effect_mark_amplify_power_20x_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.category as string) !== \"Status\").apply(ops.bindSkillAttribute({key:\"action0_value_binding\",attribute:\"power\",operation:\"delta\",value:targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}).map(stack => Math.floor(stack*20)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_mark_anyingzhiguang_power_min_100",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/104",
@@ -275,13 +296,5 @@
       "status": "generated-candidate"
     }
   ],
-  "rejected": [
-    {
-      "id": "effect_mark_amplify_power_20x_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/122",
-      "definitionSha256": "1ebccb962ba2c74a20c91c5f5ab6b08d5c9c8177e1dbb50a5ef95b685f1732c3",
-      "reason": "unsupported sequence action or parameter"
-    }
-  ]
+  "rejected": []
 }

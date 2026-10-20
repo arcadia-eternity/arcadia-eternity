@@ -27,6 +27,6 @@ export function stackBinding(query, parameters, path, domain) {
   if (operand.literal) return `${stack}.map(stack => ${expression.replaceAll('factor', operand.code)})`
   return `bindings.combine(${stack},${operand.code}.capture({key:"factor",scope:"binding"}),(stack,factor)=>${expression})`
 }
-export function bindStackAttribute(selected, stat, operation, value, path) {
-  return `${selected}.apply(ops.bindAttribute({key:${JSON.stringify(`${path}_binding`)},attribute:${JSON.stringify(stat)},operation:${JSON.stringify(operation)},value:${value},stacking:"append",lifetime:"sourceMark",missing:"detach"}))`
+export function bindStackAttribute(selected, stat, operation, value, path, operator = 'bindAttribute') {
+  return `${selected}.apply(ops.${operator}({key:${JSON.stringify(`${path}_binding`)},attribute:${JSON.stringify(stat)},operation:${JSON.stringify(operation)},value:${value},stacking:"append",lifetime:"sourceMark",missing:"detach"}))`
 }

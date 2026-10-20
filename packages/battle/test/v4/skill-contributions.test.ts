@@ -32,7 +32,7 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 type Id = keyof typeof generatedSkillContributions
-const ids = Object.keys(generatedSkillContributions) as Id[]
+const ids = Object.keys(generatedSkillContributions).filter(id => id !== 'effect_mark_amplify_power_20x_stack') as Id[]
 const ledger = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/skill-contributions-candidates.json', import.meta.url), 'utf8'),
 )

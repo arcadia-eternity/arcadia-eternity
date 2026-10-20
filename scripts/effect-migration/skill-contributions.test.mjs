@@ -13,8 +13,8 @@ const source = () => ({
     value: 20,
   },
 })
-test('emits thirteen static skill contributions and rejects one live skill binding', async () =>
-  assert.deepEqual(await generateSkillContributions({ check: true }), { generated: 13, rejected: 1 }))
+test('emits thirteen static and one live skill contribution', async () =>
+  assert.deepEqual(await generateSkillContributions({ check: true }), { generated: 14, rejected: 0 }))
 test('uses explicit target-skill fallback lifetime', () =>
   assert.match(classifySkillContributions(source()).actions[0].code, /lifetime:"sourceMarkOrTargetSkill"/))
 test('rejects unsupported fields and malformed selection chains', () => {
@@ -32,11 +32,19 @@ test('rejects unsupported fields and malformed selection chains', () => {
     d =>
       (d.apply.value = {
         type: 'dynamic',
-        selector: { base: 'mark', chain: [{ type: 'selectAttribute$', arg: 'stack' }] },
+        selector: { base: 'mark', chain: [{ type: 'selectAttribute$', arg: 'duration' }] },
       }),
   ]) {
     const d = source()
     mutate(d)
     assert.ok(classifySkillContributions(d).reason)
   }
+})
+
+test('live skill binding preserves stack timing and requires mark-created trigger', () => {
+  const d = source()
+  d.apply.value = { type: 'dynamic', selector: { base: 'mark', chain: [{ type: 'selectAttribute$', arg: 'stack' }] } }
+  assert.match(classifySkillContributions(d).actions[0].code, /ops.bindSkillAttribute/)
+  d.trigger = 'OnBattleStart'
+  assert.ok(classifySkillContributions(d).reason)
 })

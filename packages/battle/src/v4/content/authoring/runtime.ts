@@ -842,31 +842,35 @@ export const ops: typeof C.ops = {
       if (!write) throw new Error('Foreign write reference')
       write.set(n)
     }),
-  bindAttribute: input => {
-    const options = { ...input }
-    const operator: ReturnType<typeof C.ops.bindAttribute> = (ctx, selected) => {
-      const source = engine(ctx)
-      for (const target of selected) assertWriteTarget(ctx, target)
-      if (!(source.source instanceof MarkInstanceImpl)) throw new Error('Binding requires a source mark')
-      const binding = frameBindings.get(ctx)?.get(options.key)
-      if (!binding || binding.value !== options.value) throw new Error('Undeclared authored binding')
-      for (const target of selected)
-        installValueModifier({
-          definition: binding.definition,
-          args: { source: source.source },
-          source: source.source,
-          effectId: source.effect?.id ?? binding.definition.id,
-          bindingKey: options.key,
-          target,
-          attribute: options.attribute,
-          operation: options.operation,
-          allowInitialMissing: true,
-          stacking: options.stacking,
-        })
-    }
-    actionBindings.set(operator, [{ key: options.key, value: options.value }])
-    return operator
-  },
+  bindAttribute: input => bindAttributeOperator<Pet>(input),
+  bindSkillAttribute: input => bindAttributeOperator<SkillInstance>(input),
+}
+function bindAttributeOperator<T extends Pet | SkillInstance>(
+  input: C.AttributeBindingOptions<`${keyof Pet['stat']}` | 'power' | 'rage' | 'priority'>,
+): C.Operator<T> {
+  const options = { ...input }
+  const operator: C.Operator<T> = (ctx, selected) => {
+    const source = engine(ctx)
+    for (const target of selected) assertWriteTarget(ctx, target)
+    if (!(source.source instanceof MarkInstanceImpl)) throw new Error('Binding requires a source mark')
+    const binding = frameBindings.get(ctx)?.get(options.key)
+    if (!binding || binding.value !== options.value) throw new Error('Undeclared authored binding')
+    for (const target of selected)
+      installValueModifier({
+        definition: binding.definition,
+        args: { source: source.source },
+        source: source.source,
+        effectId: source.effect?.id ?? binding.definition.id,
+        bindingKey: options.key,
+        target,
+        attribute: options.attribute,
+        operation: options.operation,
+        allowInitialMissing: true,
+        stacking: options.stacking,
+      })
+  }
+  actionBindings.set(operator, [{ key: options.key, value: options.value }])
+  return operator
 }
 /** Explicit opt-in adapter; does not register examples or change the production catalog. */
 export function compileEffect<T extends C.Trigger, P extends Readonly<Record<string, C.Parameter<unknown>>>>(

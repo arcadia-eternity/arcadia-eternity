@@ -289,3 +289,25 @@ exact<Equal<typeof combinedBinding, BindingValue<number, 'optional'>>>(true)
 bindings.combine(combinedBinding, combinedBinding, () => ({}))
 // @ts-expect-error Immediate values must explicitly select capture or follow first.
 bindings.combine(targets.sourceMark.first(), combinedBinding, () => 1)
+
+const skillBinding = ops.bindSkillAttribute({
+  key: 'skill-power',
+  attribute: 'power',
+  operation: 'delta',
+  value: combinedBinding,
+  stacking: 'append',
+  lifetime: 'sourceMark',
+  missing: 'detach',
+})
+targets.selfSkills.apply(skillBinding)
+// @ts-expect-error Skill bindings cannot write Pet attributes.
+targets.ownerPet.apply(skillBinding)
+ops.bindSkillAttribute({
+  key: 'invalid',
+  // @ts-expect-error Defense belongs to Pet attributes, not skill attributes.
+  attribute: 'def',
+  operation: 'delta',
+  value: combinedBinding,
+  lifetime: 'sourceMark',
+  missing: 'detach',
+})
