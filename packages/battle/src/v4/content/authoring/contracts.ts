@@ -14,6 +14,7 @@ import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { BaseMark, MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
 import type { Player } from '../../player'
+import type { SkillInstance } from '../../skill'
 import type { Battle } from '../../battle'
 
 export type EventMap = { [K in NativeEffectTrigger as `${K}`]: TriggerContextMap[K] }
@@ -129,6 +130,8 @@ export declare function defineEffect<const T extends Trigger, const P extends Pa
 
 export declare const targets: {
   readonly ownerPet: Selector<Pet>
+  readonly selfTeam: Selector<Pet>
+  readonly selfSkills: Selector<SkillInstance>
   /** Direct skill actor owner; otherwise the source pet owner. */
   readonly selfPlayer: Selector<Player>
   /** Direct skill target owner; otherwise the source pet owner's opponent. Requeried on use. */
@@ -216,6 +219,20 @@ type NumericInput = number | Value<number, Presence>
 type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  /** Sample amount then priority separately per target; source marks own cleanup. */
+  readonly addAttributeModifier: (
+    attribute: keyof PetAttributes,
+    operation: 'delta' | 'percent' | 'override',
+    amount: NumericInput,
+    priority?: NumericInput,
+  ) => Operator<Pet>
+  readonly addSkillAttributeModifier: (
+    attribute: 'accuracy' | 'power' | 'rage' | 'priority',
+    operation: 'delta' | 'percent' | 'override',
+    amount: NumericInput,
+    priority?: NumericInput,
+  ) => Operator<SkillInstance>
+
   /** Cancel a pending skill, mark application or outer effect; no rollback of prior writes. */
   readonly disableContext: () => Operator<UseSkillContext | AddMarkContext | EffectContext<EffectTrigger>>
   /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */

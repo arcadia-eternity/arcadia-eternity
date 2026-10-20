@@ -82,3 +82,8 @@ export {
 } from './src/v4/official/event-cancellation.generated'
 
 export { generatedSkillDisabling, createGeneratedSkillDisabling } from './src/v4/official/skill-disabling.generated'
+
+export {
+  generatedAttributeContributions,
+  createGeneratedAttributeContributions,
+} from './src/v4/official/attribute-contributions.generated'

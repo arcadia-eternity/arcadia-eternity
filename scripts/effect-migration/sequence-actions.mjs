@@ -11,6 +11,58 @@ const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss',
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
+  if (a?.type === 'addAttributeModifier') {
+    if (
+      !fields(a, ['type', 'target', 'stat', 'modifierType', 'value']) ||
+      !['delta', 'percent', 'override'].includes(a.modifierType)
+    )
+      return
+    const target = typeof a.target === 'string' ? a.target : fields(a.target, ['base']) ? a.target.base : undefined
+    let selected,
+      operation = 'addAttributeModifier'
+    if (
+      ['self', 'selfTeam'].includes(target) &&
+      ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion', 'critRate', 'ragePerTurn', 'weight'].includes(a.stat)
+    )
+      selected = target === 'self' ? 'targets.ownerPet' : 'targets.selfTeam'
+    else if (
+      fields(a.target, ['base', 'chain']) &&
+      a.target.base === 'selfSkills' &&
+      Array.isArray(a.target.chain) &&
+      a.stat === 'accuracy' &&
+      a.target.chain.length === 1
+    ) {
+      const step = a.target.chain[0],
+        extractor = step?.extractor,
+        evaluator = step?.evaluator
+      if (
+        !fields(step, ['type', 'extractor', 'evaluator']) ||
+        step.type !== 'whereAttr' ||
+        !fields(extractor, ['type', 'arg']) ||
+        extractor.type !== 'base'
+      )
+        return
+      if (
+        extractor.arg === 'baseId' &&
+        fields(evaluator, ['type', 'value']) &&
+        evaluator.type === 'same' &&
+        typeof evaluator.value === 'string'
+      )
+        selected = `targets.selfSkills.where(skill => skill.baseId === ${JSON.stringify(evaluator.value)})`
+      if (
+        extractor.arg === 'tags' &&
+        fields(evaluator, ['type', 'tag']) &&
+        evaluator.type === 'contain' &&
+        typeof evaluator.tag === 'string'
+      )
+        selected = `targets.selfSkills.where(skill => skill.tags.includes(${JSON.stringify(evaluator.tag)}))`
+      operation = 'addSkillAttributeModifier'
+    }
+    if (!selected) return
+    const value = number(a.value, parameters, path, domain)?.code
+    if (!value) return
+    return `${selected}.apply(ops.${operation}(${JSON.stringify(a.stat)},${JSON.stringify(a.modifierType)},${value}))`
+  }
   if (a?.type === 'stun') {
     if (!fields(a, ['type', 'target']) || a.target !== 'usingSkillContext') return
     return 'contexts.skillUse.apply(ops.disableContext())'

@@ -317,3 +317,9 @@ The 238 public tests, 142 generator tests, 75 design tests, scoped types/lint, d
 Four stun/taunt candidates reuse the cancellation operation for skill-use contexts. All C07 spelling repairs are independently checked. Direct ownership, current context category, probability short-circuiting and pre-rage cancellation timing remain intact, including earlier skill appearance/use-count tracking.
 
 All 464 public regression tests, 145 generator tests, 75 design tests, scoped types/lint, declarations and provenance pass. Both review axes pass. See [skill disabling evidence](validation/skill-disabling.md). Candidates remain U pending complete-game/checkpoint and production gates.
+
+## Static attribute contributions (2026-10-20)
+
+Twenty attribute contribution candidates now use shared typed Pet/Skill operations and reusable team/skill selectors. Per-target amount/priority reads, repeated addition, full-array skill tag filters and Mark-owned suppression/cleanup remain intact. The height-at-battle-start condition retains its existing false result. The stack-based live crit contribution is explicitly rejected until its binding timing is implemented.
+
+The 401 public regression checks, 149 generator tests, 75 design tests, scoped types/lint, declarations and unchanged provenance pass. Both review axes pass. See [attribute contribution evidence](validation/attribute-contributions.md). Candidates remain U pending complete-game/checkpoint and production gates.

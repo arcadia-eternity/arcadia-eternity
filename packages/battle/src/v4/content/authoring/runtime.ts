@@ -1,3 +1,5 @@
+import { nanoid } from 'nanoid'
+import { Modifier, DurationType } from '../../attributeSystem'
 import {
   type effectId,
   type EffectTrigger,
@@ -264,6 +266,8 @@ function directSkillEvent(ctx: Frame): UseSkillContext | undefined {
   return event instanceof UseSkillContext ? event : undefined
 }
 export const targets: typeof C.targets = {
+  selfTeam: selector(ctx => [...(directSkillEvent(ctx)?.pet.owner?.team ?? owner(ctx)?.owner?.team ?? [])]),
+  selfSkills: selector(ctx => [...(directSkillEvent(ctx)?.pet.skills ?? owner(ctx)?.skills ?? [])]),
   ownerPet: selector(ctx => {
     const pet = owner(ctx)
     return pet ? [pet] : []
@@ -504,7 +508,10 @@ function parameter<T extends number | boolean>(options: {
 
 function assertWriteTarget(ctx: Frame, input: unknown): void {
   const target = input !== null && typeof input === 'object' ? (writes.get(input)?.target ?? input) : input
-  const owner = target instanceof Pet || target instanceof MarkInstanceImpl ? target.owner : undefined
+  const owner =
+    target instanceof Pet || target instanceof MarkInstanceImpl || target instanceof SkillInstance
+      ? target.owner
+      : undefined
   const battle =
     target instanceof Player
       ? target.battle
@@ -622,7 +629,43 @@ function skillOverride(
     for (const event of selected) apply(event, priority)
   }
 }
+/** Static contributions sample inputs per target, and append on repeated execution. */
+function addAttributeModifier<T extends Pet | SkillInstance>(
+  attribute: string,
+  operation: 'delta' | 'percent' | 'override',
+  amount: Parameters<typeof C.ops.addAttributeModifier>[2],
+  priority: Parameters<typeof C.ops.addAttributeModifier>[3] = 0,
+): C.Operator<T> {
+  return (ctx, selected) => {
+    for (const target of selected) {
+      assertWriteTarget(ctx, target)
+      const value = read(ctx, amount),
+        rank = read(ctx, priority)
+      if (value === undefined) continue
+      if (
+        typeof value !== 'number' ||
+        !Number.isFinite(value) ||
+        (rank !== undefined && (typeof rank !== 'number' || !Number.isFinite(rank)))
+      )
+        throw new Error('Expected finite modifier input')
+      assertWriteTarget(ctx, target)
+      const source = engine(ctx).source
+      const modifier = new Modifier(
+        DurationType.binding,
+        `${source.id}_${attribute}_${nanoid()}`,
+        value,
+        operation,
+        rank ?? 0,
+        source instanceof MarkInstanceImpl ? source : undefined,
+      )
+      const cleanup = target.attributeSystem.addModifier(attribute, modifier)
+      if (source instanceof MarkInstanceImpl) source.addAttributeModifierCleanup(cleanup)
+    }
+  }
+}
 export const ops: typeof C.ops = {
+  addAttributeModifier,
+  addSkillAttributeModifier: addAttributeModifier,
   disableContext: () => (ctx, selected) => {
     for (const event of selected)
       if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle cancellable context')
