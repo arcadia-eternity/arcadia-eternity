@@ -33,7 +33,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-type Id = keyof typeof generatedVitalActions
+// Source-instance recursion is covered by self-damage-once-sequences.test.ts.
+type Id = Exclude<keyof typeof generatedVitalActions, 'effect_mark_self_damage_25_percent'>
 const ledger = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/vital-actions-candidates.json', import.meta.url), 'utf8'),
 )
@@ -51,20 +52,23 @@ for (const name of ['global', 'ability', 'emblem', 'mark', 'skill'])
   ))
     definitions.set(d.id, d)
 const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
-  ledger.records.map((r: { id: Id }) => {
-    const d = structuredClone(definitions.get(r.id)!)
-    if (r.id === 'effect_skill_heal_half_damage_dealt_if_3_hits')
-      d.condition!.conditions![1].target!.base = 'usingSkillContext'
-    if (r.id === 'effect_skill_deal_damage_spa_sixth_on_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.spa'
-    if (r.id === 'effect_skill_heal_self_def_quarter_hit_or_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.def'
-    if (r.id === 'effect_emblem_yuren_dealdamage_on_physical_skill')
-      d.condition!.conditions![1].target!.base = 'usingSkillContext'
-    if (r.id === 'effect_emblem_add_rage_5_when_use_feixuanzhiguang') {
-      d.condition!.conditions![1].target!.base = 'usingSkillContext'
-      d.condition!.conditions![1].target!.chain![0].arg = 'skill'
-    }
-    return [r.id, EffectParser.parse(d)]
-  }),
+  ledger.records
+    .filter((r: { id: string }) => r.id !== 'effect_mark_self_damage_25_percent')
+    .map((r: { id: Id }) => {
+      const d = structuredClone(definitions.get(r.id)!)
+      if (r.id === 'effect_skill_heal_half_damage_dealt_if_3_hits')
+        d.condition!.conditions![1].target!.base = 'usingSkillContext'
+      if (r.id === 'effect_skill_deal_damage_spa_sixth_on_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.spa'
+      if (r.id === 'effect_skill_heal_self_def_quarter_hit_or_miss')
+        d.apply!.value.selector.chain[0].arg.arg = 'stat.def'
+      if (r.id === 'effect_emblem_yuren_dealdamage_on_physical_skill')
+        d.condition!.conditions![1].target!.base = 'usingSkillContext'
+      if (r.id === 'effect_emblem_add_rage_5_when_use_feixuanzhiguang') {
+        d.condition!.conditions![1].target!.base = 'usingSkillContext'
+        d.condition!.conditions![1].target!.chain![0].arg = 'skill'
+      }
+      return [r.id, EffectParser.parse(d)]
+    }),
 )
 const expected: Record<Id, number> = {
   effect_emblem_add_rage_5_when_use_feixuanzhiguang: 5,
@@ -472,7 +476,9 @@ for (const id of Object.keys(expected) as Id[]) {
       })
 }
 it('catalog is complete and disjoint from retained candidates', () => {
-  expect(Object.keys(expected).sort()).toEqual(Object.keys(generatedVitalActions).sort())
+  expect([...Object.keys(expected), 'effect_mark_self_damage_25_percent'].sort()).toEqual(
+    Object.keys(generatedVitalActions).sort(),
+  )
   expect(ledger.retained).toHaveLength(27)
   expect(ledger.records.some((r: { id: string }) => ledger.retained.some((k: { id: string }) => k.id === r.id))).toBe(
     false,

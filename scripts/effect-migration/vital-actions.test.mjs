@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 45, rejected: 5, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 46, rejected: 4, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')
@@ -191,4 +191,33 @@ test('Feixuanzhiguang skill identity repair rejects changed source fields', () =
   assert.ok(!classifyVitalAction(d).reason)
   d.condition.conditions[1].target.chain[0].arg = 'skill'
   assert.match(classifyVitalAction(d).reason, /C09 source node changed/)
+})
+
+test('quarter self-damage repairs only its named source identity path', () => {
+  const d = source()
+  d.id = 'effect_mark_self_damage_25_percent'
+  d.trigger = 'OnDamage'
+  d.condition = {
+    type: 'every',
+    conditions: [
+      { type: 'selfUseSkill' },
+      { type: 'selfUseSkill' },
+      {
+        type: 'evaluate',
+        target: { base: 'damageContext', chain: [{ type: 'selectPath', arg: 'sourceId' }] },
+        evaluator: { type: 'notSame', value: { type: 'dynamic', selector: 'mark' } },
+      },
+    ],
+  }
+  const r = classifyVitalAction(d)
+  assert.ok(!r.reason, r.reason)
+  assert.deepEqual(r.pathRepairs, [
+    { path: '/condition/conditions/2/target/chain/0/arg', before: 'sourceId', after: 'source' },
+  ])
+  assert.match(r.when, /event.source.*!==.*targets.sourceMark/)
+  d.condition.conditions[2].target.chain[0].arg = 'unexpected'
+  assert.match(classifyVitalAction(d).reason, /C09 source node changed/)
+  d.condition.conditions[2].target.chain[0].arg = 'sourceId'
+  d.id = 'unknown-source-id'
+  assert.ok(classifyVitalAction(d).reason)
 })

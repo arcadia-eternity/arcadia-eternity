@@ -396,6 +396,32 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_mark_self_damage_25_percent",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/150",
+      "definitionSha256": "b7c051eadd759e3037ca6db175cf9b1488ac4f0c64698ccb81e0efd900aef2da",
+      "recipe": {
+        "id": "effect_mark_self_damage_25_percent",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category !== \"Status\"),((ctx: EffectFrame) => ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first())))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first().map(n => Math.floor(n * 0.25))))"
+          }
+        ],
+        "repairedPaths": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [
+          { "path": "/condition/conditions/2/target/chain/0/arg", "before": "sourceId", "after": "source" }
+        ]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
       "id": "effect_mark_self_damage_on_expire",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/28",
@@ -862,13 +888,6 @@
       "sourceFile": "packs/base/data/effect_ability.yaml",
       "sourcePath": "/37",
       "definitionSha256": "7db5106ec92a573ad884ab9c9b43b46255e633aba4e64a4b285fcc9e17cc0f37",
-      "reason": "condition needs a separate mapping"
-    },
-    {
-      "id": "effect_mark_self_damage_25_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/150",
-      "definitionSha256": "b7c051eadd759e3037ca6db175cf9b1488ac4f0c64698ccb81e0efd900aef2da",
       "reason": "condition needs a separate mapping"
     },
     {

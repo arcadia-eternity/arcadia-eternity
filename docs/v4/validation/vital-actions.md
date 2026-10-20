@@ -73,3 +73,11 @@ The profile explicitly chooses the damage condition domain for OnBeforeCalculate
 The 1,573-check public matrix passes, plus one subsequently added C07-only parse-failure/exact-C09 check. Tests distinguish physical skill category from Special damageType, reject the wrong skill ID, and independently assert the strict 74/75/76 boundary. Real DamagePhase inputs with base damage 10 and 1000 both admit the pre-calculation rage effect because damageResult is still zero at that stage; this preserves source timing rather than reinterpreting the threshold as final damage.
 
 All 117 generator tests, 75 design tests, V4 types/lint, declarations and provenance pass. Both review axes pass. Logs: /tmp/vital-conditions-{tests,correction,generators,design,types,lint,declarations,provenance}.log. Full-game/checkpoint and production admission remain pending.
+
+## Quarter self-damage source identity
+
+The single-vital catalog now contains 46 emitted, 4 rejected and 27 retained definitions. effect_mark_self_damage_25_percent applies the existing C07 spelling correction and a named C09 repair at /condition/conditions/2/target/chain/0/arg from sourceId to source. It uses the existing source-mark identity selector and numeric damage operation; no runtime or production-loader change is included.
+
+The shared self-damage fixture now covers this persistent quarter-damage effect alongside the two one-shot half-damage effects. It distinguishes the exact source instance from another instance of the same base, verifies recursive damage cannot retrigger itself, and preserves non-status skill ownership. Tests cover admission cancellation, late damageResult reads, late owner/category changes, nested events, zero/odd values, low HP, owner detachment and a real DamagePhase. Unlike the half-damage effects, the quarter effect stays active and repeating dispatch deals damage twice. This dedicated mark-source fixture is explicitly included in the catalog coverage assertion.
+
+All 1,631 public checks across the single-vital and self-damage fixtures pass, alongside 118 generator tests, 75 design tests, V4 types/lint, declarations and provenance. Both review axes pass; all previous 45 records reproduce unchanged. Logs: /tmp/vital-quarter-{tests,generators,design,types,lint,declarations,provenance}.log. Full-game/checkpoint acceptance and production admission remain pending.

@@ -341,6 +341,29 @@ export function createGeneratedVitalActions() {
         ),
       }),
     ),
+    effect_mark_self_damage_25_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_self_damage_25_percent',
+        on: 'OnDamage',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
+          (ctx: EffectFrame) =>
+            ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
+        ),
+        execute: actions.sequence(
+          targets.ownerPet.apply(
+            ops.dealDamage(
+              contexts.damage
+                .select(event => event.damageResult)
+                .first()
+                .map(n => Math.floor(n * 0.25)),
+            ),
+          ),
+        ),
+      }),
+    ),
     effect_mark_self_damage_on_expire: compileEffect(
       defineEffect({
         id: 'effect_mark_self_damage_on_expire',

@@ -5,6 +5,7 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   generatedVitalSequences,
+  generatedVitalActions,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -22,7 +23,12 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-const ids = ['effect_mark_self_damage_50_percent_once', 'effect_mark_self_damage_50_percent_once_when_special'] as const
+const ids = [
+  'effect_mark_self_damage_50_percent_once',
+  'effect_mark_self_damage_50_percent_once_when_special',
+  'effect_mark_self_damage_25_percent',
+] as const
+const candidates = { ...generatedVitalSequences, ...generatedVitalActions }
 const definitions = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
   { merge: true },
@@ -81,10 +87,10 @@ function run(native: boolean, index: number, variant: (typeof variants)[number])
   }
   const base = new BaseMark('fixture/self-damage' as baseMarkId, [], { ...debuff.config, duration: -1, maxStacks: 10 })
   const mark = base.createInstance()
-  mark.owner = a.activePet
+  mark.setOwner(a.activePet, battle.emitter)
   mark.stack = 3
   a.activePet.marks.push(mark)
-  mark.effects.push(native ? generatedVitalSequences[ids[index]] : oracles[index])
+  mark.effects.push(native ? candidates[ids[index]] : oracles[index])
   const actor = variant === 'opponent-use' ? b : a
   const use = new UseSkillContext(
     new TurnContext(battle),
@@ -96,7 +102,8 @@ function run(native: boolean, index: number, variant: (typeof variants)[number])
   use.updateActualTarget()
   use.category = variant === 'physical' ? Category.Physical : variant === 'status' ? Category.Status : Category.Special
   const other = base.createInstance()
-  other.owner = a.activePet
+  other.setOwner(a.activePet, battle.emitter)
+  a.activePet.marks.push(other)
   let damage = new DamageContext(
     use,
     variant === 'same-source' ? mark : variant === 'same-base-other-source' ? other : actor.activePet,
@@ -172,7 +179,13 @@ for (const [index, id] of ids.entries()) {
     spelling.condition.conditions[1].target.base = 'usingSkillContext'
     expect(() => EffectParser.parse(spelling)).toThrow(/sourceId/)
     const ledger = JSON.parse(
-      readFileSync(new URL('../../../../docs/v4/validation/vital-sequences-candidates.json', import.meta.url), 'utf8'),
+      readFileSync(
+        new URL(
+          `../../../../docs/v4/validation/${index === 2 ? 'vital-actions' : 'vital-sequences'}-candidates.json`,
+          import.meta.url,
+        ),
+        'utf8',
+      ),
     )
     const r = ledger.records.find((r: { id: string }) => r.id === id)
     const normalize = (v: unknown): unknown =>
@@ -194,7 +207,9 @@ for (const [index, id] of ids.entries()) {
     expect(r.recipe.pathRepairs).toEqual([
       { path: '/condition/conditions/2/target/chain/0/arg', before: 'sourceId', after: 'source' },
     ])
-    expect(r.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(['/apply/0', '/apply/1'])
+    expect(r.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(
+      index === 2 ? ['/apply'] : ['/apply/0', '/apply/1'],
+    )
   })
   for (const variant of variants)
     it(`${id} ${variant}`, () => {
@@ -211,16 +226,27 @@ for (const [index, id] of ids.entries()) {
         expect(actual.active).toBe(true)
         return
       }
-      expect(actual.admitted).toBe(1)
+      expect(actual.admitted).toBe(index === 2 && variant === 'repeat' ? 2 : 1)
       if (variant === 'cancel') {
         expect(actual.trace).toEqual([])
         expect(actual.active).toBe(true)
         return
       }
-      const amount = variant === 'late-value' ? 23 : variant === 'zero' ? 0 : variant === 'odd' ? 1 : 50
-      expect(actual.trace).toEqual([{ amount, target: variant === 'late-owner' ? 1 : 0, active: true, stack: 3 }])
-      expect(actual.active).toBe(false)
-      if (variant === 'normal' || variant === 'phase' || variant === 'repeat') expect(actual.hp[0]).toBe(950)
+      const amount = Math.floor(
+        (variant === 'late-value' ? 47 : variant === 'zero' ? 0 : variant === 'odd' ? 3 : 101) *
+          (index === 2 ? 0.25 : 0.5),
+      )
+      expect(actual.trace).toEqual(
+        Array.from({ length: index === 2 && variant === 'repeat' ? 2 : 1 }, () => ({
+          amount,
+          target: variant === 'late-owner' ? 1 : 0,
+          active: true,
+          stack: 3,
+        })),
+      )
+      expect(actual.active).toBe(index === 2)
+      if (variant === 'normal' || variant === 'phase' || variant === 'repeat')
+        expect(actual.hp[0]).toBe(index === 2 && variant !== 'repeat' ? 975 : 950)
       if (variant === 'phase') expect(actual.victim).toBe(899)
       if (variant === 'low-hp') expect(actual.hp[0]).toBe(0)
     })

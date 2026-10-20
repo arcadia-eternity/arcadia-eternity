@@ -255,3 +255,9 @@ All 1,472 public single-vital checks, 115 generator tests, 75 design tests, type
 Three single-vital candidates retain exact skill identity, physical-category post-damage reflection and pre-calculation damageResult threshold behavior. The catalog now contains 45 emitted, 5 rejected and 27 retained definitions. Explicit per-profile damage-trigger domains reuse existing conditions; C07/C09 repairs remain named and recorded.
 
 The 1,573 public matrix cases and an added exact-correction check pass, along with 117 generator tests, 75 design tests, V4 types/lint, declarations and provenance. Both review axes pass. Tests distinguish skill category from damageType and preserve the zero damageResult observed before calculation even with large base damage. See [skill/damage condition evidence](validation/vital-actions.md). Overall completion, full-game/checkpoint and production gates remain pending.
+
+## Quarter self-damage (2026-10-20)
+
+The quarter self-damage candidate preserves exact source-instance recursion prevention, execution-time damageResult reads and repeated triggering without consuming its mark. C07/C09 repairs remain named and independently tested. The single-vital catalog now contains 46 emitted, 4 rejected and 27 retained definitions; prior records are unchanged.
+
+All 1,631 public checks across the vital-action and self-damage fixtures, 118 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. See [source-identity evidence](validation/vital-actions.md). Overall migration, full-game/checkpoint and production gates remain pending.

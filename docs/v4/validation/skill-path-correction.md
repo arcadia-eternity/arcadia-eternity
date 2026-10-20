@@ -58,3 +58,7 @@ effect_skill_deal_damage_spa_sixth_on_miss and effect_skill_heal_self_def_quarte
 ## Feixuanzhiguang rage
 
 effect_emblem_add_rage_5_when_use_feixuanzhiguang repairs /condition/conditions/1/target/chain/0/arg from skillId to skill after C07, then retains the baseId comparison against skill_feixuanzhiguang. Original and spelling-only parsing failures, exact metadata and a wrong-skill rejection are covered. No global alias or source YAML edit is added.
+
+## Quarter self-damage
+
+effect_mark_self_damage_25_percent repairs /condition/conditions/2/target/chain/0/arg from sourceId to source after C07. The guard compares the exact damage source instance with the effect's source mark. Same-instance damage is rejected; a different mark with the same base ID remains eligible. Original and C07-only parse failures, exact repair metadata, changed-path/unknown-ID rejection, recursive damage prevention and real DamagePhase behavior are tested. See [quarter self-damage evidence](vital-actions.md).
