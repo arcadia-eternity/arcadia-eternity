@@ -131,6 +131,7 @@ export { createMarkTransfers } from './src/v4/official/mark-transfers'
 export { createFractionalHealing } from './src/v4/official/fractional-healing'
 
 export { createAutomaticStackConsumption } from './src/v4/official/automatic-stack-consumption'
+export { createLastStand } from './src/v4/official/last-stand'
 
 export { createSkillTransformationRemoval, createSkillTransformationCopy } from './src/v4/official/skill-transformation'
 

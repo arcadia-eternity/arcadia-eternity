@@ -1,0 +1,13 @@
+{
+  "records": [
+    {
+      "id": "effect_mark_set_health_to_1_on_damage",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/33",
+      "definitionSha256": "2c246ead16265374d0397691fca1e3dc8b3e3c70d6d82700762f6a433548a67b",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/last-stand.ts"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+# Last-stand HP assignment
+
+`createLastStand()` owns `effect_mark_set_health_to_1_on_damage`. It compares with unchanged source YAML and uses shared `conditions.selfBeDamaged`, `targets.ownerPet`, property assignment and engine-owned `consumesStacks: 1`. The `health` parameter defaults to 1 and is read when the assignment executes; install its parameter catalog before execution.
+
+The condition reads the current owner's HP at admission. Automatic consumption runs before the action. The action then queries the source owner again, so consuming the last stack destroys/detaches the mark and leaves no assignment target. Cancelling consumption leaves the source attached and allows assignment. Cancelling the effect prevents both consumption and assignment. Changing HP in BeforeEffect does not rerun the admitted condition. This preserves the legacy behavior, including the last-stack limitation; it does not capture an owner early to repair that limitation silently.
+
+Assignment is direct and does not dispatch healing. Physical and special damage dispatch PostDamage; Effect damage does not. Skill sources perform the same assignment without automatic mark consumption. Source suppression only applies to the mark source.
+
+Validation uses 22 unchanged-YAML differential cases across mark/skill sources, positive/zero HP, wrong target, last-stack removal, consumption/effect cancellation, late HP changes, suppression and real damage execution. Two additional cases configure the health parameter to 3 and 8. Comparisons include HP, source attachment, stack state, ordered effect/consumption events, absence of healing and RNG continuation. The historical damage and automatic stack consumption suites are also rerun against the public bundle. This is candidate coverage, not production loader admission or full-game/snapshot acceptance.
