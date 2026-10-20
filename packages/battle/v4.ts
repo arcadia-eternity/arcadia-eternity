@@ -97,3 +97,5 @@ export {
   generatedSkillContributions,
   createGeneratedSkillContributions,
 } from './src/v4/official/skill-contributions.generated'
+
+export { generatedContextControls, createGeneratedContextControls } from './src/v4/official/context-controls.generated'

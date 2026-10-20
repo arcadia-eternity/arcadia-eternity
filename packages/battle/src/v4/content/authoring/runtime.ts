@@ -5,6 +5,7 @@ import {
   type EffectTrigger,
   type StatTypeWithoutHp,
   type CleanStageStrategy,
+  IgnoreStageStrategy,
 } from '@arcadia-eternity/const'
 import {
   AddMarkContext,
@@ -648,6 +649,23 @@ function modifyAccuracy(input: Parameters<typeof C.ops.addAccuracy>[0], set: boo
     }
   }
 }
+/** Shared single read for non-numeric skill context changes. */
+function skillContextInput<T>(
+  input: unknown,
+  parse: (ctx: Frame, value: unknown) => T,
+  apply: (event: UseSkillContext, value: T) => void,
+): C.Operator<UseSkillContext> {
+  return (ctx, selected) => {
+    for (const event of selected) if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+    const value = read(ctx, input)
+    if (value === undefined) return
+    const parsed = parse(ctx, value)
+    for (const event of selected) {
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+      apply(event, parsed)
+    }
+  }
+}
 function skillOverride(
   priority: number,
   apply: (event: UseSkillContext, priority: number) => void,
@@ -754,6 +772,26 @@ export const ops: typeof C.ops = {
   setSureMiss: (priority = -1) => skillOverride(priority, (event, p) => event.setSureMiss(p)),
   setSureCrit: (priority = 0) => skillOverride(priority, (event, p) => event.setSureCrit(p)),
   setSureNoCrit: (priority = -1) => skillOverride(priority, (event, p) => event.setSureNoCrit(p)),
+  setActualTarget: input =>
+    skillContextInput(
+      input,
+      (ctx, target) => {
+        if (!(target instanceof Pet)) throw new Error('Expected Pet target')
+        assertWriteTarget(ctx, target)
+        return target
+      },
+      (event, target) => event.setActualTarget(target),
+    ),
+  setIgnoreStageStrategy: input =>
+    skillContextInput(
+      input,
+      (_ctx, strategy) => {
+        if (!Object.values(IgnoreStageStrategy).includes(strategy as IgnoreStageStrategy))
+          throw new Error('Invalid stage strategy')
+        return strategy as IgnoreStageStrategy
+      },
+      (event, strategy) => event.setIgnoreStageStrategy(strategy),
+    ),
   preventDamage: () => (ctx, selected) => {
     for (const event of selected)
       if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')

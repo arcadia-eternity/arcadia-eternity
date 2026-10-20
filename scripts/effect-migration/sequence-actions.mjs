@@ -149,6 +149,26 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     }
     return `contexts.damage.apply(ops.setDamageThreshold({${bounds.join(',')}}))`
   }
+  if (a?.type === 'setActualTarget') {
+    if (
+      !fields(a, ['type', 'target', 'newTarget']) ||
+      a.target !== 'usingSkillContext' ||
+      !fields(a.newTarget, ['type', 'selector']) ||
+      a.newTarget.type !== 'dynamic' ||
+      a.newTarget.selector !== 'self'
+    )
+      return
+    return 'contexts.skillUse.apply(ops.setActualTarget(targets.ownerPet.first()))'
+  }
+  if (a?.type === 'setIgnoreStageStrategy') {
+    if (
+      !fields(a, ['type', 'target', 'value']) ||
+      a.target !== 'usingSkillContext' ||
+      !['none', 'all', 'positive', 'negative'].includes(a.value)
+    )
+      return
+    return `contexts.skillUse.apply(ops.setIgnoreStageStrategy(${JSON.stringify(a.value)}))`
+  }
   if (a?.type === 'preventDamage') {
     if (!fields(a, ['type', 'target']) || a.target !== 'damageContext') return
     return 'contexts.damage.apply(ops.preventDamage())'

@@ -347,3 +347,9 @@ All 605 public regression tests, 156 generator tests, 75 design tests, scoped ty
 The remaining stack-to-skill-power candidate now uses a shared persistent installer with Skill targets. Source identity is captured, stack follows, each application requeries skills, and repeated applications append independent contributions. Pet snapshot recipes keep their existing shape; Skill recipes receive ownership and dependency checks.
 
 All 266 distinct scoped public tests, 157 generator tests and 75 design runtime tests pass, along with battle types/lint, declarations and provenance. The separate design-directory typecheck exposes an existing nested-context error at `runtime.test.ts:1491`; new skill binding type assertions pass. The skill contribution ledger now has 14 generated / 0 rejected entries. See [skill contribution evidence](validation/skill-contributions.md). Full-game and production admission remain open.
+
+## Context controls (2026-10-20)
+
+Five damage-cancellation, redirection and stage-ignore candidates reuse context queries and shared single-read skill-context operations. Three C07 spelling corrections are independently checked. Skill-phase tests establish a preserved legacy quirk: OnDamage cancellation happens after HP loss and does not undo it; before-calculation cancellation does prevent HP loss.
+
+All 482 scoped public tests, 160 generator tests and 75 design runtime tests pass, along with battle types/lint, declarations and unchanged provenance. See [context control evidence](validation/context-controls.md). Full-game, checkpoint and production admission remain open.

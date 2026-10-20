@@ -226,6 +226,7 @@ export declare const values: {
 type NumericInput = number | Value<number, Presence>
 // Mark options treat an absent queried property as a request for the mark default.
 type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
+type StageStrategy = 'none' | 'all' | 'positive' | 'negative'
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
   /** Sample amount then priority separately per target; source marks own cleanup. */
@@ -270,6 +271,11 @@ export declare const ops: {
   readonly setSureMiss: (priority?: number) => Operator<UseSkillContext>
   readonly setSureCrit: (priority?: number) => Operator<UseSkillContext>
   readonly setSureNoCrit: (priority?: number) => Operator<UseSkillContext>
+  /** Read once at execution; absent target skips without changing the current target. */
+  readonly setActualTarget: (target: Value<Pet, Presence>) => Operator<UseSkillContext>
+  readonly setIgnoreStageStrategy: (
+    strategy: StageStrategy | Value<StageStrategy, Presence>,
+  ) => Operator<UseSkillContext>
   /** Mark unavailable at execution time; does not undo damage already applied. */
   readonly preventDamage: () => Operator<DamageContext>
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
