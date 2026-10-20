@@ -157,3 +157,5 @@ export { createStackDamageEffects } from './src/v4/official/stack-damage'
 export { createRageGainLimit } from './src/v4/official/rage-gain-limit'
 
 export { createSwitchRageProtection } from './src/v4/official/switch-rage-protection'
+
+export { createConsecutiveFlyingRage } from './src/v4/official/consecutive-flying-rage'

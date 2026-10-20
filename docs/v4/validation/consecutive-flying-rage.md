@@ -1,0 +1,13 @@
+# Consecutive Flying rage
+
+The user approved restoring 20 rage on hits from the second consecutive Flying use onward. The old `lastSkillId.element` selector is invalid, and merely substituting `lastSkill.element` would inspect the current skill: legacy skill tracking updates before eligibility checks. Existing `lastSkill` and `lastSkillUsedTimes` behavior is retained for the other effects.
+
+Pet now stores `lastUsedSkillElement`, a scalar describing its most recently completed accepted skill use. Once eligibility and rage checks pass, execution captures that value into `UseSkillContext.previousSkillElement`; it is not captured when a queued context is constructed. Completion stores the effective context element before SkillUseEnd dispatch. Misses complete a use and count as history; rejected, disabled or unaffordable attempts do not change this history. A non-Flying completed use breaks the chain. Distinct Flying skill IDs qualify. The field belongs to each pet and does not follow a mutable SkillInstance.
+
+The native effect uses the shared skill context and ownership condition. OnHit admission compares the captured previous element with the current effective element. Each hit retains the source's original trigger semantics; multihit uses can reward per hit. The named `rage` parameter defaults to 20. Normal rage limits/modifiers remain applicable through the existing add-rage operation.
+
+The snapshot codec persists the new Pet field. Older snapshots may omit it; restoration leaves history undefined rather than inferring past effective elements from a mutable `lastSkill` reference. New snapshots restore the scalar history with fresh native definitions. The runtime correction and codec changes are tracked through provenance; the source YAML remains unchanged.
+
+Validation: 131 checks across Flying, legacy characterization, snapshots, catalog assembly, phase lifecycle, skill-cost effects and switch protection; 87 authoring design checks. Scenarios cover first/subsequent uses, different Flying skill IDs, non-Flying interruption, misses, rejected/disabled attempts before and after valid history, queued context construction, effective element changes, per-hit parameterization, another actor and JSON checkpoint restoration with/without the new field. Battle/design types, lint and declaration emission pass. Evidence: `/tmp/flying-regression.log`, `/tmp/flying-design.log`, `/tmp/flying-types.log`, `/tmp/flying-design-types.log`, `/tmp/flying-lint.log`, `/tmp/flying-declarations.log`.
+
+Candidate coverage is 1065/1065 with no missing IDs. This completes candidate ownership, not migration acceptance: the recorded full-regression failures and production host/loading integration remain open.

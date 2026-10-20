@@ -164,6 +164,8 @@ export class UseSkillContext extends Context {
   randomFactor: number = 1
 
   defeated: boolean = false
+  /** Captured on accepted execution, not at selection/context construction time. */
+  previousSkillElement?: Element
 
   constructor(
     public readonly parent: TurnContext,

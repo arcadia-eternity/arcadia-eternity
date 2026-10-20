@@ -53,6 +53,7 @@ import { createGeneratedStatStageSequences } from './stat-stage-sequences.genera
 import { createTaggedParameterModifiers } from './tagged-parameters'
 import { createGeneratedVitalActions } from './vital-actions.generated'
 import { createGeneratedVitalSequences } from './vital-sequences.generated'
+import { createConsecutiveFlyingRage } from './consecutive-flying-rage'
 import { createSwitchRageProtection } from './switch-rage-protection'
 import { createRageGainLimit } from './rage-gain-limit'
 import { createStackDamageEffects } from './stack-damage'
@@ -139,6 +140,7 @@ export function createOfficialEffectCandidates(marks: ReadonlyMap<string, BaseMa
   add('tagged-parameters', createTaggedParameterModifiers())
   add('vital-actions.generated', createGeneratedVitalActions())
   add('vital-sequences.generated', createGeneratedVitalSequences())
+  add('consecutive-flying-rage', createConsecutiveFlyingRage())
   add('switch-rage-protection', createSwitchRageProtection())
   add('rage-gain-limit', createRageGainLimit())
   add('stack-damage', createStackDamageEffects())

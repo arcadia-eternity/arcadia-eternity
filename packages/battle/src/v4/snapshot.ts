@@ -301,7 +301,7 @@ const ledger = {
   Pet: {
     ctor: Pet,
     fields:
-      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes attributeSystem name id originalSpecies level evs ivs nature baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
+      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes lastUsedSkillElement attributeSystem name id originalSpecies level evs ivs nature baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
     runtime: 'emitter',
   },
   SkillInstance: {
@@ -929,7 +929,7 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
         ...(node.kind === 'Battle' ? ['rngState', 'timerConfig', 'transformations', 'executionBudgetState'] : []),
       ])
       if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
-      const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem'] : [])
+      const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem', 'lastUsedSkillElement'] : [])
       if (['SkillInstance', 'MarkInstanceImpl', 'StatLevelMarkInstanceImpl'].includes(node.kind))
         optional.add('temporaryEffects')
       if (spec.fields.split(' ').some(key => !optional.has(key) && !Object.hasOwn(node.fields, key)))

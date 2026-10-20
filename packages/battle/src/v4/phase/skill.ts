@@ -96,6 +96,8 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     return
   }
 
+  context.previousSkillElement = context.pet.lastUsedSkillElement
+
   // Emit skill use message
   battle.emitMessage(BattleMessageType.SkillUse, {
     user: context.pet.id,
@@ -198,6 +200,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     battle.phaseManager.registerPhase(markCleanupPhase)
     battle.phaseManager.executePhase(markCleanupPhase.id)
 
+    context.pet.lastUsedSkillElement = context.element
     battle.applyEffects(context, EffectTrigger.SkillUseEnd)
 
     battle.emitMessage(BattleMessageType.SkillUseEnd, {
