@@ -260,6 +260,8 @@ export declare const ops: {
   readonly setRage: (value: NumericInput) => Operator<Pet | Player>
   /** Assign a persistent instance flag; unlike setSureHit this does not create a use-context override. */
   readonly setSkillSureHit: (value: boolean | Value<boolean, Presence>) => Operator<SkillInstance>
+  /** Sample once, then replace the scoped base parameter; this is not a source-owned modifier. */
+  readonly setParameter: (catalog: ParameterCatalog, reference: string, value: NumericInput) => Operator<Pet | Player>
   /** Resolve a parameter alias at construction; sample amount and priority per target at execution. */
   readonly addParameterModifier: (
     catalog: ParameterCatalog,

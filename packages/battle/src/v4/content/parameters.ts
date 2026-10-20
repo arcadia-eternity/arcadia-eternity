@@ -176,6 +176,15 @@ export class ParameterCatalog {
       throw new Error(`Invalid effective parameter: ${definition.address}`)
     return value
   }
+  /** Replace a registered base value, preserving the existing modifier composition. */
+  set(config: ConfigSystem, reference: string, value: Scalar, scope?: ScopeObject): void {
+    const definition = this.resolve(reference)
+    if (!scalar(value) || !Value.Check(definition.schema, value))
+      throw new Error(`Invalid base parameter: ${definition.address}`)
+    if (config.isDisposed || !config.isRegistered(definition.address))
+      throw new Error(`Parameter is not installed: ${definition.address}`)
+    config.set(definition.address, value, scope)
+  }
   /** The returned cleanup must be attached to the operation's source/phase lifetime by its caller. */
   modify(
     config: ConfigSystem,

@@ -1087,6 +1087,17 @@ export const ops: typeof C.ops = {
       if (!write) throw new Error('Foreign write reference')
       write.set(n)
     }),
+  setParameter: (catalog, reference, amount) => {
+    const address = catalog.addressOf(reference)
+    return (ctx, selected) => {
+      for (const target of selected) assertWriteTarget(ctx, target)
+      const value = read(ctx, amount)
+      if (value === undefined) return
+      if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error('Expected finite parameter value')
+      for (const target of selected) assertWriteTarget(ctx, target)
+      for (const target of selected) catalog.set(engine(ctx).battle.configSystem, address, value, target)
+    }
+  },
   addParameterModifier: (catalog, reference, operation, amount, priority = 0) => {
     const address = catalog.addressOf(reference)
     return parameterModifier(amount, priority, (source, target, value, rank) =>

@@ -1,0 +1,13 @@
+# Rain-dependent water-shield parameter
+
+`createRainWaterShield` implements `effect_ability_add_shuiwenpingzhang_value_if_yutian`. It receives the existing water-shield parameter catalog, resolves the legacy `effect_skill_add_mark_shuiwenpingzhang.multiply_value` alias at construction, and uses shared skill-context and owner selectors.
+
+The only C09 correction is the condition's `skillId` lookup to `skill`, retaining the following `baseId` comparison. This is a corrected V1 reference, not unchanged-YAML equivalence; historical V2 ID storage is documented separately. Production YAML and parser registration are unchanged.
+
+At BeforeHit, admission requires selfUseSkill and the water-shield skill ID. After admission, the action queries current battle marks: any `mark_global_yutian` gives 1.5, otherwise 1. It assigns the source owner's scoped base parameter through the existing ConfigSystem. This does not append a modifier or attach cleanup to the source mark. Repeated execution after rain ends resets the base to 1; removing the source does not undo the assigned value. Existing modifiers still compose with the base, and the opposing owner's value is unaffected.
+
+The reusable `ops.setParameter` resolves a trusted parameter reference at construction, validates target battle ownership, reads its numeric input once (also for empty selections), checks targets again after evaluation, and writes the same sampled value to each selected scope. Missing values skip assignment. Nonfinite values, foreign targets, unknown parameter references, invalid base-schema values and uninstalled catalogs are rejected. `ParameterCatalog.set` uses the declared base schema and existing configuration storage; it does not add another parameter store.
+
+`rain-water-shield.test.ts` covers 22 corrected-reference comparisons across skill/mark sources, dry/rain conditions, weather changes after admission, wrong skill/owner, cancellation, repetition, modifier composition, skill changes after admission and source detachment. Two real SkillPhase scenarios read the assigned canonical parameter through the existing water-shield candidate and assert the resulting layer count. Additional tests pin the original parser rejection/correction and verify single sampling, empty/missing values, cross-battle rejection and parameter validation.
+
+The focused public-bundle run passes 197 tests across this file, the original shield, named parameter modifiers and parameter contracts. Candidate ownership advances to 1,055 of 1,065 definitions; ownership is not production admission. Evidence logs: `/tmp/rain-regression.log`, `/tmp/rain-types.log`, `/tmp/rain-design-types.log`, `/tmp/rain-design-test.log`, `/tmp/rain-lint.log`, `/tmp/rain-declarations.log`, `/tmp/rain-coverage.log`.
