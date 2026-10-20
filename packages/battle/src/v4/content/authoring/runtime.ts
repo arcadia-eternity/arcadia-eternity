@@ -628,6 +628,23 @@ export const ops: typeof C.ops = {
     }
   },
   modifyDamage: input => modifyContext(input, 'damage'),
+  setDamageThreshold:
+    ({ min, max }) =>
+    (ctx, selected) => {
+      for (const event of selected)
+        if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
+      const lower = min === undefined ? undefined : read(ctx, min)
+      const upper = max === undefined ? undefined : read(ctx, max)
+      if (lower !== undefined && (typeof lower !== 'number' || !Number.isFinite(lower)))
+        throw new Error('Expected finite numeric input')
+      if (upper !== undefined && (typeof upper !== 'number' || !Number.isFinite(upper)))
+        throw new Error('Expected finite numeric input')
+      if (lower === undefined && upper === undefined) return
+      for (const event of selected) {
+        if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
+        event.addThreshold(lower, upper)
+      }
+    },
   modifyHeal: input => modifyContext(input, 'heal'),
   heal: amount =>
     numeric(amount, (ctx, pet, n) => {

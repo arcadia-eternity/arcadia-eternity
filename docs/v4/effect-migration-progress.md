@@ -281,3 +281,9 @@ All 756 public regression checks across six suites and the final 239-case consum
 The two direct addStacks effects now have generated candidates. A reusable typed operation preserves direct addition, current maxStacks, the zero lower bound and fractional values without entering mark creation/stacking phases. The damage effect retains its direct-event condition and execution-time floor(damageResult \* 0.5), including overkill behavior.
 
 All 294 public stack-gain/consumption/ownership checks, 127 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. See [stack gain evidence](validation/mark-stack-gains.md). Full-game/checkpoint and production gates remain pending.
+
+## Damage thresholds (2026-10-20)
+
+Five independent damage threshold effects now have generated candidates. The reusable setDamageThreshold API reads once, replaces only supplied bounds and does not recalculate damage. Migration preserves literal-zero omission, upper-after-lower ordering, non-pet pre-calculation bypass and the save-hp effect's existing post-deduction timing.
+
+All 1,773 public regression checks and the final 161-case threshold suite pass, alongside 130 generator tests, 75 design tests, types/lint, declarations and provenance. Both review axes pass. See [threshold evidence](validation/damage-thresholds.md). Full-game/checkpoint and production gates remain pending.

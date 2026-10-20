@@ -63,3 +63,7 @@ export { generatedVitalActions, createGeneratedVitalActions } from './src/v4/off
 export { generatedMarkRemovals, createGeneratedMarkRemovals } from './src/v4/official/mark-removals.generated'
 export { generatedMarkConsumption, createGeneratedMarkConsumption } from './src/v4/official/mark-consumption.generated'
 export { generatedMarkStackGains, createGeneratedMarkStackGains } from './src/v4/official/mark-stack-gains.generated'
+export {
+  generatedDamageThresholds,
+  createGeneratedDamageThresholds,
+} from './src/v4/official/damage-thresholds.generated'

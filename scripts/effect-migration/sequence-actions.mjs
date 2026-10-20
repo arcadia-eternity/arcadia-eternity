@@ -11,6 +11,23 @@ const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss',
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
+  if (a?.type === 'addThreshold') {
+    if (
+      !fields(a, ['type', 'target', ...['min', 'max'].filter(key => Object.hasOwn(a, key))]) ||
+      a.target !== 'damageContext'
+    )
+      return
+    const bounds = []
+    for (const key of ['min', 'max']) {
+      // The legacy parser drops literal zero; a raw:number zero remains an explicit value.
+      if (!Object.hasOwn(a, key) || a[key] === 0) continue
+      if (a[key]?.type === 'conditional') return
+      const bound = number(a[key], parameters, `${path}_${key}`, domain)
+      if (!bound) return
+      bounds.push(`${key}:${bound.code}`)
+    }
+    return `contexts.damage.apply(ops.setDamageThreshold({${bounds.join(',')}}))`
+  }
   if (a?.type === 'preventDamage') {
     if (!fields(a, ['type', 'target']) || a.target !== 'damageContext') return
     return 'contexts.damage.apply(ops.preventDamage())'

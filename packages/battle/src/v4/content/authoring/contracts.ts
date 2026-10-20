@@ -231,6 +231,8 @@ export declare const ops: {
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
   readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
+  /** Read min then max once; each present bound replaces that bound without recalculating damage. */
+  readonly setDamageThreshold: (bounds: { min?: NumericInput; max?: NumericInput }) => Operator<DamageContext>
   /** Evaluate amount once per operator invocation, then apply to its selected targets. Missing skips. */
   readonly heal: (amount: NumericInput) => Operator<Pet>
   readonly dealDamage: (amount: NumericInput) => Operator<Pet>
