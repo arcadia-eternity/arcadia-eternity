@@ -47,6 +47,7 @@ interface Entry {
     triggers: ('OnBeforeCalculateDamage' | 'OnDamage')[]
     selectorRepairs?: string[]
     orderConditions?: { path: string; condition: string }[]
+    pathRepairs?: { path: string; before: string; after: string }[]
     consumesStacks?: number
     tags?: string[]
     parameters?: { name: string; value: number; configId?: string }[]
@@ -64,6 +65,7 @@ const allRecords = manifest.records.filter((r): r is Entry => r.status === 'gene
 // Direct-context order behavior is covered by damage-order-modifiers.test.ts.
 const records = allRecords.filter(r => !r.recipe.selectorRepairs?.length && !r.recipe.orderConditions?.length)
 const orderRecords = allRecords.filter(r => r.recipe.orderConditions?.length)
+const skillPathRecords = allRecords.filter(r => r.recipe.pathRepairs?.length)
 const files = new Map<string, Definition[]>()
 for (const r of allRecords)
   if (!files.has(r.sourceFile))
@@ -73,11 +75,18 @@ for (const r of allRecords)
     )
 // Parse once before constructing battles: raw parameters belong to the oracle's global content registry.
 const oracles = new Map(
-  [...records, ...orderRecords].map(r => [
-    r.id,
-    EffectParser.parse(files.get(r.sourceFile)!.find(d => d.id === r.id)!),
-  ]),
+  [...records, ...orderRecords, ...skillPathRecords].map(r => {
+    const original = files.get(r.sourceFile)!.find(d => d.id === r.id)!
+    if (!r.recipe.pathRepairs?.length) return [r.id, EffectParser.parse(original)]
+    const corrected = structuredClone(original)
+    for (const node of objects(corrected)) {
+      if (node.base === 'useSkillContext') node.base = 'usingSkillContext'
+      if (node.type === 'selectPath' && node.arg === 'skillId') node.arg = 'skill'
+    }
+    return [r.id, EffectParser.parse(corrected)]
+  }),
 )
+
 function parameterKey(r: Entry, battle: Battle, native: boolean, name: string) {
   if (native) return parameterAddress(r.id, 'parameters', name)
   const p = r.recipe.parameters!.find(p => p.name === name)!
@@ -320,6 +329,9 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
   battles.push(battle)
   const definition = files.get(r.sourceFile)!.find(d => d.id === r.id)!
   const nodes = objects(definition.condition)
+  const requiredSkillId = r.recipe.pathRepairs?.length
+    ? nodes.find(n => n.type === 'same' && typeof n.value === 'string' && n.value.startsWith('skill_'))?.value
+    : undefined
   const effect = native ? createGeneratedDamageModifierEffects()[r.id] : oracles.get(r.id)!
   if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
   for (const p of r.recipe.parameters ?? [])
@@ -331,10 +343,10 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
     pet.currentHp = nodes.some(n => n.operator === '==') ? 801 : 100
     pet.lastSkillUsedTimes = 3
     const base = new BaseSkill(
-      `fixture/damage-${pet.id}` as BaseSkill['id'],
+      (typeof requiredSkillId === 'string' ? requiredSkillId : `fixture/damage-${pet.id}`) as BaseSkill['id'],
       nodes.some(n => n.value === 'Special') ? Category.Special : Category.Physical,
       Element.Light,
-      pet === f.a.team[1] ? 1000 : 30,
+      requiredSkillId ? 300 : pet === f.a.team[1] ? 1000 : 30,
       100,
       0,
       0,
@@ -342,6 +354,9 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
       1,
       true,
     )
+    if (r.recipe.pathRepairs?.length)
+      for (const node of nodes)
+        if (node.type === 'contain' && typeof node.tag === 'string') base.tags.push('unrelated', node.tag)
     const skill = new SkillInstance(base)
     skill.setOwner(pet)
     for (const old of pet.skills) battle.skillMap.delete(old.id)
@@ -498,6 +513,16 @@ for (const r of records)
 for (const r of orderRecords)
   it.each([false, true])(
     `${r.id}: damage order full game with checkpoint=%s`,
+    async checkpoint => {
+      const expected = await game(r, false, false)
+      expect(await game(r, true, checkpoint)).toEqual(expected)
+    },
+    30000,
+  )
+
+for (const r of skillPathRecords)
+  it.each([false, true])(
+    `${r.id}: skill selection full game with checkpoint=%s`,
     async checkpoint => {
       const expected = await game(r, false, false)
       expect(await game(r, true, checkpoint)).toEqual(expected)

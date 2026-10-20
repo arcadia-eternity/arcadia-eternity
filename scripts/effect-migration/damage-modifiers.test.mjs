@@ -77,7 +77,7 @@ test('rejects unhandled fields, invalid parameters, target chains, nonfinite num
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 89, protected: 1, rejected: 27 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 96, protected: 1, rejected: 20 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -210,5 +210,35 @@ test('damage order mappings require the exact recorded ID, path and predicate', 
   assert.ok(classifyDamageModifier(d).reason)
   d.condition.conditions.reverse()
   d.condition.conditions[1].type = 'isLastSkillUsedThisTurn'
+  assert.ok(classifyDamageModifier(d).reason)
+})
+
+test('skill identity damage corrections reject source drift and retain both repair decisions', () => {
+  const d = source()
+  d.id = 'effect_emblem_zhongji_damage_boost_35_percent'
+  d.condition = {
+    type: 'every',
+    conditions: [
+      { type: 'checkSelf' },
+      {
+        type: 'evaluate',
+        target: {
+          base: 'useSkillContext',
+          chain: [
+            { type: 'selectPath', arg: 'skillId' },
+            { type: 'select', arg: { type: 'base', arg: 'baseId' } },
+          ],
+        },
+        evaluator: { type: 'same', value: 'skill_zhongji' },
+      },
+    ],
+  }
+  const r = classifyDamageModifier(d)
+  assert.deepEqual(r.additionalDecisions, ['C07', 'C09'])
+  assert.match(r.when, /skill.baseId === "skill_zhongji"/)
+  assert.deepEqual(r.pathRepairs, [
+    { path: '/condition/conditions/1/target/chain/0/arg', before: 'skillId', after: 'skill' },
+  ])
+  d.condition.conditions[1].target.chain[0].arg = 'skill'
   assert.ok(classifyDamageModifier(d).reason)
 })

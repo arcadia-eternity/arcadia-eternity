@@ -5,7 +5,7 @@ import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 
 import { fields, normalize, number, condition } from './authoring-emitter.mjs'
-import { repairSkillSelector } from './skill-context-corrections.mjs'
+import { repairSkillSelector, repairSkillPaths } from './skill-context-corrections.mjs'
 import { turnOrderReferences } from './turn-order.mjs'
 const orderMappings = {
   effect_ability_damage_boost_10_percent_when_first: ['/condition/conditions/1', 'isFirstSkillUsedThisTurn'],
@@ -21,7 +21,12 @@ const orderMappings = {
 }
 const q = JSON.stringify
 export function classifyDamageModifier(original) {
-  const { definition: d, paths } = repairSkillSelector(original)
+  const { definition: spelling, paths } = repairSkillSelector(original)
+  if (!spelling || typeof spelling !== 'object' || Array.isArray(spelling))
+    return { reason: 'unsupported definition fields' }
+  const repaired = repairSkillPaths(spelling)
+  if (repaired.reason) return repaired
+  const d = repaired.definition
   if (!d || typeof d !== 'object' || Array.isArray(d)) return { reason: 'unsupported definition fields' }
   if (
     !fields(d, [
@@ -70,8 +75,15 @@ export function classifyDamageModifier(original) {
     id: d.id,
     ...(paths.length ? { selectorRepairs: paths } : {}),
     ...(orderConditions.length ? { orderConditions } : {}),
-    ...(paths.length || orderConditions.length
-      ? { additionalDecisions: [...(paths.length ? ['C07'] : []), ...(orderConditions.length ? ['C08'] : [])] }
+    ...(repaired.changes.length ? { pathRepairs: repaired.changes } : {}),
+    ...(paths.length || orderConditions.length || repaired.changes.length
+      ? {
+          additionalDecisions: [
+            ...(paths.length ? ['C07'] : []),
+            ...(orderConditions.length ? ['C08'] : []),
+            ...(repaired.changes.length ? ['C09'] : []),
+          ],
+        }
       : {}),
     priority: d.priority,
     triggers,

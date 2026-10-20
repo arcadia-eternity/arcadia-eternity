@@ -1,6 +1,6 @@
 # Native damage modifier candidates
 
-The offline generator recognizes 89 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 27 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
+The offline generator recognizes 96 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 20 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
 
 ## Authoring target
 
@@ -65,3 +65,15 @@ These predicates deliberately require a direct UseSkillContext whose parent is a
 All 112 focused public cases pass against unchanged legacy definitions and independent modifier/admission assertions, covering Mark/Skill sources, first/last/empty turn queues, extra context nesting, wrong owner, cancellation, repeat execution and real damage phases. Seven full games and seven fresh-factory checkpoint games match the legacy event sequence, application count, final HP, winner, turn and RNG state. No-op effects explicitly require zero applications; the defensive effect requires actual applications. The source-hash/catalog check also passes: 127 distinct public cases total.
 
 All 171 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-order-tests.log`, `/tmp/damage-order-games.log`, `/tmp/damage-order-generators.log` and `/tmp/damage-order-{types,lint,declarations,provenance}.log`. Production loading and overall migration admission remain pending.
+
+## Skill identity and tag corrections (2026-10-20)
+
+Seven definitions now repair their recorded skill-selection path after the existing C07 spelling correction: Yutu-tag damage, Quan-tag damage, Zhongji damage, and the Hongbaoshi/Lanbaoshi/Jiguang/Jueying fixed-damage marks. C09 changes only `/condition/conditions/1/target/chain/0/arg` from `skillId` to `skill`. The classifier rejects changed source nodes; recipes retain both repairs and their decision labels. Each original and spelling-only definition is independently verified to fail parsing before comparison against the explicitly corrected legacy definition. No runtime or YAML changes were made.
+
+The two tag queries inspect the complete flattened skill tag collection, including a match in the second position. Emblem checkSelf remains damage-target ownership. Fixed-damage configuration is sampled when the admitted operation executes; zero remains zero. A skill change after admission does not rerun the condition. The four fixed-damage marks consume their source stack, so a one-stack Mark source cannot fire again after destruction; Skill sources retain their own lifecycle.
+
+All 161 focused cases pass, including both source kinds, wrong owner/skill, nested contexts, second-tag matches, cancellation, late skill/config changes, zero configuration, repetition, and real damage phases. The initial run had four incorrect independent repeat-count assertions (the differential comparisons passed); these were corrected to account for automatic stack consumption, and the entire 161-case suite was rerun with source stack/activity also compared.
+
+All fourteen full-game/checkpoint comparisons and the source/catalog check pass, for 176 distinct scoped public cases. Fresh effect factories are registered on checkpoint restoration. The fixed-ID game fixtures use identical skill definitions with power 300 to complete inside the existing 12-turn bound; the initial power-30 Zhongji fixtures exceeded that bound. Battle event types, application counts, HP, winner, turn and RNG match the corrected legacy reference.
+
+All 172 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-selection-tests-final.log`, `/tmp/damage-selection-games-final.log`, `/tmp/damage-selection-generators.log` and `/tmp/damage-selection-{types-final,lint-final,declarations,provenance}.log`. These remain candidates pending overall migration/production admission.

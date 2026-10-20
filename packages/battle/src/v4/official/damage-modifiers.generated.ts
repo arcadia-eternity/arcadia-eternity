@@ -13,6 +13,18 @@ import {
 } from '../content/authoring'
 export function createGeneratedDamageModifierEffects() {
   return Object.freeze({
+    effect_ability_add_damage_40_if_using_yutu_skill: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_damage_40_if_using_yutu_skill',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('yutu'))),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
+      }),
+    ),
     effect_ability_damage_add_10: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_add_10',
@@ -336,6 +348,30 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
+    effect_emblem_increase_quan_skill_damage_5_percent: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_increase_quan_skill_damage_5_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('quan'))),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
+      }),
+    ),
+    effect_emblem_zhongji_damage_boost_35_percent: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_zhongji_damage_boost_35_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_zhongji'),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
+      }),
+    ),
     effect_mark_buxieanguang_reduce_light_damage_half: compileEffect(
       defineEffect({
         id: 'effect_mark_buxieanguang_reduce_light_damage_half',
@@ -390,6 +426,29 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
       }),
     ),
+    effect_mark_hongbaoshizhiguang_add_200_fixed_damage: (() => {
+      const parameters = {
+        delta: numberParam({
+          default: 200,
+          tags: [],
+          legacyAliases: ['effect_mark_hongbaoshizhiguang_add_200_fixed_damage.hongbaoshi_fixed_damage_value'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_hongbaoshizhiguang_add_200_fixed_damage',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          consumesStacks: 1,
+          parameters,
+          when: conditions.all(
+            conditions.selfBeDamaged,
+            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_hongbaoshizhiguang'),
+          ),
+          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+        }),
+      )
+    })(),
     effect_mark_increase_damage_10_percent_per_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_10_percent_per_stack',
@@ -533,6 +592,75 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
       }),
     ),
+    effect_mark_jiguang_add_200_damage: (() => {
+      const parameters = {
+        delta: numberParam({
+          default: 200,
+          tags: [],
+          legacyAliases: ['effect_mark_jiguang_add_200_damage.jiguang_fixed_damage_value'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_jiguang_add_200_damage',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          consumesStacks: 1,
+          parameters,
+          when: conditions.all(
+            conditions.selfBeDamaged,
+            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_jiguang'),
+          ),
+          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+        }),
+      )
+    })(),
+    effect_mark_jueying_add_200_damage: (() => {
+      const parameters = {
+        delta: numberParam({
+          default: 200,
+          tags: [],
+          legacyAliases: ['effect_mark_jueying_add_200_damage.jueying_fixed_damage_value'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_jueying_add_200_damage',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          consumesStacks: 1,
+          parameters,
+          when: conditions.all(
+            conditions.selfBeDamaged,
+            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_jueying'),
+          ),
+          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+        }),
+      )
+    })(),
+    effect_mark_lanbaoshizhiguang_add_200_fixed_damage: (() => {
+      const parameters = {
+        delta: numberParam({
+          default: 200,
+          tags: [],
+          legacyAliases: ['effect_mark_lanbaoshizhiguang_add_200_fixed_damage.lanbaoshi_fixed_damage_value'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_lanbaoshizhiguang_add_200_fixed_damage',
+          on: ['OnBeforeCalculateDamage'],
+          priority: 0,
+          consumesStacks: 1,
+          parameters,
+          when: conditions.all(
+            conditions.selfBeDamaged,
+            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_lanbaoshizhili'),
+          ),
+          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+        }),
+      )
+    })(),
     effect_mark_reduce_atk_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_atk_damage_25_percent',

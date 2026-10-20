@@ -70,3 +70,7 @@ effect_mark_self_damage_25_percent repairs /condition/conditions/2/target/chain/
 ## Shandianluoyin ordered application
 
 `effect_mark_shandianluoyin_paralyze` repairs `/condition/conditions/1/target/chain/0/arg` from `skillId` to `skill` after C07. The resulting condition still compares the actual used skill's base ID with `skill_shandianluoyin`, then applies mabi before destroying its source. Original and spelling-only parsing failures, exact metadata, independently repaired behavior and fresh-factory checkpoints are covered by [compound action evidence](compound-actions.md).
+
+## Damage skill identity and tags
+
+The Yutu-tag and Quan-tag damage definitions, Zhongji damage, and Hongbaoshi/Lanbaoshi/Jiguang/Jueying fixed-damage definitions repair `/condition/conditions/1/target/chain/0/arg` from `skillId` to `skill` after C07. Each mapping is exact per ID, with original/spelling-only parse failures, independent corrected references, complete tag collection checks, wrong-skill rejection, live parameter reads and source consumption verified. All seven also pass full-game and fresh-factory checkpoint comparisons. See [damage evidence](damage-modifiers.md).

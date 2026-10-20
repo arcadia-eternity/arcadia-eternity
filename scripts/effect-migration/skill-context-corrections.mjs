@@ -20,6 +20,22 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_ability_add_damage_40_if_using_yutu_skill: [
+    ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
+  ],
+  effect_emblem_increase_quan_skill_damage_5_percent: [
+    ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
+  ],
+  effect_emblem_zhongji_damage_boost_35_percent: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
+  effect_mark_hongbaoshizhiguang_add_200_fixed_damage: [
+    ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
+  ],
+  effect_mark_lanbaoshizhiguang_add_200_fixed_damage: [
+    ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
+  ],
+  effect_mark_jiguang_add_200_damage: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
+  effect_mark_jueying_add_200_damage: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
+
   effect_mark_shandianluoyin_paralyze: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_skill_priority_plus_1_if_atk_over_500: [['/condition/conditions/1/target/chain/0/arg', 'atk', 'stat.atk']],
   effect_ability_shenguang_immune_status_above_half_hp: [

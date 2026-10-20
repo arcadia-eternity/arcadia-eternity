@@ -383,3 +383,9 @@ All 395 distinct public cases have passing evidence across the original run and 
 Seven damage candidates now have exact C08 mappings and reuse existing typed order conditions. Their direct-context restriction is preserved: the six positive-order definitions remain inactive on damage events, while the negated defensive condition still applies. This behavior is documented rather than silently broadened to ancestor lookup.
 
 All 127 scoped public cases pass, including complete games and fresh-factory checkpoint continuations for all seven candidates. All 171 generator tests, battle types/lint, declarations and unchanged provenance pass. See [damage evidence](validation/damage-modifiers.md). The damage catalog now generates 89 candidates, retains one handwritten owner and rejects 27; overall official coverage still has 79 definitions without candidates. Production migration remains open.
+
+## Damage skill identity and tags (2026-10-20)
+
+Seven further damage candidates use exact C07/C09 skill-context corrections, shared tag/ID selectors and existing action-time parameter reads. Automatic source-stack consumption and one-stack destruction remain intact.
+
+All 176 scoped public cases pass, including complete games and fresh-factory checkpoint continuations for every candidate. All 172 generator tests, battle types/lint, declarations and unchanged provenance pass. See [damage evidence](validation/damage-modifiers.md). The damage catalog generates 96 candidates, retains one handwritten owner and rejects 20. Overall official coverage has 72 definitions without candidates; overall production admission remains open.
