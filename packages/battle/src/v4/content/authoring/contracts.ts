@@ -132,6 +132,7 @@ export declare const targets: {
   readonly ownerPet: Selector<Pet>
   readonly selfTeam: Selector<Pet>
   readonly selfSkills: Selector<SkillInstance>
+  readonly sourceSkill: Selector<SkillInstance>
   /** Direct skill actor owner; otherwise the source pet owner. */
   readonly selfPlayer: Selector<Player>
   /** Direct skill target owner; otherwise the source pet owner's opponent. Requeried on use. */
@@ -238,7 +239,7 @@ export declare const ops: {
     attribute: 'accuracy' | 'power' | 'rage' | 'priority',
     operation: 'delta' | 'percent' | 'override',
     amount: NumericInput,
-    priority?: NumericInput,
+    options?: { priority?: NumericInput; lifetime?: 'sourceMark' | 'sourceMarkOrTargetSkill' },
   ) => Operator<SkillInstance>
 
   /** Cancel a pending skill, mark application or outer effect; no rollback of prior writes. */

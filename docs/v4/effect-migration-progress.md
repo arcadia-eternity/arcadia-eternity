@@ -335,3 +335,9 @@ All 415 scoped public tests, 150 generator tests, 75 design tests, types/lint, d
 Ten dynamic attribute candidates now reuse the source-capture/stack-follow emitter. Bare stack, floor multiplication, fractional clamp behavior, captured configuration and repeated append semantics are preserved. The existing weakness selector candidate remains owned by the authoring API ledger.
 
 The 343 public regression checks include fresh-factory JSON checkpoints for every new candidate. All 153 generator tests, 75 design tests, scoped types/lint, declarations and provenance pass. Both review axes pass. See [dynamic contribution evidence](validation/dynamic-contributions.md). Candidates remain U pending full-game and production admission.
+
+## Static skill contributions (2026-10-20)
+
+Thirteen static skill contribution candidates now preserve dedicated legacy source binding through an explicit lifetime option. Source-skill identity and fresh skill filtering are reusable. The live stack-to-skill-power definition remains rejected until persistent bindings support skill targets.
+
+All 605 public regression tests, 156 generator tests, 75 design tests, scoped types/lint, declarations and provenance pass; both review axes pass. Checkpoints cover every new candidate with both Mark and Skill sources and assert restored contribution identity. See [skill contribution evidence](validation/skill-contributions.md). Full-game and production gates remain open.

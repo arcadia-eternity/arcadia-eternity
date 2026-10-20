@@ -266,6 +266,10 @@ function directSkillEvent(ctx: Frame): UseSkillContext | undefined {
   return event instanceof UseSkillContext ? event : undefined
 }
 export const targets: typeof C.targets = {
+  sourceSkill: selector(ctx => {
+    const source = scope(ctx).source
+    return source instanceof SkillInstance ? [source] : []
+  }),
   selfTeam: selector(ctx => [...(directSkillEvent(ctx)?.pet.owner?.team ?? owner(ctx)?.owner?.team ?? [])]),
   selfSkills: selector(ctx => [...(directSkillEvent(ctx)?.pet.skills ?? owner(ctx)?.skills ?? [])]),
   ownerPet: selector(ctx => {
@@ -660,6 +664,7 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
   operation: 'delta' | 'percent' | 'override',
   amount: Parameters<typeof C.ops.addAttributeModifier>[2],
   priority: Parameters<typeof C.ops.addAttributeModifier>[3] = 0,
+  lifetime: 'sourceMark' | 'sourceMarkOrTargetSkill' = 'sourceMark',
 ): C.Operator<T> {
   return (ctx, selected) => {
     for (const target of selected) {
@@ -681,7 +686,11 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
         value,
         operation,
         rank ?? 0,
-        source instanceof MarkInstanceImpl ? source : undefined,
+        source instanceof MarkInstanceImpl
+          ? source
+          : lifetime === 'sourceMarkOrTargetSkill' && target instanceof SkillInstance
+            ? target
+            : undefined,
       )
       const cleanup = target.attributeSystem.addModifier(attribute, modifier)
       if (source instanceof MarkInstanceImpl) source.addAttributeModifierCleanup(cleanup)
@@ -690,7 +699,8 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
 }
 export const ops: typeof C.ops = {
   addAttributeModifier,
-  addSkillAttributeModifier: addAttributeModifier,
+  addSkillAttributeModifier: (attribute, operation, amount, options = {}) =>
+    addAttributeModifier(attribute, operation, amount, options.priority, options.lifetime),
   disableContext: () => (ctx, selected) => {
     for (const event of selected)
       if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle cancellable context')

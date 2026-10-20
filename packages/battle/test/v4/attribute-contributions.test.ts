@@ -245,7 +245,7 @@ for (const skillTarget of [false, true])
         id: 'fixture/contribution-order',
         on: 'TurnStart',
         execute: skillTarget
-          ? selectFrom(skills).apply(ops.addSkillAttributeModifier('accuracy', 'delta', amount, priority))
+          ? selectFrom(skills).apply(ops.addSkillAttributeModifier('accuracy', 'delta', amount, { priority }))
           : selectFrom(pets).apply(ops.addAttributeModifier('accuracy', 'delta', amount, priority)),
       }),
     )

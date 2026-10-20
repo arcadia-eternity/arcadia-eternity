@@ -92,3 +92,8 @@ export {
   generatedDynamicContributions,
   createGeneratedDynamicContributions,
 } from './src/v4/official/dynamic-contributions.generated'
+
+export {
+  generatedSkillContributions,
+  createGeneratedSkillContributions,
+} from './src/v4/official/skill-contributions.generated'

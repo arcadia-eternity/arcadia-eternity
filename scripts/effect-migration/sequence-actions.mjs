@@ -1,3 +1,4 @@
+import { skillSelection } from './skill-selection.mjs'
 import { stackBinding, bindStackAttribute } from './stack-binding.mjs'
 import { fields, members, number, selectedNumber } from './authoring-emitter.mjs'
 import { classifySkillOutcome } from './skill-outcomes.mjs'
@@ -67,6 +68,19 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     const value = number(a.value, parameters, path, domain)?.code
     if (!value) return
     return `${selected}.apply(ops.${operation}(${JSON.stringify(a.stat)},${JSON.stringify(a.modifierType)},${value}))`
+  }
+  if (a?.type === 'addSkillAttributeModifier') {
+    if (
+      !fields(a, ['type', 'target', 'attribute', 'modifierType', 'value']) ||
+      !['power', 'accuracy', 'rage', 'priority'].includes(a.attribute) ||
+      !['delta', 'percent', 'override'].includes(a.modifierType)
+    )
+      return
+    const selected = skillSelection(a.target)
+    if (!selected) return
+    const value = number(a.value, parameters, path, domain)?.code
+    if (!value) return
+    return `${selected}.apply(ops.addSkillAttributeModifier(${JSON.stringify(a.attribute)},${JSON.stringify(a.modifierType)},${value},{lifetime:"sourceMarkOrTargetSkill"}))`
   }
   if (a?.type === 'addDynamicAttributeModifier') {
     if (

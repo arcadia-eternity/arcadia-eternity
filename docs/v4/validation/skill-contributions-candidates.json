@@ -1,0 +1,287 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_ability_add_self_skill_accuracy_5",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/30",
+      "definitionSha256": "ea3417c2ba334e6499df3e8d21a39e7234c0bc6d196be13a9ded0d271632c26f",
+      "recipe": {
+        "id": "effect_ability_add_self_skill_accuracy_5",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.apply(ops.addSkillAttributeModifier(\"accuracy\",\"delta\",5,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_reduce_rage_cost_5",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/72",
+      "definitionSha256": "d99ae411be2b46443114cd9958bb554ebbdcf05fc2e1d2f462cfe97256a42369",
+      "recipe": {
+        "id": "effect_ability_reduce_rage_cost_5",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.category as string) !== \"Climax\").apply(ops.addSkillAttributeModifier(\"rage\",\"delta\",-5,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_huashen_skill_rage_cost_reduce_5",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/45",
+      "definitionSha256": "6a0e308618e99d5501495a648434167e1f8cb4ac54ee9c74ba27cda4ad21e663",
+      "recipe": {
+        "id": "effect_emblem_huashen_skill_rage_cost_reduce_5",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => skill.tags.includes(\"huashen\")).apply(ops.addSkillAttributeModifier(\"rage\",\"delta\",-5,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_no_rage_cost_for_fasi_skills",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/62",
+      "definitionSha256": "5b7a0df63959cdf12fc7220ddde7b19e5ea2fee190c9623e7290b11bfce130a4",
+      "recipe": {
+        "id": "effect_emblem_no_rage_cost_for_fasi_skills",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => skill.tags.includes(\"fasi\")).apply(ops.addSkillAttributeModifier(\"rage\",\"override\",0,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_reduce_light_skill_rage_cost_5",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/53",
+      "definitionSha256": "e2500ed166a9e59b34b0988b3e0528b8c4ba55ea4a1c4d0e2a8ee69ef1f999b5",
+      "recipe": {
+        "id": "effect_emblem_reduce_light_skill_rage_cost_5",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.element as string) === \"Light\").where(skill => (skill.category as string) !== \"Climax\").apply(ops.addSkillAttributeModifier(\"rage\",\"delta\",-5,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_shahezhiguang_power_boost_10_percent",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/31",
+      "definitionSha256": "ece8bf07b13145cc8bd59730945686b3c0fec9486c93bc725716ca4e38006c84",
+      "recipe": {
+        "id": "effect_emblem_shahezhiguang_power_boost_10_percent",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.baseId as string) === \"skill_shahezhili\").apply(ops.addSkillAttributeModifier(\"power\",\"percent\",10,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_ziwocuimian_priority_plus_1",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/63",
+      "definitionSha256": "1e256db806047a0c04633b92025c358502a17817ddaea717ed7636721d86cf3a",
+      "recipe": {
+        "id": "effect_emblem_ziwocuimian_priority_plus_1",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.baseId as string) === \"skill_ziwocuimian\").apply(ops.addSkillAttributeModifier(\"priority\",\"delta\",1,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_amplify_all_skill_power_2",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/185",
+      "definitionSha256": "7a983f3f2cf84f13d34cb7fc4bf84f3d8b9d92939ded8fbca05838abbf7fb0c3",
+      "recipe": {
+        "id": "effect_mark_amplify_all_skill_power_2",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.category as string) !== \"Status\").apply(ops.addSkillAttributeModifier(\"power\",\"percent\",100,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_amplify_electric_skill_70",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/149",
+      "definitionSha256": "e58347c183a988a639924316c8190661d777fb0d63e39b4066c3068796d54509",
+      "recipe": {
+        "id": "effect_mark_amplify_electric_skill_70",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.category as string) !== \"Status\").where(skill => (skill.element as string) === \"Electric\").apply(ops.addSkillAttributeModifier(\"power\",\"percent\",70,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_anyingzhiguang_power_min_100",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/104",
+      "definitionSha256": "d8423b4fb727f117b00439cff16882635d703dd36c1c4218d9e71ca2c78232e0",
+      "recipe": {
+        "id": "effect_mark_anyingzhiguang_power_min_100",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => (skill.category as string) !== \"Status\").where(skill => skill.power < 100).apply(ops.addSkillAttributeModifier(\"power\",\"override\",100,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_priority_add_1",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/157",
+      "definitionSha256": "55fd09fecb5f879dc822752918895b0c7305c17dbaf6ecaeef7d163a50cdcb49",
+      "recipe": {
+        "id": "effect_mark_priority_add_1",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.apply(ops.addSkillAttributeModifier(\"priority\",\"delta\",1,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_priority_reduce_1",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/106",
+      "definitionSha256": "646c9d0bafc728692537a840cf5c49f28505dcadb31e94760f0820040335ea04",
+      "recipe": {
+        "id": "effect_mark_priority_reduce_1",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.apply(ops.addSkillAttributeModifier(\"priority\",\"delta\",-1,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_lock_rage_to_10",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/377",
+      "definitionSha256": "0d04ec6aeb502e1e05ea26413003eef47a2756a1803ac7c09290dab6ad3ecab6",
+      "recipe": {
+        "id": "effect_skill_lock_rage_to_10",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.sourceSkill.apply(ops.addSkillAttributeModifier(\"rage\",\"override\",10,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "effect_mark_amplify_power_20x_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/122",
+      "definitionSha256": "1ebccb962ba2c74a20c91c5f5ab6b08d5c9c8177e1dbb50a5ef95b685f1732c3",
+      "reason": "unsupported sequence action or parameter"
+    }
+  ]
+}
