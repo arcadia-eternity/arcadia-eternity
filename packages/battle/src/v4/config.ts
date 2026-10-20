@@ -1,6 +1,6 @@
 import { rememberModifierCleanup, deactivateCleanup, describeCleanup } from './snapshotBindings'
 import type { baseMarkId, baseSkillId, markId, petId, playerId, skillId, speciesId } from '@arcadia-eternity/const'
-import { Signal, ReactiveValue, isReactiveValue, untracked } from './reactiveValue'
+import { Signal, ReactiveValue, isReactiveValue, getValueRecipe, untracked } from './reactiveValue'
 import type { Battle } from './battle'
 import { AttributeSystem } from './attributeSystem'
 import type { MarkInstance } from './mark'
@@ -71,6 +71,33 @@ export enum PhaseScope {
   Next = 'next', // 下一次 (e.g., 下一次伤害)
 }
 
+export interface ConfigReadDependency {
+  readonly config: ConfigSystem
+  readonly key: string
+}
+const configReadDependencies = new WeakMap<ConfigSystem, Map<string, ConfigReadDependency>>()
+export function configReadDependency(config: ConfigSystem, key: string): ConfigReadDependency {
+  let entries = configReadDependencies.get(config)
+  if (!entries) configReadDependencies.set(config, (entries = new Map()))
+  let dependency = entries.get(key)
+  if (!dependency) entries.set(key, (dependency = { config, key }))
+  return dependency
+}
+export function checkConfigRead(config: ConfigSystem, key: string): void {
+  configReadGuard?.(config, key)
+}
+let configReadGuard: ((config: ConfigSystem, key: string) => void) | undefined
+/** Validate synchronous plan reads without changing the normal configuration lookup path. */
+export function withConfigReadGuard<T>(guard: (config: ConfigSystem, key: string) => void, read: () => T): T {
+  const previous = configReadGuard
+  configReadGuard = guard
+  try {
+    return read()
+  } finally {
+    configReadGuard = previous
+  }
+}
+
 /**
  * ConfigModifier handles modifications to config values
  * Similar to Modifier but specialized for config values
@@ -94,6 +121,7 @@ export class ConfigModifier {
    * Apply this modifier to a base value
    */
   apply(base: ConfigValue): ConfigValue {
+    if (getValueRecipe(this.value)?.type === 'bound' && !this.value.isAvailable) return base
     const modifierValue = this.value.value
 
     switch (this.type) {
@@ -126,7 +154,9 @@ export class ConfigModifier {
   /**
    * Cleanup resources
    */
-  cleanup(): void {}
+  cleanup(): void {
+    if (getValueRecipe(this.value)?.type === 'bound') this.value.complete()
+  }
 }
 
 /**
@@ -440,6 +470,7 @@ export class ConfigSystem {
    * Get config value with modifier support
    */
   get(key: string, scope?: ScopeObject): ConfigValue | undefined {
+    checkConfigRead(this, key)
     void this.scopeRevision.value
     if (this.isDestroyed) {
       this.logger.warn(`Attempted to get config '${key}' from destroyed ConfigSystem`)

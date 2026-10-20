@@ -273,6 +273,13 @@ export declare const ops: {
     amount: NumericInput,
     priority?: NumericInput,
   ) => Operator<Pet | Player>
+  /** Append a source-mark-owned value plan to each currently tagged parameter; later registrations do not join. */
+  readonly bindTaggedParameter: (options: {
+    key: string
+    tag: string
+    operation: 'delta' | 'override'
+    value: BindingValue<number, Presence>
+  }) => Operator<Pet | Player>
   /** Read a prototype once, then install a temporary priority-zero transformation preserving effects. */
   readonly transformSkill: (base: Value<BaseSkill, Presence>) => Operator<SkillInstance>
   /** Remove the latest transformation record through the existing lifecycle; older records can remain. */

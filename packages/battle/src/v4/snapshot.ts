@@ -206,11 +206,21 @@ function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
         !recipe.target ||
         typeof recipe.target !== 'object' ||
         !(
-          ('pet' in recipe.target && !('skill' in recipe.target) && recipe.target.pet instanceof Pet) ||
-          ('skill' in recipe.target && !('pet' in recipe.target) && recipe.target.skill instanceof SkillInstance)
-        ) ||
-        !('attribute' in recipe.target) ||
-        typeof recipe.target.attribute !== 'string'
+          ('attribute' in recipe.target &&
+            typeof recipe.target.attribute === 'string' &&
+            !('scope' in recipe.target) &&
+            (('pet' in recipe.target && !('skill' in recipe.target) && recipe.target.pet instanceof Pet) ||
+              ('skill' in recipe.target &&
+                !('pet' in recipe.target) &&
+                recipe.target.skill instanceof SkillInstance))) ||
+          ('scope' in recipe.target &&
+            !('pet' in recipe.target) &&
+            !('skill' in recipe.target) &&
+            !('attribute' in recipe.target) &&
+            (recipe.target.scope instanceof Pet || recipe.target.scope instanceof Player) &&
+            'parameter' in recipe.target &&
+            typeof recipe.target.parameter === 'string')
+        )
       )
         break
       catalog.assertValueBinding(recipe.key)
@@ -662,6 +672,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
           const recipe = getValueRecipe(modifier.value)
           if (recipe?.type !== 'bound') continue
           const target = recipe.target as BindingTarget
+          if (!('attribute' in target)) throw new Error('Invalid attribute binding target')
           const entity = bindingEntity(target)
           const targetOwner = bindingOwner(target)
           const source = modifier.source
@@ -685,6 +696,39 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
           ownedValues.add(modifier.value)
         }
       }
+    }
+    const bindingBattle = battle
+    for (const { object, state } of configs) {
+      const validate = (key: string, modifier: ConfigModifier, scope?: object) => {
+        const recipe = getValueRecipe(modifier.value)
+        if (recipe?.type !== 'bound') return
+        const target = recipe.target as BindingTarget
+        const source = modifier.source
+        const players = [bindingBattle.playerA, bindingBattle.playerB]
+        if (
+          ownedValues.has(modifier.value) ||
+          object !== bindingBattle.configSystem ||
+          !('scope' in target) ||
+          target.scope !== scope ||
+          target.parameter !== key ||
+          !(target.scope instanceof Player
+            ? players.includes(target.scope)
+            : target.scope.owner &&
+              players.includes(target.scope.owner) &&
+              target.scope.owner.team.includes(target.scope)) ||
+          !(source instanceof MarkInstanceImpl) ||
+          !source.owner ||
+          !source.owner.marks.includes(source) ||
+          (source.owner !== battle &&
+            (!(source.owner instanceof Pet) || !source.owner.owner || !players.includes(source.owner.owner)))
+        )
+          throw new Error('Invalid bound parameter ownership')
+        catalog.assertValueBindingSource(recipe.key as string, recipe.args, source)
+        ownedValues.add(modifier.value)
+      }
+      for (const [key, modifiers] of state.global) for (const modifier of modifiers) validate(key, modifier)
+      for (const [scope, entries] of state.scopedModifiers)
+        for (const [key, modifiers] of entries) for (const modifier of modifiers) validate(key, modifier, scope)
     }
     for (const object of objects) {
       if (object instanceof SkillInstance || object instanceof MarkInstanceImpl) {

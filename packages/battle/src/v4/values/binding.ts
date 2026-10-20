@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid'
+import { checkConfigRead, type ConfigReadDependency } from '../config'
 import { ExecutionBudgetExceeded } from '../execution/budget'
 import { derived, ReactiveValue, describeValue, checkValueRead, getValueRecipe } from '../reactiveValue'
 import { Modifier, DurationType } from '../attributeSystem'
@@ -7,7 +8,7 @@ import { Pet } from '../pet'
 import type { SkillInstance } from '../skill'
 import type { StatTypeOnBattle } from '@arcadia-eternity/const'
 import { Evaluation, emptyBindingState, BindingStateError, type ValueDefinition, type BindingState } from './plan'
-import { traceReads, bindingEntity, bindingOwner, type BindingTarget } from './dependencies'
+import { traceReads, bindingEntity, bindingOwner, bindingBattle, type BindingTarget } from './dependencies'
 import { describeCleanup, getModifierCleanup } from '../snapshotBindings'
 
 /** Recoverable absence; unlike invalid plans this may wait for a structural update. */
@@ -17,22 +18,24 @@ type Result = { ok: true; value: number } | { ok: false; error: Error }
 export class BoundValue extends ReactiveValue<number> {
   private result: Result = { ok: false, error: new Error('Binding is not active') }
   private stop: (() => void) | undefined
-  private publishedDependencies = new Set<ReactiveValue<unknown>>()
+  private publishedDependencies = new Set<object>()
   constructor(
     readonly calculation: ReactiveValue<Result>,
     readonly dependencies: Set<ReactiveValue<unknown>>,
+    readonly configDependencies: Set<ConfigReadDependency> = new Set(),
   ) {
     super()
   }
   start(restoring: boolean, allowInitialMissing = false): void {
     const refresh = () => {
       const result = this.calculation.value
+      const currentDependencies = new Set<object>([...this.dependencies, ...this.configDependencies])
       const changed =
         result.ok !== this.result.ok ||
         (result.ok && this.result.ok && result.value !== this.result.value) ||
-        this.dependencies.size !== this.publishedDependencies.size ||
-        [...this.dependencies].some(value => !this.publishedDependencies.has(value))
-      this.publishedDependencies = new Set(this.dependencies)
+        currentDependencies.size !== this.publishedDependencies.size ||
+        [...currentDependencies].some(value => !this.publishedDependencies.has(value))
+      this.publishedDependencies = currentDependencies
       this.result = result
       if (changed) this.changed()
     }
@@ -58,6 +61,7 @@ export class BoundValue extends ReactiveValue<number> {
   }
   protected read(): number {
     for (const dependency of this.dependencies) checkValueRead(dependency)
+    for (const dependency of this.configDependencies) checkConfigRead(dependency.config, dependency.key)
     if (!this.result.ok) throw this.result.error
     return this.result.value
   }
@@ -77,19 +81,26 @@ export function bindValue<A>(
   restoring = false,
   allowInitialMissing = false,
 ): BoundValue {
-  if (!bindingEntity(target).attributeSystem.hasAttribute(target.attribute))
+  if ('attribute' in target && !bindingEntity(target).attributeSystem.hasAttribute(target.attribute))
     throw new Error('Invalid binding target attribute')
-  const battle = bindingOwner(target)?.owner?.battle
+  const battle = bindingBattle(target)
   if (!battle) throw new Error('Value binding requires a Battle')
+  if ('parameter' in target && !battle.configSystem.isRegistered(target.parameter))
+    throw new Error('Unregistered parameter binding target')
   const plan = definition.build(args)
   const dependencies = new Set<ReactiveValue<unknown>>()
+  const configDependencies = new Set<ConfigReadDependency>()
   const bound = new BoundValue(
     derived((): Result => {
       dependencies.clear()
+      configDependencies.clear()
       try {
         const value = battle.executionBudget.run(battle.currentTurn, () =>
-          traceReads(target, dependencies, () =>
-            plan.evaluate(new Evaluation(state, restoring, () => battle.executionBudget.chargeComputation())),
+          traceReads(
+            target,
+            dependencies,
+            () => plan.evaluate(new Evaluation(state, restoring, () => battle.executionBudget.chargeComputation())),
+            configDependencies,
           ),
         )
         if (!Number.isFinite(value)) throw new Error('Non-finite bound value')
@@ -105,6 +116,7 @@ export function bindValue<A>(
       }
     }),
     dependencies,
+    configDependencies,
   )
   describeValue(bound, { type: 'bound', key: definition.id, args, state, target })
   bound.start(restoring, allowInitialMissing)

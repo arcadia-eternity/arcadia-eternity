@@ -33,7 +33,7 @@ import { Effect } from '../../effect'
 import type { Battle } from '../../battle'
 import type { ValueDefinition } from '../../values/plan'
 import { Evaluation, ValuePlan, defineValue, values as planValues } from '../../values/plan'
-import { BindingInputUnavailable, installValueModifier } from '../../values/binding'
+import { BindingInputUnavailable, bindValue, installValueModifier } from '../../values/binding'
 import type * as C from './contracts'
 import { AuthoringParameters, declareParameter } from './parameters'
 
@@ -1072,6 +1072,47 @@ export const ops: typeof C.ops = {
         target,
       ),
     )
+  },
+  bindTaggedParameter: input => {
+    const options = { ...input }
+    if (!options.tag) throw new Error('Expected parameter tag')
+    const operator: C.Operator<Pet | Player> = (ctx, selected) => {
+      const source = engine(ctx)
+      for (const target of selected) assertWriteTarget(ctx, target)
+      if (!(source.source instanceof MarkInstanceImpl)) throw new Error('Binding requires a source mark')
+      const binding = frameBindings.get(ctx)?.get(options.key)
+      if (!binding || binding.value !== options.value) throw new Error('Undeclared authored binding')
+      const config = source.battle.configSystem
+      for (const target of selected) {
+        assertWriteTarget(ctx, target)
+        for (const parameter of config.getConfigKeysByTag(options.tag)) {
+          const value = bindValue(
+            binding.definition,
+            { source: source.source },
+            { scope: target, parameter },
+            undefined,
+            false,
+            true,
+          )
+          const modifier = new ConfigModifier(
+            ConfigDurationType.binding,
+            nanoid(),
+            value,
+            options.operation === 'delta' ? ConfigModifierType.delta : ConfigModifierType.override,
+            0,
+            source.source,
+          )
+          try {
+            source.source.addAttributeModifierCleanup(config.addScopedConfigModifier(parameter, modifier, target))
+          } catch (error) {
+            value.complete()
+            throw error
+          }
+        }
+      }
+    }
+    actionBindings.set(operator, [{ key: options.key, value: options.value }])
+    return operator
   },
   transformSkill: base => (ctx, selected) => {
     for (const target of selected) assertWriteTarget(ctx, target)

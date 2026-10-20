@@ -363,3 +363,23 @@ const consumptionEvent = defineEffect({
 contexts.rage.apply(ops.disableContext())
 // @ts-expect-error Pet is not a cancellable context.
 targets.ownerPet.apply(ops.disableContext())
+
+const parameterContribution = targets.sourceMark
+  .first()
+  .capture({ key: 'mark', scope: 'binding' })
+  .attribute('stack')
+  .follow({ key: 'stack' })
+targets.ownerPet.apply(
+  ops.bindTaggedParameter({ key: 'probability', tag: 'chance', operation: 'delta', value: parameterContribution }),
+)
+ops.bindTaggedParameter({
+  key: 'probability',
+  tag: 'chance',
+  operation: 'delta',
+  // @ts-expect-error An immediate value must choose capture/follow before persistent installation.
+  value: targets.sourceMark.first().attribute('stack'),
+})
+targets.sourceMark.apply(
+  // @ts-expect-error Parameter scopes are pets or players, not marks.
+  ops.bindTaggedParameter({ key: 'probability', tag: 'chance', operation: 'delta', value: parameterContribution }),
+)
