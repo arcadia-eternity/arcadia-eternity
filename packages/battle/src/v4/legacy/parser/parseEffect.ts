@@ -224,6 +224,14 @@ function applySelectorStep(
       case 'randomSample':
         return selector.randomSample(parseValue(effectId, step.arg) as ValueSource<number>)
 
+      case 'avg': {
+        assertNumberSelector(selector)
+        return selector.avg()
+      }
+      case 'sampleBetween': {
+        assertNumberSelector(selector)
+        return (selector as ChainableSelector<number>).sampleBetween() as ChainableSelector<SelectorOpinion>
+      }
       case 'sum': {
         assertNumberSelector(selector)
         return selector.sum()

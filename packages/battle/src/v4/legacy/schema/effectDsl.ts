@@ -763,7 +763,7 @@ export type SelectorChain =
       arg: Value
     }
   | {
-      type: 'sum' // 数值求和（无参数）
+      type: 'sum' | 'avg' | 'sampleBetween' // 无参数数值操作
     }
   | {
       type: 'add'

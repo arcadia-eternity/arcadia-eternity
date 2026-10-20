@@ -222,7 +222,7 @@ function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
     case 'project':
       if (
         recipe.input instanceof ReactiveValue &&
-        ['add', 'multiply', 'divide', 'min', 'max', 'sum', 'stage'].includes(recipe.operation as string) &&
+        ['add', 'multiply', 'divide', 'min', 'max', 'sum', 'average', 'stage'].includes(recipe.operation as string) &&
         typeof recipe.operand === 'number' &&
         Number.isFinite(recipe.operand) &&
         !(recipe.operation === 'divide' && recipe.operand === 0)

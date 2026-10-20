@@ -198,7 +198,7 @@ export function describeValue<T>(value: ReactiveValue<T>, recipe: ValueRecipe): 
 export function getValueRecipe(value: ReactiveValue<unknown>): ValueRecipe | undefined {
   return recipes.get(value)
 }
-export type ValueProjection = 'add' | 'multiply' | 'divide' | 'min' | 'max' | 'sum' | 'stage'
+export type ValueProjection = 'add' | 'multiply' | 'divide' | 'min' | 'max' | 'sum' | 'average' | 'stage'
 export function projectValue(
   value: ReactiveValue<unknown>,
   operation: ValueProjection,
@@ -207,6 +207,10 @@ export function projectValue(
   return describeValue(
     derived(() => {
       const input = value.value
+      if (operation === 'average') {
+        const values = input as number[]
+        return values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length
+      }
       if (operation === 'sum') return (input as number[]).reduce((a, b) => a + b, 0)
       const n = Number(input)
       switch (operation) {

@@ -30,19 +30,9 @@ const originals = new Map(ids.map(id => [id, definitions.find((d: { id: string }
 const references = new Map(
   ids.map(id => {
     const d = structuredClone(originals.get(id))
-    d.apply.delta = 0
-    const guard = EffectParser.parse(d)
-    return [
-      id,
-      defineNativeEffect({
-        id: id as effectId,
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        when: guard.condition,
-        apply(ctx) {
-          ctx.parent.addModified(0, Math.floor(ctx.battle.random() * 41) + 30)
-        },
-      }),
-    ]
+    // Only the versioned value tag remains adapted until selectorValue compatibility lands.
+    d.apply.delta.type = 'selector'
+    return [id, EffectParser.parse(d)]
   }),
 )
 const battles: Battle[] = [],
@@ -124,11 +114,11 @@ function run(id: Id, native: boolean, markSource: boolean, variant: (typeof vari
   }
 }
 for (const id of ids) {
-  it(`${id}: source rejection and explicit C14 decision`, () => {
+  it(`${id}: versioned tag and restored historical sampleBetween`, () => {
     expect(() => EffectParser.parse(originals.get(id))).toThrow()
     const renamed = structuredClone(originals.get(id))
     renamed.apply.delta.type = 'selector'
-    expect(() => EffectParser.parse(renamed)).toThrow()
+    expect(() => EffectParser.parse(renamed)).not.toThrow()
     const ledger = JSON.parse(
       readFileSync(new URL('../../../../docs/v4/validation/damage-modifiers-candidates.json', import.meta.url), 'utf8'),
     )

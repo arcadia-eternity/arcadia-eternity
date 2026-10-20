@@ -93,20 +93,10 @@ const oracles = new Map(
   [...records, ...orderRecords, ...skillPathRecords, ...elementRecords, ...rangeRecords].map(r => {
     const original = files.get(r.sourceFile)!.find(d => d.id === r.id)!
     if (r.recipe.rangeDecision) {
-      const corrected = structuredClone(original)
-      corrected.apply = { ...(corrected.apply as object), delta: 0 }
-      const parsed = EffectParser.parse(corrected)
-      return [
-        r.id,
-        defineNativeEffect({
-          id: r.id as effectId,
-          triggers: [EffectTrigger.OnBeforeCalculateDamage],
-          when: parsed.condition,
-          apply(ctx) {
-            ctx.parent.addModified(0, Math.floor(ctx.battle.random() * 41) + 30)
-          },
-        }),
-      ]
+      const historical = structuredClone(original)
+      const delta = (historical.apply as { delta: { type: string } }).delta
+      delta.type = 'selector'
+      return [r.id, EffectParser.parse(historical)]
     }
 
     if (!r.recipe.pathRepairs?.length && !elementIds.has(r.id)) return [r.id, EffectParser.parse(original)]

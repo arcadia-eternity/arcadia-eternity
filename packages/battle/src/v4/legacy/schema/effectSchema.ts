@@ -180,7 +180,7 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       arg: valueSchema,
     }),
     z.object({
-      type: z.literal('sum'),
+      type: z.enum(['sum', 'avg', 'sampleBetween']),
     }),
     z.object({
       type: z.literal('add'),
