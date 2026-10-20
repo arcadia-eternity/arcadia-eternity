@@ -200,8 +200,11 @@ export declare const conditions: {
   readonly ownerAddsMark: Condition
   /** Direct application target equals the source owner, including a battle owner. */
   readonly ownerReceivesMark: Condition
-  /** Direct event base-mark identity and initial sign, independent of its mutable stack. */
-  readonly statStageChange: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', direction: 'up' | 'down' | 'all') => Condition
+  /** Direct event base-mark identity and initial sign; undefined stat accepts all five battle stats. */
+  readonly statStageChange: (
+    stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe' | undefined,
+    direction: 'up' | 'down' | 'all',
+  ) => Condition
   /** Nearest damage target belongs to a different player than the source pet. */
   readonly damageTargetBelongsToOtherPlayer: Condition
   readonly selfBeDamaged: Condition
@@ -316,6 +319,8 @@ export declare const ops: {
   /** Read once; cycle the supplied values over selected application contexts. Empty input skips. */
   readonly setMarkDuration: (amount: PowerInput) => Operator<AddMarkContext>
   readonly setMarkStack: (amount: PowerInput) => Operator<AddMarkContext>
+  /** Replace the pending stat-stage prototype with a signed level and synchronize its stack magnitude. */
+  readonly setStatLevelMarkLevel: (amount: PowerInput) => Operator<AddMarkContext>
   readonly setMarkMaxStack: (amount: PowerInput) => Operator<AddMarkContext>
   /** Read once; configure transfer to the incoming pet, independently of keepOnSwitchOut. */
   readonly setMarkTransferOnSwitch: (value: boolean | Value<boolean, Presence>) => Operator<AddMarkContext>

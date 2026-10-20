@@ -1,0 +1,22 @@
+{
+  "records": [
+    {
+      "id": "effect_mark_double_stage_debuff",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/54",
+      "definitionSha256": "b38c0fb9aab10e6e7a845e0b90bdfba5a9f4371494d820984877630dc61f4d0c",
+      "status": "handwritten-candidate",
+      "decisions": ["C09"],
+      "corrections": [
+        {
+          "decision": "C09",
+          "path": "/apply/value/selector/chain/0/arg",
+          "before": "statLevelMarkLevel",
+          "after": "typed BaseStatLevelMark.initialLevel reader",
+          "reason": "V1 has no event magnitude field and its parser cannot narrow BaseMark. Read the signed level explicitly; retain original condition and setter behavior."
+        }
+      ],
+      "nativeFile": "packages/battle/src/v4/official/double-stage-debuff.ts"
+    }
+  ]
+}

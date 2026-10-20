@@ -467,7 +467,7 @@ export const conditions: typeof C.conditions = {
     const mark = ctx.event.baseMark
     return (
       mark instanceof BaseStatLevelMark &&
-      mark.statType === stat &&
+      (stat === undefined ? ['atk', 'def', 'spa', 'spd', 'spe'].includes(mark.statType) : mark.statType === stat) &&
       mark.initialLevel !== 0 &&
       (direction === 'all' || (direction === 'up' ? mark.initialLevel > 0 : mark.initialLevel < 0))
     )
@@ -897,6 +897,12 @@ export const ops: typeof C.ops = {
   },
   setMarkDuration: input => setMarkApplicationValue(input, (event, amount) => event.setDuration(amount)),
   setMarkStack: input => setMarkApplicationValue(input, (event, amount) => event.setStack(amount)),
+  setStatLevelMarkLevel: input =>
+    setMarkApplicationValue(input, (event, amount) => {
+      if (!(event.baseMark instanceof BaseStatLevelMark)) return
+      event.baseMark = new BaseStatLevelMark(event.baseMark.statType, amount, event.baseMark.id)
+      event.stack = Math.abs(amount)
+    }),
   setMarkMaxStack: input => setMarkApplicationValue(input, (event, amount) => event.setMaxStack(amount)),
   setMarkTransferOnSwitch: input => (ctx, selected) => {
     const validate = (event: AddMarkContext) => {
