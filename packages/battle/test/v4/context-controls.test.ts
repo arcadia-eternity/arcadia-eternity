@@ -49,7 +49,7 @@ const oracles = new Map(
         .digest('hex'),
     )
     if (d.apply.type !== 'preventDamage') {
-      expect(() => EffectParser.parse(d)).toThrow()
+      expect(() => EffectParser.parse(d)).not.toThrow()
       expect(d.apply.target).toBe('useSkillContext')
       d.apply.target = 'usingSkillContext'
       expect(r.recipe.repairedPaths).toEqual(['/apply/target'])

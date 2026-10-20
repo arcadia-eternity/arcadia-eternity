@@ -10,7 +10,7 @@ const percentages = {
   effect_mark_increase_rage_on_damage_20_percent: 20,
 }
 export function classifyRageModifier(d) {
-  if (!d || !Object.hasOwn(percentages, d.id)) return { reason: 'not an admitted damage-rage correction' }
+  if (!d || !Object.hasOwn(percentages, d.id)) return { reason: 'not an admitted damage-rage definition' }
   if (
     !fields(d, ['id', 'trigger', 'priority', 'condition', 'apply']) ||
     d.trigger !== 'BeforeRageGain' ||
@@ -23,18 +23,14 @@ export function classifyRageModifier(d) {
     d.apply.percent !== percentages[d.id] ||
     d.apply.delta !== 0
   )
-    return { reason: 'C15 source changed' }
+    return { reason: 'historical damage-rage source changed' }
   return {
     id: d.id,
     percent: d.apply.percent,
     delta: 0,
-    trigger: 'OnRageGain',
+    trigger: 'BeforeRageGain',
     condition: 'ownerReceivesDamageRage',
-    decisions: ['C15'],
-    corrections: [
-      { path: '/trigger', before: 'BeforeRageGain', after: 'OnRageGain' },
-      { path: '/condition', before: { type: 'selfBeDamaged' }, after: { condition: 'ownerReceivesDamageRage' } },
-    ],
+    historicalReference: '61c349fa7ca35c392b0e751c9238759b02aefcb3',
   }
 }
 export async function generateRageModifiers({ check = false } = {}) {
@@ -54,11 +50,11 @@ export async function generateRageModifiers({ check = false } = {}) {
         },
         recipe = classifyRageModifier(d)
       if (recipe.reason) rejected.push({ ...source, reason: recipe.reason })
-      else records.push({ ...source, recipe, classification: 'U', status: 'generated-correction-candidate' })
+      else records.push({ ...source, recipe, classification: 'U', status: 'generated-candidate' })
     }
   }
   records.sort((a, b) => a.id.localeCompare(b.id, 'en'))
-  const code = `// Generated candidates; C15 repairs unsupported damage-rage triggers and ownership conditions.\nimport {compileEffect,defineEffect,conditions,contexts,ops} from '../content/authoring'\nexport function createGeneratedRageModifiers(){return Object.freeze({${records.map(({ recipe: r }) => `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:'OnRageGain',priority:0,when:conditions.ownerReceivesDamageRage,execute:contexts.rage.apply(ops.modifyRage({percent:${r.percent},delta:0}))}))`).join(',')}})}\nexport const generatedRageModifiers=createGeneratedRageModifiers()\n`
+  const code = `// Generated candidates preserving historical pre-settlement damage-rage behavior.\nimport {compileEffect,defineEffect,conditions,contexts,ops} from '../content/authoring'\nexport function createGeneratedRageModifiers(){return Object.freeze({${records.map(({ recipe: r }) => `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:'BeforeRageGain',priority:0,when:conditions.ownerReceivesDamageRage,execute:contexts.rage.apply(ops.modifyRage({percent:${r.percent},delta:0}))}))`).join(',')}})}\nexport const generatedRageModifiers=createGeneratedRageModifiers()\n`
   for (const [path, raw] of [
     ['packages/battle/src/v4/official/rage-modifiers.generated.ts', code],
     [

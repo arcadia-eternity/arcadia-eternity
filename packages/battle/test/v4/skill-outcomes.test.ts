@@ -409,7 +409,8 @@ function run(
 }
 for (const r of records) {
   it(`${r.id} pins source and exact spelling correction`, () => {
-    expect(() => EffectParser.parse(originals.get(r.id))).toThrow()
+    if (pathRepairs[r.id]) expect(() => EffectParser.parse(originals.get(r.id))).toThrow()
+    else expect(() => EffectParser.parse(originals.get(r.id))).not.toThrow()
     const paths: string[] = []
     corrected(originals.get(r.id), paths)
     expect(paths).toEqual(r.recipe.repairedPaths)

@@ -107,7 +107,7 @@ function run(id: Id, native: boolean, kind: 'skill' | 'mark', variant: (typeof v
         EffectTrigger.BeforeEffect,
         EffectTrigger.OnBeforeCalculateDamage,
         EffectTrigger.OnBeforeHeal,
-        EffectTrigger.OnRageGain,
+        EffectTrigger.BeforeRageGain,
       ],
       when: context =>
         context.trigger !== EffectTrigger.BeforeEffect ||
@@ -124,7 +124,7 @@ function run(id: Id, native: boolean, kind: 'skill' | 'mark', variant: (typeof v
         }
         if (context.trigger === EffectTrigger.OnBeforeCalculateDamage && variant === 'cancel-damage')
           context.parent.available = false
-        if (context.trigger === EffectTrigger.OnBeforeHeal || context.trigger === EffectTrigger.OnRageGain) {
+        if (context.trigger === EffectTrigger.OnBeforeHeal || context.trigger === EffectTrigger.BeforeRageGain) {
           amounts.push(context.parent.value)
           if (variant === 'cancel-benefit') context.parent.available = false
           if (variant === 'modify-benefit') context.parent.addModified(0, 7)

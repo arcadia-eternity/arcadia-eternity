@@ -136,7 +136,7 @@ function run(id: Id, native: boolean, markSource: boolean, variant: (typeof vari
 for (const id of ids) {
   if (specs[id] > 0)
     it(`${id}: C07 spelling repair`, () => {
-      expect(() => EffectParser.parse(originals.get(id))).toThrow()
+      expect(() => EffectParser.parse(originals.get(id))).not.toThrow()
       const ledger = JSON.parse(
         readFileSync(
           new URL('../../../../docs/v4/validation/damage-modifiers-candidates.json', import.meta.url),

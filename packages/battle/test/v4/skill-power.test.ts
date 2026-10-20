@@ -437,8 +437,9 @@ function expectedDynamic(id: Id, kind: 'skill' | 'mark' | 'global', phase: boole
   return contributions[id]
 }
 for (const r of records) {
-  it(`${r.id} records the original parser failure and pins its source`, () => {
-    expect(() => EffectParser.parse(definitions.get(r.id))).toThrow()
+  it(`${r.id} pins source and distinguishes name compatibility from path repairs`, () => {
+    if (pathRepairs[r.id]) expect(() => EffectParser.parse(definitions.get(r.id))).toThrow()
+    else expect(() => EffectParser.parse(definitions.get(r.id))).not.toThrow()
     if (pathRepairs[r.id]) {
       expect(() => EffectParser.parse(corrected(definitions.get(r.id)))).toThrow(
         r.id.includes('spa_gt_atk') ? /'spa'.*Pet/ : /'skillId'.*UseSkillContext/,

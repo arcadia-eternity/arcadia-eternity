@@ -52,7 +52,7 @@ const oracles = new Map(
         .update(JSON.stringify(normalize(d)))
         .digest('hex'),
     )
-    expect(() => EffectParser.parse(d)).toThrow()
+    expect(() => EffectParser.parse(d)).not.toThrow()
     expect(d.apply.target).toBe('useSkillContext')
     d.apply.target = 'usingSkillContext'
     const paths = ['/apply/target']

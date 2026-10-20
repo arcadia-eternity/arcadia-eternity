@@ -81,7 +81,7 @@ const oracles = new Map(
       expect(parent[parts.at(-1)!]).toBe('useSkillContext')
       parent[parts.at(-1)!] = 'usingSkillContext'
     }
-    if (r.recipe.repairedPaths.length) expect(() => EffectParser.parse(definitions.get(id))).toThrow()
+    if (r.recipe.repairedPaths.length) expect(() => EffectParser.parse(definitions.get(id))).not.toThrow()
     expect(r.recipe.pathRepairs).toBeUndefined()
     return [id, EffectParser.parse(d)]
   }),

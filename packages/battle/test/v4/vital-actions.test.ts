@@ -451,7 +451,8 @@ for (const id of Object.keys(expected) as Id[]) {
         .digest('hex'),
     )
     expect(r.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(['/apply'])
-    if (r.recipe.repairedPaths.length || r.recipe.pathRepairs) expect(() => EffectParser.parse(d)).toThrow()
+    if (r.recipe.pathRepairs) expect(() => EffectParser.parse(d)).toThrow()
+    else expect(() => EffectParser.parse(d)).not.toThrow()
   })
   for (const kind of ['skill', 'mark'] as const)
     for (const variant of variants.filter(

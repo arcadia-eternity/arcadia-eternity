@@ -10,28 +10,12 @@
         "id": "effect_emblem_increase_rage_on_damage",
         "percent": 20,
         "delta": 0,
-        "trigger": "OnRageGain",
+        "trigger": "BeforeRageGain",
         "condition": "ownerReceivesDamageRage",
-        "decisions": ["C15"],
-        "corrections": [
-          {
-            "path": "/trigger",
-            "before": "BeforeRageGain",
-            "after": "OnRageGain"
-          },
-          {
-            "path": "/condition",
-            "before": {
-              "type": "selfBeDamaged"
-            },
-            "after": {
-              "condition": "ownerReceivesDamageRage"
-            }
-          }
-        ]
+        "historicalReference": "61c349fa7ca35c392b0e751c9238759b02aefcb3"
       },
       "classification": "U",
-      "status": "generated-correction-candidate"
+      "status": "generated-candidate"
     },
     {
       "id": "effect_mark_increase_rage_on_damage_10_percent",
@@ -42,28 +26,12 @@
         "id": "effect_mark_increase_rage_on_damage_10_percent",
         "percent": 10,
         "delta": 0,
-        "trigger": "OnRageGain",
+        "trigger": "BeforeRageGain",
         "condition": "ownerReceivesDamageRage",
-        "decisions": ["C15"],
-        "corrections": [
-          {
-            "path": "/trigger",
-            "before": "BeforeRageGain",
-            "after": "OnRageGain"
-          },
-          {
-            "path": "/condition",
-            "before": {
-              "type": "selfBeDamaged"
-            },
-            "after": {
-              "condition": "ownerReceivesDamageRage"
-            }
-          }
-        ]
+        "historicalReference": "61c349fa7ca35c392b0e751c9238759b02aefcb3"
       },
       "classification": "U",
-      "status": "generated-correction-candidate"
+      "status": "generated-candidate"
     },
     {
       "id": "effect_mark_increase_rage_on_damage_20_percent",
@@ -74,28 +42,12 @@
         "id": "effect_mark_increase_rage_on_damage_20_percent",
         "percent": 20,
         "delta": 0,
-        "trigger": "OnRageGain",
+        "trigger": "BeforeRageGain",
         "condition": "ownerReceivesDamageRage",
-        "decisions": ["C15"],
-        "corrections": [
-          {
-            "path": "/trigger",
-            "before": "BeforeRageGain",
-            "after": "OnRageGain"
-          },
-          {
-            "path": "/condition",
-            "before": {
-              "type": "selfBeDamaged"
-            },
-            "after": {
-              "condition": "ownerReceivesDamageRage"
-            }
-          }
-        ]
+        "historicalReference": "61c349fa7ca35c392b0e751c9238759b02aefcb3"
       },
       "classification": "U",
-      "status": "generated-correction-candidate"
+      "status": "generated-candidate"
     }
   ],
   "rejected": []

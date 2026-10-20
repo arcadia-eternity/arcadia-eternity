@@ -32,6 +32,8 @@ export const nativeEffectTriggers = Object.freeze([
   EffectTrigger.OnStack,
   EffectTrigger.OnBeforeHeal,
   EffectTrigger.OnHeal,
+  EffectTrigger.BeforeRageGain,
+  EffectTrigger.BeforeRageLoss,
   EffectTrigger.OnRageGain,
   EffectTrigger.OnRageLoss,
   EffectTrigger.OnSwitchIn,

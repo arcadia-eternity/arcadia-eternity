@@ -195,7 +195,7 @@ function run(spec: Spec, native: boolean, kind: 'skill' | 'mark', variant: (type
 }
 for (const spec of specs) {
   it(`${spec.id} has only a C07 source-selector correction`, () => {
-    expect(() => EffectParser.parse(originals.get(spec.id))).toThrow(/useSkillContext/)
+    expect(() => EffectParser.parse(originals.get(spec.id))).not.toThrow()
     const ledger = JSON.parse(
       readFileSync(new URL('../../../../docs/v4/validation/damage-modifiers-candidates.json', import.meta.url), 'utf8'),
     )

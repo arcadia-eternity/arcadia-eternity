@@ -340,6 +340,13 @@ contexts.rage.apply(ops.modifyRage({ percent: 20, delta: 0 }))
 contexts.heal.apply(ops.modifyRage({ percent: 20, delta: 0 }))
 
 targets.selfSkills.apply(ops.setSkillSureHit(true))
+targets.ownerPet.apply(ops.setRage(25))
+targets.selfPlayer.apply(ops.setRage(25))
+// @ts-expect-error Rage belongs to a pet's player, not a skill instance.
+targets.selfSkills.apply(ops.setRage(25))
+contexts.skillUse.apply(ops.setIgnoreShield())
+// @ts-expect-error Shield bypass is a use-context flag, not a persistent skill assignment.
+targets.selfSkills.apply(ops.setIgnoreShield())
 // @ts-expect-error Persistent skill assignment does not accept a use context.
 contexts.skillUse.apply(ops.setSkillSureHit(true))
 // @ts-expect-error Skill flags require booleans.

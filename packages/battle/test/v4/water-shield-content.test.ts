@@ -199,9 +199,7 @@ it('preserves the official mark configuration and declared effect IDs', () => {
     )
     expect(Object.isFrozen(native.marks[index])).toBe(true)
   }
-  expect(() => EffectParser.parse(effects.find((entry: { id: string }) => entry.id === amplifyId))).toThrow(
-    /useSkillContext/,
-  )
+  expect(() => EffectParser.parse(effects.find((entry: { id: string }) => entry.id === amplifyId))).not.toThrow()
 })
 
 it.each(['shield', 'amplification'] as const)(

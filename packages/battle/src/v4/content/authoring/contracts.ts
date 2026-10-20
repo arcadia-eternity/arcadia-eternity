@@ -173,7 +173,7 @@ export declare const conditions: {
   readonly skillActorDiffersFromOwner: Condition
   /** Direct skill event owned by this source; unlike selfUsesSkill, no skill identity restriction. */
   readonly ownerUsesSkill: Condition
-  /** Direct damage-rage gain: current skill target is the source pet, and its player receives the rage. */
+  /** Direct damage-rage event under a skill use; source pet is the rage recipient's current active pet. */
   readonly ownerReceivesDamageRage: Condition
   /** Legacy checkSelf: compare source ownership with the subject of the direct event. */
   readonly sourceOwnsEvent: Condition
@@ -244,6 +244,10 @@ type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type StageStrategy = 'none' | 'all' | 'positive' | 'negative'
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  /** Bypass shields for the selected skill uses; leaves the skill instance default unchanged. */
+  readonly setIgnoreShield: () => Operator<UseSkillContext>
+  /** Assign through a rage phase, retaining the RageChange event and clamping rules. */
+  readonly setRage: (value: NumericInput) => Operator<Pet | Player>
   /** Assign a persistent instance flag; unlike setSureHit this does not create a use-context override. */
   readonly setSkillSureHit: (value: boolean | Value<boolean, Presence>) => Operator<SkillInstance>
   /** Sample amount then priority separately per target; source marks own cleanup. */

@@ -13,6 +13,14 @@ export const sequenceConditionOptions = Object.freeze({
 const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss', 'setSureCrit']
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value', markDependencies) {
+  if (a?.type === 'setIgnoreShield') {
+    if (
+      !fields(a, ['type', 'target']) ||
+      !(a.target === 'usingSkillContext' || (fields(a.target, ['base']) && a.target.base === 'usingSkillContext'))
+    )
+      return
+    return 'contexts.skillUse.apply(ops.setIgnoreShield())'
+  }
   if (a?.type === 'conditional') {
     if (
       !markDependencies ||
@@ -265,13 +273,13 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     if (!percent || !delta) return
     return `contexts.damage.apply(ops.modifyDamage({percent:${percent.code},delta:${delta.code}}))`
   }
-  if (['heal', 'dealDamage', 'addRage'].includes(a?.type)) {
+  if (['heal', 'dealDamage', 'addRage', 'setRage'].includes(a?.type)) {
     if (!fields(a, ['type', 'target', 'value'])) return
     const target = typeof a.target === 'string' ? a.target : fields(a.target, ['base']) ? a.target.base : undefined
     const roots = {
       self: 'ownerPet',
       opponent: 'opponentActive',
-      ...(a.type === 'addRage' ? { selfPlayer: 'selfPlayer' } : {}),
+      ...(['addRage', 'setRage'].includes(a.type) ? { selfPlayer: 'selfPlayer' } : {}),
     }
     if (!Object.hasOwn(roots, target)) return
     const value = number(a.value, parameters, path, domain, {

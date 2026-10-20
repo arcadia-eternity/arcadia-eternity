@@ -83,7 +83,8 @@ const oracles = new Map(
   ids.map(id => {
     const d = structuredClone(definitions.get(id)),
       r = ledger.records.find((r: { id: string }) => r.id === id)
-    if (r.recipe.repairedPaths.length) expect(() => EffectParser.parse(definitions.get(id))).toThrow()
+    if (r.recipe.pathRepairs?.length) expect(() => EffectParser.parse(definitions.get(id))).toThrow()
+    else expect(() => EffectParser.parse(definitions.get(id))).not.toThrow()
     for (const path of r.recipe.repairedPaths) {
       const parts = path.slice(1).split('/')
       let parent = d

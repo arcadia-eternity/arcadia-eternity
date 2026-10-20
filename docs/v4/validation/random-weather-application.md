@@ -1,12 +1,14 @@
 # Random weather and attempted-hit ordinal
 
+> Historical audit: later V1 already has currentHitCount in the model, selector metadata and skill loop. The C13 rationale below was based on an older import and is superseded; pre-use values and loop behavior require revalidation. See [historical audit](historical-v1-audit.md).
+
 `createRandomWeatherApplication` implements `effect_skill_set_field_qingtian_or_yemu` with shared authoring APIs: skill ownership plus a nearest-skill-context first-hit predicate, followed by battle-target addMark using a shuffled ordered pair. Dependencies are qingtian then yemu. The factory validates exact BaseMark IDs and captures resolved objects, so rebinding or clearing its input map cannot replace them. Downstream weather effects and production admission remain pending.
 
 ## Explicit corrections
 
 The original definition fails parsing. C10 changes selectorValue to selector; C07 changes useSkillContext to usingSkillContext. Even with both corrections, the legacy selector metadata has no currentHitCount path. That failure remains asserted, and the frozen metadata is not extended. The test reference uses the old parser's unchanged ownership predicate and corrected random action, with an independently written ordinal predicate. This is evidence for the declared corrections, not equivalence with the invalid original.
 
-C13 introduces UseSkillContext.currentHitCount. The source condition explicitly compares it with one, skill_guangyinghuanxiang has two hits, and the earlier V2 regression requires weather only on the first hit. V4 previously had only multihitResult, which is mutable remaining work and cannot identify the first hit.
+C13 introduced UseSkillContext.currentHitCount into this older import; it did not introduce the concept into V1. The source condition explicitly compares it with one, skill_guangyinghuanxiang has two hits, and the earlier V2 regression requires weather only on the first hit. V4 previously had only multihitResult, which is mutable remaining work and cannot identify the first hit.
 
 The new field is zero before any attempt, including all pre-use and pre-multihit stages. Skill execution resets it before dispatching events, even when reusing a context or failing admission. At each loop entry it receives the next one-based attempted-hit ordinal before the hit/miss branch. The last attempted ordinal remains after completion. No attempts means zero. A local counter ensures changing remaining multihitResult cannot repeat or skip ordinal values. A missed attempt has an ordinal but does not dispatch OnHit; this effect therefore does not create weather on a miss. The existing remaining-hit loop and its mutation behavior are preserved.
 

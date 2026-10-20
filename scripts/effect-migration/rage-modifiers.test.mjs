@@ -8,17 +8,17 @@ const source = () => ({
   condition: { type: 'selfBeDamaged' },
   apply: { type: 'addModified', target: 'rageContext', percent: 20, delta: 0 },
 })
-test('reproduces three explicitly corrected damage-rage candidates', async () =>
+test('reproduces three historical damage-rage candidates', async () =>
   assert.deepEqual(await generateRageModifiers({ check: true }), { generated: 3, rejected: 0 }))
-test('C15 preserves fixed percentages and records both semantic changes', () => {
+test('preserves original trigger and pins the historical baseline without source corrections', () => {
   const r = classifyRageModifier(source())
-  assert.equal(r.trigger, 'OnRageGain')
+  assert.equal(r.trigger, 'BeforeRageGain')
   assert.equal(r.condition, 'ownerReceivesDamageRage')
   assert.equal(r.percent, 20)
-  assert.deepEqual(r.decisions, ['C15'])
-  assert.equal(r.corrections.length, 2)
+  assert.equal(r.historicalReference, '61c349fa7ca35c392b0e751c9238759b02aefcb3')
+  assert.equal(r.corrections, undefined)
 })
-test('C15 rejects unknown IDs and every changed source semantic', () => {
+test('rejects unknown IDs and every changed source semantic', () => {
   for (const change of [
     d => (d.id = 'unknown'),
     d => (d.trigger = 'OnRageGain'),

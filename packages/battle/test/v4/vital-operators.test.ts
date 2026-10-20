@@ -41,7 +41,7 @@ function run(native: boolean, type: 'damage' | 'rage', variant: (typeof variants
   b.team[1].skills[0].effects.push(
     defineNativeEffect({
       id: 'fixture/vital-hook' as effectId,
-      triggers: [EffectTrigger.OnDamage, EffectTrigger.OnRageGain, EffectTrigger.OnRageLoss],
+      triggers: [EffectTrigger.OnDamage, EffectTrigger.BeforeRageGain, EffectTrigger.BeforeRageLoss],
       when: c => c.parent.parent === ctx,
       apply(c) {
         const event = c.parent

@@ -96,7 +96,7 @@ function run(
   skill.effects.push(
     defineNativeEffect({
       id: 'fixture/instant-hook' as effectId,
-      triggers: [EffectTrigger.BeforeEffect, EffectTrigger.OnBeforeHeal, EffectTrigger.OnRageGain],
+      triggers: [EffectTrigger.BeforeEffect, EffectTrigger.OnBeforeHeal, EffectTrigger.BeforeRageGain],
       when: context =>
         context.trigger !== EffectTrigger.BeforeEffect ||
         (context.parent instanceof EffectContext && context.parent.effect?.id === record.id),
@@ -106,7 +106,7 @@ function run(
           if (variant === 'late-owner') source.owner = b.activePet
           if (variant === 'late-opponent') b.activePet = b.team[1]
         }
-        if (context.trigger === EffectTrigger.OnBeforeHeal || context.trigger === EffectTrigger.OnRageGain) {
+        if (context.trigger === EffectTrigger.OnBeforeHeal || context.trigger === EffectTrigger.BeforeRageGain) {
           events.push({
             hook: context.trigger,
             value: context.parent.value ?? ('baseHeal' in context.parent ? context.parent.baseHeal : undefined),

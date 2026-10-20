@@ -104,9 +104,9 @@ function run(native: boolean, sourceKind: 'skill' | 'mark', variant: Variant) {
   skill.effects.push(
     defineNativeEffect({
       id: 'fixture/rage-hook' as effectId,
-      triggers: [EffectTrigger.BeforeEffect, EffectTrigger.OnRageGain],
+      triggers: [EffectTrigger.BeforeEffect, EffectTrigger.BeforeRageGain],
       when: context =>
-        context.trigger === EffectTrigger.OnRageGain ||
+        context.trigger === EffectTrigger.BeforeRageGain ||
         (context.parent instanceof EffectContext && context.parent.effect?.id === id),
       apply(context) {
         if (context.trigger === EffectTrigger.BeforeEffect && context.parent instanceof EffectContext) {
@@ -115,7 +115,7 @@ function run(native: boolean, sourceKind: 'skill' | 'mark', variant: Variant) {
           if (variant === 'late-owner') source.owner = b.activePet
           if (variant === 'late-config') modify(35)
         }
-        if (context.trigger === EffectTrigger.OnRageGain) {
+        if (context.trigger === EffectTrigger.BeforeRageGain) {
           events.push({ hook: 'gain', amount: context.parent.value, target: context.parent.target.id })
           if (variant === 'cancel-gain') context.parent.available = false
           if (variant === 'gain-modifier') context.parent.addModified(50, 2)

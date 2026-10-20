@@ -283,6 +283,11 @@ export type SetSureNoCritOperator = {
   priority: number
 }
 
+export type SetIgnoreShieldOperator = {
+  type: 'setIgnoreShield'
+  target: SelectorDSL
+}
+
 export type SetSkillOperator = {
   type: 'setSkill'
   target: SelectorDSL
@@ -587,6 +592,7 @@ export type OperatorDSL =
   | SetSureCritOperator
   | SetSureMissOperator
   | SetSureNoCritOperator
+  | SetIgnoreShieldOperator
   | SetSkillOperator
   | PreventDamageOperator
   | SetActualTargetOperator

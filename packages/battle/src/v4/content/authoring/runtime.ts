@@ -22,6 +22,7 @@ import {
 } from '../../context'
 import { Pet } from '../../pet'
 import { Player } from '../../player'
+import { RagePhase } from '../../phase/rage'
 import { SkillInstance } from '../../skill'
 import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, type MarkInstance } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
@@ -400,11 +401,9 @@ export const conditions: typeof C.conditions = {
     return (
       event instanceof RageContext &&
       event.reason === 'damage' &&
-      event.modifiedType === 'add' &&
       event.parent instanceof UseSkillContext &&
       sourceOwner instanceof Pet &&
-      event.parent.actualTarget === sourceOwner &&
-      sourceOwner.owner === event.target
+      sourceOwner === event.target.activePet
     )
   },
   ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
@@ -762,6 +761,24 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
   }
 }
 export const ops: typeof C.ops = {
+  setRage: amount =>
+    numeric(amount, (ctx, target, n) => {
+      const source = engine(ctx)
+      const phase = new RagePhase(
+        source.battle,
+        source,
+        target instanceof Player ? target : target.owner!,
+        'effect',
+        'setting',
+        n,
+      )
+      source.battle.phaseManager.registerPhase(phase)
+      source.battle.phaseManager.executePhase(phase.id)
+    }),
+  setIgnoreShield: () => (ctx, selected) => {
+    for (const event of selected) if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
+    for (const event of selected) event.setIgnoreShield()
+  },
   setSkillSureHit: input => (ctx, selected) => {
     for (const skill of selected) assertWriteTarget(ctx, skill)
     const flag = read(ctx, input)

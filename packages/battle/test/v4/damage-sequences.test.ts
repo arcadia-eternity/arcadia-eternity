@@ -293,7 +293,8 @@ for (const id of Object.keys(expected) as Id[]) {
     expect(r.recipe.actions.map((a: { sourcePath: string }) => a.sourcePath)).toEqual(
       d.apply.map((_: unknown, i: number) => `/apply/${i}`),
     )
-    if (expected[id].skill || expected[id].climax) expect(() => EffectParser.parse(d)).toThrow()
+    if (expected[id].skill) expect(() => EffectParser.parse(d)).toThrow()
+    else expect(() => EffectParser.parse(d)).not.toThrow()
     if (expected[id].skill) {
       const c = structuredClone(d)
       c.condition.conditions[1].target.base = 'usingSkillContext'

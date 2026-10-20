@@ -168,7 +168,7 @@ function run(native: boolean, kind: 'skill' | 'mark', variant: (typeof variants)
   b.team[1].skills[0].effects.push(
     defineNativeEffect({
       id: 'fixture/rage-damage-rage' as effectId,
-      triggers: [EffectTrigger.OnRageGain, EffectTrigger.OnRageLoss],
+      triggers: [EffectTrigger.BeforeRageGain, EffectTrigger.BeforeRageLoss],
       when: c =>
         c.parent instanceof RageContext &&
         c.parent.parent instanceof EffectContext &&

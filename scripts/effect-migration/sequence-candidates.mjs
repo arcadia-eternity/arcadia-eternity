@@ -55,7 +55,10 @@ export function classifySequence(original, profile) {
   const orderConditions = turnOrderReferences(d)
   if (JSON.stringify(orderConditions) !== JSON.stringify(profile.orderConditions?.[d.id] ?? []))
     return { reason: 'order correction needs an exact source mapping' }
-  const domain = profile.domain ?? ((profile.damageTriggers ?? ['OnDamage']).includes(d.trigger) ? 'damage' : 'skill')
+  const domain =
+    profile.triggerDomains?.[d.trigger] ??
+    profile.domain ??
+    ((profile.damageTriggers ?? ['OnDamage']).includes(d.trigger) ? 'damage' : 'skill')
   const parameters = []
   const when =
     'condition' in d
@@ -134,7 +137,11 @@ export async function generateSequences(profile, { check = false } = {}) {
           ...source,
           recipe,
           classification: 'U',
-          ...(recipe.repairedPaths.length ? { decision: 'C07' } : {}),
+          ...(recipe.repairedPaths.length
+            ? profile.selectorNamesCompatible
+              ? { compatibility: 'historical-useSkillContext-alias' }
+              : { decision: 'C07' }
+            : {}),
           ...(recipe.pathRepairs || recipe.valueRepairs || recipe.orderConditions
             ? {
                 additionalDecisions: [
@@ -145,7 +152,10 @@ export async function generateSequences(profile, { check = false } = {}) {
               }
             : {}),
           status:
-            recipe.repairedPaths.length || recipe.pathRepairs || recipe.valueRepairs || recipe.orderConditions
+            (recipe.repairedPaths.length && !profile.selectorNamesCompatible) ||
+            recipe.pathRepairs ||
+            recipe.valueRepairs ||
+            recipe.orderConditions
               ? 'generated-correction-candidate'
               : 'generated-candidate',
         })

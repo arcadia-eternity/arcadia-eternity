@@ -199,8 +199,9 @@ function run(
   }
 }
 for (const r of records) {
-  it(`${r.id} records explicit corrections and rejects the original definition`, () => {
-    expect(() => EffectParser.parse(definitions.get(r.id))).toThrow()
+  it(`${r.id} records mappings and checks original source acceptance`, () => {
+    if (r.recipe.pathRepairs?.length) expect(() => EffectParser.parse(definitions.get(r.id))).toThrow()
+    else expect(() => EffectParser.parse(definitions.get(r.id))).not.toThrow()
     expect(r.recipe.selectorRepairs).toEqual(['/condition/conditions/1/target/base'])
     expect(r.recipe.additionalDecisions).toContain('C07')
     if (r.id.includes('xifamihuo') || r.id.includes('fenshenhying')) {

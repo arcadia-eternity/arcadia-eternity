@@ -333,6 +333,10 @@ export class UseSkillContext extends Context {
     })
   }
 
+  setIgnoreShield() {
+    this.ignoreShield = true
+  }
+
   setActualTarget(target: Pet) {
     this.actualTarget = target
   }
@@ -667,6 +671,8 @@ type V1TriggerContextMap = {
   [EffectTrigger.OnStack]: StackContext
   [EffectTrigger.OnBeforeHeal]: HealContext
   [EffectTrigger.OnHeal]: HealContext
+  [EffectTrigger.BeforeRageGain]: RageContext
+  [EffectTrigger.BeforeRageLoss]: RageContext
   [EffectTrigger.OnRageGain]: RageContext
   [EffectTrigger.OnRageLoss]: RageContext
 

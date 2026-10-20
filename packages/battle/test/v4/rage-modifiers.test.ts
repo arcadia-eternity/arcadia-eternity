@@ -5,7 +5,6 @@ import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   generatedRageModifiers,
   BaseMark,
-  Pet,
   EffectContext,
   EffectTrigger,
   TurnContext,
@@ -35,30 +34,6 @@ const definitions = ['emblem', 'mark'].flatMap(kind =>
 )
 const originals = new Map(ids.map(id => [id, definitions.find(d => d.id === id)]))
 const legacy = new Map(ids.map(id => [id, EffectParser.parse(originals.get(id))]))
-const references = new Map(
-  ids.map(id => [
-    id,
-    defineNativeEffect({
-      id: id as effectId,
-      triggers: [EffectTrigger.OnRageGain],
-      when(ctx) {
-        const r = ctx.parent,
-          pet = ctx.source.owner
-        return (
-          pet instanceof Pet &&
-          r.reason === 'damage' &&
-          r.modifiedType === 'add' &&
-          r.target === pet.owner &&
-          r.parent instanceof UseSkillContext &&
-          r.parent.actualTarget === pet
-        )
-      },
-      apply(ctx) {
-        ctx.parent.modified[0] += specs[id]
-      },
-    }),
-  ]),
-)
 const battles: Battle[] = [],
   errors: unknown[][] = []
 beforeAll(() =>
@@ -89,7 +64,7 @@ const variants = [
   'phase',
   'skill-phase',
 ] as const
-function run(id: Id, mode: 'native' | 'reference' | 'legacy', markSource: boolean, variant: (typeof variants)[number]) {
+function run(id: Id, mode: 'native' | 'legacy', markSource: boolean, variant: (typeof variants)[number]) {
   const { battle, a, b, debuff } = makeScenario(2025)
   battles.push(battle)
   for (const pet of [...a.team, ...b.team]) for (const skill of pet.skills) skill.effects.splice(0)
@@ -107,9 +82,7 @@ function run(id: Id, mode: 'native' | 'reference' | 'legacy', markSource: boolea
   mark.setOwner(owner, battle.emitter)
   owner.marks.push(mark)
   const source = markSource ? mark : owner.skills[0]
-  source.effects.push(
-    mode === 'native' ? generatedRageModifiers[id] : mode === 'reference' ? references.get(id)! : legacy.get(id)!,
-  )
+  source.effects.push(mode === 'native' ? generatedRageModifiers[id] : legacy.get(id)!)
   const turn = new TurnContext(battle),
     use = new UseSkillContext(turn, a, a.activePet, AttackTargetOpinion.opponent, a.activePet.skills[0])
   use.updateActualTarget()
@@ -148,8 +121,8 @@ function run(id: Id, mode: 'native' | 'reference' | 'legacy', markSource: boolea
     phase.execute()
   } else if (variant === 'phase') b.addRage(rage)
   else {
-    battle.applyEffects(rage, EffectTrigger.OnRageGain, source)
-    if (variant === 'repeat') battle.applyEffects(rage, EffectTrigger.OnRageGain, source)
+    battle.applyEffects(rage, EffectTrigger.BeforeRageGain, source)
+    if (variant === 'repeat') battle.applyEffects(rage, EffectTrigger.BeforeRageGain, source)
     rage.updateRageChangeResult()
   }
   const result = observed ?? rage
@@ -163,24 +136,24 @@ function run(id: Id, mode: 'native' | 'reference' | 'legacy', markSource: boolea
   }
 }
 for (const id of ids) {
-  it(`${id}: original trigger stays undispatched; C15 records both corrections`, () => {
+  it(`${id}: original trigger is dispatched before settlement`, () => {
     const result = run(id, 'legacy', true, 'phase')
-    expect(result.admitted).toBe(0)
-    expect(result.modified).toEqual([0, 0])
-    expect(result.rage[1]).toBe(59)
+    expect(result.admitted).toBe(1)
+    expect(result.modified).toEqual([specs[id], 0])
+    expect(result.rage[1]).toBe(40 + Math.floor(19 * (1 + specs[id] / 100)))
     const ledger = JSON.parse(
       readFileSync(new URL('../../../../docs/v4/validation/rage-modifiers-candidates.json', import.meta.url), 'utf8'),
     )
     const r = ledger.records.find((r: { id: string }) => r.id === id)
-    expect(r.recipe.decisions).toEqual(['C15'])
-    expect(r.recipe.corrections.map((c: { path: string }) => c.path)).toEqual(['/trigger', '/condition'])
+    expect(r.recipe.trigger).toBe('BeforeRageGain')
+    expect(r.recipe.corrections).toBeUndefined()
   })
   for (const markSource of [false, true])
     for (const variant of variants)
       it(`${id} markSource=${markSource} ${variant}`, () => {
         const actual = run(id, 'native', markSource, variant)
-        expect(actual).toEqual(run(id, 'reference', markSource, variant))
-        const eligible = !['skill-reason', 'turn-reason', 'loss', 'wrong-player', 'wrong-pet'].includes(variant),
+        expect(actual).toEqual(run(id, 'legacy', markSource, variant))
+        const eligible = !['skill-reason', 'turn-reason', 'wrong-player'].includes(variant),
           count = variant === 'repeat' ? 2 : 1
         expect(actual.admitted).toBe(eligible ? count : 0)
         const percent = eligible && variant !== 'cancel' ? specs[id] * count : 0

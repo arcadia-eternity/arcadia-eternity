@@ -50,7 +50,8 @@ const oracles = new Map(
         .update(JSON.stringify(normalize(d)))
         .digest('hex'),
     )
-    expect(() => EffectParser.parse(d)).toThrow()
+    if (id === 'effect_skill_priority_plus_1_if_atk_over_500') expect(() => EffectParser.parse(d)).toThrow()
+    else expect(() => EffectParser.parse(d)).not.toThrow()
     expect(d.apply.target.base).toBe('useSkillContext')
     d.apply.target.base = 'usingSkillContext'
     const paths = ['/apply/target/base']

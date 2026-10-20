@@ -127,7 +127,7 @@ it('honors a denied rage gain and returns its outcome in the caller context', ()
   a.activePet.skills[0].effects.push(
     new Effect<EffectTrigger>(
       'deny-rage' as effectId,
-      [EffectTrigger.OnRageGain],
+      [EffectTrigger.BeforeRageGain],
       ctx => {
         if (ctx.parent instanceof RageContext) ctx.parent.available = false
       },

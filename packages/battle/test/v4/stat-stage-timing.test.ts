@@ -273,7 +273,8 @@ for (const spec of specs as readonly Spec[]) {
     const r = ledger.records.find((r: { id: string }) => r.id === spec.id)
     expect(r.recipe.additionalDecisions ?? []).toEqual(spec.decisions ?? [])
     if (spec.skill || spec.hits) {
-      expect(() => EffectParser.parse(definitions.get(spec.id))).toThrow(/useSkillContext/)
+      if (spec.skill) expect(() => EffectParser.parse(definitions.get(spec.id))).toThrow(/skillId/)
+      else expect(() => EffectParser.parse(definitions.get(spec.id))).not.toThrow()
       expect(r.recipe.selectorRepairs).toEqual(['/condition/conditions/1/target/base'])
     } else expect(() => EffectParser.parse(definitions.get(spec.id))).not.toThrow()
     if (spec.skill)

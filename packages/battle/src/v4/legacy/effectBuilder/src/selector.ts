@@ -673,6 +673,7 @@ export const BaseSelector: {
   opponentTeam: ChainableSelector<Pet>
   selfPlayer: ChainableSelector<Player>
   opponentPlayer: ChainableSelector<Player>
+  useSkillContext: ChainableSelector<UseSkillContext>
   usingSkillContext: ChainableSelector<UseSkillContext>
   damageContext: ChainableSelector<DamageContext>
   effectContext: ChainableSelector<EffectContext<EffectTrigger>>
@@ -741,6 +742,9 @@ export const BaseSelector: {
     //TODO: error with use owners with global marks
     return []
   }),
+  get useSkillContext() {
+    return this.usingSkillContext
+  },
   usingSkillContext: createChainable<UseSkillContext>('UseSkillContext', (context: EffectContext<EffectTrigger>) => {
     const foundContext = findContextRecursively(context, UseSkillContext)
     return foundContext ? [foundContext] : []

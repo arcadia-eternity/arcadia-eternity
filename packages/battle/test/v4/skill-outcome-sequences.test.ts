@@ -268,7 +268,8 @@ function run(
 }
 for (const r of records) {
   it(`${r.id} audits full ordered source and correction nodes`, () => {
-    expect(() => EffectParser.parse(definitions.get(r.id))).toThrow()
+    if (r.recipe.pathRepairs?.length) expect(() => EffectParser.parse(definitions.get(r.id))).toThrow()
+    else expect(() => EffectParser.parse(definitions.get(r.id))).not.toThrow()
     const paths: string[] = []
     copy(definitions.get(r.id), paths)
     expect(r.recipe.repairedPaths).toEqual(paths)

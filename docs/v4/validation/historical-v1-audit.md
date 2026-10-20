@@ -27,3 +27,31 @@ The unpublished direct-assignment native draft and its C16 candidate ledger were
 The historical sampleBetween/avg implementations and numeric admission are now restored; see [numeric-selector validation](legacy-numeric-selectors.md). The audit is still open: selectorValue spelling compatibility is restored; restore useSkillContext spelling compatibility; reconcile rage lifecycle and conditions; reconcile turn predicates/scheduler; review remaining C09–C13 path/reference repairs against historical model fields and schema; inspect other changed historical method bodies, not only missing names. Run relevant full-game and fresh-catalog snapshot comparisons after the reconciled kernel is in place. This report does not approve all other differences merely because no missing name was found.
 
 Validation for this restoration: 17 setRage checks and 118 existing mark-condition/rage-modifier regression checks pass, as do V4 typechecking, lint, declaration build, provenance verification and reproducible audit output. The rage-modifier regression still targets the imported kernel; its passing result does not resolve C15's historical mismatch. Provenance changes are limited to the four restored legacy files.
+
+## Field and ordinal audit follow-up
+
+The reproducible report now compares the later and imported type metadata for UseSkillContext, Pet, AddMarkContext, DamageContext and SwitchPetContext. The reviewed historical fields are skill, source, baseMark, stack and switchInPet, not skillId, sourceId, baseMarkId, statLevelMarkLevel or switchInPetId. Pet metadata contains stat rather than direct atk/spa. This supports retaining explicit path checks while restoring selector names; metadata presence alone is not proof of every runtime case.
+
+C13 also requires revalidation: later V1 declares currentHitCount = 1 in context.ts and its SkillPhase loops while currentHitCount <= multihitResult, incrementing currentHitCount. Its metadata includes currentHitCount, while the imported metadata does not. Current V4 initializes/resets zero and combines a separate attempted-hit counter with a remaining-hit loop. Thus the earlier claim that V1 lacked an ordinal field is withdrawn; both pre-use values and multihit mutation behavior need reconciliation before final acceptance. Do not restore only metadata and assume that establishes loop equivalence.
+
+The historical setIgnoreShield context method, operator, DSL/schema and parser are restored in the working source; see [focused evidence](legacy-ignore-shield.md). Public-build validation and native migration remain pending. executeActions and addTemporaryEffect remain separate restorations: action-valued selectors and phase-bound temporary-effect ownership must be audited with their historical value/model machinery, not inferred from the operator body alone.
+
+## Temporary-effect lifecycle and action-valued selectors
+
+The pinned revision contains the full temporary-effect storage and cleanup chain, not only the operator:
+
+- `effect.ts` defines `TemporaryEffect(effect, phaseId)`.
+- `skill.ts` and `mark.ts` store temporary entries, include their effects in the exposed effect list, and remove entries matching `phaseId`.
+- `battle.ts::cleanupPhaseEffects` visits battle marks and every pet's skills and marks.
+- Both synchronous and asynchronous `phaseManager.ts` execution paths call that cleanup in `finally`, after popping the config phase.
+- The operator binds to the nearest active Skill phase, otherwise Turn, otherwise the current phase; without a phase it returns without adding anything.
+
+These files and line references are now included in the reproducible audit. The current port lacks this chain. Restoration must cover normal completion, failure, nested phases, and snapshot representation before a temporary-effect candidate can be accepted. This is a port omission, not evidence that V1 lacked temporary effects.
+
+For `executeActions`, historical `parseValue` converts operator-shaped values to action functions. However, `createSelectorFromValue` invokes function values (including array members) while resolving the selector. `executeActions` itself later invokes selected function items. This raises a concrete eager-execution concern: a selector intended to choose one action may execute actions before selection. Source existence alone cannot establish the intended choice behavior; characterize the historical parser-to-selector-to-operation path before choosing what to preserve or correct.
+
+## Rage reconciliation in the working source
+
+The working rage operation now matches the pinned later V1 function body, including pre/post event timing, early return on pre-cancellation, setting behavior, and message order. Both BeforeRage events are exposed with RageContext typing. The three damage-rage candidates retain their original trigger; the C15 source rewrite has been withdrawn.
+
+The earlier claim that the imported `selfBeDamaged` lacked its rage branch was also incorrect: that branch is present and matches later V1. The native helper now uses the same active-pet comparison rather than actualTarget equality or an extra add-only restriction. 128 source-import checks pass across rage modifiers, assignments, and the new lifecycle suite. Broader affected-family and public-build acceptance remain pending; see [current evidence](rage-modifiers.md).

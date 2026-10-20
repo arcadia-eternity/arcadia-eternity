@@ -29,6 +29,12 @@ files.push(
   ['rage-phase', 'packages/battle/src/phases/rage.ts', 'packages/battle/src/v4/phase/rage.ts'],
   ['turn-phase', 'packages/battle/src/phases/turn.ts', 'packages/battle/src/v4/phase/turn.ts'],
   ['context', 'packages/battle/src/context.ts', 'packages/battle/src/v4/context.ts'],
+  ['skill-phase', 'packages/battle/src/phases/skill.ts', 'packages/battle/src/v4/phase/skill.ts'],
+  ['skill-model', 'packages/battle/src/skill.ts', 'packages/battle/src/v4/skill.ts'],
+  ['mark-model', 'packages/battle/src/mark.ts', 'packages/battle/src/v4/mark.ts'],
+  ['effect-model', 'packages/battle/src/effect.ts', 'packages/battle/src/v4/effect.ts'],
+  ['battle', 'packages/battle/src/battle.ts', 'packages/battle/src/v4/battle.ts'],
+  ['phase-manager', 'packages/battle/src/phaseManager.ts', 'packages/battle/src/v4/phase/manager.ts'],
 )
 const sha = s => createHash('sha256').update(s).digest('hex')
 const cases = s => [...new Set([...s.matchAll(/case '([^']+)'/g)].map(m => m[1]))].sort()
@@ -65,6 +71,12 @@ for (const [kind, historicalPath, importedPath] of files) {
         'OnRageGain',
         'OnRageLoss',
         'pushContext',
+        'currentHitCount',
+        'useSkillContext',
+        'createSelectorFromValue',
+        'temporaryEffects',
+        'clearTemporaryEffects',
+        'cleanupPhaseEffects',
       ].map(word => [word, { historicalLines: lines(historical, word), importedLines: lines(imported, word) }]),
     ),
   })
@@ -98,11 +110,57 @@ for (const kind of ['global', 'ability', 'emblem', 'mark', 'skill']) {
     if (types.length) effects.push({ id: d.id, sourceFile, sourcePath: `/${index}`, types })
   }
 }
+const historicalMetadataPath = 'packages/effectBuilder/type-metadata.json'
+const importedMetadataPath = 'packages/battle/src/v4/legacy/effectBuilder/type-metadata.json'
+const historicalMetadataText = execFileSync('git', ['show', `${revision}:${historicalMetadataPath}`], {
+  encoding: 'utf8',
+})
+const importedMetadataText = await readFile(importedMetadataPath, 'utf8')
+const historicalMetadata = JSON.parse(historicalMetadataText),
+  importedMetadata = JSON.parse(importedMetadataText)
+const fieldNames = [
+  'skillId',
+  'skill',
+  'sourceId',
+  'source',
+  'baseMarkId',
+  'baseMark',
+  'statLevelMarkLevel',
+  'stack',
+  'switchInPetId',
+  'switchInPet',
+  'currentHitCount',
+  'atk',
+  'spa',
+  'weight',
+  'stat',
+]
+const metadataAudit = {
+  historicalPath: historicalMetadataPath,
+  importedPath: importedMetadataPath,
+  historicalSha256: sha(historicalMetadataText),
+  importedSha256: sha(importedMetadataText),
+  types: ['UseSkillContext', 'Pet', 'AddMarkContext', 'DamageContext', 'SwitchPetContext'].map(type => {
+    const historical = historicalMetadata[type].map(member => member.n),
+      imported = importedMetadata[type].map(member => member.n)
+    return {
+      type,
+      historicalOnly: historical.filter(name => !imported.includes(name)).sort(),
+      importedOnly: imported.filter(name => !historical.includes(name)).sort(),
+      reviewedFields: fieldNames.map(name => ({
+        name,
+        historical: historical.includes(name),
+        imported: imported.includes(name),
+      })),
+    }
+  }),
+}
 const result = {
   revision,
   scope:
     'Historical existence audit only; source presence does not prove behavioral equivalence or production acceptance.',
   records,
+  metadataAudit,
   effects,
 }
 const path = 'docs/v4/validation/historical-v1-audit.json'

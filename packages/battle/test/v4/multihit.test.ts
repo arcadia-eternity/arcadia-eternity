@@ -364,7 +364,8 @@ it('pins original sources, correction decisions and complete catalog coverage', 
         .update(JSON.stringify(normalize(d)))
         .digest('hex'),
     )
-    expect(() => EffectParser.parse(d)).toThrow()
+    if (id.startsWith('effect_mark_shuang')) expect(() => EffectParser.parse(d)).toThrow()
+    else expect(() => EffectParser.parse(d)).not.toThrow()
     expect(r.decision).toBe('C07')
     expect(r.classification).toBe('U')
     if (id.startsWith('effect_mark_shuang')) expect(r.additionalDecisions).toEqual(['C09'])
