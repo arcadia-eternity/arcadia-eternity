@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid'
+import { ConfigDurationType, ConfigModifierType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
   type effectId,
@@ -1019,6 +1020,31 @@ export const ops: typeof C.ops = {
       if (!write) throw new Error('Foreign write reference')
       write.set(n)
     }),
+  addTaggedParameterModifier: (tag, operation, amount, priority = 0) => {
+    if (!tag) throw new Error('Expected parameter tag')
+    return (ctx, selected) => {
+      for (const target of selected) {
+        assertWriteTarget(ctx, target)
+        const value = read(ctx, amount),
+          rank = read(ctx, priority) ?? 0
+        if (value === undefined) continue
+        if (typeof value !== 'number' || !Number.isFinite(value) || typeof rank !== 'number' || !Number.isFinite(rank))
+          throw new Error('Expected finite parameter modifier input')
+        assertWriteTarget(ctx, target)
+        const source = engine(ctx)
+        const cleanup = source.battle.configSystem.addTaggedConfigModifierSingle(
+          tag,
+          operation === 'delta' ? ConfigModifierType.delta : ConfigModifierType.override,
+          value,
+          rank,
+          ConfigDurationType.binding,
+          source.source,
+          target,
+        )
+        if (source.source instanceof MarkInstanceImpl) source.source.addAttributeModifierCleanup(cleanup)
+      }
+    }
+  },
   transformSkill: base => (ctx, selected) => {
     for (const target of selected) assertWriteTarget(ctx, target)
     const prototype = read(ctx, base)

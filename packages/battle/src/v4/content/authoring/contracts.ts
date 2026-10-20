@@ -257,6 +257,13 @@ export declare const ops: {
   readonly setRage: (value: NumericInput) => Operator<Pet | Player>
   /** Assign a persistent instance flag; unlike setSureHit this does not create a use-context override. */
   readonly setSkillSureHit: (value: boolean | Value<boolean, Presence>) => Operator<SkillInstance>
+  /** Sample amount and priority per target; match currently registered tagged parameters and bind cleanup to source marks. */
+  readonly addTaggedParameterModifier: (
+    tag: string,
+    operation: 'delta' | 'override',
+    amount: NumericInput,
+    priority?: NumericInput,
+  ) => Operator<Pet | Player>
   /** Read a prototype once, then install a temporary priority-zero transformation preserving effects. */
   readonly transformSkill: (base: Value<BaseSkill, Presence>) => Operator<SkillInstance>
   /** Remove the latest transformation record through the existing lifecycle; older records can remain. */

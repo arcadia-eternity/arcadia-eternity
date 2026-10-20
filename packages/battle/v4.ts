@@ -135,3 +135,5 @@ export { createAutomaticStackConsumption } from './src/v4/official/automatic-sta
 export { createSkillTransformationRemoval, createSkillTransformationCopy } from './src/v4/official/skill-transformation'
 
 export { createResourcePrevention } from './src/v4/official/resource-prevention'
+
+export { createTaggedParameterModifiers } from './src/v4/official/tagged-parameters'

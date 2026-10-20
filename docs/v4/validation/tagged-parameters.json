@@ -1,0 +1,49 @@
+{
+  "records": [
+    {
+      "id": "effect_ability_increase_huohuanzhixin_gain_1",
+      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourcePath": "/56",
+      "definitionSha256": "8ccafb5988175eb17d90d0176f3969a931b206d5e495d96ec37d6bc36294f4a1",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/tagged-parameters.ts"
+    },
+    {
+      "id": "effect_emblem_increase_skill_trigger_rate_5_percent",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/28",
+      "definitionSha256": "1c7d90bfc6bf738227ae58934ce2cc19f68e47a9a183333ef0132417267f992b",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/tagged-parameters.ts"
+    },
+    {
+      "id": "effect_emblem_add_yinbo_stack_config_5",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/29",
+      "definitionSha256": "c5d5d951c267f88dbcce853d891244e018772b95277ab294f22de0249bedb3c4",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/tagged-parameters.ts"
+    },
+    {
+      "id": "effect_emblem_yingguanghuafen_extra_accuracy_reduction_5",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/40",
+      "definitionSha256": "fc5378da8bf3b4acc2b6555236d2f82233530e5047a78431dc5842c7a033e34d",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/tagged-parameters.ts"
+    },
+    {
+      "id": "effect_emblem_add_mark_mabi_chance_5",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/43",
+      "definitionSha256": "5c195feb09ed3e5a586bd747be0737466128cf16dc6d253f869df8a1152a83f7",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/tagged-parameters.ts"
+    }
+  ]
+}
