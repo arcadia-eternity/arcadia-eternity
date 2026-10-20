@@ -71,3 +71,7 @@ Inspection of that loop also identifies a separate, unresolved damage boundary: 
 ## Action-selection characterization
 
 The legacy executeActions operator, action-valued parser path, and selector type are restored. Tests confirm eager execution of flat action arrays before random selection, while nested action groups defer execution until after selection and flattening. All three original definitions parse without rewriting YAML. This resolves the earlier uncertainty about the two paths, but does not approve the flat-choice defect for native migration. See [the action-selection evidence](historical-action-selection.md). addTemporaryEffect remains the missing parser case and requires its full lifecycle restoration.
+
+## Temporary-effect restoration
+
+The operator/parser/model/collector/phase-finally chain is now restored, including entity:effect values. The reproducible audit reports no missing historical parser cases. Permanent arrays remain mutable; the collector obtains the combined list through getEffects. Active temporary lifetimes are explicitly rejected at the settled snapshot boundary; cleaned state and older snapshots with no temporary field restore correctly. See [lifecycle evidence and limits](temporary-effects.md). This does not complete native xifa migration or dependency acceptance.

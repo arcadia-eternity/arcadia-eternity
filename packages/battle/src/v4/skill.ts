@@ -12,7 +12,7 @@ import {
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { EffectContext, UseSkillContext } from './context'
-import { Effect, type EffectContainer } from './effect'
+import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import { SkillAttributeSystem } from './attributeSystem'
@@ -142,6 +142,16 @@ export class BaseSkill implements Prototype {
 }
 
 export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, Instance {
+  private temporaryEffects: TemporaryEffect[] = []
+
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void {
+    this.temporaryEffects.push({ effect, phaseId })
+  }
+
+  clearTemporaryEffects(phaseId: string): void {
+    this.temporaryEffects = this.temporaryEffects.filter(entry => entry.phaseId !== phaseId)
+  }
+
   public owner: Pet | null = null
   public readonly id: skillId
   public readonly category: Category
@@ -248,7 +258,9 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   }
 
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
-    return this.effects.filter(e => e.triggers.includes(trigger))
+    return [...this.effects, ...this.temporaryEffects.map(entry => entry.effect)].filter(e =>
+      e.triggers.includes(trigger),
+    )
   }
 
   toMessage(viewerId?: string, showHidden = false): SkillMessage {

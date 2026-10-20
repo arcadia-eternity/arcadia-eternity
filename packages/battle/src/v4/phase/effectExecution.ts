@@ -139,7 +139,7 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
     if ('isActive' in container && (!container.isActive || ('isSuppressed' in container && container.isSuppressed)))
       return
     if ('effects' in container && Array.isArray((container as any).effects)) {
-      const containerEffects = (container as any).effects as Effect<EffectTrigger>[]
+      const containerEffects = container.getEffects ? container.getEffects(trigger) : container.effects
 
       containerEffects
         .filter(effect => effect.triggers.includes(trigger))

@@ -24,7 +24,7 @@ import {
   SwitchPetContext,
   TurnContext,
 } from './context'
-import { Effect, type EffectContainer } from './effect'
+import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import type { Emitter } from 'mitt'
@@ -103,6 +103,9 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
   get isStackable(): boolean
 
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void
+  clearTemporaryEffects(phaseId: string): void
+  getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[]
   cleanupAttributeModifiers(): void
   addAttributeModifierCleanup(cleanup: () => void): void
   transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
@@ -110,6 +113,22 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
 }
 
 export class MarkInstanceImpl implements MarkInstance {
+  private temporaryEffects: TemporaryEffect[] = []
+
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void {
+    this.temporaryEffects.push({ effect, phaseId })
+  }
+
+  clearTemporaryEffects(phaseId: string): void {
+    this.temporaryEffects = this.temporaryEffects.filter(entry => entry.phaseId !== phaseId)
+  }
+
+  getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
+    return [...this.effects, ...this.temporaryEffects.map(entry => entry.effect)].filter(effect =>
+      effect.triggers.includes(trigger),
+    )
+  }
+
   public readonly instanceParams: MarkInstanceParams | undefined
   private suppression = new Signal(false)
   get isSuppressed(): boolean {

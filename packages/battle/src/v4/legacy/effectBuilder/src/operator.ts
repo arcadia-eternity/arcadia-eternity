@@ -21,6 +21,7 @@ import {
   ModifierHelpers,
   DamageContext,
   EffectContext,
+  Effect,
   HealContext,
   type MarkInstance,
   MarkInstanceImpl,
@@ -57,6 +58,31 @@ import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type Select
 import { type ValueSource } from './effectBuilder'
 
 export const Operators = {
+  addTemporaryEffect:
+    <T extends SkillInstance | MarkInstance>(effect: ValueSource<Effect<EffectTrigger>>): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      const configSystem = context.battle.configSystem
+      let relevantPhase = configSystem.getCurrentPhaseOfType(PhaseType.Skill)
+      if (!relevantPhase) {
+        relevantPhase = configSystem.getCurrentPhaseOfType(PhaseType.Turn)
+      }
+
+      const phaseId = relevantPhase ? relevantPhase.id : context.battle.phaseManager.getCurrentPhase()?.id
+
+      if (!phaseId) {
+        // Cannot add a temporary effect without a phase context
+        return
+      }
+
+      const effects = GetValueFromSource(context, effect)
+      if (effects.length === 0) return
+
+      targets.forEach(target => {
+        effects.forEach(eff => {
+          target.addTemporaryEffect(eff, phaseId)
+        })
+      })
+    },
   /** 执行Action数组操作符 */
   executeActions: (): Operator<Action> => (context: EffectContext<EffectTrigger>, actions: Action[]) => {
     actions.forEach(action => {

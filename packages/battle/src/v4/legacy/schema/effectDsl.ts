@@ -553,6 +553,17 @@ export type RemoveTransformationOperator = {
   target: SelectorDSL
 }
 
+export type AddTemporaryEffectOperator = {
+  type: 'addTemporaryEffect'
+  target: SelectorDSL
+  effect: Value
+}
+
+export type RawEffectIdValue = {
+  type: 'entity:effect'
+  value: string
+}
+
 export type ExecuteActionsOperator = {
   type: 'executeActions'
   target: SelectorDSL
@@ -637,6 +648,7 @@ export type OperatorDSL =
   | TransformWithPreservationOperator
   | RemoveTransformationOperator
   | ExecuteActionsOperator
+  | AddTemporaryEffectOperator
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -692,6 +704,7 @@ export type Value =
   | RawBaseMarkIdValue
   | RawBaseSkillIdValue
   | RawSpeciesIdValue
+  | RawEffectIdValue
   | DynamicValue
   | SelectorValue
   | Array<Value>

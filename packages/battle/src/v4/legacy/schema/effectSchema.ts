@@ -115,6 +115,7 @@ export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
     rawBaseMarkIdValueSchema,
     rawBaseSkillIdValueSchema,
     rawSpeciesIdValueSchema,
+    z.object({ type: z.literal('entity:effect'), value: z.string() }),
     dynamicValueSchema,
     selectorValueSchema,
     conditionalValueSchema,
@@ -765,6 +766,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       transformType: z.enum(['temporary', 'permanent']).optional(),
       priority: valueSchema.optional(),
       permanentStrategy: z.enum(['preserve_temporary', 'clear_temporary']).optional(),
+    }),
+    z.object({
+      type: z.literal('addTemporaryEffect'),
+      target: selectorDSLSchema,
+      effect: valueSchema,
     }),
     z.object({
       type: z.literal('executeActions'),

@@ -296,18 +296,20 @@ const ledger = {
   },
   SkillInstance: {
     ctor: SkillInstance,
-    fields: 'owner id category element target multihit sureHit sureCrit ignoreShield tags effects attributeSystem base',
+    fields:
+      'owner id category element target multihit sureHit sureCrit ignoreShield tags effects temporaryEffects attributeSystem base',
     runtime: '',
   },
   MarkInstanceImpl: {
     ctor: MarkInstanceImpl,
-    fields: 'base instanceParams suppression owner id effects config tags attributeSystem attributeModifierCleanups',
+    fields:
+      'base instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups',
     runtime: 'emitter',
   },
   StatLevelMarkInstanceImpl: {
     ctor: StatLevelMarkInstanceImpl,
     fields:
-      'base instanceParams suppression owner id effects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
+      'base instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
     runtime: 'emitter levelAccessors',
   },
   BaseSkill: {
@@ -360,6 +362,14 @@ function assertBoundary(battle: Battle) {
   )
     throw new Error('Snapshot cannot discard pending or failed phases')
   battle.phaseManager.assertSnapshotSafe()
+  for (const container of [
+    ...battle.marks,
+    ...[...battle.petMap.values()].flatMap(pet => [...pet.skills, ...pet.marks]),
+  ]) {
+    const temporaryEffects = Reflect.get(container, 'temporaryEffects')
+    if (!Array.isArray(temporaryEffects) || temporaryEffects.length)
+      throw new Error('Snapshot does not support active temporary effects')
+  }
 }
 
 export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): BattleSnapshot {
@@ -676,6 +686,14 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
         }
       }
     }
+    for (const object of objects) {
+      if (object instanceof SkillInstance || object instanceof MarkInstanceImpl) {
+        const temporaryEffects = Reflect.get(object, 'temporaryEffects')
+        if (temporaryEffects === undefined) set(object, { temporaryEffects: [] })
+        else if (!Array.isArray(temporaryEffects) || temporaryEffects.length)
+          throw new Error('Snapshot does not support active temporary effects')
+      }
+    }
     for (const { object, state } of attributes) object.restoreSnapshotModifiers(state)
     for (const object of objects)
       if (object instanceof MarkInstanceImpl) {
@@ -868,6 +886,8 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
       ])
       if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
       const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem'] : [])
+      if (['SkillInstance', 'MarkInstanceImpl', 'StatLevelMarkInstanceImpl'].includes(node.kind))
+        optional.add('temporaryEffects')
       if (spec.fields.split(' ').some(key => !optional.has(key) && !Object.hasOwn(node.fields, key)))
         throw new Error('Missing snapshot domain field')
     }

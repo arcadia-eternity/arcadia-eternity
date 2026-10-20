@@ -585,6 +585,14 @@ export class Battle extends Context implements MarkOwner {
     this.getVictor(true)
   }
 
+  cleanupPhaseEffects(phaseId: string): void {
+    for (const mark of this.marks) mark.clearTemporaryEffects(phaseId)
+    for (const pet of this.petMap.values()) {
+      for (const skill of pet.skills) skill.clearTemporaryEffects(phaseId)
+      for (const mark of pet.marks) mark.clearTemporaryEffects(phaseId)
+    }
+  }
+
   toMessage(viewerId?: playerId, showHidden = false): BattleState {
     showHidden = showHidden || this.showHidden
     return {
