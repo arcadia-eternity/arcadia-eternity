@@ -1,6 +1,6 @@
 # Native damage modifier candidates
 
-The offline generator recognizes 98 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 18 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
+The offline generator recognizes 101 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 15 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
 
 ## Authoring target
 
@@ -87,3 +87,11 @@ The special-attack formula samples the current owner's stat at operation time an
 All 50 focused cases and five source/full-game/checkpoint checks pass. A fresh factory is used for each restored candidate; full-game event types, applications, final HP, winner, turn and RNG match independently repaired legacy definitions. Three additional legacy probes pass and establish outstanding defects: missing `pet.weight` propagates NaN while zero weight remains valid; `selectAttribute$('stack')` returns a ReactiveValue which legacy addModified does not unwrap, resulting in a string delta and NaN damage. Those definitions remain rejected and are not counted as migrated. The probes currently characterize their legacy behavior; they do not define the future numeric-value policy.
 
 Total: 58 distinct scoped public checks, 173 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-stat-tests.log`, `/tmp/damage-stat-games.log`, `/tmp/damage-stat-unmapped.log`, `/tmp/damage-stat-generators.log`, and `/tmp/damage-stat-{types-final,lint-final,declarations,provenance}.log`. Overall production admission remains open.
+
+## Skill element and opponent status conditions (2026-10-20)
+
+Three further candidates compare the current UseSkillContext element with the current owner Pet element, or require a different skill actor and a cuimian mark on the owner's currently opposing active Pet. They reuse shared skill-context, owner and opponent selectors. The two element definitions retain their exact C07 spelling repair; the opponent-actor definition needs no source repair. The generator only accepts the explicitly understood dynamic own-element equality shape.
+
+All 80 focused cases pass against independent legacy references and explicit admission/modifier expectations. Coverage includes both Mark and Skill sources, different elements, wrong actor, absent support, nested contexts, cancellation, repetition, real damage phases and changes to owner, element, support and active opponent. Switching the opposing slot before admission queries the new occupant. Changes after BeforeEffect admission do not rerun the condition.
+
+All six full-game/checkpoint comparisons and the source-hash/catalog check pass, bringing this batch to 87 distinct scoped public checks. The game fixtures use Normal skills to match the fixture pets; fresh factories are registered for restored candidates. Event types, application counts, final HP, winner, turn and RNG match. All 174 generator tests, battle types/lint, declarations and unchanged provenance pass. Evidence: `/tmp/damage-element-tests.log`, `/tmp/damage-element-games.log`, `/tmp/damage-element-generators.log`, and `/tmp/damage-element-{types,lint,declarations,provenance}.log`. Overall production admission remains open.

@@ -77,7 +77,7 @@ test('rejects unhandled fields, invalid parameters, target chains, nonfinite num
     assert.ok(classifyDamageModifier(bad).reason, JSON.stringify(bad))
 })
 test('source and per-ID ledger reproduce, retaining the handwritten HP effect', async () => {
-  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 98, protected: 1, rejected: 18 })
+  assert.deepEqual(await generateDamageModifiers({ check: true }), { generated: 101, protected: 1, rejected: 15 })
 })
 
 test('rejects false-zero branch absence and multi-member compare instead of changing legacy meaning', () => {
@@ -260,5 +260,25 @@ test('damage Pet-stat mapping requires corrected paths and floors the sixth', ()
   assert.match(r.delta, /pet.stat.spa.*Math.floor\(n \/ 6\)/)
   assert.deepEqual(r.pathRepairs, [{ path: '/apply/delta/selector/chain/0/arg/arg', before: 'spa', after: 'stat.spa' }])
   d.apply.delta.selector.chain[0].arg.arg = 'stat.spa'
+  assert.ok(classifyDamageModifier(d).reason)
+})
+
+test('damage conditions support opponent skill actors and exact dynamic own-element equality', () => {
+  const d = source()
+  d.condition = {
+    type: 'every',
+    conditions: [{ type: 'opponentUseSkill' }, { type: 'opponentHasMark', baseId: 'mark_cuimian' }],
+  }
+  assert.match(classifyDamageModifier(d).when, /skillActorDiffersFromOwner/)
+  d.condition = {
+    type: 'evaluate',
+    target: { base: 'useSkillContext', chain: [{ type: 'selectPath', arg: 'element' }] },
+    evaluator: {
+      type: 'same',
+      value: { type: 'dynamic', selector: { base: 'self', chain: [{ type: 'selectPath', arg: 'element' }] } },
+    },
+  }
+  assert.match(classifyDamageModifier(d).when, /event.element.*pet.element/)
+  d.condition.evaluator.value.selector.chain[0].arg = 'category'
   assert.ok(classifyDamageModifier(d).reason)
 })

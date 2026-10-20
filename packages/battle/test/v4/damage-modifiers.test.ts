@@ -62,9 +62,19 @@ const manifest: { records: (Omit<Entry, 'recipe'> & { recipe: Entry['recipe'] | 
   readFileSync(new URL('../../../../docs/v4/validation/damage-modifiers-candidates.json', import.meta.url), 'utf8'),
 )
 const allRecords = manifest.records.filter((r): r is Entry => r.status === 'generated-candidate' && r.recipe !== null)
+const elementIds = new Set<string>([
+  'effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian',
+  'effect_mark_increase_self_element_damage_10_percent',
+  'effect_mark_increase_self_element_damage_20_percent',
+])
+const elementRecords = allRecords.filter(r => elementIds.has(r.id))
 // Direct-context order behavior is covered by damage-order-modifiers.test.ts.
 const records = allRecords.filter(
-  r => !r.recipe.selectorRepairs?.length && !r.recipe.orderConditions?.length && !r.recipe.pathRepairs?.length,
+  r =>
+    !r.recipe.selectorRepairs?.length &&
+    !r.recipe.orderConditions?.length &&
+    !r.recipe.pathRepairs?.length &&
+    !elementIds.has(r.id),
 )
 const orderRecords = allRecords.filter(r => r.recipe.orderConditions?.length)
 const skillPathRecords = allRecords.filter(r => r.recipe.pathRepairs?.length)
@@ -77,9 +87,9 @@ for (const r of allRecords)
     )
 // Parse once before constructing battles: raw parameters belong to the oracle's global content registry.
 const oracles = new Map(
-  [...records, ...orderRecords, ...skillPathRecords].map(r => {
+  [...records, ...orderRecords, ...skillPathRecords, ...elementRecords].map(r => {
     const original = files.get(r.sourceFile)!.find(d => d.id === r.id)!
-    if (!r.recipe.pathRepairs?.length) return [r.id, EffectParser.parse(original)]
+    if (!r.recipe.pathRepairs?.length && !elementIds.has(r.id)) return [r.id, EffectParser.parse(original)]
     const corrected = structuredClone(original)
     for (const node of objects(corrected)) {
       if (node.base === 'useSkillContext') node.base = 'usingSkillContext'
@@ -357,7 +367,7 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
     const base = new BaseSkill(
       (typeof requiredSkillId === 'string' ? requiredSkillId : `fixture/damage-${pet.id}`) as BaseSkill['id'],
       nodes.some(n => n.value === 'Special') ? Category.Special : Category.Physical,
-      Element.Light,
+      elementIds.has(r.id) ? Element.Normal : Element.Light,
       requiredSkillId ? 300 : pet === f.a.team[1] ? 1000 : 30,
       100,
       0,
@@ -535,6 +545,16 @@ for (const r of orderRecords)
 for (const r of skillPathRecords)
   it.each([false, true])(
     `${r.id}: skill selection full game with checkpoint=%s`,
+    async checkpoint => {
+      const expected = await game(r, false, false)
+      expect(await game(r, true, checkpoint)).toEqual(expected)
+    },
+    30000,
+  )
+
+for (const r of elementRecords)
+  it.each([false, true])(
+    `${r.id}: element condition full game with checkpoint=%s`,
     async checkpoint => {
       const expected = await game(r, false, false)
       expect(await game(r, true, checkpoint)).toEqual(expected)

@@ -323,7 +323,7 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
       return 'conditions.firstSkillThisTurn'
     if ((domain === 'skill' || options.turnOrder) && c.type === 'isLastSkillUsedThisTurn')
       return 'conditions.lastSkillThisTurn'
-    if (domain === 'skill' && options.defensiveSkill && c.type === 'opponentUseSkill')
+    if (['skill', 'damage'].includes(domain) && options.defensiveSkill && c.type === 'opponentUseSkill')
       return 'conditions.skillActorDiffersFromOwner'
     if (c.type === 'selfUseSkill') return 'conditions.selfUsesSkill'
     // checkSelf refers to a different event subject in each supported stage family.
@@ -547,6 +547,21 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
         ((step.type === 'select' && step.arg === 'element') ||
           (step.type === 'selectPath' && ['element', 'category'].includes(step.arg)))
       ) {
+        if (
+          step.arg === 'element' &&
+          fields(e, ['type', 'value']) &&
+          e.type === 'same' &&
+          fields(e.value, ['type', 'selector']) &&
+          e.value.type === 'dynamic' &&
+          fields(e.value.selector, ['base', 'chain']) &&
+          e.value.selector.base === 'self' &&
+          Array.isArray(e.value.selector.chain) &&
+          e.value.selector.chain.length === 1 &&
+          fields(e.value.selector.chain[0], ['type', 'arg']) &&
+          e.value.selector.chain[0].type === 'selectPath' &&
+          e.value.selector.chain[0].arg === 'element'
+        )
+          return '((ctx: EffectFrame) => {const element=ctx.read(contexts.skillUse.select(event => event.element).first());const own=ctx.read(targets.ownerPet.select(pet => pet.element).first());return element!==undefined && own!==undefined && element===own})'
         if (fields(e, ['type', 'value']) && ['same', 'notSame'].includes(e.type) && typeof e.value === 'string')
           return `contexts.skillUse.condition((_ctx,events) => events[0]?.${step.arg} ${e.type === 'same' ? '===' : '!=='} ${q(e.value)})`
         if (

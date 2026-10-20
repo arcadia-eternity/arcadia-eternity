@@ -66,7 +66,7 @@ export function classifyDamageModifier(original) {
   if (JSON.stringify(orderConditions) !== JSON.stringify(expectedOrder))
     return { reason: 'order correction needs an exact source mapping' }
   const parameters = []
-  const when = condition(d.condition, 'damage', undefined, 'condition', { turnOrder: !!mapping }),
+  const when = condition(d.condition, 'damage', undefined, 'condition', { turnOrder: !!mapping, defensiveSkill: true }),
     percent = number(a.percent, parameters, 'percent'),
     delta = number(a.delta, parameters, 'delta')
   if (!when) return { reason: 'condition requires a separate semantic mapping' }

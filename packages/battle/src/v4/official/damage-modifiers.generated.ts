@@ -263,6 +263,20 @@ export function createGeneratedDamageModifierEffects() {
         execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
+    effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian: compileEffect(
+      defineEffect({
+        id: 'effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(
+          conditions.skillActorDiffersFromOwner,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
+          ),
+        ),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+      }),
+    ),
     effect_ability_reduce_damage_when_max_hp_over_500: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_damage_when_max_hp_over_500',
@@ -590,6 +604,32 @@ export function createGeneratedDamageModifierEffects() {
           return left !== undefined && right !== undefined && left > right
         }),
         execute: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
+      }),
+    ),
+    effect_mark_increase_self_element_damage_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_increase_self_element_damage_10_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const element = ctx.read(contexts.skillUse.select(event => event.element).first())
+          const own = ctx.read(targets.ownerPet.select(pet => pet.element).first())
+          return element !== undefined && own !== undefined && element === own
+        }),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+      }),
+    ),
+    effect_mark_increase_self_element_damage_20_percent: compileEffect(
+      defineEffect({
+        id: 'effect_mark_increase_self_element_damage_20_percent',
+        on: ['OnBeforeCalculateDamage'],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const element = ctx.read(contexts.skillUse.select(event => event.element).first())
+          const own = ctx.read(targets.ownerPet.select(pet => pet.element).first())
+          return element !== undefined && own !== undefined && element === own
+        }),
+        execute: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
       }),
     ),
     effect_mark_jiguang_add_200_damage: (() => {
