@@ -359,3 +359,9 @@ All 482 scoped public tests, 160 generator tests and 75 design runtime tests pas
 Eight direct numeric adjustment candidates now use bounded skill-context property references and a shared single-read addition operation. Repeated execution and duplicate references preserve additive ordering. All eight C07 mappings and the attack-threshold effect's named C09 stat.atk repair are checked against independent legacy references. The actual skill phase retains the distinction between context rage eligibility and skill rage consumption.
 
 All 244 scoped public tests, 163 generator tests and 75 design runtime tests pass, together with battle types/lint, declarations and unchanged provenance. New reference type assertions pass; the separate design-directory typecheck still has its existing nested-context error. See [numeric reference evidence](validation/skill-numeric-references.md). Full-game/checkpoint and production admission remain open.
+
+## Conditional action trees (2026-10-20)
+
+All 24 top-level conditional definitions now have candidates using lazy `actions.choose` composition. Nested probabilities draw only when reached; both branches register persistent binding declarations; mark dependencies are validated and retained by the factory. The new stage reversal operation delegates to the existing lifecycle method. Literal multihit `[5,8]` retains the legacy first-item value 5, not a random range.
+
+All 412 new public cases pass, including a fresh-factory checkpoint continuation for every candidate. Another 377 unchanged related regressions passed, for 789 distinct scoped cases. All 166 generator tests, 75 design runtime tests, battle types/lint, declarations and provenance pass. The pre-existing design-directory type error remains separate. See [conditional action evidence](validation/conditional-actions.md). Complete-game, downstream dependency closure and production admission remain open.

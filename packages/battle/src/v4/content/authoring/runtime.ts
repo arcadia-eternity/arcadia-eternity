@@ -458,6 +458,18 @@ export const conditions: typeof C.conditions = {
 }
 export const checks: typeof C.checks = { exists: () => (_ctx, selected) => selected.length > 0 }
 export const actions: typeof C.actions = {
+  choose: (condition, whenTrue, whenFalse) => {
+    const action: typeof whenTrue = ctx => {
+      engine(ctx as Frame).battle.executionBudget.chargeComputation()
+      if (condition(ctx)) whenTrue(ctx)
+      else whenFalse?.(ctx)
+    }
+    actionBindings.set(action, [
+      ...(actionBindings.get(whenTrue) ?? []),
+      ...(whenFalse ? (actionBindings.get(whenFalse) ?? []) : []),
+    ])
+    return action
+  },
   sequence: (...actions) => {
     const action = (ctx: Parameters<(typeof actions)[number]>[0]) => {
       for (const apply of actions) apply(ctx)
@@ -869,6 +881,17 @@ export const ops: typeof C.ops = {
         validated.add(mark)
       },
     )(ctx, selected)
+  },
+  reverseStatStages: (options = {}) => {
+    const stats = [...(options.stats ?? [])] as StatTypeWithoutHp[]
+    const strategy = (options.strategy ?? 'positive') as CleanStageStrategy
+    return (ctx, selected) => {
+      for (const pet of selected) assertWriteTarget(ctx, pet)
+      for (const pet of selected) {
+        assertWriteTarget(ctx, pet)
+        pet.reverseStatStage(engine(ctx), strategy, ...stats)
+      }
+    }
   },
   clearStatStages: (options = {}) => {
     const stats = [...(options.stats ?? [])] as StatTypeWithoutHp[]

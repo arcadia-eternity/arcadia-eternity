@@ -1,6 +1,6 @@
 import { skillSelection } from './skill-selection.mjs'
 import { stackBinding, bindStackAttribute } from './stack-binding.mjs'
-import { fields, members, number, selectedNumber } from './authoring-emitter.mjs'
+import { fields, members, number, selectedNumber, condition } from './authoring-emitter.mjs'
 import { classifySkillOutcome } from './skill-outcomes.mjs'
 import { classifySkillPower } from './skill-power.mjs'
 export const sequenceConditionOptions = Object.freeze({
@@ -11,7 +11,38 @@ export const sequenceConditionOptions = Object.freeze({
 })
 const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss', 'setSureCrit']
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
-export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
+export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value', markDependencies) {
+  if (a?.type === 'conditional') {
+    if (
+      !markDependencies ||
+      !fields(a, ['type', 'condition', 'trueOperator', ...('falseOperator' in a ? ['falseOperator'] : [])])
+    )
+      return
+    const when = condition(a.condition, domain, parameters, `${path}_condition`, {
+      ...sequenceConditionOptions,
+      opponentProbability: true,
+    })
+    const yes = sequenceAction(a.trueOperator, trigger, domain, parameters, `${path}_true`, markDependencies)
+    const no =
+      'falseOperator' in a
+        ? sequenceAction(a.falseOperator, trigger, domain, parameters, `${path}_false`, markDependencies)
+        : undefined
+    if (!when || !yes || ('falseOperator' in a && !no)) return
+    return `actions.choose(${when},${yes}${no ? `,${no}` : ''})`
+  }
+  if (a?.type === 'addMark' && markDependencies) {
+    if (
+      !fields(a, ['type', 'target', 'mark']) ||
+      !['self', 'opponent'].includes(a.target) ||
+      !fields(a.mark, ['type', 'value']) ||
+      a.mark.type !== 'entity:baseMark' ||
+      typeof a.mark.value !== 'string' ||
+      !a.mark.value
+    )
+      return
+    markDependencies.add(a.mark.value)
+    return `targets.${a.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.addMark(resolved.get(${JSON.stringify(a.mark.value)})!))`
+  }
   if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
   if (a?.type === 'addAttributeModifier') {
     if (
@@ -125,6 +156,14 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     if (!fields(a, ['type', 'target', 'value'])) return
     if (!(a.target === 'usingSkillContext' || (fields(a.target, ['base']) && a.target.base === 'usingSkillContext')))
       return
+    if (
+      markDependencies &&
+      a.type === 'setMultihit' &&
+      Array.isArray(a.value) &&
+      a.value.length &&
+      a.value.every(Number.isFinite)
+    )
+      return `contexts.skillUse.apply(ops.setMultihit(selectFrom(${JSON.stringify(a.value)}).all()))`
     const value =
       a.type === 'addMultihitResult' && fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic'
         ? selectedNumber(a.value.selector, parameters, path, 'all', domain)
@@ -230,7 +269,7 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     if (recipe.reason || recipe.parameters?.length) return
     return `contexts.skillUse.apply(ops.${recipe.operation}(${recipe.value ?? recipe.amount}))`
   }
-  if (a?.type === 'clearStatStage') {
+  if (a?.type === 'clearStatStage' || (markDependencies && a?.type === 'reverseStatStage')) {
     if (!fields(a, ['type', 'target', ...['statType', 'cleanStageStrategy'].filter(key => Object.hasOwn(a, key))]))
       return
     if (!['self', 'opponent'].includes(a.target)) return
@@ -238,7 +277,7 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     if (!['positive', 'negative', 'all'].includes(strategy) || a.cleanStageStrategy === null) return
     const stats = !Object.hasOwn(a, 'statType') ? [] : Array.isArray(a.statType) ? a.statType : [a.statType]
     if (!stats.every(stat => ['atk', 'def', 'spa', 'spd', 'spe'].includes(stat))) return
-    return `targets.${a.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.clearStatStages({stats:${JSON.stringify(stats)},strategy:${JSON.stringify(strategy)}}))`
+    return `targets.${a.target === 'self' ? 'ownerPet' : 'opponentActive'}.apply(ops.${a.type === 'clearStatStage' ? 'clearStatStages' : 'reverseStatStages'}({stats:${JSON.stringify(stats)},strategy:${JSON.stringify(strategy)}}))`
   }
   if (a?.type === 'statStageBuff') {
     if (!fields(a, ['type', 'target', 'statType', 'value']) || !Number.isFinite(a.value)) return

@@ -321,3 +321,11 @@ targets.ownerPet.property('priority')
 declare const mixedNumericTargets: Selector<Pet | UseSkillContext>
 // @ts-expect-error Mixed targets cannot claim a key absent from some members.
 mixedNumericTargets.property('priority')
+
+declare const branchDamage: Action<'OnDamage'>
+declare const branchHit: Action<'OnHit'>
+actions.choose<'OnDamage'>(() => true, branchDamage)
+// @ts-expect-error A branch action must accept the conditional action's trigger frame.
+actions.choose<'OnDamage'>(() => true, branchDamage, branchHit)
+// @ts-expect-error Branch conditions return boolean.
+actions.choose(() => 1, branchDamage)

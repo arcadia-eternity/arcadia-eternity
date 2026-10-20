@@ -432,7 +432,7 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
   if (
     fields(c, ['type', 'target', 'evaluator']) &&
     c.type === 'evaluate' &&
-    c.target === 'self' &&
+    (c.target === 'self' || (options.opponentProbability && c.target === 'opponent')) &&
     fields(c.evaluator, ['type', 'percent']) &&
     c.evaluator.type === 'probability'
   ) {

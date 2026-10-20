@@ -203,6 +203,12 @@ export declare const checks: {
   readonly exists: <T>() => Evaluator<T>
 }
 export declare const actions: {
+  /** Evaluate once at execution and run only the chosen action. Missing else is a no-op. */
+  readonly choose: <T extends Trigger = Trigger>(
+    condition: Condition<T>,
+    whenTrue: Action<T>,
+    whenFalse?: Action<T>,
+  ) => Action<T>
   /** Each action queries independently, in order; no implicit success gate or shared capture. */
   readonly sequence: <T extends Trigger = Trigger>(...actions: readonly Action<T>[]) => Action<T>
 }
@@ -296,6 +302,10 @@ export declare const ops: {
   /** The current source mark remains consumable after its owner detaches. */
   readonly consumeStacks: (amount: NumericInput) => Operator<MarkInstance>
   /** Remove stage marks through their lifecycle; omitted/empty stats means all five stats. */
+  readonly reverseStatStages: (options?: {
+    stats?: readonly ('atk' | 'def' | 'spa' | 'spd' | 'spe')[]
+    strategy?: 'positive' | 'negative' | 'all'
+  }) => Operator<Pet>
   readonly clearStatStages: (options?: {
     stats?: readonly ('atk' | 'def' | 'spa' | 'spd' | 'spe')[]
     strategy?: 'positive' | 'negative' | 'all'

@@ -104,3 +104,8 @@ export {
   generatedSkillNumericReferences,
   createGeneratedSkillNumericReferences,
 } from './src/v4/official/skill-numeric-references.generated'
+
+export {
+  createGeneratedConditionalActions,
+  generatedConditionalActionDependencies,
+} from './src/v4/official/conditional-actions.generated'
