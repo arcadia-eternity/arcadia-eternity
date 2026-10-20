@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
+import { format, resolveConfig } from 'prettier'
 if (process.argv.slice(2).some(arg => arg !== '--check')) throw new Error('Only --check supported')
 const revision = '61c349fa7ca35c392b0e751c9238759b02aefcb3'
 const files = [
@@ -105,7 +106,7 @@ const result = {
   effects,
 }
 const path = 'docs/v4/validation/historical-v1-audit.json'
-const text = JSON.stringify(result, null, 2) + '\n'
+const text = await format(JSON.stringify(result), { ...(await resolveConfig(path)), filepath: path })
 if (process.argv.includes('--check')) {
   if ((await readFile(path, 'utf8')) !== text) throw new Error('Historical audit is stale')
 } else await writeFile(path, text)

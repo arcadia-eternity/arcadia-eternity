@@ -10,66 +10,21 @@
       "importedSha256": "b7b37a535665b40fe8b61ca2c04bb9f8116ec4ca908a7b3ecde47e8308bb0574",
       "missingNames": ["addTemporaryEffect", "avg", "executeActions", "sampleBetween", "setIgnoreShield"],
       "evidence": {
-        "setRage": {
-          "historicalLines": [437, 739, 741],
-          "importedLines": [426, 716, 718]
-        },
-        "sampleBetween": {
-          "historicalLines": [292, 294],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [109, 591],
-          "importedLines": [109, 111, 114, 115]
-        },
-        "selfBeDamaged": {
-          "historicalLines": [1064, 1065],
-          "importedLines": [1025, 1026]
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [1088, 1089],
-          "importedLines": [1049, 1050]
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [1090, 1091],
-          "importedLines": [1051, 1052]
-        },
-        "setIgnoreShield": {
-          "historicalLines": [461, 1383, 1384],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [543, 1032, 1034],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [545, 1039, 1042],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [235, 237],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "pushContext": {
-          "historicalLines": [],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [437, 739, 741], "importedLines": [426, 716, 718] },
+        "sampleBetween": { "historicalLines": [292, 294], "importedLines": [] },
+        "selectorValue": { "historicalLines": [109, 591], "importedLines": [109, 111, 114, 115] },
+        "selfBeDamaged": { "historicalLines": [1064, 1065], "importedLines": [1025, 1026] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [1088, 1089], "importedLines": [1049, 1050] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [1090, 1091], "importedLines": [1051, 1052] },
+        "setIgnoreShield": { "historicalLines": [461, 1383, 1384], "importedLines": [] },
+        "executeActions": { "historicalLines": [543, 1032, 1034], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [545, 1039, 1042], "importedLines": [] },
+        "avg": { "historicalLines": [235, 237], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] }
       }
     },
     {
@@ -80,66 +35,21 @@
       "importedSha256": "c0fb7f6cf5c00470635890d95ab6bd4c949a23c82aaa2c4363a4885438c1482b",
       "missingNames": ["addTemporaryEffect", "executeActions", "setIgnoreShield"],
       "evidence": {
-        "setRage": {
-          "historicalLines": [301],
-          "importedLines": [278]
-        },
-        "sampleBetween": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selfBeDamaged": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "setIgnoreShield": {
-          "historicalLines": [900, 903],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [1838, 1899],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [1845, 1868],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "pushContext": {
-          "historicalLines": [],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [301], "importedLines": [278] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [900, 903], "importedLines": [] },
+        "executeActions": { "historicalLines": [1838, 1899], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [1845, 1868], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] }
       }
     },
     {
@@ -150,66 +60,21 @@
       "importedSha256": "9e0379536306ed6cc87b7a07f217be84ab00bc30acf193f6099596a11ff8ce83",
       "missingNames": [],
       "evidence": {
-        "setRage": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "sampleBetween": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selfBeDamaged": {
-          "historicalLines": [126],
-          "importedLines": [122]
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [316],
-          "importedLines": [310]
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [341],
-          "importedLines": [334]
-        },
-        "setIgnoreShield": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "pushContext": {
-          "historicalLines": [],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [126], "importedLines": [122] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [316], "importedLines": [310] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [341], "importedLines": [334] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] }
       }
     },
     {
@@ -219,66 +84,21 @@
       "historicalSha256": "fd5244047ea218d2f27dde8eea9778cb8cfa145d9370c1fdb39f95f2304b8817",
       "importedSha256": "8818f9bbcbd5b4001d1b4c6513cd1bb0fa635f125f4484b177e42783429b8a5e",
       "evidence": {
-        "setRage": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "sampleBetween": {
-          "historicalLines": [483],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selfBeDamaged": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "setIgnoreShield": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [354, 355, 356],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "pushContext": {
-          "historicalLines": [],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [483], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [354, 355, 356], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] }
       }
     },
     {
@@ -288,66 +108,21 @@
       "historicalSha256": "53ece48fad39003a490c1d58113fe8d9235c21a489fcce6e52e05a060107d8f1",
       "importedSha256": "acf2d58124d724b3ebfed2c93da7daaf9fbbc70e00cbbd1fe8a3fd6797126d6c",
       "evidence": {
-        "setRage": {
-          "historicalLines": [205],
-          "importedLines": [204]
-        },
-        "sampleBetween": {
-          "historicalLines": [853],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [696],
-          "importedLines": []
-        },
-        "selfBeDamaged": {
-          "historicalLines": [904],
-          "importedLines": [859]
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [943],
-          "importedLines": [890]
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [946],
-          "importedLines": [893]
-        },
-        "setIgnoreShield": {
-          "historicalLines": [288],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [558],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [563],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [808],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "pushContext": {
-          "historicalLines": [],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [205], "importedLines": [204] },
+        "sampleBetween": { "historicalLines": [853], "importedLines": [] },
+        "selectorValue": { "historicalLines": [696], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [904], "importedLines": [859] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [943], "importedLines": [890] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [946], "importedLines": [893] },
+        "setIgnoreShield": { "historicalLines": [288], "importedLines": [] },
+        "executeActions": { "historicalLines": [558], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [563], "importedLines": [] },
+        "avg": { "historicalLines": [808], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] }
       }
     },
     {
@@ -357,66 +132,21 @@
       "historicalSha256": "8dbbdb3e6540b60212b76df2859d5def92b6f27d4bc0839923a4b9323fe9d444",
       "importedSha256": "5fe1f87c6b41acfd18003571c6faefd1629a624f013b91037ca8f7773e29de78",
       "evidence": {
-        "setRage": {
-          "historicalLines": [456],
-          "importedLines": [464]
-        },
-        "sampleBetween": {
-          "historicalLines": [178],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [96, 97, 201, 217],
-          "importedLines": [90, 119, 239]
-        },
-        "selfBeDamaged": {
-          "historicalLines": [248],
-          "importedLines": [811]
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [291],
-          "importedLines": [850]
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [292],
-          "importedLines": [853]
-        },
-        "setIgnoreShield": {
-          "historicalLines": [492],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [699],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [701],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [166],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "pushContext": {
-          "historicalLines": [],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [456], "importedLines": [464] },
+        "sampleBetween": { "historicalLines": [178], "importedLines": [] },
+        "selectorValue": { "historicalLines": [96, 97, 201, 217], "importedLines": [90, 119, 239] },
+        "selfBeDamaged": { "historicalLines": [248], "importedLines": [811] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [291], "importedLines": [850] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [292], "importedLines": [853] },
+        "setIgnoreShield": { "historicalLines": [492], "importedLines": [] },
+        "executeActions": { "historicalLines": [699], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [701], "importedLines": [] },
+        "avg": { "historicalLines": [166], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] }
       }
     },
     {
@@ -426,66 +156,21 @@
       "historicalSha256": "915c365a2e0676e0118985b5a715169f15251d40b7bfe1a84cdd1d0cb6835a25",
       "importedSha256": "d402571653a79bc807d16477d616f76b60c715d34cd6566445ee0a83a817c45d",
       "evidence": {
-        "setRage": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "sampleBetween": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selfBeDamaged": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "setIgnoreShield": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [58],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [68],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [65],
-          "importedLines": [60]
-        },
-        "OnRageLoss": {
-          "historicalLines": [75],
-          "importedLines": [66]
-        },
-        "pushContext": {
-          "historicalLines": [],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [58], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [68], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [65], "importedLines": [60] },
+        "OnRageLoss": { "historicalLines": [75], "importedLines": [66] },
+        "pushContext": { "historicalLines": [], "importedLines": [] }
       }
     },
     {
@@ -495,66 +180,21 @@
       "historicalSha256": "9563b4c3bbf0f610c0fb08c3c2fe026960b5f9b09a89e4a8bbed6baa44e08491",
       "importedSha256": "020345ede4c7d8c869fd7320f3148ecbd374651b6b25e100111f4c166110d11a",
       "evidence": {
-        "setRage": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "sampleBetween": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selfBeDamaged": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "setIgnoreShield": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "OnRageLoss": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "pushContext": {
-          "historicalLines": [60, 81],
-          "importedLines": []
-        }
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [60, 81], "importedLines": [] }
       }
     },
     {
@@ -564,66 +204,21 @@
       "historicalSha256": "9303a3ed27066c1bcead8a4ec05cff820852105ac43d8fa60cbf276bcd4da394",
       "importedSha256": "0be1d50be76305d2efc0f466a4652b3417f05185ff4e085d18367778be2cb615",
       "evidence": {
-        "setRage": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "sampleBetween": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selectorValue": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "selfBeDamaged": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isFirstSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "isLastSkillUsedThisTurn": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "setIgnoreShield": {
-          "historicalLines": [326],
-          "importedLines": []
-        },
-        "executeActions": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "addTemporaryEffect": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "avg": {
-          "historicalLines": [],
-          "importedLines": []
-        },
-        "BeforeRageGain": {
-          "historicalLines": [691],
-          "importedLines": []
-        },
-        "BeforeRageLoss": {
-          "historicalLines": [692],
-          "importedLines": []
-        },
-        "OnRageGain": {
-          "historicalLines": [693],
-          "importedLines": [670]
-        },
-        "OnRageLoss": {
-          "historicalLines": [694],
-          "importedLines": [671]
-        },
-        "pushContext": {
-          "historicalLines": [101],
-          "importedLines": [109]
-        }
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [326], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [691], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [692], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [693], "importedLines": [670] },
+        "OnRageLoss": { "historicalLines": [694], "importedLines": [671] },
+        "pushContext": { "historicalLines": [101], "importedLines": [109] }
       }
     }
   ],
