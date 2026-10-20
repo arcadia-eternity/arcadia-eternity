@@ -15,6 +15,7 @@ export const nativeEffectTriggers = Object.freeze([
   EffectTrigger.PreDamage,
   EffectTrigger.OnCritPreDamage,
   EffectTrigger.OnDefeat,
+  EffectTrigger.SkillUseEnd,
   EffectTrigger.OnBeforeCalculateDamage,
   EffectTrigger.OnDamage,
   EffectTrigger.Shield,

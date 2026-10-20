@@ -129,3 +129,5 @@ export {
 export { createMarkTransfers } from './src/v4/official/mark-transfers'
 
 export { createFractionalHealing } from './src/v4/official/fractional-healing'
+
+export { createAutomaticStackConsumption } from './src/v4/official/automatic-stack-consumption'

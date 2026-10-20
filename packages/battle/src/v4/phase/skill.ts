@@ -196,6 +196,8 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     battle.phaseManager.registerPhase(markCleanupPhase)
     battle.phaseManager.executePhase(markCleanupPhase.id)
 
+    battle.applyEffects(context, EffectTrigger.SkillUseEnd)
+
     battle.emitMessage(BattleMessageType.SkillUseEnd, {
       user: context.pet.id,
     })
