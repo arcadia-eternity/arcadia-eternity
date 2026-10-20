@@ -27,10 +27,7 @@ const id = 'effect_skill_add_mark_zhaocai_or_jinbao'
 const load = (name: string): { id: string }[] =>
   parse(readFileSync(new URL(`../../../../packs/base/data/${name}.yaml`, import.meta.url), 'utf8'), { merge: true })
 const definition = load('effect_skill').find(d => d.id === id)!
-const corrected = structuredClone(definition) as unknown as { apply: { mark: { type: string } } }
-if (corrected.apply.mark.type !== 'selectorValue') throw new Error('C10 source node changed')
-corrected.apply.mark.type = 'selector'
-const oracle = EffectParser.parse(corrected)
+const oracle = EffectParser.parse(definition)
 const markDefinitions = load('mark')
 const marks = new Map(
   randomMarkApplicationDependencies.map(id => [
@@ -181,7 +178,7 @@ it('pins the original random selection and dependency definitions', () => {
   )
   const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
   expect(record.id).toBe(id)
-  expect(() => EffectParser.parse(definition)).toThrow()
+  expect(() => EffectParser.parse(definition)).not.toThrow()
   expect(record.correction).toEqual({
     decision: 'C10',
     path: '/apply/mark/type',

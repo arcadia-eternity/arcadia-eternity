@@ -6,9 +6,11 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 
 ## Evidence as of 2026-10-20
 
+- Historical selectorValue is restored alongside selector compatibility. Random damage, random-mark and random-stage reference tests now parse unchanged YAML. C10 was a version mismatch, while C07 refers separately to the still-pending useSkillContext name; metadata reclassification remains open.
+
 - Restored historical sampleBetween/avg, including value-backed numeric admission and serializable fractional reactive averages. Random-damage comparisons now execute the historical selector (with the still-explicit selectorValue tag adapter); C07 and final reclassification remain open. See [numeric-selector restoration](validation/legacy-numeric-selectors.md).
 
-**Historical baseline review is open.** Later V1 contains implementations previously treated as missing. C07/C08/C14/C15 and their dependent candidates require renewed semantic acceptance; coverage totals below count artifacts only. See [historical audit](validation/historical-v1-audit.md). Further migration must use that evidence rather than infer absence from the older imported oracle.
+**Historical baseline review is open.** Later V1 contains implementations previously treated as missing. C07/C08/C10/C14/C15 and their dependent candidates require renewed semantic acceptance; coverage totals below count artifacts only. See [historical audit](validation/historical-v1-audit.md). Further migration must use that evidence rather than infer absence from the older imported oracle.
 
 - Six persistent skill-flag candidates now use shared action-time skill queries and `ops.setSkillSureHit`. 91 public cases and two additional runtime checks cover legacy array-filter semantics, instance/context read timing, source lifetime, ownership checks and fresh-catalog JSON restoration. Candidate coverage is 1012/1065 (53 uncovered); full-game/production admission remains pending. See [skill flag evidence](validation/skill-flags.md).
 

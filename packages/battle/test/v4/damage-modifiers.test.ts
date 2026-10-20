@@ -92,12 +92,7 @@ for (const r of allRecords)
 const oracles = new Map(
   [...records, ...orderRecords, ...skillPathRecords, ...elementRecords, ...rangeRecords].map(r => {
     const original = files.get(r.sourceFile)!.find(d => d.id === r.id)!
-    if (r.recipe.rangeDecision) {
-      const historical = structuredClone(original)
-      const delta = (historical.apply as { delta: { type: string } }).delta
-      delta.type = 'selector'
-      return [r.id, EffectParser.parse(historical)]
-    }
+    if (r.recipe.rangeDecision) return [r.id, EffectParser.parse(original)]
 
     if (!r.recipe.pathRepairs?.length && !elementIds.has(r.id)) return [r.id, EffectParser.parse(original)]
     const corrected = structuredClone(original)

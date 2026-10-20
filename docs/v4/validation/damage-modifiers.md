@@ -111,3 +111,7 @@ All 83 design runtime tests pass, including both endpoints across 400 reads, dec
 ### Historical-reference update
 
 After restoring the later V1 numeric selectors, the 258 random-damage cases and four full-game/checkpoint comparisons pass against the actual legacy sampleBetween operation. The reference currently adapts only selectorValue to selector; unchanged-source parsing and final C14 metadata reclassification remain pending. The earlier independent formula is no longer the sole oracle. See [restoration evidence](legacy-numeric-selectors.md).
+
+### Original value spelling accepted
+
+The parser now accepts historical selectorValue directly. The random-damage focused and full-game references use unchanged YAML; the last value-tag adapter has been removed. The earlier C14 semantic-completion label remains historical metadata pending catalog-wide reclassification.

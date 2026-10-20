@@ -4,7 +4,7 @@
 
 ## C10: selector value type name
 
-The unchanged source fails schema validation because `/apply/mark/type` is `selectorValue`. The parser and schema require `selector`. The test reference copies the source and changes only that node. Production YAML and parser remain unchanged, and the original failure is asserted. This validates the chosen correction, not equivalence with the invalid original.
+Historical review supersedes the original C10 rationale: selectorValue is valid later-V1 syntax. The parser now accepts it alongside the imported selector spelling. The public reference uses unchanged YAML and asserts successful parsing. Existing C10 ledger metadata is retained as migration history pending catalog-wide reclassification; it is no longer evidence that the source was invalid.
 
 ## Selection and RNG contract
 
@@ -16,6 +16,6 @@ The mark action resolves a fresh random choice at execution, once per action, be
 
 ## Evidence
 
-The 20 public random tests cover skill and mark sources, both outcomes, another skill on the same owner, execution-time ownership changes, effect/add cancellation, mutex replacement, repeated dispatch, duration overrides, real SkillPhase execution, dependency identity validation, original rejection and source hashes. Each behavioral case checks subsequent RNG against both the corrected legacy reference and an independent seeded shuffle expectation. The candidate is not registered in the production loader, and dependency effects are excluded only within the application fixture.
+The 20 public random tests cover skill and mark sources, both outcomes, another skill on the same owner, execution-time ownership changes, effect/add cancellation, mutex replacement, repeated dispatch, duration overrides, real SkillPhase execution, dependency identity validation, unchanged-source acceptance and source hashes. Each behavioral case checks subsequent RNG against both the unchanged legacy reference and an independent seeded shuffle expectation. The candidate is not registered in the production loader, and dependency effects are excluded only within the application fixture.
 
 The 68 source authoring/binding tests pass, including fixed membership copying, dynamic membership requery, successive shuffles, post-shuffle filtering, zero/one member behavior, and persistent rejection without RNG or attribute changes. The combined public random/authoring/binding run passes 57 tests. Typechecks, lint, declarations, provenance and Node/Chrome continuation pass. Both review axes pass. The fixed-reference generator still rejects this shape by design; its 278-candidate count does not include this handwritten candidate.

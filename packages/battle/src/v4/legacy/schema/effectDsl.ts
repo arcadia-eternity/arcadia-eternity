@@ -668,7 +668,7 @@ export type DynamicValue = {
 }
 
 export type SelectorValue = {
-  type: 'selector'
+  type: 'selector' | 'selectorValue'
   value: Value
   chain?: Array<SelectorChain>
 }

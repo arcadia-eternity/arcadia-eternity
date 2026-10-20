@@ -105,7 +105,7 @@ export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: 
   }
 
   // 处理SelectorValue类型
-  if (typeof dsl === 'object' && 'type' in dsl && dsl.type === 'selector') {
+  if (typeof dsl === 'object' && 'type' in dsl && (dsl.type === 'selector' || dsl.type === 'selectorValue')) {
     const selectorValue = dsl as SelectorValue
     // 从Value创建selector
     const valueSelector = createSelectorFromValue(effectId, selectorValue.value)
@@ -574,7 +574,7 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (v.type === 'entity:species')
     return (() => [DataRepository.getInstance().getSpecies(v.value as speciesId)]) as ValueSource<any>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
-  if (v.type === 'selector') return parseSelector(effectId, v)
+  if (v.type === 'selector' || v.type === 'selectorValue') return parseSelector(effectId, v)
   throw new Error(`[parseEffect] 未知的数值类型: ${(v as any).type}`)
 }
 

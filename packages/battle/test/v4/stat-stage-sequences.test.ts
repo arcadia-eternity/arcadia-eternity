@@ -70,11 +70,7 @@ function copy(value: unknown, paths: string[] = [], path = ''): unknown {
 }
 function reference(r: RecordEntry) {
   const d = copy(definitions.get(r.id)) as Definition
-  if (r.id === 'effect_skill_raise_atk_1_stage_and_other_1_stage') {
-    const action = d.apply[1] as { statType: { type: string } }
-    expect(action.statType.type).toBe('selectorValue')
-    action.statType.type = 'selector'
-  }
+
   return d
 }
 const oracles = new Map(records.map(r => [r.id, EffectParser.parse(reference(r))]))
@@ -298,7 +294,7 @@ for (const r of records) {
         ? [{ path: '/apply/1/statType/type', before: 'selectorValue', after: 'selector' }]
         : [],
     )
-    if (r.recipe.valueRepairs) expect(() => EffectParser.parse(definitions.get(r.id))).toThrow(/效果数据验证失败/)
+    if (r.recipe.valueRepairs) expect(() => EffectParser.parse(definitions.get(r.id))).not.toThrow()
 
     expect(r.recipe.actions.map(a => a.sourcePath)).toEqual(definitions.get(r.id)!.apply.map((_, i) => `/apply/${i}`))
     const normalize = (v: unknown): unknown =>

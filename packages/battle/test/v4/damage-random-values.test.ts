@@ -27,14 +27,7 @@ const definitions = parse(
   { merge: true },
 )
 const originals = new Map(ids.map(id => [id, definitions.find((d: { id: string }) => d.id === id)]))
-const references = new Map(
-  ids.map(id => {
-    const d = structuredClone(originals.get(id))
-    // Only the versioned value tag remains adapted until selectorValue compatibility lands.
-    d.apply.delta.type = 'selector'
-    return [id, EffectParser.parse(d)]
-  }),
-)
+const references = new Map(ids.map(id => [id, EffectParser.parse(originals.get(id))]))
 const battles: Battle[] = [],
   errors: unknown[][] = []
 beforeAll(() =>
@@ -114,8 +107,8 @@ function run(id: Id, native: boolean, markSource: boolean, variant: (typeof vari
   }
 }
 for (const id of ids) {
-  it(`${id}: versioned tag and restored historical sampleBetween`, () => {
-    expect(() => EffectParser.parse(originals.get(id))).toThrow()
+  it(`${id}: unchanged historical value tag and sampleBetween`, () => {
+    expect(() => EffectParser.parse(originals.get(id))).not.toThrow()
     const renamed = structuredClone(originals.get(id))
     renamed.apply.delta.type = 'selector'
     expect(() => EffectParser.parse(renamed)).not.toThrow()

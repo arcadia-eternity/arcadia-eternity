@@ -89,7 +89,7 @@ export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
 
 export const selectorValueSchema: z.ZodSchema<SelectorValue> = z.lazy(() =>
   z.object({
-    type: z.literal('selector'),
+    type: z.enum(['selector', 'selectorValue']),
     value: valueSchema,
     chain: z.array(selectorChainSchema).optional(),
   }),
