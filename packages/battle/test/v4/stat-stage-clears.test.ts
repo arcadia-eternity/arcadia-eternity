@@ -224,19 +224,23 @@ for (const id of ids) {
               !['cancel', 'indestructible'].includes(variant) &&
               chosen.includes(stats[i]) &&
               (strategy === 'negative' ? level < 0 : level > 0)
-                ? 0
+                ? d.apply.type === 'reverseStatStage'
+                  ? -level
+                  : 0
                 : level,
             )
             const targetIndex =
               d.apply.target === 'self' ? (variant === 'late-owner' ? 1 : 0) : variant === 'late-slot' ? 3 : 2
             expect(result.levels[targetIndex]).toEqual(expected)
-            expect(result.removed.map(r => r.stat)).toEqual(stats.filter((_, i) => levels[i] !== expected[i]))
+            expect(result.removed.map(r => r.stat)).toEqual(
+              variant === 'indestructible' ? [] : stats.filter((_, i) => levels[i] !== expected[i]),
+            )
           }
           if (variant === 'phase-hit') expect(result.admitted).toBe(1)
           if (variant === 'phase-miss') expect(result.admitted).toBe(triggers.includes(EffectTrigger.OnMiss) ? 1 : 0)
         })
 }
-it('pins ten source hashes and exact stage identities', () => {
+it('pins eleven source hashes and exact stage identities', () => {
   const ledger = JSON.parse(
     readFileSync(new URL('../../../../docs/v4/validation/stat-stage-clears-candidates.json', import.meta.url), 'utf8'),
   )
@@ -250,7 +254,7 @@ it('pins ten source hashes and exact stage identities', () => {
               .map(k => [k, normalize((v as Record<string, unknown>)[k])]),
           )
         : v
-  expect(ids).toHaveLength(10)
+  expect(ids).toHaveLength(11)
   expect(ledger.records.map((r: { id: string }) => r.id).sort()).toEqual([...ids].sort())
   expect(ledger.rejected).toEqual([])
   for (const r of ledger.records) {

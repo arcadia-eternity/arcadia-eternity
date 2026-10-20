@@ -210,6 +210,27 @@
       },
       "classification": "U",
       "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_reverse_self_negative_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/564",
+      "definitionSha256": "87967ad44a581ebf719c68377db61a4367efa0b03c996d0b95d80fda7cbb8afc",
+      "recipe": {
+        "id": "effect_skill_reverse_self_negative_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.reverseStatStages({stats:[],strategy:\"negative\"}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
     }
   ],
   "rejected": []

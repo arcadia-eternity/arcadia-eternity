@@ -122,6 +122,15 @@ export function createGeneratedStatStageClears() {
         ),
       }),
     ),
+    effect_skill_reverse_self_negative_stage: compileEffect(
+      defineEffect({
+        id: 'effect_skill_reverse_self_negative_stage',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(targets.ownerPet.apply(ops.reverseStatStages({ stats: [], strategy: 'negative' }))),
+      }),
+    ),
   })
 }
 export const generatedStatStageClears = createGeneratedStatStageClears()

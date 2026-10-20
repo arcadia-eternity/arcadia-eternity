@@ -276,7 +276,7 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     if (recipe.reason || recipe.parameters?.length) return
     return `contexts.skillUse.apply(ops.${recipe.operation}(${recipe.value ?? recipe.amount}))`
   }
-  if (a?.type === 'clearStatStage' || (markDependencies && a?.type === 'reverseStatStage')) {
+  if (a?.type === 'clearStatStage' || a?.type === 'reverseStatStage') {
     if (!fields(a, ['type', 'target', ...['statType', 'cleanStageStrategy'].filter(key => Object.hasOwn(a, key))]))
       return
     if (!['self', 'opponent'].includes(a.target)) return

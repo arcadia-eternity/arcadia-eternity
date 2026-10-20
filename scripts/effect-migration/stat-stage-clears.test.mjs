@@ -8,8 +8,8 @@ const source = () => ({
   condition: { type: 'selfUseSkill' },
   apply: { type: 'clearStatStage', target: 'opponent' },
 })
-test('reproduces ten stage-clearing candidates', async () =>
-  assert.deepEqual(await generateStatStageClears({ check: true }), { generated: 10, rejected: 0 }))
+test('reproduces eleven stage-clearing and reversal candidates', async () =>
+  assert.deepEqual(await generateStatStageClears({ check: true }), { generated: 11, rejected: 0 }))
 test('preserves positive default, empty-as-all, order and spd/spe identity', () => {
   const d = source()
   assert.match(classifyStatStageClears(d).actions[0].code, /stats:\[\],strategy:"positive"/)
@@ -34,4 +34,19 @@ test('rejects malformed stats, unsupported selectors and trigger combinations', 
     mutate(d)
     assert.ok(classifyStatStageClears(d).reason)
   }
+})
+
+test('reversal shares bounded stat selection without mark dependencies', () => {
+  const d = source()
+  d.apply.type = 'reverseStatStage'
+  d.apply.target = 'self'
+  d.apply.cleanStageStrategy = 'negative'
+  assert.match(
+    classifyStatStageClears(d).actions[0].code,
+    /targets.ownerPet.apply\(ops.reverseStatStages\(\{stats:\[\],strategy:"negative"/,
+  )
+  d.apply.statType = ['spd', 'spe']
+  assert.match(classifyStatStageClears(d).actions[0].code, /stats:\["spd","spe"\]/)
+  d.apply.statType = 'hp'
+  assert.ok(classifyStatStageClears(d).reason)
 })

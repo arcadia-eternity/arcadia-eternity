@@ -4,7 +4,7 @@ const profile = {
   slug: 'stat-stage-clears',
   singleAction: true,
   optionalCondition: true,
-  actionTypes: ['clearStatStage'],
+  actionTypes: ['clearStatStage', 'reverseStatStage'],
   triggers: ['BeforeHit', 'OnMiss'],
   triggerLists: [['BeforeHit', 'OnMiss']],
   exportName: 'generatedStatStageClears',

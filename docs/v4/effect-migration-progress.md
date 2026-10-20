@@ -371,3 +371,9 @@ All 412 new public cases pass, including a fresh-factory checkpoint continuation
 Thirty-four remaining action lists now use shared mark-value, numeric-option and stack-context emitters. Conditional mark values are resolved lazily; each action requeries its own target. A consumption callback that changes the active opponent is observed by the subsequent addMark action. Ten existing owners are retained. Transfer-to-opponent and the unsupported BeforeRageLoss definition remain explicit rejections.
 
 All 585 distinct public cases pass across the complete 581-case run and four added independent tests, including checkpoints for every candidate. All 169 generator tests, 75 design runtime tests, battle types/lint, declarations and unchanged provenance pass. See [compound action evidence](validation/compound-actions.md). Complete-game, downstream dependency closure and production admission remain open.
+
+## Standalone negative-stage reversal (2026-10-20)
+
+The existing stage catalog now includes the remaining standalone reversal effect, with eleven generated candidates and zero rejections. It reuses the current-owner selector and existing reversal lifecycle, preserving the original negative level when an indestructible mark blocks both removal attempts. No runtime or YAML changes were needed.
+
+All 395 distinct public cases have passing evidence across the original run and the focused 35-case recheck; all 170 generator tests, battle types/lint, declarations and unchanged provenance pass. See [stage evidence](validation/stat-stage-clears.md) for the initial expectation failures and timeout reruns. Coverage inventory now includes singular candidate ledgers as well as record arrays: 86 official definitions remain without candidates. Full-game/checkpoint and production admission remain open.
