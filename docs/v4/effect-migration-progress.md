@@ -293,3 +293,9 @@ All 1,773 public regression checks and the final 161-case threshold suite pass, 
 Ten independent stage-clearing effects now have generated candidates. The reusable clearStatStages operation preserves positive defaults, empty/all selection, explicit stat order, spd/spe identity and destruction callbacks. Domain and authoring share a lazy traversal, with the authoring adapter checking Pet and Mark ownership before every removal, including transfers during an earlier callback.
 
 The final 396-case public regression and ten focused lifecycle cases pass, alongside 133 generator tests, 75 design tests, types/lint, declarations and reviewed provenance. Both review axes pass. See [stage clearing evidence](validation/stat-stage-clears.md). Full-game/checkpoint and production gates remain pending.
+
+## Multihit counts (2026-10-20)
+
+Eighteen independent multihit candidates now emit without rejection: seven additive resolved-count actions and eleven initial scalar-count assignments. Shared authoring operations preserve per-context reads, complete-list addition versus first-value assignment, and the source's AfterUseSkillCheck/BeforeMultiHit timing. Four probability effects retain scoped and tagged editable parameters. All records carry C07, with two exact C09 skill-path repairs and three C08 order corrections.
+
+All 611 multihit public tests, 136 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. An expanded old-suite run was terminated after accumulating timeout failures; all 41 selected failures pass isolated rechecks with the same timeout. That expanded run remains incomplete. See [multihit evidence](validation/multihit.md) for timing, real-turn order tests and exact verification scope. These remain U candidates pending complete-game/checkpoint and production gates.

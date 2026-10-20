@@ -68,3 +68,5 @@ export {
   createGeneratedDamageThresholds,
 } from './src/v4/official/damage-thresholds.generated'
 export { generatedStatStageClears, createGeneratedStatStageClears } from './src/v4/official/stat-stage-clears.generated'
+
+export { generatedMultihit, createGeneratedMultihit } from './src/v4/official/multihit.generated'

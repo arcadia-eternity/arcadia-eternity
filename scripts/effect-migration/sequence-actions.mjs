@@ -1,4 +1,4 @@
-import { fields, members, number } from './authoring-emitter.mjs'
+import { fields, members, number, selectedNumber } from './authoring-emitter.mjs'
 import { classifySkillOutcome } from './skill-outcomes.mjs'
 import { classifySkillPower } from './skill-power.mjs'
 export const sequenceConditionOptions = Object.freeze({
@@ -11,6 +11,17 @@ const outcomeTypes = ['addAccuracy', 'addCritRate', 'setSureHit', 'setSureMiss',
 const skillActionTypes = [...outcomeTypes, 'addPower', 'amplifyPower']
 export function sequenceAction(a, trigger, domain = 'skill', parameters = [], path = 'value') {
   if (a?.value?.type === 'conditional' && !['heal', 'dealDamage', 'addRage'].includes(a.type)) return
+  if (['addMultihitResult', 'setMultihit'].includes(a?.type)) {
+    if (!fields(a, ['type', 'target', 'value'])) return
+    if (!(a.target === 'usingSkillContext' || (fields(a.target, ['base']) && a.target.base === 'usingSkillContext')))
+      return
+    const value =
+      a.type === 'addMultihitResult' && fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic'
+        ? selectedNumber(a.value.selector, parameters, path, 'all', domain)
+        : number(a.value, parameters, path, domain)?.code
+    if (!value) return
+    return `contexts.skillUse.apply(ops.${a.type}(${value}))`
+  }
   if (a?.type === 'addThreshold') {
     if (
       !fields(a, ['type', 'target', ...['min', 'max'].filter(key => Object.hasOwn(a, key))]) ||

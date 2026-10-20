@@ -546,10 +546,11 @@ function modifyContext<T extends DamageContext | HealContext>(
     }
   }
 }
-/** Power and critical-rate actions consume the complete value list separately for every target. */
+/** Skill numeric actions read separately for every target, preserving list order. */
 function modifySkillValues(
   input: Parameters<typeof C.ops.addPower>[0],
   apply: (event: UseSkillContext, amount: number) => void,
+  consumption: 'all' | 'first' = 'all',
 ): C.Operator<UseSkillContext> {
   return (ctx, selected) => {
     selected.forEach(event => {
@@ -557,7 +558,7 @@ function modifySkillValues(
       const result = read(ctx, input)
       if (result === undefined) return
       const amounts = Array.isArray(result) ? result : [result]
-      amounts.forEach(amount => {
+      ;(consumption === 'first' ? amounts.slice(0, 1) : amounts).forEach(amount => {
         if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
         if (typeof amount !== 'number' || !Number.isFinite(amount)) throw new Error('Expected finite numeric input')
         apply(event, amount)
@@ -618,6 +619,15 @@ export const ops: typeof C.ops = {
   addPower: input => modifySkillValues(input, (event, amount) => event.addPower(amount)),
   amplifyPower: input => modifySkillValues(input, (event, amount) => event.amplifyPower(amount)),
   addCritRate: input => modifySkillValues(input, (event, amount) => event.addCritRate(amount)),
+  addMultihitResult: input => modifySkillValues(input, (event, amount) => event.addMultihitResult(amount)),
+  setMultihit: input =>
+    modifySkillValues(
+      input,
+      (event, amount) => {
+        event.multihit = amount
+      },
+      'first',
+    ),
   addAccuracy: input => modifyAccuracy(input, false),
   setAccuracy: input => modifyAccuracy(input, true),
   setSureHit: (priority = 0) => skillOverride(priority, (event, p) => event.setSureHit(p)),

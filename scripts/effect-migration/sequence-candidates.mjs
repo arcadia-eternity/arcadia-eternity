@@ -63,7 +63,8 @@ export function classifySequence(original, profile) {
       : profile.optionalCondition
         ? '() => true'
         : undefined
-  if (!when || parameters.length) return { reason: 'condition needs a separate mapping' }
+  if (!when || (parameters.length && !profile.conditionParameters))
+    return { reason: 'condition needs a separate mapping' }
   const actions = sourceActions.map((a, i) => ({
     sourcePath: profile.singleAction ? '/apply' : `/apply/${i}`,
     code: sequenceAction(a, d.trigger, domain, parameters, `action${i}_value`),

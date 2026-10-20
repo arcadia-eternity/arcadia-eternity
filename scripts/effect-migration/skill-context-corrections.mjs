@@ -20,6 +20,8 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_mark_shuangrenzhan_add_2_hits: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
+  effect_mark_shuangpozhan_add_2_hits: [['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill']],
   effect_emblem_add_rage_5_when_use_feixuanzhiguang: [
     ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
   ],

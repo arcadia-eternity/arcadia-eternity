@@ -218,6 +218,10 @@ export declare const ops: {
   readonly amplifyPower: (amount: PowerInput) => Operator<UseSkillContext>
   /** Read once per selected skill context and apply every supplied value in order, clamping each update. */
   readonly addCritRate: (amount: PowerInput) => Operator<UseSkillContext>
+  /** Read per context; add every supplied number to the currently resolved hit count. */
+  readonly addMultihitResult: (amount: PowerInput) => Operator<UseSkillContext>
+  /** Read per context; set the initial scalar hit count from the first value. Empty input skips. */
+  readonly setMultihit: (amount: PowerInput) => Operator<UseSkillContext>
   /** Read once per invocation; the first value applies to all selected contexts. Empty input skips. */
   readonly addAccuracy: (amount: PowerInput) => Operator<UseSkillContext>
   readonly setAccuracy: (amount: PowerInput) => Operator<UseSkillContext>
