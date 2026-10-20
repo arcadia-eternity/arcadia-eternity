@@ -261,3 +261,9 @@ The 1,573 public matrix cases and an added exact-correction check pass, along wi
 The quarter self-damage candidate preserves exact source-instance recursion prevention, execution-time damageResult reads and repeated triggering without consuming its mark. C07/C09 repairs remain named and independently tested. The single-vital catalog now contains 46 emitted, 4 rejected and 27 retained definitions; prior records are unchanged.
 
 All 1,631 public checks across the vital-action and self-damage fixtures, 118 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. See [source-identity evidence](validation/vital-actions.md). Overall migration, full-game/checkpoint and production gates remain pending.
+
+## Independent mark removals (2026-10-20)
+
+All 13 independent destroyMark effects now have generated candidates, with zero rejections or source corrections in this catalog. They reuse existing selectors and removal lifecycle operations. Post-damage, critical post-damage, turn-end and hit/miss dispatch retain their original boundaries; collection removal covers both skill and mark sources.
+
+All 405 public candidate/operator checks, 121 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. Tests independently verify exact 100 damage admission, noncritical rejection, late owner/collection requery, callback snapshot behavior and indestructible marks. See [mark removal evidence](validation/mark-removals.md). Full-game/checkpoint and production gates remain pending.
