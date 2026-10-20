@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   generatedSkillOutcomeEffects,
@@ -10,6 +10,7 @@ import {
   ConfigModifierType,
   ConfigDurationType,
   ConfigSystem,
+  AttributeSystem,
   effectAuthoring,
   BaseMark,
   BaseSkill,
@@ -110,9 +111,14 @@ const oracles = new Map(
   }),
 )
 const battles: Battle[] = []
+let attributeInstancesBefore = 0
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
+beforeEach(() => {
+  attributeInstancesBefore = AttributeSystem.getGlobalMemoryStats().totalInstances
+})
 afterEach(async () => {
   for (const b of battles.splice(0)) await b.cleanup()
+  expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(attributeInstancesBefore)
 })
 import { makeScenario } from './scenario'
 const parameterVariants = ['config-zero', 'config-custom', 'foreign-config', 'late-config'] as const
@@ -163,7 +169,7 @@ function run(
         AttackTargetOpinion.opponent,
       ),
     )
-  skill.owner = pet
+  skill.setOwner(pet)
   pet.skills[0] = skill
   const def = originals.get(r.id)!,
     all = nodes(def)
@@ -175,7 +181,7 @@ function run(
       { ...f.debuff.config, maxStacks: 6, duration: -1 },
       tag ? [tag] : [],
     ).createInstance()
-    mark.owner = owner
+    mark.setOwner(owner, battle.emitter)
     mark.stack = 3
     mark.duration = 2
     owner.marks.push(mark)
@@ -222,7 +228,7 @@ function run(
   source.effects.push(native ? generatedSkillOutcomeEffects[r.id] : oracles.get(r.id)!)
   if (native) effectAuthoring.effectParameters(generatedSkillOutcomeEffects[r.id]).install(battle.configSystem)
   const other = new SkillInstance(skill.base)
-  other.owner = pet
+  other.setOwner(pet)
   const selected = variant === 'other-skill' ? other : skill
   const turn = new TurnContext(battle)
   let use = new UseSkillContext(turn, a, pet, AttackTargetOpinion.opponent, selected)
@@ -276,7 +282,7 @@ function run(
     removeSupports()
     pet.attributeSystem.updateBaseValue('atk', 500)
     b.activePet.attributeSystem.updateBaseValue('spa', 100)
-    if (r.id === 'effect_emblem_immune_skill_bandao')
+    if (r.id === 'effect_emblem_immune_skill_bandao') {
       use.skill = new SkillInstance(
         new BaseSkill(
           'fixture/other' as baseSkillId,
@@ -289,6 +295,8 @@ function run(
           AttackTargetOpinion.opponent,
         ),
       )
+      use.skill.attributeSystem.setBattleId(battle.id)
+    }
     pet.currentHp = pet.stat.maxHp
     b.activePet.currentHp = b.activePet.stat.maxHp
     use.element = Element.Normal
@@ -353,7 +361,7 @@ function run(
   if (variant === 'turn-first' || variant === 'turn-second') {
     battle.skillMap.set(skill.id, skill)
     const harmless = new SkillInstance(skill.base)
-    harmless.owner = b.activePet
+    harmless.setOwner(b.activePet)
     b.activePet.skills[0] = harmless
     battle.skillMap.set(harmless.id, harmless)
     let reached = 0
