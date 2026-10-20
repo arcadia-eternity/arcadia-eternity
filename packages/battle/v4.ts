@@ -137,3 +137,5 @@ export { createSkillTransformationRemoval, createSkillTransformationCopy } from 
 export { createResourcePrevention } from './src/v4/official/resource-prevention'
 
 export { createTaggedParameterModifiers } from './src/v4/official/tagged-parameters'
+
+export { createNamedParameterModifiers, namedParameterModifierDependencies } from './src/v4/official/named-parameters'

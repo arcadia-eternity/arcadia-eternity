@@ -1,4 +1,5 @@
 import type { Effect } from '../../effect'
+import type { ParameterCatalog } from '../parameters'
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
 import type {
   AddMarkContext,
@@ -257,6 +258,14 @@ export declare const ops: {
   readonly setRage: (value: NumericInput) => Operator<Pet | Player>
   /** Assign a persistent instance flag; unlike setSureHit this does not create a use-context override. */
   readonly setSkillSureHit: (value: boolean | Value<boolean, Presence>) => Operator<SkillInstance>
+  /** Resolve a parameter alias at construction; sample amount and priority per target at execution. */
+  readonly addParameterModifier: (
+    catalog: ParameterCatalog,
+    reference: string,
+    operation: 'delta' | 'override',
+    amount: NumericInput,
+    priority?: NumericInput,
+  ) => Operator<Pet | Player>
   /** Sample amount and priority per target; match currently registered tagged parameters and bind cleanup to source marks. */
   readonly addTaggedParameterModifier: (
     tag: string,

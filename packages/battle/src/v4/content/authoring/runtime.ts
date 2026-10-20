@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { ConfigDurationType, ConfigModifierType } from '../../config'
+import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
   type effectId,
@@ -768,6 +768,27 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
     }
   }
 }
+/** Shared sample order, ownership checks and source lifetime for parameter modifier operations. */
+function parameterModifier(
+  amount: Parameters<typeof C.ops.addParameterModifier>[3],
+  priority: Parameters<typeof C.ops.addParameterModifier>[4],
+  install: (source: EffectContext<EffectTrigger>, target: Pet | Player, value: number, rank: number) => () => void,
+): C.Operator<Pet | Player> {
+  return (ctx, selected) => {
+    for (const target of selected) {
+      assertWriteTarget(ctx, target)
+      const value = read(ctx, amount),
+        rank = read(ctx, priority) ?? 0
+      if (value === undefined) continue
+      if (typeof value !== 'number' || !Number.isFinite(value) || typeof rank !== 'number' || !Number.isFinite(rank))
+        throw new Error('Expected finite parameter modifier input')
+      assertWriteTarget(ctx, target)
+      const source = engine(ctx)
+      const cleanup = install(source, target, value, rank)
+      if (source.source instanceof MarkInstanceImpl) source.source.addAttributeModifierCleanup(cleanup)
+    }
+  }
+}
 export const ops: typeof C.ops = {
   addTemporaryEffect: input => (ctx, selected) => {
     const phaseId = engine(ctx).battle.getTemporaryEffectPhaseId()
@@ -1020,30 +1041,37 @@ export const ops: typeof C.ops = {
       if (!write) throw new Error('Foreign write reference')
       write.set(n)
     }),
+  addParameterModifier: (catalog, reference, operation, amount, priority = 0) => {
+    const address = catalog.addressOf(reference)
+    return parameterModifier(amount, priority, (source, target, value, rank) =>
+      catalog.modify(
+        source.battle.configSystem,
+        address,
+        new ConfigModifier(
+          ConfigDurationType.binding,
+          nanoid(),
+          value,
+          operation === 'delta' ? ConfigModifierType.delta : ConfigModifierType.override,
+          rank,
+          source.source,
+        ),
+        target,
+      ),
+    )
+  },
   addTaggedParameterModifier: (tag, operation, amount, priority = 0) => {
     if (!tag) throw new Error('Expected parameter tag')
-    return (ctx, selected) => {
-      for (const target of selected) {
-        assertWriteTarget(ctx, target)
-        const value = read(ctx, amount),
-          rank = read(ctx, priority) ?? 0
-        if (value === undefined) continue
-        if (typeof value !== 'number' || !Number.isFinite(value) || typeof rank !== 'number' || !Number.isFinite(rank))
-          throw new Error('Expected finite parameter modifier input')
-        assertWriteTarget(ctx, target)
-        const source = engine(ctx)
-        const cleanup = source.battle.configSystem.addTaggedConfigModifierSingle(
-          tag,
-          operation === 'delta' ? ConfigModifierType.delta : ConfigModifierType.override,
-          value,
-          rank,
-          ConfigDurationType.binding,
-          source.source,
-          target,
-        )
-        if (source.source instanceof MarkInstanceImpl) source.source.addAttributeModifierCleanup(cleanup)
-      }
-    }
+    return parameterModifier(amount, priority, (source, target, value, rank) =>
+      source.battle.configSystem.addTaggedConfigModifierSingle(
+        tag,
+        operation === 'delta' ? ConfigModifierType.delta : ConfigModifierType.override,
+        value,
+        rank,
+        ConfigDurationType.binding,
+        source.source,
+        target,
+      ),
+    )
   },
   transformSkill: base => (ctx, selected) => {
     for (const target of selected) assertWriteTarget(ctx, target)

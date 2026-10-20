@@ -150,6 +150,10 @@ export class ParameterCatalog {
     if (!definition) throw new Error(`Unknown parameter: ${key}`)
     return definition
   }
+  /** Resolve a trusted content reference without installing or reading battle state. */
+  addressOf(reference: string): string {
+    return this.resolve(reference).address
+  }
   install(config: ConfigSystem): void {
     if (config.isDisposed) throw new Error('Cannot install parameters into disposed config')
     // Check the whole candidate before mutating any existing battle configuration.
