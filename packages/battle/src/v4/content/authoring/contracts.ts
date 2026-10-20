@@ -350,9 +350,9 @@ export declare const ops: {
   ) => Operator<UseSkillContext>
   /** Mark unavailable at execution time; does not undo damage already applied. */
   readonly preventDamage: () => Operator<DamageContext>
-  /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
   /** Cap the final gain after modifiers; multiple caps combine by minimum. */
   readonly limitRageGain: (maximum: NumericInput) => Operator<RageContext>
+  /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
   readonly modifyRage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<RageContext>
   readonly modifyHeal: (change: { percent: NumericInput; delta: NumericInput }) => Operator<HealContext>
   readonly modifyDamage: (change: { percent: NumericInput; delta: NumericInput }) => Operator<DamageContext>
