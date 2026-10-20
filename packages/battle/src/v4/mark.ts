@@ -1,3 +1,4 @@
+import { ConsumeStackPhase } from './phase/consumeStack'
 import { initializeOwnerRelations } from './values/relations'
 import { normalizeMarkInstanceParams, markParameterContract, type MarkInstanceParams } from './content/mark-parameters'
 import {
@@ -274,18 +275,15 @@ export class MarkInstanceImpl implements MarkInstance {
   }
 
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
-    const actual = Math.min(amount, this.stack)
-    this.stack -= actual
+    // Use ConsumeStackPhase for unified stack consumption
+    const consumePhase = new ConsumeStackPhase(context.battle, context, this, amount)
+    context.battle.phaseManager.registerPhase(consumePhase)
+    const result = context.battle.phaseManager.executePhase(consumePhase.id)
 
-    if (this.stack <= 0) {
-      // Use RemoveMarkPhase for unified mark destruction
-      const removeMarkContext = new RemoveMarkContext(context, this)
-      context.battle.removeMark(removeMarkContext)
+    if (result.success && consumePhase.context) {
+      return consumePhase.context.actualAmount
     }
-
-    // Note: dirty flag removed, attribute system handles recalculation automatically
-
-    return actual
+    return 0
   }
 
   get isStackable() {

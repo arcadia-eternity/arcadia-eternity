@@ -148,10 +148,12 @@ for (const variant of [
     const apply = () => battle.executionBudget.run(battle.currentTurn, () => effect.innerApply(context))
     if (['removed-after-read', 'reuse'].includes(variant)) {
       apply()
-      expect(mark.stack).toBe(7)
+      // Later V1 ignores inactive marks, including a mark removed during the amount read.
+      expect(mark.stack).toBe(10)
       if (variant === 'reuse') {
         expect(apply).toThrow('Cross-battle or unowned write target')
-        expect(mark.stack).toBe(7)
+        // Later V1 ignores inactive marks, including a mark removed during the amount read.
+        expect(mark.stack).toBe(10)
         expect(reads).toBe(1)
       }
     } else {

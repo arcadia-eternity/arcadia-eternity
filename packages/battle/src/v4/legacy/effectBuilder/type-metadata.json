@@ -9358,5 +9358,56 @@
       "u": [],
       "a": false
     }
+  ],
+  "ConsumeStackContext": [
+    {
+      "n": "type",
+      "t": "\"consumeStack\"",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "battle",
+      "t": "Battle",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "available",
+      "t": "false | true",
+      "iu": true,
+      "u": ["false", "true"],
+      "a": false
+    },
+    {
+      "n": "parent",
+      "t": "DamageContext | EffectContext<EffectTrigger>",
+      "iu": true,
+      "u": ["DamageContext", "EffectContext<EffectTrigger>"],
+      "a": false
+    },
+    {
+      "n": "mark",
+      "t": "MarkInstance",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "requestedAmount",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    },
+    {
+      "n": "actualAmount",
+      "t": "number",
+      "iu": false,
+      "u": [],
+      "a": false
+    }
   ]
 }

@@ -31,7 +31,7 @@
       "destination": "packages/battle/src/v4/context.ts",
       "sourceBlob": "f65a016fe5b37b6825235b6fd3795f5f5068bfad",
       "sourceSha256": "ee67306512235f7be6b921316ee46da58478fa1c2dfb9b5efc63fcdfa9eda763",
-      "portedSha256": "1b48535aa4f2ca59fc172fcd960bda6cd6dfd2c613bab1680144d189a8d89312",
+      "portedSha256": "91143e93d19d201a45fa4a49a0edd63407aec8e8d165f05829f0f3d7e7a1e8c9",
       "changed": true
     },
     {
@@ -71,7 +71,7 @@
       "destination": "packages/battle/src/v4/mark.ts",
       "sourceBlob": "e87faf945537770f069ce9e9859f52036533c7ee",
       "sourceSha256": "4a5bcfd9ec774d352f04bd2fdc39333e0825641710b7ae63b919d42f0de597a1",
-      "portedSha256": "8d115483fc13e17763fdae2c5fa41feba70be9391fab7992d19d17f3e4d56e13",
+      "portedSha256": "4c8ffc970a2cde3e51c72e39ec88c1d8574eedee1d104d627b8c70b839b12092",
       "changed": true
     },
     {
@@ -351,7 +351,7 @@
       "destination": "packages/battle/src/v4/legacy/effectBuilder/src/condition.ts",
       "sourceBlob": "ab25092dfb2df3f9b2f38aca7011e28a74918754",
       "sourceSha256": "14304ff8286947f5adee0811c1a79f7eb30833a053582d859899a5201b46c860",
-      "portedSha256": "2ee955d6d1384a6987e21f3611374aa89823a3c9b47f1ee17c0148ef4b84cfb0",
+      "portedSha256": "72bc20a9d02ad885bd39377ed4e06fca58b428845e6a2e7549c1d6ea3c77fdf3",
       "changed": true
     },
     {
@@ -375,7 +375,7 @@
       "destination": "packages/battle/src/v4/legacy/effectBuilder/src/selector.ts",
       "sourceBlob": "c9209243ad3658ae5ab9be8e649f739a9c361252",
       "sourceSha256": "21aea13038b2881934f32907e0b5182972bc37715d834ad9fb6fe5ac14307b7c",
-      "portedSha256": "9577788038f9bf8436d8a190fa8577a5bbac87340d851ae95e3b6320d3086b68",
+      "portedSha256": "c1eb5d33cc93f2424a8639956bc6e1ea2b565d2302b56bdcc0ac87c0cdf770e8",
       "changed": true
     },
     {
@@ -415,7 +415,7 @@
       "destination": "packages/battle/src/v4/legacy/effectBuilder/type-metadata.json",
       "sourceBlob": "521945066501cd689f1b31a88285773db57df063",
       "sourceSha256": "dd3a86c61b5faf95cfd1ba58a63c0a0a0b4e1373bfe7a91c3457e77dc3315f57",
-      "portedSha256": "e3f1c4525325874e6271bbddd23f5a54b491dd5da62f42d83014952d0e493e4e",
+      "portedSha256": "cf194a7e81d52027bcc9cc991fd890cb6a366e60e5c22e2885f12263f30325db",
       "changed": true
     },
     {

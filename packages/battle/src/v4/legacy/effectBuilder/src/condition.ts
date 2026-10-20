@@ -11,6 +11,7 @@ import {
   RageContext,
   SkillInstance,
   StackContext,
+  ConsumeStackContext,
   SwitchPetContext,
   TurnContext,
   UseSkillContext,
@@ -104,6 +105,9 @@ export const Conditions = {
       }
       if (context.parent instanceof StackContext) {
         return context.source.owner === context.parent.existingMark.owner
+      }
+      if (context.parent instanceof ConsumeStackContext) {
+        return context.source.owner === context.parent.mark.owner
       }
       return false
     }

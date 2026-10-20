@@ -10,6 +10,11 @@
       "importedSha256": "890bd3fe67df47111ccf0834fc76317a80e00f7e100e14a6bf7914af3ee7763f",
       "missingNames": [],
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [437, 739, 741], "importedLines": [435, 736, 738] },
         "sampleBetween": { "historicalLines": [292, 294], "importedLines": [232, 234] },
         "selectorValue": { "historicalLines": [109, 591], "importedLines": [109, 110, 112, 115, 116, 589] },
@@ -44,6 +49,11 @@
       "importedSha256": "61362689726959b6610b095dadb9bbbcb70259860119b14a37421691aa33de72",
       "missingNames": [],
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [285], "importedLines": [291] },
         "setRage": { "historicalLines": [301], "importedLines": [306] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -75,15 +85,20 @@
       "historicalPath": "packages/effectBuilder/src/condition.ts",
       "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/condition.ts",
       "historicalSha256": "033c92a64ff3642e2047492f5267c533a7a0c2cb47ec46f81f8e39753ecb73e8",
-      "importedSha256": "2ee955d6d1384a6987e21f3611374aa89823a3c9b47f1ee17c0148ef4b84cfb0",
+      "importedSha256": "72bc20a9d02ad885bd39377ed4e06fca58b428845e6a2e7549c1d6ea3c77fdf3",
       "missingNames": [],
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [5, 109], "importedLines": [14, 109] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
-        "selfBeDamaged": { "historicalLines": [126], "importedLines": [122] },
-        "isFirstSkillUsedThisTurn": { "historicalLines": [316], "importedLines": [310] },
-        "isLastSkillUsedThisTurn": { "historicalLines": [341], "importedLines": [335] },
+        "selfBeDamaged": { "historicalLines": [126], "importedLines": [126] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [316], "importedLines": [314] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [341], "importedLines": [339] },
         "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
         "executeActions": { "historicalLines": [], "importedLines": [] },
         "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
@@ -99,7 +114,7 @@
         "damageContext.available": { "historicalLines": [], "importedLines": [] },
         "useSkillContext": {
           "historicalLines": [66, 67, 70, 74, 118, 119, 120, 393, 394, 395],
-          "importedLines": [65, 66, 69, 73, 114, 115, 116]
+          "importedLines": [66, 67, 70, 74, 118, 119, 120]
         },
         "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
         "temporaryEffects": { "historicalLines": [], "importedLines": [] },
@@ -112,10 +127,19 @@
       "historicalPath": "packages/effectBuilder/src/selector.ts",
       "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/selector.ts",
       "historicalSha256": "fd5244047ea218d2f27dde8eea9778cb8cfa145d9370c1fdb39f95f2304b8817",
-      "importedSha256": "9577788038f9bf8436d8a190fa8577a5bbac87340d851ae95e3b6320d3086b68",
+      "importedSha256": "c1eb5d33cc93f2424a8639956bc6e1ea2b565d2302b56bdcc0ac87c0cdf770e8",
+      "missingNames": [],
       "evidence": {
+        "ConsumeStackContext": {
+          "historicalLines": [17, 652, 713, 861, 862, 864],
+          "importedLines": [17, 635, 694, 846, 847, 849]
+        },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [713, 861], "importedLines": [694, 846] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
-        "sampleBetween": { "historicalLines": [483], "importedLines": [461] },
+        "sampleBetween": { "historicalLines": [483], "importedLines": [462] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
         "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
         "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
@@ -123,7 +147,7 @@
         "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
         "executeActions": { "historicalLines": [], "importedLines": [] },
         "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
-        "avg": { "historicalLines": [354, 355, 356], "importedLines": [343, 344, 345] },
+        "avg": { "historicalLines": [354, 355, 356], "importedLines": [344, 345, 346] },
         "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
         "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
         "OnRageGain": { "historicalLines": [], "importedLines": [] },
@@ -133,7 +157,7 @@
         "currentHitCount": { "historicalLines": [], "importedLines": [] },
         "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
         "damageContext.available": { "historicalLines": [], "importedLines": [] },
-        "useSkillContext": { "historicalLines": [697, 766], "importedLines": [676, 745] },
+        "useSkillContext": { "historicalLines": [697, 766], "importedLines": [678, 748] },
         "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
         "temporaryEffects": { "historicalLines": [], "importedLines": [] },
         "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
@@ -147,6 +171,11 @@
       "historicalSha256": "53ece48fad39003a490c1d58113fe8d9235c21a489fcce6e52e05a060107d8f1",
       "importedSha256": "083d0f904af42ea52e2296cd2647eb1f47265d38df5e4dac6b5b2d967de02ab9",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [205], "importedLines": [204] },
         "sampleBetween": { "historicalLines": [853], "importedLines": [792] },
         "selectorValue": { "historicalLines": [696], "importedLines": [695] },
@@ -180,6 +209,11 @@
       "historicalSha256": "8dbbdb3e6540b60212b76df2859d5def92b6f27d4bc0839923a4b9323fe9d444",
       "importedSha256": "c0fa731215d8d589a03786233f5fdb2ecbce3f76d1ba3402e5b1cdfd65b4bd0c",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [456], "importedLines": [475] },
         "sampleBetween": { "historicalLines": [178], "importedLines": [194] },
         "selectorValue": { "historicalLines": [96, 97, 201, 217], "importedLines": [90, 92, 120, 250] },
@@ -207,12 +241,55 @@
       }
     },
     {
+      "kind": "consume-stack-phase",
+      "historicalPath": "packages/battle/src/phases/consumeStack.ts",
+      "importedPath": "packages/battle/src/v4/phase/consumeStack.ts",
+      "historicalSha256": "f2744074412ecbf565054e1aaaa061e7d45c27c793420abde2ee52977048b7e6",
+      "importedSha256": "95ad4ffb2d82c67d3f0d934b81ea6fc332b1226a16cd7d48a56cc3fe811cb0c8",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [3, 14, 25, 26, 41], "importedLines": [3, 14, 25, 26, 41] },
+        "OnBeforeConsumeStack": { "historicalLines": [50, 51], "importedLines": [50, 51] },
+        "OnConsumeStack": { "historicalLines": [63, 64], "importedLines": [63, 64] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
       "kind": "rage-phase",
       "historicalPath": "packages/battle/src/phases/rage.ts",
       "importedPath": "packages/battle/src/v4/phase/rage.ts",
       "historicalSha256": "915c365a2e0676e0118985b5a715169f15251d40b7bfe1a84cdd1d0cb6835a25",
       "importedSha256": "25234a6f9731ea3f9d93000b4634b825ed66b876e9413ed6e7a2b3bcc58ae52e",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -246,6 +323,11 @@
       "historicalSha256": "9563b4c3bbf0f610c0fb08c3c2fe026960b5f9b09a89e4a8bbed6baa44e08491",
       "importedSha256": "7e1c5d8774b0deab133c52004fc478bee9c41e3456b7d38c5ea3a3bbe85e0b6c",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -277,26 +359,31 @@
       "historicalPath": "packages/battle/src/context.ts",
       "importedPath": "packages/battle/src/v4/context.ts",
       "historicalSha256": "9303a3ed27066c1bcead8a4ec05cff820852105ac43d8fa60cbf276bcd4da394",
-      "importedSha256": "1b48535aa4f2ca59fc172fcd960bda6cd6dfd2c613bab1680144d189a8d89312",
+      "importedSha256": "91143e93d19d201a45fa4a49a0edd63407aec8e8d165f05829f0f3d7e7a1e8c9",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [39, 585, 631, 686, 687], "importedLines": [48, 640, 694, 695] },
+        "OnBeforeConsumeStack": { "historicalLines": [686], "importedLines": [694] },
+        "OnConsumeStack": { "historicalLines": [687], "importedLines": [695] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
         "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
         "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
         "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
-        "setIgnoreShield": { "historicalLines": [326], "importedLines": [336] },
+        "setIgnoreShield": { "historicalLines": [326], "importedLines": [337] },
         "executeActions": { "historicalLines": [], "importedLines": [] },
         "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
         "avg": { "historicalLines": [], "importedLines": [] },
-        "BeforeRageGain": { "historicalLines": [691], "importedLines": [674] },
-        "BeforeRageLoss": { "historicalLines": [692], "importedLines": [675] },
-        "OnRageGain": { "historicalLines": [693], "importedLines": [676] },
-        "OnRageLoss": { "historicalLines": [694], "importedLines": [677] },
-        "pushContext": { "historicalLines": [101], "importedLines": [109] },
+        "BeforeRageGain": { "historicalLines": [691], "importedLines": [698] },
+        "BeforeRageLoss": { "historicalLines": [692], "importedLines": [699] },
+        "OnRageGain": { "historicalLines": [693], "importedLines": [700] },
+        "OnRageLoss": { "historicalLines": [694], "importedLines": [701] },
+        "pushContext": { "historicalLines": [101], "importedLines": [110] },
         "appledContexts.push": { "historicalLines": [], "importedLines": [] },
-        "currentHitCount": { "historicalLines": [145], "importedLines": [155] },
-        "DamageType.Physical": { "historicalLines": [147, 223, 234], "importedLines": [157, 233, 244] },
+        "currentHitCount": { "historicalLines": [145], "importedLines": [156] },
+        "DamageType.Physical": { "historicalLines": [147, 223, 234], "importedLines": [158, 234, 245] },
         "damageContext.available": { "historicalLines": [], "importedLines": [] },
         "useSkillContext": { "historicalLines": [], "importedLines": [] },
         "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
@@ -312,6 +399,11 @@
       "historicalSha256": "711d9b57214c908406ea9893f300f902f216c526c40b833813dec96d6ff193a4",
       "importedSha256": "1474b8d182ba3a5beb665c327b4be71aa0eca325c18c617fc779c2918b2c3023",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -345,6 +437,11 @@
       "historicalSha256": "a311c53cc536f4b2108c7c8b8ef6f5fa73230ac093aad84e980417bf313d7f9e",
       "importedSha256": "7b70264979d0ea516f9581211f2a6ff08d9e32a8a3b264d84274803d3f973e4a",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [84], "importedLines": [86] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -378,6 +475,11 @@
       "historicalSha256": "67c01c4433cb97519b54a9a2e41470872d4f0513f91ee6a0fdabbe4263bdea63",
       "importedSha256": "a22c255b7c3945eba9b4ba548be9e4a3b5cdc0a73edec5734e829329ad69d536",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -411,6 +513,11 @@
       "historicalSha256": "4499119d315fa89aca4bd57794dbae24db07f3c57389109e4217b7f64e0f61b1",
       "importedSha256": "a4a0cd6d0fd7db33ac4473eb39dc70957f7c54cf97dd54981a26d47ebcbf091b",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [222], "importedLines": [232] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -442,8 +549,13 @@
       "historicalPath": "packages/battle/src/mark.ts",
       "importedPath": "packages/battle/src/v4/mark.ts",
       "historicalSha256": "9ebd3c9616bda7e834e56ea0504a604b35b872c2c8584f1bc9d1cbc80b5a14a0",
-      "importedSha256": "8d115483fc13e17763fdae2c5fa41feba70be9391fab7992d19d17f3e4d56e13",
+      "importedSha256": "4c8ffc970a2cde3e51c72e39ec88c1d8574eedee1d104d627b8c70b839b12092",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [90, 240], "importedLines": [104, 277] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -452,7 +564,7 @@
         "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
         "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
         "executeActions": { "historicalLines": [], "importedLines": [] },
-        "addTemporaryEffect": { "historicalLines": [93, 158], "importedLines": [106, 118] },
+        "addTemporaryEffect": { "historicalLines": [93, 158], "importedLines": [107, 119] },
         "avg": { "historicalLines": [], "importedLines": [] },
         "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
         "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
@@ -465,8 +577,8 @@
         "damageContext.available": { "historicalLines": [], "importedLines": [] },
         "useSkillContext": { "historicalLines": [], "importedLines": [] },
         "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
-        "temporaryEffects": { "historicalLines": [106, 113, 159, 163], "importedLines": [116, 119, 123, 127] },
-        "clearTemporaryEffects": { "historicalLines": [94, 162], "importedLines": [107, 122] },
+        "temporaryEffects": { "historicalLines": [106, 113, 159, 163], "importedLines": [117, 120, 124, 128] },
+        "clearTemporaryEffects": { "historicalLines": [94, 162], "importedLines": [108, 123] },
         "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
       }
     },
@@ -477,6 +589,11 @@
       "historicalSha256": "a46555f77c0d4366e032df8d0ef022ce26601a3b4eec060b092c21305633376e",
       "importedSha256": "a9bea8ede1f701f7f0dc4bb97a16c055e22d85bf9220296c44d459304494024b",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [38], "importedLines": [31] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -510,6 +627,11 @@
       "historicalSha256": "5399127be5fd0a3b234e2c11509aaa8088058b7b5391d6b3bfbd010fc5825d63",
       "importedSha256": "722bc7269a471f8ee99afea5121013209285874b0ea914ba3956d03db2229577",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -543,6 +665,11 @@
       "historicalSha256": "d24cc7c705b37110924a0ad75202e3d9354903eebeec1c1af96f10e5920b1c62",
       "importedSha256": "671282b2d26aa093240b0f319418a88e26e1f6b6be17d2f276f8c3615d7a36d4",
       "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
@@ -574,7 +701,7 @@
     "historicalPath": "packages/effectBuilder/type-metadata.json",
     "importedPath": "packages/battle/src/v4/legacy/effectBuilder/type-metadata.json",
     "historicalSha256": "bee3388668cf1727a7c5f8ccb3c8ace27977c820812732ae063622fc517b32df",
-    "importedSha256": "e3f1c4525325874e6271bbddd23f5a54b491dd5da62f42d83014952d0e493e4e",
+    "importedSha256": "cf194a7e81d52027bcc9cc991fd890cb6a366e60e5c22e2885f12263f30325db",
     "types": [
       {
         "type": "UseSkillContext",
@@ -679,6 +806,28 @@
           { "name": "stack", "historical": false, "imported": false },
           { "name": "switchInPetId", "historical": false, "imported": false },
           { "name": "switchInPet", "historical": true, "imported": true },
+          { "name": "currentHitCount", "historical": false, "imported": false },
+          { "name": "atk", "historical": false, "imported": false },
+          { "name": "spa", "historical": false, "imported": false },
+          { "name": "weight", "historical": false, "imported": false },
+          { "name": "stat", "historical": false, "imported": false }
+        ]
+      },
+      {
+        "type": "ConsumeStackContext",
+        "historicalOnly": [],
+        "importedOnly": [],
+        "reviewedFields": [
+          { "name": "skillId", "historical": false, "imported": false },
+          { "name": "skill", "historical": false, "imported": false },
+          { "name": "sourceId", "historical": false, "imported": false },
+          { "name": "source", "historical": false, "imported": false },
+          { "name": "baseMarkId", "historical": false, "imported": false },
+          { "name": "baseMark", "historical": false, "imported": false },
+          { "name": "statLevelMarkLevel", "historical": false, "imported": false },
+          { "name": "stack", "historical": false, "imported": false },
+          { "name": "switchInPetId", "historical": false, "imported": false },
+          { "name": "switchInPet", "historical": false, "imported": false },
           { "name": "currentHitCount", "historical": false, "imported": false },
           { "name": "atk", "historical": false, "imported": false },
           { "name": "spa", "historical": false, "imported": false },
@@ -996,10 +1145,22 @@
       "types": ["BeforeRageGain", "selfBeDamaged"]
     },
     {
+      "id": "effect_mark_fear_consume_stacks_at_3",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/111",
+      "types": ["consumeStacks"]
+    },
+    {
       "id": "effect_mark_double_special_damage_taken",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/113",
       "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_explode_on_stack_over_100",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/115",
+      "types": ["consumeStacks"]
     },
     {
       "id": "effect_mark_hongbaoshizhiguang_add_200_fixed_damage",
@@ -1110,6 +1271,12 @@
       "types": ["selfBeDamaged"]
     },
     {
+      "id": "effect_mark_zhenshihuanxiang_prevent_consume",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/151",
+      "types": ["OnBeforeConsumeStack"]
+    },
+    {
       "id": "effect_mark_add_crit_on_damage",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/154",
@@ -1200,10 +1367,76 @@
       "types": ["BeforeRageLoss"]
     },
     {
+      "id": "effect_mark_hunluan_consume_stacks_at_2",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/196",
+      "types": ["consumeStacks"]
+    },
+    {
       "id": "effect_mark_increase_damage_taken_40",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/202",
       "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_skill_consume_ruodian",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/42",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_zhongzinengliang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/69",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_zengzhong",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/123",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_opponent_manxingduyao",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/152",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/161",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/162",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/163",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/164",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_kongqichuliang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/166",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_shuiwenzhenji",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/177",
+      "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_power_2x_if_first",
@@ -1216,6 +1449,36 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/217",
       "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_consume_xinzhiyinji_multihit_consume",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/231",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_add_liuxie_50",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/246",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_heal_self_50",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/251",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_add_maidijinzhen",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/252",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maidijinzhen_add_jinzhenfenmo",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/253",
+      "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_power_2x_if_last",
@@ -1240,6 +1503,90 @@
       "sourceFile": "packs/base/data/effect_skill.yaml",
       "sourcePath": "/306",
       "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_add_multihit_1_consume_shazhidanke",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/346",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_add_power_10_consume_shazhidanke",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/347",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_sure_hit_consume_shazhidanke",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/348",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_priority_plus_1_consume_shazhidanke",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/350",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/416",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_add_power_50_consume_heianwuzhi",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/418",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_heimowuzhi_2_sure_crit",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/421",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_multihit_2",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/450",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spa_1_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/451",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_add_mark_opponent_dongshang",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/452",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_set_sure_hit",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/454",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/456",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_multihit_4_to_5",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/460",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spd_1_stage",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/461",
+      "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_add_mark_zhaocai_or_jinbao",

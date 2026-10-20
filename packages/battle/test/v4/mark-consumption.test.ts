@@ -228,7 +228,8 @@ for (const id of ids)
         }
         if (variant === 'remove-next') {
           expect(result.destroyed).toEqual(['first', 'second'])
-          expect(second.stack).toBe(4)
+          // Later V1 rejects consumption after the first callback removed this mark.
+          expect(second.stack).toBe(definitions.get(id)!.apply.value + 4)
         }
         if (variant === 'indestructible') {
           expect(first.stack).toBe(0)

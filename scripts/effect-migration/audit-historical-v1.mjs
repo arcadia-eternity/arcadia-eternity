@@ -26,6 +26,7 @@ const files = [
   ['schema', 'packages/schema/src/effectSchema.ts', 'packages/battle/src/v4/legacy/schema/effectSchema.ts'],
 ]
 files.push(
+  ['consume-stack-phase', 'packages/battle/src/phases/consumeStack.ts', 'packages/battle/src/v4/phase/consumeStack.ts'],
   ['rage-phase', 'packages/battle/src/phases/rage.ts', 'packages/battle/src/v4/phase/rage.ts'],
   ['turn-phase', 'packages/battle/src/phases/turn.ts', 'packages/battle/src/v4/phase/turn.ts'],
   ['context', 'packages/battle/src/context.ts', 'packages/battle/src/v4/context.ts'],
@@ -53,11 +54,16 @@ for (const [kind, historicalPath, importedPath] of files) {
     importedPath,
     historicalSha256: sha(historical),
     importedSha256: sha(imported),
-    ...(kind === 'parser' || kind === 'operators' || kind === 'conditions'
+    ...(kind === 'parser' || kind === 'operators' || kind === 'conditions' || kind === 'selectors'
       ? { missingNames: names(historical).filter(n => !names(imported).includes(n)) }
       : {}),
     evidence: Object.fromEntries(
       [
+        'ConsumeStackContext',
+        'OnBeforeConsumeStack',
+        'OnConsumeStack',
+        'consumeStackContext',
+        'consumeStack(',
         'setRage',
         'sampleBetween',
         'selectorValue',
@@ -98,6 +104,9 @@ const inspectTypes = (v, found = new Set()) => {
 }
 const relevant = new Set([
   ...records[0].missingNames,
+  'OnBeforeConsumeStack',
+  'OnConsumeStack',
+  'consumeStacks',
   'selectorValue',
   'setRage',
   'BeforeRageGain',
@@ -145,20 +154,22 @@ const metadataAudit = {
   importedPath: importedMetadataPath,
   historicalSha256: sha(historicalMetadataText),
   importedSha256: sha(importedMetadataText),
-  types: ['UseSkillContext', 'Pet', 'AddMarkContext', 'DamageContext', 'SwitchPetContext'].map(type => {
-    const historical = historicalMetadata[type].map(member => member.n),
-      imported = importedMetadata[type].map(member => member.n)
-    return {
-      type,
-      historicalOnly: historical.filter(name => !imported.includes(name)).sort(),
-      importedOnly: imported.filter(name => !historical.includes(name)).sort(),
-      reviewedFields: fieldNames.map(name => ({
-        name,
-        historical: historical.includes(name),
-        imported: imported.includes(name),
-      })),
-    }
-  }),
+  types: ['UseSkillContext', 'Pet', 'AddMarkContext', 'DamageContext', 'SwitchPetContext', 'ConsumeStackContext'].map(
+    type => {
+      const historical = historicalMetadata[type].map(member => member.n),
+        imported = importedMetadata[type].map(member => member.n)
+      return {
+        type,
+        historicalOnly: historical.filter(name => !imported.includes(name)).sort(),
+        importedOnly: imported.filter(name => !historical.includes(name)).sort(),
+        reviewedFields: fieldNames.map(name => ({
+          name,
+          historical: historical.includes(name),
+          imported: imported.includes(name),
+        })),
+      }
+    },
+  ),
 }
 const result = {
   revision,
