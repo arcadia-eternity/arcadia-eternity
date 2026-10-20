@@ -393,3 +393,9 @@ contexts.skillUse.apply(ops.setSkill(targets.selfAvailableSkills.shuffled().firs
 ops.setSkill(targets.ownerPet.first(), true)
 // @ts-expect-error setSkill mutates a skill-use context, not a skill instance.
 targets.selfSkills.apply(ops.setSkill(targets.selfAvailableSkills.first()))
+
+contexts.addMark.apply(ops.setMarkTransferOnSwitch(true))
+// @ts-expect-error A transfer flag is boolean, not a number.
+ops.setMarkTransferOnSwitch(1)
+// @ts-expect-error Configuration is set on a pending application, not a live mark.
+targets.sourceMark.apply(ops.setMarkTransferOnSwitch(true))

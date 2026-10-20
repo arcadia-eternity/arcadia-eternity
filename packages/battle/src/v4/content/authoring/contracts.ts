@@ -315,6 +315,8 @@ export declare const ops: {
   readonly setMarkDuration: (amount: PowerInput) => Operator<AddMarkContext>
   readonly setMarkStack: (amount: PowerInput) => Operator<AddMarkContext>
   readonly setMarkMaxStack: (amount: PowerInput) => Operator<AddMarkContext>
+  /** Read once; configure transfer to the incoming pet, independently of keepOnSwitchOut. */
+  readonly setMarkTransferOnSwitch: (value: boolean | Value<boolean, Presence>) => Operator<AddMarkContext>
   readonly amplifyPower: (amount: PowerInput) => Operator<UseSkillContext>
   /** Read once per selected skill context and apply every supplied value in order, clamping each update. */
   readonly addCritRate: (amount: PowerInput) => Operator<UseSkillContext>

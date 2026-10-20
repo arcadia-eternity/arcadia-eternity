@@ -898,6 +898,19 @@ export const ops: typeof C.ops = {
   setMarkDuration: input => setMarkApplicationValue(input, (event, amount) => event.setDuration(amount)),
   setMarkStack: input => setMarkApplicationValue(input, (event, amount) => event.setStack(amount)),
   setMarkMaxStack: input => setMarkApplicationValue(input, (event, amount) => event.setMaxStack(amount)),
+  setMarkTransferOnSwitch: input => (ctx, selected) => {
+    const validate = (event: AddMarkContext) => {
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle mark application context')
+    }
+    selected.forEach(validate)
+    const transfer = read(ctx, input)
+    if (transfer === undefined) return
+    if (typeof transfer !== 'boolean') throw new Error('Expected boolean mark configuration')
+    for (const event of selected) {
+      validate(event)
+      event.setTransferOnSwitch(transfer)
+    }
+  },
   addPower: input => modifySkillValues(input, (event, amount) => event.addPower(amount)),
   amplifyPower: input => modifySkillValues(input, (event, amount) => event.amplifyPower(amount)),
   addCritRate: input => modifySkillValues(input, (event, amount) => event.addCritRate(amount)),
