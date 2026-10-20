@@ -13,7 +13,8 @@ function normalize(v) {
       : v
 }
 function root(s, domain = 'damage') {
-  if (['skill', 'damage'].includes(domain) && ['selfPlayer', 'opponentPlayer'].includes(s)) return `targets.${s}`
+  if (['skill', 'damage', 'mark'].includes(domain) && ['selfPlayer', 'opponentPlayer'].includes(s))
+    return `targets.${s}`
   if (domain === 'skill' && s === 'battle') return 'contexts.battle'
   if (s === 'self') return 'targets.ownerPet'
   if (s === 'opponent') return 'targets.opponentActive'
@@ -162,7 +163,7 @@ function selectedNumber(s, parameters, path, consumption = 'first', domain = 'da
         optional = name !== 'level'
         if (collection && optional) return
       } else if (
-        ['skill', 'damage'].includes(domain) &&
+        ['skill', 'damage', 'mark'].includes(domain) &&
         ['selfPlayer', 'opponentPlayer'].includes(s.base) &&
         ['rage', 'maxRage'].includes(name)
       )
@@ -311,6 +312,7 @@ function number(v, parameters, path, domain = 'damage', options = {}) {
 function condition(c, domain = 'damage', parameters, path = 'condition', options = {}) {
   if (fields(c, ['type'])) {
     if (domain === 'switch' && c.type === 'selfSwitchOut') return 'conditions.ownerSwitchesOut'
+    if (domain === 'mark' && c.type === 'opponentBeDamaged') return 'conditions.damageTargetBelongsToOtherPlayer'
     if (domain === 'mark' && c.type === 'selfAddMark') return 'conditions.ownerAddsMark'
     if (domain === 'mark' && c.type === 'selfBeAddMark') return 'conditions.ownerReceivesMark'
     if (domain === 'switch' && c.type === 'selfSwitchIn') return 'conditions.ownerSwitchesIn'
@@ -342,6 +344,36 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
   if (domain === 'mark' && fields(c, ['type', 'target', 'evaluator']) && c.type === 'evaluate') {
     const t = c.target,
       e = c.evaluator
+    // Legacy selectPath without [] returns only the first extracted tag, even before flat().
+    if (
+      fields(t, ['base', 'chain']) &&
+      fields(e, ['type', 'tag']) &&
+      e.type === 'contain' &&
+      typeof e.tag === 'string'
+    ) {
+      if (
+        t.base === 'addMarkContext' &&
+        JSON.stringify(normalize(t.chain)) ===
+          JSON.stringify(
+            normalize([{ type: 'selectPath', arg: 'baseMark' }, { type: 'selectPath', arg: 'tags' }, { type: 'flat' }]),
+          )
+      )
+        return `contexts.addMark.condition((_ctx,events) => events.some(event => event.baseMark.tags[0] === ${q(e.tag)}))`
+      if (
+        t.base === 'effectContext' &&
+        JSON.stringify(normalize(t.chain)) === JSON.stringify(normalize([{ type: 'selectPath', arg: 'effect.tags' }]))
+      )
+        return `contexts.effect.condition((_ctx,events) => events.some(event => event.effect?.tags[0] === ${q(e.tag)}))`
+    }
+    if (
+      fields(t, ['base', 'chain']) &&
+      t.base === 'effectContext' &&
+      JSON.stringify(normalize(t.chain)) === JSON.stringify(normalize([{ type: 'selectPath', arg: 'effect.id' }])) &&
+      fields(e, ['type', 'value']) &&
+      e.type === 'same' &&
+      typeof e.value === 'string'
+    )
+      return `contexts.effect.condition((_ctx,events) => events.some(event => event.effect?.id === ${q(e.value)}))`
     if (
       fields(t, ['base', 'chain']) &&
       t.base === 'addMarkContext' &&
@@ -564,7 +596,7 @@ function condition(c, domain = 'damage', parameters, path = 'condition', options
         'mark',
         'damageContext',
         'stackContext',
-        ...(['skill', 'damage'].includes(domain) ? ['usingSkillContext', 'selfPlayer', 'opponentPlayer'] : []),
+        ...(['skill', 'damage', 'mark'].includes(domain) ? ['usingSkillContext', 'selfPlayer', 'opponentPlayer'] : []),
         ...(domain === 'skill' ? ['battle'] : []),
       ].includes(c.target?.base)
     )

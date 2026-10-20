@@ -75,3 +75,8 @@ export {
   generatedMarkApplicationSettings,
   createGeneratedMarkApplicationSettings,
 } from './src/v4/official/mark-application-settings.generated'
+
+export {
+  generatedEventCancellation,
+  createGeneratedEventCancellation,
+} from './src/v4/official/event-cancellation.generated'

@@ -20,6 +20,20 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_ability_shenguang_immune_status_above_half_hp: [
+    ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark'],
+  ],
+  effect_ability_immune_exceptional_if_rage_gt_50: [
+    ['/condition/conditions/2/target/chain/0/arg', 'baseMarkId', 'baseMark'],
+  ],
+  effect_emblem_immune_mark_zhixi: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_immune_mark_haipa: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_mark_immune_status: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark']],
+  effect_mark_immune_exceptional: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark']],
+  effect_mark_immune_zhongdu: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
+  effect_emblem_anying_immune_fear_early_wake: [
+    ['/condition/conditions/1/target/chain/0/arg', 'effectId', 'effect.id'],
+  ],
   effect_emblem_set_zhongdu_duration_2: [['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id']],
   effect_emblem_decrease_liuxie_duration_1: [
     ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark.id'],

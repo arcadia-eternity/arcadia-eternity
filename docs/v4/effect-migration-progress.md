@@ -305,3 +305,9 @@ All 611 multihit public tests, 136 generator tests, 75 design tests, types/lint,
 Seventeen duration, initial-stack and maximum-stack candidates now emit without rejection. Shared setters preserve a single value read followed by cyclic distribution over contexts, and use the existing mark-application lifecycle. Sixteen exact C09 repairs map baseMarkId to baseMark.id; the xuruo stage/probability predicate is unchanged.
 
 The 559-case public regression, 139 generator tests, 75 design tests, types/lint, declarations and provenance pass; both review axes pass. See [mark application setting evidence](validation/mark-application-settings.md). Candidates remain U pending complete-game/checkpoint and production gates.
+
+## Pending event cancellation (2026-10-20)
+
+Ten cancellation candidates now cover pending mark applications and outer effects. Shared APIs query the nearest outer effect and validate battle ownership before each cancellation. Eight exact C09 repairs are independently verified; legacy first-tag extraction and direct applicant/recipient ownership remain intact.
+
+The 238 public tests, 142 generator tests, 75 design tests, scoped types/lint, declarations and unchanged provenance pass. Two definitions remain explicitly rejected because BeforeRageGain and OnBeforeConsumeStack lack the required V1 lifecycle support. See [cancellation evidence](validation/event-cancellation.md). Candidates remain U pending complete-game/checkpoint and production gates.

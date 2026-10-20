@@ -1,6 +1,7 @@
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
 import type {
   AddMarkContext,
+  EffectContext,
   StackContext,
   DamageContext,
   HealContext,
@@ -8,6 +9,7 @@ import type {
   UseSkillContext,
   SwitchPetContext,
 } from '../../context'
+import type { EffectTrigger } from '@arcadia-eternity/const'
 import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { BaseMark, MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
@@ -139,6 +141,8 @@ export declare const targets: {
 }
 export declare const contexts: {
   readonly battle: Selector<Battle>
+  /** Nearest outer effect; excludes the effect currently executing. */
+  readonly effect: Selector<EffectContext<EffectTrigger>>
   /** Nearest mark-application ancestor, queried independently on every read. */
   readonly addMark: Selector<AddMarkContext>
   /** Nearest stacking ancestor, queried independently on each use. */
@@ -182,6 +186,8 @@ export declare const conditions: {
   readonly ownerReceivesMark: Condition
   /** Direct event base-mark identity and initial sign, independent of its mutable stack. */
   readonly statStageChange: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', direction: 'up' | 'down' | 'all') => Condition
+  /** Nearest damage target belongs to a different player than the source pet. */
+  readonly damageTargetBelongsToOtherPlayer: Condition
   readonly selfBeDamaged: Condition
   readonly selfBeHealed: Condition
   /** One battle RNG draw on each call, including 0 and 100; short-circuiting is owned by the caller. */
@@ -210,6 +216,8 @@ type NumericInput = number | Value<number, Presence>
 type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  /** Cancel a pending application or outer effect; no rollback of prior writes. */
+  readonly disableContext: () => Operator<AddMarkContext | EffectContext<EffectTrigger>>
   /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */
   readonly addMark: (
     mark: BaseMark | Value<BaseMark, Presence>,

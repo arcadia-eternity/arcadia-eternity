@@ -312,6 +312,10 @@ function nearestContext<T extends AllContext>(ctx: Frame, kind: abstract new (..
 }
 export const contexts: typeof C.contexts = {
   battle: selector(ctx => [engine(ctx).battle]),
+  effect: selector(ctx => {
+    const event = nearestContext(ctx, EffectContext)
+    return event ? [event] : []
+  }),
   addMark: selector(ctx => {
     const event = nearestContext(ctx, AddMarkContext)
     return event ? [event] : []
@@ -414,6 +418,11 @@ export const conditions: typeof C.conditions = {
       mark.initialLevel !== 0 &&
       (direction === 'all' || (direction === 'up' ? mark.initialLevel > 0 : mark.initialLevel < 0))
     )
+  },
+  damageTargetBelongsToOtherPlayer: ctx => {
+    const pet = owner(ctx),
+      event = nearestContext(ctx, DamageContext)
+    return !!pet && !!event && pet.owner !== event.target.owner
   },
   selfBeDamaged: ctx => ctx.event instanceof DamageContext && owner(ctx) === ctx.event.target,
   selfBeHealed: ctx => ctx.event instanceof HealContext && owner(ctx) === ctx.event.target,
@@ -614,6 +623,14 @@ function skillOverride(
   }
 }
 export const ops: typeof C.ops = {
+  disableContext: () => (ctx, selected) => {
+    for (const event of selected)
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle cancellable context')
+    for (const event of selected) {
+      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle cancellable context')
+      event.available = false
+    }
+  },
   addMark: (mark, input = {}) => {
     const { stack, duration } = input
     return (ctx, selected) => {
