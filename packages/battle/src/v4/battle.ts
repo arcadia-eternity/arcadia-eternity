@@ -16,7 +16,7 @@ import {
 } from '@arcadia-eternity/const'
 import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
-import { ConfigSystem } from './config'
+import { ConfigSystem, PhaseType } from './config'
 import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
 import { type EffectContainer } from './effect'
 import { type MarkOwner } from './entity'
@@ -583,6 +583,15 @@ export class Battle extends Context implements MarkOwner {
     // 停止所有计时器
     this.timerManager.stopAllTimers()
     this.getVictor(true)
+  }
+
+  /** Match historical Skill > Turn > current phase lifetime selection. */
+  getTemporaryEffectPhaseId(): string | undefined {
+    return (
+      this.configSystem.getCurrentPhaseOfType(PhaseType.Skill) ??
+      this.configSystem.getCurrentPhaseOfType(PhaseType.Turn) ??
+      this.phaseManager.getCurrentPhase()
+    )?.id
   }
 
   cleanupPhaseEffects(phaseId: string): void {

@@ -61,13 +61,7 @@ export const Operators = {
   addTemporaryEffect:
     <T extends SkillInstance | MarkInstance>(effect: ValueSource<Effect<EffectTrigger>>): Operator<T> =>
     (context: EffectContext<EffectTrigger>, targets: T[]) => {
-      const configSystem = context.battle.configSystem
-      let relevantPhase = configSystem.getCurrentPhaseOfType(PhaseType.Skill)
-      if (!relevantPhase) {
-        relevantPhase = configSystem.getCurrentPhaseOfType(PhaseType.Turn)
-      }
-
-      const phaseId = relevantPhase ? relevantPhase.id : context.battle.phaseManager.getCurrentPhase()?.id
+      const phaseId = context.battle.getTemporaryEffectPhaseId()
 
       if (!phaseId) {
         // Cannot add a temporary effect without a phase context

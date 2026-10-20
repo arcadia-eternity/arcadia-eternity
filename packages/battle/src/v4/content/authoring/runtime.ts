@@ -27,7 +27,7 @@ import { SkillInstance } from '../../skill'
 import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, type MarkInstance } from '../../mark'
 import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
 import type { SnapshotCatalog } from '../../snapshot'
-import type { Effect } from '../../effect'
+import { Effect } from '../../effect'
 import type { Battle } from '../../battle'
 import type { ValueDefinition } from '../../values/plan'
 import { Evaluation, ValuePlan, defineValue, values as planValues } from '../../values/plan'
@@ -762,6 +762,15 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
   }
 }
 export const ops: typeof C.ops = {
+  addTemporaryEffect: input => (ctx, selected) => {
+    const phaseId = engine(ctx).battle.getTemporaryEffectPhaseId()
+    if (!phaseId) return
+    for (const target of selected) assertWriteTarget(ctx, target)
+    const effect = input instanceof Effect ? input : read(ctx, input)
+    if (effect === undefined) return
+    if (!(effect instanceof Effect)) throw new Error('Expected effect input')
+    for (const target of selected) target.addTemporaryEffect(effect, phaseId)
+  },
   setRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)

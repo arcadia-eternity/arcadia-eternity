@@ -1,3 +1,4 @@
+import type { Effect } from '../../effect'
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
 import type {
   AddMarkContext,
@@ -244,6 +245,10 @@ type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type StageStrategy = 'none' | 'all' | 'positive' | 'negative'
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  /** Bind one effect to Skill, then Turn, then current phase; no phase means no value read. */
+  readonly addTemporaryEffect: (
+    effect: Effect<EffectTrigger> | Value<Effect<EffectTrigger>, Presence>,
+  ) => Operator<SkillInstance | MarkInstance>
   /** Bypass shields for the selected skill uses; leaves the skill instance default unchanged. */
   readonly setIgnoreShield: () => Operator<UseSkillContext>
   /** Assign through a rage phase, retaining the RageChange event and clamping rules. */

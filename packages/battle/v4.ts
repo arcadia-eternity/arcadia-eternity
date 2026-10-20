@@ -120,3 +120,8 @@ export { generatedRageModifiers, createGeneratedRageModifiers } from './src/v4/o
 export { generatedSkillFlags, createGeneratedSkillFlags } from './src/v4/official/skill-flags.generated'
 
 export { createRandomStatActions } from './src/v4/official/random-stat-actions'
+
+export {
+  createRandomTemporaryEffect,
+  randomTemporaryEffectDependencies,
+} from './src/v4/official/random-temporary-effect'

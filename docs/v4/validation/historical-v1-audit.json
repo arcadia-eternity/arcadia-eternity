@@ -41,18 +41,18 @@
       "historicalPath": "packages/effectBuilder/src/operator.ts",
       "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/operator.ts",
       "historicalSha256": "998d4228d727e6e5520131fc39684e3ac364a4f17d5b79c2278938d939ac598c",
-      "importedSha256": "3b62f5b019dc2baba9acaa118006dcb1ceccd3e577cd0b8afb5731a592b1f14f",
+      "importedSha256": "412308d878dbff3b39aa1ce02a333e4858ab800f37f911457a5b7c866dcb89f6",
       "missingNames": [],
       "evidence": {
-        "setRage": { "historicalLines": [301], "importedLines": [312] },
+        "setRage": { "historicalLines": [301], "importedLines": [306] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
         "selectorValue": { "historicalLines": [], "importedLines": [] },
         "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
         "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
         "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
-        "setIgnoreShield": { "historicalLines": [900, 903], "importedLines": [874, 877] },
-        "executeActions": { "historicalLines": [1838, 1899], "importedLines": [87, 1837] },
-        "addTemporaryEffect": { "historicalLines": [1845, 1868], "importedLines": [61, 82] },
+        "setIgnoreShield": { "historicalLines": [900, 903], "importedLines": [868, 871] },
+        "executeActions": { "historicalLines": [1838, 1899], "importedLines": [81, 1831] },
+        "addTemporaryEffect": { "historicalLines": [1845, 1868], "importedLines": [61, 76] },
         "avg": { "historicalLines": [], "importedLines": [] },
         "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
         "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
@@ -508,7 +508,7 @@
       "historicalPath": "packages/battle/src/battle.ts",
       "importedPath": "packages/battle/src/v4/battle.ts",
       "historicalSha256": "5399127be5fd0a3b234e2c11509aaa8088058b7b5391d6b3bfbd010fc5825d63",
-      "importedSha256": "a55cb7eae69147269a59516953c0be886636e8055724f203300c89808178d65f",
+      "importedSha256": "722bc7269a471f8ee99afea5121013209285874b0ea914ba3956d03db2229577",
       "evidence": {
         "setRage": { "historicalLines": [], "importedLines": [] },
         "sampleBetween": { "historicalLines": [], "importedLines": [] },
@@ -532,8 +532,8 @@
         "useSkillContext": { "historicalLines": [], "importedLines": [] },
         "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
         "temporaryEffects": { "historicalLines": [], "importedLines": [] },
-        "clearTemporaryEffects": { "historicalLines": [663, 669, 672], "importedLines": [589, 591, 592] },
-        "cleanupPhaseEffects": { "historicalLines": [660], "importedLines": [588] }
+        "clearTemporaryEffects": { "historicalLines": [663, 669, 672], "importedLines": [598, 600, 601] },
+        "cleanupPhaseEffects": { "historicalLines": [660], "importedLines": [597] }
       }
     },
     {
