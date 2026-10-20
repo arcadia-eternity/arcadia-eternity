@@ -1,0 +1,19 @@
+{
+  "records": [
+    {
+      "id": "effect_emblem_yinji_reduce_rage_cost_xinzhiyinji",
+      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourcePath": "/18",
+      "definitionSha256": "f7ff61717b29b26f5d86e31029ee55a7c3c9690fcc314d61b07477fdd9bbcd67",
+      "status": "handwritten-candidate",
+      "decisions": ["C09"],
+      "corrections": [
+        {
+          "decision": "C09",
+          "reason": "Both condition paths select the used SkillInstance through UseSkillContext.skill, not the absent skillId field."
+        }
+      ],
+      "nativeFile": "packages/battle/src/v4/official/emblem-skill-cost.ts"
+    }
+  ]
+}

@@ -143,3 +143,4 @@ export { createNamedParameterModifiers, namedParameterModifierDependencies } fro
 export { createStackTriggerProbability } from './src/v4/official/stack-trigger-probability'
 export { createLowHealthExecution } from './src/v4/official/execute-low-health'
 export { createRandomSkillSelection } from './src/v4/official/random-skill'
+export { createEmblemSkillCost } from './src/v4/official/emblem-skill-cost'

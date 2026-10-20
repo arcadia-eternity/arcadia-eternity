@@ -1,0 +1,11 @@
+# Emblem skill-context rage reduction
+
+`createEmblemSkillCost()` owns `effect_emblem_yinji_reduce_rage_cost_xinzhiyinji`. Its typed definition reuses the shared sourceOwnsEvent predicate, nearest skill context selector and writable rage reference. It admits `skill_xinzhiyinji` and `skill_xuehongyinji` and assigns `max(0, current context rage - reduction)`, with a configurable reduction defaulting to 5. The amount is read at action time; late changes to rage are observed. Admission is not rerun after BeforeEffect changes the skill.
+
+C09 repairs the two nonexistent `UseSkillContext.skillId` paths to `skill`. Original parsing is asserted to fail, and the independently repaired legacy definition parses and executes. Production YAML remains unchanged. The historical model at `61c349fa7ca35c392b0e751c9238759b02aefcb3` also exposes `skill`, so this is not another missing-parser/version alias claim.
+
+The historical and current SkillPhase check eligibility and emit SkillUse with `context.rage`, but settle payment from `context.skill.rage`. This candidate preserves that distinction. For a 10-rage status skill, the context requirement becomes 5: starting with 20 pays 10 and leaves 10; starting with 5 can execute and pays/clamps to zero; starting with 4 still fails. The skill instance's rage remains 10. This does not claim that actual payment is discounted.
+
+Validation: 60 repaired-oracle comparisons cover both admitted base IDs, mark/skill sources, small/zero/negative costs, wrong owner/skill, nested contexts, cancellation, late cost/skill changes, repeated execution, suppression and real phase execution at sufficient/borderline/insufficient rage. They compare context and instance costs, player rage, admissions, ordered effects/payment/messages and RNG continuation. Two additional tests verify original rejection/C09 parsing and a configurable fractional reduction. All 62 focused tests plus 262 skill numeric-reference, rage-modifier and resource-prevention checks pass against the isolated public bundle (324 total).
+
+Candidate coverage does not establish production admission or complete full-game/snapshot acceptance. Any future change to actual payment is a separate engine semantic decision.
