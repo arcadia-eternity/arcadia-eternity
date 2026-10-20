@@ -81,3 +81,11 @@ pnpm test:effect-authoring-design
 Field-batch review closed two additional findings: invalid base extractor forms are rejected, and field variants are included in the executable matrix. Both independent review axes pass; 19 combined skill/damage generator tests and all 85 focused field/first-round checks pass.
 
 Conditional-batch Standards review closed an accidentally copied fixture block in the full-game helper. Both independent review axes pass. Source tests (54), typechecks, and generator tests (20 combined) pass.
+
+## Anonymous parameter identity and fixture cleanup recheck
+
+A current full V4 regression exposed 44 failures in the two parameterized power families. Re-parsing source definitions registered new anonymous keys, and the reference harness incorrectly searched all keys sharing the effect ID. It now records the keys created with each original parsed oracle and verifies that each selected key is registered in the battle. Parameterized cases explicitly re-parse the same definition to guard against regression. The original expected power, configuration, game and checkpoint assertions remain unchanged.
+
+A separate cleanup assertion reproduced four leaked attribute-system instances after the duplicate-mark case. The fixture now attaches duplicate marks through `setOwner(owner, emitter)`, and every case asserts that battle cleanup restores the original instance count. Intentional late-owner changes are preserved.
+
+Evidence: `/tmp/power-failures.log` reproduced all 44 parameter failures; `/tmp/power-repair.log` passes all 82 cases in the two affected families. `/tmp/power-lifecycle-before.log` demonstrates the four-instance leak. The final complete suite run `/tmp/power-final.log` passes 2743 cases with no assertion failures and reports four 5-second timeouts during concurrent full-regression execution. All four exact cases pass individually in `/tmp/power-timeout-recheck.log` (1.27 seconds total test time). This supplies passing evidence for all 2747 distinct cases, but does not claim a single uninterrupted green full-suite run. No timeout was increased. Typecheck and lint pass.

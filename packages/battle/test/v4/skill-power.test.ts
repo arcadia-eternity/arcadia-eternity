@@ -1,10 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   SkillInstance,
+  AttributeSystem,
+  ConfigSystem,
   ConfigModifier,
   ConfigDurationType,
   ConfigModifierType,
@@ -95,16 +97,34 @@ function correctedReference(r: RecordEntry) {
   }
   return d
 }
-const oracles = new Map(records.map(r => [r.id, EffectParser.parse(correctedReference(r))]))
+const oracleParameterKeys = new Map<string, string[]>()
+const oracles = new Map(
+  records.map(r => {
+    const config = ConfigSystem.getInstance()
+    const before = new Set(config.getRegisteredKeys())
+    const effect = EffectParser.parse(correctedReference(r))
+    // Retain the parameter identities captured by this particular parsed oracle.
+    oracleParameterKeys.set(
+      r.id,
+      config.getRegisteredKeys().filter(key => !before.has(key) && key.startsWith(`${r.id}.`)),
+    )
+    return [r.id, effect] as const
+  }),
+)
 function objects(v: unknown): { [key: string]: unknown }[] {
   if (Array.isArray(v)) return v.flatMap(objects)
   if (v && typeof v === 'object') return [v as { [key: string]: unknown }, ...Object.values(v).flatMap(objects)]
   return []
 }
 const battles: Battle[] = []
+let baselineInstances = 0
+beforeEach(() => {
+  baselineInstances = AttributeSystem.getGlobalMemoryStats().totalInstances
+})
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
   for (const b of battles.splice(0)) await b.cleanup()
+  expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baselineInstances)
 })
 function supportIds(nodes: { [key: string]: unknown }[]) {
   return [
@@ -141,8 +161,9 @@ function parameterKey(r: RecordEntry, battle: Battle, native: boolean, name: str
   if (native) return parameterAddress(r.id, 'parameters', name)
   const p = r.recipe.parameters!.find(p => p.name === name)!
   if (p.configId) return `${r.id}.${p.configId}`
-  const keys = battle.configSystem.getRegisteredKeys().filter(key => key.startsWith(`${r.id}.`))
+  const keys = oracleParameterKeys.get(r.id)!
   if (keys.length !== 1) throw new Error('Ambiguous anonymous parameter oracle')
+  expect(battle.configSystem.isRegistered(keys[0])).toBe(true)
   return keys[0]
 }
 const pathVariants = ['wrong-path-value', 'late-path-value'] as const
@@ -336,7 +357,7 @@ function run(
         if (!supportIds(nodes).includes(mark.baseId)) continue
         const duplicate = mark.base.createInstance({ stack: 2 })
         if (r.id === 'effect_skill_add_power_20_per_pofang_turn') duplicate.duration = 2
-        duplicate.owner = owner
+        duplicate.setOwner(owner, battle.emitter)
         owner.marks.push(duplicate)
       }
     }
@@ -480,6 +501,8 @@ for (const r of records) {
       ...(r.recipe.parameters ? parameterVariants : []),
       ...(pathRepairs[r.id] ? pathVariants : []),
     ])(`${r.id} ${kind}: %s`, variant => {
+      // Later parses must not redirect overrides intended for the original oracle.
+      if (r.recipe.parameters) EffectParser.parse(correctedReference(r))
       const actual = run(r, true, kind, variant)
       expect(actual).toEqual(run(r, false, kind, variant))
       expect(actual.trace).not.toContainEqual({ success: false })
