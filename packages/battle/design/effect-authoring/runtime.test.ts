@@ -838,7 +838,7 @@ it('opponent mark queries follow the direct skill target and requery after targe
   expect(results).toEqual([[2], [2]])
 })
 
-it('skill-order and periodic conditions keep direct ancestry, queue order and ownership', () => {
+it('skill-order searches ancestry while periodic conditions retain direct event ownership', () => {
   const f = fixture()
   const turn = f.use.parent
   const other = new UseSkillContext(turn, f.b, f.b.activePet, AttackTargetOpinion.opponent, f.b.activePet.skills[0])
@@ -872,7 +872,7 @@ it('skill-order and periodic conditions keep direct ancestry, queue order and ow
     [false, false, true],
     [true, false, true],
     [false, true, false],
-    [false, false, false],
+    [false, true, false],
     [false, true, true],
   ])
   for (const invalid of [0, -1, 0.5, NaN, Infinity]) expect(() => conditions.everyNthUse(invalid)).toThrow()

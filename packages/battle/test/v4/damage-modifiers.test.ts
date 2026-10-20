@@ -517,9 +517,7 @@ async function game(r: Entry, native: boolean, checkpoint: boolean) {
   await run
   expect(battle.phaseManager.getPhasesByState(PhaseState.Failed)).toEqual([])
   expect(battle.victor).toBeDefined()
-  if (r.recipe.orderConditions?.length && r.id !== 'effect_ability_damage_reduction_10_percent_when_last')
-    expect(applications).toBe(0)
-  else expect(applications).toBeGreaterThan(0)
+  expect(applications).toBeGreaterThan(0)
   const result = {
     trace,
     applications,

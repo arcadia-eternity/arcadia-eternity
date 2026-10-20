@@ -55,3 +55,9 @@ For `executeActions`, historical `parseValue` converts operator-shaped values to
 The working rage operation now matches the pinned later V1 function body, including pre/post event timing, early return on pre-cancellation, setting behavior, and message order. Both BeforeRage events are exposed with RageContext typing. The three damage-rage candidates retain their original trigger; the C15 source rewrite has been withdrawn.
 
 The earlier claim that the imported `selfBeDamaged` lacked its rage branch was also incorrect: that branch is present and matches later V1. The native helper now uses the same active-pet comparison rather than actualTarget equality or an extra add-only restriction. 128 source-import checks pass across rage modifiers, assignments, and the new lifecycle suite. Broader affected-family and public-build acceptance remain pending; see [current evidence](rage-modifiers.md).
+
+## Turn-order reconciliation
+
+The working legacy first/last predicates now match the later V1 recursive bodies, and native predicates reuse the shared ancestor queries. Skill and switch phase wrappers register execution attempts before running hooks, including direct execution; the turn scheduler no longer duplicates that registration. The audit now includes the historical switch phase and execution-registration line references.
+
+Seven damage-order definitions pass 112 focused comparisons and 14 full-game/checkpoint comparisons with positive application counts. Ancestor/direct-phase and scheduler tests also pass against isolated public bundles. Current C08 still intentionally uses use-context priority consistently for both dispatch and planned order; later V1 sorted the phases by skill-instance priority instead. Planning-time visibility remains a separate boundary. See [current turn evidence](turn-order.md); no full historical scheduler equivalence or complete migration is claimed.

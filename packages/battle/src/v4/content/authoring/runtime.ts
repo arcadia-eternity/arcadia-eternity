@@ -370,9 +370,10 @@ export const contexts: typeof C.contexts = {
 }
 function skillOrder(position: 'first' | 'last'): C.Condition {
   return ctx => {
-    const skill = ctx.event
-    if (!(skill instanceof UseSkillContext) || !(skill.parent instanceof TurnContext)) return false
-    const entries = position === 'first' ? skill.parent.appledContexts : skill.parent.contexts
+    const skill = contexts.nearestSkillUse(ctx)
+    const turn = nearestContext(ctx, TurnContext)
+    if (!skill || !turn) return false
+    const entries = position === 'first' ? turn.appledContexts : turn.contexts
     return entries.find(entry => entry instanceof UseSkillContext) === skill
   }
 }

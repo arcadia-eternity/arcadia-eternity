@@ -110,9 +110,8 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
     battle.applyEffects(context, EffectTrigger.TurnStart)
 
     // Execute all phases in sorted order
-    for (const { phase, context: actionContext } of scheduled) {
+    for (const { phase } of scheduled) {
       context.contextQueue.pop()
-      context.appledContexts.push(actionContext)
       // Register and execute the phase
       battle.phaseManager.registerPhase(phase)
       battle.phaseManager.executePhase(phase.id)

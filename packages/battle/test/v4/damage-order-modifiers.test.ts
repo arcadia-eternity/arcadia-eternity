@@ -73,7 +73,7 @@ function run(id: Id, native: boolean, markSource: boolean, variant: (typeof vari
   const order = variant === 'last' ? [rival, use] : [use, rival]
   if (variant !== 'empty-order') {
     turn.appledContexts.push(...order)
-    turn.contexts.push(...order)
+    turn.contexts.push(...[...order].reverse())
   }
   const parent = variant === 'nested' ? new EffectContext(use, EffectTrigger.BeforeEffect, source) : use
   const damage = new DamageContext(parent, a.activePet, b.activePet, 100)
@@ -110,8 +110,14 @@ for (const id of ids)
       it(`${id} markSource=${markSource} ${variant}`, () => {
         const actual = run(id, true, markSource, variant)
         expect(actual).toEqual(run(id, false, markSource, variant))
-        const eligible = id === 'effect_ability_damage_reduction_10_percent_when_last' && variant !== 'wrong-owner'
+        const first = variant !== 'empty-order' && variant !== 'last'
+        const last = variant === 'last'
+        const defensive = id === 'effect_ability_damage_reduction_10_percent_when_last'
+        const eligible = variant !== 'wrong-owner' && (defensive ? !last : id.endsWith('_first') ? first : last)
         const count = variant === 'repeat' ? 2 : 1
         expect(actual.admitted).toBe(eligible ? count : 0)
-        expect(actual.modified).toEqual([eligible && variant !== 'cancel' ? -10 * count : 0, 0])
+        const applied = eligible && variant !== 'cancel' ? count : 0
+        const fixed = id.includes('fixed_damage')
+        const percent = defensive ? -10 : id.includes('boost_10') ? 10 : id.includes('50_percent') ? 50 : 30
+        expect(actual.modified).toEqual([!fixed && applied ? percent * applied : 0, fixed ? 50 * applied : 0])
       }, 30000)

@@ -44,7 +44,8 @@ export async function generateTurnOrder({ check = false } = {}) {
       formatVersion: 1,
       decision: 'C08',
       previousRevision: 'cdf6fdf4',
-      scope: 'Potential source references, not per-ID behavioral acceptance. Direct skill ancestry remains required.',
+      scope:
+        'Potential source references, not per-ID behavioral acceptance. Historical recursive ancestry is restored; schedule reconciliation is tracked separately.',
       records,
     }),
     { ...(await resolveConfig(path)), filepath: path },

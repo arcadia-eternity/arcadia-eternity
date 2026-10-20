@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "decision": "C08",
   "previousRevision": "cdf6fdf4",
-  "scope": "Potential source references, not per-ID behavioral acceptance. Direct skill ancestry remains required.",
+  "scope": "Potential source references, not per-ID behavioral acceptance. Historical recursive ancestry is restored; schedule reconciliation is tracked separately.",
   "records": [
     {
       "id": "effect_ability_add_rage_5_when_first_attack",

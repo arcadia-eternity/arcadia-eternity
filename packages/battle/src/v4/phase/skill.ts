@@ -50,6 +50,9 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
   protected executeOperation(): void {
     const context = this._context!
 
+    // Register the attempt before any skill hooks, including direct phase execution.
+    if (context.parent instanceof TurnContext) context.parent.appledContexts.push(context)
+
     // Execute the skill operation logic (extracted from performAttack)
     executeSkillOperation(context, this.battle)
   }

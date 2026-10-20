@@ -2,7 +2,7 @@
 
 > Historical baseline review (2026-10-20): later V1 provides behavior missing from the imported oracle. Claims below about C07/C08/C14/C15 require revalidation; see [the audit](historical-v1-audit.md). Earlier passing tests establish agreement with the imported/corrected reference, not with final V1.
 
-C08 corrects a missing domain-state update in `phase/turn.ts`. The executor sorted and dispatched phases but never populated `TurnContext.contexts`, `contextQueue` or `appledContexts`. First/last skill conditions therefore remained false in complete games, even after C07 repaired selector spelling.
+C08 initially corrected missing bookkeeping in the imported `phase/turn.ts`. Later V1 already populated planned contexts and registered execution attempts in the skill/switch phase wrappers. It also used recursive ancestor predicates. The earlier direct-parent/no-op interpretation is withdrawn.
 
 ## Selected behavior
 
@@ -10,13 +10,19 @@ The executor keeps the existing phase comparator and execution order. A schedule
 
 - `contexts` contains the complete plan in pop order, the reverse of dispatch order. Its first skill is the last planned skill.
 - `contextQueue` initially copies the plan and loses one entry immediately before each phase dispatch.
-- `appledContexts` records dispatch attempts in execution order, including the current attempt. Its first skill is the first attempted skill, including an attempt later disabled or rejected for insufficient rage.
+- `appledContexts` records attempts in the skill/switch phase wrappers before their effects run, including direct phase execution. The turn scheduler does not append a second time. Its first skill is the first attempted skill, including an attempt later disabled or rejected for insufficient rage.
 
-This does not redefine first as first successful hit. Switch entries remain in all three views; skill predicates filter them out. Direct UseSkillContext → TurnContext ancestry is still required. Damage-context uses are not broadened to search ancestors. BeforeSort priority and speed determine the same order as before; stable ties and switch precedence are unchanged.
+This does not redefine first as first successful hit. Switch entries remain in all three views; skill predicates filter them out. Native and legacy predicates now recursively locate the nearest skill and turn ancestors, including damage and nested effect contexts. The two legacy predicate bodies are digest-pinned to the later V1 reference.
+
+The current actual-order plan remains in place: it follows the sorted phase schedule rather than reproducing later V1's separate pushContext sort during selection collection. Equal-priority/equal-speed ordering is now checked explicitly and retains A-then-B stable dispatch with B-then-A planned pop order. A concrete remaining difference is priority: later V1 sorts the plan by UseSkillContext.priority but sorts phases by SkillInstance.priority; current C08 consistently uses the use-context priority. BeforeSort priority inversion remains an intentional C08 correction, not a claim of byte-for-byte historical scheduling. Planning-time reads while selections are still being collected also require separate consideration.
 
 ## Scope and acceptance
 
-[Potential reference inventory](turn-order-correction.json) pins all 27 current official definitions containing first/last skill predicates, their stages, hashes and node paths. Reproduce with `node scripts/effect-migration/turn-order.mjs --check`. It is a scope inventory, not acceptance of all 27 definitions. In particular, damage-stage predicates still fail the direct-parent check.
+[Potential reference inventory](turn-order-correction.json) pins all 27 current official definitions containing first/last skill predicates, their stages, hashes and node paths. Reproduce with `node scripts/effect-migration/turn-order.mjs --check`. It is a scope inventory, not acceptance of all 27 definitions.
+
+Current restoration evidence: 138 source checks pass (16 historical ancestor/direct-phase checks, 112 damage-order comparisons, and 10 execution-lifecycle cases), plus all 14 damage-order full-game/checkpoint comparisons and 87 authoring/value-binding tests. Every damage-order full game now requires a positive effect-application count. Older evidence below is historical and does not certify the restored nested-context behavior or all other affected families.
+
+The same 138 checks and 14 full-game/checkpoint comparisons pass against independently bundled public entrypoints. A subsequent execution-lifecycle run passes all 11 cases after adding the stable-tie case. Both typechecks, lint, provenance, the 27-reference inventory reproduction, and the damage-modifier generator checks pass. Logs: `/tmp/historical-turn-{tests,built-tests,fullgames,built-games,tie,design,types,lint,generator}.log`. This is scoped evidence, not a complete-suite result.
 
 Four skill-power candidates carry `additionalDecisions: ["C08"]` alongside C07:
 

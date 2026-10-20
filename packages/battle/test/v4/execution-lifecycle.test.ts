@@ -123,6 +123,7 @@ it('dispatches transformation lifecycle once in order through the public Transfo
 it.each([
   { mode: 'speed-a', order: ['A', 'B'] },
   { mode: 'speed-b', order: ['B', 'A'] },
+  { mode: 'stable-tie', order: ['A', 'B'] },
   { mode: 'priority', order: ['B', 'A'] },
   { mode: 'switch', order: ['switch-pet', 'B'] },
   { mode: 'single', order: ['A'] },
@@ -141,7 +142,10 @@ it.each([
     player.currentRage = 100
     const skill = player.activePet.skills[0]
     skill.effects.splice(0)
-    player.activePet.attributeSystem.updateBaseValue('spe', player === a && mode !== 'speed-b' ? 200 : 100)
+    player.activePet.attributeSystem.updateBaseValue(
+      'spe',
+      player === a && !['speed-b', 'stable-tie'].includes(mode) ? 200 : 100,
+    )
     skill.effects.push(
       new Effect<EffectTrigger>(
         `order-${player.id}` as effectId,

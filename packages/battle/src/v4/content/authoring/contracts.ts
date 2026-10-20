@@ -185,7 +185,7 @@ export declare const conditions: {
   readonly ownerSwitchesOut: Condition
   /** Source pet currently occupies its player's active position. */
   readonly ownerIsActive: Condition
-  /** Direct skill + turn ancestry; first executed skill / last planned skill in queue order. */
+  /** Nearest skill and turn ancestors; first executed skill / last planned skill in queue order. */
   readonly firstSkillThisTurn: Condition
   readonly lastSkillThisTurn: Condition
   /** Direct source ownership; the skill owner's consecutive count is divisible by this positive integer. */
