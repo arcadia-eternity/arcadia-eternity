@@ -159,7 +159,7 @@ export const Operators = {
       const _mark = GetValueFromSource(context, mark)
       // Use the new phase-based mark transfer system
       if (targets[0] instanceof Pet) {
-        targets[0].transferMarks(context as any, ..._mark)
+        targets[0].transferMarks(context, ..._mark)
       }
     },
 

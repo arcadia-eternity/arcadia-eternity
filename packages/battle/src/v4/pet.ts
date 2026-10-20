@@ -540,7 +540,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     })
   }
 
-  public transferMarks(context: SwitchPetContext, ...marks: MarkInstance[]) {
+  public transferMarks(context: SwitchPetContext | EffectContext<EffectTrigger>, ...marks: MarkInstance[]) {
     // Use MarkTransferPhase
     const transferPhase = new MarkTransferPhase(context.battle, context, this, marks)
     transferPhase.initialize()

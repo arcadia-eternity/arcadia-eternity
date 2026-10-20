@@ -329,6 +329,16 @@ export declare const ops: {
     stats?: readonly ('atk' | 'def' | 'spa' | 'spd' | 'spe')[]
     strategy?: 'positive' | 'negative' | 'all'
   }) => Operator<Pet>
+  /** Transfer the queried mark list to the first target through the existing transfer/stack phases. */
+  readonly transferMarks: (marks: Value<readonly MarkInstance[]>) => Operator<Pet>
+  /** Add each selected source stage to the first target, then remove its original mark even if addition is cancelled. */
+  readonly transferStatStages: (
+    source: Value<Pet, Presence>,
+    options?: {
+      stats?: readonly ('atk' | 'def' | 'spa' | 'spd' | 'spe')[]
+      strategy?: 'positive' | 'negative' | 'all'
+    },
+  ) => Operator<Pet>
   readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
   /** Read delta once, then read and add to each selected numeric reference. */
   readonly add: (value: NumericInput) => Operator<WritableRef<number>>

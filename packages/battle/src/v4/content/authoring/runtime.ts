@@ -967,6 +967,32 @@ export const ops: typeof C.ops = {
       }
     }
   },
+  transferMarks: input => (ctx, selected) => {
+    const target = selected[0]
+    if (!target) return
+    assertWriteTarget(ctx, target)
+    const marks = read(ctx, input) as readonly MarkInstance[]
+    if (!Array.isArray(marks)) throw new Error('Expected a mark list')
+    for (const mark of marks) assertMarkLifecycleTarget(ctx, mark)
+    target.transferMarks(engine(ctx), ...marks)
+  },
+  transferStatStages: (input, options = {}) => {
+    const stats = [...(options.stats ?? [])] as StatTypeWithoutHp[]
+    const strategy = (options.strategy ?? 'negative') as CleanStageStrategy
+    return (ctx, selected) => {
+      const source = read(ctx, input) as Pet | undefined
+      const target = selected[0]
+      if (!source || !target) return
+      assertWriteTarget(ctx, source)
+      assertWriteTarget(ctx, target)
+      for (const mark of source.getClearableStatStageMarks(strategy, ...stats)) {
+        assertWriteTarget(ctx, source)
+        assertWriteTarget(ctx, target)
+        target.addStatStage(engine(ctx), mark.statType, mark.level)
+        ops.removeMark()(ctx, [mark])
+      }
+    }
+  },
   changeStatStage: (stat, amount) =>
     numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
   add: amount => (ctx, selected) => {

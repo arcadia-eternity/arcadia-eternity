@@ -79,7 +79,7 @@
       "destination": "packages/battle/src/v4/pet.ts",
       "sourceBlob": "c68cccbd34c7ed631090a0aa4428bc182868b7f7",
       "sourceSha256": "5f8e75527274c996ad736cd461fb9fcc998afce000c4c3c1a3d2093a12f3fea1",
-      "portedSha256": "074b43f52dfe0bd0e08ca0328d32118994bacb7426040b25c3f1cf7a404cc56c",
+      "portedSha256": "a1f903d36550d663349317834f9da858999fd68c29dcc823e59072d323542efa",
       "changed": true
     },
     {
@@ -119,8 +119,8 @@
       "destination": "packages/battle/src/v4/phase/MarkTransferPhase.ts",
       "sourceBlob": "f701919b5ae5c276a91dfa0ae263413546f65194",
       "sourceSha256": "295d2236fab200b7ddfd5549d7e330944bda7937a17b21f4c2063b16c345e73d",
-      "portedSha256": "295d2236fab200b7ddfd5549d7e330944bda7937a17b21f4c2063b16c345e73d",
-      "changed": false
+      "portedSha256": "3c8c3631d0ae38f54ca42e924a81ef07a7c9030a5be0658948598608954f1a49",
+      "changed": true
     },
     {
       "original": "packages/battle/src/phase/MarkUpdatePhase.ts",
@@ -367,7 +367,7 @@
       "destination": "packages/battle/src/v4/legacy/effectBuilder/src/operator.ts",
       "sourceBlob": "50c484263b798bae164dc905c9c2e867a00445bc",
       "sourceSha256": "e3de54fd2fbee59b779bcc316000bf3dfcf323bfd64cfd747056c3166b2c6704",
-      "portedSha256": "412308d878dbff3b39aa1ce02a333e4858ab800f37f911457a5b7c866dcb89f6",
+      "portedSha256": "61362689726959b6610b095dadb9bbbcb70259860119b14a37421691aa33de72",
       "changed": true
     },
     {
