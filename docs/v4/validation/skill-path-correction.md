@@ -62,3 +62,7 @@ effect_emblem_add_rage_5_when_use_feixuanzhiguang repairs /condition/conditions/
 ## Quarter self-damage
 
 effect_mark_self_damage_25_percent repairs /condition/conditions/2/target/chain/0/arg from sourceId to source after C07. The guard compares the exact damage source instance with the effect's source mark. Same-instance damage is rejected; a different mark with the same base ID remains eligible. Original and C07-only parse failures, exact repair metadata, changed-path/unknown-ID rejection, recursive damage prevention and real DamagePhase behavior are tested. See [quarter self-damage evidence](vital-actions.md).
+
+## Attack-threshold priority
+
+`effect_skill_priority_plus_1_if_atk_over_500` repairs `/condition/conditions/1/target/chain/0/arg` from `atk` to `stat.atk` after C07. Pet exposes its current attack through stat.atk, not a direct atk property. Original and spelling-only parsing failures, exact repair metadata, independent reference behavior, 500/501 boundaries and late attack changes are covered by [numeric reference evidence](skill-numeric-references.md). No global alias or source YAML change is added.

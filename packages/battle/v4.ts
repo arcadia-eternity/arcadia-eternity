@@ -99,3 +99,8 @@ export {
 } from './src/v4/official/skill-contributions.generated'
 
 export { generatedContextControls, createGeneratedContextControls } from './src/v4/official/context-controls.generated'
+
+export {
+  generatedSkillNumericReferences,
+  createGeneratedSkillNumericReferences,
+} from './src/v4/official/skill-numeric-references.generated'

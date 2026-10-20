@@ -149,6 +149,26 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
     }
     return `contexts.damage.apply(ops.setDamageThreshold({${bounds.join(',')}}))`
   }
+  if (a?.type === 'addValue') {
+    if (
+      !fields(a, ['type', 'target', 'value']) ||
+      !fields(a.target, ['base', 'chain']) ||
+      a.target.base !== 'usingSkillContext' ||
+      !Array.isArray(a.target.chain) ||
+      a.target.chain.length !== 1
+    )
+      return
+    const step = a.target.chain[0]
+    if (
+      !fields(step, ['type', 'arg']) ||
+      step.type !== 'selectProp' ||
+      !['rage', 'evasion', 'priority'].includes(step.arg)
+    )
+      return
+    const value = number(a.value, parameters, path, domain)?.code
+    if (!value) return
+    return `contexts.skillUse.property(${JSON.stringify(step.arg)}).apply(ops.add(${value}))`
+  }
   if (a?.type === 'setActualTarget') {
     if (
       !fields(a, ['type', 'target', 'newTarget']) ||

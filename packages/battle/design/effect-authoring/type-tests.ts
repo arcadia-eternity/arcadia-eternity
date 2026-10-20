@@ -311,3 +311,13 @@ ops.bindSkillAttribute({
   lifetime: 'sourceMark',
   missing: 'detach',
 })
+
+contexts.skillUse.property('priority').apply(ops.add(1))
+contexts.skillUse.property('rage').apply(ops.assign(5))
+// @ts-expect-error Skill context references are limited to the declared writable keys.
+contexts.skillUse.property('power')
+// @ts-expect-error A Pet is not a writable skill context.
+targets.ownerPet.property('priority')
+declare const mixedNumericTargets: Selector<Pet | UseSkillContext>
+// @ts-expect-error Mixed targets cannot claim a key absent from some members.
+mixedNumericTargets.property('priority')

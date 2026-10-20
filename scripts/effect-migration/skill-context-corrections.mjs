@@ -20,6 +20,7 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_skill_priority_plus_1_if_atk_over_500: [['/condition/conditions/1/target/chain/0/arg', 'atk', 'stat.atk']],
   effect_ability_shenguang_immune_status_above_half_hp: [
     ['/condition/conditions/1/target/chain/0/arg', 'baseMarkId', 'baseMark'],
   ],

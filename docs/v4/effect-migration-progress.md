@@ -353,3 +353,9 @@ All 266 distinct scoped public tests, 157 generator tests and 75 design runtime 
 Five damage-cancellation, redirection and stage-ignore candidates reuse context queries and shared single-read skill-context operations. Three C07 spelling corrections are independently checked. Skill-phase tests establish a preserved legacy quirk: OnDamage cancellation happens after HP loss and does not undo it; before-calculation cancellation does prevent HP loss.
 
 All 482 scoped public tests, 160 generator tests and 75 design runtime tests pass, along with battle types/lint, declarations and unchanged provenance. See [context control evidence](validation/context-controls.md). Full-game, checkpoint and production admission remain open.
+
+## Skill numeric references (2026-10-20)
+
+Eight direct numeric adjustment candidates now use bounded skill-context property references and a shared single-read addition operation. Repeated execution and duplicate references preserve additive ordering. All eight C07 mappings and the attack-threshold effect's named C09 stat.atk repair are checked against independent legacy references. The actual skill phase retains the distinction between context rage eligibility and skill rage consumption.
+
+All 244 scoped public tests, 163 generator tests and 75 design runtime tests pass, together with battle types/lint, declarations and unchanged provenance. New reference type assertions pass; the separate design-directory typecheck still has its existing nested-context error. See [numeric reference evidence](validation/skill-numeric-references.md). Full-game/checkpoint and production admission remain open.

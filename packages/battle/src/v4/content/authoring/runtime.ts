@@ -131,7 +131,7 @@ export function effectParameters(effect: Effect<EffectTrigger>) {
   if (!parameters) throw new Error('Expected an authored effect')
   return parameters.catalog
 }
-const writes = new WeakMap<object, { target: Pet; set: (value: number) => void }>()
+const writes = new WeakMap<object, { target: Pet | UseSkillContext; get: () => number; set: (value: number) => void }>()
 function engine(ctx: Frame) {
   const result = engines.get(ctx)
   if (!result) throw new Error('Persistent queries cannot access a trigger event or perform actions')
@@ -244,14 +244,26 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
     property: function (key) {
       return selector(ctx =>
         query(ctx).map(target => {
-          if (!(target instanceof Pet)) throw new Error('Expected pet write target')
           const ref = {} as C.WritableRef<number>
-          writes.set(ref, {
-            target,
-            set: number => {
-              target[key] = number
-            },
-          })
+          if (target instanceof Pet && key === 'currentHp') {
+            writes.set(ref, {
+              target,
+              get: () => target.currentHp,
+              set: value => {
+                target.currentHp = value
+              },
+            })
+          } else if (target instanceof UseSkillContext && (key === 'rage' || key === 'evasion' || key === 'priority')) {
+            const property: 'rage' | 'evasion' | 'priority' = key
+            const event: UseSkillContext = target
+            writes.set(ref, {
+              target,
+              get: () => event[property],
+              set: value => {
+                event[property] = value
+              },
+            })
+          } else throw new Error('Unsupported numeric write reference')
           return ref
         }),
       )
@@ -543,7 +555,7 @@ function assertWriteTarget(ctx: Frame, input: unknown): void {
       ? target.owner
       : undefined
   const battle =
-    target instanceof Player
+    target instanceof Player || target instanceof UseSkillContext
       ? target.battle
       : target instanceof Pet
         ? target.owner?.battle
@@ -874,6 +886,18 @@ export const ops: typeof C.ops = {
   },
   changeStatStage: (stat, amount) =>
     numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
+  add: amount => (ctx, selected) => {
+    for (const ref of selected) assertWriteTarget(ctx, ref)
+    const delta = read(ctx, amount)
+    if (delta === undefined) return
+    if (typeof delta !== 'number' || !Number.isFinite(delta)) throw new Error('Expected finite numeric input')
+    for (const ref of selected) {
+      assertWriteTarget(ctx, ref)
+      const write = writes.get(ref)
+      if (!write) throw new Error('Foreign write reference')
+      write.set(write.get() + delta)
+    }
+  },
   assign: amount =>
     numeric(amount, (_ctx, ref, n) => {
       const write = writes.get(ref)

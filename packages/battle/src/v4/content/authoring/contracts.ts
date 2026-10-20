@@ -74,7 +74,9 @@ export interface Selector<T> {
   readonly condition: <K extends Trigger = Trigger>(evaluate: Evaluator<T, K>) => Condition<K>
   readonly apply: <K extends Trigger = Trigger>(operator: Operator<T, K>) => Action<K>
   // Deliberately bounded writable surface; does not make every Pet key writable.
-  readonly property: (this: Selector<Pet>, key: 'currentHp') => Selector<WritableRef<number>>
+  readonly property: (
+    key: [T] extends [Pet] ? 'currentHp' : [T] extends [UseSkillContext] ? 'rage' | 'evasion' | 'priority' : never,
+  ) => Selector<WritableRef<number>>
 }
 
 /** Copy a fixed membership list at definition time; members retain their domain identity. */
@@ -299,6 +301,8 @@ export declare const ops: {
     strategy?: 'positive' | 'negative' | 'all'
   }) => Operator<Pet>
   readonly changeStatStage: (stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: NumericInput) => Operator<Pet>
+  /** Read delta once, then read and add to each selected numeric reference. */
+  readonly add: (value: NumericInput) => Operator<WritableRef<number>>
   readonly assign: (value: NumericInput) => Operator<WritableRef<number>>
   readonly bindAttribute: (options: AttributeBindingOptions<keyof PetAttributes>) => Operator<Pet>
   readonly bindSkillAttribute: (
