@@ -249,3 +249,9 @@ All 1,336 public single-vital checks, 114 generator tests, 75 design tests, type
 Four OnMarkDurationEnd candidates retain action-before-removal semantics: unconditional 300 self-damage and full healing, plus active-owner bomb damage of 50/100. Missing conditions are supported through an explicit profile option; malformed present conditions remain rejected. The single-vital catalog now contains 42 emitted, 8 rejected and 27 retained entries. No runtime or production-loading change is included.
 
 All 1,472 public single-vital checks, 115 generator tests, 75 design tests, types/lint, declarations and provenance pass. Actual MarkUpdatePhase tests cover late values, cancellation with cleanup, inactive owners, duration/persistent non-expiry, repeated update and independent final HP. See [expiration evidence](validation/vital-actions.md). Full-game/checkpoint and production gates remain pending.
+
+## Skill/damage condition extension (2026-10-20)
+
+Three single-vital candidates retain exact skill identity, physical-category post-damage reflection and pre-calculation damageResult threshold behavior. The catalog now contains 45 emitted, 5 rejected and 27 retained definitions. Explicit per-profile damage-trigger domains reuse existing conditions; C07/C09 repairs remain named and recorded.
+
+The 1,573 public matrix cases and an added exact-correction check pass, along with 117 generator tests, 75 design tests, V4 types/lint, declarations and provenance. Both review axes pass. Tests distinguish skill category from damageType and preserve the zero damageResult observed before calculation even with large base damage. See [skill/damage condition evidence](validation/vital-actions.md). Overall completion, full-game/checkpoint and production gates remain pending.

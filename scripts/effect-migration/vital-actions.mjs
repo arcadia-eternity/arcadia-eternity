@@ -4,6 +4,7 @@ const profile = {
   slug: 'vital-actions',
   singleAction: true,
   optionalCondition: true,
+  damageTriggers: ['OnBeforeCalculateDamage', 'OnDamage', 'PostDamage'],
   triggerLists: [['OnHit', 'OnMiss']],
   orderConditions: {
     effect_ability_add_rage_5_when_first_attack: [
@@ -15,7 +16,17 @@ const profile = {
     effect_skill_add_rage_15_if_first: [{ path: '/condition/conditions/1', condition: 'isFirstSkillUsedThisTurn' }],
   },
   actionTypes: ['heal', 'dealDamage', 'addRage'],
-  triggers: ['OnHit', 'OnMiss', 'BeforeHit', 'TurnEnd', 'OnDamage', 'PostDamage', 'OnDefeat', 'OnMarkDurationEnd'],
+  triggers: [
+    'OnHit',
+    'OnMiss',
+    'BeforeHit',
+    'TurnEnd',
+    'OnDamage',
+    'PostDamage',
+    'OnDefeat',
+    'OnMarkDurationEnd',
+    'OnBeforeCalculateDamage',
+  ],
   retainedLedgers: [
     'instant-literals-candidates',
     'official-healing-candidates',

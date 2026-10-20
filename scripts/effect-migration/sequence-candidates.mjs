@@ -55,7 +55,7 @@ export function classifySequence(original, profile) {
   const orderConditions = turnOrderReferences(d)
   if (JSON.stringify(orderConditions) !== JSON.stringify(profile.orderConditions?.[d.id] ?? []))
     return { reason: 'order correction needs an exact source mapping' }
-  const domain = profile.domain ?? (d.trigger === 'OnDamage' ? 'damage' : 'skill')
+  const domain = profile.domain ?? ((profile.damageTriggers ?? ['OnDamage']).includes(d.trigger) ? 'damage' : 'skill')
   const parameters = []
   const when =
     'condition' in d

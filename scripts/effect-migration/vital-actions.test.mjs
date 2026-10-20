@@ -40,7 +40,7 @@ test('rejects lists and unsupported single definitions without dropping data', (
   }
 })
 test('preserves existing ownership while reproducing current single vital candidates', async () =>
-  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 42, rejected: 8, retained: 27 }))
+  assert.deepEqual(await generateVitalActions({ check: true }), { generated: 45, rejected: 5, retained: 27 }))
 
 test('retained entries preserve all existing provenance ledgers', async () => {
   const { readFile } = await import('node:fs/promises')
@@ -155,4 +155,40 @@ test('expiry supports missing conditions but does not erase malformed ones', () 
   assert.equal(classifyVitalAction(d).when, '() => true')
   d.condition = null
   assert.ok(classifyVitalAction(d).reason)
+})
+
+test('damage event ownership remains explicit before calculation and after damage', () => {
+  for (const trigger of ['OnBeforeCalculateDamage', 'PostDamage']) {
+    const d = source()
+    d.trigger = trigger
+    d.condition = { type: 'selfBeDamaged' }
+    const r = classifyVitalAction(d)
+    assert.ok(!r.reason, r.reason)
+    assert.equal(r.when, 'conditions.selfBeDamaged')
+  }
+})
+
+test('Feixuanzhiguang skill identity repair rejects changed source fields', () => {
+  const d = source()
+  d.id = 'effect_emblem_add_rage_5_when_use_feixuanzhiguang'
+  d.condition = {
+    type: 'every',
+    conditions: [
+      { type: 'selfUseSkill' },
+      {
+        type: 'evaluate',
+        target: {
+          base: 'useSkillContext',
+          chain: [
+            { type: 'selectPath', arg: 'skillId' },
+            { type: 'select', arg: { type: 'base', arg: 'baseId' } },
+          ],
+        },
+        evaluator: { type: 'same', value: 'skill_feixuanzhiguang' },
+      },
+    ],
+  }
+  assert.ok(!classifyVitalAction(d).reason)
+  d.condition.conditions[1].target.chain[0].arg = 'skill'
+  assert.match(classifyVitalAction(d).reason, /C09 source node changed/)
 })

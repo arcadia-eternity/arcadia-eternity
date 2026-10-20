@@ -41,7 +41,7 @@ interface SourceDefinition {
   id: string
   trigger: string | string[]
   apply?: { value: { selector: { chain: { arg: { arg: string } }[] } } }
-  condition?: { conditions?: { target?: { base: string } }[] }
+  condition?: { conditions?: { target?: { base: string; chain?: { arg: string }[] } }[] }
 }
 const definitions = new Map<string, SourceDefinition>()
 for (const name of ['global', 'ability', 'emblem', 'mark', 'skill'])
@@ -57,10 +57,19 @@ const oracles = new Map<Id, ReturnType<typeof EffectParser.parse>>(
       d.condition!.conditions![1].target!.base = 'usingSkillContext'
     if (r.id === 'effect_skill_deal_damage_spa_sixth_on_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.spa'
     if (r.id === 'effect_skill_heal_self_def_quarter_hit_or_miss') d.apply!.value.selector.chain[0].arg.arg = 'stat.def'
+    if (r.id === 'effect_emblem_yuren_dealdamage_on_physical_skill')
+      d.condition!.conditions![1].target!.base = 'usingSkillContext'
+    if (r.id === 'effect_emblem_add_rage_5_when_use_feixuanzhiguang') {
+      d.condition!.conditions![1].target!.base = 'usingSkillContext'
+      d.condition!.conditions![1].target!.chain![0].arg = 'skill'
+    }
     return [r.id, EffectParser.parse(d)]
   }),
 )
 const expected: Record<Id, number> = {
+  effect_emblem_add_rage_5_when_use_feixuanzhiguang: 5,
+  effect_emblem_yuren_dealdamage_on_physical_skill: 50,
+  effect_mark_reduce_opponent_rage_15_if_damage_below_75: -15,
   effect_mark_dingshizhadan_on_duration_end_deal_damage_50: 50,
   effect_mark_shijianzhadan_on_duration_end_deal_damage_50: 100,
   effect_mark_self_damage_on_expire: 300,
@@ -158,6 +167,8 @@ function run(
     duration?: number
     persistent?: boolean
     repeatExpiry?: boolean
+    phaseDamage?: number
+    skillId?: string
     branchParameters?: { yes: number; no: number }
     lateBranchParameters?: { yes: number; no: number }
   } = {},
@@ -180,7 +191,10 @@ function run(
     options.opponentRage ?? (id.includes('rage_gt_opponent') ? 40 : id.includes('rage_lt_opponent') ? 80 : 60)
   const skill = new SkillInstance(
     new BaseSkill(
-      'fixture/vital-action' as baseSkillId,
+      (options.skillId ??
+        (id === 'effect_emblem_add_rage_5_when_use_feixuanzhiguang'
+          ? 'skill_feixuanzhiguang'
+          : 'fixture/vital-action')) as baseSkillId,
       Category.Special,
       Element.Normal,
       40,
@@ -274,6 +288,7 @@ function run(
   }
   use.updateActualTarget()
   use.multihitResult = options.multihit ?? 3
+  if (id === 'effect_emblem_yuren_dealdamage_on_physical_skill') use.category = Category.Physical
   let damage = new DamageContext(
     use,
     attacker.activePet,
@@ -281,10 +296,12 @@ function run(
     101,
     id === 'effect_mark_reflect_physical_damage_30' ? DamageType.Physical : DamageType.Special,
   )
-  damage.damageResult = options.damageResult ?? 101
+  damage.damageResult =
+    options.damageResult ?? (id === 'effect_mark_reduce_opponent_rage_15_if_damage_below_75' ? 74 : 101)
   if (variant === 'wrong-type') {
     damage.damageType = damage.damageType === DamageType.Physical ? DamageType.Special : DamageType.Physical
     use.multihitResult = 2
+    if (id === 'effect_emblem_yuren_dealdamage_on_physical_skill') use.category = Category.Special
   }
   if (variant === 'wrong-owner') source.owner = b.activePet
   if (variant === 'inactive') a.activePet = a.team[1]
@@ -368,8 +385,15 @@ function run(
       a.selection = { player: a.id, type: 'do-nothing' }
       b.selection = { player: b.id, type: 'do-nothing' }
       executeTurnOperation(turn, battle)
-    } else if (['OnDamage', 'PostDamage'].includes(trigger)) {
-      const p = new DamagePhase(battle, use, attacker.activePet, victim.activePet, 101, damage.damageType)
+    } else if (['OnBeforeCalculateDamage', 'OnDamage', 'PostDamage'].includes(trigger)) {
+      const p = new DamagePhase(
+        battle,
+        use,
+        attacker.activePet,
+        victim.activePet,
+        options.phaseDamage ?? 101,
+        damage.damageType,
+      )
       p.initialize()
       p.execute()
     } else {
@@ -691,3 +715,50 @@ for (const id of [
     })
   }
 }
+
+for (const kind of ['skill', 'mark'] as const) {
+  for (const damageResult of [74, 75, 76]) {
+    it(`pre-calculation damage boundary ${kind}/${damageResult}`, () => {
+      const id = 'effect_mark_reduce_opponent_rage_15_if_damage_below_75'
+      const actual = run(id, true, kind, 'normal', { damageResult })
+      expect(actual).toEqual(run(id, false, kind, 'normal', { damageResult }))
+      expect(actual.admitted).toBe(damageResult < 75 ? 1 : 0)
+      expect(actual.events.map(e => e.amount)).toEqual(damageResult < 75 ? [-15] : [])
+    })
+  }
+  for (const phaseDamage of [10, 1000]) {
+    it(`before-calculation result starts at zero ${kind}/${phaseDamage}`, () => {
+      const id = 'effect_mark_reduce_opponent_rage_15_if_damage_below_75'
+      const actual = run(id, true, kind, 'phase', { phaseDamage })
+      expect(actual).toEqual(run(id, false, kind, 'phase', { phaseDamage }))
+      expect(actual.admitted).toBe(1)
+      expect(actual.events.map(e => e.amount)).toEqual([-15])
+    })
+  }
+  it(`specific skill rejects different identity ${kind}`, () => {
+    const id = 'effect_emblem_add_rage_5_when_use_feixuanzhiguang'
+    const actual = run(id, true, kind, 'normal', { skillId: 'fixture/other-skill' })
+    expect(actual).toEqual(run(id, false, kind, 'normal', { skillId: 'fixture/other-skill' }))
+    expect(actual.admitted).toBe(0)
+    expect(actual.events).toEqual([])
+  })
+  it(`physical skill reflection rejects special ${kind}`, () => {
+    const id = 'effect_emblem_yuren_dealdamage_on_physical_skill'
+    const actual = run(id, true, kind, 'wrong-type')
+    expect(actual).toEqual(run(id, false, kind, 'wrong-type'))
+    expect(actual.admitted).toBe(0)
+    expect(actual.events).toEqual([])
+  })
+}
+
+it('Feixuanzhiguang C09 remains necessary after C07 and retains the exact path', () => {
+  const id = 'effect_emblem_add_rage_5_when_use_feixuanzhiguang'
+  const record = ledger.records.find((r: { id: string }) => r.id === id)
+  expect(record.additionalDecisions).toEqual(['C09'])
+  expect(record.recipe.pathRepairs).toEqual([
+    { path: '/condition/conditions/1/target/chain/0/arg', before: 'skillId', after: 'skill' },
+  ])
+  const spellingOnly = structuredClone(definitions.get(id)!)
+  spellingOnly.condition!.conditions![1].target!.base = 'usingSkillContext'
+  expect(() => EffectParser.parse(spellingOnly)).toThrow()
+})

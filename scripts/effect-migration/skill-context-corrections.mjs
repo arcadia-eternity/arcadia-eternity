@@ -20,6 +20,9 @@ export function repairSkillSelector(definition) {
 }
 // C09 is deliberately limited to these source nodes; unknown paths are never guessed.
 const skillPathCorrections = {
+  effect_emblem_add_rage_5_when_use_feixuanzhiguang: [
+    ['/condition/conditions/1/target/chain/0/arg', 'skillId', 'skill'],
+  ],
   effect_skill_deal_damage_spa_sixth_on_miss: [['/apply/value/selector/chain/0/arg/arg', 'spa', 'stat.spa', 'dynamic']],
   effect_skill_heal_self_def_quarter_hit_or_miss: [
     ['/apply/value/selector/chain/0/arg/arg', 'def', 'stat.def', 'dynamic'],

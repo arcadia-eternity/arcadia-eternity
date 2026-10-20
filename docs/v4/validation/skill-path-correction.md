@@ -54,3 +54,7 @@ The repair is pinned to these two IDs and exact selectPath nodes, with before/af
 ## Dynamic Pet attribute paths
 
 effect_skill_deal_damage_spa_sixth_on_miss and effect_skill_heal_self_def_quarter_hit_or_miss repair /apply/value/selector/chain/0/arg/arg from spa/def to stat.spa/stat.def. Both are dynamic extractors within a select step, whose type and original value are guarded. Pet has no direct spa or def path, and both unmodified definitions fail parsing. The action retains division flooring, the first effect's miss trigger and the second effect's single OnHit/OnMiss identity. Independent references apply only these two field edits. Special defense (spd) and speed (spe) remain distinct. See [attribute-derived vital evidence](vital-actions.md).
+
+## Feixuanzhiguang rage
+
+effect_emblem_add_rage_5_when_use_feixuanzhiguang repairs /condition/conditions/1/target/chain/0/arg from skillId to skill after C07, then retains the baseId comparison against skill_feixuanzhiguang. Original and spelling-only parsing failures, exact metadata and a wrong-skill rejection are covered. No global alias or source YAML edit is added.

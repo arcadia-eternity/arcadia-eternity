@@ -145,6 +145,18 @@ export function createGeneratedVitalActions() {
         execute: actions.sequence(targets.opponentActive.apply(ops.addRage(-5))),
       }),
     ),
+    effect_emblem_add_rage_5_when_use_feixuanzhiguang: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_add_rage_5_when_use_feixuanzhiguang',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_feixuanzhiguang'),
+        ),
+        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
+      }),
+    ),
     effect_emblem_add_rage_on_hit_if_has_shunliu: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_rage_on_hit_if_has_shunliu',
@@ -155,6 +167,18 @@ export function createGeneratedVitalActions() {
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
         ),
         execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
+      }),
+    ),
+    effect_emblem_yuren_dealdamage_on_physical_skill: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_yuren_dealdamage_on_physical_skill',
+        on: 'PostDamage',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: actions.sequence(targets.opponentActive.apply(ops.dealDamage(50))),
       }),
     ),
     effect_heal_1_16_max_hp_per_stack_if_has_niliu: compileEffect(
@@ -268,6 +292,19 @@ export function createGeneratedVitalActions() {
             ),
           ),
         ),
+      }),
+    ),
+    effect_mark_reduce_opponent_rage_15_if_damage_below_75: compileEffect(
+      defineEffect({
+        id: 'effect_mark_reduce_opponent_rage_15_if_damage_below_75',
+        on: 'OnBeforeCalculateDamage',
+        priority: 0,
+        when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
+          const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+          const right = 75
+          return left !== undefined && right !== undefined && left < right
+        }),
+        execute: actions.sequence(targets.opponentActive.apply(ops.addRage(-15))),
       }),
     ),
     effect_mark_reflect_physical_damage_30: compileEffect(
