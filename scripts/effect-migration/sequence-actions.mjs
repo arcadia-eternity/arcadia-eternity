@@ -59,6 +59,33 @@ export function sequenceAction(a, trigger, domain = 'skill', parameters = [], pa
       operation = 'addSkillAttributeModifier'
     }
     if (!selected) return
+    if (target === 'self' && fields(a.value, ['type', 'selector']) && a.value.type === 'dynamic') {
+      const query = a.value.selector
+      if (
+        fields(query, ['base', 'chain']) &&
+        query.base === 'mark' &&
+        Array.isArray(query.chain) &&
+        query.chain.length === 2
+      ) {
+        const [attribute, multiply] = query.chain
+        if (
+          fields(attribute, ['type', 'arg']) &&
+          attribute.type === 'selectAttribute$' &&
+          attribute.arg === 'stack' &&
+          fields(multiply, ['type', 'arg']) &&
+          multiply.type === 'multiply'
+        ) {
+          const factor = number(multiply.arg, parameters, `${path}_factor`, domain)
+          if (
+            factor &&
+            !factor.literal &&
+            fields(multiply.arg, ['type', 'configId', 'value']) &&
+            multiply.arg.type === 'raw:number'
+          )
+            return `${selected}.apply(ops.bindAttribute({key:${JSON.stringify(`${path}_binding`)},attribute:${JSON.stringify(a.stat)},operation:${JSON.stringify(a.modifierType)},value:bindings.combine(targets.sourceMark.first().capture({key:"source",scope:"binding"}).attribute("stack").follow({key:"stack"}),${factor.code}.capture({key:"factor",scope:"binding"}),(stack,factor)=>Math.floor(stack*factor)),stacking:"append",lifetime:"sourceMark",missing:"detach"}))`
+        }
+      }
+    }
     const value = number(a.value, parameters, path, domain)?.code
     if (!value) return
     return `${selected}.apply(ops.${operation}(${JSON.stringify(a.stat)},${JSON.stringify(a.modifierType)},${value}))`

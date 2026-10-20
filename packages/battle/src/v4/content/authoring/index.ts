@@ -11,6 +11,7 @@ export {
   checks,
   actions,
   values,
+  bindings,
   ops,
   compileEffect,
   registerEffect,

@@ -203,6 +203,14 @@ export declare const actions: {
   /** Each action queries independently, in order; no implicit success gate or shared capture. */
   readonly sequence: <T extends Trigger = Trigger>(...actions: readonly Action<T>[]) => Action<T>
 }
+export declare const bindings: {
+  /** Evaluate both plans left to right; preserve each input's capture/follow policy. */
+  readonly combine: <A, B, R extends Scalar, PA extends Presence, PB extends Presence>(
+    left: BindingValue<A, PA>,
+    right: BindingValue<B, PB>,
+    project: (left: A, right: B) => R,
+  ) => BindingValue<R, 'optional' extends PA | PB ? 'optional' : 'required'>
+}
 export declare const values: {
   /** Read left then right once, including an absent left; project only when both exist. */
   readonly combine: <A, B, R, PA extends Presence, PB extends Presence>(
@@ -290,6 +298,8 @@ export declare const ops: {
     attribute: keyof PetAttributes
     operation: 'delta' | 'percent' | 'override'
     value: BindingValue<number, Presence>
+    /** Replace the existing contribution by default; append preserves repeated installations. */
+    stacking?: 'replace' | 'append'
     lifetime: 'sourceMark'
     missing: 'detach'
   }) => Operator<Pet>

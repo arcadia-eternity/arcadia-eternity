@@ -27,8 +27,10 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-type Id = keyof typeof generatedAttributeContributions
-const ids = Object.keys(generatedAttributeContributions) as Id[]
+type Id = Exclude<keyof typeof generatedAttributeContributions, 'effect_mark_increase_crit_rate_20_percent_per_stack'>
+const ids = (Object.keys(generatedAttributeContributions) as (keyof typeof generatedAttributeContributions)[]).filter(
+  id => id !== 'effect_mark_increase_crit_rate_20_percent_per_stack',
+)
 const ledger = JSON.parse(
   readFileSync(
     new URL('../../../../docs/v4/validation/attribute-contributions-candidates.json', import.meta.url),

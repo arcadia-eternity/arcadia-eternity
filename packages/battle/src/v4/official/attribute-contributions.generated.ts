@@ -7,6 +7,7 @@ import {
   targets,
   ops,
   actions,
+  bindings,
   type EffectFrame,
 } from '../content/authoring'
 export function createGeneratedAttributeContributions() {
@@ -131,6 +132,45 @@ export function createGeneratedAttributeContributions() {
         execute: actions.sequence(targets.ownerPet.apply(ops.addAttributeModifier('critRate', 'delta', 10))),
       }),
     ),
+    effect_mark_increase_crit_rate_20_percent_per_stack: (() => {
+      const parameters = {
+        action0_value_factor: numberParam({
+          default: 20,
+          tags: [],
+          legacyAliases: ['effect_mark_increase_crit_rate_20_percent_per_stack.crit_rate_increase_per_stack'],
+        }),
+      }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_mark_increase_crit_rate_20_percent_per_stack',
+          on: 'OnMarkCreated',
+          priority: 0,
+          parameters,
+          when: () => true,
+          execute: actions.sequence(
+            targets.ownerPet.apply(
+              ops.bindAttribute({
+                key: 'action0_value_binding',
+                attribute: 'critRate',
+                operation: 'delta',
+                value: bindings.combine(
+                  targets.sourceMark
+                    .first()
+                    .capture({ key: 'source', scope: 'binding' })
+                    .attribute('stack')
+                    .follow({ key: 'stack' }),
+                  parameters.action0_value_factor.capture({ key: 'factor', scope: 'binding' }),
+                  (stack, factor) => Math.floor(stack * factor),
+                ),
+                stacking: 'append',
+                lifetime: 'sourceMark',
+                missing: 'detach',
+              }),
+            ),
+          ),
+        }),
+      )
+    })(),
     effect_mark_increase_evasion_10_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_evasion_10_percent',

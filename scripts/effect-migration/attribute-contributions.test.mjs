@@ -7,8 +7,8 @@ const source = () => ({
   priority: 0,
   apply: { type: 'addAttributeModifier', target: 'self', stat: 'spe', modifierType: 'delta', value: 5 },
 })
-test('reproduces twenty contributions and rejects the live attribute source', async () =>
-  assert.deepEqual(await generateAttributeContributions({ check: true }), { generated: 20, rejected: 1 }))
+test('reproduces all twenty-one contributions including explicit live binding', async () =>
+  assert.deepEqual(await generateAttributeContributions({ check: true }), { generated: 21, rejected: 0 }))
 test('keeps stat identity and missing conditions', () => {
   const r = classifyAttributeContributions(source())
   assert.equal(r.when, '() => true')
@@ -49,4 +49,23 @@ test('rejects malformed skill chains without throwing', () => {
     d.apply.stat = 'accuracy'
     assert.ok(classifyAttributeContributions(d).reason)
   }
+})
+
+test('live contributions in a sequence have distinct declared binding keys', async () => {
+  const { sequenceAction } = await import('./sequence-actions.mjs')
+  const a = source().apply
+  a.value = {
+    type: 'dynamic',
+    selector: {
+      base: 'mark',
+      chain: [
+        { type: 'selectAttribute$', arg: 'stack' },
+        { type: 'multiply', arg: { type: 'raw:number', configId: 'factor', value: 20 } },
+      ],
+    },
+  }
+  const first = sequenceAction(a, 'OnHit', 'skill', [], 'action1_value')
+  const second = sequenceAction(a, 'OnHit', 'skill', [], 'action2_value')
+  assert.match(first, /key:"action1_value_binding"/)
+  assert.match(second, /key:"action2_value_binding"/)
 })

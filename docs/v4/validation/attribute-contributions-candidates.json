@@ -254,6 +254,28 @@
       "status": "generated-candidate"
     },
     {
+      "id": "effect_mark_increase_crit_rate_20_percent_per_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/92",
+      "definitionSha256": "fba7dec2b27361a3222d23d520baae542e73cc2ea6911405e5f2dda424efd5cf",
+      "recipe": {
+        "id": "effect_mark_increase_crit_rate_20_percent_per_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"critRate\",operation:\"delta\",value:bindings.combine(targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}),parameters.action0_value_factor.capture({key:\"factor\",scope:\"binding\"}),(stack,factor)=>Math.floor(stack*factor)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "parameters": [{ "name": "action0_value_factor", "value": 20, "configId": "crit_rate_increase_per_stack" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
       "id": "effect_mark_increase_evasion_10_percent",
       "sourceFile": "packs/base/data/effect_mark.yaml",
       "sourcePath": "/94",
@@ -420,13 +442,5 @@
       "status": "generated-candidate"
     }
   ],
-  "rejected": [
-    {
-      "id": "effect_mark_increase_crit_rate_20_percent_per_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
-      "sourcePath": "/92",
-      "definitionSha256": "fba7dec2b27361a3222d23d520baae542e73cc2ea6911405e5f2dda424efd5cf",
-      "reason": "unsupported sequence action or parameter"
-    }
-  ]
+  "rejected": []
 }

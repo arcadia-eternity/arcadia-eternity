@@ -28,7 +28,7 @@ import type { SnapshotCatalog } from '../../snapshot'
 import type { Effect } from '../../effect'
 import type { Battle } from '../../battle'
 import type { ValueDefinition } from '../../values/plan'
-import { Evaluation, ValuePlan, defineValue } from '../../values/plan'
+import { Evaluation, ValuePlan, defineValue, values as planValues } from '../../values/plan'
 import { BindingInputUnavailable, installValueModifier } from '../../values/binding'
 import type * as C from './contracts'
 import { AuthoringParameters, declareParameter } from './parameters'
@@ -452,6 +452,31 @@ export const actions: typeof C.actions = {
     return action
   },
 }
+export const bindings: typeof C.bindings = {
+  combine<A, B, R extends number | string | boolean, PA extends C.Presence, PB extends C.Presence>(
+    left: C.BindingValue<A, PA>,
+    right: C.BindingValue<B, PB>,
+    project: (left: A, right: B) => R,
+  ) {
+    const a = plans.get(left),
+      b = plans.get(right)
+    if (!a || !b) throw new Error('Expected persistent plans')
+    return binding((ctx, evaluation) =>
+      planValues
+        .combine(
+          {
+            left: new ValuePlan(frame => a(ctx, frame)),
+            right: new ValuePlan(frame => b(ctx, frame)),
+          },
+          ({ left: l, right: r }) => ({
+            anchor: JSON.stringify([l.anchor, r.anchor]),
+            value: l.value === undefined || r.value === undefined ? undefined : project(l.value as A, r.value as B),
+          }),
+        )
+        .evaluate(evaluation),
+    ) as C.BindingValue<R, 'optional' extends PA | PB ? 'optional' : 'required'>
+  },
+}
 export const values: typeof C.values = {
   combine<A, B, R, PA extends C.Presence, PB extends C.Presence>(
     left: C.Value<A, PA>,
@@ -826,6 +851,7 @@ export const ops: typeof C.ops = {
           attribute: options.attribute,
           operation: options.operation,
           allowInitialMissing: true,
+          stacking: options.stacking,
         })
     }
     actionBindings.set(operator, [{ key: options.key, value: options.value }])

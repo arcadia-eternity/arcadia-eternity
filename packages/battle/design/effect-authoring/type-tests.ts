@@ -5,6 +5,7 @@ import type { Pet } from '../../src/v4/pet'
 import type { MarkInstance } from '../../src/v4/mark'
 import {
   actions,
+  bindings,
   selectFrom,
   booleanParam,
   contexts,
@@ -277,3 +278,14 @@ exact<Equal<typeof incomingPet, Selector<Pet>>>(true)
 incomingPet.apply(ops.addMark(selectedBaseMark))
 // @ts-expect-error Switch contexts are not mark owners; select the incoming pet first.
 contexts.switchPet.apply(ops.addMark(selectedBaseMark))
+
+const combinedBinding = bindings.combine(
+  targets.sourceMark.first().capture({ key: 'source', scope: 'binding' }).attribute('stack').follow({ key: 'stack' }),
+  numberParam({ default: 20 }).capture({ key: 'factor', scope: 'binding' }),
+  (stack, factor) => stack * factor,
+)
+exact<Equal<typeof combinedBinding, BindingValue<number, 'optional'>>>(true)
+// @ts-expect-error A persistent combination cannot return a domain entity.
+bindings.combine(combinedBinding, combinedBinding, () => ({}))
+// @ts-expect-error Immediate values must explicitly select capture or follow first.
+bindings.combine(targets.sourceMark.first(), combinedBinding, () => 1)

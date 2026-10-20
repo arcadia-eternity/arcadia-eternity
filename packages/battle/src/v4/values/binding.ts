@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import { ExecutionBudgetExceeded } from '../execution/budget'
 import { derived, ReactiveValue, describeValue, checkValueRead, getValueRecipe } from '../reactiveValue'
 import { Modifier, DurationType } from '../attributeSystem'
@@ -190,6 +191,8 @@ export interface InstallValueModifier<A> {
   attribute: `${StatTypeOnBattle}`
   operation: 'delta' | 'override' | 'percent'
   priority?: number
+  /** Append independent contributions; replacement remains the default. */
+  stacking?: 'replace' | 'append'
   /** Keep an initially unavailable plan subscribed so structural follow can recover. */
   allowInitialMissing?: boolean
 }
@@ -231,7 +234,13 @@ export function installValueModifier<A>(options: InstallValueModifier<A>): Value
     false,
     options.allowInitialMissing,
   )
-  const id = JSON.stringify([options.source.id, options.effectId, options.bindingKey, options.target.id])
+  const id = JSON.stringify([
+    options.source.id,
+    options.effectId,
+    options.bindingKey,
+    options.target.id,
+    ...(options.stacking === 'append' ? [nanoid()] : []),
+  ])
   const old = options.target.attributeSystem.findModifier(options.attribute, id)
   if (old) {
     if (

@@ -1,6 +1,6 @@
 # Static attribute contributions
 
-Twenty independent `addAttributeModifier` definitions now have native candidates, with unchanged source hashes and no spelling/path repairs. One live-value definition remains rejected. These remain U candidates pending complete-game/checkpoint and production admission.
+All twenty-one independent `addAttributeModifier` definitions now have native candidates, with unchanged source hashes and no spelling/path repairs. Twenty use sampled numeric contributions; the stack-based crit effect uses an explicit live binding. These remain U candidates pending complete-game/checkpoint and production admission.
 
 ## Shared API and timing
 
@@ -12,9 +12,11 @@ The underlying attribute system retains percent/delta/override semantics. Mark-o
 
 `effect_ability_increase_accuracy_5_percent_if_height_above_100` retains its source behavior: `checkSelf` does not match a Battle event, so its OnBattleStart condition is false. This migration does not silently activate it.
 
-## Outstanding live contribution
+## Live stack contribution
 
-`effect_mark_increase_crit_rate_20_percent_per_stack` remains rejected because `selectAttribute$('stack')` produces a live attribute source. Passing a sampled number into the static operation would freeze its stack value. It requires an explicit capture/follow binding, including the historical constant/config sampling point, source lifetime and checkpoint semantics.
+`effect_mark_increase_crit_rate_20_percent_per_stack` now captures the source mark identity and multiplier at each installation, follows that mark's stack, and floors each product. `bindings.combine` preserves both temporal policies and reuses the lower-level eager/error-aware plan combination. `stacking: 'append'` adds independent contributions; omitted stacking retains the existing replacement behavior.
+
+Multiple actions use binding keys derived from their action paths. Source removal disposes all appended contributions. Full JSON snapshot/restore with a fresh effect factory preserves distinct captured multipliers even when current configuration has changed. See [live binding evidence](live-stack-contribution.md).
 
 ## Verification
 

@@ -323,3 +323,9 @@ All 464 public regression tests, 145 generator tests, 75 design tests, scoped ty
 Twenty attribute contribution candidates now use shared typed Pet/Skill operations and reusable team/skill selectors. Per-target amount/priority reads, repeated addition, full-array skill tag filters and Mark-owned suppression/cleanup remain intact. The height-at-battle-start condition retains its existing false result. The stack-based live crit contribution is explicitly rejected until its binding timing is implemented.
 
 The 401 public regression checks, 149 generator tests, 75 design tests, scoped types/lint, declarations and unchanged provenance pass. Both review axes pass. See [attribute contribution evidence](validation/attribute-contributions.md). Candidates remain U pending complete-game/checkpoint and production gates.
+
+## Live stack contribution (2026-10-20)
+
+The outstanding crit-per-stack contribution now captures its source and configured multiplier while following stack changes. Shared binding composition preserves eager/error-aware evaluation; explicit append mode retains independently captured contributions on repeated installation. The attribute ledger now generates all 21 entries with no rejection.
+
+All 415 scoped public tests, 150 generator tests, 75 design tests, types/lint, declarations and provenance pass; both review axes pass. A fresh-factory JSON checkpoint verifies independent captured factors and cleanup after restoration. See [live contribution evidence](validation/live-stack-contribution.md). Full-game and production gates remain pending.
