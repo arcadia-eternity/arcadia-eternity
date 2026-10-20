@@ -149,3 +149,5 @@ export { createRainWaterShield } from './src/v4/official/rain-water-shield'
 export { createDoubleStageDebuff } from './src/v4/official/double-stage-debuff'
 export { createExperiencePlaceholder } from './src/v4/official/experience-placeholder'
 export { createOfficialEffectCandidates } from './src/v4/official/candidate-catalog'
+
+export { createWeightDamageEffects } from './src/v4/official/weight-damage'
