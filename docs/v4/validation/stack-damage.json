@@ -1,0 +1,22 @@
+{
+  "records": [
+    {
+      "id": "effect_mark_special_damage_reduction_with_stack",
+      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourcePath": "/121",
+      "definitionSha256": "4fe615495656a771b3dae90499dfa3c0d8cbf4760ea176ff982c71f4cc7125fe",
+      "status": "handwritten-candidate",
+      "decisions": ["User-approved numeric current-stack subtraction for Special damage"],
+      "nativeFile": "packages/battle/src/v4/official/stack-damage.ts"
+    },
+    {
+      "id": "effect_skill_add_damage_30_per_niliu",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/537",
+      "definitionSha256": "54f2657f0ae3a137d023868c797797d02a43a40800785fffb9f9bed8b4e27748",
+      "status": "handwritten-candidate",
+      "decisions": ["User-approved OnBeforeCalculateDamage timing for per-stack fixed damage"],
+      "nativeFile": "packages/battle/src/v4/official/stack-damage.ts"
+    }
+  ]
+}

@@ -12,6 +12,6 @@ The unchanged parsed YAML definitions were executed by `remaining-effect-charact
 
 The parser, selector, modifier, rage and switch mechanisms already exist. V2 also has last-skill ID storage plus an object alias and ancestor switch-context support (see `historical-cross-version-findings.md`). None of these observations establishes that the engine lacks the corresponding general capability.
 
-An explicit user question is pending for the five proposed corrections, including the Flying consecutive-use interpretation and the switch mark's one-use action. No candidate ownership ledger was added for these effects while that decision is pending.
+The user approved all five proposed corrections, including the Flying consecutive-use interpretation and the switch mark's one-use action. The stack-damage candidate ledger now covers the first two; rage capping, switch protection and previous-use history remain to be implemented. These unchanged legacy tests remain as correction evidence.
 
 Evidence: `/tmp/remaining-test.log` (5/5). The complete V4 regression is running separately in `/tmp/all-native-candidates-regression.log`; its outcome is not yet claimed.
