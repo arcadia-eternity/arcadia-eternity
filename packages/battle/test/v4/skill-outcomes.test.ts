@@ -9,6 +9,7 @@ import {
   ConfigModifier,
   ConfigModifierType,
   ConfigDurationType,
+  ConfigSystem,
   effectAuthoring,
   BaseMark,
   BaseSkill,
@@ -93,7 +94,21 @@ function reference(r: Entry) {
   }
   return d
 }
-const oracles = new Map(records.map(r => [r.id, EffectParser.parse(reference(r))]))
+const oracleParameterKeys = new Map<string, string[]>()
+const oracles = new Map(
+  records.map(r => {
+    const config = ConfigSystem.getInstance()
+    const before = new Set(config.getRegisteredKeys())
+    const effect = EffectParser.parse(reference(r))
+    // Re-parsing a definition registers different anonymous literals. Keep the
+    // identities captured by this oracle, not every key sharing its effect ID.
+    oracleParameterKeys.set(
+      r.id,
+      config.getRegisteredKeys().filter(key => !before.has(key) && key.startsWith(`${r.id}.`)),
+    )
+    return [r.id, effect] as const
+  }),
+)
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
@@ -286,9 +301,10 @@ function run(
   if (variant === 'wrong-owner') source.owner = a.team[1]
   const configure = (amount: number, foreign = false) => {
     for (const p of r.recipe.parameters ?? []) {
-      const keys = battle.configSystem.getRegisteredKeys().filter(key => key.startsWith(`${r.id}.`))
+      const keys = oracleParameterKeys.get(r.id)!
       if (!native && keys.length !== 1) throw new Error('Ambiguous anonymous parameter oracle')
       const key = native ? parameterAddress(r.id, 'parameters', p.name) : keys[0]
+      expect(battle.configSystem.isRegistered(key)).toBe(true)
       battle.configSystem.addScopedConfigModifier(
         key,
         new ConfigModifier(
@@ -469,6 +485,8 @@ it('audits complete generated outcome ID coverage', () =>
 for (const r of records.filter(r => r.recipe.parameters))
   for (const kind of ['skill', 'mark'] as const)
     it.each(parameterVariants)(`${r.id} ${kind} parameter: %s`, variant => {
+      // A later parse must not redirect configuration of the existing oracle.
+      EffectParser.parse(reference(r))
       const actual = run(r, true, kind, variant)
       expect(actual).toEqual(run(r, false, kind, variant))
       expect(actual.applied).toHaveLength(1)
