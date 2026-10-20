@@ -653,8 +653,20 @@ export const ops: typeof C.ops = {
       source.battle.removeMark(new RemoveMarkContext(source, mark))
     }
   },
-  consumeStacks: amount =>
-    numeric(amount, (ctx, mark, n) => mark.consumeStack(engine(ctx), n), assertMarkLifecycleTarget),
+  consumeStacks: amount => (ctx, selected) => {
+    // A removal callback may detach a later member of this operation's selected collection.
+    // Keep that identity valid only for this invocation, after initial ownership validation.
+    const validated = new Set<MarkInstance>()
+    numeric<MarkInstance>(
+      amount,
+      (frame, mark, n) => mark.consumeStack(engine(frame), n),
+      (frame, mark) => {
+        if (validated.has(mark) && !mark.isActive && mark.owner === null) return
+        assertMarkLifecycleTarget(frame, mark)
+        validated.add(mark)
+      },
+    )(ctx, selected)
+  },
   changeStatStage: (stat, amount) =>
     numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
   assign: amount =>

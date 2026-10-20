@@ -1,0 +1,13 @@
+# Independent mark stack consumption
+
+All seven independent consumeStacks definitions now have candidates, with no source corrections or rejected entries. They retain OnHit, priority -50 and their fixed amounts: 2 ruodianjihao, 4 zhongzinengliang, 2 zengzhong, 10 manxingduyao, 100 kongqichuliang, 1 shuiwenzhenji and 1 xinzhiyinji. Names containing “all” do not replace those source values with a current-stack expression. Manxingduyao retains its absent condition; the other conditions are preserved.
+
+Candidates reuse existing owner/opponent mark selection and consumption operations. The target collection is queried at execution, including actualTarget changes in a direct skill event. Each selected mark consumes the same amount. Exhaustion uses the existing removal lifecycle; indestructible marks may reach zero stacks while staying active. Members added during a removal callback are outside the current selected collection.
+
+The initial differential run exposed 14 failures when the first exhausted mark's removal callback removed a later selected mark. Legacy still consumes that later instance, but authored numeric validation rejected its newly null owner. consumeStacks now keeps a validated identity set local to one invocation. Only a target validated earlier in that invocation and now inactive with a null owner may continue after detachment. Initial unowned targets, foreign ownership, active detached targets and reuse in another invocation remain rejected. Other numeric operators are unchanged.
+
+Public comparisons cover both skill and mark sources, below/equal/above stack boundaries, cancellation, empty/wrong-owner cases, late membership/stack/target changes, callback-added and callback-removed members, repeated and nested dispatch, real hit/miss phases and real two-hit skills. Independent assertions check exact amounts, removal order, inactive state and per-hit consumption. Source hashes, priorities and action paths are pinned. Explicit operator tests check initial validation before value reads, foreign ownership after reads and invocation-local validity.
+
+Candidates remain U pending complete-game/checkpoint acceptance and production admission. No production loader or source YAML is changed.
+
+Verification: all 756 public tests across six candidate, ownership and existing sequence suites pass; the final 239-case consumption suite additionally passes with the real two-hit cases and independent wrong-owner/repeated-count assertions. All 124 generator tests, 75 design tests, V4 types/lint, declarations and provenance pass. Both review axes pass. Red evidence: /tmp/mark-consumption-red.log. Green evidence: /tmp/mark-consumption-{tests,targeted,generators,types,lint,declarations,design,provenance}.log.

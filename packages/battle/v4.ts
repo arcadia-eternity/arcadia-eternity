@@ -61,3 +61,4 @@ export { generatedVitalSequences, createGeneratedVitalSequences } from './src/v4
 export { generatedDamageSequences, createGeneratedDamageSequences } from './src/v4/official/damage-sequences.generated'
 export { generatedVitalActions, createGeneratedVitalActions } from './src/v4/official/vital-actions.generated'
 export { generatedMarkRemovals, createGeneratedMarkRemovals } from './src/v4/official/mark-removals.generated'
+export { generatedMarkConsumption, createGeneratedMarkConsumption } from './src/v4/official/mark-consumption.generated'

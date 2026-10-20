@@ -100,3 +100,63 @@ for (const variant of ['detached', 'other-unowned', 'foreign'] as const)
       expect(other.isActive).toBe(true)
     }
   })
+
+for (const variant of [
+  'initial-unowned',
+  'foreign-after-read',
+  'removed-after-read',
+  'active-detached',
+  'reuse',
+] as const)
+  it(`consumption snapshot ownership remains invocation-local: ${variant}`, () => {
+    const { battle, a, debuff } = makeScenario(1302)
+    battles.push(battle)
+    const foreign = makeScenario(1303)
+    battles.push(foreign.battle)
+    const mark = new BaseMark('fixture/snapshot-consume' as baseMarkId, [], {
+      ...debuff.config,
+      maxStacks: 20,
+    }).createInstance()
+    mark.stack = 10
+    mark.setOwner(a.activePet, battle.emitter)
+    a.activePet.marks.push(mark)
+    if (variant === 'initial-unowned') {
+      mark.owner = null
+      mark.isActive = false
+    }
+    const { compileEffect, defineEffect, selectFrom, ops } = effectAuthoring
+    let reads = 0
+    const amount = selectFrom([3])
+      .select(n => {
+        reads++
+        if (variant === 'foreign-after-read') mark.owner = foreign.a.activePet
+        if (['removed-after-read', 'active-detached', 'reuse'].includes(variant)) {
+          mark.owner = null
+          mark.isActive = variant === 'active-detached'
+        }
+        return n
+      })
+      .first()
+    const effect = compileEffect(
+      defineEffect({
+        id: 'fixture/consume-snapshot',
+        on: 'TurnEnd',
+        execute: selectFrom([mark]).apply(ops.consumeStacks(amount)),
+      }),
+    )
+    const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, a.activePet.skills[0], effect)
+    const apply = () => battle.executionBudget.run(battle.currentTurn, () => effect.innerApply(context))
+    if (['removed-after-read', 'reuse'].includes(variant)) {
+      apply()
+      expect(mark.stack).toBe(7)
+      if (variant === 'reuse') {
+        expect(apply).toThrow('Cross-battle or unowned write target')
+        expect(mark.stack).toBe(7)
+        expect(reads).toBe(1)
+      }
+    } else {
+      expect(apply).toThrow('Cross-battle or unowned write target')
+      expect(mark.stack).toBe(10)
+      if (variant === 'initial-unowned') expect(reads).toBe(0)
+    }
+  })

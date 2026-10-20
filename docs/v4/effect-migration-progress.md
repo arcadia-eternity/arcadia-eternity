@@ -267,3 +267,11 @@ All 1,631 public checks across the vital-action and self-damage fixtures, 118 ge
 All 13 independent destroyMark effects now have generated candidates, with zero rejections or source corrections in this catalog. They reuse existing selectors and removal lifecycle operations. Post-damage, critical post-damage, turn-end and hit/miss dispatch retain their original boundaries; collection removal covers both skill and mark sources.
 
 All 405 public candidate/operator checks, 121 generator tests, 75 design tests, types/lint, declarations and provenance pass. Both review axes pass. Tests independently verify exact 100 damage admission, noncritical rejection, late owner/collection requery, callback snapshot behavior and indestructible marks. See [mark removal evidence](validation/mark-removals.md). Full-game/checkpoint and production gates remain pending.
+
+## Independent stack consumption (2026-10-20)
+
+Seven independent consumeStacks effects now have generated candidates with no rejections or source corrections. Fixed amounts and the poison effect's absent condition are preserved. Source hashes, priority -50 and action paths are pinned.
+
+Differential tests exposed and fixed a shared lifecycle mismatch: a later selected mark removed by an earlier target's callback must still receive consumption. The runtime permits this only for an identity already validated in the current invocation that is now inactive and ownerless; initial invalid targets, foreign ownership and cross-invocation reuse remain rejected.
+
+All 756 public regression checks across six suites and the final 239-case consumption suite pass, along with 124 generator tests, 75 design tests, types/lint, declarations and provenance. Both review axes pass. Real two-hit execution verifies per-hit consumption. See [stack consumption evidence](validation/mark-consumption.md). Full-game/checkpoint and production gates remain pending.

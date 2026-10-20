@@ -50,3 +50,7 @@ Conditional power list tests verify lazy nested branches at each action: an empt
 `conditions.chance` accepts an immediate number or a required numeric Value. Parameters are read at condition time before one RNG draw, including probability 0 and 100; later actions do not implicitly recheck admission. Nonfinite parameter-derived values are rejected before drawing.
 
 `ops.addMark` centralizes fixed/dynamic BaseMark application, ordered once-per-action numeric reads, mark defaults and battle ownership checks. The 209 fixed-reference mark candidates now reuse it with shared selectors and ownership admission; see [mark application integration](mark-applications.md).
+
+## Consumption of a selected mark after lifecycle removal
+
+consumeStacks validates all selected targets before reading its amount. Within that invocation, a previously validated mark that becomes inactive and ownerless during value evaluation or another mark's removal callback retains its selected identity for consumption. The permission does not survive the invocation. Initially unowned marks, active detached marks and foreign-owned marks remain rejected, except for the existing source-mark lifecycle rule. See [consumption evidence](mark-consumption.md).
