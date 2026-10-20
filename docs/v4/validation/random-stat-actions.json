@@ -1,0 +1,50 @@
+{
+  "records": [
+    {
+      "id": "effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/654",
+      "definitionSha256": "1f77598d905fbfd1b43ac35f9799a9237a03315c9b7f0634eb75e232d8d9f996",
+      "status": "handwritten-candidate",
+      "historicalReference": "61c349fa7ca35c392b0e751c9238759b02aefcb3",
+      "decisions": ["C17"],
+      "corrections": [
+        {
+          "decision": "C17",
+          "reason": "Flat action values execute eagerly before selection in the historical parser. Select one action before executing it; the differential oracle wraps each action in a singleton group and flattens after selection."
+        }
+      ],
+      "nativeFile": "packages/battle/src/v4/official/random-stat-actions.ts",
+      "dependencyIds": ["mark_emblem_wuxing"]
+    },
+    {
+      "id": "effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/657",
+      "definitionSha256": "2139b35587ec9f30f8cccc925e452f0946607cb5bc7eec77833cc0e2c9d99111",
+      "status": "handwritten-candidate",
+      "historicalReference": "61c349fa7ca35c392b0e751c9238759b02aefcb3",
+      "decisions": ["C17"],
+      "corrections": [
+        {
+          "decision": "C17",
+          "reason": "Flat action values execute eagerly before selection in the historical parser. Select one action before executing it; the differential oracle wraps each action in a singleton group and flattens after selection."
+        }
+      ],
+      "nativeFile": "packages/battle/src/v4/official/random-stat-actions.ts",
+      "dependencyIds": ["mark_emblem_wuxing"]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/666",
+      "definitionSha256": "ba768e9c89dd0dcf5acd3f7fbf20608fe59c36481ea318d0ca87aca147c62544",
+      "status": "handwritten-candidate",
+      "historicalReference": "61c349fa7ca35c392b0e751c9238759b02aefcb3",
+      "decisions": [],
+      "corrections": [],
+      "nativeFile": "packages/battle/src/v4/official/random-stat-actions.ts",
+      "dependencyIds": ["mark_emblem_wuxing"]
+    }
+  ]
+}

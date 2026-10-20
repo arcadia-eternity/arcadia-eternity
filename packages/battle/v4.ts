@@ -118,3 +118,5 @@ export {
 } from './src/v4/official/compound-actions.generated'
 export { generatedRageModifiers, createGeneratedRageModifiers } from './src/v4/official/rage-modifiers.generated'
 export { generatedSkillFlags, createGeneratedSkillFlags } from './src/v4/official/skill-flags.generated'
+
+export { createRandomStatActions } from './src/v4/official/random-stat-actions'
