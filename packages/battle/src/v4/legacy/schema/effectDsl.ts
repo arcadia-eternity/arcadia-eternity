@@ -553,6 +553,11 @@ export type RemoveTransformationOperator = {
   target: SelectorDSL
 }
 
+export type ExecuteActionsOperator = {
+  type: 'executeActions'
+  target: SelectorDSL
+}
+
 export type OperatorDSL =
   | TODOOperator
   | ConditionalOperator
@@ -631,6 +636,7 @@ export type OperatorDSL =
   | TransformOperator
   | TransformWithPreservationOperator
   | RemoveTransformationOperator
+  | ExecuteActionsOperator
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -693,6 +699,7 @@ export type Value =
   | string
   | boolean
   | ConditionalValue
+  | OperatorDSL
 
 export type BaseSelectorKey = keyof typeof BaseSelector
 

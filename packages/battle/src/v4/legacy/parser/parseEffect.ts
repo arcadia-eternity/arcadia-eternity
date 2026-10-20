@@ -32,6 +32,7 @@ import {
 } from '@arcadia-eternity/const'
 import { DataRepository } from '../dataRepository'
 import {
+  type Action,
   BaseSelector,
   type PathExtractor,
   ChainableSelector,
@@ -535,6 +536,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseTransformAction(effectId, dsl)
     case 'transformWithPreservation':
       return parseTransformWithPreservationAction(effectId, dsl)
+    case 'executeActions':
+      return parseExecuteActionsAction(effectId, dsl)
     case 'removeTransformation':
       return parseRemoveTransformationAction(effectId, dsl)
     default:
@@ -549,6 +552,9 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (typeof v === 'string') return v
   if (typeof v === 'number') return v
   if (typeof v === 'boolean') return v
+  if (typeof v === 'object' && ('target' in v || ('type' in v && v.type === 'conditional' && 'trueOperator' in v))) {
+    return createAction(effectId, v)
+  }
   if (typeof v === 'object' && 'type' in v && v.type === 'conditional') {
     const condition = parseCondition(effectId, v.condition)
     const trueValue = parseValue(effectId, v.trueValue)
@@ -1353,4 +1359,11 @@ export function parseRemoveTransformationAction(
 
 export function parseSetIgnoreShieldAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setIgnoreShield' }>) {
   return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.setIgnoreShield())
+}
+
+export function parseExecuteActionsAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'executeActions' }>,
+): Action {
+  return parseSelector<Action>(effectId, dsl.target).apply(Operators.executeActions())
 }

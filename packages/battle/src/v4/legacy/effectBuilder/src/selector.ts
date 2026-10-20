@@ -646,7 +646,7 @@ export type ObjectOpinion =
   | ReactiveValue<any>
   | BattlePhaseBase
 
-export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
+export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Action | Array<SelectorOpinion>
 
 // 递归查找context的通用函数
 export function findContextRecursively<T extends Context, U extends EffectTrigger>(

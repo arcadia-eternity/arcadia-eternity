@@ -119,6 +119,16 @@ export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
     selectorValueSchema,
     conditionalValueSchema,
     z.array(valueSchema),
+    // Gate recursive operator values before parsing their fields. Otherwise a missing
+    // numeric value re-enters operator validation through every union alternative.
+    z
+      .custom<OperatorDSL>(
+        value =>
+          typeof value === 'object' &&
+          value !== null &&
+          ('target' in value || ('type' in value && value.type === 'conditional' && 'trueOperator' in value)),
+      )
+      .pipe(operatorDSLSchema),
   ]),
 )
 
@@ -295,11 +305,11 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
 )
 
 export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
-  z.union([
+  z.discriminatedUnion('type', [
     z.object({
       type: z.literal('TODO'),
     }),
-    conditionalOperatorSchema,
+    conditionalOperatorSchema.schema,
     z.object({
       type: z.literal('dealDamage'),
       target: selectorDSLSchema,
@@ -755,6 +765,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       transformType: z.enum(['temporary', 'permanent']).optional(),
       priority: valueSchema.optional(),
       permanentStrategy: z.enum(['preserve_temporary', 'clear_temporary']).optional(),
+    }),
+    z.object({
+      type: z.literal('executeActions'),
+      target: selectorDSLSchema,
     }),
     z.object({
       type: z.literal('removeTransformation'),
