@@ -1,0 +1,13 @@
+{
+  "records": [
+    {
+      "id": "effect_skill_execute_opponent_hp_under_75_hit_or_miss",
+      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourcePath": "/391",
+      "definitionSha256": "02b6244ae418c19ad07898ea42ded5ffe2516dbf5dc75a9b5f2598734135fa11",
+      "status": "handwritten-candidate",
+      "decisions": [],
+      "nativeFile": "packages/battle/src/v4/official/execute-low-health.ts"
+    }
+  ]
+}

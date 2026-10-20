@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
+  BattleMessageType,
   type effectId,
   type EffectTrigger,
   type StatTypeWithoutHp,
@@ -790,6 +791,17 @@ function parameterModifier(
   }
 }
 export const ops: typeof C.ops = {
+  executeKill: () => (ctx, selected) => {
+    for (const target of selected) assertWriteTarget(ctx, target)
+    for (const target of selected) {
+      assertWriteTarget(ctx, target)
+      if (!target.isAlive) continue
+      target.currentHp = 0
+      target.isAlive = false
+      // Authored effect sources are marks or skills, never a Pet.
+      engine(ctx).battle.emitMessage(BattleMessageType.PetDefeated, { pet: target.id, killer: undefined })
+    }
+  },
   addTemporaryEffect: input => (ctx, selected) => {
     const phaseId = engine(ctx).battle.getTemporaryEffectPhaseId()
     if (!phaseId) return

@@ -344,6 +344,8 @@ export declare const ops: {
   /** Evaluate amount once per operator invocation, then apply to its selected targets. Missing skips. */
   readonly heal: (amount: NumericInput) => Operator<Pet>
   readonly dealDamage: (amount: NumericInput) => Operator<Pet>
+  /** Set living targets to defeated and emit PetDefeated; skill completion owns OnDefeat and killer attribution. */
+  readonly executeKill: () => Operator<Pet>
   readonly addRage: (amount: NumericInput) => Operator<Pet | Player>
   /** Remove through the mark lifecycle in selection order; already inactive marks are no-ops. */
   readonly removeMark: () => Operator<MarkInstance>

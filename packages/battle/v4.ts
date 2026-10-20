@@ -141,3 +141,4 @@ export { createTaggedParameterModifiers } from './src/v4/official/tagged-paramet
 
 export { createNamedParameterModifiers, namedParameterModifierDependencies } from './src/v4/official/named-parameters'
 export { createStackTriggerProbability } from './src/v4/official/stack-trigger-probability'
+export { createLowHealthExecution } from './src/v4/official/execute-low-health'

@@ -383,3 +383,7 @@ targets.sourceMark.apply(
   // @ts-expect-error Parameter scopes are pets or players, not marks.
   ops.bindTaggedParameter({ key: 'probability', tag: 'chance', operation: 'delta', value: parameterContribution }),
 )
+
+targets.opponentActive.apply(ops.executeKill())
+// @ts-expect-error Execution accepts pets, not source marks.
+targets.sourceMark.apply(ops.executeKill())
