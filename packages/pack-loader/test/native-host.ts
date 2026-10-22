@@ -1,5 +1,6 @@
 import {
   BattleMessageType,
+  AIPlayer,
   BattleStatus,
   PhaseState,
   setGlobalLogger,
@@ -20,6 +21,66 @@ export async function verifyNativePackHost(
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
   const loader = new NativePackLoader(build)
   const initial = await loader.load(packRef, { source: 'http', enforceLockfile: true })
+  async function verifyAI() {
+    const teams = structuredClone(input.teams) as { id: string; team: { skills: string[]; maxHp: number }[] }[]
+    teams.forEach((team, index) => {
+      team.id = String(index).repeat(21)
+      for (const pet of team.team) {
+        pet.skills = ['skill_paida']
+        pet.maxHp = 10_000
+      }
+    })
+    let content = initial.content
+    const [a, b] = content.parsePlayers(teams, { aiPlayerIds: [teams[1].id] }),
+      config = {
+        rngSeed: 201,
+        timerConfig: { enabled: options.timed ?? false, turnTimeLimit: 30, totalTimeLimit: 1500 },
+      }
+    let battle = content.createBattle(a, b, config)
+    const authority = () => ({
+      snapshot: (current: Battle) => content.snapshot(current),
+      restore: (data: unknown) => (battle = content.restore(data)),
+    })
+    let system = new LocalBattleSystemV4(battle, authority())
+    const choose = async () =>
+      (await system.getAvailableSelection(battle.playerA.id)).find(action => action.type === 'use-skill')!
+    try {
+      await system.ready()
+      if (!(battle.playerB instanceof AIPlayer) || battle.getActionLog().length !== 1)
+        throw new Error('Native content did not create and record the built-in AI')
+      if (options.timed && (await system.getPlayerTimerState(battle.playerB.id))?.state !== 'paused')
+        throw new Error('Native AI did not pause its decision clock')
+      await system.submitAction(await choose())
+      await battle.waitForInputReady()
+      const saved = await system.createRuntimeSnapshot(),
+        before = JSON.stringify(await system.getState(undefined, true)),
+        action = await choose()
+      await system.submitAction(action)
+      await battle.waitForInputReady()
+      const expected = JSON.stringify(await system.getState(undefined, true)),
+        expectedLog = JSON.stringify(battle.getActionLog())
+      if (battle.currentTurn !== 2 || battle.getActionLog().length !== 5)
+        throw new Error('Native AI did not complete two turns')
+      await system.cleanup()
+      content = (await loader.load(packRef, { source: 'http', expectedRevision: initial.revision })).content
+      const players = content.parsePlayers(teams)
+      battle = content.createBattle(players[0], players[1], config)
+      system = new LocalBattleSystemV4(battle, authority())
+      await system.restoreRuntimeSnapshot(saved)
+      await system.ready()
+      if (!(battle.playerB instanceof AIPlayer) || JSON.stringify(await system.getState(undefined, true)) !== before)
+        throw new Error('Native AI changed its pending choice during restore')
+      await system.submitAction(action)
+      await battle.waitForInputReady()
+      if (
+        JSON.stringify(await system.getState(undefined, true)) !== expected ||
+        JSON.stringify(battle.getActionLog()) !== expectedLog
+      )
+        throw new Error('Native AI continuation differs from uninterrupted play')
+    } finally {
+      await system.cleanup()
+    }
+  }
   async function play(checkpoint: boolean, restoreInitial = false) {
     let content = initial.content
     const [a, b] = input.teams.map(team => content.parsePlayer(team))
@@ -175,6 +236,7 @@ export async function verifyNativePackHost(
     JSON.stringify(baseline) !== JSON.stringify(bootstrapped)
   )
     throw new Error('Native host JSON continuation differs')
+  await verifyAI()
   return {
     revision: initial.revision,
     effects: initial.content.effects.length,
@@ -189,6 +251,7 @@ export async function verifyNativePackHost(
     activeAnimationRestore: options.timed ?? false,
     reconnectRestore: true,
     initialSnapshotRestore: true,
+    aiRestore: true,
     trace: baseline,
   }
 }

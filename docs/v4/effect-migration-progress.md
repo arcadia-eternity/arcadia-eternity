@@ -26,6 +26,8 @@ Native initial checkpoints now preserve the actual pre-start instances and skill
 
 The server now creates native systems by default, persists their actual initial snapshots and build/content identity before publication, and pins recovery to that authority. Input readiness and original-ID multi-turn replay pass through real service startup, including latest-checkpoint and corrupt-checkpoint fallback. Cluster activation preserves the descriptor through independent Redis-style copies, and untagged historical records retain V2. All 59 factory/service checks pass; the full server run has 142 passes and two independently reproduced pre-cutover disconnect failures. See [bootstrap](validation/native-server-bootstrap.md), [replay](validation/native-server-replay.md) and [server default evidence](validation/native-server-default.md).
 
+The native content entry now creates the existing AI by explicit player ID and routes all three built-in decision handlers through the common Battle input path. AI timers/action records, pending-choice restoration and future RNG/state continuation pass in 98 related checks and the actual timed/untimed Node/Chrome HTTP probe. The 59 server cases also remain green. This later AI seam has separate evidence from the fixed full-regression build above; see [native AI host validation](validation/native-ai-host.md).
+
 ### Verified integration work remaining
 
 - The current native selection/initial checkpoints and full journal replay support server recovery. Arbitrary in-flight/forced-switch checkpoint export and the native phase lifecycle feed remain separate open boundaries; they are not implemented by the new default entry.

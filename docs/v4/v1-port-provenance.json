@@ -279,7 +279,7 @@
       "destination": "packages/battle/src/v4/player.ts",
       "sourceBlob": "324eb0e981cc8d9983e999faff1b4cc69b5c4256",
       "sourceSha256": "69ff216cf02d4c7a460abaf4babe4a760f76249807529a13c4d4bd2d89d1de5e",
-      "portedSha256": "9114da6e22745f88fe0a5a4c9f12be100b5dd3d597df481091d749d8f16a46a7",
+      "portedSha256": "a3d89cab676a5cf81189479f7802778ee5140b6154fe1f001156dac36d0e8edc",
       "changed": true
     },
     {
@@ -495,7 +495,7 @@
       "destination": "packages/battle/src/v4/legacy/parser/player.ts",
       "sourceBlob": "e5e2fbc1819384ff7ee06ca621794f36499e1b93",
       "sourceSha256": "0e294407c5e5817a07dc1c2189c2ead0694255730ccff41030938f9a6d11ff5c",
-      "portedSha256": "fe96c2bf7a4c5ec2465789626faafc3f0a91b5d81c109c518881ba8e9230ad05",
+      "portedSha256": "9612b591899db24af2c4add78eb32a899a392f1793f69673792b0d6971f44ff5",
       "changed": true
     },
     {

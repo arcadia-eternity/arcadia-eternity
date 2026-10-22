@@ -88,8 +88,10 @@ export function createOfficialContent(data: OfficialPrototypeData, revision: str
     parametersFor: (id: string) => candidates.parameters.get(id),
     parsePlayer: (raw: unknown) => PlayerParser.parse(raw, lookup),
     /** Validate the whole creation batch before allocating any domain instances. */
-    parsePlayers(raw: readonly unknown[]): Player[] {
+    parsePlayers(raw: readonly unknown[], options: { aiPlayerIds?: readonly string[] } = {}): Player[] {
       const players = raw.map(value => PlayerSchema.parse(value))
+      const ai = new Set(options.aiPlayerIds)
+      for (const id of ai) if (!players.some(player => player.id === id)) throw new Error(`Unknown AI player: ${id}`)
       for (const player of players)
         for (const pet of player.team) {
           lookup.getSpecies(pet.species as Parameters<PrototypeLookup['getSpecies']>[0])
@@ -97,7 +99,7 @@ export function createOfficialContent(data: OfficialPrototypeData, revision: str
           if (pet.ability) lookup.getMark(pet.ability as Parameters<PrototypeLookup['getMark']>[0])
           if (pet.emblem) lookup.getMark(pet.emblem as Parameters<PrototypeLookup['getMark']>[0])
         }
-      return players.map(player => PlayerParser.parse(player, lookup))
+      return players.map(player => PlayerParser.parse(player, lookup, { ai: ai.has(player.id) }))
     },
     createBattle(playerA: Player, playerB: Player, options?: BattleOptions): Battle {
       for (const player of [playerA, playerB])

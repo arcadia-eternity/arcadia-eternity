@@ -363,7 +363,7 @@ export class AIPlayer extends Player {
     try {
       const selection = this.makeAIDecision()
       if (selection) {
-        this.setSelection(selection)
+        this.battle.setSelection(selection)
       }
     } catch (error) {
       this.battle.emitMessage(BattleMessageType.Error, {
@@ -378,7 +378,7 @@ export class AIPlayer extends Player {
     const switchActions = this.getAvailableSwitch()
     if (switchActions.length > 0) {
       const selection = this.selectRandom(switchActions)
-      this.setSelection(selection)
+      this.battle!.setSelection(selection)
     }
   }
 
@@ -388,7 +388,7 @@ export class AIPlayer extends Player {
       ...this.getAvailableSwitch(),
     ]
     const selection = this.selectRandom(availableActions)
-    this.setSelection(selection)
+    this.battle!.setSelection(selection)
   }
 
   public makeAIDecision(): PlayerSelection {

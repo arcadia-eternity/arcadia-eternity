@@ -139,6 +139,7 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
       activeAnimationRestore: expected.timed.activeAnimationRestore,
       reconnectRestore: expected.untimed.reconnectRestore && expected.timed.reconnectRestore,
       initialSnapshotRestore: expected.untimed.initialSnapshotRestore && expected.timed.initialSnapshotRestore,
+      aiRestore: expected.untimed.aiRestore && expected.timed.aiRestore,
       legacyDslRequests: forbiddenRequests.length,
     }),
   )

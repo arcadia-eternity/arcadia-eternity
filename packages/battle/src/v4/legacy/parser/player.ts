@@ -1,4 +1,4 @@
-import { Player } from '../../index'
+import { Player, AIPlayer } from '../../index'
 import { PlayerSchema } from '../schema/player'
 import { nanoid } from 'nanoid'
 import { PetParser } from './pet'
@@ -12,6 +12,7 @@ export class PlayerParser {
   static parse(
     rawData: unknown,
     repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark'> = DataRepository.getInstance(),
+    options: { ai?: boolean } = {},
   ): Player {
     let validated: ReturnType<typeof PlayerSchema.parse>
     try {
@@ -39,6 +40,8 @@ export class PlayerParser {
       }
     })
 
-    return new Player(validated.name, id as playerId, pets)
+    return options.ai
+      ? new AIPlayer(validated.name, id as playerId, pets)
+      : new Player(validated.name, id as playerId, pets)
   }
 }

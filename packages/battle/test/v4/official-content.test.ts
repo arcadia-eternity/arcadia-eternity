@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { DataRepository } from '@arcadia-eternity/battle/v4/legacy'
+import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import {
   createOfficialContent,
   AttributeSystem,
+  AIPlayer,
   BattleMessageType,
   BattleStatus,
   PhaseState,
@@ -27,14 +29,20 @@ const data: OfficialPrototypeData = {
 const revision = 'official-native/test-build-1'
 const content = () => createOfficialContent(data, revision)
 const battles: Battle[] = []
+const systems: LocalBattleSystemV4[] = []
 let baseline = 0
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 beforeEach(() => {
   baseline = AttributeSystem.getGlobalMemoryStats().totalInstances
 })
 afterEach(async () => {
+  for (const system of systems.splice(0)) await system.cleanup()
   for (const battle of battles.splice(0)) await battle.cleanup()
   expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baseline)
+  if (vi.isFakeTimers()) {
+    expect(vi.getTimerCount()).toBe(0)
+    vi.useRealTimers()
+  }
 })
 
 it('loads every native definition and wires canonical metadata without touching the legacy singleton', () => {
@@ -87,6 +95,113 @@ it('validates a whole player creation batch before allocating instances', () => 
   const [a, b] = directory.parsePlayers(input.teams)
   battles.push(directory.createBattle(a, b, { timerConfig: { enabled: false } }))
 })
+
+it('creates the existing AI class through the native content entry and accounts for its actual decisions', async () => {
+  vi.useFakeTimers()
+  const directory = content(),
+    teams = input.teams.map((team, index) => ({
+      ...structuredClone(team),
+      id: String(index).repeat(21),
+      team: team.team.map(pet => ({ ...structuredClone(pet), maxHp: 10_000, skills: ['skill_paida'] })),
+    })),
+    [a, b] = directory.parsePlayers(teams, { aiPlayerIds: [teams[1].id] }),
+    battle = directory.createBattle(a, b, {
+      rngSeed: 'native-ai/201',
+      timerConfig: { enabled: true, turnTimeLimit: 30, totalTimeLimit: 100 },
+    }),
+    system = new LocalBattleSystemV4(battle, directory)
+  battles.push(battle)
+  systems.push(system)
+  expect(a).not.toBeInstanceOf(AIPlayer)
+  expect(b).toBeInstanceOf(AIPlayer)
+  await system.ready()
+  expect(b.selection?.type).toBe('use-skill')
+  expect(battle.getActionLog()).toMatchObject([{ turn: 0, selection: b.selection }])
+  expect(await system.getPlayerTimerState(b.id)).toMatchObject({ state: 'paused', remainingTurnTime: 30 })
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(await system.getPlayerTimerState(b.id)).toMatchObject({ state: 'paused', remainingTotalTime: 100 })
+  expect(await system.getPlayerTimerState(a.id)).toMatchObject({ state: 'running', remainingTotalTime: 99 })
+  await system.submitAction((await system.getAvailableSelection(a.id)).find(action => action.type === 'use-skill')!)
+  await battle.waitForInputReady()
+  expect(battle.currentTurn).toBe(1)
+  expect(battle.isSnapshotBoundary()).toBe(true)
+  expect(battle.getActionLog().map(entry => entry.selection.player)).toEqual([b.id, a.id, b.id])
+  const saved = await system.createRuntimeSnapshot(),
+    savedState = await system.getState(undefined, true),
+    action = (await system.getAvailableSelection(a.id)).find(action => action.type === 'use-skill')!
+  await system.submitAction(action)
+  await battle.waitForInputReady()
+  const rngState = async (system: LocalBattleSystemV4) => {
+    const frame = JSON.parse((await system.createRuntimeSnapshot()).payload).battle
+    return frame.nodes[frame.nodes[frame.root.ref].fields.rngState.ref].fields
+  }
+  const expected = await system.getState(undefined, true),
+    expectedLog = battle.getActionLog(),
+    expectedRng = await rngState(system)
+  expect(expectedRng).toMatchObject({ algorithm: 'sfc32-v1' })
+  expect(expected.currentTurn).toBe(2)
+  await system.cleanup()
+  const fresh = content(),
+    [c, d] = fresh.parsePlayers(teams),
+    placeholder = fresh.createBattle(c, d)
+  battles.push(placeholder)
+  let restored: Battle | undefined
+  const target = new LocalBattleSystemV4(placeholder, {
+    snapshot: fresh.snapshot,
+    restore: data => (restored = fresh.restore(data)),
+  })
+  systems.push(target)
+  await target.restoreRuntimeSnapshot(saved)
+  expect(restored!.playerB).toBeInstanceOf(AIPlayer)
+  await target.ready()
+  expect(await target.getState(undefined, true)).toEqual(savedState)
+  expect(restored!.getActionLog()).toHaveLength(3)
+  await target.submitAction(action)
+  await restored!.waitForInputReady()
+  expect(await target.getState(undefined, true)).toEqual(expected)
+  expect(restored!.getActionLog()).toEqual(expectedLog)
+  expect(await rngState(target)).toEqual(expectedRng)
+})
+
+it('validates AI identities before allocating a native player batch', () => {
+  const directory = content()
+  expect(() => directory.parsePlayers(input.teams, { aiPlayerIds: ['foreign'] })).toThrow('Unknown AI player')
+  expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baseline)
+})
+
+for (const request of ['forced', 'faint'] as const)
+  it(`records the existing AI's ${request} switch decision and pauses its clock`, async () => {
+    vi.useFakeTimers()
+    const directory = content(),
+      teams = input.teams.map((team, index) => ({ ...structuredClone(team), id: String(index).repeat(21) })),
+      [a, b] = directory.parsePlayers(teams, { aiPlayerIds: [teams[1].id] }),
+      battle = directory.createBattle(a, b, {
+        rngSeed: `native-ai/${request}`,
+        allowFaintSwitch: true,
+        timerConfig: { enabled: true, turnTimeLimit: 30, totalTimeLimit: 100 },
+      }),
+      system = new LocalBattleSystemV4(battle, directory)
+    battles.push(battle)
+    systems.push(system)
+    if (request === 'forced') b.activePet.currentHp = 0
+    else {
+      a.activePet.currentHp = 0
+      battle.lastKiller = b
+    }
+    await system.ready()
+    const accepted = battle.getActionLog()[0]
+    expect(accepted.selection.player).toBe(b.id)
+    expect(request === 'forced' ? ['switch-pet'] : ['do-nothing', 'switch-pet']).toContain(accepted.selection.type)
+    expect(await system.getPlayerTimerState(b.id)).toMatchObject({ state: 'paused' })
+    if (request === 'faint') {
+      await system.submitAction(
+        (await system.getAvailableSelection(a.id)).find(action => action.type === 'switch-pet')!,
+      )
+      await battle.waitForInputReady()
+    }
+    expect(battle.currentTurn).toBe(0)
+    expect(battle.getActionLog().at(-1)?.selection.player).toBe(b.id)
+  })
 
 for (const invalid of [
   'duplicate',
