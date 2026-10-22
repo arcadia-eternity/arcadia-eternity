@@ -38,3 +38,13 @@ The full run used one worker and the isolated V4/legacy aliases in `/tmp/effect-
 ## Native-entry full regression (October 23)
 
 The subsequent immutable build at `384ac37b`, including the programmatic native-content entry, passed **146 files and 27,373 tests with zero failures** in 608.68 seconds. The same one-worker setup used `/tmp/effect-native-oct23/vitest.config.mjs`; temporary full log and JSON report are `full.log` and `full-results.json` in that directory. Native content construction, independent lookup, parameters and fresh-directory restoration now participate in the complete suite. The later transport/NativePackLoader work is verified separately in `native-pack-loader.md`; it changes the package integration layer outside the V4 core.
+
+## Native host and clock full regression (October 23)
+
+The fixed build at `060b618bd619951e06b3afc19f2bb26175dcc14f` passes the complete suite in one run: **148 files, 27,428 tests, zero failures or skipped tests**, in 627.86 seconds. This includes the native host adapter, enabled decision timers, active-animation/deferred-reset recovery, independent reconnect grace, and real normal/switch decision-phase timing. The subsequent public build-identity entry at `b8f9a04f` changes generated host metadata and has its separate 20 passing environment checks; it does not change engine rules or clock execution.
+
+This run archives the tracked battle source/tests, candidate ledgers and pack data, then uses an immutable bundle with explicit legacy, host and core aliases and one worker. The canonical environment runtime and identity are generated from that archived source before testing. The working checkout and later documentation/build-entry changes cannot alter the test tree. Temporary artifacts under `/tmp/effect-native-oct23-host-full/` include `revision.txt`, `vitest.config.mjs`, `build.log`, `environment-build.log`, `full.log` and `results.json`. The JSON report confirms success, 27,428 passed tests and zero failures/pending tests.
+
+The earlier attempt at `2fd14a9e` passed 147 files and 27,393 tests but failed to load the 19-case environment suite because its isolated tree lacked generated environment artifacts. Generating those artifacts made that suite pass separately. That attempt is not recorded as an all-green full run; the later complete run above supersedes it.
+
+The real Node/Chrome native-package probe separately passes timed/animated and untimed seven-turn games, fresh-directory restoration, reconnect deadline preservation/cancellation and exact game-trace comparison, with zero effect-DSL requests. Focused evidence and remaining server/client cutover gates are in `native-timer-recovery.md`, `native-battle-system.md` and the migration ledger.
