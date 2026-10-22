@@ -136,6 +136,7 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
       freshDirectoryRestore: true,
       battleSystemInterface: expected.untimed.battleSystemInterface,
       enabledTimerRestore: expected.timed.enabledTimers,
+      activeAnimationRestore: expected.timed.activeAnimationRestore,
       legacyDslRequests: forbiddenRequests.length,
     }),
   )

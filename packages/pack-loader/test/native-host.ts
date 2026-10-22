@@ -32,6 +32,7 @@ export async function verifyNativePackHost(
       },
     })
     let system = new LocalBattleSystemV4(battle, authority())
+    let savedAnimation: string | undefined
     const indexes = [0, 0],
       trace: unknown[] = [],
       errors: string[] = []
@@ -69,6 +70,8 @@ export async function verifyNativePackHost(
         void (async () => {
           if (message.type === BattleMessageType.TurnAction) {
             if (pause && current.currentTurn === 2) {
+              if (options.timed)
+                savedAnimation = await system.startAnimation('fixture/checkpoint-animation', 2000, current.playerA.id)
               reached()
               return
             }
@@ -110,8 +113,18 @@ export async function verifyNativePackHost(
         system = new LocalBattleSystemV4(battle, authority())
         observe(false)
         await system.restoreRuntimeSnapshot(saved)
+        const completedAnimations: string[] = []
+        const offAnimation = system.onTimerEvent('animationEnd', event => completedAnimations.push(event.animationId))
         await system.ready()
         running = system.waitForCompletion()
+        if (savedAnimation) {
+          await system.endAnimation(savedAnimation, 2000)
+          if (completedAnimations.length !== 1 || completedAnimations[0] !== savedAnimation)
+            throw new Error('Native host did not complete the restored animation exactly once')
+          if ((await system.getAllPlayerTimerStates()).some(timer => timer.state !== 'running'))
+            throw new Error('Native host did not finish its restored deferred timer reset')
+        }
+        offAnimation()
         await submit(0)
         await submit(1)
       }
@@ -145,6 +158,7 @@ export async function verifyNativePackHost(
     freshDirectoryRestore: true,
     battleSystemInterface: true,
     enabledTimers: options.timed ?? false,
+    activeAnimationRestore: options.timed ?? false,
     trace: baseline,
   }
 }

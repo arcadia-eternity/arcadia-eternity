@@ -38,6 +38,7 @@ export class TimerManager {
   private pendingTurnReset: { playerIds: playerId[] } | null = null
   private emitter: Emitter<TimerManagerEvents> = mitt<TimerManagerEvents>()
   private restoredPending = false
+  private restoredResetAt?: number
 
   // 追踪玩家选择状态
   private playerSelectionStatus: Map<playerId, boolean> = new Map()
@@ -48,6 +49,9 @@ export class TimerManager {
   ) {
     this.config = { ...DEFAULT_TIMER_CONFIG, ...config }
     this.animationTracker = new AnimationTracker(this.config)
+    this.animationTracker.setBeforeEndCallback(() => {
+      for (const timer of this.playerTimers.values()) timer.getState()
+    })
 
     // 设置动画超时回调
     this.animationTracker.setTimeoutCallback((animationId, ownerId) => {
@@ -60,22 +64,27 @@ export class TimerManager {
   }
 
   public assertSnapshotSafe(): void {
-    if (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset)
-      throw new Error('Snapshot of active animations/pending timer reset requires a host adapter')
+    if (!this.config.enabled && (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset))
+      throw new Error('Disabled timers cannot carry active animations')
     if (this.config.enabled) this.exportRuntimeState()
   }
 
   public exportRuntimeState(): SavedTimerRuntime {
-    if (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset)
-      throw new Error('Snapshot of active animations/pending timer reset requires a host adapter')
+    const capturedAt = Date.now()
     return readTimerRuntime(
       {
         version: 1,
-        capturedAt: Date.now(),
+        capturedAt,
         phase: this.currentPhase,
         active: this.isActive,
         selections: [...this.playerSelectionStatus],
-        players: [...this.playerTimers.values()].map(timer => timer.exportRuntimeState()),
+        players: [...this.playerTimers.values()].map(timer => timer.exportRuntimeState(capturedAt)),
+        animations: this.animationTracker.exportRuntimeState(),
+        pendingTurnReset: this.pendingTurnReset?.playerIds,
+        pendingTurnResetApplied:
+          this.pendingTurnReset && this.restoredResetAt !== undefined && this.restoredResetAt <= capturedAt
+            ? true
+            : undefined,
       },
       [this.battle.playerA, this.battle.playerB].map(player => ({ id: player.id, selected: !!player.selection })),
     )
@@ -90,13 +99,25 @@ export class TimerManager {
     this.currentPhase = saved.phase
     this.isActive = saved.active
     this.playerSelectionStatus = new Map(saved.selections.map(([id, selected]) => [id as playerId, selected]))
+    this.animationTracker.restoreRuntimeState(saved.animations ?? [])
+    const deadline = saved.animations?.length
+      ? Math.max(...saved.animations.map(animation => animation.startTime + animation.expectedDuration + 1000))
+      : undefined
+    this.pendingTurnReset = saved.pendingTurnReset
+      ? { playerIds: saved.pendingTurnReset.map(id => id as playerId) }
+      : null
+    this.restoredResetAt = saved.pendingTurnReset ? deadline : undefined
     for (const state of saved.players) {
       const timer = new BattleTimer(state.playerId as playerId, state.config)
       timer.setHasActiveAnimationsCallback(
         () => this.config.animationPauseEnabled && this.animationTracker.hasActiveAnimations(),
       )
       timer.on('timerEvent', event => this.handleTimerEvent(event))
-      timer.restoreRuntimeState(state)
+      timer.restoreRuntimeState(state, {
+        animationPauseUntil: this.config.animationPauseEnabled ? deadline : undefined,
+        resetTurnAt: saved.pendingTurnResetApplied ? undefined : this.restoredResetAt,
+        selected: this.playerSelectionStatus.get(state.playerId as playerId) ?? false,
+      })
       this.playerTimers.set(state.playerId as playerId, timer)
     }
     this.restoredPending = true
@@ -106,6 +127,19 @@ export class TimerManager {
     this.restoredPending = false
     // Bring every clock to the same recovery point before a timeout can stop its peer.
     for (const timer of this.playerTimers.values()) timer.getState()
+    const completedReset =
+      this.restoredResetAt !== undefined && this.restoredResetAt <= Date.now() ? this.pendingTurnReset : null
+    if (completedReset) this.pendingTurnReset = null
+    this.restoredResetAt = undefined
+    this.animationTracker.activateRestoredState()
+    if (completedReset)
+      this.battle.emitter.emit('timerStart', {
+        player: completedReset.playerIds,
+        turnTimeLimit: this.config.turnTimeLimit || null,
+        remainingTotalTime: Object.fromEntries(
+          completedReset.playerIds.map(id => [id, this.playerTimers.get(id)!.getState().remainingTotalTime]),
+        ),
+      })
     for (const timer of this.playerTimers.values()) timer.activateRestoredState()
     this.emitSnapshotEvent()
   }

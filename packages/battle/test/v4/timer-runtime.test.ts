@@ -49,6 +49,13 @@ async function fixture(options: Partial<TimerConfig> = {}) {
   await prompt
   return f
 }
+function resume(battle: Battle) {
+  running.push(
+    battle.resumeBattle().catch(error => {
+      if (!(error instanceof Error) || error.message !== 'Battle cancelled') throw error
+    }),
+  )
+}
 it('pauses a submitted player independently of the animation pause setting', async () => {
   const f = await fixture({ animationPauseEnabled: false })
   await vi.advanceTimersByTimeAsync(2000)
@@ -231,6 +238,229 @@ for (const corruption of [
     }
     const before = AttributeSystem.getGlobalMemoryStats().totalInstances
     expect(() => restoreBattle(saved, catalogFor(f))).toThrow()
+    expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(before)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+it('preserves an active animation identity and its original safety deadline across quiet hydration', async () => {
+  const f = await fixture()
+  const id = f.battle.startAnimation('fixture/animation', 2000, f.a.id)
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(1000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  expect(vi.getTimerCount()).toBe(0)
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(30)
+  const ended = vi.fn()
+  restored.onTimerEvent('animationEnd', ended)
+  resume(restored)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(ended).not.toHaveBeenCalled()
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(30)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(ended).toHaveBeenCalledTimes(1)
+  expect(ended.mock.calls[0][0].animationId).toBe(id)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(29)
+})
+
+it('charges only downtime after the last animation deadline and defers expiry events until resume', async () => {
+  const f = await fixture()
+  f.battle.setSelection(f.battle.getAvailableSelection(f.a.id).find(selection => selection.type === 'use-skill')!)
+  const id = f.battle.startAnimation('fixture/animation', 2000, f.b.id)
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(5000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  const ended = vi.fn()
+  restored.onTimerEvent('animationEnd', ended)
+  expect(vi.getTimerCount()).toBe(0)
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(30)
+  expect(restored.getPlayerTimerState(f.b.id)?.remainingTurnTime).toBe(28)
+  expect(ended).not.toHaveBeenCalled()
+  resume(restored)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(ended).toHaveBeenCalledTimes(1)
+  expect(ended.mock.calls[0][0].animationId).toBe(id)
+  expect(restored.getPlayerTimerState(f.b.id)?.remainingTurnTime).toBe(27)
+  restored.endAnimation(id, 2000)
+  expect(ended).toHaveBeenCalledTimes(1)
+})
+
+it('projects an overdue deferred reset once, preserving submitted players and elapsed post-reset time', async () => {
+  const f = await fixture()
+  await vi.advanceTimersByTimeAsync(2000)
+  f.battle.startAnimation('fixture/animation', 2000, f.b.id)
+  f.battle.timerManager.startNewTurn([f.a.id, f.b.id])
+  f.battle.setSelection(f.battle.getAvailableSelection(f.a.id).find(selection => selection.type === 'use-skill')!)
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(5000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  const started = vi.fn()
+  restored.onTimerEvent('timerStart', started)
+  expect(restored.getPlayerTimerState(f.a.id)).toMatchObject({
+    state: TimerState.Paused,
+    remainingTurnTime: 30,
+    remainingTotalTime: 98,
+  })
+  expect(restored.getPlayerTimerState(f.b.id)).toMatchObject({
+    state: TimerState.Running,
+    remainingTurnTime: 28,
+    remainingTotalTime: 96,
+  })
+  expect(vi.getTimerCount()).toBe(0)
+  resume(restored)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(started).toHaveBeenCalledTimes(1)
+  expect(restored.getPlayerTimerState(f.b.id)?.remainingTurnTime).toBe(27)
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(30)
+})
+
+it('waits for the last overlapping animation before completing a restored deferred reset', async () => {
+  const f = await fixture()
+  const first = f.battle.startAnimation('fixture/first', 1000, f.a.id)
+  const last = f.battle.startAnimation('fixture/last', 3000, f.b.id)
+  f.battle.timerManager.startNewTurn([f.a.id, f.b.id])
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(3000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  const ended: string[] = []
+  restored.onTimerEvent('animationEnd', event => ended.push(event.animationId))
+  expect(restored.getPlayerTimerState(f.a.id)?.state).toBe(TimerState.Paused)
+  resume(restored)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(ended).toEqual([first, last])
+  expect(restored.getPlayerTimerState(f.a.id)).toMatchObject({ state: TimerState.Running, remainingTurnTime: 30 })
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(29)
+})
+
+it('keeps charging running clocks across restored animations when animation pausing is disabled', async () => {
+  const f = await fixture({ animationPauseEnabled: false })
+  f.battle.startAnimation('fixture/animation', 10000, f.a.id)
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(3000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(27)
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('settles the final paused interval before removing the last animation', async () => {
+  const f = await fixture()
+  f.battle.startAnimation('fixture/animation', 1500, f.a.id)
+  await vi.advanceTimersByTimeAsync(2500)
+  expect(f.battle.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(30)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(f.battle.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(29)
+})
+
+it('keeps a projected deferred reset stable through a second-generation save before resume', async () => {
+  const f = await fixture()
+  await vi.advanceTimersByTimeAsync(2000)
+  f.battle.startAnimation('fixture/animation', 2000, f.a.id)
+  f.battle.timerManager.startNewTurn([f.a.id, f.b.id])
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(5000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  const next = JSON.parse(JSON.stringify(snapshotBattle(restored, catalogFor(f))))
+  const states = restored.getAllPlayerTimerStates()
+  await restored.cleanup()
+  const twice = restoreBattle(next, catalogFor(f))
+  battles.push(twice)
+  expect(twice.getAllPlayerTimerStates()).toEqual(states)
+  const started = vi.fn()
+  twice.onTimerEvent('timerStart', started)
+  resume(twice)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(twice.getPlayerTimerState(f.a.id)).toMatchObject({ remainingTurnTime: 27, remainingTotalTime: 95 })
+  expect(started).toHaveBeenCalledTimes(1)
+})
+
+it('accepts the original completion ID before a restored animation deadline', async () => {
+  const f = await fixture()
+  const id = f.battle.startAnimation('fixture/animation', 2000, f.b.id)
+  f.battle.timerManager.startNewTurn([f.a.id, f.b.id])
+  f.battle.setSelection(f.battle.getAvailableSelection(f.a.id).find(selection => selection.type === 'use-skill')!)
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(1000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  const ended = vi.fn()
+  restored.onTimerEvent('animationEnd', ended)
+  resume(restored)
+  await vi.advanceTimersByTimeAsync(0)
+  restored.endAnimation(id, 1000)
+  expect(ended).toHaveBeenCalledTimes(1)
+  expect(restored.getPlayerTimerState(f.a.id)).toMatchObject({ state: TimerState.Paused, remainingTurnTime: 30 })
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(restored.getPlayerTimerState(f.b.id)?.remainingTurnTime).toBe(29)
+})
+
+it('does not schedule an animation removed by a completion observer during activation', async () => {
+  const f = await fixture()
+  const first = f.battle.startAnimation('fixture/first', 1000, f.a.id)
+  const last = f.battle.startAnimation('fixture/last', 3000, f.b.id)
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  await f.battle.cleanup()
+  await vi.advanceTimersByTimeAsync(3000)
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  restored.onTimerEvent('animationEnd', event => {
+    if (event.animationId === first) restored.endAnimation(last, 3000)
+  })
+  resume(restored)
+  await vi.advanceTimersByTimeAsync(0)
+  expect(vi.getTimerCount()).toBe(2) // The two player intervals; neither animation still has a timeout.
+})
+
+it('reads the enabled timer snapshot shape published before animation state was added', async () => {
+  const f = await fixture()
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+  const runtime = saved.nodes[saved.nodes[saved.root.ref].fields.timerRuntime.ref]
+  delete runtime.fields.animations
+  delete runtime.fields.pendingTurnReset
+  delete runtime.fields.pendingTurnResetApplied
+  await f.battle.cleanup()
+  const restored = restoreBattle(saved, catalogFor(f))
+  battles.push(restored)
+  expect(restored.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(30)
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+for (const corruption of ['foreign-owner', 'duplicate-animation', 'reset-without-animations', 'future-start'] as const)
+  it(`rejects invalid animation runtime without timers or registrations: ${corruption}`, async () => {
+    const f = await fixture()
+    f.battle.startAnimation('fixture/animation', 2000, f.a.id)
+    f.battle.timerManager.startNewTurn([f.a.id, f.b.id])
+    const saved = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalogFor(f))))
+    await f.battle.cleanup()
+    const root = saved.nodes[saved.root.ref]
+    const runtime = saved.nodes[root.fields.timerRuntime.ref]
+    const animations = saved.nodes[runtime.fields.animations.ref]
+    const first = saved.nodes[animations.fields['0'].ref]
+    if (corruption === 'foreign-owner') first.fields.ownerId = 'foreign'
+    if (corruption === 'future-start') first.fields.startTime = Date.now() + 1000
+    if (corruption === 'duplicate-animation') {
+      animations.fields['1'] = animations.fields['0']
+    }
+    if (corruption === 'reset-without-animations') {
+      delete animations.fields['0']
+    }
+    const before = AttributeSystem.getGlobalMemoryStats().totalInstances
+    expect(() => restoreBattle(saved, catalogFor(f))).toThrow(
+      corruption === 'reset-without-animations' ? 'Invalid pending timer reset' : 'Invalid timer animation',
+    )
     expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(before)
     expect(vi.getTimerCount()).toBe(0)
   })

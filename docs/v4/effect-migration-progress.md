@@ -14,7 +14,7 @@ The `createOfficialContent` entry wires current metadata to TypeScript implement
 
 The native Battle now has an `IBattleSystem` adapter at `@arcadia-eternity/battle/v4/host`. Nine lifecycle/view/recovery cases pass, including partial selections, source-identity protection and concurrent restore/cleanup; 28 related regression checks pass. The real Chrome/Node probe now drives this same interface, including its runtime snapshot envelope. See [native battle-system evidence](validation/native-battle-system.md).
 
-Enabled timers now restore at the existing normal-selection boundary without resetting accepted actions or remaining time. Hydration stays quiet until resume; running clocks account for recovery downtime while submitted players stay paused. Sixteen timer cases and 44 related checks pass, and the Node/Chrome probe passes both timed and untimed fresh-directory continuation. See [timer recovery evidence](validation/native-timer-recovery.md). Active-animation recovery and the remaining host controls still gate the application/server default cutover.
+Enabled timers, active animations and deferred timer resets now restore at the existing normal-selection boundary. Hydration stays quiet until resume; running clocks account for elapsed time after the original animation deadline while submitted players stay paused. Thirty timer cases and 58 related checks pass, and the Node/Chrome probe passes timed animation/reset recovery and untimed fresh-directory continuation. See [timer recovery evidence](validation/native-timer-recovery.md). Forced-switch/in-flight checkpoints and the remaining host controls still gate the application/server default cutover.
 
 ## Evidence as of 2026-10-20
 

@@ -20,4 +20,16 @@ Validation on October 23:
 
 Temporary run artifacts: `/tmp/effect-native-oct23/timer-baseline-red.log`, `timer-animation-reset-red.log`, `timer-scoped-final.log`, `timer-types.log`, `timer-test-types.log`, `timer-lint-final.log`, `timer-declarations.log` and `timed-native-browser-final.log`.
 
-Snapshots still reject active animations and deferred timer resets. Forced-switch/in-flight checkpoints, phase/reconnection host controls and default application/server routing remain open migration work. Enabled timer support at the existing boundary does not close those gates.
+## Active animations and deferred resets
+
+Selection checkpoints now also preserve active animation IDs, owners, sources, start times and original safety deadlines, plus a deferred turn reset. Restoring creates no animation timeouts. Resume expires overdue animations once and schedules the remaining portion of future deadlines. The host can complete an animation using its original ID; a late duplicate completion is harmless.
+
+Quiet timer reads project elapsed time against the last overlapping animation deadline. A deferred reset takes effect at that deadline, retaining submitted players' pause and charging only later running time. An explicit saved marker prevents a projected reset from running twice if the host saves again before resuming. Older enabled-timer snapshots without animation fields still load. Animation identity, ownership, timestamps and pending-reset references are validated before resource creation.
+
+Fourteen additional cases bring the timer suite to 30 checks and the related run to **58 passing tests**. The initial five active-animation cases failed against the prior rejection boundary. Subsequent red cases exposed the final paused-interval charge and double charging through a second-generation save; both now pass. The suite also covers overlapping deadlines, early/late acknowledgements, disabled animation pausing, a completion observer removing another animation, the earlier enabled snapshot shape and four malformed animation states. Cleanup checks remain in every timer case.
+
+The real Node/Chrome timed probe now starts an animation before the actual selection-phase timer reset, saves with that reset deferred, reloads a fresh native content directory and completes the original animation exactly once through `IBattleSystem`. Both player clocks resume and the entire game trace matches the uninterrupted game. The bundle has 514 modules and makes zero legacy effect-DSL requests. V4 source/test types, package declarations, pack fixture types, lint and formatting pass.
+
+Additional temporary artifacts: `active-animation-red.log`, `active-animation-projection-red.log`, `active-animation-final.log`, `active-animation-browser.log`, `animation-types-final.log`, `animation-lint-final.log` and `animation-declarations-final.log` under the same temporary directory.
+
+Forced-switch/in-flight checkpoints, phase/reconnection host controls and default application/server routing remain open migration work. This extends timer recovery at the existing selection boundary.
