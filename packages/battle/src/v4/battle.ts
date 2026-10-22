@@ -397,6 +397,7 @@ export class Battle extends Context implements MarkOwner {
     } finally {
       // 无论成功还是失败，都要清除启动标志
       this._isStarting = false
+      this.resolveInputReady()
     }
   }
 
@@ -421,6 +422,7 @@ export class Battle extends Context implements MarkOwner {
       throw error
     } finally {
       this._isStarting = false
+      this.resolveInputReady()
     }
   }
   private restoredSelection = false
@@ -644,7 +646,23 @@ export class Battle extends Context implements MarkOwner {
   private waitingResolvers: {
     switchSelections?: { players: Player[]; resolve: () => void }
     bothPlayersReady?: { resolve: () => void }
+    inputReady?: Set<() => void>
   } = {}
+
+  /** Wait for a decision phase to establish its input wait, or for execution to end. */
+  public async waitForInputReady(): Promise<void> {
+    this.assertRunning()
+    if (this.waitingResolvers.bothPlayersReady || this.waitingResolvers.switchSelections || this.isBattleEnded()) return
+    return new Promise<void>(resolve => {
+      ;(this.waitingResolvers.inputReady ??= new Set()).add(resolve)
+    })
+  }
+
+  private resolveInputReady(): void {
+    const resolvers = this.waitingResolvers.inputReady
+    delete this.waitingResolvers.inputReady
+    for (const resolve of resolvers ?? []) resolve()
+  }
 
   public async waitForSwitchSelections(players: Player[]): Promise<void> {
     this.assertRunning()
@@ -682,6 +700,7 @@ export class Battle extends Context implements MarkOwner {
         players,
         resolve,
       }
+      this.resolveInputReady()
     })
   }
 
@@ -702,6 +721,7 @@ export class Battle extends Context implements MarkOwner {
       this.waitingResolvers.bothPlayersReady = {
         resolve,
       }
+      this.resolveInputReady()
     })
   }
 
@@ -750,6 +770,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   private resolveWaiting(): void {
+    this.resolveInputReady()
     const waiting = this.waitingResolvers
     this.waitingResolvers = {}
     waiting.bothPlayersReady?.resolve()

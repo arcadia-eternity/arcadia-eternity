@@ -641,7 +641,7 @@
       "historicalPath": "packages/battle/src/battle.ts",
       "importedPath": "packages/battle/src/v4/battle.ts",
       "historicalSha256": "5399127be5fd0a3b234e2c11509aaa8088058b7b5391d6b3bfbd010fc5825d63",
-      "importedSha256": "170f204e62775b955f652a0b116bb22d65a549dec7a9bd69a854999f0981f375",
+      "importedSha256": "4cfcc244305d93a592b16de3daca26ed8e30b5b6e06b18b1706cc1b470bf5a71",
       "evidence": {
         "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
         "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
@@ -671,8 +671,8 @@
         "useSkillContext": { "historicalLines": [], "importedLines": [] },
         "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
         "temporaryEffects": { "historicalLines": [], "importedLines": [] },
-        "clearTemporaryEffects": { "historicalLines": [663, 669, 672], "importedLines": [618, 620, 621] },
-        "cleanupPhaseEffects": { "historicalLines": [660], "importedLines": [617] }
+        "clearTemporaryEffects": { "historicalLines": [663, 669, 672], "importedLines": [620, 622, 623] },
+        "cleanupPhaseEffects": { "historicalLines": [660], "importedLines": [619] }
       }
     },
     {

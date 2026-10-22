@@ -977,14 +977,17 @@ describe('ClusterBattleService native bootstrap persistence', () => {
       const f = fixture(),
         source = await f.create(),
         bootstrap = await readBootstrap(f)
-      const actions = await source.getAvailableSelection(a as playerId)
+      const originalState = await source.getState(undefined, true)
+      expect(originalState.players.flatMap(player => player.team?.flatMap(pet => pet.skills ?? []) ?? [])).toHaveLength(
+        4,
+      )
       await drop(f)
       if (mirror) await f.client.del(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id))
       vi.spyOn(f.internals, 'startBattleAsync').mockResolvedValue(undefined)
       expect(await f.service.recoverLocalBattleRuntime(id)).toBe(true)
       const restored = f.service.getLocalBattle(id)!
       expect(restored).toBeInstanceOf(LocalBattleSystemV4)
-      expect(await restored.getAvailableSelection(a as playerId)).toEqual(actions)
+      expect(await restored.getState(undefined, true)).toEqual(originalState)
       expect((await readBootstrap(f)).initial).toEqual(bootstrap.initial)
     })
   it('refuses publication if both native bootstrap stores fail', async () => {
@@ -1008,6 +1011,20 @@ describe('ClusterBattleService native bootstrap persistence', () => {
       expect(f.service.getLocalBattle(id)).toBeUndefined()
       expect(await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id))).toBe(raw)
     })
+  for (const failure of ['ready', 'getState'] as const)
+    it(`retains the original journal if native startup fails at ${failure}`, async () => {
+      const f = fixture()
+      await f.create()
+      const raw = await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id))
+      await drop(f)
+      const failing = vi
+        .spyOn(LocalBattleSystemV4.prototype, failure)
+        .mockRejectedValueOnce(new Error('Startup failed'))
+      expect(await f.service.recoverLocalBattleRuntime(id)).toBe(false)
+      expect(f.service.getLocalBattle(id)).toBeUndefined()
+      expect(await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id))).toBe(raw)
+      failing.mockRestore()
+    })
   it('restores a usable latest native checkpoint without repeating the accepted action', async () => {
     const f = fixture(),
       source = await f.create()
@@ -1028,7 +1045,6 @@ describe('ClusterBattleService native bootstrap persistence', () => {
     expect(await f.internals.readBattleRuntimeWorldSnapshot(id)).toMatchObject(latest)
     await drop(f)
     const restoring = vi.spyOn(LocalBattleSystemV4.prototype, 'restoreRuntimeSnapshot')
-    vi.spyOn(f.internals, 'startBattleAsync').mockResolvedValue(undefined)
     expect(await f.service.recoverLocalBattleRuntime(id)).toBe(true)
     expect(restoring).toHaveBeenCalledTimes(1)
     expect(restoring.mock.calls[0][0].payload).toBe(latest.payload)
@@ -1037,6 +1053,60 @@ describe('ClusterBattleService native bootstrap persistence', () => {
     expect(await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR(id))).toBe('1')
     restoring.mockRestore()
   })
+  for (const checkpoint of ['initial', 'latest', 'corrupt', 'automatic'] as const)
+    it(`replays a real multi-turn native journal from ${checkpoint} with the original state and RNG`, async () => {
+      const f = fixture(),
+        source = await f.create()
+      if (checkpoint !== 'automatic')
+        vi.spyOn(f.internals, 'persistBattleRuntimeWorldSnapshot').mockResolvedValue(undefined)
+      await f.service.handleLocalReady(id, a)
+      await f.service.handleLocalReady(id, b)
+      await source.ready()
+      const actions = await Promise.all(
+        [a, b].map(
+          async player =>
+            (await source.getAvailableSelection(player as playerId)).find(selection => selection.type === 'use-skill')!,
+        ),
+      )
+      for (let index = 0; index < 5; index++) {
+        const action = actions[index % 2]
+        await f.service.handleLocalPlayerSelection(id, action.player, action)
+        if (index === 2 && (checkpoint === 'latest' || checkpoint === 'corrupt')) {
+          const saved = await source.createRuntimeSnapshot!()
+          await f.client.setex(
+            REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(id),
+            60,
+            JSON.stringify({
+              ...saved,
+              payload: checkpoint === 'corrupt' ? '{' : saved.payload,
+              actionSeq: 3,
+              capturedAt: Date.now(),
+            }),
+          )
+        }
+      }
+      const expected = await source.getState(undefined, true),
+        expectedFrame = JSON.parse((await source.createRuntimeSnapshot!()).payload).battle
+      expect(expected.currentTurn).toBe(2)
+      if (checkpoint === 'automatic') {
+        await f.internals.persistBattleRuntimeWorldSnapshot(id, source, BattleMessageType.TurnAction)
+        expect(await f.internals.readBattleRuntimeWorldSnapshot(id)).toMatchObject({
+          format: 'arcadia.battle.native.v4',
+          actionSeq: 5,
+        })
+      }
+      await drop(f)
+      expect(await f.service.recoverLocalBattleRuntime(id)).toBe(true)
+      const restored = f.service.getLocalBattle(id)!,
+        frame = JSON.parse((await restored.createRuntimeSnapshot!()).payload).battle
+      expect(await restored.getState(undefined, true)).toEqual(expected)
+      const expectedRng = expectedFrame.nodes[expectedFrame.nodes[expectedFrame.root.ref].fields.rngState.ref].fields,
+        restoredRng = frame.nodes[frame.nodes[frame.root.ref].fields.rngState.ref].fields
+      expect(expectedRng).toMatchObject({ algorithm: 'sfc32-v1' })
+      expect(restoredRng).toEqual(expectedRng)
+      expect(await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR(id))).toBe('5')
+      expect(Object.keys(frame.nodes[frame.nodes[frame.root.ref].fields.actionLog.ref].fields)).toHaveLength(5)
+    })
   it('uses the initial state before replay when an inflight baseline predates the latest native snapshot', async () => {
     const f = fixture(),
       source = await f.create(),

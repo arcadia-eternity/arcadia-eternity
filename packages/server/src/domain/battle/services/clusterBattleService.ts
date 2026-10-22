@@ -2137,7 +2137,11 @@ export class ClusterBattleService implements IBattleService {
           'Recovered runtime at terminal snapshot boundary, skipping battle loop restart',
         )
       } else {
-        if (native) await this.startBattleAsync(roomId, runtime.data, { preserveReconnectGrace: true })
+        if (native)
+          await this.startBattleAsync(roomId, runtime.data, {
+            preserveReconnectGrace: true,
+            preserveRuntimeJournal: true,
+          })
         else await this.startBattleAsync(roomId, runtime.data)
       }
 
@@ -2280,7 +2284,7 @@ export class ClusterBattleService implements IBattleService {
   private async startBattleAsync(
     roomId: string,
     localRoom: LocalBattleRoomData,
-    options?: { preserveReconnectGrace?: boolean },
+    options?: { preserveReconnectGrace?: boolean; preserveRuntimeJournal?: boolean },
   ): Promise<void> {
     try {
       await startLocalBattleRuntime(logger, roomId, localRoom, async () => {
@@ -2288,6 +2292,8 @@ export class ClusterBattleService implements IBattleService {
         const { resourceLoadingManager } = await import('../../../resourceLoadingManager')
         await resourceLoadingManager.waitForResourcesReady()
       })
+      // Native ready observes the first input boundary; subsequent calls expose asynchronous startup faults.
+      if (localRoom.runtimeIdentity?.kind === 'native-v4') await localRoom.battle.getState()
 
       const runtime = this.runtimeHost.getInstance(roomId)
       if (runtime && !options?.preserveReconnectGrace) {
@@ -2299,7 +2305,7 @@ export class ClusterBattleService implements IBattleService {
       logger.error({ error, roomId }, 'Battle ended with error')
 
       localRoom.status = 'ended'
-      await this.cleanupLocalRoom(roomId)
+      await this.cleanupLocalRoom(roomId, { removeRuntimeArtifacts: !options?.preserveRuntimeJournal })
 
       // 重新抛出错误，让调用方的 catch 处理
       throw error

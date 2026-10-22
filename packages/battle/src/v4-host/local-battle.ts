@@ -23,6 +23,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   private readonly subscriptions = new Set<Subscription>()
   private readonly expectedStops = new WeakSet<Battle>()
   private running?: Promise<void>
+  private readiness?: Promise<void>
   private restoring?: Promise<void>
   private cleanupTask?: Promise<void>
   private started = false
@@ -63,7 +64,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   }
   async ready(): Promise<void> {
     this.assertOpen()
-    if (this.started) return
+    if (this.started) return this.readiness
     this.started = true
     const battle = this.battle
     this.running = (this.resume ? battle.resumeBattle() : battle.startBattle()).catch(error => {
@@ -73,6 +74,13 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     })
     this.resume = false
     this.reconnect.activate()
+    this.readiness = this.waitForInputReady()
+    await this.readiness.catch(error => {
+      if (!this.failure) throw error
+    })
+  }
+  private async waitForInputReady(): Promise<void> {
+    await Promise.race([this.battle.waitForInputReady(), this.running])
   }
   /** Observe the current execution without making ready() block the host's action loop. */
   async waitForCompletion(): Promise<void> {
@@ -92,7 +100,13 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   }
   async submitAction(selection: PlayerSelection): Promise<void> {
     this.assertOpen()
+    if (this.started) {
+      await this.waitForInputReady()
+      this.assertOpen()
+    }
+    if (this.battle.status === BattleStatus.Ended) throw new Error('Native battle has ended')
     if (!this.battle.setSelection(selection)) throw new Error('Invalid native battle selection')
+    if (selection.type === 'surrender') this.battle.abandonPlayer(selection.player)
   }
   BattleEvent(callback: (message: BattleMessage) => void, options?: NativeMessageView): () => void {
     // Each registration gets a distinct identity, even when the callback is reused across views.
@@ -199,6 +213,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
       this.battle = restored
       this.reconnect.restore(windows)
       this.running = undefined
+      this.readiness = undefined
       this.failure = undefined
       this.started = false
       this.resume = restored.status === BattleStatus.OnBattle

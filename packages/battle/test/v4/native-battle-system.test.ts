@@ -62,6 +62,47 @@ function nextPrompt(system: LocalBattleSystemV4) {
   })
 }
 
+it('resolves concurrent readiness calls at an actual input boundary', async () => {
+  const f = fixture()
+  await Promise.all([f.system.ready(), f.system.ready()])
+  expect(f.battle.isSnapshotBoundary()).toBe(true)
+  expect(f.battle.getAvailableSelection(f.a.id).some(action => action.type === 'use-skill')).toBe(true)
+})
+
+it('accepts a multi-turn journal without host polling or waiting for prompt messages', async () => {
+  const f = fixture()
+  await f.system.ready()
+  const actions = [f.a, f.b].map(player => ({
+    player: player.id,
+    type: 'use-skill' as const,
+    skill: player.activePet.skills[0].id,
+    target: player.activePet.skills[0].target,
+  }))
+  for (let turn = 0; turn < 3; turn++) {
+    for (const action of actions) await f.system.submitAction(action)
+  }
+  // The next accepted action proves the third turn has finished and its input phase is ready.
+  await f.system.submitAction(actions[0])
+  expect((await f.system.getState()).currentTurn).toBe(3)
+  expect(f.battle.getActionLog().map(entry => entry.turn)).toEqual([0, 0, 1, 1, 2, 2, 3])
+})
+
+it('ends immediately on one surrender without waiting for a peer selection', async () => {
+  const f = fixture(),
+    ended = vi.fn()
+  f.system.BattleEvent(message => {
+    if (message.type === BattleMessageType.BattleEnd) ended(message.data)
+  })
+  await f.system.ready()
+  await f.system.submitAction({ type: 'surrender', player: f.a.id })
+  expect((await f.system.getState()).status).toBe(BattleStatus.Ended)
+  await f.system.waitForCompletion()
+  expect(ended).toHaveBeenCalledExactlyOnceWith({ winner: f.b.id, reason: 'surrender' })
+  expect(f.battle.getActionLog()).toMatchObject([{ selection: { type: 'surrender', player: f.a.id } }])
+  await expect(f.system.submitAction({ type: 'surrender', player: f.b.id })).rejects.toThrow()
+  expect(ended).toHaveBeenCalledTimes(1)
+})
+
 it('starts once, forwards view-filtered state and rejects invalid submissions', async () => {
   const f = fixture(),
     ready = nextPrompt(f.system),
@@ -351,4 +392,19 @@ it('continues reading the original version-one native runtime envelope', async (
   await fresh.system.ready()
   expect((await fresh.system.getState()).status).toBe(BattleStatus.OnBattle)
   expect(vi.getTimerCount()).toBe(0)
+})
+
+it('activates an expired restored decision clock before allowing an immediate submission', async () => {
+  const f = await timedFixture({ enabled: true, totalTimeLimit: 1, turnTimeLimit: 30 }),
+    action = (await f.system.getAvailableSelection(f.a.id)).find(selection => selection.type === 'use-skill')!,
+    saved = await f.system.createRuntimeSnapshot()
+  await f.system.cleanup()
+  await vi.advanceTimersByTimeAsync(1000)
+  const fresh = fixture({ enabled: true, totalTimeLimit: 1, turnTimeLimit: 30 })
+  await fresh.system.restoreRuntimeSnapshot(saved)
+  await fresh.system.ready()
+  await expect(fresh.system.submitAction(action)).rejects.toThrow('ended')
+  await fresh.system.waitForCompletion()
+  expect((await fresh.system.getState()).status).toBe(BattleStatus.Ended)
+  expect(fresh.restored!.getActionLog()).toHaveLength(0)
 })
