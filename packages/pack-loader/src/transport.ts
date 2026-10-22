@@ -1,0 +1,636 @@
+import type { AssetManifest } from '@arcadia-eternity/schema'
+import type { resolvePackLoadOrder } from '@arcadia-eternity/battle/pack'
+import type { AssetConflict, PackLoaderOptions, PackLockfile, V2DataPackManifest } from './types'
+import YAML from 'yaml'
+
+export type AssetLoadRecord = {
+  manifest: AssetManifest
+  url: string
+  raw: string
+}
+
+type HttpResolvedPack = {
+  manifest: V2DataPackManifest
+  manifestUrl: string
+  manifestRaw: string
+  dataRoot: URL
+}
+
+/** Manifest, asset and lockfile transport shared by runtime-specific loaders. */
+export class PackTransport {
+  protected async resolveHttpPackLoadOrder(
+    entryManifestUrl: string,
+    options: PackLoaderOptions,
+    errors: string[],
+  ): Promise<{ order: HttpResolvedPack[]; entry: HttpResolvedPack }> {
+    const continueOnError = options.continueOnError ?? false
+    const state = new Map<string, 'visiting' | 'done'>()
+    const resolved = new Map<string, HttpResolvedPack>()
+    const order: HttpResolvedPack[] = []
+
+    const visit = async (
+      manifestUrlInput: string,
+      context?: {
+        fromManifestId?: string
+        expectedId?: string
+        optional?: boolean
+      },
+    ): Promise<void> => {
+      const manifestUrl = this.toAbsoluteHttpUrl(this.resolveManifestUrl(manifestUrlInput))
+      const currentState = state.get(manifestUrl)
+      if (currentState === 'done') {
+        const manifest = resolved.get(manifestUrl)!.manifest
+        if (context?.expectedId && manifest.id !== context.expectedId) {
+          const message = `pack id mismatch (${manifestUrl}): expected '${context.expectedId}', got '${manifest.id}'`
+          if (context.optional || continueOnError) {
+            errors.push(message)
+            return
+          }
+          throw new Error(message)
+        }
+        return
+      }
+      if (currentState === 'visiting') {
+        const message = `pack dependency cycle detected: ${manifestUrl}`
+        if (context?.optional || continueOnError) {
+          errors.push(message)
+          return
+        }
+        throw new Error(message)
+      }
+
+      state.set(manifestUrl, 'visiting')
+
+      let manifestRaw: string
+      let manifest: V2DataPackManifest
+      try {
+        manifestRaw = await this.fetchText(manifestUrl)
+        manifest = JSON.parse(manifestRaw) as V2DataPackManifest
+      } catch (error) {
+        state.delete(manifestUrl)
+        const message = `pack manifest load error (${manifestUrl}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'}`
+        if (context?.optional || continueOnError) {
+          errors.push(message)
+          return
+        }
+        throw new Error(message, { cause: error })
+      }
+
+      if (context?.expectedId && manifest.id !== context.expectedId) {
+        state.delete(manifestUrl)
+        const message = `pack id mismatch (${manifestUrl}): expected '${context.expectedId}', got '${manifest.id}'`
+        if (context.optional || continueOnError) {
+          errors.push(message)
+          return
+        }
+        throw new Error(message)
+      }
+
+      for (const dep of manifest.dependencies ?? []) {
+        const depManifestUrl = this.resolveHttpDependencyManifestUrl(dep.path, manifestUrl)
+        try {
+          await visit(depManifestUrl, {
+            fromManifestId: manifest.id,
+            expectedId: dep.id,
+            optional: dep.optional,
+          })
+        } catch (error) {
+          if (dep.optional || continueOnError) {
+            const message = `pack dependency warning (${manifest.id} -> ${dep.path}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'}`
+            errors.push(message)
+            continue
+          }
+          throw error
+        }
+      }
+
+      const item: HttpResolvedPack = {
+        manifest,
+        manifestUrl,
+        manifestRaw,
+        dataRoot: this.resolveDirectoryUrl(manifest.paths?.dataDir ?? '.', manifestUrl),
+      }
+      resolved.set(manifestUrl, item)
+      order.push(item)
+      state.set(manifestUrl, 'done')
+    }
+
+    await visit(entryManifestUrl)
+    const normalizedEntryManifestUrl = this.toAbsoluteHttpUrl(this.resolveManifestUrl(entryManifestUrl))
+    const entry = resolved.get(normalizedEntryManifestUrl)
+    if (!entry) {
+      throw new Error(`Failed to resolve entry pack manifest: ${normalizedEntryManifestUrl}`)
+    }
+
+    return { order, entry }
+  }
+
+  protected resolveHttpDependencyManifestUrl(dependencyPath: string, manifestUrl: string): string {
+    if (dependencyPath.startsWith('http://') || dependencyPath.startsWith('https://')) {
+      return this.resolveManifestUrl(dependencyPath)
+    }
+    const normalized = dependencyPath.endsWith('.json')
+      ? dependencyPath
+      : `${dependencyPath.replace(/\/+$/, '')}/pack.json`
+    return new URL(normalized, manifestUrl).toString()
+  }
+
+  protected async loadAssetsFromManifest(
+    manifest: V2DataPackManifest,
+    manifestUrl: string,
+    options: PackLoaderOptions,
+    errors: string[],
+  ): Promise<{ records: AssetLoadRecord[]; conflicts: AssetConflict[] }> {
+    if (!manifest.assetsRef) return { records: [], conflicts: [] }
+    const continueOnError = options.continueOnError ?? false
+    const refs = Array.isArray(manifest.assetsRef) ? manifest.assetsRef : [manifest.assetsRef]
+    const loaded: AssetLoadRecord[] = []
+    const visited = new Set<string>()
+    const stack = new Set<string>()
+
+    const walk = async (assetRef: string, relativeToUrl: string): Promise<void> => {
+      const url = this.resolveAssetManifestUrl(assetRef, relativeToUrl)
+      if (stack.has(url)) {
+        const message = `asset manifest cycle detected: ${[...stack, url].join(' -> ')}`
+        if (!continueOnError) throw new Error(message)
+        errors.push(message)
+        return
+      }
+      if (visited.has(url)) return
+      stack.add(url)
+      try {
+        const assetManifestRaw = await this.fetchText(url)
+        const assetManifest = JSON.parse(assetManifestRaw) as AssetManifest
+        const dependencies = assetManifest.dependencies ?? []
+        for (const depRef of dependencies) {
+          await walk(depRef, url)
+        }
+        const normalized: AssetManifest = {
+          ...assetManifest,
+          assets: assetManifest.assets.map(entry => ({
+            ...entry,
+            uri: this.resolveAssetUri(entry.uri, url),
+          })),
+        }
+        loaded.push({ manifest: normalized, url, raw: assetManifestRaw })
+        visited.add(url)
+      } catch (error) {
+        const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'}`
+        if (!continueOnError) throw error
+        errors.push(message)
+      } finally {
+        stack.delete(url)
+      }
+    }
+
+    for (const ref of refs) {
+      await walk(ref, manifestUrl)
+    }
+
+    const conflicts = this.detectAssetConflicts(loaded)
+    return { records: loaded, conflicts }
+  }
+
+  protected detectAssetConflicts(loaded: AssetLoadRecord[]): AssetConflict[] {
+    const conflicts: AssetConflict[] = []
+    const assetUriById = new Map<string, string>()
+    const mappingByScope = {
+      species: new Map<string, string>(),
+      marks: new Map<string, string>(),
+      skills: new Map<string, string>(),
+    }
+
+    for (const item of loaded) {
+      const { manifest, url } = item
+      for (const asset of manifest.assets) {
+        const previous = assetUriById.get(asset.id)
+        if (previous !== undefined && previous !== asset.uri) {
+          conflicts.push({
+            kind: 'assetUri',
+            scope: 'assets',
+            key: asset.id,
+            previous,
+            next: asset.uri,
+            manifestId: manifest.id,
+            manifestVersion: manifest.version,
+            manifestUrl: url,
+          })
+        }
+        assetUriById.set(asset.id, asset.uri)
+      }
+
+      const mappingSources: Array<{
+        scope: 'species' | 'marks' | 'skills'
+        mapping?: Record<string, string>
+      }> = [
+        { scope: 'species', mapping: manifest.mappings?.species },
+        { scope: 'marks', mapping: manifest.mappings?.marks },
+        { scope: 'skills', mapping: manifest.mappings?.skills },
+      ]
+      for (const source of mappingSources) {
+        if (!source.mapping) continue
+        const scoped = mappingByScope[source.scope]
+        for (const [key, next] of Object.entries(source.mapping)) {
+          const previous = scoped.get(key)
+          if (previous !== undefined && previous !== next) {
+            conflicts.push({
+              kind: 'mapping',
+              scope: source.scope,
+              key,
+              previous,
+              next,
+              manifestId: manifest.id,
+              manifestVersion: manifest.version,
+              manifestUrl: url,
+            })
+          }
+          scoped.set(key, next)
+        }
+      }
+    }
+    return conflicts
+  }
+
+  protected resolveManifestUrl(packRef: string): string {
+    return packRef.endsWith('.json') ? packRef : `${packRef.replace(/\/+$/, '')}/pack.json`
+  }
+
+  protected async resolveNodePackPath(packRef: string): Promise<string> {
+    const { resolvePackPathFromRef } = await this.importNodePackResolver()
+    return resolvePackPathFromRef(packRef)
+  }
+
+  protected async loadLockfileFromNodeFs(
+    packPath: string,
+    options: PackLoaderOptions,
+  ): Promise<PackLockfile | undefined> {
+    const continueOnError = options.continueOnError ?? false
+    const [{ dirname, resolve }, { readFile }] = await Promise.all([import('node:path'), import('node:fs/promises')])
+    const lockfilePath = resolve(dirname(packPath), 'pack-lock.yaml')
+    try {
+      const raw = await readFile(lockfilePath, 'utf8')
+      return this.parseLockfile(raw, lockfilePath)
+    } catch (error) {
+      if (!this.isMissingFileError(error)) {
+        if (!continueOnError) throw error
+      }
+      return undefined
+    }
+  }
+
+  protected async loadLockfileFromHttp(
+    manifestUrl: string,
+    options: PackLoaderOptions,
+    errors: string[],
+  ): Promise<PackLockfile | undefined> {
+    const continueOnError = options.continueOnError ?? false
+    const lockfileUrl = new URL('pack-lock.yaml', manifestUrl).toString()
+    try {
+      const raw = await this.fetchText(lockfileUrl)
+      return this.parseLockfile(raw, lockfileUrl)
+    } catch (error) {
+      if (this.isMissingHttpError(error)) return undefined
+      const message = `pack lockfile load error (${lockfileUrl}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'}`
+      if (!continueOnError) throw new Error(message, { cause: error })
+      errors.push(message)
+      return undefined
+    }
+  }
+
+  protected parseLockfile(raw: string, source: string): PackLockfile {
+    const parsed = YAML.parse(raw) as PackLockfile & { generatedAt?: unknown }
+    const generatedAtValue: unknown = parsed?.generatedAt
+    const generatedAt =
+      typeof generatedAtValue === 'string'
+        ? generatedAtValue
+        : generatedAtValue instanceof Date
+          ? generatedAtValue.toISOString()
+          : undefined
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      parsed.lockfileVersion !== 1 ||
+      generatedAt === undefined ||
+      typeof parsed.importers !== 'object' ||
+      parsed.importers === null ||
+      typeof parsed.packages !== 'object' ||
+      parsed.packages === null
+    ) {
+      throw new Error(`Invalid pack lockfile: ${source}`)
+    }
+    return {
+      ...parsed,
+      generatedAt,
+    }
+  }
+
+  protected async validateLockfile(
+    lockfile: PackLockfile | undefined,
+    context: {
+      pack: V2DataPackManifest | undefined
+      packSource: string
+      packRaw: string
+      assets: AssetLoadRecord[]
+    },
+  ): Promise<string[]> {
+    const { pack, packSource, packRaw, assets } = context
+    if (!lockfile || !pack) return []
+    const issues: string[] = []
+    const importer = lockfile.importers['.']
+    if (!importer) {
+      issues.push("lockfile missing root importer '.'")
+      return issues
+    }
+
+    const rootDependency = importer.dependencies?.[pack.id]
+    const rootSnapshot = rootDependency?.packageKey
+      ? lockfile.packages[rootDependency.packageKey]
+      : this.findPackageSnapshot(lockfile, pack.id, pack.version, 'data')
+
+    if (!rootDependency) {
+      issues.push(`lockfile importer missing dependency for pack '${pack.id}'`)
+    }
+    if (!rootSnapshot) {
+      issues.push(`lockfile missing data package snapshot for '${pack.id}@${pack.version}'`)
+      return issues
+    }
+
+    if (rootSnapshot.kind !== 'data') issues.push(`lockfile package '${pack.id}' should be kind=data`)
+    if (rootSnapshot.version !== pack.version) {
+      issues.push(`lockfile version mismatch for '${pack.id}': expected ${pack.version}, got ${rootSnapshot.version}`)
+    }
+    if (rootSnapshot.engine !== pack.engine) {
+      issues.push(`lockfile engine mismatch for '${pack.id}': expected ${pack.engine}, got ${rootSnapshot.engine}`)
+    }
+    if (rootSnapshot.entry !== 'pack.json') {
+      issues.push(`lockfile entry mismatch for '${pack.id}': expected pack.json, got ${rootSnapshot.entry}`)
+    }
+    if (!this.matchesExpectedSource(rootSnapshot.source, packSource)) {
+      issues.push(`lockfile source mismatch for '${pack.id}': expected ${packSource}, got ${rootSnapshot.source}`)
+    }
+    const packIntegrity = await this.computeIntegrity(packRaw)
+    if (rootSnapshot.resolution?.integrity && rootSnapshot.resolution.integrity !== packIntegrity) {
+      issues.push(`lockfile integrity mismatch for '${pack.id}'`)
+    }
+
+    for (const assetRecord of assets) {
+      const asset = assetRecord.manifest
+      const expectedKey = rootSnapshot.dependencies?.[asset.id]
+      const assetSnapshot = expectedKey
+        ? lockfile.packages[expectedKey]
+        : this.findPackageSnapshot(lockfile, asset.id, asset.version, 'asset')
+      if (!assetSnapshot) {
+        issues.push(`lockfile missing asset package snapshot for '${asset.id}@${asset.version}'`)
+        continue
+      }
+      if (assetSnapshot.kind !== 'asset') {
+        issues.push(`lockfile package '${asset.id}' should be kind=asset`)
+      }
+      if (assetSnapshot.version !== asset.version) {
+        issues.push(
+          `lockfile version mismatch for asset '${asset.id}': expected ${asset.version}, got ${assetSnapshot.version}`,
+        )
+      }
+      if (assetSnapshot.engine !== asset.engine) {
+        issues.push(
+          `lockfile engine mismatch for asset '${asset.id}': expected ${asset.engine}, got ${assetSnapshot.engine}`,
+        )
+      }
+      if (assetSnapshot.entry !== 'assets.json') {
+        issues.push(`lockfile entry mismatch for asset '${asset.id}': expected assets.json, got ${assetSnapshot.entry}`)
+      }
+      if (!this.matchesExpectedSource(assetSnapshot.source, assetRecord.url)) {
+        issues.push(
+          `lockfile source mismatch for asset '${asset.id}': expected ${assetRecord.url}, got ${assetSnapshot.source}`,
+        )
+      }
+      const assetIntegrity = await this.computeIntegrity(assetRecord.raw)
+      if (assetSnapshot.resolution?.integrity && assetSnapshot.resolution.integrity !== assetIntegrity) {
+        issues.push(`lockfile integrity mismatch for asset '${asset.id}'`)
+      }
+      if (!expectedKey) {
+        issues.push(`lockfile root package missing dependency edge to asset '${asset.id}'`)
+      }
+    }
+
+    return issues
+  }
+
+  protected findPackageSnapshot(
+    lockfile: PackLockfile,
+    name: string,
+    version: string,
+    kind: 'data' | 'asset',
+  ): PackLockfile['packages'][string] | undefined {
+    return Object.values(lockfile.packages).find(
+      snapshot => snapshot.name === name && snapshot.version === version && snapshot.kind === kind,
+    )
+  }
+
+  protected assertLockfileIssues(issues: string[], options: PackLoaderOptions): void {
+    if (issues.length === 0) return
+    if (options.enforceLockfile) {
+      throw new Error(`Pack lockfile validation failed: ${issues.join('; ')}`)
+    }
+  }
+
+  protected matchesExpectedSource(actual: string, expectedPathOrUrl: string): boolean {
+    if (actual.startsWith('workspace:')) return true
+    if (actual.startsWith('file:')) return actual === `file:${expectedPathOrUrl}`
+    if (actual.startsWith('http://') || actual.startsWith('https://')) return actual === expectedPathOrUrl
+    return actual === expectedPathOrUrl
+  }
+
+  protected isMissingFileError(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
+  }
+
+  protected isMissingHttpError(error: unknown): boolean {
+    return error instanceof Error && /HTTP 404\b/.test(error.message)
+  }
+
+  protected resolveAssetManifestUrl(assetRef: string, manifestUrl: string): string {
+    if (assetRef.startsWith('http://') || assetRef.startsWith('https://')) {
+      return assetRef
+    }
+    const normalized = assetRef.endsWith('.json') ? assetRef : `${assetRef.replace(/\/+$/, '')}/assets.json`
+    return new URL(normalized, manifestUrl).toString()
+  }
+
+  protected resolveAssetUri(uri: string, assetManifestUrl: string): string {
+    // Keep already absolute/protocol URIs as-is (http, https, file, tauri, asset, data, blob...)
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(uri)) {
+      return uri
+    }
+    // Resolve package-relative/bundled file URIs against assets.json location.
+    return new URL(uri, assetManifestUrl).toString()
+  }
+
+  protected resolveDirectoryUrl(dir: string, baseUrl: string): URL {
+    const normalizedDir = dir === '.' ? './' : `${dir.replace(/\/+$/, '')}/`
+    return new URL(normalizedDir, baseUrl)
+  }
+
+  protected toAbsoluteHttpUrl(urlOrPath: string): string {
+    return new URL(urlOrPath, this.getHttpBaseUrl()).toString()
+  }
+
+  protected getHttpBaseUrl(): string {
+    const maybeLocation = (globalThis as { location?: { href?: string } }).location
+    if (typeof maybeLocation?.href === 'string' && maybeLocation.href.length > 0) {
+      return maybeLocation.href
+    }
+    return 'http://localhost/'
+  }
+
+  protected async fetchArray(url: string): Promise<Record<string, unknown>[]> {
+    try {
+      const text = await this.fetchText(url)
+      const isJson = url.toLowerCase().endsWith('.json')
+      const parsed = isJson ? JSON.parse(text) : YAML.parse(text, { merge: true })
+      if (!Array.isArray(parsed)) {
+        throw new Error(`Expected array content from ${url}`)
+      }
+      return parsed as Record<string, unknown>[]
+    } catch (error) {
+      if (url.endsWith('.yaml')) {
+        const jsonUrl = url.replace(/\.yaml$/, '.json')
+        const text = await this.fetchText(jsonUrl)
+        const parsed = JSON.parse(text)
+        if (!Array.isArray(parsed)) {
+          throw new Error(`Expected array content from ${jsonUrl}`, { cause: error })
+        }
+        return parsed as Record<string, unknown>[]
+      }
+      throw error
+    }
+  }
+
+  protected async fetchJson<T>(url: string): Promise<T> {
+    const text = await this.fetchText(url)
+    return JSON.parse(text) as T
+  }
+
+  protected async fetchText(url: string): Promise<string> {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} for ${url}`)
+    }
+    return response.text()
+  }
+
+  protected async importNodePackResolver(): Promise<{
+    resolvePackPathFromRef: (packRef: string) => Promise<string>
+    resolvePackLoadOrder: typeof resolvePackLoadOrder
+  }> {
+    const specifier = '@arcadia-eternity/battle/pack'
+    const module = await import(/* @vite-ignore */ specifier)
+    return module as {
+      resolvePackPathFromRef: (packRef: string) => Promise<string>
+      resolvePackLoadOrder: typeof resolvePackLoadOrder
+    }
+  }
+
+  protected async loadAssetsFromNodeFs(
+    packPath: string,
+    manifest: V2DataPackManifest | undefined,
+    options: PackLoaderOptions,
+    errors: string[],
+  ): Promise<AssetLoadRecord[]> {
+    if (!manifest?.assetsRef) return []
+    const continueOnError = options.continueOnError ?? false
+    const refs = Array.isArray(manifest.assetsRef) ? manifest.assetsRef : [manifest.assetsRef]
+    const loaded: AssetLoadRecord[] = []
+    const visited = new Set<string>()
+    const stack = new Set<string>()
+
+    const walk = async (assetRef: string, relativeToPath: string): Promise<void> => {
+      const assetPaths = await this.resolveNodeAssetManifestPaths(assetRef, relativeToPath)
+      for (const assetPath of assetPaths) {
+        if (stack.has(assetPath)) {
+          const message = `asset manifest cycle detected: ${[...stack, assetPath].join(' -> ')}`
+          if (!continueOnError) throw new Error(message)
+          errors.push(message)
+          continue
+        }
+        if (visited.has(assetPath)) continue
+        stack.add(assetPath)
+        try {
+          const raw = await this.readNodeText(assetPath)
+          const assetManifest = JSON.parse(raw) as AssetManifest
+          for (const dep of assetManifest.dependencies ?? []) {
+            await walk(dep, assetPath)
+          }
+          loaded.push({
+            manifest: assetManifest,
+            url: assetPath,
+            raw,
+          })
+          visited.add(assetPath)
+        } catch (error) {
+          const message = `asset manifest load error (${assetRef}): ${error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'}`
+          if (!continueOnError) throw error
+          errors.push(message)
+        } finally {
+          stack.delete(assetPath)
+        }
+      }
+    }
+
+    for (const ref of refs) {
+      await walk(ref, packPath)
+    }
+    return loaded
+  }
+
+  protected async resolveNodeAssetManifestPaths(assetRef: string, relativeToPath: string): Promise<string[]> {
+    const { dirname, resolve, basename } = await import('node:path')
+    const { stat, readdir } = await import('node:fs/promises')
+    const basePath = resolve(dirname(relativeToPath), assetRef)
+
+    try {
+      const baseStat = await stat(basePath)
+      if (!baseStat.isDirectory()) {
+        return [basePath]
+      }
+      const entries = await readdir(basePath, { withFileTypes: true })
+      const jsonFiles = entries
+        .filter(entry => entry.isFile() && entry.name.toLowerCase().endsWith('.json'))
+        .map(entry => resolve(basePath, entry.name))
+      if (jsonFiles.length === 0) {
+        return [resolve(basePath, 'assets.json')]
+      }
+      jsonFiles.sort((a, b) => {
+        const aIsDefault = basename(a).toLowerCase() === 'assets.json'
+        const bIsDefault = basename(b).toLowerCase() === 'assets.json'
+        if (aIsDefault && !bIsDefault) return -1
+        if (!aIsDefault && bIsDefault) return 1
+        return a.localeCompare(b)
+      })
+      return jsonFiles
+    } catch {
+      const normalizedRef = assetRef.endsWith('.json') ? assetRef : `${assetRef.replace(/\/+$/, '')}/assets.json`
+      return [resolve(dirname(relativeToPath), normalizedRef)]
+    }
+  }
+
+  protected async readNodeText(path: string): Promise<string> {
+    const { readFile } = await import('node:fs/promises')
+    return readFile(path, 'utf8')
+  }
+
+  protected async computeIntegrity(content: string): Promise<string> {
+    const bytes = new TextEncoder().encode(content)
+    const digest = await globalThis.crypto.subtle.digest('SHA-512', bytes)
+    const hashBytes = new Uint8Array(digest)
+    let base64: string
+    if (typeof Buffer !== 'undefined') {
+      base64 = Buffer.from(hashBytes).toString('base64')
+    } else {
+      let binary = ''
+      for (const byte of hashBytes) binary += String.fromCharCode(byte)
+      base64 = btoa(binary)
+    }
+    return `sha512-${base64}`
+  }
+}

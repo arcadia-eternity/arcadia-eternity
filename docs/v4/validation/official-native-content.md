@@ -29,4 +29,4 @@ Validation on October 23:
 - The final related run passed 124 tests across eight suites. V4 types, lint, declarations, source provenance and historical audit passed.
 - `pnpm verify:battle-v4-native` builds the source entry for the browser, rejects legacy effect DSL/EffectBuilder, removed RxJS/Prando and foreign runtime dependencies, then imports the minified module and loads all current metadata. This checks the browser-targeted module under Node; real browser host execution remains a separate gate.
 
-PackLoader and the server runtime still select V2. This programmatic native entry is the integration seam for their later cutover; that host migration and final overall acceptance remain open. The earlier complete 27,364-test V4 checkpoint is recorded separately and predates this entry.
+The later [native PackLoader](native-pack-loader.md) uses this entry and has a real Chrome/Node host probe. Default application/server controllers still select V2; their cutover and final overall acceptance remain open. The complete 27,373-test V4 checkpoint at `384ac37b` includes this entry.

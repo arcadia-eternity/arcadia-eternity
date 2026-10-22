@@ -20,6 +20,11 @@
       "import": "./dist/node.js",
       "default": "./dist/node.js"
     },
+    "./pack": {
+      "types": "./dist/types/pack.d.ts",
+      "import": "./dist/pack.js",
+      "default": "./dist/pack.js"
+    },
     "./v4": {
       "types": "./dist/types/v4.d.ts",
       "import": "./dist/v4.js",

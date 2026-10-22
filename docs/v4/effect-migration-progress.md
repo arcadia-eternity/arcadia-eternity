@@ -6,9 +6,11 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 
 ## Evidence as of 2026-10-23
 
-All 1065 definitions have native candidates. The fixed build at `30ef3a46` passed the full V4 suite in one run: 145 files, 27,364 tests, zero failures. All 188 offline migration checks and 87 authoring design checks also pass. See [full regression checkpoint](validation/full-candidate-regression-checkpoint.md).
+All 1065 definitions have native candidates. The fixed build at `384ac37b`, including the native-content entry, passed the full V4 suite in one run: 146 files, 27,373 tests, zero failures. All 188 offline migration checks and 87 authoring design checks also pass. See [full regression checkpoint](validation/full-candidate-regression-checkpoint.md).
 
-The subsequent `createOfficialContent` entry wires current metadata to TypeScript implementations, installs battle parameters and registers snapshot factories without using the effect DSL or legacy singleton. It has 124 related passing checks, including a complete official game and fresh-directory JSON continuation. See [native content entry](validation/official-native-content.md). PackLoader/server cutover, real browser host acceptance and overall migration completion remain open.
+The `createOfficialContent` entry wires current metadata to TypeScript implementations, installs battle parameters and registers snapshot factories without using the effect DSL or legacy singleton. It has 124 related passing checks, including a complete official game and fresh-directory JSON continuation. See [native content entry](validation/official-native-content.md).
+
+`@arcadia-eternity/pack-loader/native` now exposes `NativePackLoader` for filesystem and HTTP metadata, existing dependencies/assets/locales/locks, trusted build identity and expected revision checks. It shares transport and reference resolution with the existing loader. Sixteen package checks and forty existing data-loader checks pass. A real Chrome/Node comparison loads all native content over HTTP, completes the seven-turn game and restores through fresh directories with identical events/checkpoints and zero effect-DSL requests. See [native pack evidence](validation/native-pack-loader.md). Server/client runtime selection still needs cutover; these library and host-probe gates do not mark overall migration complete.
 
 ## Evidence as of 2026-10-20
 

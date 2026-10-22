@@ -16,6 +16,6 @@
     "declarationMap": true,
     "types": ["node"]
   },
-  "include": ["./src/**/*"],
+  "include": ["./src/**/*", "./native.ts"],
   "exclude": ["./node_modules", "./dist"]
 }
