@@ -54,3 +54,31 @@ jobs:
           name: original-v1-host-evidence
           path: packages/battle/dist/v1-host-check/
           if-no-files-found: ignore
+
+  native-server-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build server and native runtime dependencies
+        run: pnpm --filter @arcadia-eternity/server... run build
+      - name: Check native server source and test types
+        run: |
+          pnpm typecheck:server-native
+          pnpm lint:server-native
+      - name: Verify native construction and existing V2 recovery
+        run: pnpm test:server-native
+      - name: Verify native content and bootstrap in Node and Chrome
+        run: pnpm verify:battle-v4-native-pack

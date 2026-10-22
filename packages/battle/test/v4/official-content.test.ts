@@ -74,6 +74,20 @@ it('does not consult the legacy singleton while loading, parsing teams or constr
   }
 })
 
+it('validates a whole player creation batch before allocating instances', () => {
+  const directory = content()
+  for (const invalid of ['schema', 'reference'] as const) {
+    const teams = structuredClone(input.teams)
+    if (invalid === 'schema') teams[1].team[0].level = 101
+    else teams[1].team[0].skills[0] = 'skill_unknown'
+    const before = AttributeSystem.getGlobalMemoryStats().totalInstances
+    expect(() => directory.parsePlayers(teams)).toThrow(invalid === 'schema' ? '100' : 'Unknown official skill')
+    expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(before)
+  }
+  const [a, b] = directory.parsePlayers(input.teams)
+  battles.push(directory.createBattle(a, b, { timerConfig: { enabled: false } }))
+})
+
 for (const invalid of [
   'duplicate',
   'missing-dependency',

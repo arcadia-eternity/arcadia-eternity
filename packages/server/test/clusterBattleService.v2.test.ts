@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { AttributeSystem, setGlobalLogger as setNativeLogger } from '@arcadia-eternity/battle/v4'
+import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
+import type { LocalBattleRoomData } from '../src/domain/battle/runtime/battleRuntimeHost'
 import type { RoomState } from '../src/cluster/types'
 import { REDIS_KEYS } from '../src/cluster/types'
 import { ClusterBattleService } from '../src/domain/battle/services/clusterBattleService'
 import type { PlayerSelectionSchemaType } from '@arcadia-eternity/schema'
-import { BattleMessageType, BattleStatus, Nature, Gender } from '@arcadia-eternity/const'
+import { BattleMessageType, BattleStatus, Nature, Gender, type playerId } from '@arcadia-eternity/const'
 
 function createMockRoomState(roomId: string, player1Id: string, player2Id: string): RoomState {
   return {
@@ -57,7 +61,7 @@ function createPlayerLike(id: string, name: string, speciesId: string, skillIds:
   }
 }
 
-function createService(roomStateRef: { current: RoomState | null }) {
+function createTestService(roomStateRef: { current: RoomState | null }) {
   const kv = new Map<string, string>()
   const listKv = new Map<string, string[]>()
 
@@ -192,6 +196,15 @@ function pickSkillSelection(selections: PlayerSelectionSchemaType[]): PlayerSele
 }
 
 describe('ClusterBattleService v2 runtime', () => {
+  const services: ClusterBattleService[] = []
+  function createService(ref: { current: RoomState | null }) {
+    const fixture = createTestService(ref)
+    services.push(fixture.service)
+    return fixture
+  }
+  afterEach(async () => {
+    for (const service of services.splice(0)) await service.cleanup()
+  })
   let roomStateRef: { current: RoomState | null }
   const player1Id = 'player_id_00000000001'
   const player2Id = 'player_id_00000000002'
@@ -231,7 +244,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
 
     const selections = await service.handleLocalGetSelection('room_v2_1', player1Id)
     expect(selections.length).toBeGreaterThan(0)
@@ -247,7 +260,7 @@ describe('ClusterBattleService v2 runtime', () => {
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
     const selections = await service.handleLocalGetSelection('room_v2_1', player1Id)
     const selected = pickSkillSelection(selections)
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
 
     const result = await service.handleLocalPlayerSelection('room_v2_1', player1Id, selected)
     expect(result.status).toBe('ACTION_ACCEPTED')
@@ -378,7 +391,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     expect(service.getLocalBattle('room_v2_1')).toBeUndefined()
 
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
@@ -414,7 +427,7 @@ describe('ClusterBattleService v2 runtime', () => {
     }
 
     await client.del(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP('room_v2_1'))
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
 
@@ -464,7 +477,7 @@ describe('ClusterBattleService v2 runtime', () => {
     expect(JSON.parse(actionLogEntries[1]!).seq).toBe(2)
     expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'))).toBe('2')
     expect(await client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'))).toBe('2')
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
@@ -484,12 +497,14 @@ describe('ClusterBattleService v2 runtime', () => {
     }
     const restoreSnapshotSpy = vi.fn(async () => {})
     const originalCreateLocalBattle = service.createLocalBattle.bind(service)
-    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
-      const battle = await originalCreateLocalBattle(...args)
-      ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
-      ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
-      return battle
-    })
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(
+      async (...args: Parameters<ClusterBattleService['createLocalBattle']>) => {
+        const battle = await originalCreateLocalBattle(...args)
+        ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
+        ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
+        return battle
+      },
+    )
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
     await client.setex(
@@ -502,7 +517,7 @@ describe('ClusterBattleService v2 runtime', () => {
       }),
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '5')
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
@@ -518,11 +533,13 @@ describe('ClusterBattleService v2 runtime', () => {
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const restoreSnapshotSpy = vi.fn(async () => {})
     const originalCreateLocalBattle = service.createLocalBattle.bind(service)
-    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
-      const battle = await originalCreateLocalBattle(...args)
-      ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
-      return battle
-    })
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(
+      async (...args: Parameters<ClusterBattleService['createLocalBattle']>) => {
+        const battle = await originalCreateLocalBattle(...args)
+        ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
+        return battle
+      },
+    )
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
     await client.setex(
@@ -538,7 +555,7 @@ describe('ClusterBattleService v2 runtime', () => {
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '5')
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR('room_v2_1'), 60, '3')
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
@@ -559,12 +576,14 @@ describe('ClusterBattleService v2 runtime', () => {
     }
     const restoreSnapshotSpy = vi.fn(async () => {})
     const originalCreateLocalBattle = service.createLocalBattle.bind(service)
-    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
-      const battle = await originalCreateLocalBattle(...args)
-      ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
-      ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
-      return battle
-    })
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(
+      async (...args: Parameters<ClusterBattleService['createLocalBattle']>) => {
+        const battle = await originalCreateLocalBattle(...args)
+        ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
+        ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
+        return battle
+      },
+    )
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
     await client.setex(
@@ -593,7 +612,7 @@ describe('ClusterBattleService v2 runtime', () => {
         updatedAt: Date.now(),
       }),
     )
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
@@ -612,18 +631,20 @@ describe('ClusterBattleService v2 runtime', () => {
 
     let creationCount = 0
     let recoveredSubmitCalls: PlayerSelectionSchemaType[] = []
-    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
-      const battle = await originalCreateLocalBattle(...args)
-      creationCount += 1
-      if (creationCount >= 2) {
-        const originalSubmit = battle.submitAction.bind(battle)
-        ;(battle as any).submitAction = async (selection: PlayerSelectionSchemaType) => {
-          recoveredSubmitCalls.push(selection)
-          return originalSubmit(selection)
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(
+      async (...args: Parameters<ClusterBattleService['createLocalBattle']>) => {
+        const battle = await originalCreateLocalBattle(...args)
+        creationCount += 1
+        if (creationCount >= 2) {
+          const originalSubmit = battle.submitAction.bind(battle)
+          ;(battle as any).submitAction = async (selection: Parameters<IBattleSystem['submitAction']>[0]) => {
+            recoveredSubmitCalls.push(selection)
+            return originalSubmit(selection)
+          }
         }
-      }
-      return battle
-    })
+        return battle
+      },
+    )
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
     const currentBattle = service.getLocalBattle('room_v2_1') as any
@@ -671,7 +692,7 @@ describe('ClusterBattleService v2 runtime', () => {
         updatedAt: Date.now(),
       }),
     )
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
@@ -712,12 +733,14 @@ describe('ClusterBattleService v2 runtime', () => {
     }
     const restoreSnapshotSpy = vi.fn(async () => {})
     const originalCreateLocalBattle = service.createLocalBattle.bind(service)
-    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
-      const battle = await originalCreateLocalBattle(...args)
-      ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
-      ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
-      return battle
-    })
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(
+      async (...args: Parameters<ClusterBattleService['createLocalBattle']>) => {
+        const battle = await originalCreateLocalBattle(...args)
+        ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
+        ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
+        return battle
+      },
+    )
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
     await client.setex(
@@ -730,7 +753,7 @@ describe('ClusterBattleService v2 runtime', () => {
       }),
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '3')
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
@@ -751,12 +774,14 @@ describe('ClusterBattleService v2 runtime', () => {
     }
     const restoreSnapshotSpy = vi.fn(async () => {})
     const originalCreateLocalBattle = service.createLocalBattle.bind(service)
-    vi.spyOn(service, 'createLocalBattle').mockImplementation(async (...args: any[]) => {
-      const battle = await originalCreateLocalBattle(...args)
-      ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
-      ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
-      return battle
-    })
+    vi.spyOn(service, 'createLocalBattle').mockImplementation(
+      async (...args: Parameters<ClusterBattleService['createLocalBattle']>) => {
+        const battle = await originalCreateLocalBattle(...args)
+        ;(battle as any).createRuntimeSnapshot = vi.fn(async () => runtimeSnapshot)
+        ;(battle as any).restoreRuntimeSnapshot = restoreSnapshotSpy
+        return battle
+      },
+    )
 
     await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
     await client.setex(
@@ -775,7 +800,7 @@ describe('ClusterBattleService v2 runtime', () => {
       }),
     )
     await client.setex(REDIS_KEYS.BATTLE_RUNTIME_ACTION_SEQ('room_v2_1'), 60, '4')
-    ;(service as any).runtimeHost.remove('room_v2_1')
+    await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     const startBattleSpy = vi.spyOn(service as any, 'startBattleAsync').mockResolvedValue(undefined)
 
     const recovered = await service.recoverLocalBattleRuntime('room_v2_1')
@@ -874,5 +899,192 @@ describe('ClusterBattleService v2 runtime', () => {
 
     expect(service.getLocalBattle('room_v2_1')).toBeUndefined()
     expect(stateManager.setRoomState).toHaveBeenCalledWith(expect.objectContaining({ instanceId: 'instance-b' }))
+  })
+})
+
+describe('ClusterBattleService native bootstrap persistence', () => {
+  const id = 'room_native_1',
+    a = 'player_id_00000000001',
+    b = 'player_id_00000000002'
+  const services: ClusterBattleService[] = []
+  let baseline = 0
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(Date.UTC(2026, 9, 23))
+    setNativeLogger({ debug() {}, info() {}, warn() {}, error() {} })
+    baseline = AttributeSystem.getGlobalMemoryStats().totalInstances
+  })
+  afterEach(async () => {
+    for (const service of services.splice(0)) await service.cleanup()
+    expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baseline)
+    expect(vi.getTimerCount()).toBe(0)
+    vi.useRealTimers()
+  })
+  function fixture() {
+    const ref = { current: createMockRoomState(id, a, b) as RoomState | null },
+      f = createTestService(ref)
+    services.push(f.service)
+    const players = [a, b].map((player, index) =>
+      createPlayerLike(player, `Native${index}`, 'pet_dilan', ['skill_paida', 'skill_shuipao']),
+    )
+    const create = () =>
+      f.service.createLocalBattle(ref.current!, players[0], players[1], { runtime: { kind: 'native-v4' } })
+    const internals = f.service as unknown as {
+      startBattleAsync(
+        roomId: string,
+        room: LocalBattleRoomData,
+        options?: { preserveReconnectGrace?: boolean },
+      ): Promise<void>
+      persistBattleRuntimeWorldSnapshot(roomId: string, battle: IBattleSystem, type: BattleMessageType): Promise<void>
+      readBattleRuntimeWorldSnapshot(roomId: string): Promise<unknown>
+      readRuntimeInflightPhase(roomId: string): Promise<unknown>
+    }
+    return { ...f, ref, create, internals }
+  }
+  const readBootstrap = async (f: ReturnType<typeof fixture>) =>
+    JSON.parse((await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id)))!)
+  const drop = (f: ReturnType<typeof fixture>) =>
+    f.service.cleanupLocalRoom(id, { removeRuntimeArtifacts: false, publishCleanupEvent: false })
+  function ready(system: IBattleSystem) {
+    return new Promise<void>(resolve => {
+      const off = system.BattleEvent(message => {
+        if (message.type === BattleMessageType.TurnAction) {
+          off()
+          resolve()
+        }
+      })
+    })
+  }
+  it('persists the complete native authority before publishing the live instance', async () => {
+    const f = fixture(),
+      original = f.client.setex.getMockImplementation()!
+    f.client.setex.mockImplementation(async (...args) => {
+      if (args[0] === REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id)) expect(f.service.getLocalBattle(id)).toBeUndefined()
+      return original(...args)
+    })
+    const system = await f.create(),
+      bootstrap = await readBootstrap(f)
+    expect(system).toBeInstanceOf(LocalBattleSystemV4)
+    expect(bootstrap.runtime.kind).toBe('native-v4')
+    expect(JSON.parse(bootstrap.initial.payload).battle.boundary).toBe('initial')
+    const mirrored = f.ref.current!.metadata!.runtimeBootstrap
+    expect(JSON.parse(JSON.stringify(mirrored)).initial).toEqual(bootstrap.initial)
+    expect(f.service.getLocalRoom(id)?.runtimeIdentity?.kind).toBe('native-v4')
+    expect((await system.getState()).status).toBe(BattleStatus.Unstarted)
+  })
+  for (const mirror of [false, true])
+    it(`selects the original native runtime and IDs during recovery, metadata fallback=${mirror}`, async () => {
+      const f = fixture(),
+        source = await f.create(),
+        bootstrap = await readBootstrap(f)
+      const actions = await source.getAvailableSelection(a as playerId)
+      await drop(f)
+      if (mirror) await f.client.del(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id))
+      vi.spyOn(f.internals, 'startBattleAsync').mockResolvedValue(undefined)
+      expect(await f.service.recoverLocalBattleRuntime(id)).toBe(true)
+      const restored = f.service.getLocalBattle(id)!
+      expect(restored).toBeInstanceOf(LocalBattleSystemV4)
+      expect(await restored.getAvailableSelection(a as playerId)).toEqual(actions)
+      expect((await readBootstrap(f)).initial).toEqual(bootstrap.initial)
+    })
+  it('refuses publication if both native bootstrap stores fail', async () => {
+    const f = fixture()
+    f.client.setex.mockRejectedValue(new Error('Storage unavailable'))
+    f.stateManager.setRoomState.mockRejectedValue(new Error('Storage unavailable'))
+    await expect(f.create()).rejects.toThrow('bootstrap could not be persisted')
+    expect(f.service.getLocalBattle(id)).toBeUndefined()
+  })
+  for (const corruption of ['build', 'missing-initial'])
+    it(`does not reinterpret a damaged native bootstrap as V2: ${corruption}`, async () => {
+      const f = fixture()
+      await f.create()
+      const bootstrap = await readBootstrap(f)
+      await drop(f)
+      if (corruption === 'build') bootstrap.runtime.build.coreBuildId = '0'.repeat(64)
+      else delete bootstrap.initial
+      const raw = JSON.stringify(bootstrap)
+      await f.client.setex(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id), 60, raw)
+      expect(await f.service.recoverLocalBattleRuntime(id)).toBe(false)
+      expect(f.service.getLocalBattle(id)).toBeUndefined()
+      expect(await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id))).toBe(raw)
+    })
+  it('restores a usable latest native checkpoint without repeating the accepted action', async () => {
+    const f = fixture(),
+      source = await f.create()
+    vi.spyOn(f.internals, 'persistBattleRuntimeWorldSnapshot').mockResolvedValue(undefined)
+    const prompt = ready(source)
+    await source.ready()
+    await prompt
+    const action = (await source.getAvailableSelection(a as playerId)).find(
+      selection => selection.type === 'use-skill',
+    )!
+    await f.service.handleLocalPlayerSelection(id, a, action)
+    const latest = await source.createRuntimeSnapshot!()
+    await f.client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(id),
+      60,
+      JSON.stringify({ ...latest, actionSeq: 1, capturedAt: Date.now() }),
+    )
+    expect(await f.internals.readBattleRuntimeWorldSnapshot(id)).toMatchObject(latest)
+    await drop(f)
+    const restoring = vi.spyOn(LocalBattleSystemV4.prototype, 'restoreRuntimeSnapshot')
+    vi.spyOn(f.internals, 'startBattleAsync').mockResolvedValue(undefined)
+    expect(await f.service.recoverLocalBattleRuntime(id)).toBe(true)
+    expect(restoring).toHaveBeenCalledTimes(1)
+    expect(restoring.mock.calls[0][0].payload).toBe(latest.payload)
+    const payload = JSON.parse((await f.service.getLocalBattle(id)!.createRuntimeSnapshot!()).payload).battle
+    expect(Object.keys(payload.nodes[payload.nodes[payload.root.ref].fields.actionLog.ref].fields)).toHaveLength(1)
+    expect(await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_REPLAY_CURSOR(id))).toBe('1')
+    restoring.mockRestore()
+  })
+  it('uses the initial state before replay when an inflight baseline predates the latest native snapshot', async () => {
+    const f = fixture(),
+      source = await f.create(),
+      initial = (await readBootstrap(f)).initial
+    vi.spyOn(f.internals, 'persistBattleRuntimeWorldSnapshot').mockResolvedValue(undefined)
+    let prompt = ready(source)
+    await source.ready()
+    await prompt
+    const action = (await source.getAvailableSelection(a as playerId)).find(
+      selection => selection.type === 'use-skill',
+    )!
+    await f.service.handleLocalPlayerSelection(id, a, action)
+    const latest = await source.createRuntimeSnapshot!()
+    await f.client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT(id),
+      60,
+      JSON.stringify({ ...latest, actionSeq: 1, capturedAt: Date.now() }),
+    )
+    await f.client.setex(
+      REDIS_KEYS.BATTLE_RUNTIME_INFLIGHT_PHASE(id),
+      60,
+      JSON.stringify({
+        format: 'arcadia.battle.v2.phase-inflight',
+        version: 1,
+        roomId: id,
+        ownerInstanceId: 'test-instance',
+        phaseId: 'native-turn',
+        phaseType: 'turn',
+        stackDepth: 1,
+        replayBaselineSeq: 0,
+        startedAt: Date.now(),
+        updatedAt: Date.now(),
+      }),
+    )
+    expect(await f.internals.readBattleRuntimeWorldSnapshot(id)).toMatchObject(latest)
+    expect(await f.internals.readRuntimeInflightPhase(id)).toMatchObject({ replayBaselineSeq: 0 })
+    await drop(f)
+    const restoring = vi.spyOn(LocalBattleSystemV4.prototype, 'restoreRuntimeSnapshot')
+    vi.spyOn(f.internals, 'startBattleAsync').mockImplementation(async () => {
+      const system = f.service.getLocalBattle(id)!
+      prompt = ready(system)
+      await system.ready()
+      await prompt
+    })
+    expect(await f.service.recoverLocalBattleRuntime(id)).toBe(true)
+    expect(restoring.mock.calls[0][0].payload).toBe(initial.payload)
+    const payload = JSON.parse((await f.service.getLocalBattle(id)!.createRuntimeSnapshot!()).payload).battle
+    expect(Object.keys(payload.nodes[payload.nodes[payload.root.ref].fields.actionLog.ref].fields)).toHaveLength(1)
+    restoring.mockRestore()
   })
 })

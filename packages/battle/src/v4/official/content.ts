@@ -15,6 +15,7 @@ import { SkillParser } from '../legacy/parser/skill'
 import { SpeciesParser } from '../legacy/parser/species'
 import { PlayerParser } from '../legacy/parser/player'
 import { MarkSchema } from '../legacy/schema/mark'
+import { PlayerSchema } from '../legacy/schema/player'
 import { createOfficialEffectCandidates } from './candidate-catalog'
 
 export interface OfficialPrototypeData {
@@ -86,6 +87,18 @@ export function createOfficialContent(data: OfficialPrototypeData, revision: str
     species: Object.freeze([...species.values()]),
     parametersFor: (id: string) => candidates.parameters.get(id),
     parsePlayer: (raw: unknown) => PlayerParser.parse(raw, lookup),
+    /** Validate the whole creation batch before allocating any domain instances. */
+    parsePlayers(raw: readonly unknown[]): Player[] {
+      const players = raw.map(value => PlayerSchema.parse(value))
+      for (const player of players)
+        for (const pet of player.team) {
+          lookup.getSpecies(pet.species as Parameters<PrototypeLookup['getSpecies']>[0])
+          for (const skill of pet.skills) lookup.getSkill(skill as Parameters<PrototypeLookup['getSkill']>[0])
+          if (pet.ability) lookup.getMark(pet.ability as Parameters<PrototypeLookup['getMark']>[0])
+          if (pet.emblem) lookup.getMark(pet.emblem as Parameters<PrototypeLookup['getMark']>[0])
+        }
+      return players.map(player => PlayerParser.parse(player, lookup))
+    },
     createBattle(playerA: Player, playerB: Player, options?: BattleOptions): Battle {
       for (const player of [playerA, playerB])
         for (const pet of player.team) {
