@@ -10,17 +10,17 @@ import {
   TIMER_CONSTANTS,
   BattleStatus,
   BattlePhase,
+  type Events,
+  type PlayerSelection,
 } from '@arcadia-eternity/const'
 import mitt, { type Emitter } from 'mitt'
 import { BattleTimer } from './battleTimer'
-import { AnimationTracker } from './animationTracker'
+import { AnimationTracker, type AnimationTrackerEvents } from './animationTracker'
 import type { Battle } from '../battle'
 import { createChildLogger } from '../logger'
+import { readTimerRuntime, type SavedTimerRuntime } from './snapshotState'
 
-type TimerManagerEvents = {
-  animationStart: any
-  animationEnd: any
-  animationForceEnd: any
+type TimerManagerEvents = AnimationTrackerEvents & {
   timerEvent: TimerEvent
 }
 
@@ -37,6 +37,7 @@ export class TimerManager {
   private currentPhase: 'selection' | 'execution' | 'switch' | null = null
   private pendingTurnReset: { playerIds: playerId[] } | null = null
   private emitter: Emitter<TimerManagerEvents> = mitt<TimerManagerEvents>()
+  private restoredPending = false
 
   // 追踪玩家选择状态
   private playerSelectionStatus: Map<playerId, boolean> = new Map()
@@ -59,8 +60,54 @@ export class TimerManager {
   }
 
   public assertSnapshotSafe(): void {
-    if (this.config.enabled || this.animationTracker.hasActiveAnimations())
-      throw new Error('Snapshot of real-time timers/active animations requires a host adapter')
+    if (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset)
+      throw new Error('Snapshot of active animations/pending timer reset requires a host adapter')
+    if (this.config.enabled) this.exportRuntimeState()
+  }
+
+  public exportRuntimeState(): SavedTimerRuntime {
+    if (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset)
+      throw new Error('Snapshot of active animations/pending timer reset requires a host adapter')
+    return readTimerRuntime(
+      {
+        version: 1,
+        capturedAt: Date.now(),
+        phase: this.currentPhase,
+        active: this.isActive,
+        selections: [...this.playerSelectionStatus],
+        players: [...this.playerTimers.values()].map(timer => timer.exportRuntimeState()),
+      },
+      [this.battle.playerA, this.battle.playerB].map(player => ({ id: player.id, selected: !!player.selection })),
+    )
+  }
+  public restoreRuntimeState(input: unknown): void {
+    if (this.playerTimers.size || this.isActive || this.animationTracker.hasActiveAnimations())
+      throw new Error('Timer runtime restore requires a fresh manager')
+    const saved = readTimerRuntime(
+      input,
+      [this.battle.playerA, this.battle.playerB].map(player => ({ id: player.id, selected: !!player.selection })),
+    )
+    this.currentPhase = saved.phase
+    this.isActive = saved.active
+    this.playerSelectionStatus = new Map(saved.selections.map(([id, selected]) => [id as playerId, selected]))
+    for (const state of saved.players) {
+      const timer = new BattleTimer(state.playerId as playerId, state.config)
+      timer.setHasActiveAnimationsCallback(
+        () => this.config.animationPauseEnabled && this.animationTracker.hasActiveAnimations(),
+      )
+      timer.on('timerEvent', event => this.handleTimerEvent(event))
+      timer.restoreRuntimeState(state)
+      this.playerTimers.set(state.playerId as playerId, timer)
+    }
+    this.restoredPending = true
+  }
+  public activateRestoredState(): void {
+    if (!this.restoredPending) return
+    this.restoredPending = false
+    // Bring every clock to the same recovery point before a timeout can stop its peer.
+    for (const timer of this.playerTimers.values()) timer.getState()
+    for (const timer of this.playerTimers.values()) timer.activateRestoredState()
+    this.emitSnapshotEvent()
   }
 
   /**
@@ -71,6 +118,7 @@ export class TimerManager {
 
     // 清理现有计时器
     this.cleanup()
+    this.setupEventHandlers()
 
     // 为每个玩家创建计时器
     playerIds.forEach(playerId => {
@@ -79,7 +127,7 @@ export class TimerManager {
 
       // 设置检查活跃动画的回调
       timer.setHasActiveAnimationsCallback(() => {
-        return this.animationTracker.hasActiveAnimations()
+        return this.config.animationPauseEnabled && this.animationTracker.hasActiveAnimations()
       })
 
       // 监听计时器事件
@@ -205,7 +253,7 @@ export class TimerManager {
       `Timer pauseTimers: enabled=${this.config.enabled}, animationPauseEnabled=${this.config.animationPauseEnabled}, reason=${reason}, players=${playerIds.join(', ')}`,
     )
 
-    if (!this.config.enabled || !this.config.animationPauseEnabled) {
+    if (!this.config.enabled || (reason === 'animation' && !this.config.animationPauseEnabled)) {
       this.logger.debug('Timer pauseTimers: skipping due to config')
       return
     }
@@ -263,6 +311,7 @@ export class TimerManager {
   public stopAllTimers(): void {
     this.isActive = false
     this.currentPhase = null
+    this.pendingTurnReset = null
 
     this.playerTimers.forEach(timer => {
       timer.stop()
@@ -389,7 +438,7 @@ export class TimerManager {
     this.battle.emitter.emit('animationStart', {
       animationId,
       duration: expectedDuration,
-      source: source as any, // 临时类型转换，实际使用时应该传入正确的petId或skillId
+      source: source as Events['animationStart']['source'],
     })
 
     return animationId
@@ -412,7 +461,9 @@ export class TimerManager {
     }
 
     this.logger.debug(`Timer endAnimation: animation ${animationId} ended, timers will automatically resume`)
+  }
 
+  private finishAnimation(animationId: string, actualDuration: number): void {
     // 检查是否有待重置的回合（只有在没有活跃动画时才处理）
     if (!this.animationTracker.hasActiveAnimations() && this.pendingTurnReset) {
       this.logger.debug('Timer endAnimation: processing pending turn reset')
@@ -427,6 +478,7 @@ export class TimerManager {
         if (timer) {
           this.logger.debug(`Timer endAnimation: resetting timer for player ${playerId}`)
           timer.resetTurn()
+          if (this.playerSelectionStatus.get(playerId)) timer.pause('system')
           const state = timer.getState()
           remainingTotalTime[playerId] = state.remainingTotalTime
         }
@@ -545,6 +597,7 @@ export class TimerManager {
 
     this.animationTracker.on('animationEnd', data => {
       this.emit('animationEnd', data)
+      this.finishAnimation(data.animationId, data.actualDuration)
     })
 
     this.animationTracker.on('animationForceEnd', data => {
@@ -552,6 +605,7 @@ export class TimerManager {
         `Timer setupEventHandlers: animation force ended ${data.animationId}, reason: ${data.reason}, owner: ${data.ownerId}`,
       )
       this.emit('animationForceEnd', data)
+      if (data.reason !== 'cleanup') this.finishAnimation(data.animationId, data.actualDuration)
     })
   }
 
@@ -663,7 +717,8 @@ export class TimerManager {
   /**
    * 获取选择的描述
    */
-  private getSelectionDescription(selection: any): string {
+  private getSelectionDescription(selection: PlayerSelection): string {
+    const kind: string = selection.type
     switch (selection.type) {
       case 'use-skill':
         return `使用技能 ${selection.skill}`
@@ -674,7 +729,7 @@ export class TimerManager {
       case 'surrender':
         return '投降'
       default:
-        return selection.type
+        return kind
     }
   }
 

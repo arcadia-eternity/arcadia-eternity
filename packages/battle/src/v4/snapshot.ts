@@ -450,6 +450,7 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
           fields.executionBudgetState = value.executionBudget.exportState()
           fields.rngState = rng.getState()
           fields.timerConfig = value.getTimerConfig()
+          if (value.timerManager.isEnabled()) fields.timerRuntime = value.timerManager.exportRuntimeState()
           fields.transformations = value.transformationSystem.exportSnapshotState()
         }
         write(kind, fields)
@@ -638,9 +639,14 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       executionBudgetState: ReturnType<ExecutionBudget['exportState']>
       rngState: ReturnType<GameRng['getState']>
       timerConfig: ReturnType<Battle['getTimerConfig']>
+      timerRuntime?: unknown
       transformations: ReturnType<TransformationSystem['exportSnapshotState']>
     }
-    if (!data.timerConfig || data.timerConfig.enabled) throw new Error('Snapshot does not support enabled timers')
+    if (!data.timerConfig) throw new Error('Snapshot is missing timer configuration')
+    if (data.timerConfig.enabled && !data.timerRuntime)
+      throw new Error('Snapshot enabled timers require saved timer state')
+    if (!data.timerConfig.enabled && data.timerRuntime !== undefined)
+      throw new Error('Disabled timers cannot carry saved timer state')
     const savedBudget = new ExecutionBudget(() => battle!.stopForExecutionFault())
     savedBudget.restoreState(data.executionBudgetState)
     if (data.executionBudgetState.turn !== battle.currentTurn) throw new Error('Execution budget turn mismatch')
@@ -663,6 +669,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       waitingResolvers: {},
       messageCallbacks: [],
     })
+    if (data.timerConfig.enabled) battle.timerManager.restoreRuntimeState(data.timerRuntime)
     for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
     for (const restore of deferred) restore()
     const ownedValues = new Set<ReactiveValue<unknown>>()
@@ -803,6 +810,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     Reflect.deleteProperty(battle, 'executionBudgetState')
     Reflect.deleteProperty(battle, 'rngState')
     Reflect.deleteProperty(battle, 'timerConfig')
+    Reflect.deleteProperty(battle, 'timerRuntime')
     Reflect.deleteProperty(battle, 'transformations')
     return battle
   } catch (error) {
@@ -926,7 +934,9 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
       const spec = ledger[node.kind as LedgerKind]
       const allowed = new Set([
         ...spec.fields.split(' '),
-        ...(node.kind === 'Battle' ? ['rngState', 'timerConfig', 'transformations', 'executionBudgetState'] : []),
+        ...(node.kind === 'Battle'
+          ? ['rngState', 'timerConfig', 'timerRuntime', 'transformations', 'executionBudgetState']
+          : []),
       ])
       if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
       const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem', 'lastUsedSkillElement'] : [])

@@ -28,6 +28,7 @@ import {
   type playerId,
   type petId,
   type BattleRng,
+  type TimerConfig,
   AIPlayer,
   type baseSkillId,
   type baseMarkId,
@@ -35,7 +36,14 @@ import {
   type speciesId,
 } from '@arcadia-eternity/battle/v4'
 
-export function makeScenario(seed = 201, rng?: BattleRng, ai = false, ability?: BaseMark, config?: ConfigSystem) {
+export function makeScenario(
+  seed = 201,
+  rng?: BattleRng,
+  ai = false,
+  ability?: BaseMark,
+  config?: ConfigSystem,
+  timerConfig?: Partial<TimerConfig>,
+) {
   const counters = { created: 0, expired: 0, destroyed: 0, ticked: 0, hits: 0 }
   const debuff = new BaseMark(
     'fixture/debuff' as baseMarkId,
@@ -168,7 +176,12 @@ export function makeScenario(seed = 201, rng?: BattleRng, ai = false, ability?: 
     pet('A/reserve', good, [strike]),
   ])
   const b = new Player('B', 'B' as playerId, [pet('B/lead', weak, [tap]), pet('B/reserve', weak, [tap])])
-  const battle = createBattle(a, b, { rngSeed: seed, rng, timerConfig: { enabled: false }, showHidden: true }, config)
+  const battle = createBattle(
+    a,
+    b,
+    { rngSeed: seed, rng, timerConfig: timerConfig ?? { enabled: false }, showHidden: true },
+    config,
+  )
   return { battle, a, b, counters, debuff }
 }
 

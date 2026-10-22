@@ -350,7 +350,7 @@ it('rebinds the original AI and continues its random decisions after a JSON rest
   await resumed
 })
 
-it('refuses live phase-bound modifiers and real-time timer state instead of dropping them', async () => {
+it('refuses live phase-bound modifiers and uninitialized timer runtime instead of dropping them', async () => {
   const { ConfigModifier, ConfigModifierType, ConfigDurationType, PhaseType, PhaseScope } =
     await import('@arcadia-eternity/battle/v4')
   const { battle, debuff } = makeScenario()
@@ -373,7 +373,7 @@ it('refuses live phase-bound modifiers and real-time timer state instead of drop
   expect(() => snapshotBattle(battle, catalog)).toThrow('phase-bound')
   remove()
   battle.timerManager.updateConfig({ enabled: true })
-  expect(() => snapshotBattle(battle, catalog)).toThrow('real-time')
+  expect(() => snapshotBattle(battle, catalog)).toThrow('timer runtime')
   battle.timerManager.updateConfig({ enabled: false })
   expect(snapshotBattle(battle, catalog).format).toBe('arcadia.v1.battle-snapshot')
   await battle.cleanup()

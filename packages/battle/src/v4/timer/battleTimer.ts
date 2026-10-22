@@ -11,6 +11,7 @@ import {
 } from '@arcadia-eternity/const'
 import mitt, { type Emitter } from 'mitt'
 import { createChildLogger } from '../logger'
+import type { SavedBattleTimer } from './snapshotState'
 
 type BattleTimerEvents = {
   timerEvent: TimerEvent
@@ -36,6 +37,7 @@ export class BattleTimer {
   private lastEmittedState: TimerState = TimerState.Stopped
   private lastSnapshotTime: number = 0
   private pauseReason?: 'animation' | 'system'
+  private restoredSuspended = false
 
   constructor(
     private readonly playerId: playerId,
@@ -198,6 +200,7 @@ export class BattleTimer {
    */
   private startUpdateTimer(): void {
     this.stopUpdateTimer()
+    if (this.restoredSuspended) return
     this.updateTimer = setInterval(() => {
       this.updateTime()
       this.checkTimeout()
@@ -269,7 +272,7 @@ export class BattleTimer {
   /**
    * 发送事件
    */
-  private emitEvent(type: TimerEventType, data?: any): void {
+  private emitEvent(type: TimerEventType, data?: unknown): void {
     const event: TimerEvent = {
       type,
       playerId: this.playerId,
@@ -298,6 +301,45 @@ export class BattleTimer {
       hasActiveAnimations: this.hasActiveAnimationsCallback ? this.hasActiveAnimationsCallback() : false,
       pauseReason: this.pauseReason,
     }
+  }
+
+  public exportRuntimeState(): SavedBattleTimer {
+    if (this.state === TimerState.Running) this.updateTime()
+    return {
+      playerId: this.playerId,
+      config: { ...this.config },
+      state: this.state,
+      remainingTurnTime: Number.isFinite(this.remainingTurnTime) ? Math.max(0, this.remainingTurnTime) : null,
+      remainingTotalTime: Number.isFinite(this.remainingTotalTime) ? Math.max(0, this.remainingTotalTime) : null,
+      lastUpdateTime: this.lastUpdateTime,
+      pauseStartTime: this.pauseStartTime,
+      totalPausedTime: this.totalPausedTime,
+      lastEmittedState: this.lastEmittedState,
+      lastSnapshotTime: this.lastSnapshotTime,
+      pauseReason: this.pauseReason,
+    }
+  }
+  /** Hydrate quietly; the restored selection phase activates callbacks after host attachment. */
+  public restoreRuntimeState(saved: SavedBattleTimer): void {
+    this.stopUpdateTimer()
+    this.restoredSuspended = true
+    this.state = saved.state
+    this.remainingTurnTime = saved.remainingTurnTime ?? Infinity
+    this.remainingTotalTime = saved.remainingTotalTime ?? Infinity
+    this.lastUpdateTime = Math.min(saved.lastUpdateTime, Date.now())
+    this.pauseStartTime = saved.pauseStartTime === undefined ? undefined : Math.min(saved.pauseStartTime, Date.now())
+    this.totalPausedTime = saved.totalPausedTime
+    this.lastEmittedState = saved.lastEmittedState
+    this.lastSnapshotTime = saved.lastSnapshotTime
+    this.pauseReason = saved.pauseReason
+  }
+  public activateRestoredState(): void {
+    if (!this.restoredSuspended) return
+    this.restoredSuspended = false
+    if (this.state !== TimerState.Running) return
+    this.updateTime()
+    this.checkTimeout()
+    if (this.state === TimerState.Running) this.startUpdateTimer()
   }
 
   /**

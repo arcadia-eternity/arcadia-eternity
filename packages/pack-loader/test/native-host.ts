@@ -14,6 +14,7 @@ export async function verifyNativePackHost(
   packRef: string,
   build: EnvironmentBuildIdentity,
   input: { teams: readonly unknown[]; actions: { A: readonly Plan[]; B: readonly Plan[] } },
+  options: { timed?: boolean } = {},
 ) {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
   const loader = new NativePackLoader(build)
@@ -21,7 +22,8 @@ export async function verifyNativePackHost(
   async function play(checkpoint: boolean) {
     let content = initial.content
     const [a, b] = input.teams.map(team => content.parsePlayer(team))
-    let battle = content.createBattle(a, b, { rngSeed: 201, timerConfig: { enabled: false }, showHidden: true })
+    const timerConfig = { enabled: options.timed ?? false, turnTimeLimit: 30, totalTimeLimit: 1500 }
+    let battle = content.createBattle(a, b, { rngSeed: 201, timerConfig, showHidden: true })
     const authority = () => ({
       snapshot: (current: Battle) => content.snapshot(current),
       restore: (data: unknown) => {
@@ -104,7 +106,7 @@ export async function verifyNativePackHost(
         })
         content = fresh.content
         const players = input.teams.map(team => content.parsePlayer(team))
-        battle = content.createBattle(players[0], players[1], { timerConfig: { enabled: false } })
+        battle = content.createBattle(players[0], players[1], { timerConfig })
         system = new LocalBattleSystemV4(battle, authority())
         observe(false)
         await system.restoreRuntimeSnapshot(saved)
@@ -142,6 +144,7 @@ export async function verifyNativePackHost(
     winner: 'A',
     freshDirectoryRestore: true,
     battleSystemInterface: true,
+    enabledTimers: options.timed ?? false,
     trace: baseline,
   }
 }

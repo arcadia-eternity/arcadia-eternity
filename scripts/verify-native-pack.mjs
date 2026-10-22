@@ -59,7 +59,10 @@ try {
   )
   const html = `<!doctype html><meta charset="utf-8"><pre id="result">Running</pre><script type="module">
 import { verifyNativePackHost } from './browser.mjs';
-try { document.querySelector('#result').textContent = JSON.stringify(await verifyNativePackHost(location.origin + '/pack/', ${JSON.stringify(identity)}, ${JSON.stringify(input)})); }
+try {
+const run = options => verifyNativePackHost(location.origin + '/pack/', ${JSON.stringify(identity)}, ${JSON.stringify(input)}, options);
+document.querySelector('#result').textContent = JSON.stringify({ untimed: await run({}), timed: await run({timed:true}) });
+}
 catch (error) { document.querySelector('#result').textContent = String(error); }
 </script>`
   server = createServer(async (request, response) => {
@@ -95,7 +98,10 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
   const url = `http://127.0.0.1:${server.address().port}`
   const { verifyNativePackHost } = await import(pathToFileURL(output).href)
-  const expected = await verifyNativePackHost(`${url}/pack/`, identity, input)
+  const expected = {
+    untimed: await verifyNativePackHost(`${url}/pack/`, identity, input),
+    timed: await verifyNativePackHost(`${url}/pack/`, identity, input, { timed: true }),
+  }
   if (process.argv.includes('--browser')) {
     const chrome =
       process.env.BATTLE_V1_CHROME ??
@@ -125,10 +131,11 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
       node: true,
       browser: process.argv.includes('--browser'),
       modules: modules.length,
-      effects: expected.effects,
-      turns: expected.turns,
+      effects: expected.untimed.effects,
+      turns: expected.untimed.turns,
       freshDirectoryRestore: true,
-      battleSystemInterface: expected.battleSystemInterface,
+      battleSystemInterface: expected.untimed.battleSystemInterface,
+      enabledTimerRestore: expected.timed.enabledTimers,
       legacyDslRequests: forbiddenRequests.length,
     }),
   )

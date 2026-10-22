@@ -3,10 +3,10 @@ import mitt, { type Emitter } from 'mitt'
 import { nanoid } from 'nanoid'
 import { createChildLogger } from '../logger'
 
-type AnimationTrackerEvents = {
-  animationStart: any
-  animationEnd: any
-  animationForceEnd: any
+export type AnimationTrackerEvents = {
+  animationStart: { animationId: string; duration: number; source: string }
+  animationEnd: { animationId: string; actualDuration: number; valid: boolean }
+  animationForceEnd: { animationId: string; reason: string; actualDuration: number; ownerId: playerId | undefined }
 }
 
 /**
