@@ -220,7 +220,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     const currentBattle = service.getLocalBattle('room_v2_1') as any
     const runtimeSnapshot = await currentBattle.createRuntimeSnapshot()
 
@@ -243,7 +243,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
 
     const selections = await service.handleLocalGetSelection('room_v2_1', player1Id)
@@ -257,7 +257,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     const selections = await service.handleLocalGetSelection('room_v2_1', player1Id)
     const selected = pickSkillSelection(selections)
     await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
@@ -274,7 +274,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
 
     const selections = await service.handleLocalGetSelection('room_v2_1', player1Id)
     const selected = pickSkillSelection(selections)
@@ -295,7 +295,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
 
     const selectionsA = await service.handleLocalGetSelection('room_v2_1', player1Id)
     const selectionsB = await service.handleLocalGetSelection('room_v2_1', player2Id)
@@ -390,7 +390,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     await service.cleanupLocalRoom('room_v2_1', { removeRuntimeArtifacts: false, publishCleanupEvent: false })
     expect(service.getLocalBattle('room_v2_1')).toBeUndefined()
 
@@ -413,7 +413,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     const bootstrapRaw = await client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP('room_v2_1'))
     expect(bootstrapRaw).toBeTruthy()
     const bootstrap = JSON.parse(bootstrapRaw!)
@@ -442,7 +442,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
 
     const bootstrapBefore = await client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP('room_v2_1'))
     expect(bootstrapBefore).toBeTruthy()
@@ -462,7 +462,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     const liveBattle = service.getLocalBattle('room_v2_1') as any
     const runtimeSnapshot = await liveBattle.createRuntimeSnapshot()
 
@@ -506,7 +506,7 @@ describe('ClusterBattleService v2 runtime', () => {
       },
     )
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     await client.setex(
       REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
       60,
@@ -541,7 +541,7 @@ describe('ClusterBattleService v2 runtime', () => {
       },
     )
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     await client.setex(
       REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
       60,
@@ -585,7 +585,7 @@ describe('ClusterBattleService v2 runtime', () => {
       },
     )
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     await client.setex(
       REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
       60,
@@ -646,7 +646,7 @@ describe('ClusterBattleService v2 runtime', () => {
       },
     )
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     const currentBattle = service.getLocalBattle('room_v2_1') as any
     const runtimeSnapshot = await currentBattle.createRuntimeSnapshot()
 
@@ -707,7 +707,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const { service, client } = createService(roomStateRef)
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
 
     const battle = service.getLocalBattle('room_v2_1')
     expect(battle).toBeTruthy()
@@ -742,7 +742,7 @@ describe('ClusterBattleService v2 runtime', () => {
       },
     )
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     await client.setex(
       REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
       60,
@@ -783,7 +783,7 @@ describe('ClusterBattleService v2 runtime', () => {
       },
     )
 
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     await client.setex(
       REDIS_KEYS.BATTLE_RUNTIME_WORLD_SNAPSHOT('room_v2_1'),
       60,
@@ -815,7 +815,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const { service } = createService(roomStateRef)
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
 
     const claimMock = vi.fn(async () => ({
       roomId: 'room_v2_1',
@@ -840,7 +840,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const { service, stateManager, client } = createService(roomStateRef)
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     expect(service.getLocalBattle('room_v2_1')).toBeTruthy()
 
     roomStateRef.current = {
@@ -878,7 +878,7 @@ describe('ClusterBattleService v2 runtime', () => {
     const { service, stateManager } = createService(roomStateRef)
     const p1 = createPlayerLike(player1Id, 'P1', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
     const p2 = createPlayerLike(player2Id, 'P2', 'pet_dilan', ['skill_paida', 'skill_shuipao'])
-    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any)
+    await service.createLocalBattle(roomStateRef.current!, p1 as any, p2 as any, { runtime: { kind: 'legacy-v2' } })
     expect(service.getLocalBattle('room_v2_1')).toBeTruthy()
 
     const claimMock = vi.fn(async () => ({
@@ -927,8 +927,7 @@ describe('ClusterBattleService native bootstrap persistence', () => {
     const players = [a, b].map((player, index) =>
       createPlayerLike(player, `Native${index}`, 'pet_dilan', ['skill_paida', 'skill_shuipao']),
     )
-    const create = () =>
-      f.service.createLocalBattle(ref.current!, players[0], players[1], { runtime: { kind: 'native-v4' } })
+    const create = () => f.service.createLocalBattle(ref.current!, players[0], players[1])
     const internals = f.service as unknown as {
       startBattleAsync(
         roomId: string,
@@ -939,7 +938,7 @@ describe('ClusterBattleService native bootstrap persistence', () => {
       readBattleRuntimeWorldSnapshot(roomId: string): Promise<unknown>
       readRuntimeInflightPhase(roomId: string): Promise<unknown>
     }
-    return { ...f, ref, create, internals }
+    return { ...f, ref, create, internals, players }
   }
   const readBootstrap = async (f: ReturnType<typeof fixture>) =>
     JSON.parse((await f.client.get(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(id)))!)
@@ -971,6 +970,60 @@ describe('ClusterBattleService native bootstrap persistence', () => {
     expect(JSON.parse(JSON.stringify(mirrored)).initial).toEqual(bootstrap.initial)
     expect(f.service.getLocalRoom(id)?.runtimeIdentity?.kind).toBe('native-v4')
     expect((await system.getState()).status).toBe(BattleStatus.Unstarted)
+  })
+  it('keeps native metadata through cluster-room activation and recovery without the Redis bootstrap', async () => {
+    const f = fixture(),
+      writes: RoomState[] = []
+    // Redis returns copies. Sharing a mutable fixture object would hide the activation overwrite bug.
+    f.stateManager.getRoomState.mockImplementation(async roomId =>
+      f.ref.current?.id === roomId ? structuredClone(f.ref.current) : null,
+    )
+    f.stateManager.setRoomState.mockImplementation(async room => {
+      writes.push(structuredClone(room))
+      f.ref.current = structuredClone(room)
+    })
+    const entries = [a, b].map((playerId, index) => ({
+        playerId,
+        playerData: f.players[index],
+        sessionId: `s${index + 1}`,
+        joinTime: Date.now(),
+      })),
+      roomId = await f.service.createClusterBattleRoom(entries[0], entries[1])
+    expect(roomId).toBeTruthy()
+    if (!roomId) throw new Error('Expected created cluster room')
+    expect(writes[0].status).toBe('waiting')
+    expect(writes[0].metadata?.runtimeBootstrap).toBeUndefined()
+    const active = writes.find(room => room.status === 'active')!
+    expect(active.metadata?.runtimeBootstrap).toMatchObject({
+      runtime: { kind: 'native-v4' },
+      initial: { format: 'arcadia.battle.native.v4', version: 2 },
+    })
+    const source = f.service.getLocalBattle(roomId)!
+    expect(source).toBeInstanceOf(LocalBattleSystemV4)
+    const original = await source.getState(undefined, true)
+    await f.service.cleanupLocalRoom(roomId, { removeRuntimeArtifacts: false, publishCleanupEvent: false })
+    await f.client.del(REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(roomId))
+    vi.spyOn(f.internals, 'startBattleAsync').mockResolvedValue(undefined)
+    expect(await f.service.recoverLocalBattleRuntime(roomId)).toBe(true)
+    expect(await f.service.getLocalBattle(roomId)!.getState(undefined, true)).toEqual(original)
+  })
+  it('abandons a native battle after a real turn and releases its delayed cleanup work', async () => {
+    const f = fixture(),
+      source = await f.create()
+    await f.service.handleLocalReady(id, a)
+    await f.service.handleLocalReady(id, b)
+    await source.ready()
+    const actions = await Promise.all(
+      [a, b].map(
+        async player =>
+          (await source.getAvailableSelection(player as playerId)).find(action => action.type === 'use-skill')!,
+      ),
+    )
+    for (const action of [...actions, actions[0]]) await f.service.handleLocalPlayerSelection(id, action.player, action)
+    expect((await source.getState()).currentTurn).toBe(1)
+    expect(await f.service.handleLocalPlayerAbandon(id, a)).toEqual({ status: 'ABANDONED' })
+    expect(f.service.getLocalBattle(id)).toBeUndefined()
+    expect(f.callbacks.cleanupSessionRoomMappings).toHaveBeenCalled()
   })
   for (const mirror of [false, true])
     it(`selects the original native runtime and IDs during recovery, metadata fallback=${mirror}`, async () => {

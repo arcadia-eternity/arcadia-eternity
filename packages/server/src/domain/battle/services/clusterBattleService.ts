@@ -177,6 +177,7 @@ export class ClusterBattleService implements IBattleService {
   private readonly runtimePhaseStacks = new Map<string, RuntimePhaseExecutionEntry[]>()
   private readonly runtimeSnapshotSeq = new Map<string, number>()
   private readonly phaseExecutionUnsubscribers = new Map<string, () => void>()
+  private readonly battleEndCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private ownershipLeaseRenewalTimer: ReturnType<typeof setInterval> | null = null
 
   // TTL 过期监听器状态（兼容旧逻辑保留字段，当前不再用于战斗判负）
@@ -673,11 +674,6 @@ export class ClusterBattleService implements IBattleService {
             runtimeSeed,
             requiredPackLock,
             requiredAssetLock,
-            runtimeBootstrap: {
-              player1Data,
-              player2Data,
-              createdAt: Date.now(),
-            } satisfies RoomRuntimeBootstrapMetadata,
           },
         }
 
@@ -699,8 +695,10 @@ export class ClusterBattleService implements IBattleService {
 
         // 更新房间状态（不再存储 battleState 到 Redis）
         logger.info({ roomId }, 'About to update room state')
+        const persistedRoomState = await this.stateManager.getRoomState(roomId)
+        if (!persistedRoomState) throw new Error('Created battle room disappeared before activation')
         const roomState: RoomState = {
-          ...tempRoomState,
+          ...persistedRoomState,
           status: 'active', // 更新状态为活跃
           // 移除 battleState 存储，避免 Redis 超时
           // battleState: battle.getState(player1Data.id, false),
@@ -1232,7 +1230,11 @@ export class ClusterBattleService implements IBattleService {
           }
 
           // 延迟清理所有资源，给客户端一些时间处理战斗结束事件
-          setTimeout(async () => {
+          if (this.runtimeHost.getInstance(roomId) !== runtime) return
+          this.clearBattleEndCleanup(roomId)
+          const cleanupTimer = setTimeout(async () => {
+            this.battleEndCleanupTimers.delete(roomId)
+            if (this.runtimeHost.getInstance(roomId) !== runtime) return
             const currentRoomState = await this.stateManager.getRoomState(roomId)
             if (currentRoomState) {
               // 清理会话映射
@@ -1258,6 +1260,7 @@ export class ClusterBattleService implements IBattleService {
               'Battle cleanup completed',
             )
           }, 5000) // 5秒延迟
+          this.battleEndCleanupTimers.set(roomId, cleanupTimer)
         }
       },
       { showAll: true },
@@ -2374,6 +2377,7 @@ export class ClusterBattleService implements IBattleService {
     const { removeRuntimeArtifacts = true, releaseOwnership = true, publishCleanupEvent = true } = options
 
     try {
+      this.clearBattleEndCleanup(roomId)
       const unsubscribePhaseExecution = this.phaseExecutionUnsubscribers.get(roomId)
       if (unsubscribePhaseExecution) {
         unsubscribePhaseExecution()
@@ -2394,6 +2398,7 @@ export class ClusterBattleService implements IBattleService {
 
         // 从本地映射中移除
         this.runtimeHost.remove(roomId)
+        this.clearBattleEndCleanup(roomId)
         if (releaseOwnership) {
           await this.ownershipCoordinator.release(roomId, this.instanceId)
         }
@@ -2424,6 +2429,12 @@ export class ClusterBattleService implements IBattleService {
         this.performanceTracker.recordError('room_cleanup_error', 'clusterBattleService')
       }
     }
+  }
+
+  private clearBattleEndCleanup(roomId: string): void {
+    const timer = this.battleEndCleanupTimers.get(roomId)
+    if (timer) clearTimeout(timer)
+    this.battleEndCleanupTimers.delete(roomId)
   }
 
   private async cleanupBattleStateSnapshots(roomId: string, battlePlayers: string[]): Promise<void> {
@@ -2785,6 +2796,7 @@ export class ClusterBattleService implements IBattleService {
     try {
       logger.info('开始清理 ClusterBattleService 资源')
       this.stopOwnershipLeaseRenewalLoop()
+      for (const roomId of this.battleEndCleanupTimers.keys()) this.clearBattleEndCleanup(roomId)
 
       // 清理所有本地房间
       const localRoomIds = this.runtimeHost.listRoomIds()

@@ -24,14 +24,15 @@ The actual trusted native build identity now has a public lightweight entry at `
 
 Native initial checkpoints now preserve the actual pre-start instances and skill IDs needed by raw action journals. The generic snapshot API requires explicit initial opt-in; official content and the shared host capture unstarted systems directly and start them only at readiness. Eight new cases and 91 related checks pass, including original-ID action replay through fresh content and enabled clocks that stay stopped before readiness. The actual Node/Chrome probe compares complete initial-restored, midgame-restored and uninterrupted games. See [initial checkpoint evidence](validation/native-initial-snapshot.md). Server identity/persistence wiring remains open.
 
+The server now creates native systems by default, persists their actual initial snapshots and build/content identity before publication, and pins recovery to that authority. Input readiness and original-ID multi-turn replay pass through real service startup, including latest-checkpoint and corrupt-checkpoint fallback. Cluster activation preserves the descriptor through independent Redis-style copies, and untagged historical records retain V2. All 59 factory/service checks pass; the full server run has 142 passes and two independently reproduced pre-cutover disconnect failures. See [bootstrap](validation/native-server-bootstrap.md), [replay](validation/native-server-replay.md) and [server default evidence](validation/native-server-default.md).
+
 ### Verified integration work remaining
 
-- `packages/server/src/domain/battle/runtime/localBattleRuntimeFactory.ts` still creates V2 systems in both its validated and fallback paths. The native loader, trusted build entry and shared host adapter are available; both creation paths need the native bootstrap and real-server tests.
-- `clusterBattleService.ts` persists bootstrap records containing players and creation time, with no runtime/content identity. Recovery currently creates the battle before reading its runtime snapshot and falls back to bootstrap replay on restore failure. Runtime selection must be recorded at creation and read before constructing the recovery instance. Untagged historical bootstraps require their existing V2 rules; native bootstraps must retain their build/content authority through snapshot recovery and replay. The native phase/checkpoint feed and journal baseline also need server recovery acceptance.
+- The current native selection/initial checkpoints and full journal replay support server recovery. Arbitrary in-flight/forced-switch checkpoint export and the native phase lifecycle feed remain separate open boundaries; they are not implemented by the new default entry.
 - The local browser page still builds an effect-DSL repository and configures AI plus optional team selection through V2. Those options need explicit native host coverage before changing that page's factory.
 - The P2P host factory also builds the V2 repository, and its wrapper constructor is typed to `LocalBattleSystemV2`. Its actual calls use the shared battle interface. Native factory/view/timer relay and transport recovery checks remain required before switching that entry.
 
-These are current source findings, not completed cutovers. Timer/animation/reconnect recovery at normal-selection checkpoints does not provide arbitrary in-flight or forced-switch snapshots.
+These are current source findings. Server default cutover is implemented; browser cutovers remain open. Timer/animation/reconnect recovery at normal-selection checkpoints does not provide arbitrary in-flight or forced-switch snapshots.
 
 ## Evidence as of 2026-10-20
 

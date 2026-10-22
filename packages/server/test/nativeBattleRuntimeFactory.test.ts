@@ -65,6 +65,12 @@ function prompt(system: IBattleSystem) {
     })
   })
 }
+it('uses the native implementation for new battles when no runtime override is provided', async () => {
+  const f = fixture(),
+    system = await f.factory.createBattleSystem(f.room, f.players[0], f.players[1])
+  systems.push(system)
+  expect(f.factory.describe(system).runtime.kind).toBe('native-v4')
+})
 it('creates an unstarted native runtime with actual build/content identity and original-instance bootstrap', async () => {
   const f = fixture()
   f.players[1].team[0].id = f.players[0].team[0].id

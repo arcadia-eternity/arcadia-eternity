@@ -73,7 +73,7 @@ export class LocalBattleRuntimeFactory {
     roomState: RoomState,
     player1Data: PlayerSchemaType,
     player2Data: PlayerSchemaType,
-    request: BattleRuntimeRequest = { kind: 'legacy-v2' },
+    request: BattleRuntimeRequest = { kind: 'native-v4' },
   ): Promise<IBattleSystem> {
     player1Data = structuredClone(player1Data)
     player2Data = structuredClone(player2Data)
