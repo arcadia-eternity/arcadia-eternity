@@ -1,7 +1,15 @@
-import type { BattleMessage, PlayerSelection, playerId, Events } from '@arcadia-eternity/const'
+import {
+  BattleMessageType,
+  BattleStatus,
+  type BattleMessage,
+  type PlayerSelection,
+  type playerId,
+  type Events,
+} from '@arcadia-eternity/const'
 import type { IBattleSystem, BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
 import type { Battle } from '../v4/battle'
 import type { BattleSnapshot } from '../v4/snapshot'
+import { ReconnectGrace, readReconnectWindows, type ReconnectWindow } from './reconnect-grace'
 
 export type NativeMessageView = NonNullable<Parameters<Battle['registerListener']>[1]>
 type Subscription = { attach: (battle: Battle) => () => void; detach: () => void }
@@ -21,11 +29,23 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   private closed = false
   private resume = false
   private failure?: Error
+  private readonly reconnect: ReconnectGrace
 
   constructor(
     private battle: Battle,
     private readonly content: NativeBattleContent,
-  ) {}
+  ) {
+    this.reconnect = new ReconnectGrace(player => {
+      if (!this.closed && !this.failure && this.battle.status !== BattleStatus.Ended) this.battle.abandonPlayer(player)
+    })
+    this.subscribe(battle => {
+      const onEnd = (message: BattleMessage) => {
+        if (message.type === BattleMessageType.BattleEnd) this.reconnect.clear()
+      }
+      battle.registerListener(onEnd)
+      return () => battle.unregisterListener(onEnd)
+    })
+  }
 
   private assertOpen(): void {
     if (this.closed) throw new Error('Native battle system is disposed')
@@ -49,8 +69,10 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     this.running = (this.resume ? battle.resumeBattle() : battle.startBattle()).catch(error => {
       if (this.expectedStops.has(battle)) return
       this.failure = error instanceof Error ? error : new Error('Native battle failed')
+      this.reconnect.clear()
     })
     this.resume = false
+    this.reconnect.activate()
   }
   /** Observe the current execution without making ready() block the host's action loop. */
   async waitForCompletion(): Promise<void> {
@@ -104,6 +126,17 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     this.assertOpen()
     this.battle.endAnimation(animationId, actualDuration)
   }
+  async startReconnectGraceTimer(player: playerId, seconds: number): Promise<void> {
+    this.assertOpen()
+    if (![this.battle.playerA.id, this.battle.playerB.id].includes(player)) throw new Error('Unknown reconnect player')
+    if (this.battle.status === BattleStatus.Ended) return
+    this.reconnect.start(player, seconds)
+  }
+  async cancelReconnectGraceTimer(player: playerId): Promise<void> {
+    this.assertOpen()
+    if (![this.battle.playerA.id, this.battle.playerB.id].includes(player)) throw new Error('Unknown reconnect player')
+    this.reconnect.cancel(player)
+  }
 
   private readonly timerSubscriptions = new Map<() => void, { type: keyof Events; handler: unknown }>()
   onTimerEvent<K extends keyof Events>(type: K, handler: (data: Events[K]) => void): () => void {
@@ -123,13 +156,13 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     this.assertOpen()
     return {
       format: 'arcadia.battle.native.v4',
-      version: 1,
-      payload: JSON.stringify(this.content.snapshot(this.battle)),
+      version: 2,
+      payload: JSON.stringify({ battle: this.content.snapshot(this.battle), reconnect: this.reconnect.snapshot() }),
     }
   }
   async restoreRuntimeSnapshot(snapshot: BattleRuntimeSnapshot): Promise<void> {
     this.assertOpen()
-    if (snapshot.format !== 'arcadia.battle.native.v4' || snapshot.version !== 1)
+    if (snapshot.format !== 'arcadia.battle.native.v4' || ![1, 2].includes(snapshot.version))
       return Promise.reject(new Error('Unsupported native runtime snapshot'))
     const task = this.replaceBattle(snapshot)
     this.restoring = task
@@ -139,15 +172,32 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   }
   private async replaceBattle(snapshot: BattleRuntimeSnapshot): Promise<void> {
     // Validate and hydrate before changing the live battle or its subscriptions.
-    const restored = this.content.restore(JSON.parse(snapshot.payload))
+    const payload = JSON.parse(snapshot.payload)
+    if (
+      snapshot.version === 2 &&
+      (!payload ||
+        typeof payload !== 'object' ||
+        Array.isArray(payload) ||
+        Object.keys(payload).length !== 2 ||
+        !Object.hasOwn(payload, 'battle') ||
+        !Object.hasOwn(payload, 'reconnect'))
+    )
+      throw new Error('Invalid native runtime payload')
+    const restored = this.content.restore(snapshot.version === 1 ? payload : payload.battle)
     const previous = this.battle
-    this.expectedStops.add(previous)
     try {
+      const windows: ReconnectWindow[] =
+        snapshot.version === 1
+          ? []
+          : readReconnectWindows(payload.reconnect, [restored.playerA.id, restored.playerB.id])
+      this.reconnect.suspend()
+      this.expectedStops.add(previous)
       await previous.cleanup()
       await this.running
       if (this.closed) throw new Error('Native battle system is disposed')
       for (const subscription of this.subscriptions) subscription.detach()
       this.battle = restored
+      this.reconnect.restore(windows)
       this.running = undefined
       this.failure = undefined
       this.started = false
@@ -165,6 +215,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     return this.cleanupTask
   }
   private async dispose(): Promise<void> {
+    this.reconnect.clear()
     await this.restoring?.catch(() => undefined)
     for (const subscription of this.subscriptions) subscription.detach()
     this.subscriptions.clear()

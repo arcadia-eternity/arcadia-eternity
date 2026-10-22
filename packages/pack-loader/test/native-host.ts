@@ -72,6 +72,7 @@ export async function verifyNativePackHost(
             if (pause && current.currentTurn === 2) {
               if (options.timed)
                 savedAnimation = await system.startAnimation('fixture/checkpoint-animation', 2000, current.playerA.id)
+              await system.startReconnectGraceTimer(current.playerA.id, 60)
               reached()
               return
             }
@@ -113,10 +114,17 @@ export async function verifyNativePackHost(
         system = new LocalBattleSystemV4(battle, authority())
         observe(false)
         await system.restoreRuntimeSnapshot(saved)
+        const restoredSnapshot = await system.createRuntimeSnapshot()
+        if (
+          JSON.stringify(JSON.parse(restoredSnapshot.payload).reconnect) !==
+          JSON.stringify(JSON.parse(saved.payload).reconnect)
+        )
+          throw new Error('Native host changed the saved reconnect deadline')
         const completedAnimations: string[] = []
         const offAnimation = system.onTimerEvent('animationEnd', event => completedAnimations.push(event.animationId))
         await system.ready()
         running = system.waitForCompletion()
+        await system.cancelReconnectGraceTimer(battle.playerA.id)
         if (savedAnimation) {
           await system.endAnimation(savedAnimation, 2000)
           if (completedAnimations.length !== 1 || completedAnimations[0] !== savedAnimation)
@@ -159,6 +167,7 @@ export async function verifyNativePackHost(
     battleSystemInterface: true,
     enabledTimers: options.timed ?? false,
     activeAnimationRestore: options.timed ?? false,
+    reconnectRestore: true,
     trace: baseline,
   }
 }

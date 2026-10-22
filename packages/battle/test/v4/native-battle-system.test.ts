@@ -9,6 +9,7 @@ import {
   setGlobalLogger,
   type Battle,
   type playerId,
+  type TimerConfig,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 import { catalogFor } from './snapshot-host'
@@ -24,9 +25,13 @@ afterEach(async () => {
   for (const system of systems.splice(0)) await system.cleanup()
   for (const battle of battles.splice(0)) await battle.cleanup()
   expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baseline)
+  if (vi.isFakeTimers()) {
+    expect(vi.getTimerCount()).toBe(0)
+    vi.useRealTimers()
+  }
 })
-function fixture() {
-  const f = makeScenario(201),
+function fixture(timerConfig?: Partial<TimerConfig>) {
+  const f = makeScenario(201, undefined, false, undefined, undefined, timerConfig),
     catalog = catalogFor(f)
   let restored: Battle | undefined
   battles.push(f.battle)
@@ -201,4 +206,149 @@ it('reports asynchronous runtime failure through completion and later host calls
   await f.system.ready()
   await expect(f.system.waitForCompletion()).rejects.toThrow('fixture/runtime-failure')
   await expect(f.system.getState()).rejects.toThrow('fixture/runtime-failure')
+})
+
+async function timedFixture(timerConfig?: Partial<TimerConfig>) {
+  vi.useFakeTimers()
+  vi.setSystemTime(Date.UTC(2026, 9, 23))
+  const f = fixture(timerConfig),
+    ready = nextPrompt(f.system)
+  await f.system.ready()
+  await ready
+  return f
+}
+
+it('expires a disconnect grace window even when decision timers are disabled', async () => {
+  const f = await timedFixture(),
+    ended = vi.fn()
+  f.system.BattleEvent(message => {
+    if (message.type === BattleMessageType.BattleEnd) ended(message.data)
+  })
+  await f.system.startReconnectGraceTimer(f.a.id, 2)
+  await vi.advanceTimersByTimeAsync(2000)
+  await f.system.waitForCompletion()
+  expect(ended).toHaveBeenCalledExactlyOnceWith({ winner: f.b.id, reason: 'surrender' })
+  expect((await f.system.getState()).status).toBe(BattleStatus.Ended)
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('cancels disconnect grace without pausing or resetting the decision clocks', async () => {
+  const f = await timedFixture({ enabled: true, turnTimeLimit: 30, totalTimeLimit: 100 })
+  await f.system.submitAction(
+    (await f.system.getAvailableSelection(f.a.id)).find(action => action.type === 'use-skill')!,
+  )
+  await f.system.startReconnectGraceTimer(f.a.id, 5)
+  await vi.advanceTimersByTimeAsync(1000)
+  await f.system.cancelReconnectGraceTimer(f.a.id)
+  await vi.advanceTimersByTimeAsync(4000)
+  expect((await f.system.getState()).status).toBe(BattleStatus.OnBattle)
+  expect(await f.system.getPlayerTimerState(f.a.id)).toMatchObject({ state: 'paused', remainingTurnTime: 30 })
+  expect(await f.system.getPlayerTimerState(f.b.id)).toMatchObject({ state: 'running', remainingTurnTime: 25 })
+})
+
+it('replaces a disconnect window and clears all peer windows when the battle ends', async () => {
+  const f = await timedFixture()
+  await f.system.startReconnectGraceTimer(f.a.id, 2)
+  await vi.advanceTimersByTimeAsync(1000)
+  await f.system.startReconnectGraceTimer(f.a.id, 3)
+  await f.system.startReconnectGraceTimer(f.b.id, 10)
+  await vi.advanceTimersByTimeAsync(2000)
+  expect((await f.system.getState()).status).toBe(BattleStatus.OnBattle)
+  await vi.advanceTimersByTimeAsync(1000)
+  await f.system.waitForCompletion()
+  expect(f.battle.victor?.id).toBe(f.b.id)
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+for (const seconds of [0, -1, NaN, Infinity])
+  it(`normalizes an immediate disconnect deadline like the previous host: ${seconds}`, async () => {
+    const f = await timedFixture()
+    await f.system.startReconnectGraceTimer(f.a.id, seconds)
+    await f.system.waitForCompletion()
+    expect(f.battle.victor?.id).toBe(f.b.id)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+it('rejects unknown disconnect players and preserves a valid window after an invalid replacement', async () => {
+  const f = await timedFixture()
+  await expect(f.system.startReconnectGraceTimer('foreign' as playerId, 1)).rejects.toThrow('Unknown reconnect player')
+  await expect(f.system.cancelReconnectGraceTimer('foreign' as playerId)).rejects.toThrow('Unknown reconnect player')
+  await f.system.startReconnectGraceTimer(f.a.id, 2)
+  await expect(f.system.startReconnectGraceTimer(f.a.id, Number.MAX_VALUE)).rejects.toThrow('out of range')
+  await vi.advanceTimersByTimeAsync(2000)
+  await f.system.waitForCompletion()
+  expect(f.battle.victor?.id).toBe(f.b.id)
+})
+
+for (const downtime of [1000, 5000])
+  it(`restores a disconnect deadline quietly without extending it: ${downtime}ms downtime`, async () => {
+    const f = await timedFixture()
+    await f.system.startReconnectGraceTimer(f.a.id, 3)
+    const saved = await f.system.createRuntimeSnapshot()
+    await f.system.cleanup()
+    await vi.advanceTimersByTimeAsync(downtime)
+    const fresh = fixture(),
+      ended = vi.fn()
+    fresh.system.BattleEvent(message => {
+      if (message.type === BattleMessageType.BattleEnd) ended(message.data)
+    })
+    await fresh.system.restoreRuntimeSnapshot(saved)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(ended).not.toHaveBeenCalled()
+    await fresh.system.ready()
+    await vi.advanceTimersByTimeAsync(Math.max(0, 3000 - downtime))
+    await fresh.system.waitForCompletion()
+    expect(ended).toHaveBeenCalledExactlyOnceWith({ winner: f.b.id, reason: 'surrender' })
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+it('cancels all disconnect timers on cleanup or asynchronous runtime failure', async () => {
+  vi.useFakeTimers()
+  const f = fixture()
+  await f.system.startReconnectGraceTimer(f.a.id, 10)
+  expect(vi.getTimerCount()).toBe(1)
+  await f.system.cleanup()
+  expect(vi.getTimerCount()).toBe(0)
+  const failed = fixture()
+  await failed.system.startReconnectGraceTimer(failed.a.id, 10)
+  vi.spyOn(failed.battle, 'startBattle').mockRejectedValueOnce(new Error('fixture/disconnect-failure'))
+  await failed.system.ready()
+  await expect(failed.system.waitForCompletion()).rejects.toThrow('fixture/disconnect-failure')
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('rejects malformed reconnect state while preserving the live battle and its disconnect window', async () => {
+  const f = await timedFixture()
+  await f.system.startReconnectGraceTimer(f.a.id, 3)
+  const saved = await f.system.createRuntimeSnapshot()
+  await f.system.cleanup()
+  const payload = JSON.parse(saved.payload)
+  payload.reconnect[0].playerId = 'foreign'
+  const fresh = fixture(),
+    ready = nextPrompt(fresh.system)
+  await fresh.system.ready()
+  await ready
+  await fresh.system.startReconnectGraceTimer(fresh.b.id, 2)
+  const before = AttributeSystem.getGlobalMemoryStats().totalInstances
+  await expect(fresh.system.restoreRuntimeSnapshot({ ...saved, payload: JSON.stringify(payload) })).rejects.toThrow(
+    'roster',
+  )
+  expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(before)
+  expect(fresh.battle.status).toBe(BattleStatus.OnBattle)
+  expect(vi.getTimerCount()).toBe(1)
+  await vi.advanceTimersByTimeAsync(2000)
+  await fresh.system.waitForCompletion()
+  expect(fresh.battle.victor?.id).toBe(fresh.a.id)
+})
+
+it('continues reading the original version-one native runtime envelope', async () => {
+  const f = await timedFixture(),
+    saved = await f.system.createRuntimeSnapshot()
+  await f.system.cleanup()
+  const payload = JSON.parse(saved.payload),
+    fresh = fixture()
+  await fresh.system.restoreRuntimeSnapshot({ ...saved, version: 1, payload: JSON.stringify(payload.battle) })
+  await fresh.system.ready()
+  expect((await fresh.system.getState()).status).toBe(BattleStatus.OnBattle)
+  expect(vi.getTimerCount()).toBe(0)
 })

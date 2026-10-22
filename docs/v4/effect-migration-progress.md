@@ -16,6 +16,8 @@ The native Battle now has an `IBattleSystem` adapter at `@arcadia-eternity/battl
 
 Enabled timers, active animations and deferred timer resets now restore at the existing normal-selection boundary. Hydration stays quiet until resume; running clocks account for elapsed time after the original animation deadline while submitted players stay paused. Thirty timer cases and 58 related checks pass, and the Node/Chrome probe passes timed animation/reset recovery and untimed fresh-directory continuation. See [timer recovery evidence](validation/native-timer-recovery.md). Forced-switch/in-flight checkpoints and the remaining host controls still gate the application/server default cutover.
 
+The native adapter also implements independent reconnect grace with preserved absolute deadlines and quiet restoration, including disabled decision timers. Its version-two runtime envelope retains compatibility with version one. The adapter suite now has 22 cases and 71 related checks pass; the real Node/Chrome probe restores and cancels reconnect windows in both timed/animated and untimed complete games. See [host evidence](validation/native-battle-system.md). Phase lifecycle, remaining host options and actual server/client selection still require integration.
+
 ## Evidence as of 2026-10-20
 
 - Historical selectorValue is restored alongside selector compatibility. Random damage, random-mark and random-stage reference tests now parse unchanged YAML. C10 was a version mismatch, while C07 refers separately to the still-pending useSkillContext name; metadata reclassification remains open.

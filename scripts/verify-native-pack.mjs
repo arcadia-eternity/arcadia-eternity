@@ -137,6 +137,7 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
       battleSystemInterface: expected.untimed.battleSystemInterface,
       enabledTimerRestore: expected.timed.enabledTimers,
       activeAnimationRestore: expected.timed.activeAnimationRestore,
+      reconnectRestore: expected.untimed.reconnectRestore && expected.timed.reconnectRestore,
       legacyDslRequests: forbiddenRequests.length,
     }),
   )
