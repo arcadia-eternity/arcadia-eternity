@@ -67,7 +67,8 @@ const variants = [
   'normal',
   'wrong-owner',
   'wrong-type',
-  'nonpet-damage',
+  'skill-source',
+  'effect-damage',
   'cancel-effect',
   'cancel-add',
   'late-owner',
@@ -89,7 +90,7 @@ function run(
   let source: typeof skill | (typeof owner.marks)[number] = skill
   if (kind === 'mark') {
     source = new BaseMark('fixture/damage-source' as baseMarkId, [], debuff.config).createInstance()
-    source.owner = owner
+    source.setOwner(owner, battle.emitter)
     owner.marks.push(source)
   }
   source.effects.push(native ? candidates[record.id] : oracles.get(record.id)!)
@@ -139,10 +140,14 @@ function run(
     const phase = new DamagePhase(
       battle,
       parent,
-      variant === 'nonpet-damage' ? b.activePet.skills[0] : b.activePet,
+      variant === 'skill-source' ? b.activePet.skills[0] : b.activePet,
       target,
       7,
-      variant === 'wrong-type' ? DamageType.Special : DamageType.Physical,
+      variant === 'effect-damage'
+        ? DamageType.Effect
+        : variant === 'wrong-type'
+          ? DamageType.Special
+          : DamageType.Physical,
     )
     phase.initialize()
     phase.execute()
@@ -170,8 +175,11 @@ for (const record of records)
         expect(actual).toEqual(run(record, false, kind, variant, seed))
         const eligible =
           variant !== 'wrong-owner' &&
-          !(variant === 'nonpet-damage' && record.recipe.triggers[0] === 'PostDamage') &&
-          !(variant === 'wrong-type' && record.id === 'effect_mark_paralyze_on_physical_50_percent')
+          !(variant === 'effect-damage' && record.recipe.triggers[0] === 'PostDamage') &&
+          !(
+            (variant === 'wrong-type' || variant === 'effect-damage') &&
+            record.id === 'effect_mark_paralyze_on_physical_50_percent'
+          )
         const probabilistic = record.recipe.when.includes('conditions.chance(')
         const rng = new GameRng(seed)
         const admitted = eligible && (!probabilistic || rng.next() < 0.5)

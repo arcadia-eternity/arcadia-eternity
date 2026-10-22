@@ -175,6 +175,13 @@ export function makeScenario(seed = 201, rng?: BattleRng, ai = false, ability?: 
 export async function runScenario(seed = 201) {
   const fixture = makeScenario(seed)
   const { battle, a, b, counters } = fixture
+  const skillIdentities = new Map<string, string>(
+    [a, b].flatMap(player =>
+      player.team.flatMap(pet =>
+        pet.skills.map((skill, index) => [skill.id, `${pet.id}/skill/${index}/${skill.baseId}`] as const),
+      ),
+    ),
+  )
   const messages: BattleMessage[] = []
   const actions: { turn: number; selection: PlayerSelection }[] = []
   const checkpoints: { turn: number; rage: number[]; hp: number[]; accuracy: number; atk: number }[] = []
@@ -228,7 +235,9 @@ export async function runScenario(seed = 201) {
       actions: actions.map(a => ({ turn: a.turn, type: a.selection.type, player: a.selection.player })),
       end: messages.filter(m => m.type === BattleMessageType.BattleEnd).map(m => m.data),
       switches: messages.filter(m => m.type === BattleMessageType.PetSwitch).map(m => m.data),
-      damage: messages.filter(m => m.type === BattleMessageType.Damage).map(m => m.data),
+      damage: messages
+        .filter(m => m.type === BattleMessageType.Damage)
+        .map(m => ({ ...m.data, source: skillIdentities.get(m.data.source) ?? m.data.source })),
     }
   } finally {
     await battle.cleanup()

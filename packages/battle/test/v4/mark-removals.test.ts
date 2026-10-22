@@ -167,7 +167,7 @@ function run(native: boolean, id: Id, trigger: EffectTrigger, variant: (typeof v
         actor.activePet,
         victim.activePet,
         101,
-        DamageType.Effect,
+        DamageType.Physical,
         trigger === EffectTrigger.OnCritPostDamage && variant !== 'noncrit-phase',
       )
       p.initialize()

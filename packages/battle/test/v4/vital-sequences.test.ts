@@ -1,13 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { parse } from 'yaml'
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   generatedVitalSequences,
   BaseMark,
   BaseSkill,
   SkillInstance,
+  AttributeSystem,
   Category,
   Element,
   EffectContext,
@@ -76,9 +77,14 @@ function reference(r: RecordEntry) {
 }
 const oracles = new Map(records.map(r => [r.id, EffectParser.parse(reference(r))]))
 const battles: Battle[] = []
+let baselineInstances = 0
+beforeEach(() => {
+  baselineInstances = AttributeSystem.getGlobalMemoryStats().totalInstances
+})
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
   for (const b of battles.splice(0)) await b.cleanup()
+  expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baselineInstances)
 })
 const variants = [
   'normal',
@@ -120,13 +126,13 @@ function run(
       AttackTargetOpinion.opponent,
     ),
   )
-  skill.owner = a.activePet
+  skill.setOwner(a.activePet)
   a.activePet.skills[0] = skill
   battle.skillMap.set(skill.id, skill)
   const support: typeof a.activePet.marks = []
   const add = (owner: typeof a.activePet, id: string, stack = 3) => {
     const mark = new BaseMark(id as baseMarkId, [], { ...debuff.config, maxStacks: 300, duration: -1 }).createInstance()
-    mark.owner = owner
+    mark.setOwner(owner, battle.emitter)
     mark.stack = stack
     owner.marks.push(mark)
     return mark

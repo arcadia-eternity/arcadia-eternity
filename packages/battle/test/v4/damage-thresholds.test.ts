@@ -60,7 +60,8 @@ const variants = [
   'nested',
   'repeat',
   'phase',
-  'nonpet-phase',
+  'skill-source-phase',
+  'effect-phase',
   'lower-last',
   'upper-last',
 ] as const
@@ -122,14 +123,14 @@ function run(native: boolean, id: Id, markSource: boolean, variant: (typeof vari
     }),
   )
   const trigger = originals.get(id)!.trigger as EffectTrigger
-  if (variant === 'phase' || variant === 'nonpet-phase') {
+  if (variant === 'phase' || variant === 'skill-source-phase' || variant === 'effect-phase') {
     const phase = new DamagePhase(
       battle,
       use,
-      variant === 'nonpet-phase' ? actor.activePet.skills[0] : actor.activePet,
+      variant === 'skill-source-phase' ? actor.activePet.skills[0] : actor.activePet,
       target,
       baseDamage,
-      DamageType.Effect,
+      variant === 'effect-phase' ? DamageType.Effect : DamageType.Physical,
       false,
       1,
       false,
@@ -193,7 +194,7 @@ for (const id of ids)
           expect(actual.max).toBe(5)
           expect(actual.result).toBe(5)
         }
-        if (variant === 'phase') {
+        if (variant === 'phase' || variant === 'skill-source-phase' || (variant === 'effect-phase' && save)) {
           expect(actual.admitted).toBe(1)
           if (save) {
             expect(actual.hp).toBe(0)
@@ -205,7 +206,7 @@ for (const id of ids)
             expect(actual.hp).toBe(1500 - amount)
           }
         }
-        if (variant === 'nonpet-phase' && !save) {
+        if (variant === 'effect-phase' && !save) {
           expect(actual.admitted).toBe(0)
           expect([actual.min, actual.max]).toEqual([10, 5000])
         }

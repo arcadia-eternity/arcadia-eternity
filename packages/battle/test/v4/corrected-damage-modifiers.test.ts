@@ -134,13 +134,13 @@ function run(spec: Spec, native: boolean, kind: 'skill' | 'mark', variant: (type
   let source: typeof skill | (typeof owner.marks)[number] = skill
   if (kind === 'mark') {
     source = new BaseMark('fixture/corrected-damage' as baseMarkId, [], debuff.config).createInstance()
-    source.owner = owner
+    source.setOwner(owner, battle.emitter)
     owner.marks.push(source)
   }
   source.effects.push(native ? candidates[spec.id] : oracles.get(spec.id)!)
   const selected =
     variant === 'other-skill' ? new SkillInstance(actor.skills[0].base, { effects: [] }) : actor.skills[0]
-  selected.owner = actor
+  selected.setOwner(actor)
   if (variant === 'wrong-owner') source.owner = owner.owner!.team[1]
   const use = new UseSkillContext(new TurnContext(battle), a, actor, AttackTargetOpinion.opponent, selected)
   use.updateActualTarget()
@@ -153,7 +153,7 @@ function run(spec: Spec, native: boolean, kind: 'skill' | 'mark', variant: (type
       : variant === 'nested'
         ? new EffectContext(use, EffectTrigger.PreDamage, source)
         : use
-  const damage = new DamageContext(parent, actor, victim, 200, DamageType.Effect)
+  const damage = new DamageContext(parent, actor, victim, 200, DamageType.Physical)
   damage.element = Element.Light // Skill element/category must come from skill ancestry, not this event.
   const seen: { modified: number[]; resolvedHits: number; ordinal: number }[] = []
   b.team[1].skills[0].effects.push(
