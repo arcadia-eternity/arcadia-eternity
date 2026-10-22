@@ -16,7 +16,13 @@ test('candidate inventory includes standalone handwritten ledgers and does not c
       'docs/v4/validation/stat-stages-candidates.json',
     ),
   )
-  assert.ok(result.uncovered.includes('effect_mark_special_damage_reduction_with_stack'))
+  // The generic generator still rejects this definition; its approved handwritten
+  // correction now owns it. A rejection must not appear as another owner.
+  assert.deepEqual(result.owners.effect_mark_special_damage_reduction_with_stack, [
+    'docs/v4/validation/stack-damage.json',
+  ])
+  assert.equal(result.covered, 1065)
+  assert.deepEqual(result.uncovered, [])
   assert.equal(result.total, result.covered + result.uncovered.length)
   assert.equal(new Set(result.uncovered).size, result.uncovered.length)
 })
