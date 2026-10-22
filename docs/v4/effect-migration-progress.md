@@ -6,7 +6,7 @@ Authoritative contracts: reviewed sections of issues [205](https://github.com/ar
 
 ## Evidence as of 2026-10-23
 
-All 1065 definitions have native candidates. The fixed build at `09f7757c`, including native hosts, initial/selection snapshots, timed/animated recovery, reconnect grace and input readiness, passed the full V4 suite in one run: **149 files, 27,442 tests, zero failures or skipped tests**. The server default switched in the later `29cc540a` without changing those core sources; its acceptance is recorded below. The earlier 188 offline migration checks and 87 authoring design checks are also recorded as passing. See [full regression checkpoint](validation/full-candidate-regression-checkpoint.md).
+All 1065 definitions have native candidates. The fixed build at `fb610cb5`, including native hosts, AI, team preparation, initial/selection snapshots, timed/animated recovery, reconnect grace, input readiness and public view sequencing, passed the full V4 suite in one run: **150 files, 27,463 tests, zero failures or skipped tests**. Earlier complete fixed-build runs remain recorded separately. The 188 offline migration checks also pass; authoring design checks have separate evidence. See [full regression checkpoint](validation/full-candidate-regression-checkpoint.md).
 
 The `createOfficialContent` entry wires current metadata to TypeScript implementations, installs battle parameters and registers snapshot factories without using the effect DSL or legacy singleton. It has 124 related passing checks, including a complete official game and fresh-directory JSON continuation. See [native content entry](validation/official-native-content.md).
 
@@ -30,13 +30,15 @@ The native content entry now creates the existing AI by explicit player ID and r
 
 The local browser and P2P host now share a native metadata-only factory, with existing AI, optional team preparation, view sequence adaptation and reactive team-input copying. Seven related core suites pass 114 checks, the browser factory/P2P suite passes 20, the metadata loader passes 11 and all eight real Chrome local-page cases pass. The ten-second portrait case also repairs premature startup health monitoring without changing the animation state machine. Types, scoped lint, declarations, production web build and the latest 59 server cases pass. The Node/Chrome probe loads 1065 effects through 516 modules with zero effect-DSL requests. See [native browser evidence](validation/native-browser-entry.md).
 
+The actual CLI `local` entry now loads native metadata and compiled effects, creates the built-in AI by slot and uses the existing console interface. Four checks pass, including a spawned strict-validation/two-AI command that completes a game using the same input file twice. Root types, scoped lint and CLI bundle build pass. This integration changes no native core/host source from the full fixed build above. See [native CLI evidence](validation/native-cli-entry.md).
+
 ### Verified integration work remaining
 
 - The current native selection/initial checkpoints and full journal replay support server recovery. Arbitrary in-flight/forced-switch checkpoint export and the native phase lifecycle feed remain separate open boundaries; they are not implemented by the new default entry.
 - Both browser creation entries now use the native factory. The complete private-room browser suite stopped before battle creation because guest creation requires an initialized Supabase service; real room/reload transport acceptance remains open. Actual host/peer messages and a next-turn delta consumer pass independently through the in-memory transport.
 - Candidate ownership is 1065/1065 with no uncovered source definitions. Earlier per-family and source inventory records still contain provisional U classifications and behavior-not-run fields. Those historical records need a final, source-pinned per-ID acceptance reconciliation; the implementation count and full test count do not by themselves close that obligation.
 
-These are current source findings. Server, local browser and P2P creation cutovers are implemented; final acceptance remains open. Timer/animation/reconnect recovery at normal-selection checkpoints does not provide arbitrary in-flight or forced-switch snapshots.
+These are current source findings. Server, local browser, P2P and local CLI creation cutovers are implemented; final acceptance remains open. Timer/animation/reconnect recovery at normal-selection checkpoints does not provide arbitrary in-flight or forced-switch snapshots.
 
 ## Evidence as of 2026-10-20
 

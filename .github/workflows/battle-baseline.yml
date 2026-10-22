@@ -72,8 +72,8 @@ jobs:
           cache: pnpm
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Build server and native runtime dependencies
-        run: pnpm --filter @arcadia-eternity/server... run build
+      - name: Build server, console and native runtime dependencies
+        run: pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/console... --filter @arcadia-eternity/cli-validator... --filter @arcadia-eternity/p2p-transport... run build
       - name: Check native server source and test types
         run: |
           pnpm typecheck:server-native
@@ -82,6 +82,11 @@ jobs:
         run: pnpm test:server-native
       - name: Verify native content and bootstrap in Node and Chrome
         run: pnpm verify:battle-v4-native-pack
+      - name: Check CLI types and native local execution
+        run: |
+          pnpm typecheck
+          pnpm exec eslint bin/cli.ts bin/native-local-battle.ts
+          pnpm test:cli-native
 
   native-browser-entry:
     runs-on: ubuntu-latest
