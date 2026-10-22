@@ -6,6 +6,7 @@ export default defineConfig({
     pack: 'pack.ts',
     v4: 'v4.ts',
     'v4-legacy': 'v4-legacy.ts',
+    'v4-host': 'v4-host.ts',
   },
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,

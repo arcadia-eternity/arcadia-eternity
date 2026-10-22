@@ -23,6 +23,7 @@ try {
         name: 'native-pack-boundary',
         resolveId(id) {
           if (id === '@arcadia-eternity/battle/v4') return resolve('packages/battle/v4.ts')
+          if (id === '@arcadia-eternity/battle/v4/host') return resolve('packages/battle/v4-host.ts')
         },
         moduleParsed(info) {
           modules.push(info.id)
@@ -127,6 +128,7 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
       effects: expected.effects,
       turns: expected.turns,
       freshDirectoryRestore: true,
+      battleSystemInterface: expected.battleSystemInterface,
       legacyDslRequests: forbiddenRequests.length,
     }),
   )

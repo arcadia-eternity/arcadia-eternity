@@ -5,6 +5,13 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["./v4.ts", "./src/v4/**/*.ts", "./v4-legacy.ts", "./src/v4/legacy/**/*.json"],
+  "include": [
+    "./v4.ts",
+    "./v4-host.ts",
+    "./src/v4/**/*.ts",
+    "./src/v4-host/**/*.ts",
+    "./v4-legacy.ts",
+    "./src/v4/legacy/**/*.json"
+  ],
   "exclude": ["./node_modules", "./dist"]
 }

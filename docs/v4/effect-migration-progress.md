@@ -12,6 +12,8 @@ The `createOfficialContent` entry wires current metadata to TypeScript implement
 
 `@arcadia-eternity/pack-loader/native` now exposes `NativePackLoader` for filesystem and HTTP metadata, existing dependencies/assets/locales/locks, trusted build identity and expected revision checks. It shares transport and reference resolution with the existing loader. Sixteen package checks and forty existing data-loader checks pass. A real Chrome/Node comparison loads all native content over HTTP, completes the seven-turn game and restores through fresh directories with identical events/checkpoints and zero effect-DSL requests. See [native pack evidence](validation/native-pack-loader.md). Server/client runtime selection still needs cutover; these library and host-probe gates do not mark overall migration complete.
 
+The native Battle now has an `IBattleSystem` adapter at `@arcadia-eternity/battle/v4/host`. Nine lifecycle/view/recovery cases pass, including partial selections, source-identity protection and concurrent restore/cleanup; 28 related regression checks pass. The real Chrome/Node probe now drives this same interface, including its runtime snapshot envelope. See [native battle-system evidence](validation/native-battle-system.md). Enabled-timer recovery and the remaining host controls are still required before switching the application/server defaults.
+
 ## Evidence as of 2026-10-20
 
 - Historical selectorValue is restored alongside selector compatibility. Random damage, random-mark and random-stage reference tests now parse unchanged YAML. C10 was a version mismatch, while C07 refers separately to the still-pending useSkillContext name; metadata reclassification remains open.

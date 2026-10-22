@@ -6,6 +6,7 @@ import {
   type EnvironmentBuildIdentity,
   type Battle,
 } from '@arcadia-eternity/battle/v4'
+import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { NativePackLoader } from '../src/native-loader'
 
 type Plan = { type: string; skill?: string; pet?: string }
@@ -21,6 +22,14 @@ export async function verifyNativePackHost(
     let content = initial.content
     const [a, b] = input.teams.map(team => content.parsePlayer(team))
     let battle = content.createBattle(a, b, { rngSeed: 201, timerConfig: { enabled: false }, showHidden: true })
+    const authority = () => ({
+      snapshot: (current: Battle) => content.snapshot(current),
+      restore: (data: unknown) => {
+        battle = content.restore(data)
+        return battle
+      },
+    })
+    let system = new LocalBattleSystemV4(battle, authority())
     const indexes = [0, 0],
       trace: unknown[] = [],
       errors: string[] = []
@@ -28,21 +37,22 @@ export async function verifyNativePackHost(
     const boundary = new Promise<void>(resolve => {
       reached = resolve
     })
-    const submit = (side: number) => {
+    const submit = async (side: number) => {
       const player = [battle.playerA, battle.playerB][side]
       const plan = input.actions[side === 0 ? 'A' : 'B'][indexes[side]++]
       if (!plan) throw new Error('Native host action script exhausted')
-      const selection = battle.getAvailableSelection(player.id).find(selection => {
+      const selection = (await system.getAvailableSelection(player.id)).find(selection => {
         if (selection.type !== plan.type) return false
         if (selection.type === 'use-skill') return battle.getSkillByID(selection.skill).baseId === plan.skill
         if (selection.type === 'switch-pet') return battle.getPetByID(selection.pet).name === plan.pet
         return true
       })
-      if (!selection || !battle.setSelection(selection))
-        throw new Error(`Native host action rejected: ${JSON.stringify(plan)}`)
+      if (!selection) throw new Error(`Native host action rejected: ${JSON.stringify(plan)}`)
+      await system.submitAction(selection)
     }
-    const observe = (current: Battle, pause: boolean) =>
-      current.registerListener(message => {
+    const observe = (pause: boolean) =>
+      system.BattleEvent(message => {
+        const current = battle
         trace.push(message.type)
         if (message.type === BattleMessageType.TurnEnd)
           trace.push({
@@ -54,30 +64,28 @@ export async function verifyNativePackHost(
           ([BattleMessageType.Error, BattleMessageType.EffectApplyFail] as BattleMessageType[]).includes(message.type)
         )
           errors.push(message.type)
-        try {
+        void (async () => {
           if (message.type === BattleMessageType.TurnAction) {
             if (pause && current.currentTurn === 2) {
               reached()
               return
             }
-            submit(0)
-            submit(1)
+            await submit(0)
+            await submit(1)
           }
           if (message.type === BattleMessageType.ForcedSwitch)
             for (const id of message.data.player)
-              submit([current.playerA, current.playerB].findIndex(player => player.id === id))
+              await submit([current.playerA, current.playerB].findIndex(player => player.id === id))
           if (message.type === BattleMessageType.FaintSwitch)
-            submit([current.playerA, current.playerB].findIndex(player => player.id === message.data.player))
-        } catch (error) {
+            await submit([current.playerA, current.playerB].findIndex(player => player.id === message.data.player))
+        })().catch(error => {
           errors.push(error instanceof Error ? error.message : 'Unknown native host error')
-          void current.cleanup()
-        }
+          void system.cleanup()
+        })
       })
-    const cancelled = (error: Error) => {
-      if (error.message !== 'Battle cancelled') throw error
-    }
-    observe(battle, checkpoint)
-    let running = battle.startBattle().catch(cancelled)
+    observe(checkpoint)
+    await system.ready()
+    let running = system.waitForCompletion()
     try {
       if (checkpoint) {
         await Promise.race([
@@ -86,8 +94,8 @@ export async function verifyNativePackHost(
             throw new Error('Native host ended before checkpoint')
           }),
         ])
-        const saved = JSON.parse(JSON.stringify(content.snapshot(battle)))
-        await battle.cleanup()
+        const saved = JSON.parse(JSON.stringify(await system.createRuntimeSnapshot()))
+        await system.cleanup()
         await running
         const fresh = await loader.load(packRef, {
           source: 'http',
@@ -95,11 +103,15 @@ export async function verifyNativePackHost(
           expectedRevision: initial.revision,
         })
         content = fresh.content
-        battle = content.restore(saved)
-        observe(battle, false)
-        running = battle.resumeBattle().catch(cancelled)
-        submit(0)
-        submit(1)
+        const players = input.teams.map(team => content.parsePlayer(team))
+        battle = content.createBattle(players[0], players[1], { timerConfig: { enabled: false } })
+        system = new LocalBattleSystemV4(battle, authority())
+        observe(false)
+        await system.restoreRuntimeSnapshot(saved)
+        await system.ready()
+        running = system.waitForCompletion()
+        await submit(0)
+        await submit(1)
       }
       await running
       if (errors.length || battle.phaseManager.getPhasesByState(PhaseState.Failed).length)
@@ -113,7 +125,7 @@ export async function verifyNativePackHost(
         throw new Error('Native host game did not complete as expected')
       return trace
     } finally {
-      await battle.cleanup()
+      await system.cleanup()
       await running
     }
   }
@@ -129,6 +141,7 @@ export async function verifyNativePackHost(
     turns: 7,
     winner: 'A',
     freshDirectoryRestore: true,
+    battleSystemInterface: true,
     trace: baseline,
   }
 }

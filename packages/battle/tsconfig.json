@@ -18,6 +18,8 @@
     "./index.ts",
     "./node.ts",
     "./pack.ts",
+    "./v4-host.ts",
+    "./src/v4-host/**/*.ts",
     "./src/pack/**/*.ts",
     "./src/index.ts",
     "./src/logger.ts",
