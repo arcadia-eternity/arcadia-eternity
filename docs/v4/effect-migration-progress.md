@@ -18,6 +18,8 @@ Enabled timers, active animations and deferred timer resets now restore at the e
 
 The native adapter also implements independent reconnect grace with preserved absolute deadlines and quiet restoration, including disabled decision timers. Its version-two runtime envelope retains compatibility with version one. The adapter suite now has 22 cases and 71 related checks pass; the real Node/Chrome probe restores and cancels reconnect windows in both timed/animated and untimed complete games. See [host evidence](validation/native-battle-system.md). Phase lifecycle, remaining host options and actual server/client selection still require integration.
 
+Decision clocks now connect to real forced-switch requests, time only participating players and pause throughout resolution. Prompt initialization preserves synchronous submissions. Three red-to-green cases bring timer coverage to 33 checks; 77 related tests and three separate phase lifecycle checks pass, along with timed Node/Chrome full-game recovery. See [decision clock evidence](validation/native-timer-recovery.md#decision-phase-timing). Forced-switch snapshot support remains a separate open boundary.
+
 ## Evidence as of 2026-10-20
 
 - Historical selectorValue is restored alongside selector compatibility. Random damage, random-mark and random-stage reference tests now parse unchanged YAML. C10 was a version mismatch, while C07 refers separately to the still-pending useSkillContext name; metadata reclassification remains open.

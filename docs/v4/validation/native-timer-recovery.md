@@ -33,3 +33,11 @@ The real Node/Chrome timed probe now starts an animation before the actual selec
 Additional temporary artifacts: `active-animation-red.log`, `active-animation-projection-red.log`, `active-animation-final.log`, `active-animation-browser.log`, `animation-types-final.log`, `animation-lint-final.log` and `animation-declarations-final.log` under the same temporary directory.
 
 Forced-switch/in-flight checkpoints, phase/reconnection host controls and default application/server routing remain open migration work. This extends timer recovery at the existing selection boundary.
+
+## Decision phase timing
+
+The switch phase now starts decision time for its actual participants before publishing the prompt. Normal and switch decisions share the same timer initialization/deferred-reset path. Completing input pauses clocks and ends decision bookkeeping before action resolution; clearing old selections during resolution cannot resume them or revive a deferred reset. Normal turn timers also initialize before the action prompt, so synchronous listeners' accepted selections retain their paused status.
+
+Three regression cases failed against the fixed previous bundle and now pass: timing only the required forced-switch player with automatic replacement, applying that participant's total-time loss without charging the waiting opponent, and retaining a synchronous prompt selection. The timer suite has **33 cases**. The related five-suite run passes **77 tests**; the separate three-case phase lifecycle suite also passes. Types, declarations, lint, pack fixture types and reviewed provenance pass. The actual Node/Chrome probe starts its animation at the preceding turn end and asserts that both players' next-turn timer reset is deferred in the saved state, then completes the original animation and game after restore.
+
+Temporary evidence: `switch-timer-confirmed-red.log`, `switch-timer-final.log`, `switch-phase-lifecycle.log`, `switch-types.log`, `switch-lint.log`, `switch-declarations.log`, `switch-pack-types.log` and `switch-browser.log`. Live forced-switch timing is covered; snapshots during the forced-switch wait remain outside the current boundary.

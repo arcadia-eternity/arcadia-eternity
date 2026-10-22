@@ -464,3 +464,77 @@ for (const corruption of ['foreign-owner', 'duplicate-animation', 'reset-without
     expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(before)
     expect(vi.getTimerCount()).toBe(0)
   })
+
+async function forcedSwitchFixture(options: Partial<TimerConfig> = {}) {
+  const f = await fixture(options)
+  f.battle.allowFaintSwitch = false
+  const next = new Promise<void>(resolve =>
+    f.battle.registerListener(message => {
+      if (message.type === BattleMessageType.TurnAction) resolve()
+    }),
+  )
+  f.battle.setSelection(f.battle.getAvailableSelection(f.a.id).find(action => action.type === 'switch-pet')!)
+  f.battle.setSelection(f.battle.getAvailableSelection(f.b.id).find(action => action.type === 'use-skill')!)
+  await next
+  const switching = new Promise<void>(resolve =>
+    f.battle.registerListener(message => {
+      if (message.type === BattleMessageType.ForcedSwitch) resolve()
+    }),
+  )
+  f.battle.setSelection(f.battle.getAvailableSelection(f.a.id).find(action => action.type === 'use-skill')!)
+  f.battle.setSelection(f.battle.getAvailableSelection(f.b.id).find(action => action.type === 'use-skill')!)
+  await switching
+  return f
+}
+
+it('times only the required switch player and automatically selects a replacement at the turn deadline', async () => {
+  const f = await forcedSwitchFixture({ turnTimeLimit: 2 })
+  expect(f.battle.getPlayerTimerState(f.a.id)).toMatchObject({ state: TimerState.Paused, remainingTotalTime: 100 })
+  expect(f.battle.getPlayerTimerState(f.b.id)).toMatchObject({ state: TimerState.Running, remainingTurnTime: 2 })
+  const next = new Promise<void>(resolve =>
+    f.battle.registerListener(message => {
+      if (message.type === BattleMessageType.TurnAction) resolve()
+    }),
+  )
+  await vi.advanceTimersByTimeAsync(2100)
+  await next
+  expect(f.b.activePet.id).toBe('B/reserve')
+  expect(f.battle.currentTurn).toBe(2)
+  expect(f.battle.getPlayerTimerState(f.a.id)?.remainingTotalTime).toBeCloseTo(99.9)
+  expect(
+    f.battle
+      .getActionLog()
+      .filter(action => action.selection.player === f.b.id && action.selection.type === 'switch-pet'),
+  ).toHaveLength(1)
+})
+
+it('charges the forced switch participant total deadline without timing out the waiting opponent', async () => {
+  const f = await forcedSwitchFixture({ totalTimeLimit: 2 }),
+    ended = vi.fn()
+  f.battle.registerListener(message => {
+    if (message.type === BattleMessageType.BattleEnd) ended(message.data)
+  })
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(ended).toHaveBeenCalledExactlyOnceWith({ winner: f.a.id, reason: 'total_time_timeout' })
+  expect(f.battle.getPlayerTimerState(f.a.id)?.remainingTotalTime).toBe(2)
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('preserves a synchronous prompt listener selection in the new turn timer state', async () => {
+  const f = await fixture({ turnTimeLimit: 2 })
+  const next = new Promise<void>(resolve =>
+    f.battle.registerListener(message => {
+      if (message.type === BattleMessageType.TurnAction) {
+        f.battle.setSelection(f.battle.getAvailableSelection(f.a.id).find(action => action.type === 'use-skill')!)
+        resolve()
+      }
+    }),
+  )
+  f.battle.setSelection(f.battle.getAvailableSelection(f.a.id).find(action => action.type === 'use-skill')!)
+  f.battle.setSelection(f.battle.getAvailableSelection(f.b.id).find(action => action.type === 'use-skill')!)
+  await next
+  expect(f.battle.getPlayerTimerState(f.a.id)?.state).toBe(TimerState.Paused)
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(f.battle.getPlayerTimerState(f.a.id)?.remainingTurnTime).toBe(2)
+  expect(f.battle.getPlayerTimerState(f.b.id)?.remainingTurnTime).toBe(1)
+})

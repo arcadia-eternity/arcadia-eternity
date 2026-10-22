@@ -175,11 +175,19 @@ export class TimerManager {
    * 开始新回合计时
    */
   public startNewTurn(playerIds: playerId[]): void {
+    this.startDecisionPhase(playerIds, 'selection')
+  }
+
+  public startSwitchPhase(playerIds: playerId[]): void {
+    this.startDecisionPhase(playerIds, 'switch')
+  }
+
+  private startDecisionPhase(playerIds: playerId[], phase: 'selection' | 'switch'): void {
     if (!this.config.enabled) return
 
     this.logger.debug(`Timer startNewTurn: starting new turn for players: ${playerIds.join(', ')}`)
 
-    this.currentPhase = 'selection'
+    this.currentPhase = phase
     this.isActive = true
 
     // 重置选择状态追踪
@@ -241,42 +249,13 @@ export class TimerManager {
     this.logger.debug('Timer startNewTurn: timers reset and started, ready for animation management')
   }
 
-  /**
-   * 开始切换阶段计时
-   */
-  public startSwitchPhase(playerIds: playerId[]): void {
-    if (!this.config.enabled) return
-
-    this.currentPhase = 'switch'
-    this.isActive = true
-
-    // 重置选择状态追踪
-    this.playerSelectionStatus.clear()
-    playerIds.forEach(playerId => {
-      this.playerSelectionStatus.set(playerId, false)
-    })
-
-    // 启动指定玩家的计时器
-    const remainingTotalTime: { [key: string]: number } = {}
-
-    playerIds.forEach(playerId => {
-      const timer = this.playerTimers.get(playerId)
-      if (timer) {
-        timer.startTurn()
-        const state = timer.getState()
-        remainingTotalTime[playerId] = state.remainingTotalTime
-      }
-    })
-
-    // 发送计时器开始事件
-    this.battle.emitter.emit('timerStart', {
-      player: playerIds,
-      turnTimeLimit: this.config.turnTimeLimit || null,
-      remainingTotalTime,
-    })
-
-    // 新架构：发送初始快照
-    this.emitSnapshotEvent(playerIds)
+  /** Decision input is complete; selection cleanup must not restart clocks during resolution. */
+  public finishDecisionPhase(): void {
+    if (!this.config.enabled || !this.isActive) return
+    this.currentPhase = 'execution'
+    this.pendingTurnReset = null
+    this.restoredResetAt = undefined
+    this.pauseTimers([...this.playerTimers.keys()], 'system')
   }
 
   /**

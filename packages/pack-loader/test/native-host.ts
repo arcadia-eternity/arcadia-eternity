@@ -68,10 +68,10 @@ export async function verifyNativePackHost(
         )
           errors.push(message.type)
         void (async () => {
+          if (pause && options.timed && message.type === BattleMessageType.TurnEnd && current.currentTurn === 2)
+            savedAnimation = await system.startAnimation('fixture/checkpoint-animation', 2000, current.playerA.id)
           if (message.type === BattleMessageType.TurnAction) {
             if (pause && current.currentTurn === 2) {
-              if (options.timed)
-                savedAnimation = await system.startAnimation('fixture/checkpoint-animation', 2000, current.playerA.id)
               await system.startReconnectGraceTimer(current.playerA.id, 60)
               reached()
               return
@@ -100,6 +100,8 @@ export async function verifyNativePackHost(
             throw new Error('Native host ended before checkpoint')
           }),
         ])
+        if (options.timed && battle.timerManager.exportRuntimeState().pendingTurnReset?.length !== 2)
+          throw new Error('Native host did not reach its deferred timer reset checkpoint')
         const saved = JSON.parse(JSON.stringify(await system.createRuntimeSnapshot()))
         await system.cleanup()
         await running

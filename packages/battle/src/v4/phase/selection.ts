@@ -38,17 +38,17 @@ export class SelectionPhase extends InteractivePhase<SelectionContext> {
       // Clear previous selections
       this.battle.clearSelections()
 
+      this.battle.timerManager.startNewTurn([this.battle.playerA.id, this.battle.playerB.id])
+
       // Emit turn action message
       this.battle.emitMessage(BattleMessageType.TurnAction, {
         player: [this.battle.playerA.id, this.battle.playerB.id],
       })
-
-      // Start new turn timer
-      this.battle.timerManager.startNewTurn([this.battle.playerA.id, this.battle.playerB.id])
     } else {
       this.battle.timerManager.activateRestoredState()
     }
     // Wait for both players to make selections
     await this.battle.waitForBothPlayersReady()
+    this.battle.timerManager.finishDecisionPhase()
   }
 }

@@ -167,7 +167,7 @@
       "destination": "packages/battle/src/v4/phase/battleSwitch.ts",
       "sourceBlob": "b97e8798ec5a87e4f5751f32e5f857758bde0eec",
       "sourceSha256": "1aa5207682f1b37274f6b20fc50f6777de517bef496ca30f5a54c44fdf2bc915",
-      "portedSha256": "ab8a9c81b3e0dfd65deae966d26e3e17c8e4dc312b41d6512456ad29679884d3",
+      "portedSha256": "623237938ceb6b886f19f1cb75344bc36b3ba72a5b9c3875d753817642670405",
       "changed": true
     },
     {
@@ -239,7 +239,7 @@
       "destination": "packages/battle/src/v4/phase/selection.ts",
       "sourceBlob": "3e1aca57c5c718eba959ee39301536e4c7933102",
       "sourceSha256": "4cc8332659a9ed0d9138521ff623abd9b5950e7b98af8192cf267c3d17d63118",
-      "portedSha256": "4938c12490888640e1b8f173258e356da5bd77576151fe58ed8819ac22c6ad73",
+      "portedSha256": "719bf4ebfe09adb79914fcabe46ccc882c5593e97cb6a36dda9bca033503a4e1",
       "changed": true
     },
     {
@@ -319,7 +319,7 @@
       "destination": "packages/battle/src/v4/timer/timerManager.ts",
       "sourceBlob": "458d0b7831fbce0b10ce6876e231c4d4c0d9fb81",
       "sourceSha256": "fb636c9d6399ee869265744d6a766c2e9e43051974c69f0e035611fc843ad70e",
-      "portedSha256": "e7bc8e32c30913ea79ca4fe90f790b845937a03b1d43fe3fa9789cf85885fb16",
+      "portedSha256": "3fe1c03274555dd392860728742bcd890d8dd112e491c4f4b34bf53b1a3de621",
       "changed": true
     },
     {
