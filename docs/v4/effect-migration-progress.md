@@ -28,13 +28,15 @@ The server now creates native systems by default, persists their actual initial 
 
 The native content entry now creates the existing AI by explicit player ID and routes all three built-in decision handlers through the common Battle input path. AI timers/action records, pending-choice restoration and future RNG/state continuation pass in 98 related checks and the actual timed/untimed Node/Chrome HTTP probe. The 59 server cases also remain green. This later AI seam has separate evidence from the fixed full-regression build above; see [native AI host validation](validation/native-ai-host.md).
 
+The local browser and P2P host now share a native metadata-only factory, with existing AI, optional team preparation, view sequence adaptation and reactive team-input copying. Seven related core suites pass 114 checks, the browser factory/P2P suite passes 20, the metadata loader passes 11 and all eight real Chrome local-page cases pass. The ten-second portrait case also repairs premature startup health monitoring without changing the animation state machine. Types, scoped lint, declarations, production web build and the latest 59 server cases pass. The Node/Chrome probe loads 1065 effects through 516 modules with zero effect-DSL requests. See [native browser evidence](validation/native-browser-entry.md).
+
 ### Verified integration work remaining
 
 - The current native selection/initial checkpoints and full journal replay support server recovery. Arbitrary in-flight/forced-switch checkpoint export and the native phase lifecycle feed remain separate open boundaries; they are not implemented by the new default entry.
-- The local browser page still builds an effect-DSL repository and configures AI plus optional team selection through V2. Those options need explicit native host coverage before changing that page's factory.
-- The P2P host factory also builds the V2 repository, and its wrapper constructor is typed to `LocalBattleSystemV2`. Its actual calls use the shared battle interface. Native factory/view/timer relay and transport recovery checks remain required before switching that entry.
+- Both browser creation entries now use the native factory. The complete private-room browser suite stopped before battle creation because guest creation requires an initialized Supabase service; real room/reload transport acceptance remains open. Actual host/peer messages and a next-turn delta consumer pass independently through the in-memory transport.
+- Candidate ownership is 1065/1065 with no uncovered source definitions. Earlier per-family and source inventory records still contain provisional U classifications and behavior-not-run fields. Those historical records need a final, source-pinned per-ID acceptance reconciliation; the implementation count and full test count do not by themselves close that obligation.
 
-These are current source findings. Server default cutover is implemented; browser cutovers remain open. Timer/animation/reconnect recovery at normal-selection checkpoints does not provide arbitrary in-flight or forced-switch snapshots.
+These are current source findings. Server, local browser and P2P creation cutovers are implemented; final acceptance remains open. Timer/animation/reconnect recovery at normal-selection checkpoints does not provide arbitrary in-flight or forced-switch snapshots.
 
 ## Evidence as of 2026-10-20
 

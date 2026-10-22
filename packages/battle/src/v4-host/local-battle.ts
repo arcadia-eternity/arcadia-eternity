@@ -10,6 +10,40 @@ import type { IBattleSystem, BattleRuntimeSnapshot } from '@arcadia-eternity/int
 import type { Battle } from '../v4/battle'
 import type { BattleSnapshot } from '../v4/snapshot'
 import { ReconnectGrace, readReconnectWindows, type ReconnectWindow } from './reconnect-grace'
+import { NativeTeamSelection, type NativeTeamSelectionOptions } from './team-selection'
+
+export interface NativeBattleHostOptions {
+  teamSelection?: NativeTeamSelectionOptions
+}
+
+/** The native counter points to the next message; the host protocol exposes the last covered message. */
+function hostMessage(message: BattleMessage, view: NativeMessageView | undefined, battle: Battle): BattleMessage {
+  let stateDelta = message.stateDelta
+  if (stateDelta && typeof stateDelta === 'object' && !Array.isArray(stateDelta) && 'sequenceId' in stateDelta) {
+    const sequence = stateDelta.sequenceId
+    if (Array.isArray(sequence) && typeof sequence[0] === 'number') {
+      if (sequence.length === 1) stateDelta = { ...stateDelta, sequenceId: [sequence[0] - 1] }
+      else if (sequence.length === 2 && typeof sequence[1] === 'number')
+        stateDelta = { ...stateDelta, sequenceId: [sequence[0] - 1, sequence[1] - 1] }
+    }
+  }
+  if (
+    message.type === BattleMessageType.TeamSelectionStart &&
+    view?.viewerId &&
+    !view.showAll &&
+    !message.data.config.showOpponentTeam
+  )
+    return {
+      ...message,
+      stateDelta,
+      data: {
+        ...message.data,
+        playerATeam: view.viewerId === battle.playerA.id ? message.data.playerATeam : null,
+        playerBTeam: view.viewerId === battle.playerB.id ? message.data.playerBTeam : null,
+      },
+    }
+  return { ...message, stateDelta }
+}
 
 export type NativeMessageView = NonNullable<Parameters<Battle['registerListener']>[1]>
 type Subscription = { attach: (battle: Battle) => () => void; detach: () => void }
@@ -31,21 +65,35 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   private resume = false
   private failure?: Error
   private readonly reconnect: ReconnectGrace
+  private readonly options: NativeBattleHostOptions
+  private preparation?: NativeTeamSelection
 
   constructor(
     private battle: Battle,
     private readonly content: NativeBattleContent,
+    options: NativeBattleHostOptions = {},
   ) {
+    this.options = structuredClone(options)
+    this.preparation = this.createPreparation(battle)
     this.reconnect = new ReconnectGrace(player => {
       if (!this.closed && !this.failure && this.battle.status !== BattleStatus.Ended) this.battle.abandonPlayer(player)
     })
     this.subscribe(battle => {
       const onEnd = (message: BattleMessage) => {
-        if (message.type === BattleMessageType.BattleEnd) this.reconnect.clear()
+        if (message.type === BattleMessageType.BattleEnd) {
+          this.reconnect.clear()
+          this.preparation?.cancel()
+        }
       }
       battle.registerListener(onEnd)
       return () => battle.unregisterListener(onEnd)
     })
+  }
+
+  private createPreparation(battle: Battle): NativeTeamSelection | undefined {
+    return this.options.teamSelection?.enabled && battle.status === BattleStatus.Unstarted
+      ? new NativeTeamSelection(battle, this.options.teamSelection.config)
+      : undefined
   }
 
   private assertOpen(): void {
@@ -67,7 +115,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     if (this.started) return this.readiness
     this.started = true
     const battle = this.battle
-    this.running = (this.resume ? battle.resumeBattle() : battle.startBattle()).catch(error => {
+    this.running = this.runBattle(battle, this.resume, this.preparation).catch(error => {
       if (this.expectedStops.has(battle)) return
       this.failure = error instanceof Error ? error : new Error('Native battle failed')
       this.reconnect.clear()
@@ -79,7 +127,13 @@ export class LocalBattleSystemV4 implements IBattleSystem {
       if (!this.failure) throw error
     })
   }
+  private async runBattle(battle: Battle, resume: boolean, preparation?: NativeTeamSelection): Promise<void> {
+    if (preparation) await preparation.run()
+    if (this.closed || this.expectedStops.has(battle) || battle.status === BattleStatus.Ended) return
+    await (resume ? battle.resumeBattle() : battle.startBattle())
+  }
   private async waitForInputReady(): Promise<void> {
+    if (this.preparation?.active) return
     await Promise.race([this.battle.waitForInputReady(), this.running])
   }
   /** Observe the current execution without making ready() block the host's action loop. */
@@ -92,14 +146,22 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   }
   async getState(viewerId?: playerId, showHidden?: boolean) {
     this.assertOpen()
-    return this.battle.getState(viewerId, showHidden ?? (viewerId ? false : this.battle.showHidden))
+    const state = this.battle.getState(viewerId, showHidden ?? (viewerId ? false : this.battle.showHidden))
+    return structuredClone({ ...state, sequenceId: (state.sequenceId ?? 0) - 1 })
   }
   async getAvailableSelection(playerId: playerId) {
     this.assertOpen()
+    if (this.preparation?.active) return this.preparation.available(playerId)
     return this.battle.getAvailableSelection(playerId)
   }
   async submitAction(selection: PlayerSelection): Promise<void> {
     this.assertOpen()
+    // Copy the protocol's only collection explicitly; callers may supply reactive array views.
+    selection =
+      selection.type === 'team-selection'
+        ? { ...selection, selectedPets: [...selection.selectedPets] }
+        : { ...selection }
+    if (this.preparation?.active) return this.preparation.submit(selection)
     if (this.started) {
       await this.waitForInputReady()
       this.assertOpen()
@@ -111,8 +173,8 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   BattleEvent(callback: (message: BattleMessage) => void, options?: NativeMessageView): () => void {
     // Each registration gets a distinct identity, even when the callback is reused across views.
     return this.subscribe(battle => {
-      const forward = (message: BattleMessage) => callback(message)
-      battle.registerListener(forward, options)
+      const forward = (message: BattleMessage) => callback(structuredClone(hostMessage(message, options, battle)))
+      battle.registerListener(forward, { showHidden: battle.showHidden, ...options })
       return () => battle.unregisterListener(forward)
     })
   }
@@ -168,6 +230,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   }
   async createRuntimeSnapshot(): Promise<BattleRuntimeSnapshot> {
     this.assertOpen()
+    if (this.preparation?.pending) throw new Error('Team selection snapshots are not supported')
     return {
       format: 'arcadia.battle.native.v4',
       version: 2,
@@ -200,17 +263,20 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     const restored = this.content.restore(snapshot.version === 1 ? payload : payload.battle)
     const previous = this.battle
     try {
+      const preparation = this.createPreparation(restored)
       const windows: ReconnectWindow[] =
         snapshot.version === 1
           ? []
           : readReconnectWindows(payload.reconnect, [restored.playerA.id, restored.playerB.id])
       this.reconnect.suspend()
       this.expectedStops.add(previous)
+      this.preparation?.cancel()
       await previous.cleanup()
       await this.running
       if (this.closed) throw new Error('Native battle system is disposed')
       for (const subscription of this.subscriptions) subscription.detach()
       this.battle = restored
+      this.preparation = preparation
       this.reconnect.restore(windows)
       this.running = undefined
       this.readiness = undefined
@@ -232,6 +298,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   private async dispose(): Promise<void> {
     this.reconnect.clear()
     await this.restoring?.catch(() => undefined)
+    this.preparation?.cancel()
     for (const subscription of this.subscriptions) subscription.detach()
     this.subscriptions.clear()
     this.timerSubscriptions.clear()

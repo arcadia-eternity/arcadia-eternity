@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { Type } from '@sinclair/typebox'
 import {
   normalizeParams,
@@ -80,6 +80,37 @@ it('isolates two uses of a parameter and reads scoped modifiers through the real
     ),
   ).toThrow('operation')
   expect(() => catalog.install(battle.configSystem)).toThrow('already registered')
+})
+
+it('reads global and battle-scoped parameters through owned pets without a false scope cycle', () => {
+  const warn = vi.fn()
+  setGlobalLogger({ debug() {}, info() {}, warn, error() {} })
+  try {
+    const { battle, a } = makeScenario()
+    battles.push(battle)
+    const definition = defineParameter({
+      address: parameterAddress('scope-root', 'a', 'amount'),
+      schema: Type.Number(),
+      effectiveSchema: Type.Number(),
+      value: 2,
+      operations: [ConfigModifierType.delta],
+    })
+    const catalog = new ParameterCatalog([definition])
+    catalog.install(battle.configSystem)
+    expect(catalog.read(battle.configSystem, definition.address, a.activePet)).toBe(2)
+    const remove = catalog.modify(
+      battle.configSystem,
+      definition.address,
+      new ConfigModifier(ConfigDurationType.binding, 'root-delta', 3, ConfigModifierType.delta, 0),
+      battle,
+    )
+    expect(catalog.read(battle.configSystem, definition.address, a.activePet)).toBe(5)
+    remove()
+    expect(catalog.read(battle.configSystem, definition.address, a.activePet)).toBe(2)
+    expect(warn).not.toHaveBeenCalled()
+  } finally {
+    setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
+  }
 })
 
 it('rejects ambiguous aliases before installation and reports invalid effective results without clamping', () => {

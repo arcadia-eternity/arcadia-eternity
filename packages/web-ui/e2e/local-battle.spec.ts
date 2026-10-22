@@ -1,4 +1,9 @@
 import { expect, test } from 'playwright/test'
+import { prepareLocalBattle } from './helpers/local-battle-fixture'
+
+test.beforeEach(async ({ page }) => {
+  await prepareLocalBattle(page)
+})
 
 const ALLOWED_CONSOLE_PATTERNS = [
   /ws:\/\/localhost:8102\/socket\.io/i,
@@ -40,19 +45,19 @@ async function startLocalBattle(page: import('playwright/test').Page) {
   await page.waitForURL(/\/battle\?dev=true/)
   await expect(page).toHaveTitle(/对战界面/)
   await expect(page.getByText('对战开始！')).toBeVisible()
-  await expect(page.getByRole('button', { name: '战斗' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '战斗', exact: true })).toBeVisible()
 }
 
 /** Wait for the opponent to finish their turn: skills become enabled again */
 async function waitForOpponentTurn(page: import('playwright/test').Page) {
-  const qiLiButton = page.getByRole('button', { name: /气力/ })
+  const qiLiButton = page.getByRole('button', { name: /^气力 ·/ })
   await expect(qiLiButton).toBeEnabled({ timeout: 30000 })
 }
 
 test('local battle page can enter battle scene', async ({ page }) => {
   const unexpectedConsoleErrors = await collectUnexpectedConsole(page)
   await startLocalBattle(page)
-  await expect(page.getByRole('button', { name: /气力/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^气力 ·/ })).toBeVisible()
   expect(unexpectedConsoleErrors).toEqual([])
 })
 
@@ -60,11 +65,16 @@ test('local battle can use a skill and append battle log', async ({ page }) => {
   const unexpectedConsoleErrors = await collectUnexpectedConsole(page)
   await startLocalBattle(page)
 
-  const qiLiButton = page.getByRole('button', { name: /气力/ })
+  const qiLiButton = page.getByRole('button', { name: /^气力 ·/ })
   await expect(qiLiButton).toBeEnabled()
   await qiLiButton.click()
 
-  await expect(page.getByText(/休罗斯 使用 气力/)).toBeVisible()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/休罗斯 使用 气力/)
+      .last(),
+  ).toBeVisible()
   await expect(qiLiButton).toBeDisabled()
   expect(unexpectedConsoleErrors).toEqual([])
 })
@@ -74,27 +84,42 @@ test('local battle can complete multiple turns', async ({ page }) => {
   await startLocalBattle(page)
 
   // Turn 1: use 气力
-  const qiLiButton = page.getByRole('button', { name: /气力/ })
+  const qiLiButton = page.getByRole('button', { name: /^气力 ·/ })
   await qiLiButton.click()
-  await expect(page.getByText(/休罗斯 使用 气力/)).toBeVisible()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/休罗斯 使用 气力/)
+      .last(),
+  ).toBeVisible()
 
   // Wait for opponent and next turn
   await waitForOpponentTurn(page)
 
   // Turn 2: use 奋力突破
-  const fenLiButton = page.getByRole('button', { name: /奋力突破/ })
+  const fenLiButton = page.getByRole('button', { name: /^奋力突破 ·/ })
   await expect(fenLiButton).toBeEnabled()
   await fenLiButton.click()
-  await expect(page.getByText(/休罗斯 使用 奋力突破/)).toBeVisible()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/休罗斯 使用 奋力突破/)
+      .last(),
+  ).toBeVisible()
 
   // Wait for opponent and next turn
   await waitForOpponentTurn(page)
 
   // Turn 3: use 佯攻
-  const yangGongButton = page.getByRole('button', { name: /佯攻/ })
+  const yangGongButton = page.getByRole('button', { name: /^佯攻 ·/ })
   await expect(yangGongButton).toBeEnabled()
   await yangGongButton.click()
-  await expect(page.getByText(/休罗斯 使用 佯攻/)).toBeVisible()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/休罗斯 使用 佯攻/)
+      .last(),
+  ).toBeVisible()
 
   expect(unexpectedConsoleErrors).toEqual([])
 })
@@ -107,18 +132,33 @@ test('battle log accumulates entries across turns', async ({ page }) => {
   await expect(page.getByText('对战开始！')).toBeVisible()
 
   // Turn 1
-  await page.getByRole('button', { name: /气力/ }).click()
-  await expect(page.getByText(/休罗斯 使用 气力/)).toBeVisible()
+  await page.getByRole('button', { name: /^气力 ·/ }).click()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/休罗斯 使用 气力/)
+      .last(),
+  ).toBeVisible()
 
   // Wait for opponent
   await waitForOpponentTurn(page)
 
   // Turn 2
-  await page.getByRole('button', { name: /奋力突破/ }).click()
-  await expect(page.getByText(/休罗斯 使用 奋力突破/)).toBeVisible()
+  await page.getByRole('button', { name: /^奋力突破 ·/ }).click()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/休罗斯 使用 奋力突破/)
+      .last(),
+  ).toBeVisible()
 
   // Verify latest entry is visible (earlier entries may have scrolled out of view)
-  await expect(page.getByText(/休罗斯 使用 奋力突破/)).toBeVisible()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/休罗斯 使用 奋力突破/)
+      .last(),
+  ).toBeVisible()
 
   expect(unexpectedConsoleErrors).toEqual([])
 })
@@ -127,8 +167,8 @@ test('skills become available again after opponent turn', async ({ page }) => {
   const unexpectedConsoleErrors = await collectUnexpectedConsole(page)
   await startLocalBattle(page)
 
-  const qiLiButton = page.getByRole('button', { name: /气力/ })
-  const fenLiButton = page.getByRole('button', { name: /奋力突破/ })
+  const qiLiButton = page.getByRole('button', { name: /^气力 ·/ })
+  const fenLiButton = page.getByRole('button', { name: /^奋力突破 ·/ })
 
   // Both should be enabled at start
   await expect(qiLiButton).toBeEnabled()

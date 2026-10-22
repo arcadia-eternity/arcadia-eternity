@@ -13,6 +13,7 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 import { catalogFor } from './snapshot-host'
+import { patch } from 'jsondiffpatch'
 
 const systems: LocalBattleSystemV4[] = [],
   battles: Battle[] = []
@@ -67,6 +68,37 @@ it('resolves concurrent readiness calls at an actual input boundary', async () =
   await Promise.all([f.system.ready(), f.system.ready()])
   expect(f.battle.isSnapshotBoundary()).toBe(true)
   expect(f.battle.getAvailableSelection(f.a.id).some(action => action.type === 'use-skill')).toBe(true)
+})
+
+it('exposes the last covered sequence in host states and view deltas without changing the core counter', async () => {
+  const f = fixture()
+  f.battle.showHidden = false
+  const view = await f.system.getState(f.a.id),
+    sequences: number[] = []
+  expect(view.sequenceId).toBe(-1)
+  expect(f.battle.getState().sequenceId).toBe(0)
+  f.system.BattleEvent(
+    message => {
+      if ((message.sequenceId ?? -1) <= (view.sequenceId ?? -1)) return
+      patch(view, message.stateDelta)
+      sequences.push(message.sequenceId!)
+      expect(view.sequenceId).toBe(message.sequenceId)
+    },
+    { viewerId: f.a.id },
+  )
+  await f.system.ready()
+  expect(view).toEqual(await f.system.getState(f.a.id))
+  const boundary = await f.system.getState(f.a.id),
+    next = nextPrompt(f.system)
+  await f.system.submitAction(
+    (await f.system.getAvailableSelection(f.a.id)).find(action => action.type === 'use-skill')!,
+  )
+  await f.system.submitAction(
+    (await f.system.getAvailableSelection(f.b.id)).find(action => action.type === 'use-skill')!,
+  )
+  await next
+  expect(sequences).toContain((boundary.sequenceId ?? -1) + 1)
+  expect(view).toEqual(await f.system.getState(f.a.id))
 })
 
 it('accepts a multi-turn journal without host polling or waiting for prompt messages', async () => {

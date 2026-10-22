@@ -35,7 +35,8 @@ export class TimerManager {
   private animationTracker: AnimationTracker
   private config: TimerConfig
   private isActive: boolean = false
-  private currentPhase: 'selection' | 'execution' | 'switch' | null = null
+  private currentPhase: 'selection' | 'execution' | 'switch' | 'team-selection' | null = null
+  private teamSelectionTimeout?: (id: playerId) => string
   private pendingTurnReset: { playerIds: playerId[] } | null = null
   private emitter: Emitter<TimerManagerEvents> = mitt<TimerManagerEvents>()
   private restoredPending = false
@@ -65,6 +66,7 @@ export class TimerManager {
   }
 
   public assertSnapshotSafe(): void {
+    if (this.teamSelectionTimeout) throw new Error('Team selection snapshots are not supported')
     if (!this.config.enabled && (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset))
       throw new Error('Disabled timers cannot carry active animations')
     if (this.config.enabled) this.exportRuntimeState()
@@ -195,7 +197,18 @@ export class TimerManager {
     this.startDecisionPhase(playerIds, 'switch')
   }
 
-  private startDecisionPhase(playerIds: playerId[], phase: 'selection' | 'switch'): void {
+  public startTeamSelectionPhase(playerIds: playerId[], seconds: number, onTimeout: (id: playerId) => string): void {
+    this.teamSelectionTimeout = onTimeout
+    this.startDecisionPhase(playerIds, 'team-selection', seconds)
+    if (this.config.enabled)
+      this.battle.emitter.emit('teamSelectionTimerStart', { timeLimit: seconds, timestamp: Date.now() })
+  }
+
+  private startDecisionPhase(
+    playerIds: playerId[],
+    phase: 'selection' | 'switch' | 'team-selection',
+    timeLimit = this.config.turnTimeLimit,
+  ): void {
     if (!this.config.enabled) return
 
     this.logger.debug(`Timer startNewTurn: starting new turn for players: ${playerIds.join(', ')}`)
@@ -243,7 +256,7 @@ export class TimerManager {
       const timer = this.playerTimers.get(playerId)
       if (timer) {
         this.logger.debug(`Timer startNewTurn: resetting and starting timer for player ${playerId}`)
-        timer.resetTurn() // 重置并启动
+        timer.resetTurn(timeLimit) // 重置并启动
         const state = timer.getState()
         remainingTotalTime[playerId] = state.remainingTotalTime
       }
@@ -252,7 +265,7 @@ export class TimerManager {
     // 发送计时器开始事件
     this.battle.emitter.emit('timerStart', {
       player: playerIds,
-      turnTimeLimit: this.config.turnTimeLimit || null,
+      turnTimeLimit: timeLimit || null,
       remainingTotalTime,
     })
 
@@ -264,6 +277,7 @@ export class TimerManager {
 
   /** Decision input is complete; selection cleanup must not restart clocks during resolution. */
   public finishDecisionPhase(): void {
+    this.teamSelectionTimeout = undefined
     if (!this.config.enabled || !this.isActive) return
     this.currentPhase = 'execution'
     this.pendingTurnReset = null
@@ -335,6 +349,7 @@ export class TimerManager {
    * 停止所有计时器
    */
   public stopAllTimers(): void {
+    this.teamSelectionTimeout = undefined
     this.isActive = false
     this.currentPhase = null
     this.pendingTurnReset = null
@@ -349,7 +364,7 @@ export class TimerManager {
    * 当一方选择完毕且等待对方选择时，暂停己方的timer
    */
   public handlePlayerSelectionChange(playerId: playerId, hasSelection: boolean): void {
-    if (!this.config.enabled || (this.currentPhase !== 'selection' && this.currentPhase !== 'switch')) return
+    if (!this.config.enabled || !['selection', 'switch', 'team-selection'].includes(this.currentPhase ?? '')) return
 
     this.logger.debug(`Timer handlePlayerSelectionChange: player ${playerId} selection status: ${hasSelection}`)
 
@@ -726,6 +741,7 @@ export class TimerManager {
    * 处理回合超时
    */
   private handleTurnTimeout(playerId: playerId): string {
+    if (this.teamSelectionTimeout) return this.teamSelectionTimeout(playerId)
     // 获取第一个可用选项并自动选择
     const availableSelections = this.battle.getAvailableSelection(playerId)
     if (availableSelections.length > 0) {

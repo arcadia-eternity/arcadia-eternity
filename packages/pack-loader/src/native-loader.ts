@@ -1,4 +1,9 @@
-import { createOfficialContent, type EnvironmentBuildIdentity, type OfficialContent } from '@arcadia-eternity/battle/v4'
+import {
+  createOfficialContent,
+  type EnvironmentBuildIdentity,
+  type OfficialContent,
+  type OfficialPrototypeData,
+} from '@arcadia-eternity/battle/v4'
 import type { PackManifest } from '@arcadia-eternity/schema'
 import YAML from 'yaml'
 import { PackTransport, type AssetLoadRecord } from './transport'
@@ -9,12 +14,13 @@ export interface NativePackLoaderOptions {
   enforceLockfile?: boolean
   expectedRevision?: string
 }
-export interface NativePackLoadResult extends Omit<PackLoadResult, 'repository'> {
+export interface NativeContentResult {
   runtime: 'native-v4'
   content: OfficialContent
   revision: string
   build: EnvironmentBuildIdentity
 }
+export interface NativePackLoadResult extends Omit<PackLoadResult, 'repository'>, NativeContentResult {}
 interface MetadataPack {
   manifest: PackManifest
   source: string
@@ -40,6 +46,23 @@ export class NativePackLoader extends PackTransport {
       coreBuildId: build.coreBuildId,
       registryBuildId: build.registryBuildId,
     })
+  }
+
+  /** Use the caller's current metadata, including unsaved editor changes, with the same trusted code identity. */
+  async fromMetadata(data: OfficialPrototypeData): Promise<NativeContentResult> {
+    return this.createContent(data, [])
+  }
+
+  private async createContent(
+    data: OfficialPrototypeData,
+    packs: { id: string; version: string }[],
+    expectedRevision?: string,
+  ): Promise<NativeContentResult> {
+    const captured = structuredClone(data)
+    const revision = `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
+    if (expectedRevision !== undefined && revision !== expectedRevision)
+      throw new Error('Native content revision mismatch')
+    return { runtime: 'native-v4', content: createOfficialContent(captured, revision), revision, build: this.build }
   }
 
   async load(packRef = 'builtin:base', options: NativePackLoaderOptions = {}): Promise<NativePackLoadResult> {
@@ -69,16 +92,14 @@ export class NativePackLoader extends PackTransport {
     const { data, locales } = await this.readMetadata(packs)
     // Source URLs and presentation assets do not change executable content identity.
     // Metadata order and its JSON representation are part of this versioned contract.
-    const revision = `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs: packs.map(pack => ({ id: pack.manifest.id, version: pack.manifest.version })), data }))}`
-    if (expectedRevision !== undefined && revision !== expectedRevision)
-      throw new Error('Native content revision mismatch')
-    const content = createOfficialContent(data, revision)
+    const authority = await this.createContent(
+      data,
+      packs.map(pack => ({ id: pack.manifest.id, version: pack.manifest.version })),
+      expectedRevision,
+    )
     const assets = packs.flatMap(pack => pack.assets)
     return {
-      runtime: 'native-v4',
-      content,
-      revision,
-      build: this.build,
+      ...authority,
       errors,
       pack: entry.manifest,
       packRef,

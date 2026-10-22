@@ -76,10 +76,10 @@ export class BattleTimer {
   /**
    * 重置回合时间并启动计时器
    */
-  public resetTurn(): void {
+  public resetTurn(timeLimit = this.config.turnTimeLimit): void {
     if (!this.config.enabled) return
 
-    this.remainingTurnTime = this.config.turnTimeLimit || Infinity
+    this.remainingTurnTime = timeLimit || Infinity
     this.state = TimerState.Running
     this.pauseReason = undefined
     this.lastUpdateTime = Date.now()

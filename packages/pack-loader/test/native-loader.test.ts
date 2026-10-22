@@ -37,6 +37,31 @@ function serveBase(change?: (path: string, raw: string) => string, extra: Record
 }
 
 describe('NativePackLoader', () => {
+  it('captures current in-memory metadata and its identity without requesting effect DSL', async () => {
+    const read = async (name: string) =>
+      YAML.parse(await readFile(resolve(basePath, `data/${name}.yaml`), 'utf8'), { merge: true }) as unknown[]
+    const data = {
+        marks: (await Promise.all(['mark', 'mark_ability', 'mark_emblem', 'mark_global'].map(read))).flat(),
+        skills: await read('skill'),
+        species: await read('species'),
+      },
+      loader = new NativePackLoader(build)
+    const skill = data.skills.find(value => (value as { id: string }).id === 'skill_paida') as {
+      id: string
+      power: number
+    }
+    const original = skill.power,
+      pending = loader.fromMetadata(data)
+    skill.power = original + 1
+    const first = await pending,
+      second = await loader.fromMetadata(data)
+    expect(first.runtime).toBe('native-v4')
+    expect(first.content.skills.find(value => value.id === skill.id)?.power).toBe(original)
+    expect(second.content.skills.find(value => value.id === skill.id)?.power).toBe(original + 1)
+    expect(second.revision).not.toBe(first.revision)
+    expect((await loader.fromMetadata(structuredClone(data))).revision).toBe(second.revision)
+    expect(first.build).toEqual(build)
+  })
   it('loads the same native content identity from filesystem and HTTP without reading effect DSL', async () => {
     const requests = serveBase()
     const loader = new NativePackLoader(build)
