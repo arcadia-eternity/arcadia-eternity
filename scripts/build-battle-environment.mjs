@@ -23,6 +23,14 @@ export async function buildEnvironmentArtifact() {
     await mkdir(dir, { recursive: true })
     await writeFile(resolve(dir, 'environment-runtime.mjs'), code)
     await writeFile(resolve(dir, 'environment-build.json'), JSON.stringify(identity, null, 2) + '\n')
+    await writeFile(
+      resolve(dir, 'native-build.mjs'),
+      `export const nativeBuildIdentity = Object.freeze(${JSON.stringify(identity)});\n`,
+    )
+    await writeFile(
+      resolve(dir, 'native-build.d.ts'),
+      'export declare const nativeBuildIdentity: Readonly<{ formatVersion: 1; coreBuildId: string; registryBuildId: string }>;\n',
+    )
     return identity
   } finally {
     await bundle.close()

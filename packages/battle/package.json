@@ -39,6 +39,11 @@
       "types": "./dist/types/v4-host.d.ts",
       "import": "./dist/v4-host.js",
       "default": "./dist/v4-host.js"
+    },
+    "./v4/build": {
+      "types": "./dist/native-build.d.ts",
+      "import": "./dist/native-build.mjs",
+      "default": "./dist/native-build.mjs"
     }
   },
   "scripts": {

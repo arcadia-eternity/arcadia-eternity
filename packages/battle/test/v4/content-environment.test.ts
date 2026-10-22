@@ -28,6 +28,14 @@ afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
 const hash = (text: string) => createHash('sha256').update(text).digest('hex')
+it('publishes the actual trusted identity through the lightweight host build entry', async () => {
+  const module = await import('@arcadia-eternity/battle/v4/build')
+  expect(Object.keys(module)).toEqual(['nativeBuildIdentity'])
+  expect(module.nativeBuildIdentity).toEqual(build)
+  expect(Object.isFrozen(module.nativeBuildIdentity)).toBe(true)
+  expect(Reflect.set(module.nativeBuildIdentity, 'coreBuildId', 'foreign')).toBe(false)
+  expect(module.nativeBuildIdentity).toEqual(build)
+})
 function room(environment: ContentEnvironment) {
   const f = makeScenario(267)
   battles.push(f.battle)

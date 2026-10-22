@@ -2,6 +2,17 @@
 
 `NativePackLoader` is exported through `@arcadia-eternity/pack-loader/native`. The existing `PackLoader` entry remains available for V2 consumers. Both use the extracted `PackTransport` for manifest traversal, assets, lockfiles, HTTP reads and integrity calculations. Node reference resolution moved unchanged into the effect-independent `@arcadia-eternity/battle/pack` entry, with the cache-identity correction described below. Native imports do not require the V2 loader/interpreter.
 
+Hosts can now import the actual built identity from `@arcadia-eternity/battle/v4/build`:
+
+```ts
+import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
+import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
+
+const loaded = await new NativePackLoader(nativeBuildIdentity).load('builtin:base')
+```
+
+The normal battle code build generates this frozen ESM constant and its declaration alongside the existing environment JSON/runtime artifact. It hashes the actual bundled native implementation, using the existing core/registry domain separation. The small module imports no runtime implementation. The 20-case environment suite verifies its public package import, equality with the actual artifact identity and immutability; source/test types and build-script lint pass. This supplies the trusted host input without deriving identity from downloaded content or requiring consumers to read private distribution paths.
+
 ```ts
 const loader = new NativePackLoader(trustedBuildIdentity)
 const loaded = await loader.load(packRef, {
