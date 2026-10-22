@@ -54,6 +54,7 @@ interface Node {
 export interface BattleSnapshot {
   format: 'arcadia.v1.battle-snapshot'
   version: 1
+  boundary?: 'initial'
   catalog: string
   root: Encoded
   nodes: Node[]
@@ -363,8 +364,12 @@ function set(object: object, fields: Record<string, unknown>) {
   for (const [key, value] of Object.entries(fields))
     Object.defineProperty(object, key, { value, writable: true, enumerable: true, configurable: true })
 }
-function assertBoundary(battle: Battle) {
-  if (!battle.isSnapshotBoundary()) throw new Error('Snapshot requires a settled selection input boundary')
+function assertBoundary(battle: Battle, initial: boolean) {
+  if (initial ? !battle.isInitialSnapshotBoundary() : !battle.isSnapshotBoundary())
+    throw new Error(
+      initial ? 'Snapshot requires an initial input boundary' : 'Snapshot requires a settled selection input boundary',
+    )
+  if (initial) battle.timerManager.assertInitialSnapshotSafe()
   battle.timerManager.assertSnapshotSafe()
   if (
     battle.phaseManager.getPhasesByState(PhaseState.Pending).length ||
@@ -382,8 +387,13 @@ function assertBoundary(battle: Battle) {
   }
 }
 
-export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): BattleSnapshot {
-  assertBoundary(battle)
+export function snapshotBattle(
+  battle: Battle,
+  catalog: SnapshotCatalog,
+  options?: { boundary: 'initial' },
+): BattleSnapshot {
+  const initial = options?.boundary === 'initial'
+  assertBoundary(battle, initial)
   const ids = new Map<object, number>(),
     nodes: Node[] = []
   const encode = (value: unknown): Encoded => {
@@ -466,6 +476,7 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
   const result: BattleSnapshot = {
     format: 'arcadia.v1.battle-snapshot',
     version: 1,
+    ...(initial ? { boundary: 'initial' as const } : {}),
     catalog: catalog.revision,
     root: encode(battle),
     nodes,
@@ -627,9 +638,10 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       if (node.kind === 'cleanup') validateCleanup(decode(node.fields.binding) as Record<string, unknown>)
     }
     battle = decode(snapshot.root) as Battle
+    const initial = snapshot.boundary === 'initial'
     if (
       !(battle instanceof Battle) ||
-      battle.status !== BattleStatus.OnBattle ||
+      battle.status !== (initial ? BattleStatus.Unstarted : BattleStatus.OnBattle) ||
       battle.currentPhase !== BattlePhase.SelectionPhase
     )
       throw new Error('Invalid snapshot Battle root/boundary')
@@ -649,7 +661,8 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       throw new Error('Disabled timers cannot carry saved timer state')
     const savedBudget = new ExecutionBudget(() => battle!.stopForExecutionFault())
     savedBudget.restoreState(data.executionBudgetState)
-    if (data.executionBudgetState.turn !== battle.currentTurn) throw new Error('Execution budget turn mismatch')
+    if (data.executionBudgetState.turn !== battle.currentTurn && !(initial && data.executionBudgetState.turn === -1))
+      throw new Error('Execution budget turn mismatch')
     const emitter = mitt<Events>()
     set(battle, {
       // Rebuilding subscriptions has its own finite allowance; never spend saved gameplay credit.
@@ -664,12 +677,16 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       transformationSystem: new TransformationSystem(battle),
       cancelled: false,
       _isStarting: false,
-      restoredSelection: true,
+      restoredSelection: !initial,
       cleanupPromise: undefined,
       waitingResolvers: {},
       messageCallbacks: [],
     })
     if (data.timerConfig.enabled) battle.timerManager.restoreRuntimeState(data.timerRuntime)
+    if (initial) {
+      if (!battle.isInitialSnapshotBoundary()) throw new Error('Invalid initial snapshot boundary')
+      battle.timerManager.assertInitialSnapshotSafe()
+    }
     for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
     for (const restore of deferred) restore()
     const ownedValues = new Set<ReactiveValue<unknown>>()
@@ -876,6 +893,7 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
   if (
     s.format !== 'arcadia.v1.battle-snapshot' ||
     s.version !== 1 ||
+    (s.boundary !== undefined && s.boundary !== 'initial') ||
     s.catalog !== catalog.revision ||
     !Array.isArray(s.nodes) ||
     s.nodes.length > 100000

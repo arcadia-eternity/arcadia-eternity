@@ -1,0 +1,15 @@
+# Native initial checkpoints for server bootstrap
+
+Recreating a native battle from team metadata generates fresh skill instance IDs. A raw action journal refers to the original IDs, so team metadata alone cannot reproduce those commands. The server bootstrap needs the actual initial domain instances.
+
+The existing snapshot graph now has an explicit `initial` boundary. `snapshotBattle(battle, catalog, { boundary: 'initial' })` accepts an unstarted turn-zero Battle with no accepted selections, pending switches, executed phases, active timers or animations. The ordinary two-argument API retains its existing settled-selection boundary. The optional top-level boundary marker is required to restore an unstarted root; older selection snapshots remain readable.
+
+Official content chooses the initial boundary automatically for its owned unstarted Battle. `LocalBattleSystemV4.createRuntimeSnapshot()` therefore works before `ready` through the same content authority. Initial restoration preserves the actual Battle, players, pets, skills, parameters and RNG state. It schedules no resources, emits no start effects and preserves the active-identity guard. `ready` starts an initial restoration normally; selection restoration still resumes without replaying earlier effects. Stopped initial clocks activate at startup with their full limits, independent of time spent waiting for readiness.
+
+Eight cases failed against the prior boundary and now pass. They cover explicit generic opt-in, JSON identity/RNG preservation, enabled-timer quiet restoration, one start event, replay of original instance-ID actions through a fresh content directory, and five invalid initial states. The real first-turn replay compares HP, rage and subsequent RNG draws. Every case checks attribute-system cleanup; the fake-timer case checks all scheduled resources are released. The related six-suite run passes **91 tests**. Source/test types, declarations, lint and native pack fixture types pass.
+
+The actual Node/Chrome native HTTP probe additionally restores the initial state through a fresh directory in both timed and untimed games, checks unchanged skill IDs and completes the same seven-turn action plan. Its trace matches uninterrupted play and the existing midgame animated/reconnect continuation; zero old effect-DSL requests occur. The probe shares the same directory replacement path for both boundaries.
+
+Temporary evidence under `/tmp/effect-native-oct23/`: `initial-red.log`, `initial-scoped.log`, `initial-browser.log`, `initial-types.log`, `initial-lint.log`, `initial-declarations.log` and `initial-pack-types.log`. A representative two-team initial graph contains 1,614 nodes and serializes to 139,724 bytes; it stores references to trusted content rather than executable definitions.
+
+Server runtime selection and bootstrap persistence remain integration work. This supplies the original-ID bootstrap required for native journal recovery; it does not add arbitrary in-flight or forced-switch checkpoints.

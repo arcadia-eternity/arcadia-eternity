@@ -201,7 +201,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
       this.running = undefined
       this.failure = undefined
       this.started = false
-      this.resume = true
+      this.resume = restored.status === BattleStatus.OnBattle
       for (const subscription of this.subscriptions) subscription.detach = subscription.attach(restored)
     } catch (error) {
       await restored.cleanup()

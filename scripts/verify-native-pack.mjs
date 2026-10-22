@@ -138,6 +138,7 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
       enabledTimerRestore: expected.timed.enabledTimers,
       activeAnimationRestore: expected.timed.activeAnimationRestore,
       reconnectRestore: expected.untimed.reconnectRestore && expected.timed.reconnectRestore,
+      initialSnapshotRestore: expected.untimed.initialSnapshotRestore && expected.timed.initialSnapshotRestore,
       legacyDslRequests: forbiddenRequests.length,
     }),
   )

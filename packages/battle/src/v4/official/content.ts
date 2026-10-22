@@ -1,4 +1,4 @@
-import type { effectId } from '@arcadia-eternity/const'
+import { BattleStatus, type effectId } from '@arcadia-eternity/const'
 import { createBattle, type BattleOptions } from '../api'
 import type { Battle } from '../battle'
 import { ConfigSystem } from '../config'
@@ -109,7 +109,11 @@ export function createOfficialContent(data: OfficialPrototypeData, revision: str
     },
     snapshot(battle: Battle) {
       if (installed.get(battle) !== token) throw new Error('Battle belongs to a different official content directory')
-      return snapshotBattle(battle, catalog)
+      return snapshotBattle(
+        battle,
+        catalog,
+        battle.status === BattleStatus.Unstarted ? { boundary: 'initial' } : undefined,
+      )
     },
     restore(data: unknown): Battle {
       const battle = restoreBattle(data, catalog)

@@ -383,6 +383,7 @@ export class Battle extends Context implements MarkOwner {
     this._isStarting = true
 
     try {
+      this.timerManager.activateRestoredState(false)
       // Phase 0: Initialize battle
       this.currentPhase = BattlePhase.StartPhase
       const startPhase = new BattleStartPhase(this)
@@ -423,6 +424,25 @@ export class Battle extends Context implements MarkOwner {
     }
   }
   private restoredSelection = false
+  public isInitialSnapshotBoundary(): boolean {
+    return (
+      !this.cancelled &&
+      !this._isStarting &&
+      !this.executionBudget.fault &&
+      this.status === BattleStatus.Unstarted &&
+      this.currentPhase === BattlePhase.SelectionPhase &&
+      this.currentTurn === 0 &&
+      this.actionLog.length === 0 &&
+      !this.playerA.selection &&
+      !this.playerB.selection &&
+      !this.victor &&
+      !this.lastKiller &&
+      this.pendingForcedSwitches.length === 0 &&
+      !this.pendingFaintSwitch &&
+      !this.isInitialSwitchPhase &&
+      this.phaseManager.getAllPhases().length === 0
+    )
+  }
   public isSnapshotBoundary(): boolean {
     return (
       !this.executionBudget.fault &&

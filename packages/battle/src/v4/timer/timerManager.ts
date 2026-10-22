@@ -10,6 +10,7 @@ import {
   TIMER_CONSTANTS,
   BattleStatus,
   BattlePhase,
+  TimerState,
   type Events,
   type PlayerSelection,
 } from '@arcadia-eternity/const'
@@ -69,6 +70,18 @@ export class TimerManager {
     if (this.config.enabled) this.exportRuntimeState()
   }
 
+  public assertInitialSnapshotSafe(): void {
+    if (
+      this.isActive ||
+      this.currentPhase !== null ||
+      this.pendingTurnReset ||
+      this.playerSelectionStatus.size ||
+      this.animationTracker.hasActiveAnimations() ||
+      [...this.playerTimers.values()].some(timer => timer.getState().state !== TimerState.Stopped)
+    )
+      throw new Error('Initial snapshot requires stopped timers and no active decision or animation')
+  }
+
   public exportRuntimeState(): SavedTimerRuntime {
     const capturedAt = Date.now()
     return readTimerRuntime(
@@ -122,7 +135,7 @@ export class TimerManager {
     }
     this.restoredPending = true
   }
-  public activateRestoredState(): void {
+  public activateRestoredState(emitSnapshot = true): void {
     if (!this.restoredPending) return
     this.restoredPending = false
     // Bring every clock to the same recovery point before a timeout can stop its peer.
@@ -141,7 +154,7 @@ export class TimerManager {
         ),
       })
     for (const timer of this.playerTimers.values()) timer.activateRestoredState()
-    this.emitSnapshotEvent()
+    if (emitSnapshot) this.emitSnapshotEvent()
   }
 
   /**

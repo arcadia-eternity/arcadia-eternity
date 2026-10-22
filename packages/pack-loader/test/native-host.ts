@@ -10,6 +10,7 @@ import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { NativePackLoader } from '../src/native-loader'
 
 type Plan = { type: string; skill?: string; pet?: string }
+type RuntimeSnapshot = Awaited<ReturnType<LocalBattleSystemV4['createRuntimeSnapshot']>>
 export async function verifyNativePackHost(
   packRef: string,
   build: EnvironmentBuildIdentity,
@@ -19,7 +20,7 @@ export async function verifyNativePackHost(
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
   const loader = new NativePackLoader(build)
   const initial = await loader.load(packRef, { source: 'http', enforceLockfile: true })
-  async function play(checkpoint: boolean) {
+  async function play(checkpoint: boolean, restoreInitial = false) {
     let content = initial.content
     const [a, b] = input.teams.map(team => content.parsePlayer(team))
     const timerConfig = { enabled: options.timed ?? false, turnTimeLimit: 30, totalTimeLimit: 1500 }
@@ -32,6 +33,19 @@ export async function verifyNativePackHost(
       },
     })
     let system = new LocalBattleSystemV4(battle, authority())
+    const replace = async (saved: RuntimeSnapshot) => {
+      await system.cleanup()
+      const fresh = await loader.load(packRef, {
+        source: 'http',
+        enforceLockfile: true,
+        expectedRevision: initial.revision,
+      })
+      content = fresh.content
+      const players = input.teams.map(team => content.parsePlayer(team))
+      battle = content.createBattle(players[0], players[1], { timerConfig })
+      system = new LocalBattleSystemV4(battle, authority())
+      await system.restoreRuntimeSnapshot(saved)
+    }
     let savedAnimation: string | undefined
     const indexes = [0, 0],
       trace: unknown[] = [],
@@ -89,6 +103,15 @@ export async function verifyNativePackHost(
           void system.cleanup()
         })
       })
+    if (restoreInitial) {
+      const skillIds = [...battle.petMap.values()].flatMap(pet => pet.skills.map(skill => skill.id))
+      await replace(JSON.parse(JSON.stringify(await system.createRuntimeSnapshot())))
+      if (
+        JSON.stringify([...battle.petMap.values()].flatMap(pet => pet.skills.map(skill => skill.id))) !==
+        JSON.stringify(skillIds)
+      )
+        throw new Error('Native host changed skill identities during initial restore')
+    }
     observe(checkpoint)
     await system.ready()
     let running = system.waitForCompletion()
@@ -103,19 +126,9 @@ export async function verifyNativePackHost(
         if (options.timed && battle.timerManager.exportRuntimeState().pendingTurnReset?.length !== 2)
           throw new Error('Native host did not reach its deferred timer reset checkpoint')
         const saved = JSON.parse(JSON.stringify(await system.createRuntimeSnapshot()))
-        await system.cleanup()
+        await replace(saved)
         await running
-        const fresh = await loader.load(packRef, {
-          source: 'http',
-          enforceLockfile: true,
-          expectedRevision: initial.revision,
-        })
-        content = fresh.content
-        const players = input.teams.map(team => content.parsePlayer(team))
-        battle = content.createBattle(players[0], players[1], { timerConfig })
-        system = new LocalBattleSystemV4(battle, authority())
         observe(false)
-        await system.restoreRuntimeSnapshot(saved)
         const restoredSnapshot = await system.createRuntimeSnapshot()
         if (
           JSON.stringify(JSON.parse(restoredSnapshot.payload).reconnect) !==
@@ -155,8 +168,13 @@ export async function verifyNativePackHost(
     }
   }
   const baseline = await play(false),
-    restored = await play(true)
-  if (JSON.stringify(baseline) !== JSON.stringify(restored)) throw new Error('Native host JSON continuation differs')
+    restored = await play(true),
+    bootstrapped = await play(false, true)
+  if (
+    JSON.stringify(baseline) !== JSON.stringify(restored) ||
+    JSON.stringify(baseline) !== JSON.stringify(bootstrapped)
+  )
+    throw new Error('Native host JSON continuation differs')
   return {
     revision: initial.revision,
     effects: initial.content.effects.length,
@@ -170,6 +188,7 @@ export async function verifyNativePackHost(
     enabledTimers: options.timed ?? false,
     activeAnimationRestore: options.timed ?? false,
     reconnectRestore: true,
+    initialSnapshotRestore: true,
     trace: baseline,
   }
 }
