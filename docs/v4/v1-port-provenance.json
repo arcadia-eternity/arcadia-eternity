@@ -479,7 +479,7 @@
       "destination": "packages/battle/src/v4/legacy/parser/mark.ts",
       "sourceBlob": "d440159955d0c63aa3a0d86529d2306d597f3253",
       "sourceSha256": "88e8ab666ae28a4ae64d107922ec8e59775fba78f3927eeb0a2594ef4e7ca951",
-      "portedSha256": "7a7794e93988c6d63632d4de12a3a51d41cafcad5b6378d174c8498541ff6234",
+      "portedSha256": "3d9f68ac34b2d879ff100ff887b0cf8676207437c29156073591021ce35e5c95",
       "changed": true
     },
     {
@@ -487,7 +487,7 @@
       "destination": "packages/battle/src/v4/legacy/parser/pet.ts",
       "sourceBlob": "81b24e81731f08f14d53e0925610d7accb08dc76",
       "sourceSha256": "11de99d95187b58a306db8be6e9c12cb5bd7db0bc42817073999b80f880253f1",
-      "portedSha256": "6c02c28d42aa3c8fda9d978565a0944d84977c34ea60103faa0fb2932dda05de",
+      "portedSha256": "6b493489a48edf69bcf8fe84a455ecceeded3769ca7e01173f42ab24d6e851e6",
       "changed": true
     },
     {
@@ -495,7 +495,7 @@
       "destination": "packages/battle/src/v4/legacy/parser/player.ts",
       "sourceBlob": "e5e2fbc1819384ff7ee06ca621794f36499e1b93",
       "sourceSha256": "0e294407c5e5817a07dc1c2189c2ead0694255730ccff41030938f9a6d11ff5c",
-      "portedSha256": "257fe8a5564c25ab6da03105edeb7506b7d6a6c1c3194aefa0e98b4c6146f394",
+      "portedSha256": "fe96c2bf7a4c5ec2465789626faafc3f0a91b5d81c109c518881ba8e9230ad05",
       "changed": true
     },
     {
@@ -511,7 +511,7 @@
       "destination": "packages/battle/src/v4/legacy/parser/skill.ts",
       "sourceBlob": "4975977e3d2dcc117e32cfd22d6cf6a55798be95",
       "sourceSha256": "32f2c0c13968caf2d14953810028fa353cc790fd94f9ad4215ec2d07e12a2fd9",
-      "portedSha256": "f95bc2b1ef8aa2f63dd6f4835683ef7475213bb095b19474992be5a22e96476d",
+      "portedSha256": "e156217a9db6288dabc56450a3f86307f193e642d2bcb6ee79ce83159a7e8fcd",
       "changed": true
     },
     {
@@ -519,7 +519,7 @@
       "destination": "packages/battle/src/v4/legacy/parser/species.ts",
       "sourceBlob": "3c3524163827e8b671d4d1c281828beb418c9f93",
       "sourceSha256": "5780b02af488743c4169f3faec8cf7c24fe21cd08454cb9c7af763747237687a",
-      "portedSha256": "cefdf1ae4f9c679830c634553acc20224cc9628fef7bbb304eeade88c3588f43",
+      "portedSha256": "ec3e135af79b68a9c3aaeb25affd1036aa24705a33b8ae15884c21ed2d339bb7",
       "changed": true
     },
     {

@@ -159,3 +159,5 @@ export { createRageGainLimit } from './src/v4/official/rage-gain-limit'
 export { createSwitchRageProtection } from './src/v4/official/switch-rage-protection'
 
 export { createConsecutiveFlyingRage } from './src/v4/official/consecutive-flying-rage'
+
+export { createOfficialContent, type OfficialContent, type OfficialPrototypeData } from './src/v4/official/content'

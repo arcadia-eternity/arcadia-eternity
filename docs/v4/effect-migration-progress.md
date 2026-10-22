@@ -4,6 +4,12 @@ Goal: complete the current official Effect DSL → TypeScript migration with bou
 
 Authoritative contracts: reviewed sections of issues [205](https://github.com/arcadia-eternity/arcadia-eternity/issues/205), [206](https://github.com/arcadia-eternity/arcadia-eternity/issues/206), [223](https://github.com/arcadia-eternity/arcadia-eternity/issues/223), plus [218](https://github.com/arcadia-eternity/arcadia-eternity/issues/218) and [224](https://github.com/arcadia-eternity/arcadia-eternity/issues/224).
 
+## Evidence as of 2026-10-23
+
+All 1065 definitions have native candidates. The fixed build at `30ef3a46` passed the full V4 suite in one run: 145 files, 27,364 tests, zero failures. All 188 offline migration checks and 87 authoring design checks also pass. See [full regression checkpoint](validation/full-candidate-regression-checkpoint.md).
+
+The subsequent `createOfficialContent` entry wires current metadata to TypeScript implementations, installs battle parameters and registers snapshot factories without using the effect DSL or legacy singleton. It has 124 related passing checks, including a complete official game and fresh-directory JSON continuation. See [native content entry](validation/official-native-content.md). PackLoader/server cutover, real browser host acceptance and overall migration completion remain open.
+
 ## Evidence as of 2026-10-20
 
 - Historical selectorValue is restored alongside selector compatibility. Random damage, random-mark and random-stage reference tests now parse unchanged YAML. C10 was a version mismatch, while C07 refers separately to the still-pending useSkillContext name; metadata reclassification remains open.

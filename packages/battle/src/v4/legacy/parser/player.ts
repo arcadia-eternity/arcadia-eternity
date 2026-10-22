@@ -1,13 +1,18 @@
 import { Player } from '../../index'
-import { PlayerSchema } from '../schema/index'
+import { PlayerSchema } from '../schema/player'
 import { nanoid } from 'nanoid'
 import { PetParser } from './pet'
 import type { playerId } from '@arcadia-eternity/const'
 import { fromZodError } from 'zod-validation-error'
 import { ZodError } from 'zod'
+import type { PrototypeLookup } from '../../content/prototype-lookup'
+import { DataRepository } from '../dataRepository'
 
 export class PlayerParser {
-  static parse(rawData: unknown): Player {
+  static parse(
+    rawData: unknown,
+    repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark'> = DataRepository.getInstance(),
+  ): Player {
     let validated: ReturnType<typeof PlayerSchema.parse>
     try {
       validated = PlayerSchema.parse(rawData)
@@ -26,7 +31,7 @@ export class PlayerParser {
 
     const pets = validated.team.map((pet, index) => {
       try {
-        return PetParser.parse(pet)
+        return PetParser.parse(pet, repository)
       } catch (e) {
         throw new Error(
           `[PlayerParser] 玩家 '${validated.name}' 的第 ${index + 1} 只精灵解析失败: ${(e as Error).message}`,

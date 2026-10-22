@@ -1,13 +1,17 @@
 import { BaseMark, Pet, type Species } from '../../index'
 import { Gender, type baseMarkId, type baseSkillId, type petId, type speciesId } from '@arcadia-eternity/const'
 import { DataRepository } from '../dataRepository'
-import { PetSchema } from '../schema/index'
+import { PetSchema } from '../schema/pet'
 import { nanoid } from 'nanoid'
 import { fromZodError } from 'zod-validation-error'
 import { ZodError } from 'zod'
+import type { PrototypeLookup } from '../../content/prototype-lookup'
 
 export class PetParser {
-  static parse(rawData: unknown): Pet {
+  static parse(
+    rawData: unknown,
+    repository: Pick<PrototypeLookup, 'getSpecies' | 'getSkill' | 'getMark'> = DataRepository.getInstance(),
+  ): Pet {
     let validated: ReturnType<typeof PetSchema.parse>
     try {
       validated = PetSchema.parse(rawData)
@@ -26,7 +30,7 @@ export class PetParser {
 
     let species: Species
     try {
-      species = DataRepository.getInstance().getSpecies(validated.species as speciesId)
+      species = repository.getSpecies(validated.species as speciesId)
     } catch (e) {
       throw new Error(
         `[PetParser] 精灵 '${validated.name}' 的种族 '${validated.species}' 加载失败: ${(e as Error).message}`,
@@ -35,7 +39,7 @@ export class PetParser {
 
     const skills = validated.skills.map((skillId, index) => {
       try {
-        return DataRepository.getInstance().getSkill(skillId as baseSkillId)
+        return repository.getSkill(skillId as baseSkillId)
       } catch (e) {
         throw new Error(
           `[PetParser] 精灵 '${validated.name}' 的第 ${index + 1} 个技能 '${skillId}' 加载失败: ${(e as Error).message}`,
@@ -46,7 +50,7 @@ export class PetParser {
     let ability: BaseMark | undefined
     if (validated.ability) {
       try {
-        ability = DataRepository.getInstance().getMark(validated.ability as baseMarkId)
+        ability = repository.getMark(validated.ability as baseMarkId)
       } catch (e) {
         throw new Error(
           `[PetParser] 精灵 '${validated.name}' 的特性 '${validated.ability}' 加载失败: ${(e as Error).message}`,
@@ -57,7 +61,7 @@ export class PetParser {
     let emblem: BaseMark | undefined
     if (validated.emblem) {
       try {
-        emblem = DataRepository.getInstance().getMark(validated.emblem as baseMarkId)
+        emblem = repository.getMark(validated.emblem as baseMarkId)
       } catch (e) {
         throw new Error(
           `[PetParser] 精灵 '${validated.name}' 的纹章 '${validated.emblem}' 加载失败: ${(e as Error).message}`,
