@@ -44,12 +44,18 @@ const runtime = Type.Object(
   {
     version: Type.Literal(1),
     capturedAt: nonnegative,
-    phase: Type.Union([Type.Literal('selection'), Type.Literal('execution'), Type.Literal('switch'), Type.Null()]),
+    phase: Type.Union([
+      Type.Literal('selection'),
+      Type.Literal('execution'),
+      Type.Literal('switch'),
+      Type.Literal('team-selection'),
+      Type.Null(),
+    ]),
     active: Type.Boolean(),
     selections: Type.Array(Type.Tuple([Type.String({ minLength: 1 }), Type.Boolean()]), { maxItems: 2 }),
     players: Type.Array(clock, { minItems: 2, maxItems: 2 }),
     animations: Type.Optional(Type.Array(animation)),
-    pendingTurnReset: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { minItems: 2, maxItems: 2 })),
+    pendingTurnReset: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { minItems: 1, maxItems: 2 })),
     pendingTurnResetApplied: Type.Optional(Type.Literal(true)),
   },
   { additionalProperties: false },
@@ -62,7 +68,7 @@ export type SavedAnimation = Static<typeof animation>
 /** Validate data and roster references before creating any interval or host callback. */
 export function readTimerRuntime(
   input: unknown,
-  roster: readonly { id: playerId; selected: boolean }[],
+  roster: readonly { id: playerId; selected?: boolean }[],
 ): SavedTimerRuntime {
   if (!Value.Check(runtime, input)) throw new Error('Invalid timer runtime snapshot')
   const saved = input as SavedTimerRuntime
@@ -75,10 +81,15 @@ export function readTimerRuntime(
     throw new Error('Timer snapshot roster mismatch')
   if (
     new Set(saved.selections.map(([id]) => id)).size !== saved.selections.length ||
-    saved.selections.some(([id, selected]) => roster.find(player => player.id === id)?.selected !== selected)
+    saved.selections.some(
+      ([id, selected]) =>
+        !ids.has(id) ||
+        (roster.find(player => player.id === id)?.selected !== undefined &&
+          roster.find(player => player.id === id)?.selected !== selected),
+    )
   )
     throw new Error('Timer selection state disagrees with Battle')
-  if (saved.phase === 'selection' && saved.selections.length !== ids.size)
+  if ((saved.phase === 'selection' || saved.phase === 'team-selection') && saved.selections.length !== ids.size)
     throw new Error('Incomplete timer selection state')
   for (const player of saved.players)
     if (
@@ -97,8 +108,9 @@ export function readTimerRuntime(
     saved.pendingTurnReset &&
     (!animations.length ||
       !saved.active ||
-      saved.phase !== 'selection' ||
-      new Set(saved.pendingTurnReset).size !== ids.size ||
+      !['selection', 'switch'].includes(saved.phase ?? '') ||
+      new Set(saved.pendingTurnReset).size !== saved.pendingTurnReset.length ||
+      (saved.phase === 'selection' && saved.pendingTurnReset.length !== ids.size) ||
       saved.pendingTurnReset.some(id => !ids.has(id)))
   )
     throw new Error('Invalid pending timer reset')

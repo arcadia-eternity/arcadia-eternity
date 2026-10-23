@@ -174,8 +174,8 @@ const nativeDescriptor = () => ({
   runtime: { kind: 'native-v4', build: { ...nativeBuildIdentity }, contentRevision: 'test/revision' },
   initial: {
     format: 'arcadia.battle.native.v4',
-    version: 2,
-    payload: JSON.stringify({ battle: { boundary: 'initial' }, reconnect: [] }),
+    version: 3,
+    payload: JSON.stringify({ battle: { boundary: 'initial' }, reconnect: [], teamSelection: null }),
   },
 })
 it('reads untagged historical bootstraps as V2 and copies native descriptor data', () => {

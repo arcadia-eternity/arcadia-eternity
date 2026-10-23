@@ -28,7 +28,7 @@ import { AttributeSystem } from './attributeSystem'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
-import { PhaseManager, BattleStartPhase, BattleLoopPhase, SelectionPhase } from './phase'
+import { PhaseManager, BattleStartPhase, BattleLoopPhase, SelectionPhase, BattleSwitchPhase } from './phase'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
 import { AddMarkPhase } from './phase/AddMarkPhase'
@@ -401,20 +401,24 @@ export class Battle extends Context implements MarkOwner {
     }
   }
 
-  /** Continue a hydrated selection checkpoint without replaying start/turn effects. */
+  /** Continue a hydrated input checkpoint without replaying completed start/turn effects. */
   public async resumeBattle(): Promise<void> {
     this.assertRunning()
     if (
       this._isStarting ||
       this.status !== BattleStatus.OnBattle ||
-      this.currentPhase !== BattlePhase.SelectionPhase ||
+      ![BattlePhase.SelectionPhase, BattlePhase.SwitchPhase].includes(this.currentPhase) ||
       !this.restoredSelection
     )
-      throw new Error('Battle is not a restored selection checkpoint')
+      throw new Error('Battle is not a restored selection/switch checkpoint')
     this.restoredSelection = false
     this._isStarting = true
     try {
-      const loop = new BattleLoopPhase(this, undefined, true)
+      const loop = new BattleLoopPhase(
+        this,
+        undefined,
+        this.currentPhase as BattlePhase.SelectionPhase | BattlePhase.SwitchPhase,
+      )
       this.phaseManager.registerPhase(loop)
       await this.phaseManager.executePhaseAsync(loop.id)
     } catch (error) {
@@ -427,12 +431,18 @@ export class Battle extends Context implements MarkOwner {
   }
   private restoredSelection = false
   public isInitialSnapshotBoundary(): boolean {
+    return this.isPrestartSnapshotBoundary(BattlePhase.SelectionPhase)
+  }
+  public isTeamSelectionSnapshotBoundary(): boolean {
+    return this.isPrestartSnapshotBoundary(BattlePhase.TeamSelectionPhase)
+  }
+  private isPrestartSnapshotBoundary(phase: BattlePhase): boolean {
     return (
       !this.cancelled &&
       !this._isStarting &&
       !this.executionBudget.fault &&
       this.status === BattleStatus.Unstarted &&
-      this.currentPhase === BattlePhase.SelectionPhase &&
+      this.currentPhase === phase &&
       this.currentTurn === 0 &&
       this.actionLog.length === 0 &&
       !this.playerA.selection &&
@@ -446,16 +456,68 @@ export class Battle extends Context implements MarkOwner {
     )
   }
   public isSnapshotBoundary(): boolean {
-    return (
-      !this.executionBudget.fault &&
-      !this.cancelled &&
-      this.status === BattleStatus.OnBattle &&
-      this.currentPhase === BattlePhase.SelectionPhase &&
-      (this.restoredSelection ||
-        (!!this.waitingResolvers.bothPlayersReady &&
-          this.currentPhase === BattlePhase.SelectionPhase &&
-          this.phaseManager.getCurrentPhase() instanceof SelectionPhase))
+    if (this.executionBudget.fault || this.cancelled || this.status !== BattleStatus.OnBattle) return false
+    if (this.currentPhase === BattlePhase.SelectionPhase)
+      return (
+        this.restoredSelection ||
+        (!!this.waitingResolvers.bothPlayersReady && this.phaseManager.getCurrentPhase() instanceof SelectionPhase)
+      )
+    if (this.currentPhase === BattlePhase.SwitchPhase) {
+      try {
+        this.assertSwitchSnapshotState()
+      } catch {
+        return false
+      }
+      const waiting = this.waitingResolvers.switchSelections
+      const required = [...this.pendingForcedSwitches, ...(this.pendingFaintSwitch ? [this.pendingFaintSwitch] : [])]
+      return (
+        this.restoredSelection ||
+        (!!waiting &&
+          this.phaseManager.getCurrentPhase() instanceof BattleSwitchPhase &&
+          waiting.players.length === required.length &&
+          waiting.players.every((player, index) => player === required[index]))
+      )
+    }
+    return false
+  }
+
+  /** Validate the settled switch wait independently of runtime promises before publishing a restored Battle. */
+  public assertSwitchSnapshotState(allowCompletedInput = false): void {
+    const players = [this.playerA, this.playerB]
+    const forced = players.filter(player => !player.activePet.isAlive)
+    const reward = this.allowFaintSwitch && this.lastKiller && forced.length < 2 ? this.lastKiller : undefined
+    if (
+      this.status !== BattleStatus.OnBattle ||
+      this.currentPhase !== BattlePhase.SwitchPhase ||
+      !this.isInitialSwitchPhase ||
+      !Array.isArray(this.pendingForcedSwitches) ||
+      forced.length !== this.pendingForcedSwitches.length ||
+      forced.some((player, index) => player !== this.pendingForcedSwitches[index]) ||
+      this.pendingFaintSwitch !== reward ||
+      (reward && !players.includes(reward)) ||
+      players.some(player => !player.team.includes(player.activePet) || !player.team.some(pet => pet.isAlive))
     )
+      throw new Error('Invalid switch snapshot pending players')
+    const required = [...forced, ...(reward ? [reward] : [])]
+    if (
+      !required.length ||
+      new Set(required).size !== required.length ||
+      (!allowCompletedInput && required.every(player => !!player.selection))
+    )
+      throw new Error('Invalid switch snapshot input wait')
+    for (const player of players) {
+      const choice = player.selection
+      if (!choice) continue
+      if (!required.includes(player) || choice.player !== player.id)
+        throw new Error('Invalid switch snapshot selection player')
+      if (choice.type === 'do-nothing' && player === reward && !forced.includes(player)) continue
+      if (
+        choice.type === 'switch-pet' &&
+        player.team.some(pet => pet.id === choice.pet && pet !== player.activePet && pet.isAlive)
+      )
+        continue
+      throw new Error('Invalid switch snapshot selection')
+    }
   }
 
   // Legacy generator method removed - use startBattlePhased() instead

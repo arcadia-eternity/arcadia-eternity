@@ -1,3 +1,4 @@
+import { BattlePhase, BattleStatus } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { SnapshotCatalog, snapshotBattle, restoreBattle } from '../snapshot'
 import { compileContentPack, type ContentPackResult } from './content-pack'
@@ -140,7 +141,13 @@ export async function lockContentEnvironment(
     },
     snapshot(battle: Battle) {
       if (installed.get(battle) !== token) throw new Error('Battle belongs to a different content environment')
-      return snapshotBattle(battle, catalog)
+      return snapshotBattle(
+        battle,
+        catalog,
+        battle.status === BattleStatus.Unstarted
+          ? { boundary: battle.currentPhase === BattlePhase.TeamSelectionPhase ? 'team-selection' : 'initial' }
+          : undefined,
+      )
     },
     restore(data: unknown): Battle {
       const battle = restoreBattle(data, catalog)

@@ -17,7 +17,7 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
   constructor(
     battle: Battle,
     id?: string,
-    private resumeSelection = false,
+    private resumePhase?: BattlePhase.SelectionPhase | BattlePhase.SwitchPhase,
   ) {
     super(battle, id)
   }
@@ -33,15 +33,16 @@ export class BattleLoopPhase extends InteractivePhase<Context> {
     // Main battle loop - continues until battle ends
     while (true) {
       battle.assertRunning()
-      if (this.resumeSelection) {
-        this.resumeSelection = false
+      if (this.resumePhase === BattlePhase.SelectionPhase) {
+        this.resumePhase = undefined
         const selection = new SelectionPhase(battle, undefined, true)
         battle.phaseManager.registerPhase(selection)
         await battle.phaseManager.executePhaseAsync(selection.id)
       } else {
         // Phase 1: Handle switches (forced and faint switches)
         battle.currentPhase = BattlePhase.SwitchPhase
-        const switchPhase = new BattleSwitchPhase(battle)
+        const switchPhase = new BattleSwitchPhase(battle, undefined, this.resumePhase === BattlePhase.SwitchPhase)
+        this.resumePhase = undefined
         battle.phaseManager.registerPhase(switchPhase)
 
         // Execute switch phase

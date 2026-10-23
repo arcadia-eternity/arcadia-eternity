@@ -1895,7 +1895,7 @@ export class ClusterBattleService implements IBattleService {
       }
       const supported =
         (parsed.format === RUNTIME_SNAPSHOT_FORMAT && parsed.version === RUNTIME_SNAPSHOT_VERSION) ||
-        (parsed.format === 'arcadia.battle.native.v4' && [1, 2].includes(parsed.version))
+        (parsed.format === 'arcadia.battle.native.v4' && parsed.version === 3)
       if (!supported) {
         logger.warn(
           {

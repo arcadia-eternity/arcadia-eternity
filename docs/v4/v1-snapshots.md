@@ -4,14 +4,18 @@
 
 ## 支持的边界
 
-| 边界                                 | 保存与启动                                                                 |
-| ------------------------------------ | -------------------------------------------------------------------------- |
-| 未启动的初始状态                     | `snapshotBattle(battle, catalog, { boundary: 'initial' })`；恢复后正常启动 |
-| 正常选招的稳定等待点，允许一方已提交 | `snapshotBattle(battle, catalog)`；恢复后 `resumeBattle()`，保留已提交选择 |
+| 边界                                 | 保存与启动                                                                             |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| 未启动的初始状态                     | `snapshotBattle(battle, catalog, { boundary: 'initial' })`；恢复后正常启动             |
+| 正常选招的稳定等待点，允许一方已提交 | `snapshotBattle(battle, catalog)`；恢复后 `resumeBattle()`，保留已提交选择             |
+| 强制/奖励换宠的稳定等待点            | `snapshotBattle(battle, catalog)`；恢复后 `resumeBattle()`，保留待换宠玩家与已提交选择 |
+| 队伍预选等待点                       | `LocalBattleSystemV4.createRuntimeSnapshot()`；用宿主恢复接口恢复并调用 `ready()`      |
 
 初始边界要求 turn-zero、未接受选择、无已执行阶段、活跃计时或动画。内容目录为其拥有的未启动 Battle 自动选择初始边界。正常等待点可保存决策计时、活跃动画及延后的回合计时重置。
 
-强制/奖励换宠等待、队伍预选中、任意阶段执行中、已结束或取消的战斗，以及活跃临时效果、阶段绑定修饰器、排队/依赖阶段等状态不支持导出。未知字段、未注册函数或动态依赖、自定义领域子类/变身策略及没有适配器的 RNG 会被拒绝。
+强制/奖励换宠等待点保存尚待处理的玩家及已提交选择；恢复从同一等待点继续，不重新计算换宠请求或重发已发出的请求。队伍预选由原生宿主保存配置、双方确认选择及计时状态，恢复后继续等待尚未确认的一方，双方确认后只启动一次战斗。
+
+任意阶段执行中、已结束或取消的战斗，以及活跃临时效果、阶段绑定修饰器、排队/依赖阶段等状态不支持导出。这些状态不属于 #204 的交付范围。未知字段、未注册函数或动态依赖、自定义领域子类/变身策略及没有适配器的 RNG 会被拒绝。
 
 ## 内容身份与状态
 
@@ -35,9 +39,9 @@ restored.registerListener(onMessage)
 await restored.resumeBattle()
 ```
 
-底层 `restoreBattle` 本身保持静默。初始快照恢复后调用 `startBattle()`；正常等待点调用 `resumeBattle()`，先挂接观察器再启动。
+底层 `restoreBattle` 本身保持静默。初始快照恢复后调用 `startBattle()`；正常选招或换宠等待点调用 `resumeBattle()`，先挂接观察器再启动。队伍预选须通过原生宿主接口恢复其确认状态，不能只恢复核心 Battle 后直接开战。
 
-使用宿主接口时，通过 `createRuntimeSnapshot()` / `restoreRuntimeSnapshot()` 保存和恢复，再调用 `ready()`。宿主适配器的 `arcadia.battle.native.v4` envelope 另保存重连窗口，并兼容其 version 1/2；恢复目标为独立宿主实例，不能在原身份仍活跃时原地回退。
+使用宿主接口时，通过 `createRuntimeSnapshot()` / `restoreRuntimeSnapshot()` 保存和恢复，再调用 `ready()`。宿主适配器的 `arcadia.battle.native.v4` envelope 另保存重连窗口，统一使用 version 3，不读取旧版 envelope；恢复目标为独立宿主实例，不能在原身份仍活跃时原地回退。
 
 ## 计时与输入
 
@@ -49,6 +53,6 @@ await restored.resumeBattle()
 
 ## 验证入口
 
-核心回归在 `snapshot.test.ts`、`initial-snapshot.test.ts`、`timer-runtime.test.ts`、`native-battle-system.test.ts` 及作者绑定测试中。`pnpm verify:battle-v4-hosts` 检查 Node/Browser 快照交换；`pnpm verify:battle-v4-native-pack` 检查真实 Node/Chrome 的内容加载、定时续战和新目录恢复。
+核心回归在 `snapshot.test.ts`、`initial-snapshot.test.ts`、`timer-runtime.test.ts`、`native-battle-system.test.ts` 及作者绑定测试中。`pnpm verify:battle-v4-waiting-snapshots` 检查强制/奖励换宠及队伍预选等待点的真实 Node/Chrome 双向 JSON 恢复，对照完整后续事件、状态及 RNG。`pnpm verify:battle-v4-hosts` 检查既有 Node/Browser 快照交换；`pnpm verify:battle-v4-native-pack` 检查真实 Node/Chrome 的内容加载、定时续战和新目录恢复。
 
-跨版本领域迁移、任意执行中断点与自定义闭包适配需要显式扩展协议。完整私房服务恢复还依赖存储、鉴权和传输验收。
+跨版本领域迁移与自定义闭包适配需要显式扩展协议。阶段过程断点、活跃临时效果、阶段绑定修饰器及排队/依赖阶段快照不在本轮范围内。完整私房服务恢复还依赖存储、鉴权和传输验收。

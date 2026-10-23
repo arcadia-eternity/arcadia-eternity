@@ -66,10 +66,51 @@ export class TimerManager {
   }
 
   public assertSnapshotSafe(): void {
-    if (this.teamSelectionTimeout) throw new Error('Team selection snapshots are not supported')
     if (!this.config.enabled && (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset))
       throw new Error('Disabled timers cannot carry active animations')
     if (this.config.enabled) this.exportRuntimeState()
+  }
+
+  public assertTeamSelectionSnapshotSafe(selectedIds?: readonly playerId[]): void {
+    if (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset)
+      throw new Error('Team selection snapshot cannot carry combat animations or deferred timer resets')
+    if (!this.config.enabled) {
+      this.assertInitialSnapshotSafe()
+      return
+    }
+    const saved = this.exportRuntimeState()
+    if (
+      !saved.active ||
+      saved.phase !== 'team-selection' ||
+      saved.players.some(clock => {
+        const selected = saved.selections.find(([id]) => id === clock.playerId)?.[1]
+        return selected
+          ? clock.state !== TimerState.Paused && clock.state !== TimerState.Timeout
+          : clock.state !== TimerState.Running
+      })
+    )
+      throw new Error('Invalid team selection timer state')
+    if (selectedIds && saved.selections.some(([id, selected]) => selected !== selectedIds.includes(id as playerId)))
+      throw new Error('Team selection choices disagree with timer confirmation state')
+  }
+
+  public assertSwitchSnapshotSafe(): void {
+    if (!this.config.enabled) return
+    const required = new Set([
+      ...this.battle.pendingForcedSwitches.map(player => player.id),
+      ...(this.battle.pendingFaintSwitch ? [this.battle.pendingFaintSwitch.id] : []),
+    ])
+    const saved = this.exportRuntimeState()
+    if (
+      !saved.active ||
+      saved.phase !== 'switch' ||
+      saved.selections.length !== required.size ||
+      saved.selections.some(([id]) => !required.has(id as playerId)) ||
+      (saved.pendingTurnReset &&
+        (saved.pendingTurnReset.length !== required.size ||
+          saved.pendingTurnReset.some(id => !required.has(id as playerId))))
+    )
+      throw new Error('Invalid switch timer state')
   }
 
   public assertInitialSnapshotSafe(): void {
@@ -101,7 +142,10 @@ export class TimerManager {
             ? true
             : undefined,
       },
-      [this.battle.playerA, this.battle.playerB].map(player => ({ id: player.id, selected: !!player.selection })),
+      [this.battle.playerA, this.battle.playerB].map(player => ({
+        id: player.id,
+        selected: this.currentPhase === 'team-selection' ? undefined : !!player.selection,
+      })),
     )
   }
   public restoreRuntimeState(input: unknown): void {
@@ -109,7 +153,10 @@ export class TimerManager {
       throw new Error('Timer runtime restore requires a fresh manager')
     const saved = readTimerRuntime(
       input,
-      [this.battle.playerA, this.battle.playerB].map(player => ({ id: player.id, selected: !!player.selection })),
+      [this.battle.playerA, this.battle.playerB].map(player => ({
+        id: player.id,
+        selected: (input as { phase?: string })?.phase === 'team-selection' ? undefined : !!player.selection,
+      })),
     )
     this.currentPhase = saved.phase
     this.isActive = saved.active
@@ -202,6 +249,13 @@ export class TimerManager {
     this.startDecisionPhase(playerIds, 'team-selection', seconds)
     if (this.config.enabled)
       this.battle.emitter.emit('teamSelectionTimerStart', { timeLimit: seconds, timestamp: Date.now() })
+  }
+
+  /** Attach host-only input handling before overdue saved clocks can fire. */
+  public resumeTeamSelectionPhase(onTimeout: (id: playerId) => string): void {
+    this.assertTeamSelectionSnapshotSafe()
+    this.teamSelectionTimeout = onTimeout
+    this.activateRestoredState(false)
   }
 
   private startDecisionPhase(

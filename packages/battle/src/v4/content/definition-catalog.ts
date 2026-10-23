@@ -1,4 +1,4 @@
-import { BattleStatus, type EffectTrigger, type effectId } from '@arcadia-eternity/const'
+import { BattlePhase, BattleStatus, type EffectTrigger, type effectId } from '@arcadia-eternity/const'
 import { createBattle, type BattleOptions } from '../api'
 import type { Battle } from '../battle'
 import { ConfigSystem } from '../config'
@@ -187,7 +187,9 @@ export function createContentCatalog(
       return snapshotBattle(
         battle,
         catalog,
-        battle.status === BattleStatus.Unstarted ? { boundary: 'initial' } : undefined,
+        battle.status === BattleStatus.Unstarted
+          ? { boundary: battle.currentPhase === BattlePhase.TeamSelectionPhase ? 'team-selection' : 'initial' }
+          : undefined,
       )
     },
     restore(data: unknown): Battle {

@@ -28,7 +28,7 @@ const descriptor = Type.Union([
     {
       runtime: native,
       initial: Type.Object(
-        { format: Type.Literal('arcadia.battle.native.v4'), version: Type.Literal(2), payload: Type.String() },
+        { format: Type.Literal('arcadia.battle.native.v4'), version: Type.Literal(3), payload: Type.String() },
         { additionalProperties: false },
       ),
     },
@@ -39,6 +39,7 @@ const initialPayload = Type.Object(
   {
     battle: Type.Object({ boundary: Type.Literal('initial') }, { additionalProperties: true }),
     reconnect: Type.Array(Type.Unknown(), { maxItems: 0 }),
+    teamSelection: Type.Null(),
   },
   { additionalProperties: false },
 )

@@ -1,10 +1,12 @@
 import {
   BattleMessageType,
   BattlePhase,
+  BattleStatus,
   type BattleTeamSelection,
   type PlayerSelection,
   type TeamSelectionConfig,
   type playerId,
+  type petId,
 } from '@arcadia-eternity/const'
 import type { Battle } from '../v4/battle'
 import { AIPlayer, type Player } from '../v4/player'
@@ -14,6 +16,27 @@ export interface NativeTeamSelectionOptions {
   config?: Partial<TeamSelectionConfig>
 }
 
+interface SavedTeamChoice extends BattleTeamSelection {
+  player: playerId
+}
+export interface NativeTeamSelectionSnapshot {
+  version: 1
+  state: 'idle' | 'waiting'
+  timedOut: boolean
+  config: Required<TeamSelectionConfig>
+  choices: SavedTeamChoice[]
+}
+
+function objectWithKeys(value: unknown, keys: string[]): value is Record<string, unknown> {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === keys.length &&
+    keys.every(key => Object.hasOwn(value, key))
+  )
+}
+
 /** Pre-battle input flow. Combat effects and turns still run on the existing Battle. */
 export class NativeTeamSelection {
   private readonly config: Required<TeamSelectionConfig>
@@ -21,6 +44,7 @@ export class NativeTeamSelection {
   private state: 'idle' | 'waiting' | 'complete' | 'cancelled' = 'idle'
   private complete?: () => void
   private timedOut = false
+  private restored = false
 
   constructor(
     private readonly battle: Battle,
@@ -39,6 +63,8 @@ export class NativeTeamSelection {
     if (
       !['TEAM_SELECTION', 'FULL_TEAM', 'VIEW_ONLY'].includes(c.mode) ||
       !['FULL', 'BASIC', 'HIDDEN'].includes(c.teamInfoVisibility) ||
+      typeof c.allowStarterSelection !== 'boolean' ||
+      typeof c.showOpponentTeam !== 'boolean' ||
       !Number.isInteger(c.minTeamSize) ||
       !Number.isInteger(c.maxTeamSize) ||
       c.minTeamSize < 1 ||
@@ -61,27 +87,119 @@ export class NativeTeamSelection {
     return this.state === 'idle' || this.active
   }
 
+  snapshot(): NativeTeamSelectionSnapshot {
+    if (!this.pending) throw new Error('Team selection is no longer pending')
+    if (this.timedOut && (!this.active || !this.choices.size))
+      throw new Error('Team selection timeout is not at a settled input boundary')
+    if (this.active) this.battle.timerManager.assertTeamSelectionSnapshotSafe([...this.choices.keys()])
+    else this.battle.timerManager.assertInitialSnapshotSafe()
+    return {
+      version: 1,
+      state: this.state as 'idle' | 'waiting',
+      timedOut: this.timedOut,
+      config: { ...this.config },
+      choices: [...this.choices].map(([player, choice]) => ({ player, ...structuredClone(choice) })),
+    }
+  }
+
+  /** Validate against the hydrated roster and clocks without starting intervals or emitting messages. */
+  static restore(battle: Battle, input: unknown): NativeTeamSelection {
+    const configKeys = [
+      'mode',
+      'minTeamSize',
+      'maxTeamSize',
+      'allowStarterSelection',
+      'showOpponentTeam',
+      'teamInfoVisibility',
+      'timeLimit',
+    ]
+    if (
+      !objectWithKeys(input, ['version', 'state', 'timedOut', 'config', 'choices']) ||
+      input.version !== 1 ||
+      typeof input.timedOut !== 'boolean' ||
+      !['idle', 'waiting'].includes(input.state as string) ||
+      !objectWithKeys(input.config, configKeys) ||
+      typeof input.config.mode !== 'string' ||
+      typeof input.config.teamInfoVisibility !== 'string' ||
+      typeof input.config.minTeamSize !== 'number' ||
+      typeof input.config.maxTeamSize !== 'number' ||
+      typeof input.config.timeLimit !== 'number' ||
+      typeof input.config.allowStarterSelection !== 'boolean' ||
+      typeof input.config.showOpponentTeam !== 'boolean' ||
+      !Array.isArray(input.choices) ||
+      input.choices.length > 1
+    )
+      throw new Error('Invalid native team selection snapshot')
+    const selection = new NativeTeamSelection(battle, input.config as unknown as Required<TeamSelectionConfig>)
+    if (
+      battle.status !== BattleStatus.Unstarted ||
+      battle.currentPhase !==
+        (input.state === 'waiting' ? BattlePhase.TeamSelectionPhase : BattlePhase.SelectionPhase) ||
+      (input.state === 'idle' && input.choices.length) ||
+      (input.state === 'waiting' && selection.config.mode === 'VIEW_ONLY')
+    )
+      throw new Error('Invalid native team selection snapshot boundary')
+    for (const saved of input.choices) {
+      if (
+        !objectWithKeys(saved, ['player', 'selectedPets', 'starterPetId']) ||
+        typeof saved.player !== 'string' ||
+        !Array.isArray(saved.selectedPets) ||
+        saved.selectedPets.some(id => typeof id !== 'string') ||
+        new Set(saved.selectedPets).size !== saved.selectedPets.length ||
+        typeof saved.starterPetId !== 'string'
+      )
+        throw new Error('Invalid native team selection choice')
+      const player = selection.players.find(player => player.id === saved.player)
+      if (!player) throw new Error('Invalid native team selection player')
+      const selectedPets = saved.selectedPets as petId[],
+        starterPetId = saved.starterPetId as petId
+      const normalized = selection.validateChoice(player, {
+        type: 'team-selection',
+        player: player.id,
+        selectedPets,
+        starterPetId,
+      })
+      if (
+        normalized.starterPetId !== saved.starterPetId ||
+        normalized.selectedPets.length !== saved.selectedPets.length ||
+        normalized.selectedPets.some((id, index) => id !== selectedPets[index])
+      )
+        throw new Error('Noncanonical native team selection choice')
+      selection.choices.set(player.id, normalized)
+    }
+    selection.state = input.state as 'idle' | 'waiting'
+    selection.timedOut = input.timedOut
+    selection.restored = selection.active
+    selection.snapshot()
+    return selection
+  }
+
   run(): Promise<void> {
-    if (this.state !== 'idle') throw new Error('Native team selection has already started')
+    if (this.state !== 'idle' && !this.restored) throw new Error('Native team selection has already started')
+    const restored = this.restored
+    this.restored = false
     this.state = 'waiting'
     this.battle.currentPhase = BattlePhase.TeamSelectionPhase
     const waiting = new Promise<void>(resolve => {
       this.complete = resolve
     })
     if (this.config.mode !== 'VIEW_ONLY') {
-      this.battle.timerManager.startTeamSelectionPhase(
-        this.players.map(player => player.id),
-        this.config.timeLimit,
-        id => {
-          if (!this.active) return '选队已结束'
-          if (!this.timedOut) {
-            this.timedOut = true
-            this.battle.emitter.emit('teamSelectionTimeout', { timestamp: Date.now() })
-          }
-          this.submit({ type: 'team-selection', player: id, ...this.defaultChoice(this.battle.getPlayerByID(id)) })
-          return '自动选择队伍'
-        },
-      )
+      const onTimeout = (id: playerId) => {
+        if (!this.active) return '选队已结束'
+        if (!this.timedOut) {
+          this.timedOut = true
+          this.battle.emitter.emit('teamSelectionTimeout', { timestamp: Date.now() })
+        }
+        this.submit({ type: 'team-selection', player: id, ...this.defaultChoice(this.battle.getPlayerByID(id)) })
+        return '自动选择队伍'
+      }
+      if (restored) this.battle.timerManager.resumeTeamSelectionPhase(onTimeout)
+      else
+        this.battle.timerManager.startTeamSelectionPhase(
+          this.players.map(player => player.id),
+          this.config.timeLimit,
+          onTimeout,
+        )
     }
     const teamInfo = (player: Player) =>
       this.config.teamInfoVisibility === 'HIDDEN'
@@ -92,11 +210,12 @@ export class NativeTeamSelection {
             teamSize: player.team.length,
             pets: player.toMessage(undefined, this.config.teamInfoVisibility === 'FULL').team!,
           }
-    this.battle.emitMessage(BattleMessageType.TeamSelectionStart, {
-      config: { ...this.config },
-      playerATeam: teamInfo(this.battle.playerA),
-      playerBTeam: teamInfo(this.battle.playerB),
-    })
+    if (!restored)
+      this.battle.emitMessage(BattleMessageType.TeamSelectionStart, {
+        config: { ...this.config },
+        playerATeam: teamInfo(this.battle.playerA),
+        playerBTeam: teamInfo(this.battle.playerB),
+      })
     if (this.config.mode === 'VIEW_ONLY') {
       for (const player of this.players) this.choices.set(player.id, this.defaultChoice(player))
       this.finish()
@@ -126,6 +245,16 @@ export class NativeTeamSelection {
       return
     }
     if (selection.type !== 'team-selection') throw new Error('Expected a team-selection action')
+    const choice = this.validateChoice(player, selection)
+    this.choices.set(player.id, choice)
+    this.battle.timerManager.handlePlayerSelectionChange(player.id, true)
+    if (this.players.every(player => this.choices.has(player.id))) this.finish()
+  }
+
+  private validateChoice(
+    player: Player,
+    selection: Extract<PlayerSelection, { type: 'team-selection' }>,
+  ): BattleTeamSelection {
     const fullTeam = player.team.map(pet => pet.id)
     const selectedPets = this.config.mode === 'FULL_TEAM' ? fullTeam : [...new Set(selection.selectedPets)]
     if (
@@ -136,9 +265,7 @@ export class NativeTeamSelection {
     if (selectedPets.some(id => !fullTeam.includes(id))) throw new Error('Selected pet is not in this player team')
     const starterPetId = this.config.allowStarterSelection ? selection.starterPetId : selectedPets[0]
     if (!selectedPets.includes(starterPetId)) throw new Error('Invalid selected starter')
-    this.choices.set(player.id, { selectedPets, starterPetId })
-    this.battle.timerManager.handlePlayerSelectionChange(player.id, true)
-    if (this.players.every(player => this.choices.has(player.id))) this.finish()
+    return { selectedPets, starterPetId }
   }
 
   private defaultChoice(player: Player): BattleTeamSelection {

@@ -201,7 +201,7 @@ it('validates malformed restores before changing a live selection boundary', asy
     'Unsupported',
   )
   await expect(
-    f.system.restoreRuntimeSnapshot({ format: 'arcadia.battle.native.v4', version: 1, payload: '{}' }),
+    f.system.restoreRuntimeSnapshot({ format: 'arcadia.battle.native.v4', version: 3, payload: '{}' }),
   ).rejects.toThrow()
   expect(await f.system.getState(undefined, true)).toEqual(before)
   expect(f.battle.isSnapshotBoundary()).toBe(true)
@@ -414,15 +414,16 @@ it('rejects malformed reconnect state while preserving the live battle and its d
   expect(fresh.battle.victor?.id).toBe(fresh.a.id)
 })
 
-it('continues reading the original version-one native runtime envelope', async () => {
+it('rejects unsupported runtime versions before disturbing the live battle', async () => {
   const f = await timedFixture(),
     saved = await f.system.createRuntimeSnapshot()
   await f.system.cleanup()
-  const payload = JSON.parse(saved.payload),
-    fresh = fixture()
-  await fresh.system.restoreRuntimeSnapshot({ ...saved, version: 1, payload: JSON.stringify(payload.battle) })
+  const fresh = fixture()
   await fresh.system.ready()
-  expect((await fresh.system.getState()).status).toBe(BattleStatus.OnBattle)
+  const before = await fresh.system.getState(undefined, true)
+  for (const version of [1, 2, 4])
+    await expect(fresh.system.restoreRuntimeSnapshot({ ...saved, version })).rejects.toThrow('Unsupported')
+  expect(await fresh.system.getState(undefined, true)).toEqual(before)
   expect(vi.getTimerCount()).toBe(0)
 })
 
