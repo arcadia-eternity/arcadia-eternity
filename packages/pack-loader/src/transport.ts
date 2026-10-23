@@ -506,6 +506,24 @@ export class PackTransport {
     }
   }
 
+  protected async fetchObject(url: string): Promise<Record<string, unknown>> {
+    const parseObject = (text: string, source: string) => {
+      const value: unknown = source.toLowerCase().endsWith('.json')
+        ? JSON.parse(text)
+        : YAML.parse(text, { merge: true })
+      if (!value || typeof value !== 'object' || Array.isArray(value))
+        throw new Error(`Expected object content from ${source}`)
+      return value as Record<string, unknown>
+    }
+    try {
+      return parseObject(await this.fetchText(url), url)
+    } catch (error) {
+      if (!url.endsWith('.yaml')) throw error
+      const jsonUrl = url.replace(/\.yaml$/, '.json')
+      return parseObject(await this.fetchText(jsonUrl), jsonUrl)
+    }
+  }
+
   protected async fetchJson<T>(url: string): Promise<T> {
     const text = await this.fetchText(url)
     return JSON.parse(text) as T

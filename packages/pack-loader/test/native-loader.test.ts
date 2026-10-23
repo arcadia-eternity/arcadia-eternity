@@ -39,6 +39,42 @@ function serveBase(change?: (path: string, raw: string) => string, extra: Record
 }
 
 describe('NativePackLoader', () => {
+  for (const yamlResponse of ['html', 'missing'] as const)
+    it(`loads converted JSON locales when the YAML URL returns ${yamlResponse}`, async () => {
+      const locale = { fight: 'Fight', category: { Physical: 'Physical' } }
+      const requests = serveBase(undefined, {
+        'pack.json': JSON.stringify({
+          id: 'fixture.json-locales',
+          version: '1.0.0',
+          engine: 'seer2-v2',
+          data: { effects: [], marks: [], skills: [], species: [] },
+          locales: { en: ['battle'] },
+        }),
+        ...(yamlResponse === 'html' ? { 'locales/en/battle.yaml': '<!doctype html><html>app</html>' } : {}),
+        'locales/en/battle.json': JSON.stringify(locale),
+      })
+      const result = await new NativePackLoader(build, createContentCatalog).loadMetadata(origin, { source: 'http' })
+      expect(result.locales).toEqual({ en: { battle: locale } })
+      expect(requests).toContain('locales/en/battle.json')
+    })
+
+  it('rejects invalid locale content even when a JSON fallback is available', async () => {
+    serveBase(undefined, {
+      'pack.json': JSON.stringify({
+        id: 'fixture.invalid-locales',
+        version: '1.0.0',
+        engine: 'seer2-v2',
+        data: { effects: [], marks: [], skills: [], species: [] },
+        locales: { en: ['battle'] },
+      }),
+      'locales/en/battle.yaml': '<!doctype html><html>app</html>',
+      'locales/en/battle.json': '[]',
+    })
+    await expect(
+      new NativePackLoader(build, createContentCatalog).loadMetadata(origin, { source: 'http' }),
+    ).rejects.toThrow()
+  })
+
   for (const source of ['node-fs', 'http'] as const)
     it(`reads an incomplete metadata layer without executing its content factory: ${source}`, async () => {
       const skill = {

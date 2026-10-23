@@ -30,7 +30,7 @@ interface MetadataPack {
   source: string
   raw: string
   readData(file: string): Promise<unknown[]>
-  readLocale(file: string): Promise<string>
+  readLocale(file: string): Promise<unknown>
   assets: AssetLoadRecord[]
 }
 
@@ -152,7 +152,7 @@ export class NativePackLoader extends PackTransport {
           if (!Array.isArray(parsed)) throw new Error(`Expected array content from ${path}`)
           return parsed
         },
-        readLocale: file => this.readNodeText(resolve(item.localesRoot, file)),
+        readLocale: async file => YAML.parse(await this.readNodeText(resolve(item.localesRoot, file)), { merge: true }),
         assets: await this.loadAssetsFromNodeFs(item.path, item.manifest, transportOptions, errors),
       })
     }
@@ -174,7 +174,7 @@ export class NativePackLoader extends PackTransport {
         source: item.manifestUrl,
         raw: item.manifestRaw,
         readData: file => this.fetchArray(new URL(file, item.dataRoot).toString()),
-        readLocale: file => this.fetchText(new URL(file, localesRoot).toString()),
+        readLocale: file => this.fetchObject(new URL(file, localesRoot).toString()),
         assets: (await this.loadAssetsFromManifest(item.manifest, item.manifestUrl, transportOptions, errors)).records,
       })
     }
@@ -209,7 +209,7 @@ export class NativePackLoader extends PackTransport {
           }))
       for (const { locale, files } of entries)
         for (const file of files) {
-          const value: unknown = YAML.parse(await pack.readLocale(file), { merge: true })
+          const value = await pack.readLocale(file)
           if (!value || typeof value !== 'object' || Array.isArray(value))
             throw new Error(`Invalid native locale: ${file}`)
           const namespace = file
