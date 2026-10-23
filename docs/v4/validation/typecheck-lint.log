@@ -1,6 +1,0 @@
-2026-10-16: all commands exited 0 after final source changes.
-pnpm build: repository lint, all package builds, root tsgo, CLI bundle (full-build.log)
-pnpm typecheck:battle-v4
-pnpm typecheck:battle-baseline
-pnpm lint:battle-v4
-New reactiveValue.ts/rng.ts/api.ts and tests use normal lint rules. Historical source retains documented syntax exceptions.
