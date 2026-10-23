@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from 'node:util'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import { NativePlayerSchema } from '@arcadia-eternity/battle/v4'
 import { createLoader } from './prepare'
 import { runBattle } from './run'
 import { CliError, message } from '../reporting/errors'
@@ -27,7 +27,7 @@ function validate(value: unknown): asserts value is Replay {
     ![r.spec.maxTurns, r.spec.maxActions].every(n => Number.isSafeInteger(n) && n > 0)
   )
     throw new CliError('REPLAY_SPEC', 'Invalid replay inputs or limits', 3)
-  r.spec.teams.forEach(team => parseWithErrors(PlayerSchema, team))
+  r.spec.teams.forEach(team => NativePlayerSchema.parse(team))
   if (
     !Array.isArray(r.environment.packs) ||
     r.environment.packs.some(pack => !pack || typeof pack.id !== 'string' || typeof pack.version !== 'string')

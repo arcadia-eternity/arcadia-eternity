@@ -1,10 +1,10 @@
 import type { BattleRuntimeSnapshot } from '@arcadia-eternity/interface'
 import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
-import type { PlayerSchemaType } from '@arcadia-eternity/schema'
+import type { NativePlayerSchemaType } from '@arcadia-eternity/battle/v4'
 import type { PlayerSelection } from '@arcadia-eternity/const'
 
 export interface RunSpec {
-  teams: [PlayerSchemaType, PlayerSchemaType]
+  teams: [NativePlayerSchemaType, NativePlayerSchemaType]
   seed: string
   maxTurns: number
   maxActions: number

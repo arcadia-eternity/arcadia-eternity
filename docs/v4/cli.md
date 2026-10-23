@@ -49,8 +49,6 @@ pnpm typecheck:cli
 pnpm test:cli
 pnpm test:cli-native
 pnpm --filter @arcadia-eternity/pack-loader test:run
-pnpm test:battle-v4
-pnpm test:battle-baseline
 ```
 
 The `offline-cli` CI job builds the dependency graph and actual CLI before running command and lifecycle checks. Broader ContentStore/overrides/sharing features remain #214/#217.

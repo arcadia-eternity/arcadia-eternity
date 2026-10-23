@@ -2,7 +2,7 @@ import { readFile, lstat, realpath, link, unlink, writeFile } from 'node:fs/prom
 import { basename, dirname, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import YAML from 'yaml'
-import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import { NativePlayerSchema } from '@arcadia-eternity/battle/v4'
 import { CliError, message } from '../reporting/errors'
 
 export async function readDocument(path: string): Promise<unknown> {
@@ -14,7 +14,7 @@ export async function readDocument(path: string): Promise<unknown> {
 }
 export async function readTeam(path: string) {
   try {
-    return parseWithErrors(PlayerSchema, await readDocument(path))
+    return NativePlayerSchema.parse(await readDocument(path))
   } catch (error) {
     throw new CliError('TEAM_INVALID', message(error), 2, path)
   }

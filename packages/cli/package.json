@@ -13,7 +13,6 @@
     "@arcadia-eternity/console": "workspace:^",
     "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
-    "@arcadia-eternity/schema": "workspace:^",
     "commander": "^14.0.3",
     "yaml": "catalog:",
     "@arcadia-eternity/interface": "workspace:^"

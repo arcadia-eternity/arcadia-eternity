@@ -188,7 +188,7 @@ export async function runBattle(content: NativeContentResult['content'], spec: R
       }
       await nextTick()
       if (status === 'completed') await completion
-      if (options.replay && inputs.length !== options.replay.inputs.length)
+      if (options.replay && status !== 'cancelled' && inputs.length !== options.replay.inputs.length)
         throw new CliError('REPLAY_INPUT_UNUSED', `Unused inputs after action ${inputs.length}`, 3)
     }
   } catch (error) {

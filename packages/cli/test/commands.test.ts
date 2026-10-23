@@ -18,12 +18,14 @@ async function invoke(args: string[], code = 0, extraEnv: Record<string, string>
     stderr = '',
     actual = 0
   try {
-    ;({ stdout, stderr } = await execute(process.execPath, ['--import', guard, cli, ...args], {
+    const execution = execute(process.execPath, ['--import', guard, cli, ...args], {
       cwd: temporary,
       timeout: 20000,
       maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, ARCADIA_PACKS_DIR: '', NODE_PATH: '', NODE_OPTIONS: '', ...extraEnv },
-    }))
+    })
+    execution.child.stdin?.end()
+    ;({ stdout, stderr } = await execution)
   } catch (error) {
     const e = error as { stdout: string; stderr: string; code: number }
     stdout = e.stdout
