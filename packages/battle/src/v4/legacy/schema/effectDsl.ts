@@ -200,6 +200,12 @@ export type AddRageOperator = {
   value: Value
 }
 
+export type SetRageOperator = {
+  type: 'setRage'
+  target: SelectorDSL
+  value: Value
+}
+
 export type AmplifyPowerOperator = {
   type: 'amplifyPower'
   target: SelectorDSL
@@ -275,6 +281,11 @@ export type SetSureNoCritOperator = {
   type: 'setSureNoCrit'
   target: SelectorDSL
   priority: number
+}
+
+export type SetIgnoreShieldOperator = {
+  type: 'setIgnoreShield'
+  target: SelectorDSL
 }
 
 export type SetSkillOperator = {
@@ -542,6 +553,22 @@ export type RemoveTransformationOperator = {
   target: SelectorDSL
 }
 
+export type AddTemporaryEffectOperator = {
+  type: 'addTemporaryEffect'
+  target: SelectorDSL
+  effect: Value
+}
+
+export type RawEffectIdValue = {
+  type: 'entity:effect'
+  value: string
+}
+
+export type ExecuteActionsOperator = {
+  type: 'executeActions'
+  target: SelectorDSL
+}
+
 export type OperatorDSL =
   | TODOOperator
   | ConditionalOperator
@@ -567,6 +594,7 @@ export type OperatorDSL =
   | ReverseStatStageOperator
   | TransferStatStageOperator
   | AddRageOperator
+  | SetRageOperator
   | AmplifyPowerOperator
   | AddPowerOperator
   | AddCritRateOperator
@@ -580,6 +608,7 @@ export type OperatorDSL =
   | SetSureCritOperator
   | SetSureMissOperator
   | SetSureNoCritOperator
+  | SetIgnoreShieldOperator
   | SetSkillOperator
   | PreventDamageOperator
   | SetActualTargetOperator
@@ -618,6 +647,8 @@ export type OperatorDSL =
   | TransformOperator
   | TransformWithPreservationOperator
   | RemoveTransformationOperator
+  | ExecuteActionsOperator
+  | AddTemporaryEffectOperator
 
 export type RawNumberValue = {
   type: 'raw:number'
@@ -661,7 +692,7 @@ export type DynamicValue = {
 }
 
 export type SelectorValue = {
-  type: 'selector'
+  type: 'selector' | 'selectorValue'
   value: Value
   chain?: Array<SelectorChain>
 }
@@ -673,6 +704,7 @@ export type Value =
   | RawBaseMarkIdValue
   | RawBaseSkillIdValue
   | RawSpeciesIdValue
+  | RawEffectIdValue
   | DynamicValue
   | SelectorValue
   | Array<Value>
@@ -680,6 +712,7 @@ export type Value =
   | string
   | boolean
   | ConditionalValue
+  | OperatorDSL
 
 export type BaseSelectorKey = keyof typeof BaseSelector
 
@@ -756,7 +789,7 @@ export type SelectorChain =
       arg: Value
     }
   | {
-      type: 'sum' // 数值求和（无参数）
+      type: 'sum' | 'avg' | 'sampleBetween' // 无参数数值操作
     }
   | {
       type: 'add'
@@ -894,6 +927,8 @@ export type ConditionDSL =
   | {
       type: 'selfBeSkillTarget'
     }
+  | { type: 'selfHasMark'; baseId: Value }
+  | { type: 'opponentHasMark'; baseId: Value }
 
 export type WhenSelectorStep = {
   type: 'when'

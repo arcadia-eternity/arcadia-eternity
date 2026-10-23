@@ -319,13 +319,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, watch, computed, toRaw } from 'vue'
+import { ref, onMounted, reactive, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { LocalBattleSystemV2, createBattleFromConfig, createRepositoryFromRawData } from '@arcadia-eternity/battle'
-import type { TeamConfig, BattleConfig as V2BattleConfig } from '@arcadia-eternity/battle'
+import { createNativeWebBattleSystem, type NativeWebBattleConfig } from '@/services/nativeBattleFactory'
 import { useGameDataStore } from '@/stores/gameData'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
 import { readBattleWorkbenchLaunch, type BattleWorkbenchLaunchPayload } from '@/utils/battleWorkbenchLaunch'
@@ -568,8 +567,6 @@ const presets = {
   },
 }
 
-const asRawRecord = (value: unknown): Record<string, unknown> => value as unknown as Record<string, unknown>
-
 // 加载预设配置
 const loadPreset = (presetName: keyof typeof presets) => {
   const preset = presets[presetName]
@@ -670,43 +667,14 @@ const startLocalBattle = async () => {
       }
     }
 
-    const toTeamConfig = (name: string, pets: typeof player1Team.pets): TeamConfig => ({
-      name,
-      team: pets.map(pet => ({
-        name: pet.name,
-        species: pet.species,
-        level: pet.level,
-        evs: pet.evs,
-        ivs: pet.ivs,
-        nature: pet.nature,
-        skills: pet.skills,
-        ability: pet.ability || undefined,
-        emblem: pet.emblem || undefined,
-        gender: pet.gender || undefined,
-        weight: pet.weight || undefined,
-        height: pet.height || undefined,
-      })),
-    })
-
-    const player1Config = toTeamConfig(playerStore.name, player1Team.pets)
-    const player2Config = toTeamConfig(`${player2Team.name} (AI)`, player2Team.pets)
-
-    const repo = createRepositoryFromRawData({
-      effects: dataStore.effects.allIds.map(id => asRawRecord(toRaw(dataStore.effects.byId[id]))),
-      marks: dataStore.marks.allIds.map(id => asRawRecord(toRaw(dataStore.marks.byId[id]))),
-      skills: dataStore.skills.allIds.map(id => asRawRecord(toRaw(dataStore.skills.byId[id]))),
-      species: dataStore.species.allIds.map(id => asRawRecord(toRaw(dataStore.species.byId[id]))),
-    })
-
     // 构建战斗选项
-    const battleOptions: V2BattleConfig = {
+    const battleOptions: NativeWebBattleConfig = {
       allowFaintSwitch: battleConfig.allowFaintSwitch,
       showHidden: battleConfig.showHidden,
       timerConfig: { ...timerConfig },
       ai: {
         enabled: true,
         players: ['playerB'],
-        strategy: 'simple',
       },
     }
 
@@ -731,8 +699,12 @@ const startLocalBattle = async () => {
       }
     }
 
-    const battle = createBattleFromConfig(player1Config, player2Config, repo, battleOptions)
-    const localSystem = new LocalBattleSystemV2(battle)
+    const localSystem = await createNativeWebBattleSystem(
+      { name: playerStore.name, team: player1Team.pets },
+      { name: `${player2Team.name} (AI)`, team: player2Team.pets },
+      dataStore,
+      battleOptions,
+    )
     const initialState = await localSystem.getState(undefined, true)
     const playerId = initialState.players[0]?.id
     if (!playerId) {

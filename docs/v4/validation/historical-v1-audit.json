@@ -1,0 +1,1778 @@
+{
+  "revision": "61c349fa7ca35c392b0e751c9238759b02aefcb3",
+  "scope": "Historical existence audit only; source presence does not prove behavioral equivalence or production acceptance.",
+  "records": [
+    {
+      "kind": "parser",
+      "historicalPath": "packages/parser/src/parseEffect.ts",
+      "importedPath": "packages/battle/src/v4/legacy/parser/parseEffect.ts",
+      "historicalSha256": "d72872a88ecf74179dba071398a7b6015841b4143ffb8c3a7c156b40765ac29c",
+      "importedSha256": "890bd3fe67df47111ccf0834fc76317a80e00f7e100e14a6bf7914af3ee7763f",
+      "missingNames": [],
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [437, 739, 741], "importedLines": [435, 736, 738] },
+        "sampleBetween": { "historicalLines": [292, 294], "importedLines": [232, 234] },
+        "selectorValue": { "historicalLines": [109, 591], "importedLines": [109, 110, 112, 115, 116, 589] },
+        "selfBeDamaged": { "historicalLines": [1064, 1065], "importedLines": [1045, 1046] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [1088, 1089], "importedLines": [1069, 1070] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [1090, 1091], "importedLines": [1071, 1072] },
+        "setIgnoreShield": { "historicalLines": [461, 1383, 1384], "importedLines": [459, 1364, 1365] },
+        "executeActions": { "historicalLines": [543, 1032, 1034], "importedLines": [541, 1370, 1372] },
+        "addTemporaryEffect": { "historicalLines": [545, 1039, 1042], "importedLines": [539, 1377, 1380] },
+        "avg": { "historicalLines": [235, 237], "importedLines": [228, 230] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [128, 148], "importedLines": [112, 146] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "operators",
+      "historicalPath": "packages/effectBuilder/src/operator.ts",
+      "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/operator.ts",
+      "historicalSha256": "998d4228d727e6e5520131fc39684e3ac364a4f17d5b79c2278938d939ac598c",
+      "importedSha256": "61362689726959b6610b095dadb9bbbcb70259860119b14a37421691aa33de72",
+      "missingNames": [],
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [285], "importedLines": [291] },
+        "setRage": { "historicalLines": [301], "importedLines": [306] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [900, 903], "importedLines": [868, 871] },
+        "executeActions": { "historicalLines": [1838, 1899], "importedLines": [81, 1831] },
+        "addTemporaryEffect": { "historicalLines": [1845, 1868], "importedLines": [61, 76] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "conditions",
+      "historicalPath": "packages/effectBuilder/src/condition.ts",
+      "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/condition.ts",
+      "historicalSha256": "033c92a64ff3642e2047492f5267c533a7a0c2cb47ec46f81f8e39753ecb73e8",
+      "importedSha256": "72bc20a9d02ad885bd39377ed4e06fca58b428845e6a2e7549c1d6ea3c77fdf3",
+      "missingNames": [],
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [5, 109], "importedLines": [14, 109] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [126], "importedLines": [126] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [316], "importedLines": [314] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [341], "importedLines": [339] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": {
+          "historicalLines": [66, 67, 70, 74, 118, 119, 120, 393, 394, 395],
+          "importedLines": [66, 67, 70, 74, 118, 119, 120]
+        },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "selectors",
+      "historicalPath": "packages/effectBuilder/src/selector.ts",
+      "importedPath": "packages/battle/src/v4/legacy/effectBuilder/src/selector.ts",
+      "historicalSha256": "fd5244047ea218d2f27dde8eea9778cb8cfa145d9370c1fdb39f95f2304b8817",
+      "importedSha256": "c1eb5d33cc93f2424a8639956bc6e1ea2b565d2302b56bdcc0ac87c0cdf770e8",
+      "missingNames": [],
+      "evidence": {
+        "ConsumeStackContext": {
+          "historicalLines": [17, 652, 713, 861, 862, 864],
+          "importedLines": [17, 635, 694, 846, 847, 849]
+        },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [713, 861], "importedLines": [694, 846] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [483], "importedLines": [462] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [354, 355, 356], "importedLines": [344, 345, 346] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [697, 766], "importedLines": [678, 748] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "dsl",
+      "historicalPath": "packages/schema/src/effectDsl.ts",
+      "importedPath": "packages/battle/src/v4/legacy/schema/effectDsl.ts",
+      "historicalSha256": "53ece48fad39003a490c1d58113fe8d9235c21a489fcce6e52e05a060107d8f1",
+      "importedSha256": "083d0f904af42ea52e2296cd2647eb1f47265d38df5e4dac6b5b2d967de02ab9",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [205], "importedLines": [204] },
+        "sampleBetween": { "historicalLines": [853], "importedLines": [792] },
+        "selectorValue": { "historicalLines": [696], "importedLines": [695] },
+        "selfBeDamaged": { "historicalLines": [904], "importedLines": [885] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [943], "importedLines": [916] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [946], "importedLines": [919] },
+        "setIgnoreShield": { "historicalLines": [288], "importedLines": [287] },
+        "executeActions": { "historicalLines": [558], "importedLines": [568] },
+        "addTemporaryEffect": { "historicalLines": [563], "importedLines": [557] },
+        "avg": { "historicalLines": [808], "importedLines": [792] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "schema",
+      "historicalPath": "packages/schema/src/effectSchema.ts",
+      "importedPath": "packages/battle/src/v4/legacy/schema/effectSchema.ts",
+      "historicalSha256": "8dbbdb3e6540b60212b76df2859d5def92b6f27d4bc0839923a4b9323fe9d444",
+      "importedSha256": "c0fa731215d8d589a03786233f5fdb2ecbce3f76d1ba3402e5b1cdfd65b4bd0c",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [456], "importedLines": [475] },
+        "sampleBetween": { "historicalLines": [178], "importedLines": [194] },
+        "selectorValue": { "historicalLines": [96, 97, 201, 217], "importedLines": [90, 92, 120, 250] },
+        "selfBeDamaged": { "historicalLines": [248], "importedLines": [835] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [291], "importedLines": [874] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [292], "importedLines": [877] },
+        "setIgnoreShield": { "historicalLines": [492], "importedLines": [534] },
+        "executeActions": { "historicalLines": [699], "importedLines": [776] },
+        "addTemporaryEffect": { "historicalLines": [701], "importedLines": [771] },
+        "avg": { "historicalLines": [166], "importedLines": [194] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "consume-stack-phase",
+      "historicalPath": "packages/battle/src/phases/consumeStack.ts",
+      "importedPath": "packages/battle/src/v4/phase/consumeStack.ts",
+      "historicalSha256": "f2744074412ecbf565054e1aaaa061e7d45c27c793420abde2ee52977048b7e6",
+      "importedSha256": "95ad4ffb2d82c67d3f0d934b81ea6fc332b1226a16cd7d48a56cc3fe811cb0c8",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [3, 14, 25, 26, 41], "importedLines": [3, 14, 25, 26, 41] },
+        "OnBeforeConsumeStack": { "historicalLines": [50, 51], "importedLines": [50, 51] },
+        "OnConsumeStack": { "historicalLines": [63, 64], "importedLines": [63, 64] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "rage-phase",
+      "historicalPath": "packages/battle/src/phases/rage.ts",
+      "importedPath": "packages/battle/src/v4/phase/rage.ts",
+      "historicalSha256": "915c365a2e0676e0118985b5a715169f15251d40b7bfe1a84cdd1d0cb6835a25",
+      "importedSha256": "25234a6f9731ea3f9d93000b4634b825ed66b876e9413ed6e7a2b3bcc58ae52e",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [58], "importedLines": [62] },
+        "BeforeRageLoss": { "historicalLines": [68], "importedLines": [72] },
+        "OnRageGain": { "historicalLines": [65], "importedLines": [69] },
+        "OnRageLoss": { "historicalLines": [75], "importedLines": [79] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "turn-phase",
+      "historicalPath": "packages/battle/src/phases/turn.ts",
+      "importedPath": "packages/battle/src/v4/phase/turn.ts",
+      "historicalSha256": "9563b4c3bbf0f610c0fb08c3c2fe026960b5f9b09a89e4a8bbed6baa44e08491",
+      "importedSha256": "7e1c5d8774b0deab133c52004fc478bee9c41e3456b7d38c5ea3a3bbe85e0b6c",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [60, 81], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [56, 57, 60, 70], "importedLines": [57, 58, 68, 70] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "context",
+      "historicalPath": "packages/battle/src/context.ts",
+      "importedPath": "packages/battle/src/v4/context.ts",
+      "historicalSha256": "9303a3ed27066c1bcead8a4ec05cff820852105ac43d8fa60cbf276bcd4da394",
+      "importedSha256": "7b6a056de9f28a499c2939396431065ae9236d0be02bce5efcf291f415c97a1b",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [39, 585, 631, 686, 687], "importedLines": [48, 652, 707, 708] },
+        "OnBeforeConsumeStack": { "historicalLines": [686], "importedLines": [707] },
+        "OnConsumeStack": { "historicalLines": [687], "importedLines": [708] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [666], "importedLines": [687] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [326], "importedLines": [339] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [691], "importedLines": [711] },
+        "BeforeRageLoss": { "historicalLines": [692], "importedLines": [712] },
+        "OnRageGain": { "historicalLines": [693], "importedLines": [713] },
+        "OnRageLoss": { "historicalLines": [694], "importedLines": [714] },
+        "pushContext": { "historicalLines": [101], "importedLines": [110] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [145], "importedLines": [156] },
+        "DamageType.Physical": { "historicalLines": [147, 223, 234], "importedLines": [158, 236, 247] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "skill-phase",
+      "historicalPath": "packages/battle/src/phases/skill.ts",
+      "importedPath": "packages/battle/src/v4/phase/skill.ts",
+      "historicalSha256": "711d9b57214c908406ea9893f300f902f216c526c40b833813dec96d6ff193a4",
+      "importedSha256": "7fec31d9975655664306aaa46ec15c69e335950e3572a478b2a7157b31af09b4",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [216], "importedLines": [204] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [54], "importedLines": [54] },
+        "currentHitCount": { "historicalLines": [127], "importedLines": [126] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [171], "importedLines": [168] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "damage-phase",
+      "historicalPath": "packages/battle/src/phases/damage.ts",
+      "importedPath": "packages/battle/src/v4/phase/damage.ts",
+      "historicalSha256": "a311c53cc536f4b2108c7c8b8ef6f5fa73230ac093aad84e980417bf313d7f9e",
+      "importedSha256": "85ae310680fa91503abef02a9b495c1fbe291e9f09c5fe2f0d3f9a5b8c942440",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [84], "importedLines": [89] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [66, 110], "importedLines": [70, 115] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "switch-phase",
+      "historicalPath": "packages/battle/src/phases/switch.ts",
+      "importedPath": "packages/battle/src/v4/phase/switch.ts",
+      "historicalSha256": "67c01c4433cb97519b54a9a2e41470872d4f0513f91ee6a0fdabbe4263bdea63",
+      "importedSha256": "cc43f336778b403a76e32fd8492eaeecd801e1800a0267e5bdfff672e41296ff",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [37], "importedLines": [33] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "skill-model",
+      "historicalPath": "packages/battle/src/skill.ts",
+      "importedPath": "packages/battle/src/v4/skill.ts",
+      "historicalSha256": "4499119d315fa89aca4bd57794dbae24db07f3c57389109e4217b7f64e0f61b1",
+      "importedSha256": "a4a0cd6d0fd7db33ac4473eb39dc70957f7c54cf97dd54981a26d47ebcbf091b",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [222], "importedLines": [232] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [258], "importedLines": [147] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [152, 155, 259, 263], "importedLines": [145, 148, 152, 261] },
+        "clearTemporaryEffects": { "historicalLines": [262], "importedLines": [151] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "mark-model",
+      "historicalPath": "packages/battle/src/mark.ts",
+      "importedPath": "packages/battle/src/v4/mark.ts",
+      "historicalSha256": "9ebd3c9616bda7e834e56ea0504a604b35b872c2c8584f1bc9d1cbc80b5a14a0",
+      "importedSha256": "e29c67cd9ae3ad8761fb0d8a891aa00beaa4c6856f97142ba9272375a8849211",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [90, 240], "importedLines": [105, 280] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [93, 158], "importedLines": [108, 120] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [106, 113, 159, 163], "importedLines": [118, 121, 125, 129] },
+        "clearTemporaryEffects": { "historicalLines": [94, 162], "importedLines": [109, 124] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "effect-model",
+      "historicalPath": "packages/battle/src/effect.ts",
+      "importedPath": "packages/battle/src/v4/effect.ts",
+      "historicalSha256": "a46555f77c0d4366e032df8d0ef022ce26601a3b4eec060b092c21305633376e",
+      "importedSha256": "a9bea8ede1f701f7f0dc4bb97a16c055e22d85bf9220296c44d459304494024b",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [38], "importedLines": [31] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [], "importedLines": [] }
+      }
+    },
+    {
+      "kind": "battle",
+      "historicalPath": "packages/battle/src/battle.ts",
+      "importedPath": "packages/battle/src/v4/battle.ts",
+      "historicalSha256": "5399127be5fd0a3b234e2c11509aaa8088058b7b5391d6b3bfbd010fc5825d63",
+      "importedSha256": "4cfcc244305d93a592b16de3daca26ed8e30b5b6e06b18b1706cc1b470bf5a71",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [663, 669, 672], "importedLines": [620, 622, 623] },
+        "cleanupPhaseEffects": { "historicalLines": [660], "importedLines": [619] }
+      }
+    },
+    {
+      "kind": "phase-manager",
+      "historicalPath": "packages/battle/src/phaseManager.ts",
+      "importedPath": "packages/battle/src/v4/phase/manager.ts",
+      "historicalSha256": "d24cc7c705b37110924a0ad75202e3d9354903eebeec1c1af96f10e5920b1c62",
+      "importedSha256": "671282b2d26aa093240b0f319418a88e26e1f6b6be17d2f276f8c3615d7a36d4",
+      "evidence": {
+        "ConsumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "OnBeforeConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "OnConsumeStack": { "historicalLines": [], "importedLines": [] },
+        "EffectTrigger.SkillUseEnd": { "historicalLines": [], "importedLines": [] },
+        "consumeStackContext": { "historicalLines": [], "importedLines": [] },
+        "consumeStack(": { "historicalLines": [], "importedLines": [] },
+        "setRage": { "historicalLines": [], "importedLines": [] },
+        "sampleBetween": { "historicalLines": [], "importedLines": [] },
+        "selectorValue": { "historicalLines": [], "importedLines": [] },
+        "selfBeDamaged": { "historicalLines": [], "importedLines": [] },
+        "isFirstSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "isLastSkillUsedThisTurn": { "historicalLines": [], "importedLines": [] },
+        "setIgnoreShield": { "historicalLines": [], "importedLines": [] },
+        "executeActions": { "historicalLines": [], "importedLines": [] },
+        "addTemporaryEffect": { "historicalLines": [], "importedLines": [] },
+        "avg": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageGain": { "historicalLines": [], "importedLines": [] },
+        "BeforeRageLoss": { "historicalLines": [], "importedLines": [] },
+        "OnRageGain": { "historicalLines": [], "importedLines": [] },
+        "OnRageLoss": { "historicalLines": [], "importedLines": [] },
+        "pushContext": { "historicalLines": [], "importedLines": [] },
+        "appledContexts.push": { "historicalLines": [], "importedLines": [] },
+        "currentHitCount": { "historicalLines": [], "importedLines": [] },
+        "DamageType.Physical": { "historicalLines": [], "importedLines": [] },
+        "damageContext.available": { "historicalLines": [], "importedLines": [] },
+        "useSkillContext": { "historicalLines": [], "importedLines": [] },
+        "createSelectorFromValue": { "historicalLines": [], "importedLines": [] },
+        "temporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "clearTemporaryEffects": { "historicalLines": [], "importedLines": [] },
+        "cleanupPhaseEffects": { "historicalLines": [145, 206], "importedLines": [150, 213] }
+      }
+    }
+  ],
+  "metadataAudit": {
+    "historicalPath": "packages/effectBuilder/type-metadata.json",
+    "importedPath": "packages/battle/src/v4/legacy/effectBuilder/type-metadata.json",
+    "historicalSha256": "bee3388668cf1727a7c5f8ccb3c8ace27977c820812732ae063622fc517b32df",
+    "importedSha256": "cf194a7e81d52027bcc9cc991fd890cb6a366e60e5c22e2885f12263f30325db",
+    "types": [
+      {
+        "type": "UseSkillContext",
+        "historicalOnly": [],
+        "importedOnly": [],
+        "reviewedFields": [
+          { "name": "skillId", "historical": false, "imported": false },
+          { "name": "skill", "historical": true, "imported": true },
+          { "name": "sourceId", "historical": false, "imported": false },
+          { "name": "source", "historical": false, "imported": false },
+          { "name": "baseMarkId", "historical": false, "imported": false },
+          { "name": "baseMark", "historical": false, "imported": false },
+          { "name": "statLevelMarkLevel", "historical": false, "imported": false },
+          { "name": "stack", "historical": false, "imported": false },
+          { "name": "switchInPetId", "historical": false, "imported": false },
+          { "name": "switchInPet", "historical": false, "imported": false },
+          { "name": "currentHitCount", "historical": true, "imported": true },
+          { "name": "atk", "historical": false, "imported": false },
+          { "name": "spa", "historical": false, "imported": false },
+          { "name": "weight", "historical": false, "imported": false },
+          { "name": "stat", "historical": false, "imported": false }
+        ]
+      },
+      {
+        "type": "Pet",
+        "historicalOnly": ["overrideMaxHp"],
+        "importedOnly": ["maxHp"],
+        "reviewedFields": [
+          { "name": "skillId", "historical": false, "imported": false },
+          { "name": "skill", "historical": false, "imported": false },
+          { "name": "sourceId", "historical": false, "imported": false },
+          { "name": "source", "historical": false, "imported": false },
+          { "name": "baseMarkId", "historical": false, "imported": false },
+          { "name": "baseMark", "historical": false, "imported": false },
+          { "name": "statLevelMarkLevel", "historical": false, "imported": false },
+          { "name": "stack", "historical": false, "imported": false },
+          { "name": "switchInPetId", "historical": false, "imported": false },
+          { "name": "switchInPet", "historical": false, "imported": false },
+          { "name": "currentHitCount", "historical": false, "imported": false },
+          { "name": "atk", "historical": false, "imported": false },
+          { "name": "spa", "historical": false, "imported": false },
+          { "name": "weight", "historical": true, "imported": true },
+          { "name": "stat", "historical": true, "imported": true }
+        ]
+      },
+      {
+        "type": "AddMarkContext",
+        "historicalOnly": ["creator"],
+        "importedOnly": [],
+        "reviewedFields": [
+          { "name": "skillId", "historical": false, "imported": false },
+          { "name": "skill", "historical": false, "imported": false },
+          { "name": "sourceId", "historical": false, "imported": false },
+          { "name": "source", "historical": false, "imported": false },
+          { "name": "baseMarkId", "historical": false, "imported": false },
+          { "name": "baseMark", "historical": true, "imported": true },
+          { "name": "statLevelMarkLevel", "historical": false, "imported": false },
+          { "name": "stack", "historical": true, "imported": true },
+          { "name": "switchInPetId", "historical": false, "imported": false },
+          { "name": "switchInPet", "historical": false, "imported": false },
+          { "name": "currentHitCount", "historical": false, "imported": false },
+          { "name": "atk", "historical": false, "imported": false },
+          { "name": "spa", "historical": false, "imported": false },
+          { "name": "weight", "historical": false, "imported": false },
+          { "name": "stat", "historical": false, "imported": false }
+        ]
+      },
+      {
+        "type": "DamageContext",
+        "historicalOnly": [],
+        "importedOnly": [],
+        "reviewedFields": [
+          { "name": "skillId", "historical": false, "imported": false },
+          { "name": "skill", "historical": false, "imported": false },
+          { "name": "sourceId", "historical": false, "imported": false },
+          { "name": "source", "historical": true, "imported": true },
+          { "name": "baseMarkId", "historical": false, "imported": false },
+          { "name": "baseMark", "historical": false, "imported": false },
+          { "name": "statLevelMarkLevel", "historical": false, "imported": false },
+          { "name": "stack", "historical": false, "imported": false },
+          { "name": "switchInPetId", "historical": false, "imported": false },
+          { "name": "switchInPet", "historical": false, "imported": false },
+          { "name": "currentHitCount", "historical": false, "imported": false },
+          { "name": "atk", "historical": false, "imported": false },
+          { "name": "spa", "historical": false, "imported": false },
+          { "name": "weight", "historical": false, "imported": false },
+          { "name": "stat", "historical": false, "imported": false }
+        ]
+      },
+      {
+        "type": "SwitchPetContext",
+        "historicalOnly": [],
+        "importedOnly": [],
+        "reviewedFields": [
+          { "name": "skillId", "historical": false, "imported": false },
+          { "name": "skill", "historical": false, "imported": false },
+          { "name": "sourceId", "historical": false, "imported": false },
+          { "name": "source", "historical": false, "imported": false },
+          { "name": "baseMarkId", "historical": false, "imported": false },
+          { "name": "baseMark", "historical": false, "imported": false },
+          { "name": "statLevelMarkLevel", "historical": false, "imported": false },
+          { "name": "stack", "historical": false, "imported": false },
+          { "name": "switchInPetId", "historical": false, "imported": false },
+          { "name": "switchInPet", "historical": true, "imported": true },
+          { "name": "currentHitCount", "historical": false, "imported": false },
+          { "name": "atk", "historical": false, "imported": false },
+          { "name": "spa", "historical": false, "imported": false },
+          { "name": "weight", "historical": false, "imported": false },
+          { "name": "stat", "historical": false, "imported": false }
+        ]
+      },
+      {
+        "type": "ConsumeStackContext",
+        "historicalOnly": [],
+        "importedOnly": [],
+        "reviewedFields": [
+          { "name": "skillId", "historical": false, "imported": false },
+          { "name": "skill", "historical": false, "imported": false },
+          { "name": "sourceId", "historical": false, "imported": false },
+          { "name": "source", "historical": false, "imported": false },
+          { "name": "baseMarkId", "historical": false, "imported": false },
+          { "name": "baseMark", "historical": false, "imported": false },
+          { "name": "statLevelMarkLevel", "historical": false, "imported": false },
+          { "name": "stack", "historical": false, "imported": false },
+          { "name": "switchInPetId", "historical": false, "imported": false },
+          { "name": "switchInPet", "historical": false, "imported": false },
+          { "name": "currentHitCount", "historical": false, "imported": false },
+          { "name": "atk", "historical": false, "imported": false },
+          { "name": "spa", "historical": false, "imported": false },
+          { "name": "weight", "historical": false, "imported": false },
+          { "name": "stat", "historical": false, "imported": false }
+        ]
+      }
+    ]
+  },
+  "effects": [
+    {
+      "id": "effect_ability_damage_reduction_below_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/2",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_physical_damage_reduction_below_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/5",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_physical_damage_30_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/28",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_increase_special_damage_taken_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/29",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/33",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_10_percent_has_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/34",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_damage_reduction_10",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/36",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_10_if_has_mark_huanxiang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/48",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_damage_boost_10_percent_when_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/49",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_ability_damage_reduction_10_percent_when_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/50",
+      "types": ["isLastSkillUsedThisTurn", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_damage_reduction_50_percent_at_full_hp",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/53",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_gugao_prevent_rage_when_opponent_use_skill",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/59",
+      "types": ["BeforeRageGain"]
+    },
+    {
+      "id": "effect_ability_keep_rage_at_least_25",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/65",
+      "types": ["OnRageGain", "OnRageLoss", "setRage"]
+    },
+    {
+      "id": "effect_ability_reduce_damage_when_max_hp_over_500",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/66",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_fixed_damage_15_when_has_penti",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/68",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_add_rage_5_when_first_attack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/70",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_ability_reduce_special_damage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/78",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/80",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_emblem_increase_rage_on_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/1",
+      "types": ["BeforeRageGain", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_emblem_add_xukongtizhi_when_opponent_hit_self",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/21",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_emblem_yuren_dealdamage_on_physical_skill",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/48",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_emblem_xianzhi_crit_rate_5_percent_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/49",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_mark_onDamage_recovery",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/3",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_onCritDamage_recovery",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/4",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_onDamage_over100_recovery",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/6",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/24",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/25",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_once",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/26",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_once",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/27",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_set_health_to_1_on_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/33",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_zhongzinengliang_damage_reduction",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/34",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_absorb_damage_to_heal",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/46",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_special_damage_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/47",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_physical_damage_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/48",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_with_weight",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/50",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/52",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/55",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_damage_1_4",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/58",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_taken_damage_30_xstack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/69",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_limit_rage_gain",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/73",
+      "types": ["BeforeRageGain"]
+    },
+    {
+      "id": "effect_mark_double_physical_damage_taken",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/77",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_physical_damage_30",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/79",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_75_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/81",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_consume_stack_on_skill_use",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/89",
+      "types": ["SkillUseEnd"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/95",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/97",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_special_damage_30",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/99",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_paralyze_on_physical_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/100",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_increase_damage_taken_once_50_percent_double_effect_if_frozen",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/101",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_block_damage_under_60",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/103",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_rage_on_damage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/107",
+      "types": ["BeforeRageGain", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_rage_on_damage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/108",
+      "types": ["BeforeRageGain", "selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_fear_consume_stacks_at_3",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/111",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_mark_double_special_damage_taken",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/113",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_explode_on_stack_over_100",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/115",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_mark_hongbaoshizhiguang_add_200_fixed_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/117",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_lanbaoshizhiguang_add_200_fixed_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/118",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_block_next_special_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/119",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_special_damage_reduction_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/121",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_15_percent_per_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/123",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_jiguang_add_200_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/125",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_jueying_add_200_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/126",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/127",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_baiyapo_add_damage_based_on_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/129",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_heiyapao_add_damage_based_on_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/130",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_next_skill_damage_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/131",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_15_percent_per_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/132",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_30_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/135",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_damage_cap_half_max_hp",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/139",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_15_percent_per_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/140",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_special_damage_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/142",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_add_damage_taken_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/143",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_buxieanguang_reduce_light_damage_half",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/147",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_zhenshihuanxiang_prevent_consume",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/151",
+      "types": ["OnBeforeConsumeStack"]
+    },
+    {
+      "id": "effect_mark_add_crit_on_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/154",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/156",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_fantan_reflect_damage_1_3",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/159",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_shiguangchongsheng",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/162",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/163",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_stack_mark_with_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/166",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_opponent_rage_15_if_damage_below_75",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/169",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_block_climax_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/170",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reduce_fire_damage_half",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/171",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_clear_rage_on_turn_start",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/173",
+      "types": ["setRage"]
+    },
+    {
+      "id": "effect_mark_clear_rage_on_switch_out",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/174",
+      "types": ["setRage"]
+    },
+    {
+      "id": "effect_mark_reduce_damage_taken_by_25_per_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/176",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_reflect_special_damage_max_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/180",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_raise_def_1_when_hit_and_remove_self",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/182",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_mark_prevent_rage_loss_on_switch",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/187",
+      "types": ["BeforeRageLoss"]
+    },
+    {
+      "id": "effect_mark_hunluan_consume_stacks_at_2",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/196",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_mark_increase_damage_taken_40",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/202",
+      "types": ["selfBeDamaged"]
+    },
+    {
+      "id": "effect_skill_consume_ruodian",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/42",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_zhongzinengliang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/69",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_zengzhong",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/123",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_opponent_manxingduyao",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/152",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/161",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/162",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/163",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/164",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_all_kongqichuliang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/166",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_shuiwenzhenji",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/177",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_power_2x_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/203",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_shanbi_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/217",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_consume_xinzhiyinji_multihit_consume",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/231",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_add_liuxie_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/246",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_heal_self_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/251",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_add_maidijinzhen",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/252",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_maidijinzhen_add_jinzhenfenmo",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/253",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_power_2x_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/289",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shiming_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/299",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_crit_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/305",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_set_field_qingtian_or_yemu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/306",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_add_multihit_1_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/346",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_add_power_10_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/347",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_sure_hit_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/348",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_priority_plus_1_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/350",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_clear_transform_when_use",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/379",
+      "types": ["SkillUseEnd"]
+    },
+    {
+      "id": "effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/416",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_add_power_50_consume_heianwuzhi",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/418",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_heimowuzhi_2_sure_crit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/421",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_multihit_2",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/450",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spa_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/451",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_add_mark_opponent_dongshang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/452",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_set_sure_hit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/454",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/456",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_multihit_4_to_5",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/460",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/461",
+      "types": ["consumeStacks"]
+    },
+    {
+      "id": "effect_skill_add_mark_zhaocai_or_jinbao",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/462",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_add_power_40_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/473",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_power_40_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/474",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_multihit_4_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/475",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_multihit_4_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/476",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/477",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_damage_increase_30_percent_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/478",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_50_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/481",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_fixed_damage_50_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/482",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/485",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_sure_hit_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/495",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_crit_rate_50_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/496",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_crit_rate_65_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/500",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_rage_15_if_first",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/542",
+      "types": ["isFirstSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_set_opponent_rage_to_self",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/561",
+      "types": ["setRage"]
+    },
+    {
+      "id": "effect_skill_fixed_damage_30_70_if_opponent_has_cuimian",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/601",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_fixed_damage_30_70",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/607",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_random_xifa_effect",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/649",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/654",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/657",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/666",
+      "types": ["selectorValue"]
+    },
+    {
+      "id": "effect_skill_add_damage_50_percent_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/689",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/690",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/692",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/693",
+      "types": ["isLastSkillUsedThisTurn"]
+    },
+    {
+      "id": "effect_skill_multihit_4_times_if_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/695",
+      "types": ["isLastSkillUsedThisTurn"]
+    }
+  ]
+}

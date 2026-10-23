@@ -1929,7 +1929,6 @@ onMounted(async () => {
 
   // Lazily create AnimationController after DOM is ready
   animationController = new AnimationController(store as never)
-  animationController.start()
 
   // VueUse的useFullscreen会自动处理全屏状态监听，无需手动添加事件监听器
 
@@ -1954,6 +1953,8 @@ onMounted(async () => {
   })
 
   if (battleDisposed) return
+  // Resource preparation can legitimately have no available actions yet.
+  animationController.start()
   // 检查是否是回放模式
   if (props.replayMode) {
     // 回放模式也需要消息订阅来处理动画

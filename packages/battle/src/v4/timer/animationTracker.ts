@@ -2,11 +2,12 @@ import { type TimerConfig, type AnimationInfo, type playerId } from '@arcadia-et
 import mitt, { type Emitter } from 'mitt'
 import { nanoid } from 'nanoid'
 import { createChildLogger } from '../logger'
+import type { SavedAnimation } from './snapshotState'
 
-type AnimationTrackerEvents = {
-  animationStart: any
-  animationEnd: any
-  animationForceEnd: any
+export type AnimationTrackerEvents = {
+  animationStart: { animationId: string; duration: number; source: string }
+  animationEnd: { animationId: string; actualDuration: number; valid: boolean }
+  animationForceEnd: { animationId: string; reason: string; actualDuration: number; ownerId: playerId | undefined }
 }
 
 /**
@@ -21,6 +22,7 @@ export class AnimationTracker {
   private normallyEndedAnimations: Set<string> = new Set() // 跟踪已正常结束的动画
   private emitter: Emitter<AnimationTrackerEvents> = mitt<AnimationTrackerEvents>()
   private timeoutCallback?: (animationId: string, ownerId: playerId) => void
+  private beforeEndCallback?: () => void
 
   constructor(private readonly config: TimerConfig) {}
 
@@ -29,6 +31,10 @@ export class AnimationTracker {
    */
   public setTimeoutCallback(callback: (animationId: string, ownerId: playerId) => void): void {
     this.timeoutCallback = callback
+  }
+
+  public setBeforeEndCallback(callback: () => void): void {
+    this.beforeEndCallback = callback
   }
 
   /**
@@ -102,6 +108,7 @@ export class AnimationTracker {
     }
 
     // 清理
+    this.beforeEndCallback?.()
     this.cleanupAnimation(animationId)
 
     // 发送动画结束事件
@@ -152,6 +159,7 @@ export class AnimationTracker {
       this.timeoutCallback(animationId, animationOwner)
     }
 
+    this.beforeEndCallback?.()
     this.cleanupAnimation(animationId)
 
     this.logger.debug(`emitting animationForceEnd event for ${animationId}, owner: ${animationOwner}`)
@@ -190,6 +198,39 @@ export class AnimationTracker {
    */
   public getAnimationOwner(animationId: string): playerId | undefined {
     return this.animationOwners.get(animationId)
+  }
+
+  public exportRuntimeState(): SavedAnimation[] {
+    return this.getActiveAnimations().map(animation => {
+      const ownerId = this.animationOwners.get(animation.id)
+      if (!ownerId) throw new Error('Animation has no owner')
+      return { ...animation, ownerId }
+    })
+  }
+
+  /** Preserve IDs and deadlines without sending events or scheduling callbacks. */
+  public restoreRuntimeState(animations: readonly SavedAnimation[]): void {
+    if (this.activeAnimations.size) throw new Error('Animation restore requires a fresh tracker')
+    for (const { ownerId, ...animation } of animations) {
+      this.activeAnimations.set(animation.id, { ...animation })
+      this.animationOwners.set(animation.id, ownerId as playerId)
+    }
+  }
+
+  public activateRestoredState(): void {
+    const animations = this.getActiveAnimations().sort(
+      (a, b) => a.startTime + a.expectedDuration - (b.startTime + b.expectedDuration),
+    )
+    for (const animation of animations) {
+      if (!this.activeAnimations.has(animation.id)) continue
+      const remaining = animation.startTime + animation.expectedDuration + 1000 - Date.now()
+      if (remaining <= 0) this.forceEndAnimation(animation.id, 'timeout')
+      else
+        this.animationTimeouts.set(
+          animation.id,
+          setTimeout(() => this.forceEndAnimation(animation.id, 'timeout'), remaining),
+        )
+    }
   }
 
   /**

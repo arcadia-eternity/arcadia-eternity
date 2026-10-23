@@ -35,7 +35,8 @@ export class PhaseManager {
   constructor(private readonly battle: Battle) {}
 
   public assertSnapshotSafe(): void {
-    if (this.executionQueue.length || this.dependencies.size) throw new Error('Snapshot does not support queued/dependent phases')
+    if (this.executionQueue.length || this.dependencies.size)
+      throw new Error('Snapshot does not support queued/dependent phases')
   }
 
   /**
@@ -99,6 +100,7 @@ export class PhaseManager {
    * Execute a specific phase synchronously (for regular phases only)
    */
   public executePhase(phaseId: string, options: PhaseExecutionOptions = {}): PhaseResult {
+    this.battle.assertRunning()
     const phase = this.phases.get(phaseId)
     if (!phase) {
       throw new Error(`Phase ${phaseId} not found`)
@@ -133,6 +135,7 @@ export class PhaseManager {
       this.executionHistory.push(phaseId)
       return result
     } catch (error) {
+      this.battle.executionBudget.assertActive()
       const errorResult: PhaseResult = {
         success: false,
         state: PhaseState.Failed,
@@ -144,6 +147,7 @@ export class PhaseManager {
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
       configSystem.popPhase(phase as BattlePhaseBase)
+      this.battle.cleanupPhaseEffects(phase.id)
       if (phase.isFinished()) phase.cleanupConfigModifiers()
       this.currentPhase = previousPhase
     }
@@ -153,6 +157,7 @@ export class PhaseManager {
    * Execute a specific phase asynchronously (supports both sync and async phases)
    */
   public async executePhaseAsync(phaseId: string, options: PhaseExecutionOptions = {}): Promise<PhaseResult> {
+    this.battle.assertRunning()
     const phase = this.phases.get(phaseId)
     if (!phase) {
       throw new Error(`Phase ${phaseId} not found`)
@@ -193,6 +198,7 @@ export class PhaseManager {
       this.executionHistory.push(phaseId)
       return result
     } catch (error) {
+      this.battle.executionBudget.assertActive()
       const errorResult: PhaseResult = {
         success: false,
         state: PhaseState.Failed,
@@ -204,6 +210,7 @@ export class PhaseManager {
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
       configSystem.popPhase(phase as BattlePhaseBase)
+      this.battle.cleanupPhaseEffects(phase.id)
       if (phase.isFinished()) phase.cleanupConfigModifiers()
       this.currentPhase = previousPhase
     }

@@ -1,0 +1,153 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_skill_consume_all_kongqichuliang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/166",
+      "definitionSha256": "e0218355f58d505a3734231183510f3972d7132d581eb2011d01b8f1a163114e",
+      "recipe": {
+        "id": "effect_skill_consume_all_kongqichuliang",
+        "trigger": "OnHit",
+        "priority": -50,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").apply(ops.consumeStacks(100))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_all_opponent_manxingduyao",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/152",
+      "definitionSha256": "ae858ff5e8a5f8aebe162d3272a9c9dd420932098771cb4ad3ad2c9574bdd0f2",
+      "recipe": {
+        "id": "effect_skill_consume_all_opponent_manxingduyao",
+        "trigger": "OnHit",
+        "priority": -50,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_manxingduyao\").apply(ops.consumeStacks(10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_all_zengzhong",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/123",
+      "definitionSha256": "da1df3b327a8c16af1c15055c6e5e7935b15819faf05a88b79c374a6fa80bf2f",
+      "recipe": {
+        "id": "effect_skill_consume_all_zengzhong",
+        "trigger": "OnHit",
+        "priority": -50,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_zengzhong\").apply(ops.consumeStacks(2))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_all_zhongzinengliang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/69",
+      "definitionSha256": "0c809344d7c03fff3d25c2af2f7656280b2d8c6a05edeba72a1e8691764fe6a3",
+      "recipe": {
+        "id": "effect_skill_consume_all_zhongzinengliang",
+        "trigger": "OnHit",
+        "priority": -50,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_zhongzinengliang\").apply(ops.consumeStacks(4))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_ruodian",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/42",
+      "definitionSha256": "4540c96dea10efdf23798209830bf0b6f1fbccd09c4160b03288f5acaea64d8b",
+      "recipe": {
+        "id": "effect_skill_consume_ruodian",
+        "trigger": "OnHit",
+        "priority": -50,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_ruodianjihao\").apply(ops.consumeStacks(2))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_shuiwenzhenji",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/177",
+      "definitionSha256": "343c67ac8bcf8340752e2be08a3f9213f0e40fd043893521efcf9a6c98fa20a6",
+      "recipe": {
+        "id": "effect_skill_consume_shuiwenzhenji",
+        "trigger": "OnHit",
+        "priority": -50,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shuiwenzhenji\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shuiwenzhenji\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_xinzhiyinji_multihit_consume",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/231",
+      "definitionSha256": "4288752dcda7990be911073b80c505c6f33733d073857597532a3323cf4143d7",
+      "recipe": {
+        "id": "effect_skill_consume_xinzhiyinji_multihit_consume",
+        "trigger": "OnHit",
+        "priority": -50,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_xinzhiyinji\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_xinzhiyinji\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

@@ -1,3 +1,0 @@
-$ node scripts/verify-v1-hosts.mjs --browser
-{"node":{"turns":4,"winner":"A","originalDsl":{"skill":"skill_qili","attackRatio":1.5}},"modules":{"node":38,"browser":38}}
-{"browser":"Chrome","matchesNode":true,"originalDsl":{"skill":"skill_qili","attackRatio":1.5}}

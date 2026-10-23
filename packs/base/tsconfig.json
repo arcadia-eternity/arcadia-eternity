@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "outDir": "./dist/types/",
+    "declaration": true,
+    "declarationMap": true,
+    "types": ["node"],
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["./native.ts", "./src/**/*.ts"],
+  "exclude": ["./node_modules", "./dist"]
+}

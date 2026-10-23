@@ -45,9 +45,9 @@ const editorState = useEditorState()
 
 // ── Editor operations (provided by DataEditorPage) ──
 
-const createRecord = inject('editor:createRecord', (() => {
+const createRecord = inject<(options?: { targetFile?: string }) => Promise<void>>('editor:createRecord', async () => {
   console.warn('[DataTableToolbar] editor:createRecord not provided')
-}) as unknown as () => Promise<void>) as () => Promise<void>
+})
 
 const deleteRecord = inject('editor:deleteRecord', (() => {
   console.warn('[DataTableToolbar] editor:deleteRecord not provided')
@@ -175,7 +175,7 @@ const currentLabel = computed(() => entityLabels[props.entityType])
         type="primary"
         class="toolbar-action-btn"
         :disabled="!editorState.selectedEntityType"
-        @click="createRecord"
+        @click="createRecord({ targetFile: editorState.createTargetFile ?? undefined })"
       >
         <template #icon>
           <ElIcon :size="14"><Plus /></ElIcon>

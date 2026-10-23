@@ -10,17 +10,18 @@ import {
   TIMER_CONSTANTS,
   BattleStatus,
   BattlePhase,
+  TimerState,
+  type Events,
+  type PlayerSelection,
 } from '@arcadia-eternity/const'
 import mitt, { type Emitter } from 'mitt'
 import { BattleTimer } from './battleTimer'
-import { AnimationTracker } from './animationTracker'
+import { AnimationTracker, type AnimationTrackerEvents } from './animationTracker'
 import type { Battle } from '../battle'
 import { createChildLogger } from '../logger'
+import { readTimerRuntime, type SavedTimerRuntime } from './snapshotState'
 
-type TimerManagerEvents = {
-  animationStart: any
-  animationEnd: any
-  animationForceEnd: any
+type TimerManagerEvents = AnimationTrackerEvents & {
   timerEvent: TimerEvent
 }
 
@@ -34,9 +35,12 @@ export class TimerManager {
   private animationTracker: AnimationTracker
   private config: TimerConfig
   private isActive: boolean = false
-  private currentPhase: 'selection' | 'execution' | 'switch' | null = null
+  private currentPhase: 'selection' | 'execution' | 'switch' | 'team-selection' | null = null
+  private teamSelectionTimeout?: (id: playerId) => string
   private pendingTurnReset: { playerIds: playerId[] } | null = null
   private emitter: Emitter<TimerManagerEvents> = mitt<TimerManagerEvents>()
+  private restoredPending = false
+  private restoredResetAt?: number
 
   // 追踪玩家选择状态
   private playerSelectionStatus: Map<playerId, boolean> = new Map()
@@ -47,6 +51,9 @@ export class TimerManager {
   ) {
     this.config = { ...DEFAULT_TIMER_CONFIG, ...config }
     this.animationTracker = new AnimationTracker(this.config)
+    this.animationTracker.setBeforeEndCallback(() => {
+      for (const timer of this.playerTimers.values()) timer.getState()
+    })
 
     // 设置动画超时回调
     this.animationTracker.setTimeoutCallback((animationId, ownerId) => {
@@ -59,8 +66,97 @@ export class TimerManager {
   }
 
   public assertSnapshotSafe(): void {
-    if (this.config.enabled || this.animationTracker.hasActiveAnimations())
-      throw new Error('Snapshot of real-time timers/active animations requires a host adapter')
+    if (this.teamSelectionTimeout) throw new Error('Team selection snapshots are not supported')
+    if (!this.config.enabled && (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset))
+      throw new Error('Disabled timers cannot carry active animations')
+    if (this.config.enabled) this.exportRuntimeState()
+  }
+
+  public assertInitialSnapshotSafe(): void {
+    if (
+      this.isActive ||
+      this.currentPhase !== null ||
+      this.pendingTurnReset ||
+      this.playerSelectionStatus.size ||
+      this.animationTracker.hasActiveAnimations() ||
+      [...this.playerTimers.values()].some(timer => timer.getState().state !== TimerState.Stopped)
+    )
+      throw new Error('Initial snapshot requires stopped timers and no active decision or animation')
+  }
+
+  public exportRuntimeState(): SavedTimerRuntime {
+    const capturedAt = Date.now()
+    return readTimerRuntime(
+      {
+        version: 1,
+        capturedAt,
+        phase: this.currentPhase,
+        active: this.isActive,
+        selections: [...this.playerSelectionStatus],
+        players: [...this.playerTimers.values()].map(timer => timer.exportRuntimeState(capturedAt)),
+        animations: this.animationTracker.exportRuntimeState(),
+        pendingTurnReset: this.pendingTurnReset?.playerIds,
+        pendingTurnResetApplied:
+          this.pendingTurnReset && this.restoredResetAt !== undefined && this.restoredResetAt <= capturedAt
+            ? true
+            : undefined,
+      },
+      [this.battle.playerA, this.battle.playerB].map(player => ({ id: player.id, selected: !!player.selection })),
+    )
+  }
+  public restoreRuntimeState(input: unknown): void {
+    if (this.playerTimers.size || this.isActive || this.animationTracker.hasActiveAnimations())
+      throw new Error('Timer runtime restore requires a fresh manager')
+    const saved = readTimerRuntime(
+      input,
+      [this.battle.playerA, this.battle.playerB].map(player => ({ id: player.id, selected: !!player.selection })),
+    )
+    this.currentPhase = saved.phase
+    this.isActive = saved.active
+    this.playerSelectionStatus = new Map(saved.selections.map(([id, selected]) => [id as playerId, selected]))
+    this.animationTracker.restoreRuntimeState(saved.animations ?? [])
+    const deadline = saved.animations?.length
+      ? Math.max(...saved.animations.map(animation => animation.startTime + animation.expectedDuration + 1000))
+      : undefined
+    this.pendingTurnReset = saved.pendingTurnReset
+      ? { playerIds: saved.pendingTurnReset.map(id => id as playerId) }
+      : null
+    this.restoredResetAt = saved.pendingTurnReset ? deadline : undefined
+    for (const state of saved.players) {
+      const timer = new BattleTimer(state.playerId as playerId, state.config)
+      timer.setHasActiveAnimationsCallback(
+        () => this.config.animationPauseEnabled && this.animationTracker.hasActiveAnimations(),
+      )
+      timer.on('timerEvent', event => this.handleTimerEvent(event))
+      timer.restoreRuntimeState(state, {
+        animationPauseUntil: this.config.animationPauseEnabled ? deadline : undefined,
+        resetTurnAt: saved.pendingTurnResetApplied ? undefined : this.restoredResetAt,
+        selected: this.playerSelectionStatus.get(state.playerId as playerId) ?? false,
+      })
+      this.playerTimers.set(state.playerId as playerId, timer)
+    }
+    this.restoredPending = true
+  }
+  public activateRestoredState(emitSnapshot = true): void {
+    if (!this.restoredPending) return
+    this.restoredPending = false
+    // Bring every clock to the same recovery point before a timeout can stop its peer.
+    for (const timer of this.playerTimers.values()) timer.getState()
+    const completedReset =
+      this.restoredResetAt !== undefined && this.restoredResetAt <= Date.now() ? this.pendingTurnReset : null
+    if (completedReset) this.pendingTurnReset = null
+    this.restoredResetAt = undefined
+    this.animationTracker.activateRestoredState()
+    if (completedReset)
+      this.battle.emitter.emit('timerStart', {
+        player: completedReset.playerIds,
+        turnTimeLimit: this.config.turnTimeLimit || null,
+        remainingTotalTime: Object.fromEntries(
+          completedReset.playerIds.map(id => [id, this.playerTimers.get(id)!.getState().remainingTotalTime]),
+        ),
+      })
+    for (const timer of this.playerTimers.values()) timer.activateRestoredState()
+    if (emitSnapshot) this.emitSnapshotEvent()
   }
 
   /**
@@ -71,6 +167,7 @@ export class TimerManager {
 
     // 清理现有计时器
     this.cleanup()
+    this.setupEventHandlers()
 
     // 为每个玩家创建计时器
     playerIds.forEach(playerId => {
@@ -79,7 +176,7 @@ export class TimerManager {
 
       // 设置检查活跃动画的回调
       timer.setHasActiveAnimationsCallback(() => {
-        return this.animationTracker.hasActiveAnimations()
+        return this.config.animationPauseEnabled && this.animationTracker.hasActiveAnimations()
       })
 
       // 监听计时器事件
@@ -93,11 +190,30 @@ export class TimerManager {
    * 开始新回合计时
    */
   public startNewTurn(playerIds: playerId[]): void {
+    this.startDecisionPhase(playerIds, 'selection')
+  }
+
+  public startSwitchPhase(playerIds: playerId[]): void {
+    this.startDecisionPhase(playerIds, 'switch')
+  }
+
+  public startTeamSelectionPhase(playerIds: playerId[], seconds: number, onTimeout: (id: playerId) => string): void {
+    this.teamSelectionTimeout = onTimeout
+    this.startDecisionPhase(playerIds, 'team-selection', seconds)
+    if (this.config.enabled)
+      this.battle.emitter.emit('teamSelectionTimerStart', { timeLimit: seconds, timestamp: Date.now() })
+  }
+
+  private startDecisionPhase(
+    playerIds: playerId[],
+    phase: 'selection' | 'switch' | 'team-selection',
+    timeLimit = this.config.turnTimeLimit,
+  ): void {
     if (!this.config.enabled) return
 
     this.logger.debug(`Timer startNewTurn: starting new turn for players: ${playerIds.join(', ')}`)
 
-    this.currentPhase = 'selection'
+    this.currentPhase = phase
     this.isActive = true
 
     // 重置选择状态追踪
@@ -140,7 +256,7 @@ export class TimerManager {
       const timer = this.playerTimers.get(playerId)
       if (timer) {
         this.logger.debug(`Timer startNewTurn: resetting and starting timer for player ${playerId}`)
-        timer.resetTurn() // 重置并启动
+        timer.resetTurn(timeLimit) // 重置并启动
         const state = timer.getState()
         remainingTotalTime[playerId] = state.remainingTotalTime
       }
@@ -149,7 +265,7 @@ export class TimerManager {
     // 发送计时器开始事件
     this.battle.emitter.emit('timerStart', {
       player: playerIds,
-      turnTimeLimit: this.config.turnTimeLimit || null,
+      turnTimeLimit: timeLimit || null,
       remainingTotalTime,
     })
 
@@ -159,42 +275,14 @@ export class TimerManager {
     this.logger.debug('Timer startNewTurn: timers reset and started, ready for animation management')
   }
 
-  /**
-   * 开始切换阶段计时
-   */
-  public startSwitchPhase(playerIds: playerId[]): void {
-    if (!this.config.enabled) return
-
-    this.currentPhase = 'switch'
-    this.isActive = true
-
-    // 重置选择状态追踪
-    this.playerSelectionStatus.clear()
-    playerIds.forEach(playerId => {
-      this.playerSelectionStatus.set(playerId, false)
-    })
-
-    // 启动指定玩家的计时器
-    const remainingTotalTime: { [key: string]: number } = {}
-
-    playerIds.forEach(playerId => {
-      const timer = this.playerTimers.get(playerId)
-      if (timer) {
-        timer.startTurn()
-        const state = timer.getState()
-        remainingTotalTime[playerId] = state.remainingTotalTime
-      }
-    })
-
-    // 发送计时器开始事件
-    this.battle.emitter.emit('timerStart', {
-      player: playerIds,
-      turnTimeLimit: this.config.turnTimeLimit || null,
-      remainingTotalTime,
-    })
-
-    // 新架构：发送初始快照
-    this.emitSnapshotEvent(playerIds)
+  /** Decision input is complete; selection cleanup must not restart clocks during resolution. */
+  public finishDecisionPhase(): void {
+    this.teamSelectionTimeout = undefined
+    if (!this.config.enabled || !this.isActive) return
+    this.currentPhase = 'execution'
+    this.pendingTurnReset = null
+    this.restoredResetAt = undefined
+    this.pauseTimers([...this.playerTimers.keys()], 'system')
   }
 
   /**
@@ -205,7 +293,7 @@ export class TimerManager {
       `Timer pauseTimers: enabled=${this.config.enabled}, animationPauseEnabled=${this.config.animationPauseEnabled}, reason=${reason}, players=${playerIds.join(', ')}`,
     )
 
-    if (!this.config.enabled || !this.config.animationPauseEnabled) {
+    if (!this.config.enabled || (reason === 'animation' && !this.config.animationPauseEnabled)) {
       this.logger.debug('Timer pauseTimers: skipping due to config')
       return
     }
@@ -261,8 +349,10 @@ export class TimerManager {
    * 停止所有计时器
    */
   public stopAllTimers(): void {
+    this.teamSelectionTimeout = undefined
     this.isActive = false
     this.currentPhase = null
+    this.pendingTurnReset = null
 
     this.playerTimers.forEach(timer => {
       timer.stop()
@@ -274,7 +364,7 @@ export class TimerManager {
    * 当一方选择完毕且等待对方选择时，暂停己方的timer
    */
   public handlePlayerSelectionChange(playerId: playerId, hasSelection: boolean): void {
-    if (!this.config.enabled || (this.currentPhase !== 'selection' && this.currentPhase !== 'switch')) return
+    if (!this.config.enabled || !['selection', 'switch', 'team-selection'].includes(this.currentPhase ?? '')) return
 
     this.logger.debug(`Timer handlePlayerSelectionChange: player ${playerId} selection status: ${hasSelection}`)
 
@@ -389,7 +479,7 @@ export class TimerManager {
     this.battle.emitter.emit('animationStart', {
       animationId,
       duration: expectedDuration,
-      source: source as any, // 临时类型转换，实际使用时应该传入正确的petId或skillId
+      source: source as Events['animationStart']['source'],
     })
 
     return animationId
@@ -412,7 +502,9 @@ export class TimerManager {
     }
 
     this.logger.debug(`Timer endAnimation: animation ${animationId} ended, timers will automatically resume`)
+  }
 
+  private finishAnimation(animationId: string, actualDuration: number): void {
     // 检查是否有待重置的回合（只有在没有活跃动画时才处理）
     if (!this.animationTracker.hasActiveAnimations() && this.pendingTurnReset) {
       this.logger.debug('Timer endAnimation: processing pending turn reset')
@@ -427,6 +519,7 @@ export class TimerManager {
         if (timer) {
           this.logger.debug(`Timer endAnimation: resetting timer for player ${playerId}`)
           timer.resetTurn()
+          if (this.playerSelectionStatus.get(playerId)) timer.pause('system')
           const state = timer.getState()
           remainingTotalTime[playerId] = state.remainingTotalTime
         }
@@ -545,6 +638,7 @@ export class TimerManager {
 
     this.animationTracker.on('animationEnd', data => {
       this.emit('animationEnd', data)
+      this.finishAnimation(data.animationId, data.actualDuration)
     })
 
     this.animationTracker.on('animationForceEnd', data => {
@@ -552,6 +646,7 @@ export class TimerManager {
         `Timer setupEventHandlers: animation force ended ${data.animationId}, reason: ${data.reason}, owner: ${data.ownerId}`,
       )
       this.emit('animationForceEnd', data)
+      if (data.reason !== 'cleanup') this.finishAnimation(data.animationId, data.actualDuration)
     })
   }
 
@@ -646,6 +741,7 @@ export class TimerManager {
    * 处理回合超时
    */
   private handleTurnTimeout(playerId: playerId): string {
+    if (this.teamSelectionTimeout) return this.teamSelectionTimeout(playerId)
     // 获取第一个可用选项并自动选择
     const availableSelections = this.battle.getAvailableSelection(playerId)
     if (availableSelections.length > 0) {
@@ -663,7 +759,8 @@ export class TimerManager {
   /**
    * 获取选择的描述
    */
-  private getSelectionDescription(selection: any): string {
+  private getSelectionDescription(selection: PlayerSelection): string {
+    const kind: string = selection.type
     switch (selection.type) {
       case 'use-skill':
         return `使用技能 ${selection.skill}`
@@ -674,7 +771,7 @@ export class TimerManager {
       case 'surrender':
         return '投降'
       default:
-        return selection.type
+        return kind
     }
   }
 

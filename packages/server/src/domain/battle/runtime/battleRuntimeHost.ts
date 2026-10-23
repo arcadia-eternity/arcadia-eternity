@@ -1,6 +1,7 @@
 import type { playerId } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { BattleState, PlayerSelection, PlayerTimerState, TimerConfig } from '@arcadia-eternity/const'
+import type { BattleRuntimeIdentity } from './runtimeIdentity'
 
 export type LocalBattleRoomData = {
   id: string
@@ -12,6 +13,7 @@ export type LocalBattleRoomData = {
   lastActive: number
   battleRecordId?: string
   privateRoom?: boolean
+  runtimeIdentity?: BattleRuntimeIdentity
 }
 
 export class LocalBattleRuntimeInstance {

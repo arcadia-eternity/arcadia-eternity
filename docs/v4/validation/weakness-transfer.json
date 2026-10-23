@@ -1,0 +1,19 @@
+{
+  "records": [
+    {
+      "id": "effect_emblem_set_ruodianbiaoji_keeponswitchout",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/0",
+      "definitionSha256": "a6ede52a9bda35f22909dbcc4c1606cb8857d5fb4a8c9dfea37327c96fdd83aa",
+      "status": "handwritten-candidate",
+      "decisions": ["C09"],
+      "corrections": [
+        {
+          "decision": "C09",
+          "reason": "AddMarkContext exposes baseMark.id, not baseMarkId. Preserve the string ID comparison and the original transferOnSwitch action."
+        }
+      ],
+      "nativeFile": "packages/battle/src/v4/official/weakness-transfer.ts"
+    }
+  ]
+}

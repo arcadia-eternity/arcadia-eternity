@@ -3,11 +3,12 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { basename, dirname, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { PackLoader } from '@arcadia-eternity/pack-loader'
+import { NativePackLoader, type NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
+import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 import type {
   InstalledPack,
   PackInstallRequest,
-  PackLoadResult,
   PackLockfile,
   PackManager,
   PackResolveResult,
@@ -29,8 +30,8 @@ interface PackManifestLike {
 
 type InstallRunner = (specifier: string, workspaceRoot: string) => Promise<void>
 
-export class ServerPackManager implements PackManager {
-  private readonly loader = new PackLoader()
+export class ServerPackManager implements PackManager<NativePackLoadResult> {
+  private readonly loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
   private readonly workspaceRoot: string
   private readonly installRunner: InstallRunner
 
@@ -135,11 +136,9 @@ export class ServerPackManager implements PackManager {
     return this.verify(lockfile)
   }
 
-  async load(entryRef: string, options?: { enforceLockfile?: boolean }): Promise<PackLoadResult> {
+  async load(entryRef: string, options?: { enforceLockfile?: boolean }): Promise<NativePackLoadResult> {
     return this.loader.load(entryRef, {
       source: 'node-fs',
-      validateReferences: true,
-      continueOnError: false,
       enforceLockfile: options?.enforceLockfile ?? true,
     })
   }

@@ -1,0 +1,24 @@
+{
+  "id": "arcadia-eternity.effect-regression",
+  "version": "1.0.0",
+  "engine": "seer2-v2",
+  "layoutVersion": 1,
+  "dependencies": [
+    {
+      "path": "../../../../../../packs/base/pack.json",
+      "id": "arcadia-eternity.base"
+    }
+  ],
+  "data": {
+    "effects": [
+      "effect_ability.yaml",
+      "effect_emblem.yaml",
+      "effect_global.yaml",
+      "effect_mark.yaml",
+      "effect_skill.yaml"
+    ],
+    "marks": [],
+    "skills": [],
+    "species": []
+  }
+}

@@ -20,6 +20,11 @@
       "import": "./dist/node.js",
       "default": "./dist/node.js"
     },
+    "./pack": {
+      "types": "./dist/types/pack.d.ts",
+      "import": "./dist/pack.js",
+      "default": "./dist/pack.js"
+    },
     "./v4": {
       "types": "./dist/types/v4.d.ts",
       "import": "./dist/v4.js",
@@ -29,12 +34,27 @@
       "types": "./dist/types/v4-legacy.d.ts",
       "import": "./dist/v4-legacy.js",
       "default": "./dist/v4-legacy.js"
+    },
+    "./v4/host": {
+      "types": "./dist/types/v4-host.d.ts",
+      "import": "./dist/v4-host.js",
+      "default": "./dist/v4-host.js"
+    },
+    "./v4/build": {
+      "types": "./dist/native-build.d.ts",
+      "import": "./dist/native-build.mjs",
+      "default": "./dist/native-build.mjs"
+    },
+    "./v4/authoring": {
+      "types": "./dist/types/v4-authoring.d.ts",
+      "import": "./dist/v4-authoring.js",
+      "default": "./dist/v4-authoring.js"
     }
   },
   "scripts": {
     "build": "run-s clear build:code build:types",
     "clear": "rm -rf dist",
-    "build:code": "rolldown -c",
+    "build:code": "rolldown -c && node ../../scripts/build-battle-environment.mjs",
     "watch:code": "rolldown -c --watch",
     "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
     "watch": "run-p watch:code watch:types",

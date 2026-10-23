@@ -1,3 +1,4 @@
+import { RagePhase } from '../../../phase/rage'
 import {
   AddMarkContext,
   BaseMark,
@@ -20,6 +21,7 @@ import {
   ModifierHelpers,
   DamageContext,
   EffectContext,
+  Effect,
   HealContext,
   type MarkInstance,
   MarkInstanceImpl,
@@ -51,11 +53,38 @@ import {
   type StatTypeOnBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import type { Condition, ConditionalValueSource, ConfigValueSource, Operator } from './effectBuilder'
+import type { Action, Condition, ConditionalValueSource, ConfigValueSource, Operator } from './effectBuilder'
 import { ChainableSelector, type PrimitiveOpinion, type PropertyRef, type SelectorOpinion } from './selector'
 import { type ValueSource } from './effectBuilder'
 
 export const Operators = {
+  addTemporaryEffect:
+    <T extends SkillInstance | MarkInstance>(effect: ValueSource<Effect<EffectTrigger>>): Operator<T> =>
+    (context: EffectContext<EffectTrigger>, targets: T[]) => {
+      const phaseId = context.battle.getTemporaryEffectPhaseId()
+
+      if (!phaseId) {
+        // Cannot add a temporary effect without a phase context
+        return
+      }
+
+      const effects = GetValueFromSource(context, effect)
+      if (effects.length === 0) return
+
+      targets.forEach(target => {
+        effects.forEach(eff => {
+          target.addTemporaryEffect(eff, phaseId)
+        })
+      })
+    },
+  /** 执行Action数组操作符 */
+  executeActions: (): Operator<Action> => (context: EffectContext<EffectTrigger>, actions: Action[]) => {
+    actions.forEach(action => {
+      if (typeof action !== 'function') return
+      action(context)
+    })
+  },
+
   conditional: <T>(condition: Condition, trueOperator: Operator<T>, falseOperator?: Operator<T>): Operator<T> => {
     return (context, targets) => {
       if (condition(context)) {
@@ -130,7 +159,7 @@ export const Operators = {
       const _mark = GetValueFromSource(context, mark)
       // Use the new phase-based mark transfer system
       if (targets[0] instanceof Pet) {
-        targets[0].transferMarks(context as any, ..._mark)
+        targets[0].transferMarks(context, ..._mark)
       }
     },
 
@@ -272,6 +301,19 @@ export const Operators = {
           new RageContext(context, player instanceof Player ? player : player.owner!, 'effect', 'add', _value[0]),
         ),
       )
+    },
+
+  setRage:
+    (value: ValueSource<number>): Operator<Pet | Player> =>
+    (context: EffectContext<EffectTrigger>, targets: (Player | Pet)[]) => {
+      const _value = GetValueFromSource(context, value)
+      if (_value.length === 0) return
+      targets.forEach(target => {
+        const player = target instanceof Player ? target : target.owner!
+        const ragePhase = new RagePhase(context.battle, context, player, 'effect', 'setting', _value[0])
+        context.battle.phaseManager.registerPhase(ragePhase)
+        context.battle.phaseManager.executePhase(ragePhase.id)
+      })
     },
 
   modifyStat:
@@ -819,6 +861,14 @@ export const Operators = {
     return (context, contexts) => {
       contexts.forEach(ctx => {
         ctx.setSureNoCrit(priority)
+      })
+    }
+  },
+
+  setIgnoreShield: (): Operator<UseSkillContext> => {
+    return (context, contexts) => {
+      contexts.forEach(skillCtx => {
+        skillCtx.setIgnoreShield()
       })
     }
   },
@@ -1769,7 +1819,19 @@ export function GetValueFromSource<T extends SelectorOpinion>(
         ? GetValueFromSource(context, condSource.falseValue)
         : []
   }
-  if (typeof source == 'function') return source(context) //TargetSelector
+  if (typeof source == 'function') {
+    const result = source(context)
+    // For TargetSelector functions that return T[], return the result
+    if (Array.isArray(result)) {
+      return result
+    }
+    // For Action functions that return void, warn and return empty array
+    console.warn(
+      `Warning: Action function executed in GetValueFromSource. This may cause unintended side effects. ` +
+        `Action functions should be used with Operators.executeActions() instead of being called directly in value extraction.`,
+    )
+    return []
+  }
   if (Array.isArray(source)) return source.map(v => GetValueFromSource(context, v as ValueSource<T>)[0]) as T[]
   if (source && typeof source === 'object' && 'configId' in source) {
     const _source = source as ConfigValueSource<T>

@@ -3,35 +3,14 @@ import { program } from 'commander'
 import path from 'path'
 import fs from 'fs/promises'
 import yaml from 'yaml'
-import type { TeamConfig, V2DataRepository } from '@arcadia-eternity/battle'
 import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
-import type { playerId, BattleMessage, PlayerSelection } from '@arcadia-eternity/const'
+import type { playerId } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import { runInMemoryP2PE2E } from '@arcadia-eternity/p2p-transport'
-import type { ServerDataRepository } from '@arcadia-eternity/rules'
+import { createRuleSpeciesRepository, loadNativeCliPack } from './native-pack'
 
 // 加载环境变量
 dotenv.config()
-
-function toTeamConfig(player: PlayerSchemaType): TeamConfig {
-  return {
-    name: player.name,
-    team: player.team.map(pet => ({
-      name: pet.name,
-      species: pet.species,
-      level: pet.level,
-      evs: pet.evs,
-      ivs: pet.ivs,
-      nature: pet.nature,
-      skills: pet.skills,
-      ability: pet.ability,
-      emblem: pet.emblem,
-      gender: pet.gender,
-      weight: pet.weight,
-      height: pet.height,
-    })),
-  }
-}
 
 // 解析玩家文件
 async function parsePlayerFile(filePath: string, _options?: { validateData?: boolean }): Promise<PlayerSchemaType> {
@@ -116,49 +95,15 @@ async function parsePlayerFile(filePath: string, _options?: { validateData?: boo
   }
 }
 
-function createRuleSpeciesRepository(repo: V2DataRepository): {
-  getSpeciesById: (id: string) => unknown
-  getAllSpecies: () => unknown[]
-} {
-  return {
-    getSpeciesById: (id: string) => {
-      const species = repo.findSpecies(id)
-      if (!species) return undefined
-      return {
-        id: species.id,
-        num: species.num,
-        element: species.element,
-        baseStats: species.baseStats,
-        learnable_skills: species.learnableSkills ?? [],
-      }
-    },
-    getAllSpecies: () =>
-      Array.from(repo.allSpecies()).map(species => ({
-        id: species.id,
-        num: species.num,
-        element: species.element,
-        baseStats: species.baseStats,
-        learnable_skills: species.learnableSkills ?? [],
-      })),
-  }
-}
-
 async function preflightPack(options: { strict?: boolean; validateData?: boolean }): Promise<void> {
   const strict = !!options.strict
   const validateData = !!options.validateData
   if (!strict && !validateData) return
 
-  const { PackLoader } = await import('@arcadia-eternity/pack-loader')
-  const packLoader = new PackLoader()
-
   console.log('[🌀] 正在预加载数据包...')
-  const result = await packLoader.load('builtin:workspace', {
-    continueOnError: !strict,
-    validateReferences: true,
-  })
-  const summary = packLoader.summarize(result)
+  const result = await loadNativeCliPack()
   console.log(
-    `[📦] 数据包 ${summary.packId ?? summary.packRef}@${summary.packVersion ?? 'unknown'} 加载完成: effect=${summary.effectCount}, mark=${summary.markCount}, skill=${summary.skillCount}, species=${summary.speciesCount}`,
+    `[📦] 数据包 ${result.pack?.id ?? result.packRef}@${result.pack?.version ?? 'unknown'} 加载完成: effect=${result.content.effects.length}, mark=${result.content.marks.length}, skill=${result.content.skills.length}, species=${result.content.species.length}`,
   )
 
   if (result.errors.length > 0) {
@@ -233,108 +178,49 @@ program
   .option('--validate-data', '启用数据完整性验证', false)
   .action(async options => {
     try {
-      const [{ createLocalBattleFromYAML }, { ConsoleUIV2, initI18n }] = await Promise.all([
-        import('@arcadia-eternity/battle/node'),
+      const [{ createNativeLocalBattle }, { ConsoleUIV2, initI18n }] = await Promise.all([
+        import('./native-local-battle'),
         import('@arcadia-eternity/console'),
       ])
-
-      await preflightPack({
-        validateData: options.validateData,
-        strict: options.strict,
-      })
 
       console.log('[🌀] 正在解析玩家数据...')
       const player1 = await parsePlayerFile(options.player1, { validateData: options.validateData })
       const player2 = await parsePlayerFile(options.player2, { validateData: options.validateData })
 
-      const aiControl = new Set<playerId>()
-
-      const player1Config = toTeamConfig(player1)
-      const player2Config = toTeamConfig(player2)
-
-      const battleSystem = await createLocalBattleFromYAML('builtin:workspace', player1Config, player2Config, {
-        allowFaintSwitch: true,
-        showHidden: true,
+      const {
+        system: battleSystem,
+        playerIds,
+        humanIds,
+        effectCount,
+      } = await createNativeLocalBattle([player1, player2], {
+        aiPlayers: options.ai,
+        battle: { allowFaintSwitch: true, showHidden: true },
       })
-      const initialState = await battleSystem.getState(undefined, true)
-      const v2Player1Id = initialState.players[0]?.id
-      const v2Player2Id = initialState.players[1]?.id
-      if (!v2Player1Id || !v2Player2Id) {
-        throw new Error('v2 battle 初始化失败：无法解析玩家ID')
-      }
+      console.log(`[📦] 已加载 ${effectCount} 个效果实现`)
+      for (const [index, id] of playerIds.entries())
+        if (!humanIds.includes(id)) console.log(`[🤖] 玩家${index + 1}已设置为AI控制`)
 
-      let selfControl = [v2Player1Id, v2Player2Id]
-      if (options.ai) {
-        const aiPlayers = options.ai.map((p: string) => p.toLowerCase().trim())
-        if (aiPlayers.includes('player1')) {
-          console.log('[🤖] 玩家1已设置为AI控制')
-          aiControl.add(v2Player1Id as playerId)
-          selfControl = selfControl.filter(p => p != v2Player1Id)
-        }
-        if (aiPlayers.includes('player2')) {
-          console.log('[🤖] 玩家2已设置为AI控制')
-          aiControl.add(v2Player2Id as playerId)
-          selfControl = selfControl.filter(p => p != v2Player2Id)
-        }
-      }
-
-      const aiPending = new Set<playerId>()
       let observedTurn = 0
       const maxAiTurns = Number(process.env.CLI_MAX_AI_TURNS ?? 120)
-      const runAIIfNeeded = async (pid: playerId): Promise<void> => {
-        if (!aiControl.has(pid) || aiPending.has(pid)) return
-        aiPending.add(pid)
-        try {
-          const available = await battleSystem.getAvailableSelection(pid)
-          if (available.length === 0) return
-
-          const picked = (available.find(a => a.type === 'team-selection') ??
-            available.find(a => a.type === 'use-skill') ??
-            available.find(a => a.type === 'switch-pet') ??
-            available.find(a => a.type === 'do-nothing') ??
-            available.find(a => a.type === 'surrender') ??
-            available[0]) as PlayerSelection
-          await battleSystem.submitAction(picked)
-        } finally {
-          aiPending.delete(pid)
-        }
-      }
-
-      const triggerAIFromMessage = (msg: BattleMessage): void => {
-        if (msg.type === BattleMessageType.TurnAction) {
-          observedTurn++
-          if (observedTurn > maxAiTurns && aiControl.size > 0) {
-            const fallback = Array.from(aiControl)[0]
-            void battleSystem.submitAction({ player: fallback, type: 'surrender' } as PlayerSelection)
-            return
-          }
-          for (const pid of msg.data.player) {
-            void runAIIfNeeded(pid)
-          }
-          return
-        }
-        if (msg.type === BattleMessageType.ForcedSwitch) {
-          for (const pid of msg.data.player) {
-            void runAIIfNeeded(pid)
-          }
-          return
-        }
-        if (msg.type === BattleMessageType.FaintSwitch) {
-          void runAIIfNeeded(msg.data.player)
-          return
-        }
-        if (msg.type === BattleMessageType.TeamSelectionStart) {
-          for (const pid of [v2Player1Id, v2Player2Id] as playerId[]) {
-            void runAIIfNeeded(pid)
-          }
-        }
-      }
-
-      battleSystem.BattleEvent(triggerAIFromMessage)
+      const stopAtLimit = battleSystem.BattleEvent(msg => {
+        if (msg.type !== BattleMessageType.TurnAction || !(++observedTurn > maxAiTurns)) return
+        const aiPlayer = playerIds.find(id => !humanIds.includes(id))
+        if (aiPlayer)
+          void battleSystem.submitAction({ player: aiPlayer, type: 'surrender' }).catch(error => {
+            console.error('[💥] AI回合上限处理失败:', error)
+          })
+      })
 
       await initI18n(options.debug)
-      new ConsoleUIV2(battleSystem, ...selfControl)
-      await battleSystem.ready()
+      const ui = new ConsoleUIV2(battleSystem, ...humanIds)
+      try {
+        await battleSystem.ready()
+        await battleSystem.waitForCompletion()
+      } finally {
+        stopAtLimit()
+        ui.cleanup()
+        await battleSystem.cleanup()
+      }
     } catch (err) {
       console.error('[💥] 致命错误:', err instanceof Error ? err.message : err)
       process.exit(1)
@@ -473,11 +359,9 @@ program
           // 资源加载完成后初始化规则系统
           console.log('[⚖️] 正在初始化服务端规则系统...')
           try {
-            const loadedRepository = resourceLoadingManager.getLoadedRepository()
-            if (loadedRepository) {
-              await ServerRuleIntegration.initializeServer(
-                createRuleSpeciesRepository(loadedRepository) as ServerDataRepository,
-              )
+            const loadedMetadata = resourceLoadingManager.getLoadedMetadata()
+            if (loadedMetadata) {
+              await ServerRuleIntegration.initializeServer(createRuleSpeciesRepository(loadedMetadata))
             } else {
               await ServerRuleIntegration.initializeServer()
             }
@@ -641,22 +525,16 @@ program
   .description('验证游戏数据完整性')
   .option('--strict', '使用严格模式验证（发现错误直接失败）', false)
   .option('--verbose', '显示详细的验证信息', false)
-  .option('--continue-on-error', '发现错误时继续验证', false)
+  .option('--continue-on-error', '显示可收集的错误；原生内容引用错误会立即终止', false)
   .option('--pack-ref <ref>', '数据包引用，默认 builtin:workspace', 'builtin:workspace')
   .action(async options => {
     try {
-      const { PackLoader } = await import('@arcadia-eternity/pack-loader')
-      const packLoader = new PackLoader()
       console.log('[🔍] 开始数据包验证...')
-      const result = await packLoader.load(options.packRef, {
-        continueOnError: options.continueOnError,
-        validateReferences: true,
-      })
-      const summary = packLoader.summarize(result)
+      const result = await loadNativeCliPack(options.packRef)
 
-      console.log(`[📦] pack=${summary.packId ?? summary.packRef}@${summary.packVersion ?? 'unknown'}`)
+      console.log(`[📦] pack=${result.pack?.id ?? result.packRef}@${result.pack?.version ?? 'unknown'}`)
       console.log(
-        `[📊] effect=${summary.effectCount}, mark=${summary.markCount}, skill=${summary.skillCount}, species=${summary.speciesCount}`,
+        `[📊] effect=${result.content.effects.length}, mark=${result.content.marks.length}, skill=${result.content.skills.length}, species=${result.content.species.length}`,
       )
 
       if (result.errors.length === 0) {

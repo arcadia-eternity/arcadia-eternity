@@ -665,7 +665,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
     const battleInterface =
       peerSession.value.role === 'host'
-        ? (() => {
+        ? await (() => {
             const [playerA, playerB] = currentRoom.value!.players
             if (!playerA?.team || !playerB?.team) {
               throw new Error('P2P 房间缺少对战队伍数据')

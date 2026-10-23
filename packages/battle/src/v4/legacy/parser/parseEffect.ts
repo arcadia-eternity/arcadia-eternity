@@ -32,6 +32,7 @@ import {
 } from '@arcadia-eternity/const'
 import { DataRepository } from '../dataRepository'
 import {
+  type Action,
   BaseSelector,
   type PathExtractor,
   ChainableSelector,
@@ -105,7 +106,7 @@ export function parseSelector<T extends SelectorOpinion>(effectId: string, dsl: 
   }
 
   // 处理SelectorValue类型
-  if (typeof dsl === 'object' && 'type' in dsl && dsl.type === 'selector') {
+  if (typeof dsl === 'object' && 'type' in dsl && (dsl.type === 'selector' || dsl.type === 'selectorValue')) {
     const selectorValue = dsl as SelectorValue
     // 从Value创建selector
     const valueSelector = createSelectorFromValue(effectId, selectorValue.value)
@@ -193,7 +194,7 @@ function applySelectorStep(
       }
 
       case 'selectProp': {
-        if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+        if (typeof process === 'undefined' || process.env.NODE_ENV !== 'production') {
           validatePath(selector, step.arg)
         }
 
@@ -224,6 +225,14 @@ function applySelectorStep(
       case 'randomSample':
         return selector.randomSample(parseValue(effectId, step.arg) as ValueSource<number>)
 
+      case 'avg': {
+        assertNumberSelector(selector)
+        return selector.avg()
+      }
+      case 'sampleBetween': {
+        assertNumberSelector(selector)
+        return (selector as ChainableSelector<number>).sampleBetween() as ChainableSelector<SelectorOpinion>
+      }
       case 'sum': {
         assertNumberSelector(selector)
         return selector.sum()
@@ -423,6 +432,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseTransferStatStage(effectId, dsl)
     case 'addRage':
       return parseAddRageAction(effectId, dsl)
+    case 'setRage':
+      return parseSetRageAction(effectId, dsl)
     case 'amplifyPower':
       return parseAmplifyPowerAction(effectId, dsl)
     case 'addPower':
@@ -445,6 +456,8 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseSetSureMissAction(effectId, dsl)
     case 'setSureNoCrit':
       return parseSetSureNoCritAction(effectId, dsl)
+    case 'setIgnoreShield':
+      return parseSetIgnoreShieldAction(effectId, dsl)
     case 'destroyMark':
       return parseDestroyMarkAction(effectId, dsl)
     case 'modifyStackResult':
@@ -523,6 +536,10 @@ export function createAction(effectId: string, dsl: OperatorDSL) {
       return parseTransformAction(effectId, dsl)
     case 'transformWithPreservation':
       return parseTransformWithPreservationAction(effectId, dsl)
+    case 'addTemporaryEffect':
+      return parseAddTemporaryEffectAction(effectId, dsl)
+    case 'executeActions':
+      return parseExecuteActionsAction(effectId, dsl)
     case 'removeTransformation':
       return parseRemoveTransformationAction(effectId, dsl)
     default:
@@ -537,6 +554,9 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (typeof v === 'string') return v
   if (typeof v === 'number') return v
   if (typeof v === 'boolean') return v
+  if (typeof v === 'object' && ('target' in v || ('type' in v && v.type === 'conditional' && 'trueOperator' in v))) {
+    return createAction(effectId, v)
+  }
   if (typeof v === 'object' && 'type' in v && v.type === 'conditional') {
     const condition = parseCondition(effectId, v.condition)
     const trueValue = parseValue(effectId, v.trueValue)
@@ -557,6 +577,8 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
       return { configId: fullKey, defaultValue: v.value } as ConfigValueSource<number>
     }
   }
+  if (v.type === 'entity:effect')
+    return (() => [DataRepository.getInstance().getEffect(v.value as effectId)]) as ValueSource<Effect<EffectTrigger>>
   if (v.type === 'entity:baseMark')
     return (() => [DataRepository.getInstance().getMark(v.value as baseMarkId)]) as ValueSource<BaseMark>
   if (v.type === 'entity:baseSkill')
@@ -564,7 +586,7 @@ export function parseValue(effectId: string, v: Value): string | number | boolea
   if (v.type === 'entity:species')
     return (() => [DataRepository.getInstance().getSpecies(v.value as speciesId)]) as ValueSource<any>
   if (v.type === 'dynamic') return parseSelector(effectId, v.selector)
-  if (v.type === 'selector') return parseSelector(effectId, v)
+  if (v.type === 'selector' || v.type === 'selectorValue') return parseSelector(effectId, v)
   throw new Error(`[parseEffect] 未知的数值类型: ${(v as any).type}`)
 }
 
@@ -708,6 +730,12 @@ export function parseTransferStatStage(effectId: string, dsl: Extract<OperatorDS
 export function parseAddRageAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'addRage' }>) {
   return parseSelector<Player>(effectId, dsl.target).apply(
     Operators.addRage(parseValue(effectId, dsl.value) as ValueSource<number>),
+  )
+}
+
+export function parseSetRageAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setRage' }>) {
+  return parseSelector<Player | Pet>(effectId, dsl.target).apply(
+    Operators.setRage(parseValue(effectId, dsl.value) as ValueSource<number>),
   )
 }
 
@@ -1048,6 +1076,10 @@ export function parseCondition(effectId: string, dsl: ConditionDSL): Condition {
       return Conditions.selfSwitchOut()
     case 'selfBeSkillTarget':
       return Conditions.selfBeSkillTarget()
+    case 'selfHasMark':
+      return Conditions.selfHasMark(parseValue(effectId, dsl.baseId) as ValueSource<string>)
+    case 'opponentHasMark':
+      return Conditions.opponentHasMark(parseValue(effectId, dsl.baseId) as ValueSource<string>)
     default: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Unknown condition type: ${(dsl as any).type}`)
@@ -1327,4 +1359,24 @@ export function parseRemoveTransformationAction(
   dsl: Extract<OperatorDSL, { type: 'removeTransformation' }>,
 ) {
   return parseSelector<Pet>(effectId, dsl.target).apply(Operators.removeTransformation())
+}
+
+export function parseSetIgnoreShieldAction(effectId: string, dsl: Extract<OperatorDSL, { type: 'setIgnoreShield' }>) {
+  return parseSelector<UseSkillContext>(effectId, dsl.target).apply(Operators.setIgnoreShield())
+}
+
+export function parseExecuteActionsAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'executeActions' }>,
+): Action {
+  return parseSelector<Action>(effectId, dsl.target).apply(Operators.executeActions())
+}
+
+export function parseAddTemporaryEffectAction(
+  effectId: string,
+  dsl: Extract<OperatorDSL, { type: 'addTemporaryEffect' }>,
+) {
+  return parseSelector<SkillInstance | MarkInstance>(effectId, dsl.target).apply(
+    Operators.addTemporaryEffect(parseValue(effectId, dsl.effect) as ValueSource<Effect<EffectTrigger>>),
+  )
 }

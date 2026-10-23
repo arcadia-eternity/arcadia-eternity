@@ -1,6 +1,6 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
-import { SwitchPetContext } from '../context'
+import { SwitchPetContext, TurnContext, RageContext } from '../context'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
 import type { Pet } from '../pet'
@@ -29,6 +29,8 @@ export class SwitchPetPhase extends SynchronousPhase<SwitchPetContext> {
 
   protected executeOperation(): void {
     const context = this._context!
+
+    if (context.parent instanceof TurnContext) context.parent.appledContexts.push(context)
 
     // Execute the switch operation logic (extracted from performSwitchPet)
     executeSwitchPetOperation(context, this.battle)
@@ -80,5 +82,9 @@ export function executeSwitchPetOperation(context: SwitchPetContext, battle: Bat
   context.battle.applyEffects(context, EffectTrigger.OnOwnerSwitchIn, ...context.switchInPet.marks)
 
   // Reduce rage to 80% after switching
-  player.settingRage(Math.floor(player.currentRage * 0.8))
+  const loss = player.currentRage - Math.floor(player.currentRage * 0.8)
+  if (loss > 0) {
+    // Preserve the exact old balance even if a prior effect assigned fractional rage.
+    player.addRage(new RageContext(context, player, 'switch', 'reduce', loss, false, [0, 0], 'none'))
+  }
 }

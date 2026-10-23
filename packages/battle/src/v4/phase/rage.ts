@@ -25,14 +25,17 @@ export class RagePhase extends SynchronousPhase<RageContext> {
   }
 
   protected createContext(): RageContext {
-    return this.existingContext ?? new RageContext(
-      this.parentContext,
-      this.target,
-      this.reason,
-      this.modifiedType,
-      this.value,
-      this.ignoreRageObtainEfficiency,
-      this.modified,
+    return (
+      this.existingContext ??
+      new RageContext(
+        this.parentContext,
+        this.target,
+        this.reason,
+        this.modifiedType,
+        this.value,
+        this.ignoreRageObtainEfficiency,
+        this.modified,
+      )
     )
   }
 
@@ -51,22 +54,29 @@ export class RagePhase extends SynchronousPhase<RageContext> {
 export function executeRageOperation(context: RageContext, battle: Battle): void {
   const before = context.target.currentRage
 
-  if (!context.available) return
   switch (context.modifiedType) {
     case 'setting':
       context.target.settingRage(context.value)
       break
     case 'add':
-      battle.applyEffects(context, EffectTrigger.OnRageGain)
-      if (context.available) context.updateRageChangeResult()
-      else context.rageChangeResult = 0
+      battle.applyEffects(context, EffectTrigger.BeforeRageGain)
+      if (!context.available) {
+        context.rageChangeResult = 0
+        return
+      }
+      context.updateRageChangeResult()
       context.target.settingRage(context.target.currentRage + context.rageChangeResult)
+      battle.applyEffects(context, EffectTrigger.OnRageGain)
       break
     case 'reduce':
-      battle.applyEffects(context, EffectTrigger.OnRageLoss)
-      if (context.available) context.updateRageChangeResult()
-      else context.rageChangeResult = 0
+      battle.applyEffects(context, EffectTrigger.BeforeRageLoss)
+      if (!context.available) {
+        context.rageChangeResult = 0
+        return
+      }
+      context.updateRageChangeResult()
       context.target.settingRage(context.target.currentRage - context.rageChangeResult)
+      battle.applyEffects(context, EffectTrigger.OnRageLoss)
       break
   }
 

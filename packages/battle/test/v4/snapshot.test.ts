@@ -63,6 +63,8 @@ it('round trips a real V1 turn checkpoint including partial input and completes 
   battle.setSelection(choose(battle, battle.playerB.id))
   await ready
   battle.setSelection(choose(battle, battle.playerA.id))
+  battle.executionBudget.action(battle.currentTurn, () => battle.executionBudget.chargeComputation())
+  const budgetState = battle.executionBudget.exportState()
   const data = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog)))
   expect(data.format).toBe('arcadia.v1.battle-snapshot')
   expect(battle.playerB.activePet.marks).toHaveLength(1)
@@ -73,8 +75,17 @@ it('round trips a real V1 turn checkpoint including partial input and completes 
   await run
   const expected = battle.getState(undefined, true)
   await battle.cleanup()
+  const missingBudget = JSON.parse(JSON.stringify(data))
+  delete missingBudget.nodes.find((node: { kind: string }) => node.kind === 'Battle').fields.executionBudgetState
+  expect(() => restoreBattle(missingBudget, catalog)).toThrow('Invalid execution budget state')
+  const wrongBudgetTurn = JSON.parse(JSON.stringify(data))
+  const budgetRef = wrongBudgetTurn.nodes.find((node: { kind: string }) => node.kind === 'Battle').fields
+    .executionBudgetState.ref
+  wrongBudgetTurn.nodes[budgetRef].fields.turn--
+  expect(() => restoreBattle(wrongBudgetTurn, catalog)).toThrow('Execution budget turn mismatch')
   const restored = restoreBattle(data, catalog)
   battles.push(restored)
+  expect(restored.executionBudget.exportState()).toEqual(budgetState)
   await battle.cleanup() // Idempotent source disposal must not destroy the restored identity.
   expect(restored.getState(undefined, true)).toEqual(before)
   expect(restored.playerA.selection).toEqual(accepted)
@@ -339,7 +350,7 @@ it('rebinds the original AI and continues its random decisions after a JSON rest
   await resumed
 })
 
-it('refuses live phase-bound modifiers and real-time timer state instead of dropping them', async () => {
+it('refuses live phase-bound modifiers and uninitialized timer runtime instead of dropping them', async () => {
   const { ConfigModifier, ConfigModifierType, ConfigDurationType, PhaseType, PhaseScope } =
     await import('@arcadia-eternity/battle/v4')
   const { battle, debuff } = makeScenario()
@@ -362,7 +373,7 @@ it('refuses live phase-bound modifiers and real-time timer state instead of drop
   expect(() => snapshotBattle(battle, catalog)).toThrow('phase-bound')
   remove()
   battle.timerManager.updateConfig({ enabled: true })
-  expect(() => snapshotBattle(battle, catalog)).toThrow('real-time')
+  expect(() => snapshotBattle(battle, catalog)).toThrow('timer runtime')
   battle.timerManager.updateConfig({ enabled: false })
   expect(snapshotBattle(battle, catalog).format).toBe('arcadia.v1.battle-snapshot')
   await battle.cleanup()

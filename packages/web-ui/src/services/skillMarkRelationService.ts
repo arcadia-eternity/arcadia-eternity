@@ -1,5 +1,6 @@
 import type { SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
 import type { OperatorDSL } from '@arcadia-eternity/schema'
+import type { EffectMarkRelation } from '@arcadia-eternity/data-pack-base/native'
 
 export interface SkillMarkRelation {
   markId: string
@@ -28,6 +29,7 @@ export class SkillMarkRelationService {
     skillsData: Record<string, SkillSchemaType>,
     marksData: Record<string, MarkSchemaType>,
     effectsData: Record<string, Effect>,
+    private nativeEffectRelations: Readonly<Record<string, readonly EffectMarkRelation[]>> = {},
   ) {
     this.skillsData = skillsData
     this.marksData = marksData
@@ -57,6 +59,16 @@ export class SkillMarkRelationService {
         if (effect) {
           const effectRelations = this.analyzeEffectForMarks(effectId, effect)
           relations.push(...effectRelations)
+        } else {
+          for (const relation of this.nativeEffectRelations[effectId] ?? []) {
+            if (relation.markId !== 'unknown' && !this.marksData[relation.markId]) continue
+            const presentation = {
+              adds: { confidence: 0.9, description: `通过效果 ${effectId} 添加印记` },
+              removes: { confidence: 0.8, description: `通过效果 ${effectId} 移除印记` },
+              consumes: { confidence: 0.7, description: `通过效果 ${effectId} 消耗印记层数` },
+            }[relation.relationType]
+            relations.push({ ...relation, ...presentation, source: 'effect', effectId })
+          }
         }
       }
     }
@@ -242,10 +254,12 @@ export class SkillMarkRelationService {
     skillsData: Record<string, SkillSchemaType>,
     marksData: Record<string, MarkSchemaType>,
     effectsData: Record<string, Effect>,
+    nativeEffectRelations = this.nativeEffectRelations,
   ): void {
     this.skillsData = skillsData
     this.marksData = marksData
     this.effectsData = effectsData
+    this.nativeEffectRelations = nativeEffectRelations
     this.clearCache()
   }
 }

@@ -54,7 +54,7 @@ export class BattleOrchestrator {
 
     if (!options?.resumeFromSnapshot) {
       await this.runTeamSelectionIfNeeded(playerAId, playerBId)
-      if (this.isBattleEnded()) {
+      if (!this.running || this.isBattleEnded()) {
         this.running = false
         return
       }
@@ -71,7 +71,7 @@ export class BattleOrchestrator {
         decisionManager: this.decisionManager,
       })
 
-      if (this.isBattleEnded()) break
+      if (!this.running || this.isBattleEnded()) break
 
       // Selection — wait for both players
       this.world.state.currentPhase = 'selection'

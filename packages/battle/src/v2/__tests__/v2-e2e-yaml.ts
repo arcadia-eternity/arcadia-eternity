@@ -2,13 +2,14 @@
 // End-to-end test: load real YAML data → createBattleFromConfig → run full battle.
 // Run with: npx tsx packages/battle/src/v2/__tests__/v2-e2e-yaml.ts
 
+import { fileURLToPath } from 'node:url'
 import { BattleMessageType, BattleStatus, type BattleMessage, type playerId } from '@arcadia-eternity/const'
 import { loadV2GameDataFromPack } from '../data/v2-data-loader.js'
 import { createBattleFromConfig } from '../data/battle-factory.js'
 import { LocalBattleSystemV2 } from '../local-battle.js'
 import type { TeamConfig } from '../data/team-config.js'
 
-const PACK_REF = 'builtin:base'
+const PACK_REF = fileURLToPath(new URL('../../../test/v4/fixtures/effect-regression/pack.json', import.meta.url))
 
 const teamA: TeamConfig = {
   name: 'PlayerA',

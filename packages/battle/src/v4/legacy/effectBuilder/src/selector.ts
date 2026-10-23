@@ -14,6 +14,7 @@ import {
   AddMarkContext,
   RageContext,
   StackContext,
+  ConsumeStackContext,
   SwitchPetContext,
   MarkInstanceImpl,
   type ScopeObject,
@@ -21,13 +22,7 @@ import {
   type BattlePhaseBase,
 } from '../../../index'
 import { ReactiveValue, derived, combineValues, describeValue, projectValue, Signal } from '../../../reactiveValue'
-import {
-  TurnContext,
-  type CanOwnedEntity,
-  type Instance,
-  type OwnedEntity,
-  type Prototype,
-} from '../../../index'
+import { TurnContext, type CanOwnedEntity, type Instance, type OwnedEntity, type Prototype } from '../../../index'
 import {
   AttackTargetOpinion,
   Category,
@@ -83,7 +78,11 @@ export class ChainableSelector<T> {
     public type: string,
   ) {
     this._isNumberType =
-      RuntimeTypeChecker.isNumberType(type) || type === 'number' || type === 'number[]' || type.includes('number')
+      RuntimeTypeChecker.isNumberType(type) ||
+      type === 'number' ||
+      type === 'number[]' ||
+      type.includes('number') ||
+      type === 'any'
   }
 
   [Symbol.toPrimitive](context: EffectContext<EffectTrigger>): T[] {
@@ -131,7 +130,10 @@ export class ChainableSelector<T> {
                   return attributeSystem.getAttribute$(prop as string)
                 }
                 // 如果没有attributeSystem，返回一个包含当前值的Observable
-                return describeValue(derived(() => (target as NonNullable<T>)[prop]), { type: 'property', target, key: prop })
+                return describeValue(
+                  derived(() => (target as NonNullable<T>)[prop]),
+                  { type: 'property', target, key: prop },
+                )
               },
               set: (value: NonNullable<T>[K]) => {
                 ;(target as NonNullable<T>)[prop] = value
@@ -158,14 +160,16 @@ export class ChainableSelector<T> {
             }
 
             // 如果没有attributeSystem，返回一个空的Observable
-            return derived(() => { throw new Error('Target does not have attributeSystem') })
+            return derived(() => {
+              throw new Error('Target does not have attributeSystem')
+            })
           }),
       'Observable<number | boolean | string>',
     )
   }
 
   selectPath<P extends string>(path: P) {
-    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+    if (typeof process === 'undefined' || process.env.NODE_ENV !== 'production') {
       if (!/^[\w\[\].]+$/.test(path)) {
         throw new Error(`Invalid path format: ${path}`)
       }
@@ -191,7 +195,11 @@ export class ChainableSelector<T> {
     }
 
     // 开发环境下的路径验证
-    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production') && extractorPath !== undefined && this.type !== 'any') {
+    if (
+      (typeof process === 'undefined' || process.env.NODE_ENV !== 'production') &&
+      extractorPath !== undefined &&
+      this.type !== 'any'
+    ) {
       const fullPath = `${this.type}.${extractorPath}`
 
       if (!RuntimeTypeChecker.validatePath(this.type, extractorPath)) {
@@ -213,7 +221,7 @@ export class ChainableSelector<T> {
 
   private createExtractedSelector<U>(extractor: PathExtractor<T, U>): ChainableSelector<U> {
     // 开发环境类型校验
-    if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+    if (typeof process === 'undefined' || process.env.NODE_ENV !== 'production') {
       if (!RuntimeTypeChecker.validatePath(this.type, extractor.path)) {
         throw new Error(`[类型错误] 路径 ${extractor.path} 在 ${this.type} 中不存在`)
       }
@@ -254,7 +262,7 @@ export class ChainableSelector<T> {
       actualCondition = condition!
 
       // 开发环境路径校验
-      if ((typeof process === 'undefined' || process.env.NODE_ENV !== 'production')) {
+      if (typeof process === 'undefined' || process.env.NODE_ENV !== 'production') {
         if (!RuntimeTypeChecker.validatePath(this.type, actualPath)) {
           throw new Error(`[路径校验失败] 路径 "${actualPath}" 在类型 "${this.type}" 中无效\n`)
         }
@@ -317,9 +325,7 @@ export class ChainableSelector<T> {
       return new ChainableSelector<ReactiveValue<number>>(context => {
         const observables = this.selector(context) as ReactiveValue<number>[]
         if (observables.length === 0) {
-          return [
-            new Signal(0),
-          ]
+          return [new Signal(0)]
         }
         if (observables.length === 1) {
           return observables
@@ -332,6 +338,31 @@ export class ChainableSelector<T> {
     return new ChainableSelector<number>(context => {
       const values = this.selector(context) as number[]
       return [values.reduce((acc, cur) => acc + cur, 0)]
+    }, this.type)
+  }
+
+  avg(this: ChainableSelector<number>): ChainableSelector<number>
+  avg(this: ChainableSelector<ReactiveValue<number>>): ChainableSelector<ReactiveValue<number>>
+  avg(
+    this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
+  ): ChainableSelector<number> | ChainableSelector<ReactiveValue<number>> {
+    if (this.type.includes('Observable')) {
+      return new ChainableSelector<ReactiveValue<number>>(context => {
+        const observables = this.selector(context) as ReactiveValue<number>[]
+        if (observables.length === 0) {
+          return [new Signal(0)]
+        }
+        if (observables.length === 1) {
+          return observables
+        }
+        // 对当前来源取平均值，保留历史的小数结果。
+        const combined = projectValue(combineValues(observables), 'average')
+        return [combined]
+      }, 'Observable<number>')
+    }
+    return new ChainableSelector<number>(context => {
+      const values = this.selector(context) as number[]
+      return [values.length === 0 ? 0 : values.reduce((acc, cur) => acc + cur, 0) / values.length]
     }, this.type)
   }
 
@@ -427,16 +458,29 @@ export class ChainableSelector<T> {
     }, this.type)
   }
 
-  /**
-   * 对目标列表乱序后返回
-   **/
+  /** Sample between the first two numeric results, as in historical V1. */
+  sampleBetween(this: ChainableSelector<number>): ChainableSelector<number> {
+    return new ChainableSelector(context => {
+      const values = this.selector(context)
+      const firstVal = values[0]
+      const secondVal = values[1]
+      if (typeof firstVal !== 'number' || typeof secondVal !== 'number' || firstVal > secondVal) return []
+      const randomValue = context.battle.randomInt(firstVal, secondVal)
+      return [randomValue]
+    }, this.type)
+  }
+
+  /** 对目标列表乱序后返回。 */
   shuffled(): ChainableSelector<T> {
     return new ChainableSelector(context => context.battle.shuffle(this.selector(context)), this.type)
   }
 
   // 最大值限制
   clampMax(this: ChainableSelector<number>, max: ValueSource<number>): ChainableSelector<number>
-  clampMax(this: ChainableSelector<ReactiveValue<number>>, max: ValueSource<number>): ChainableSelector<ReactiveValue<number>>
+  clampMax(
+    this: ChainableSelector<ReactiveValue<number>>,
+    max: ValueSource<number>,
+  ): ChainableSelector<ReactiveValue<number>>
   clampMax(
     this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
     max: ValueSource<number>,
@@ -453,7 +497,10 @@ export class ChainableSelector<T> {
 
   // 最小值限制
   clampMin(this: ChainableSelector<number>, min: ValueSource<number>): ChainableSelector<number>
-  clampMin(this: ChainableSelector<ReactiveValue<number>>, min: ValueSource<number>): ChainableSelector<ReactiveValue<number>>
+  clampMin(
+    this: ChainableSelector<ReactiveValue<number>>,
+    min: ValueSource<number>,
+  ): ChainableSelector<ReactiveValue<number>>
   clampMin(
     this: ChainableSelector<number> | ChainableSelector<ReactiveValue<number>>,
     min: ValueSource<number>,
@@ -585,6 +632,7 @@ export type ObjectOpinion =
   | AddMarkContext
   | RageContext
   | StackContext
+  | ConsumeStackContext
   | SwitchPetContext
   | StatTypeOnBattle
   | Instance
@@ -600,7 +648,7 @@ export type ObjectOpinion =
   | ReactiveValue<any>
   | BattlePhaseBase
 
-export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Array<SelectorOpinion>
+export type SelectorOpinion = PrimitiveOpinion | ObjectOpinion | EnumOpinion | Action | Array<SelectorOpinion>
 
 // 递归查找context的通用函数
 export function findContextRecursively<T extends Context, U extends EffectTrigger>(
@@ -627,6 +675,7 @@ export const BaseSelector: {
   opponentTeam: ChainableSelector<Pet>
   selfPlayer: ChainableSelector<Player>
   opponentPlayer: ChainableSelector<Player>
+  useSkillContext: ChainableSelector<UseSkillContext>
   usingSkillContext: ChainableSelector<UseSkillContext>
   damageContext: ChainableSelector<DamageContext>
   effectContext: ChainableSelector<EffectContext<EffectTrigger>>
@@ -642,6 +691,7 @@ export const BaseSelector: {
   healContext: ChainableSelector<HealContext>
   addMarkContext: ChainableSelector<AddMarkContext>
   rageContext: ChainableSelector<RageContext>
+  consumeStackContext: ChainableSelector<ConsumeStackContext>
   stackContext: ChainableSelector<StackContext>
   switchPetContext: ChainableSelector<SwitchPetContext>
   battle: ChainableSelector<Battle>
@@ -695,6 +745,9 @@ export const BaseSelector: {
     //TODO: error with use owners with global marks
     return []
   }),
+  get useSkillContext() {
+    return this.usingSkillContext
+  },
   usingSkillContext: createChainable<UseSkillContext>('UseSkillContext', (context: EffectContext<EffectTrigger>) => {
     const foundContext = findContextRecursively(context, UseSkillContext)
     return foundContext ? [foundContext] : []
@@ -790,6 +843,13 @@ export const BaseSelector: {
     const foundContext = findContextRecursively(context, StackContext)
     return foundContext ? [foundContext] : []
   }),
+  consumeStackContext: createChainable<ConsumeStackContext>(
+    'ConsumeStackContext',
+    (context: EffectContext<EffectTrigger>) => {
+      const foundContext = findContextRecursively(context, ConsumeStackContext)
+      return foundContext ? [foundContext] : []
+    },
+  ),
   switchPetContext: createChainable<SwitchPetContext>('SwitchPetContext', (context: EffectContext<EffectTrigger>) => {
     const foundContext = findContextRecursively(context, SwitchPetContext)
     return foundContext ? [foundContext] : []

@@ -1,0 +1,213 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_ability_immune_exceptional_if_rage_gt_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/64",
+      "definitionSha256": "e0e2160ec997be410ddcfa5f94c3f96df70f8dc4ec2f61e74f91d97d4302fa7f",
+      "recipe": {
+        "id": "effect_ability_immune_exceptional_if_rage_gt_50",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=50;return left!==undefined && right!==undefined && left > right}),contexts.addMark.condition((_ctx,events) => events.some(event => event.baseMark.tags[0] === \"exceptional\")))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/2/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_ability_shenguang_immune_status_above_half_hp",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/57",
+      "definitionSha256": "adc84de21d97d37f8776d22feafaa026149eeae39180e5f70be7084fa0968998",
+      "recipe": {
+        "id": "effect_ability_shenguang_immune_status_above_half_hp",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events.some(event => event.baseMark.tags[0] === \"status\")),((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 2)));return left!==undefined && right!==undefined && left > right}))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_anying_immune_fear_early_wake",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/26",
+      "definitionSha256": "38dc193487b3b4c3532d6c31627d0fafc530849a2ed6861402cef6560b6aed8c",
+      "recipe": {
+        "id": "effect_emblem_anying_immune_fear_early_wake",
+        "trigger": "BeforeEffect",
+        "priority": 0,
+        "when": "conditions.all(conditions.damageTargetBelongsToOtherPlayer,contexts.effect.condition((_ctx,events) => events.some(event => event.effect?.id === \"effect_mark_onDamage_over100_recovery\")))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.effect.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "effectId", "after": "effect.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_immune_mark_haipa",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/15",
+      "definitionSha256": "ab3fae1ab80c1b2ee7c0fcf6afe2f21dc2fabc282aad6cbbfe78a086f87475cf",
+      "recipe": {
+        "id": "effect_emblem_immune_mark_haipa",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_haipa\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_immune_mark_zhixi",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/10",
+      "definitionSha256": "b90941488f8457f57a5e4a2fa02ab7e7985176bff3f55079fa1e839ea54d02bb",
+      "recipe": {
+        "id": "effect_emblem_immune_mark_zhixi",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_zhixi\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_disabled_xingzhili_effect",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/56",
+      "definitionSha256": "10b551d8da8fc260f63c4bc50a6fa5535fec3dca06c0334e2286cff95ccd28ae",
+      "recipe": {
+        "id": "effect_mark_disabled_xingzhili_effect",
+        "trigger": "BeforeEffect",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,contexts.effect.condition((_ctx,events) => events.some(event => event.effect?.tags[0] === \"xingzhili\")))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.effect.apply(ops.disableContext())" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_immune_exceptional",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/61",
+      "definitionSha256": "139d6975ddaeb70948270131dbd573204d1b7da8e5dc9813a449824d291075e2",
+      "recipe": {
+        "id": "effect_mark_immune_exceptional",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events.some(event => event.baseMark.tags[0] === \"exceptional\")))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_immune_stage_debuff",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/53",
+      "definitionSha256": "e8bdfe2f1b8c8d465c1e4724f048ff46e6dde0b821a57069314b9351d2d5cedf",
+      "recipe": {
+        "id": "effect_mark_immune_stage_debuff",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,conditions.any(conditions.statStageChange(\"atk\",\"down\"),conditions.statStageChange(\"def\",\"down\"),conditions.statStageChange(\"spa\",\"down\"),conditions.statStageChange(\"spd\",\"down\"),conditions.statStageChange(\"spe\",\"down\")))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_immune_status",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/60",
+      "definitionSha256": "21edeec82d797f581b06158cdf276674316c37439e325689f5102b9ad7aa7cdd",
+      "recipe": {
+        "id": "effect_mark_immune_status",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events.some(event => event.baseMark.tags[0] === \"status\")))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_immune_zhongdu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/198",
+      "definitionSha256": "39699e762f4226e9f41907211a53d0bc4603fb443286cb33293d91fd31af5899",
+      "recipe": {
+        "id": "effect_mark_immune_zhongdu",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_zhongdu\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.disableContext())" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "effect_ability_gugao_prevent_rage_when_opponent_use_skill",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/59",
+      "definitionSha256": "cb45eebe7074657703dd656a5bf387cbe5fa89fca4e3bb8958d900fd43e278c5",
+      "reason": "unsupported trigger"
+    },
+    {
+      "id": "effect_mark_zhenshihuanxiang_prevent_consume",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/151",
+      "definitionSha256": "4e11b3e660d8b33a0061d4756bd6232dd82cee0f81beda4539f520dbffb9b037",
+      "reason": "unsupported trigger"
+    }
+  ]
+}

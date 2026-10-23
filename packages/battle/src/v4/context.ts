@@ -1,3 +1,4 @@
+import { normalizeMarkInstanceParams, type MarkInstanceParams } from './content/mark-parameters'
 import {
   AttackTargetOpinion,
   Category,
@@ -44,6 +45,7 @@ export type AllContext =
   | SwitchPetContext
   | RageContext
   | StackContext
+  | ConsumeStackContext
   | TransformContext
   | EffectContext<EffectTrigger>
 
@@ -150,6 +152,8 @@ export class UseSkillContext extends Context {
   hitResult: boolean = false
   crit: boolean = false
   multihitResult = 1
+  /** One-based loop cursor; advances past the resolved total on completion, but not on a miss. */
+  currentHitCount = 1
 
   damageType: DamageType = DamageType.Physical
   typeMultiplier = 1
@@ -160,6 +164,8 @@ export class UseSkillContext extends Context {
   randomFactor: number = 1
 
   defeated: boolean = false
+  /** Captured on accepted execution, not at selection/context construction time. */
+  previousSkillElement?: Element
 
   constructor(
     public readonly parent: TurnContext,
@@ -330,6 +336,10 @@ export class UseSkillContext extends Context {
     })
   }
 
+  setIgnoreShield() {
+    this.ignoreShield = true
+  }
+
   setActualTarget(target: Pet) {
     this.actualTarget = target
   }
@@ -367,14 +377,16 @@ export class RageContext extends Context {
   public readonly battle: Battle
   public available: boolean = true
   public rageChangeResult = 0
+  private gainLimit = Infinity
   constructor(
-    public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext,
+    public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext | SwitchPetContext,
     public target: Player,
     public reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect',
     public modifiedType: 'setting' | 'add' | 'reduce',
     public value: number,
     public ignoreRageObtainEfficiency: boolean = false,
     public modified: [number, number] = [0, 0],
+    public readonly rounding: 'floor' | 'none' = 'floor',
   ) {
     super(parent)
     this.battle = parent.battle
@@ -383,7 +395,15 @@ export class RageContext extends Context {
   updateRageChangeResult() {
     const percentModifier = 1 + this.modified[0] / 100
     const deltaModifier = this.modified[1]
-    this.rageChangeResult = Math.floor(this.value * percentModifier + deltaModifier)
+    const amount = this.value * percentModifier + deltaModifier
+    const limited = this.modifiedType === 'add' ? Math.min(amount, this.gainLimit) : amount
+    this.rageChangeResult = this.rounding === 'floor' ? Math.floor(limited) : limited
+  }
+
+  /** Gain limits compose by minimum and apply after every numeric modifier. */
+  limitGain(maximum: number): void {
+    if (!Number.isFinite(maximum) || maximum < 0) throw new Error('Expected non-negative finite rage gain limit')
+    this.gainLimit = Math.min(this.gainLimit, maximum)
   }
 
   addModified: (percent: number, delta: number) => void = (percent, delta) => {
@@ -492,6 +512,8 @@ export class HealContext extends Context {
 }
 
 export class AddMarkContext extends Context {
+  public readonly instanceParams: MarkInstanceParams | undefined
+  public result?: 'parameter-conflict'
   readonly type = 'add-mark'
   public readonly battle: Battle
   public available: boolean = true
@@ -504,8 +526,10 @@ export class AddMarkContext extends Context {
     stack?: number,
     duration?: number,
     public config?: Partial<MarkInstance['config']>,
+    instanceParams?: MarkInstanceParams,
   ) {
     super(parent)
+    this.instanceParams = normalizeMarkInstanceParams(baseMark, instanceParams)
     this.battle = parent.battle
     //拷贝，因为原值是只读的
     if (!config) this.config = JSON.parse(JSON.stringify(baseMark.config))
@@ -625,6 +649,27 @@ export class StackContext extends Context {
   }
 }
 
+export class ConsumeStackContext extends Context {
+  readonly type = 'consumeStack'
+  public readonly battle: Battle
+  public available: boolean = true
+
+  constructor(
+    public readonly parent: EffectContext<EffectTrigger> | DamageContext,
+    public readonly mark: MarkInstance,
+    public readonly requestedAmount: number,
+    public actualAmount: number = 0,
+  ) {
+    super(parent)
+    this.battle = parent.battle
+  }
+
+  // 允许效果修改实际消耗的数量
+  setActualAmount(amount: number): void {
+    this.actualAmount = Math.max(0, Math.min(amount, this.mark.stack, this.requestedAmount))
+  }
+}
+
 type V1TriggerContextMap = {
   [EffectTrigger.OnBattleStart]: Battle
 
@@ -639,6 +684,7 @@ type V1TriggerContextMap = {
   [EffectTrigger.OnMiss]: UseSkillContext
   [EffectTrigger.AfterAttacked]: UseSkillContext
   [EffectTrigger.OnDefeat]: UseSkillContext
+  [EffectTrigger.SkillUseEnd]: UseSkillContext
 
   [EffectTrigger.OnBeforeCalculateDamage]: DamageContext
   [EffectTrigger.OnDamage]: DamageContext
@@ -658,8 +704,12 @@ type V1TriggerContextMap = {
 
   [EffectTrigger.OnStackBefore]: StackContext
   [EffectTrigger.OnStack]: StackContext
+  [EffectTrigger.OnBeforeConsumeStack]: ConsumeStackContext
+  [EffectTrigger.OnConsumeStack]: ConsumeStackContext
   [EffectTrigger.OnBeforeHeal]: HealContext
   [EffectTrigger.OnHeal]: HealContext
+  [EffectTrigger.BeforeRageGain]: RageContext
+  [EffectTrigger.BeforeRageLoss]: RageContext
   [EffectTrigger.OnRageGain]: RageContext
   [EffectTrigger.OnRageLoss]: RageContext
 

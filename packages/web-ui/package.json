@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "run-s build:deps \"build-only {@}\" --",
-    "build:deps": "pnpm --filter @arcadia-eternity/pack-loader run build",
+    "build:deps": "pnpm --filter '@arcadia-eternity/web-ui^...' run build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:online": "pnpm run test:e2e:online:relay",
@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/data-repository": "workspace:^",

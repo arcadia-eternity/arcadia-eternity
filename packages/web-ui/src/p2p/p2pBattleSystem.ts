@@ -11,13 +11,16 @@ import {
   type playerId,
 } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
-import { LocalBattleSystemV2, createBattleFromConfig, createRepositoryFromRawData } from '@arcadia-eternity/battle'
-import type { TeamConfig, BattleConfig as V2BattleConfig } from '@arcadia-eternity/battle'
+import {
+  createNativeWebBattleSystem,
+  type NativeGameDataStoreLike,
+  type NativeWebBattleConfig,
+} from '@/services/nativeBattleFactory'
+import type { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import type { PeerTransport } from '@arcadia-eternity/p2p-transport'
 import type { PrivateRoomSignalBridge } from '@/p2p/privateRoomSignalBridge'
 import { type P2PBattleMessage, type P2PTimerSyncPayload, isP2PBattleMessage } from './battleProtocol'
-import { toRaw } from 'vue'
 
 type BattleMessageHandler = (message: BattleMessage) => void
 type SnapshotHandler = (snapshot: { battleState: BattleState; availableSelections: PlayerSelection[] }) => void
@@ -39,72 +42,27 @@ const P2P_TIMER_EVENT_TYPES: TimerEventType[] = [
 ]
 const P2P_TIMER_EVENT_TYPE_SET = new Set<TimerEventType>(P2P_TIMER_EVENT_TYPES)
 
-export interface WebGameDataStoreLike {
-  effects: { allIds: string[]; byId: Record<string, unknown> }
-  marks: { allIds: string[]; byId: Record<string, unknown> }
-  skills: { allIds: string[]; byId: Record<string, unknown> }
-  species: { allIds: string[]; byId: Record<string, unknown> }
-}
-
-function asRawRecord<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T
-}
-
-function toTeamConfig(playerId: string, name: string, pets: PetSchemaType[]): TeamConfig {
-  return {
-    id: playerId,
-    name,
-    team: pets.map(pet => ({
-      name: pet.name,
-      species: pet.species,
-      level: pet.level,
-      evs: pet.evs,
-      ivs: pet.ivs,
-      nature: pet.nature,
-      skills: pet.skills,
-      ability: pet.ability || undefined,
-      emblem: pet.emblem || undefined,
-      gender: pet.gender || undefined,
-      weight: pet.weight || undefined,
-      height: pet.height || undefined,
-    })),
-  }
-}
-
-export function createWebGameRepository(dataStore: WebGameDataStoreLike) {
-  const toRawRecords = (ids: string[], byId: Record<string, unknown>): Record<string, unknown>[] =>
-    ids.map(id => asRawRecord(toRaw(byId[id])) as Record<string, unknown>)
-
-  return createRepositoryFromRawData({
-    effects: toRawRecords(dataStore.effects.allIds, dataStore.effects.byId),
-    marks: toRawRecords(dataStore.marks.allIds, dataStore.marks.byId),
-    skills: toRawRecords(dataStore.skills.allIds, dataStore.skills.byId),
-    species: toRawRecords(dataStore.species.allIds, dataStore.species.byId),
-  })
-}
-
-export function createP2PHostBattleSystem(options: {
+export async function createP2PHostBattleSystem(options: {
   localPlayerId: playerId
   remotePlayerId: playerId
   localPlayerName: string
   remotePlayerName: string
   localTeam: PetSchemaType[]
   remoteTeam: PetSchemaType[]
-  dataStore: WebGameDataStoreLike
+  dataStore: NativeGameDataStoreLike
   bridge: PrivateRoomSignalBridge
   transport: PeerTransport
-  battleConfig?: V2BattleConfig
-}): IBattleSystem {
-  const repo = createWebGameRepository(options.dataStore)
-  const battle = createBattleFromConfig(
-    toTeamConfig(options.localPlayerId, options.localPlayerName, options.localTeam),
-    toTeamConfig(options.remotePlayerId, options.remotePlayerName, options.remoteTeam),
-    repo,
+  battleConfig?: NativeWebBattleConfig
+}): Promise<IBattleSystem> {
+  const localSystem = await createNativeWebBattleSystem(
+    { id: options.localPlayerId, name: options.localPlayerName, team: options.localTeam },
+    { id: options.remotePlayerId, name: options.remotePlayerName, team: options.remoteTeam },
+    options.dataStore,
     options.battleConfig,
   )
 
   return new P2PHostBattleSystem(
-    new LocalBattleSystemV2(battle),
+    localSystem,
     options.localPlayerId,
     options.remotePlayerId,
     options.bridge,
@@ -122,7 +80,7 @@ class P2PHostBattleSystem implements IBattleSystem {
   private isReady = false
 
   constructor(
-    private readonly localSystem: LocalBattleSystemV2,
+    private readonly localSystem: LocalBattleSystemV4,
     private readonly localPlayerId: playerId,
     private readonly remotePlayerId: playerId,
     private readonly bridge: PrivateRoomSignalBridge,

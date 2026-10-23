@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { PackLoader } from '../src/loader'
 
@@ -7,16 +8,19 @@ describe('PackLoader', () => {
     vi.restoreAllMocks()
   })
 
-  it('loads builtin base pack via node-fs source', async () => {
+  it('loads legacy effect fixtures and metadata dependencies via node-fs source', async () => {
     const loader = new PackLoader()
-    const result = await loader.load('builtin:base', { source: 'node-fs', validateReferences: true })
+    const packPath = fileURLToPath(
+      new URL('../../battle/test/v4/fixtures/effect-regression/pack.json', import.meta.url),
+    )
+    const result = await loader.load(packPath, { source: 'node-fs', validateReferences: true })
     const summary = loader.summarize(result)
 
     expect(summary.effectCount).toBeGreaterThan(0)
     expect(summary.markCount).toBeGreaterThan(0)
     expect(summary.skillCount).toBeGreaterThan(0)
     expect(summary.speciesCount).toBeGreaterThan(0)
-    expect(summary.packId).toBe('arcadia-eternity.base')
+    expect(summary.packId).toBe('arcadia-eternity.effect-regression')
     expect(summary.lockfileIssueCount).toBe(0)
   })
 

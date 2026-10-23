@@ -12,6 +12,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import ResizeHandle from './ResizeHandle.vue'
 import DataTable from '@/features/data-editor/components/data-table/DataTable.vue'
 import PropertyPanel from '@/features/data-editor/components/property-panel/PropertyPanel.vue'
+import { matchesDataFile } from '../../utils/fileResolver'
 
 const editorState = useEditorState()
 const gameData = useGameDataStore()
@@ -28,8 +29,7 @@ const records = computed(() => {
     const id = (r as Record<string, unknown>).id as string
     const source = sourceMap[id]
     if (!source) return false
-    const sourceFile = source.split('/').pop() ?? ''
-    return sourceFile === filter || source === filter
+    return matchesDataFile(source, filter, editorState.availableDataFiles)
   })
 })
 

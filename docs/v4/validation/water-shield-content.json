@@ -1,0 +1,43 @@
+{
+  "formatVersion": 1,
+  "implementation": "packages/battle/src/v4/official/water-shield-content.ts",
+  "evidence": "Native dependency closure and lower-level legacy recipe differential, not accepted current-YAML oracle equivalence.",
+  "unresolved": "Amplifier YAML uses rejected useSkillContext spelling. Reference explicitly uses usingSkillContext and does not modify the YAML or parser.",
+  "records": [
+    {
+      "id": "effect_skill_add_mark_shuiwenpingzhang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/182",
+      "definitionSha256": "fc68939202c5a4742c854c496371c9bc85f7a72c6563d6f9dbd8876e5d7df009",
+      "classification": "U"
+    },
+    {
+      "id": "effect_mark_amplify_next_damage_skill_power_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/32",
+      "definitionSha256": "dac584118224940f53d784ca9865492c5437a4f01a70ad29e7add59e320170ae",
+      "classification": "U"
+    },
+    {
+      "id": "effect_mark_onDestroy_add_mark_shanghaizengjia",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/57",
+      "definitionSha256": "b1fd8000a0a30bb281387c9c243a4c43a943660ae621fc7b5e591c8e32d13153",
+      "classification": "U"
+    },
+    {
+      "id": "mark_shanghaizengjia",
+      "sourceFile": "packs/base/data/mark.yaml",
+      "sourcePath": "/90",
+      "definitionSha256": "873ac0a7453374f908f672f7f1d5b64a76df54401176fbcdfa3808f7daff9afe",
+      "classification": "U"
+    },
+    {
+      "id": "mark_shuiwenpingzhang",
+      "sourceFile": "packs/base/data/mark.yaml",
+      "sourcePath": "/115",
+      "definitionSha256": "bb908974fb5fe417628565217838e5c3cf48676f146da80ae35c3be52e429f79",
+      "classification": "U"
+    }
+  ]
+}

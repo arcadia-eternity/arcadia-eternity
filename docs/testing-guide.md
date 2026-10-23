@@ -133,6 +133,10 @@ pnpm run test:e2e:online:ranked:external
 5. `pnpm --filter @arcadia-eternity/battle exec vitest run src/v2/__tests__/v2-runtime-snapshot.test.ts`
 6. `pnpm --filter @arcadia-eternity/server exec vitest run test/clusterBattleService.v2.test.ts`
 
+原生本地/P2P 入口改动还需运行 `pnpm typecheck:web-native`、`pnpm lint:web-native` 和 `pnpm test:web-native`。它们检查共享构造入口、当前编辑元数据、AI/选队/恢复和实际 P2P 指令往返。`pnpm test:web-native:e2e` 验证实际本地页面、选队和延迟资源冷启动，需要先安装 Playwright Chromium。`pnpm verify:battle-v4-native-pack` 另行验证 Node/Chrome 的原生包加载、完整对战和恢复。
+
+CLI 本地入口运行 `pnpm test:cli-native`；它会实际启动 `local` 命令，验证严格加载、双 AI 和正常结束。CLI 类型检查仍使用根目录的 `pnpm typecheck`。
+
 发布前回归（含联机）：
 
 1. `pnpm test`

@@ -67,6 +67,7 @@ export function executeEffectOperation<T extends EffectTrigger>(context: EffectC
       context.effect.innerApply(context)
       context.success = true
     } catch (error) {
+      battle.executionBudget.assertActive()
       console.error('Effect execution failed:', error)
       context.success = false
 

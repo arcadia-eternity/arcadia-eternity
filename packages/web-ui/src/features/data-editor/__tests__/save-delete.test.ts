@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, reactive } from 'vue'
+import { parse } from 'yaml'
+import { ElMessage } from 'element-plus'
 import type { EditorState } from '../composables/useEditorState'
 import { useSaveHandlers } from '../composables/useSaveHandlers'
 
@@ -47,6 +49,10 @@ function createEditorState(overrides?: Partial<EditorState>): EditorState {
     activeTabId: null,
     searchQuery: '',
     isDirty: false,
+    availableDataFiles: [],
+    selectedDataFile: null,
+    createTargetFile: null,
+    recordSourceFiles: {},
     ...overrides,
   }) as EditorState
 }
@@ -78,7 +84,27 @@ beforeEach(async () => {
     return Promise.resolve({ content: EFFECT_YAML })
   })
   mockWriteBasePackFile.mockResolvedValue(undefined)
+  mockReadAllBasePackData.mockResolvedValue({})
 })
+
+function serveGroupedSpecies() {
+  const fileRefs = ['groups/dilan/species.yaml', 'groups/yilu/species.yaml']
+  const contents: Record<string, string> = {
+    'pack.json': JSON.stringify({ paths: { dataDir: 'data' }, data: { species: fileRefs } }),
+    'data/groups/dilan/species.yaml': '- id: pet_dilan\n- id: pet_didilan\n',
+    'data/groups/yilu/species.yaml': '- id: pet_yilu\n- id: pet_yiluxin\n',
+  }
+  mockReadBasePackFile.mockImplementation(async ({ relativePath }: { relativePath: string }) => {
+    if (!(relativePath in contents)) throw new Error(`Missing file: ${relativePath}`)
+    return { content: contents[relativePath] }
+  })
+  mockWriteBasePackFile.mockImplementation(
+    async ({ relativePath, content }: { relativePath: string; content: string }) => {
+      contents[relativePath] = content
+    },
+  )
+  return { contents, fileRefs }
+}
 
 describe('useSaveHandlers', () => {
   it('doSave: skips when no entity type selected', async () => {
@@ -205,5 +231,111 @@ describe('useSaveHandlers', () => {
     await doDelete()
 
     expect(mockWriteBasePackFile).toHaveBeenCalled()
+  })
+
+  it('doCreate: uses the selected nested file and remembers its actual source', async () => {
+    const { contents, fileRefs } = serveGroupedSpecies()
+    const editorState = createEditorState({
+      selectedEntityType: 'species',
+      selectedDataFile: fileRefs[1],
+      createTargetFile: fileRefs[0],
+      availableDataFiles: fileRefs,
+      packFilters: { enabledPacks: ['base'], activeOnly: false },
+    })
+    const draftRef = ref<Record<string, unknown>>({})
+    const gameDataStore = createGameDataStore()
+    const { doCreate } = useSaveHandlers({ draftRef, editorState, gameDataStore })
+
+    await doCreate()
+
+    const id = editorState.selectedRecordId!
+    expect(mockWriteBasePackFile).toHaveBeenCalledExactlyOnceWith({
+      folderName: 'base',
+      relativePath: 'data/groups/yilu/species.yaml',
+      content: expect.any(String),
+    })
+    expect(editorState.recordSourceFiles[id]).toBe('data/groups/yilu/species.yaml')
+    expect(parse(contents['data/groups/yilu/species.yaml']).map((record: { id: string }) => record.id)).toContain(id)
+    expect(contents['data/groups/dilan/species.yaml']).toBe('- id: pet_dilan\n- id: pet_didilan\n')
+  })
+
+  it('doCreate: an explicitly selected target takes precedence over the file filter', async () => {
+    const { fileRefs } = serveGroupedSpecies()
+    const editorState = createEditorState({
+      selectedEntityType: 'species',
+      selectedDataFile: fileRefs[1],
+      availableDataFiles: fileRefs,
+      packFilters: { enabledPacks: ['base'], activeOnly: false },
+    })
+    const { doCreate } = useSaveHandlers({ draftRef: ref({}), editorState, gameDataStore: createGameDataStore() })
+
+    await doCreate({ targetFile: fileRefs[0] })
+
+    expect(mockWriteBasePackFile).toHaveBeenCalledExactlyOnceWith({
+      folderName: 'base',
+      relativePath: 'data/groups/dilan/species.yaml',
+      content: expect.any(String),
+    })
+    expect(editorState.recordSourceFiles[editorState.selectedRecordId!]).toBe('data/groups/dilan/species.yaml')
+  })
+
+  it('doBatchDelete: writes every selected file and preserves unselected records', async () => {
+    const { contents } = serveGroupedSpecies()
+    const editorState = createEditorState({
+      selectedEntityType: 'species',
+      selectedRecordId: 'pet_yilu',
+      packFilters: { enabledPacks: ['base'], activeOnly: false },
+      recordSourceFiles: { pet_dilan: 'data/groups/dilan/species.yaml', pet_yilu: 'data/groups/yilu/species.yaml' },
+    })
+    const gameDataStore = createGameDataStore()
+    const allIds = ['pet_dilan', 'pet_didilan', 'pet_yilu', 'pet_yiluxin']
+    gameDataStore.species = { allIds, byId: Object.fromEntries(allIds.map(id => [id, { id }])) }
+    const { doBatchDelete } = useSaveHandlers({ draftRef: ref({}), editorState, gameDataStore })
+
+    await doBatchDelete(['pet_dilan', 'pet_yilu'])
+
+    expect(mockWriteBasePackFile.mock.calls.map(([call]) => call.relativePath)).toEqual([
+      'data/groups/dilan/species.yaml',
+      'data/groups/yilu/species.yaml',
+    ])
+    expect(parse(contents['data/groups/dilan/species.yaml'])).toEqual([{ id: 'pet_didilan' }])
+    expect(parse(contents['data/groups/yilu/species.yaml'])).toEqual([{ id: 'pet_yiluxin' }])
+    expect(gameDataStore.species.allIds).toEqual(['pet_didilan', 'pet_yiluxin'])
+    expect(editorState.selectedRecordId).toBeNull()
+    expect(editorState.recordSourceFiles).toEqual({})
+    expect(ElMessage.success).toHaveBeenCalledWith('已删除 2 条记录')
+  })
+
+  it('doBatchDelete: a later write failure keeps unwritten records and their selection', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { contents } = serveGroupedSpecies()
+    mockWriteBasePackFile.mockImplementation(
+      async ({ relativePath, content }: { relativePath: string; content: string }) => {
+        if (relativePath === 'data/groups/yilu/species.yaml') throw new Error('disk full')
+        contents[relativePath] = content
+      },
+    )
+    const editorState = createEditorState({
+      selectedEntityType: 'species',
+      selectedRecordId: 'pet_yilu',
+      packFilters: { enabledPacks: ['base'], activeOnly: false },
+      recordSourceFiles: { pet_dilan: 'data/groups/dilan/species.yaml', pet_yilu: 'data/groups/yilu/species.yaml' },
+    })
+    const gameDataStore = createGameDataStore()
+    const allIds = ['pet_dilan', 'pet_yilu']
+    gameDataStore.species = { allIds, byId: Object.fromEntries(allIds.map(id => [id, { id }])) }
+    const { doBatchDelete } = useSaveHandlers({ draftRef: ref({}), editorState, gameDataStore })
+
+    await doBatchDelete(allIds)
+
+    expect(parse(contents['data/groups/dilan/species.yaml'])).toEqual([{ id: 'pet_didilan' }])
+    expect(parse(contents['data/groups/yilu/species.yaml'])).toEqual([{ id: 'pet_yilu' }, { id: 'pet_yiluxin' }])
+    expect(gameDataStore.species.allIds).toEqual(['pet_yilu'])
+    expect(gameDataStore.species.byId).toEqual({ pet_yilu: { id: 'pet_yilu' } })
+    expect(editorState.selectedRecordId).toBe('pet_yilu')
+    expect(editorState.recordSourceFiles).toEqual({ pet_yilu: 'data/groups/yilu/species.yaml' })
+    expect(ElMessage.success).not.toHaveBeenCalled()
+    expect(ElMessage.error).toHaveBeenCalledWith('已删除 1 条记录，其余未完成: disk full')
+    errorSpy.mockRestore()
   })
 })

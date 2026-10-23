@@ -1,0 +1,20 @@
+{
+  "formatVersion": 1,
+  "id": "ugc_apply_recovery_mark",
+  "parameters": {
+    "recovery": { "nodeId": "recovery-ratio", "kind": "number", "value": 0.2 },
+    "turns": { "nodeId": "duration", "kind": "number", "value": 2 }
+  },
+  "trigger": { "nodeId": "hit", "id": "core.selfSkillHit" },
+  "actions": [
+    {
+      "stepId": "apply-recovery",
+      "id": "ugc.recovery.applyToOwner",
+      "params": {
+        "mark": "ugc/recovery",
+        "duration": { "parameter": "turns" },
+        "instanceParams": { "ratio": { "parameter": "recovery" } }
+      }
+    }
+  ]
+}

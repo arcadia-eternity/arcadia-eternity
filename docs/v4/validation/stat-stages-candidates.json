@@ -1,0 +1,2288 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_ability_enhance_atk_when_spa_enhanced",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/67",
+      "definitionSha256": "601f12569ac823fe547dec73e57f52472852cc0901e713ed87699e202a120aad",
+      "recipe": {
+        "id": "effect_ability_enhance_atk_when_spa_enhanced",
+        "priority": 0,
+        "triggers": ["OnBeforeAddMark"],
+        "target": "self",
+        "stat": "atk",
+        "valueCode": "contexts.addMark.select(event => event.stack).first()",
+        "when": "conditions.all(conditions.ownerAddsMark,conditions.statStageChange('spa','up'))",
+        "pathRepairs": [
+          {
+            "path": "/apply/value/selector/chain/0/arg",
+            "before": "statLevelMarkLevel",
+            "after": "stack"
+          }
+        ],
+        "additionalDecisions": ["C09"]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_ability_raise_spe_1_stage_when_dodge",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/71",
+      "definitionSha256": "98bd5ec9873edafed662e09eaebca28ed31e34e80a60398bb5c9d302b96ffb1b",
+      "recipe": {
+        "id": "effect_ability_raise_spe_1_stage_when_dodge",
+        "priority": 0,
+        "triggers": ["OnMiss"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.ownerIsSkillTarget"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_emblem_raise_spd_1_stage_when_baonuan_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/61",
+      "definitionSha256": "b5e46562c3fa63e2d159b6b60fc9ad62f5783ef06f7ea84c1c4773a4f4cbd05a",
+      "recipe": {
+        "id": "effect_emblem_raise_spd_1_stage_when_baonuan_20_percent",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_baonuan\"),conditions.chance(20))",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [
+          {
+            "path": "/condition/conditions/1/target/chain/0/arg",
+            "before": "skillId",
+            "after": "skill"
+          }
+        ],
+        "additionalDecisions": ["C07", "C09"]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_emblem_raise_spd_1_stage_when_rouruan_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/69",
+      "definitionSha256": "a45e449758ea88c0bc2cecbb91ab8bcf3d9e40c90445adef8aec91c0c7f2980d",
+      "recipe": {
+        "id": "effect_emblem_raise_spd_1_stage_when_rouruan_20_percent",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_rouruan\"),conditions.chance(20))",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [
+          {
+            "path": "/condition/conditions/1/target/chain/0/arg",
+            "before": "skillId",
+            "after": "skill"
+          }
+        ],
+        "additionalDecisions": ["C07", "C09"]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_mark_reduce_opponent_atk_1_stage_when_fainted",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/205",
+      "definitionSha256": "082fe903a4c1517ed02a8d8bf2277bc6e44de7b2790c8d5e907e972e9cff6e1f",
+      "recipe": {
+        "id": "effect_mark_reduce_opponent_atk_1_stage_when_fainted",
+        "priority": 0,
+        "triggers": ["OnDefeat"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "when": "conditions.ownerIsSkillTarget"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_mark_reduce_opponent_spe_1_stage_when_fainted",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/204",
+      "definitionSha256": "3866676e65adc0fca235d0612f93b3146f0ca146619065adc62aa5df543298be",
+      "recipe": {
+        "id": "effect_mark_reduce_opponent_spe_1_stage_when_fainted",
+        "priority": 0,
+        "triggers": ["OnDefeat"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -1,
+        "when": "conditions.ownerIsSkillTarget"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/14",
+      "definitionSha256": "c8f80b50f19428a4f3e5a3d4e5fcc9290977f814ca9685f2ce005fefd8d91ede",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/16",
+      "definitionSha256": "4d683035ddab9c744866982d7dac37a8b87c3a71acd73fd649b8dfac3c5a194e",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_10_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "self",
+            "path": "condition/1/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1/1",
+            "value": 10,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/17",
+      "definitionSha256": "f572db25c83773ffd29880788fc2df88fcd07124bc426addd50d6acd7a5f3a91",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_15_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 15,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/374",
+      "definitionSha256": "df8a4c3c171f28898ead276ce10be6a76eb4f5cb0bfadbd5e7f537d71c09d056",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/15",
+      "definitionSha256": "8502c181dab14307b3f0c743868e923491b6d3bab4db08ecfd9b62c19ed93f3f",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_5_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 5,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_after_2_uses",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/370",
+      "definitionSha256": "02c54e96f7d4b1410385ae9d189bdd52accccf285cc2c8ce3031d69d7e5a7140",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_if_anyinglingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/297",
+      "definitionSha256": "f04b5e25a8c17bb316a5872fd4421224649e7ac69e26d2f3600ee35ba96e6952",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_if_anyinglingyu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_anyinglingyu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_if_has_shunliu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/534",
+      "definitionSha256": "8e8a2df3487f686f3bfaadc6ecac02ed12bf2e74aa6ff95ba75b4654c52ed7eb",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_if_has_shunliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_if_opponent_male",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/656",
+      "definitionSha256": "bb423fe57199c19210fb0ab81f62a35cc53cb4cd8fdc9152c21384836e649755",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_if_opponent_male",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_on_crit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/268",
+      "definitionSha256": "cbe39c074f406d7661e803c66344652034f779d1c6c10265aa0e99713a825ef9",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_on_crit",
+        "priority": 0,
+        "triggers": ["OnCritPreDamage"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "when": "conditions.selfUsesSkill"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_2_stage_if_male",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/661",
+      "definitionSha256": "f41d20fc80edc146956de01f5545c31857abd109d29d905a002227c86af3ad63",
+      "recipe": {
+        "id": "effect_skill_raise_atk_2_stage_if_male",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_2_stages",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/28",
+      "definitionSha256": "575e0b974cb05c5a00ffdab71529de4e26f5820272362c2f31a21171acd7fead",
+      "recipe": {
+        "id": "effect_skill_raise_atk_2_stages",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 2,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_atk_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/270",
+      "definitionSha256": "ce10d68d6809605978a0d4685b8dade1c25cec0da9579c1f02a6f6c7b02b9e1c",
+      "recipe": {
+        "id": "effect_skill_raise_atk_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "atk",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/18",
+      "definitionSha256": "ed89d0f5231225485af925788a0114243b4cb2da24377d1c15966331afdf3e5e",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/640",
+      "definitionSha256": "c511b2473f3f89336e8fb53034d82320407676c9c991460d4475604e183e6f2a",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_after_2_uses",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/372",
+      "definitionSha256": "465ad0115c388792cc3148518bf116b993ce7c9abd8849d0e13ebd5d8fae323c",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_if_aideminyi",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/210",
+      "definitionSha256": "7503ae5709f9d168d5b1dce264592413bcd3e7a6f51183679a1164a7e6393be2",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_if_aideminyi",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_aideminyi\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_if_has_shunliu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/538",
+      "definitionSha256": "d4ee888faca3d350f63a38773a8826ca9eaad5e5cab2ddcd8d6d6bef13984750",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_if_has_shunliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_1_stage_if_opponent_has_kaowen",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/691",
+      "definitionSha256": "a1d146389d4f982747dbf7be422220f05833906c1ea0e3ae722d6451aed5d13b",
+      "recipe": {
+        "id": "effect_skill_raise_def_1_stage_if_opponent_has_kaowen",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kaowen\"))))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_def_2_stages",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/29",
+      "definitionSha256": "d96d2260631ae2eec062cbdacc256824abe21cdee9ffbd2eec8073cedde8ba9f",
+      "recipe": {
+        "id": "effect_skill_raise_def_2_stages",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "def",
+        "value": 2,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_self_spa_1_stage_if_3_hits",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/627",
+      "definitionSha256": "b5a7c7d4f74acda04cbd8ffdb4411a06d916bbd8a5d4845bc5676eba1692d9d3",
+      "recipe": {
+        "id": "effect_skill_raise_self_spa_1_stage_if_3_hits",
+        "priority": 0,
+        "triggers": ["BeforeMultiHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(contexts.skillUse.select(event => event.multihitResult).first());const right=3;return left!==undefined && right!==undefined && left === right}))",
+        "selectorRepairs": ["/condition/conditions/1/target/base"],
+        "additionalDecisions": ["C07"]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_self_spa_2_stage_if_has_shijianfaze",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/494",
+      "definitionSha256": "001023fc811c5b8f53c9a52ab1cacd18fb73dd5893c838598c7875467354b74e",
+      "recipe": {
+        "id": "effect_skill_raise_self_spa_2_stage_if_has_shijianfaze",
+        "priority": -1,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shijianfaze\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/19",
+      "definitionSha256": "a2199994f2227f30f59ac3d5c6850301af70dd2e53da9f2d854e55f033bfdfd9",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/20",
+      "definitionSha256": "2ed2e66a7934dc3e41be007018672a59fbf003e9514b834e82f3061119daa582",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_10_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "self",
+            "path": "condition/1/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1/1",
+            "value": 10,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/21",
+      "definitionSha256": "f5fe52ab1fa8b163372feae340e44bde6a695e520b2d21f01bca0bf8f0c76165",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_15_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 15,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/200",
+      "definitionSha256": "66f32c39a0e9b7a1bd987d62360c313825169de6430cd0b6bc584fd0a6ae1fb4",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_after_2_uses",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/371",
+      "definitionSha256": "9b3cbdf8a156acaf791aa52191baa8972c0b1512fc40f3f0db546e248da4f4d2",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_if_has_niliu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/539",
+      "definitionSha256": "7fd759ae22906f1c220e8d0a226130f7f8d1fa09651151b947b4e0d0e9dbddeb",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_if_has_niliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_niliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_if_hp_lt_half",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/565",
+      "definitionSha256": "16b3a8e2bd88541978e7fac63250a8378b550d3ed6ae4885363758e68018219e",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_if_hp_lt_half",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n * 0.5)));return left!==undefined && right!==undefined && left < right}))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_1_stage_if_shuiliangbaohe",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/509",
+      "definitionSha256": "aa923e75486ffbb598769e384b88059e1817932bac4cd5d39a640cd4e6e64189",
+      "recipe": {
+        "id": "effect_skill_raise_spa_1_stage_if_shuiliangbaohe",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shuiliangbaohe\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_2_stage_if_female",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/660",
+      "definitionSha256": "d533425588a4a530d29e811ea6451ef3577e5d45f6ed537223152a7f8375e104",
+      "recipe": {
+        "id": "effect_skill_raise_spa_2_stage_if_female",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spa_2_stages",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/30",
+      "definitionSha256": "a4967011c23cb80bae9efa8e44ebfe1cc7a5220c2bee9c27db9d88363c5eb66f",
+      "recipe": {
+        "id": "effect_skill_raise_spa_2_stages",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "value": 2,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/22",
+      "definitionSha256": "663efea47a7122e002f85fc48d1682b45058529dae142a3f2e3e1c2e76b654d0",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/23",
+      "definitionSha256": "e2434e0979074ad890d2a321d57d4241848fee81171dbf6c790016bfd92d3099",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage_after_2_uses",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/373",
+      "definitionSha256": "f9f3b5d1994d017b442e5983088526af21cffcdf4b84a294aefdac7ea20e6be7",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage_if_has_niliu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/535",
+      "definitionSha256": "cc79f28f05719915c58e1659f2c506a6155c307408402207c67a8fbbc00ac548",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage_if_has_niliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_niliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/676",
+      "definitionSha256": "a44e75f4434dfd9b53d2bfb55460b1aa09e57a5028d4d917ef18639e9dd2ca31",
+      "recipe": {
+        "id": "effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_tongjiling\"))))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spd_2_stages",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/31",
+      "definitionSha256": "7eddb63b0b130e713c5fd149e95c266f4ed96c2b1efbf84fc1b9e02e723b388e",
+      "recipe": {
+        "id": "effect_skill_raise_spd_2_stages",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spd",
+        "value": 2,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/24",
+      "definitionSha256": "bdd0ba8b1df2a1245d660b964c1eb4584a1e089d1fe8f93e078de86f4a042e98",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/26",
+      "definitionSha256": "cd6709f667c652dedb836b23fde48f8d325eff409f812972de1cb028bcf1468e",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_10_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "self",
+            "path": "condition/1/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1/1",
+            "value": 10,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/27",
+      "definitionSha256": "9730b6bd52a4b65a92b256ae8a3828e73c0571d0e0bfc4d49fbe15711287fea9",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/25",
+      "definitionSha256": "cf9f5bf236e79403cc28e69334804493859eaa6be04da5595cd31cbc6d2d2ca2",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_5_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "self",
+            "path": "condition/1/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1/1",
+            "value": 5,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/430",
+      "definitionSha256": "47b055158b2d3497a779dc365d4ced9343211e207ee1bcb24ad0bd02e60a0143",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_50_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 50,
+            "parameter": true,
+            "tags": ["skill_effect_probability"],
+            "alias": "probability"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_after_2_uses",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/369",
+      "definitionSha256": "540d6dfe4bd65fd7967f75e167b99b17976b4b46047cb6566acb3bc8165a0b19",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_after_2_uses",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_hp_below_75_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/412",
+      "definitionSha256": "969d95301324902fcef9000f3f7f7db6f7f069177d3b0fa3ab98824f0f68a768",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_hp_below_75_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n * 0.75)));return left!==undefined && right!==undefined && left < right}))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_opponent_female",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/655",
+      "definitionSha256": "d606360815e3e92c8c459ff313cf16041d451904048f689d54eed635eb0c775e",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_opponent_female",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/680",
+      "definitionSha256": "e5bfbd6d4cd5cc2279a2a6a0a560211e656f7c14bc3cb54edb3b32aef3e83fa2",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated",
+        "priority": 0,
+        "triggers": ["OnDefeat"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_tongjiling\"))))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_1_stage_if_zhandoulingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/644",
+      "definitionSha256": "1a03e7031662bfaa7a1c2274fd2262950cdc85a296d1a61afeac590e4921acaf",
+      "recipe": {
+        "id": "effect_skill_raise_spe_1_stage_if_zhandoulingyu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_zhandoulingyu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_2_stages",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/32",
+      "definitionSha256": "dac9a1be2f332ae12234c368ecb1c126ab457408ad37ddd04728e03ffbc42d43",
+      "recipe": {
+        "id": "effect_skill_raise_spe_2_stages",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 2,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/337",
+      "definitionSha256": "8f1a273d82e89d863aab85402ec058ab1b17c56f55d6c08f63c5a38fdec23df3",
+      "recipe": {
+        "id": "effect_skill_raise_spe_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_raise_spe_70_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/159",
+      "definitionSha256": "a61b2a3a5afd9d875ee02b0c756f4f4ea4122d80b31ffa3a732be887e2d49e81",
+      "recipe": {
+        "id": "effect_skill_raise_spe_70_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spe",
+        "value": 1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 70,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/34",
+      "definitionSha256": "68c97c3dc07c423b0f7f017a6f483a4ccc3f8384c08fd466d72d189aa8b67d8a",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_1_stage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/592",
+      "definitionSha256": "1a5fb87f8306ff74e5d0bd84d07e8b12f437933a33d866fbd25e0ff15d2b2c7c",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage_10_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "self",
+            "path": "condition/1/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1/1",
+            "value": 10,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_1_stage_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/593",
+      "definitionSha256": "d830b1ec7bcde36650c445f88e6eefe7c88aad6df7aa26fd90408c2f3846e041",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage_15_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 15,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/35",
+      "definitionSha256": "17aabaf6cdd42c032c808e606292196835f8e1521eeb369357844f532d8e4836",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_1_stage_30_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/181",
+      "definitionSha256": "4a50ac4b0d99c365aa923e11fb7a304f71dad68fe237225ab35d785b9aa38183",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage_30_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 30,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_1_stage_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/4",
+      "definitionSha256": "2a057ad84cb4cc239d16c1378429ab7e3b3648e2038d7cd6030bf8a2b6bfe202",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage_5_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 5,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_1_stage_if_opponent_male",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/653",
+      "definitionSha256": "72855ddf6a256841ec861c6f29d7bb868892084db47af7f28e6fe020cb96fecb",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_1_stage_if_opponent_male",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "atk",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/36",
+      "definitionSha256": "919bafdae6f28763985df6554378aa1aef69a275579eec401a2ab47cca06970a",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/10",
+      "definitionSha256": "d400c26733494ea31bb5a29f6c56ee2544c6b595be85c28da81c72d939e51607",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_10_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 10,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/11",
+      "definitionSha256": "1283e63e9655b72a0d05ee71033d551eacfd05145ae055f6f53d5ec0e3234c42",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_15_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 15,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/154",
+      "definitionSha256": "989ec6fbeb989d909ae4df91e96bb281ac7f78e91fa3d4067e10924869b8a143",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_35_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/674",
+      "definitionSha256": "d0172371c56beccf72321a65dc12482480b4d34f799f7129a0a483dd4e7c03e0",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_35_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 35,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/1",
+      "definitionSha256": "99cd55a480a2bfad256a7f8fb8f99f836318aeeec72c97f3d904777f601eca35",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_5_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 5,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/147",
+      "definitionSha256": "3859fd501bdadbd340aef5a10336da01906fe568fc0b1a4972593b132f8f794e",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_50_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 50,
+            "parameter": true,
+            "tags": ["skill_effect_probability"],
+            "alias": "probability"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_if_has_shunliu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/545",
+      "definitionSha256": "2f1b8e4d8acde06554b462c20dddb10eb005f4c407edffdd7241050ce1f885cf",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_if_has_shunliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/636",
+      "definitionSha256": "7f13d767797a278063a302a24fbf72b48fc82b2f5668e6579456124f244d8fd5",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=30;return left!==undefined && right!==undefined && left < right}))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/352",
+      "definitionSha256": "8b9fe2893f21564ad5257fd280a1c4bf645a0c4a4854dc8c2e79a846badcd486",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_wuzhezhixin\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/37",
+      "definitionSha256": "1b060178d2fffba6093ea4c09013dddeaf2e24380cc592b3f1d26f50d676c401",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/12",
+      "definitionSha256": "3a955a7dc3121fffd24b1dbb8dd924179fb734444f8d88c369f0fe8dc74354a6",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_10_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 10,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/13",
+      "definitionSha256": "8fc7c23325623975edfde698124170155d284bc6e5142367478ba490a60fc9be",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_15_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 15,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/155",
+      "definitionSha256": "071957d546f6323a77153de8826c855c3b4da114e7e928786856a52a461d007a",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/5",
+      "definitionSha256": "ccddf46d8cd0265321b1ac76ddb3a91e1877aba86f097ccea05e4d1fdcdb920f",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_5_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 5,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_bingdong",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/275",
+      "definitionSha256": "19821ca986c25336b77b4dc27bb6ce9e5d399e8a8c5503c2d9e884d29045b6e1",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_bingdong",
+        "priority": 0,
+        "triggers": ["OnHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_bingdong\"))))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_has_niliu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/546",
+      "definitionSha256": "0a0072e0ae269b7d723a2608fdaa914d11ea2f9571fbc52423ff4458e24f8f33",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_has_niliu",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_niliu\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_female",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/652",
+      "definitionSha256": "86c263731ee00a4f474175e5248cc9e948dfb2f392055762119f9d122cc0df81",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_female",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/692",
+      "definitionSha256": "f25ee3df13b444a57c3256c442c54afc614847ec27c0c4b8e441a751461e8b34",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spa",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kaowen\"))),conditions.lastSkillThisTurn)",
+        "additionalDecisions": ["C08"]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/38",
+      "definitionSha256": "5e20716569a02cc000d8b3a0601303e89729192142658968970d8c08cf7cdaa0",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/6",
+      "definitionSha256": "c49437309109a819fab53c9bf969a6743f44db2c434e6641775d7b94b5f2dc25",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_10_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 10,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/7",
+      "definitionSha256": "8e16c70c6407adb5100e9b81711793a17f273a9f4fcc6e808bb3fd9e6efa15cc",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_15_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 15,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/156",
+      "definitionSha256": "c6f64886a5edb918dfe1af40baea9433fac1998c0b295eb4a1883dbb7ba8f854",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/8",
+      "definitionSha256": "28bd2c18e92a87927f1ff1083478c3e24bc63cde2663a7849986bb6d0beef026",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_25_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 25,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_30_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/9",
+      "definitionSha256": "a01948aceae49cf9c94b52a788507874d99be67a7726fbbbc046a341a39e503f",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_30_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 30,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/3",
+      "definitionSha256": "1864ad447de899ad43c0ba8dadf92abcff4e38df51c1e3dba37eeb27ae68bf4c",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_5_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 5,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/148",
+      "definitionSha256": "210159578f87ab9502417078178cb75948ed669915a35c9744a65c501386de6a",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_50_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 50,
+            "parameter": true,
+            "tags": ["skill_effect_probability"],
+            "alias": "probability"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/395",
+      "definitionSha256": "9c785ed77936609f4bc0a1d82ee96900f1a65deae900cc2a74c211107a2baecf",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.everyNthUse(2))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/360",
+      "definitionSha256": "554b663b46ea317609b5de91bfe2af1c3796dbc8e99e1450d9ac60645eac1786",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spd",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_renzhezhixin\"))))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spe_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/39",
+      "definitionSha256": "6dd298e8b57bf56041654f8979e70138a541b39165f42070c31f88aecc567a05",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spe_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spe_1_stage_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/157",
+      "definitionSha256": "52368a69d756317fdd0dd5e9a42dabac4f8f0b914b0f998f5c627c66cbc7d663",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spe_1_stage_15_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 15,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spe_1_stage_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/158",
+      "definitionSha256": "6e954f164ea5714b8c47ad1340fea3dc22c8051ce5a3bb5506c006cf293e443b",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spe_1_stage_20_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 20,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spe_1_stage_35_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/678",
+      "definitionSha256": "230f273ebf931f39a358c28f896af99588ae0a6911be021124481188f84a0595",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spe_1_stage_35_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 35,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spe_1_stage_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/2",
+      "definitionSha256": "a02d12a8fee86794a29a7b35f60802dae29e01cd47f905e3597b02ba7b59c8bb",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spe_1_stage_5_percent",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition/0"
+          },
+          {
+            "kind": "probability",
+            "path": "condition/1",
+            "value": 5,
+            "parameter": true,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/492",
+      "definitionSha256": "e7eea9eae54a2f78d62165acd1233381bd2b7de6222b54ef118d934be33b3449",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze",
+        "priority": -1,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "spe",
+        "value": -2,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shijianfaze\").condition(checks.exists()))"
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_stat_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/33",
+      "definitionSha256": "d0cc4e7cf0a1fd19e3f26bc767211afaa8a814430871b42094e9b6621ac6cae0",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_stat_1_stage",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "clauses": [
+          {
+            "kind": "self",
+            "path": "condition"
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_reduce_stat_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/0",
+      "definitionSha256": "a3b001aeec5e0486c1a96b719a5a0f2323bfc6cefc0d67612e8daf75fd209846",
+      "recipe": {
+        "id": "effect_skill_reduce_stat_5_percent",
+        "priority": 0,
+        "triggers": ["OnDamage"],
+        "target": "opponent",
+        "stat": "def",
+        "value": -1,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_percent))",
+        "parameters": [
+          {
+            "name": "condition_1_percent",
+            "value": 5,
+            "tags": ["skill_effect_probability"]
+          }
+        ]
+      },
+      "classification": "U"
+    },
+    {
+      "id": "effect_skill_set_self_spa_to_atk",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/458",
+      "definitionSha256": "1d4622573f46cb2e6a32c0bfc4dd64329e8aaaf9646b0590d8d3e1c33a713267",
+      "recipe": {
+        "id": "effect_skill_set_self_spa_to_atk",
+        "priority": 0,
+        "triggers": ["BeforeHit"],
+        "target": "self",
+        "stat": "spa",
+        "valueCode": "targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').select(mark => mark.stack).all().map(amounts => amounts[0] ?? 0)",
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').condition(checks.exists()))",
+        "legacyIgnoredFields": [
+          {
+            "path": "/apply/strategy",
+            "value": "set",
+            "behavior": "additive"
+          }
+        ]
+      },
+      "classification": "U"
+    }
+  ],
+  "rejected": []
+}

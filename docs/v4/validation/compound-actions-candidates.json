@@ -1,0 +1,893 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_mark_add_crit_on_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/154",
+      "definitionSha256": "8a78d21f2308c7c32e838ad0c0af0067972a1044fd3cb3cd75b40bea0344faff",
+      "recipe": {
+        "id": "effect_mark_add_crit_on_damage",
+        "trigger": "PostDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfBeDamaged)",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_huixin\")!))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "markDependencies": ["mark_huixin"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_guanghudun_on_turn_end_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/168",
+      "definitionSha256": "4622e26fdc93cef41add7c576c884e9c81ab2dada8afdb71528c53b0ad76db9b",
+      "recipe": {
+        "id": "effect_mark_add_guanghudun_on_turn_end_with_stack",
+        "trigger": "TurnEnd",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerIsActive,((ctx: EffectFrame) => {const left=ctx.read(targets.sourceMark.select(mark => mark.stack).first());const right=1;return left!==undefined && right!==undefined && left > right}))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_guanghudun\")!,{stack:targets.sourceMark.select(mark => mark.stack).first()}))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "markDependencies": ["mark_guanghudun"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_mark_zhongdu_if_using_physical_attack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/201",
+      "definitionSha256": "e0349f8e9deb9f3ca7ac8ee26e5be1d62141c1f3459407dbf7b6b65df199b82e",
+      "recipe": {
+        "id": "effect_mark_add_mark_zhongdu_if_using_physical_attack",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.category === \"Physical\"))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_zhongdu\")!))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "markDependencies": ["mark_zhongdu"],
+        "repairedPaths": ["/condition/conditions/1/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_add_multihit_1_on_next_multihit_skill",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/193",
+      "definitionSha256": "e3b1cd2c1bda12c323b62d173c5987570a4b7093f6fae478e09423dec2c8d75c",
+      "recipe": {
+        "id": "effect_mark_add_multihit_1_on_next_multihit_skill",
+        "trigger": "BeforeMultiHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(contexts.skillUse.select(event => event.multihitResult).first());const right=1;return left!==undefined && right!==undefined && left > right}))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addMultihitResult(1))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/0/target", "/condition/conditions/1/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_double_rage_cost_double_damage_non_climax",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/88",
+      "definitionSha256": "e58804451f47929951fd926f4e3da0eddf31f46d7133030a7f1ce1cd21249704",
+      "recipe": {
+        "id": "effect_mark_double_rage_cost_double_damage_non_climax",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.selfSkills.where(skill => (skill.category as string) !== \"Climax\").where(skill => (skill.category as string) !== \"Status\").apply(ops.addSkillAttributeModifier(\"rage\",\"percent\",100,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.selfSkills.where(skill => (skill.category as string) !== \"Climax\").where(skill => (skill.category as string) !== \"Status\").apply(ops.addSkillAttributeModifier(\"power\",\"percent\",100,{lifetime:\"sourceMarkOrTargetSkill\"}))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_fear_consume_stacks_at_3",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/111",
+      "definitionSha256": "019f5840426fff36e1058a9e12117d4f1f3120f6a0eee33917a0d954885b83e8",
+      "recipe": {
+        "id": "effect_mark_fear_consume_stacks_at_3",
+        "trigger": "OnStack",
+        "priority": 0,
+        "when": "conditions.all(((ctx: EffectFrame) => {const left=ctx.read(contexts.stack.select(event => event.stacksAfter).first());const right=3;return left!==undefined && right!==undefined && left >= right}),((ctx: EffectFrame) => {const left=ctx.read(contexts.stack.select(event => event.stacksBefore).first());const right=3;return left!==undefined && right!==undefined && left < right}))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_kongju\")!))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.sourceMark.apply(ops.consumeStacks(targets.sourceMark.select(mark => mark.stack).first()))"
+          }
+        ],
+        "markDependencies": ["mark_kongju"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_hunluan_consume_stacks_at_2",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/196",
+      "definitionSha256": "190fcde615b0b37a9f22711bd24d259d2ee4a2c24b30f2c3a53e0f5ce94b929d",
+      "recipe": {
+        "id": "effect_mark_hunluan_consume_stacks_at_2",
+        "trigger": "OnStack",
+        "priority": 0,
+        "when": "conditions.all(((ctx: EffectFrame) => {const left=ctx.read(contexts.stack.select(event => event.stacksAfter).first());const right=2;return left!==undefined && right!==undefined && left >= right}),((ctx: EffectFrame) => {const left=ctx.read(contexts.stack.select(event => event.stacksBefore).first());const right=2;return left!==undefined && right!==undefined && left < right}))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_hunluan\")!))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.sourceMark.apply(ops.consumeStacks(targets.sourceMark.select(mark => mark.stack).first()))"
+          }
+        ],
+        "markDependencies": ["mark_hunluan"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_shandianluoyin_paralyze",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/148",
+      "definitionSha256": "1664261aa10e866168832c0060fb3fef8aadfed530653ca663c6abe9c97ae459",
+      "recipe": {
+        "id": "effect_mark_shandianluoyin_paralyze",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerIsSkillTarget,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.baseId === \"skill_shandianluoyin\"))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_mabi\")!))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "markDependencies": ["mark_mabi"],
+        "repairedPaths": ["/condition/conditions/1/target/base"],
+        "pathRepairs": [{ "path": "/condition/conditions/1/target/chain/0/arg", "before": "skillId", "after": "skill" }]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_xukongtizhi_consume_on_evasion",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/86",
+      "definitionSha256": "a6757599445161f6f301cba023c6082b25c8606bc960625ce3a8dd824b90075e",
+      "recipe": {
+        "id": "effect_mark_xukongtizhi_consume_on_evasion",
+        "trigger": "OnMiss",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerIsSkillTarget,targets.ownerMarks.where(mark => mark.baseId === \"mark_xukongtizhi\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_xukongganying\")!))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "markDependencies": ["mark_xukongganying"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_anzhilingyu_or_anyinglingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/298",
+      "definitionSha256": "8a7f16a105bee396e2dc8112fc2e71eedda0a89e32f6ba2c0657d86a5993a592",
+      "recipe": {
+        "id": "effect_skill_add_mark_anzhilingyu_or_anyinglingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_anyinglingyu\")!,resolved.get(\"mark_anzhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_anyinglingyu", "mark_anzhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_bingzhilingyu_or_bingshuanglingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/279",
+      "definitionSha256": "f9c5c42c5f4df32871c51aedf01a952d79995ad75361def7562a6ed43b3bbff8",
+      "recipe": {
+        "id": "effect_skill_add_mark_bingzhilingyu_or_bingshuanglingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_bingshuanglingyu\")!,resolved.get(\"mark_bingzhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_bingshuanglingyu", "mark_bingzhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_both_shanghaizengjia_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/645",
+      "definitionSha256": "f81e672f51ccbbfb4d233f2236e33685019a58d95916ef9662b10ee9f97cc71a",
+      "recipe": {
+        "id": "effect_skill_add_mark_both_shanghaizengjia_50",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shanghaizengjia\")!,{stack:50}))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_shanghaizengjia\")!,{stack:50}))"
+          }
+        ],
+        "markDependencies": ["mark_shanghaizengjia"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_chongzhilingyu_or_chongqunLingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/617",
+      "definitionSha256": "3514707bb8530186b9772ffe5266400b664711604c7abb26e1b54c2fea65e950",
+      "recipe": {
+        "id": "effect_skill_add_mark_chongzhilingyu_or_chongqunLingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_chongqunlingyu\")!,resolved.get(\"mark_chongzhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_chongqunlingyu", "mark_chongzhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_dianzhilingyu_or_diancilingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/271",
+      "definitionSha256": "e0eec8c22f0576f499665a0eb599ea60770a1fd549070f4499d43796e4629776",
+      "recipe": {
+        "id": "effect_skill_add_mark_dianzhilingyu_or_diancilingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_diancilingyu\")!,resolved.get(\"mark_dianzhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_diancilingyu", "mark_dianzhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_feizhilingyu_or_feikonglingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/615",
+      "definitionSha256": "91d4f33fdc8cca62f812cef616725639baf6a5bc453e972b0dc4bd11d5864780",
+      "recipe": {
+        "id": "effect_skill_add_mark_feizhilingyu_or_feikonglingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_feikonglingyu\")!,resolved.get(\"mark_feizhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_feikonglingyu", "mark_feizhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_fengzhilingyu_or_fengbaolingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/283",
+      "definitionSha256": "dfdcdf8509750098d4e45d9508a74d32dd3f5ef73520ddc1dbfb4d9c1f93643e",
+      "recipe": {
+        "id": "effect_skill_add_mark_fengzhilingyu_or_fengbaolingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_fengbaolingyu\")!,resolved.get(\"mark_fengzhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_fengbaolingyu", "mark_fengzhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_guangzhilingyu_or_guanghuilingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/302",
+      "definitionSha256": "3c587921e9955146c5ba2b6720143cda38a6871a2761b39cd1420a399ea9f663",
+      "recipe": {
+        "id": "effect_skill_add_mark_guangzhilingyu_or_guanghuilingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_guanghuilingyu\")!,resolved.get(\"mark_guangzhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_guanghuilingyu", "mark_guangzhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_baiya_equal_damage_max_800",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/357",
+      "definitionSha256": "797d74beaee40a5de22851683ee287384603c7d3999890ce4e9a056960425f6f",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_baiya_equal_damage_max_800",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_baiya\")!,{stack:contexts.damage.select(event => event.damageResult).first().map(n => Math.min(n, 800))}))"
+          }
+        ],
+        "markDependencies": ["mark_baiya"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_dongshang_10_percent_if_consume_dongqifuti_70_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/570",
+      "definitionSha256": "465a54f1ca6de58cf2755b701f9d69752fbb611c5ed645051b1c400c671559e8",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_dongshang_10_percent_if_consume_dongqifuti_70_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Ice\"),targets.ownerMarks.where(mark => mark.baseId === \"mark_dongqifuti\").condition(checks.exists()),conditions.chance(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_dongqifuti\").condition(checks.exists()),70,10)))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_dongshang\")!))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_dongqifuti\").apply(ops.removeMark())"
+          }
+        ],
+        "markDependencies": ["mark_dongshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_heiya_equal_damage_max_800",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/365",
+      "definitionSha256": "ff2c6dd52d532e92318d56b17278742a2353420134b6a71dc10649bf19094644",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_heiya_equal_damage_max_800",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_heiya\")!,{stack:contexts.damage.select(event => event.damageResult).first().map(n => Math.min(n, 800))}))"
+          }
+        ],
+        "markDependencies": ["mark_heiya"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_meihuo",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/90",
+      "definitionSha256": "d18fe7b89e852e13bad0a0002bdcf8a322cffd05943249ddee6863109272d3a7",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_meihuo",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_meihuo\")!))"
+          }
+        ],
+        "markDependencies": ["mark_meihuo"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_shazhilingyu_or_shabaoLingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/616",
+      "definitionSha256": "f2d36b725c1771045f5ed8a3b8eb6715d628775ce9331203cddf45732049ac1b",
+      "recipe": {
+        "id": "effect_skill_add_mark_shazhilingyu_or_shabaoLingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_shabaolingyu\")!,resolved.get(\"mark_shazhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_shabaolingyu", "mark_shazhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_zhanzhilingyu_or_zhandoulingyu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/642",
+      "definitionSha256": "2f978a89726de60ea0e221afa91a059b2a2acaedd2694ceb8750093c363a133d",
+      "recipe": {
+        "id": "effect_skill_add_mark_zhanzhilingyu_or_zhandoulingyu",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(values.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_yitelingyu\").condition(checks.exists()),resolved.get(\"mark_zhandoulingyu\")!,resolved.get(\"mark_zhanzhilingyu\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_zhandoulingyu", "mark_zhanzhilingyu"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_multihit_1_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/346",
+      "definitionSha256": "1b9c34829c35805125a1c1a68afe72712b2e91cd14d23d5da5be7dce9d8aaa4a",
+      "recipe": {
+        "id": "effect_skill_add_multihit_1_consume_shazhidanke",
+        "trigger": "BeforeMultiHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addMultihitResult(1))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_add_mark_opponent_dongshang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/452",
+      "definitionSha256": "90865e54f806c40bf442d910531956d8a2a7bd3af505ebad4b9266804305d3c6",
+      "recipe": {
+        "id": "effect_skill_consume_huanxiang_add_mark_opponent_dongshang",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").condition(checks.exists()),targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Ice\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").apply(ops.consumeStacks(1))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_dongshang\")!))"
+          }
+        ],
+        "markDependencies": ["mark_dongshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_multihit_2",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/450",
+      "definitionSha256": "dcfd8337f12bfc03634d90d2d87538c92c0e0eb4651ca16a0ff5ef213e8037cf",
+      "recipe": {
+        "id": "effect_skill_consume_huanxiang_multihit_2",
+        "trigger": "BeforeMultiHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addMultihitResult(1))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_multihit_4_to_5",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/460",
+      "definitionSha256": "0cf2e65a78300d011acb99623c019aa21962ef94fa2ca897e82a0b0f76b2a31b",
+      "recipe": {
+        "id": "effect_skill_consume_huanxiang_multihit_4_to_5",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.setMultihit(selectFrom([4,5]).all()))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_consume_maidijinzhen_add_jinzhenfenmo",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/253",
+      "definitionSha256": "4366cc90c6918057564add15490c3cb42f4bd16e852b8ea1c43a87cf3b6106a4",
+      "recipe": {
+        "id": "effect_skill_consume_maidijinzhen_add_jinzhenfenmo",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_maidijinzhen\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_maidijinzhen\").apply(ops.consumeStacks(1))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_jinzhenfenmo\")!))"
+          }
+        ],
+        "markDependencies": ["mark_jinzhenfenmo"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_add_liuxie_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/246",
+      "definitionSha256": "366b3a4c769d42be02448cdb87444465f399a66f10f6c8276e6d5d68df0044b6",
+      "recipe": {
+        "id": "effect_skill_consume_maimaijinzhen_add_liuxie_50",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_maimaijinzhen\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_maimaijinzhen\").apply(ops.consumeStacks(1))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_liuxie\")!,{stack:50}))"
+          }
+        ],
+        "markDependencies": ["mark_liuxie"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_add_maidijinzhen",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/252",
+      "definitionSha256": "7de0914dd595d76f10acda84152f759bf8f3fdd48beb17893e8db22392c5cdf7",
+      "recipe": {
+        "id": "effect_skill_consume_maimaijinzhen_add_maidijinzhen",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_maimaijinzhen\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_maimaijinzhen\").apply(ops.consumeStacks(1))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_maidijinzhen\")!))"
+          }
+        ],
+        "markDependencies": ["mark_maidijinzhen"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_maimaijinzhen_heal_self_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/251",
+      "definitionSha256": "c5d23ffba806f9d93d765432f0d31f57a56c72f655a07c20364a9fe3d1a8db57",
+      "recipe": {
+        "id": "effect_skill_consume_maimaijinzhen_heal_self_50",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_maimaijinzhen\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_maimaijinzhen\").apply(ops.consumeStacks(1))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_huifu_50_per_turn\")!,{duration:5}))"
+          }
+        ],
+        "markDependencies": ["mark_huifu_50_per_turn"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_opponent_yinbo_add_yinbopingzhang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/326",
+      "definitionSha256": "ee6caf1e847b44d0224a8327d672953b4d69e49d7bc93f056b4cb5863bfe1078",
+      "recipe": {
+        "id": "effect_skill_consume_opponent_yinbo_add_yinbopingzhang",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_yinbo\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerPet.apply(ops.addMark(resolved.get(\"mark_yinbopingzhang\")!,{stack:targets.opponentMarks.where(mark => mark.baseId === \"mark_yinbo\").select(mark => mark.stack).first()}))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_yinbo\").apply(ops.removeMark())"
+          }
+        ],
+        "markDependencies": ["mark_yinbopingzhang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_opponent_yinbo_add_zaoyin",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/325",
+      "definitionSha256": "2b7f2a81bc404be3e19fb46166d3c3025f09759e5f4d45b49be45ac72b0fb015",
+      "recipe": {
+        "id": "effect_skill_consume_opponent_yinbo_add_zaoyin",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_yinbo\"))))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_zaoyin\")!,{stack:targets.opponentMarks.where(mark => mark.baseId === \"mark_yinbo\").select(mark => mark.stack).first()}))"
+          },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_yinbo\").apply(ops.removeMark())"
+          }
+        ],
+        "markDependencies": ["mark_zaoyin"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_priority_plus_1_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/350",
+      "definitionSha256": "0f84ec11896c477fc16ee1703cf190be184e30db105da7159e13c0f7cc08f7df",
+      "recipe": {
+        "id": "effect_skill_priority_plus_1_consume_shazhidanke",
+        "trigger": "BeforeSort",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.property(\"priority\").apply(ops.add(1))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/0/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "effect_mark_prevent_rage_loss_on_switch",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/187",
+      "definitionSha256": "ad473f53cd19fa2bc5b9c43786c6d2fc0e1a5800b4be69c56fc8856296fdf6ed",
+      "reason": "unsupported trigger"
+    },
+    {
+      "id": "effect_mark_transfer_to_opponent_on_hit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/124",
+      "definitionSha256": "e142b89349696125644c2c710a3ecc1275251f5dadb19ff541a1cf3aba2e581d",
+      "reason": "unsupported sequence action or parameter"
+    }
+  ],
+  "retained": [
+    {
+      "id": "effect_mark_explode_on_stack_over_100",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/115",
+      "definitionSha256": "986c6c4c9ad896752362ab02eecf7826d38e0c8c05072749933da26ac9c85fbd",
+      "ownerLedgers": ["docs/v4/validation/vital-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_add_power_10_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/347",
+      "definitionSha256": "dad7288ebbe24910987215e19260e0414062e4d53e4de75ceaa204a522b907c2",
+      "ownerLedgers": ["docs/v4/validation/skill-outcome-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_sure_hit_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/348",
+      "definitionSha256": "e59cd46e8ba3e3671e2f1e29c3184a353eb3003453c36d9e0fb05ab0b8767eb1",
+      "ownerLedgers": ["docs/v4/validation/skill-outcome-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/416",
+      "definitionSha256": "7f8c74992a0982563fe7154025013e03410454062cfe46f0f3a29d7e9a3fb003",
+      "ownerLedgers": ["docs/v4/validation/stat-stage-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_add_power_50_consume_heianwuzhi",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/418",
+      "definitionSha256": "6e87ac210a1c6cfcfd9795971416d2249c31ed47a4d06dc7eef6122dfaa94563",
+      "ownerLedgers": ["docs/v4/validation/skill-outcome-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_consume_heimowuzhi_2_sure_crit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/421",
+      "definitionSha256": "4c0b5d60bdaab96a3d8fd0cd6e5e0e4848081dc3c468d6e05fbe240ed5e0ab82",
+      "ownerLedgers": ["docs/v4/validation/skill-outcome-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spa_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/451",
+      "definitionSha256": "dcd0daa19b1b9fed9fe30e07abd07992c905270287c0b83a74b0309b965eda50",
+      "ownerLedgers": ["docs/v4/validation/stat-stage-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_set_sure_hit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/454",
+      "definitionSha256": "fe0b52dbd7e3561a80f83774547e8c138318628540d946ae94b3948778f8629c",
+      "ownerLedgers": ["docs/v4/validation/skill-outcome-sequences-candidates.json"]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/456",
+      "definitionSha256": "b45e37643c95f08f9d8e6a3fd5b0741df1f7777acbdacc57e668bd8495a2d843",
+      "ownerLedgers": [
+        "docs/v4/validation/authoring-api-candidates.json",
+        "docs/v4/validation/stat-stage-sequences-candidates.json"
+      ]
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/461",
+      "definitionSha256": "39de9fcee5f77cbb1b020c66ed7e9e7bc58acea2f5adea098087778a5fc46509",
+      "ownerLedgers": ["docs/v4/validation/stat-stage-sequences-candidates.json"]
+    }
+  ]
+}
