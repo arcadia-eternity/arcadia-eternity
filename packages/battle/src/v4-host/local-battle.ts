@@ -56,6 +56,21 @@ export interface NativeBattleContent {
 /** Host protocol adapter; all game rules and phase execution remain on the native Battle. */
 export class LocalBattleSystemV4 implements IBattleSystem {
   private readonly subscriptions = new Set<Subscription>()
+  private readonly inputListeners = new Set<
+    (input: { selection: PlayerSelection; turn: number; phase: BattlePhase }) => void
+  >()
+  onInputAccepted(
+    callback: (input: { selection: PlayerSelection; turn: number; phase: BattlePhase }) => void,
+  ): () => void {
+    this.assertOpen()
+    this.inputListeners.add(callback)
+    return () => {
+      this.inputListeners.delete(callback)
+    }
+  }
+  private acceptInput(selection: PlayerSelection, turn: number, phase: BattlePhase): void {
+    for (const listener of this.inputListeners) listener({ selection: structuredClone(selection), turn, phase })
+  }
   private readonly expectedStops = new WeakSet<Battle>()
   private running?: Promise<void>
   private readiness?: Promise<void>
@@ -155,6 +170,24 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     if (this.preparation?.active) return this.preparation.available(playerId)
     return this.battle.getAvailableSelection(playerId)
   }
+  /** Current settled input boundary, including restored waits without re-emitting prompts. */
+  async waitForPendingDecision() {
+    this.assertOpen()
+    if (!this.preparation?.active) await this.waitForInputReady()
+    this.assertOpen()
+    const selections: PlayerSelection[][] = []
+    for (const player of [this.battle.playerA, this.battle.playerB])
+      selections.push(
+        this.battle.status === BattleStatus.Ended
+          ? []
+          : this.preparation?.active
+            ? this.preparation.available(player.id)
+            : player.selection
+              ? []
+              : this.battle.getAvailableSelection(player.id),
+      )
+    return { turn: this.battle.currentTurn, phase: this.battle.currentPhase, selections }
+  }
   async submitAction(selection: PlayerSelection): Promise<void> {
     this.assertOpen()
     // Copy the protocol's only collection explicitly; callers may supply reactive array views.
@@ -162,14 +195,23 @@ export class LocalBattleSystemV4 implements IBattleSystem {
       selection.type === 'team-selection'
         ? { ...selection, selectedPets: [...selection.selectedPets] }
         : { ...selection }
-    if (this.preparation?.active) return this.preparation.submit(selection)
+    if (this.preparation?.active) {
+      const turn = this.battle.currentTurn,
+        phase = this.battle.currentPhase
+      this.preparation.submit(selection)
+      this.acceptInput(selection, turn, phase)
+      return
+    }
     if (this.started) {
       await this.waitForInputReady()
       this.assertOpen()
     }
     if (this.battle.status === BattleStatus.Ended) throw new Error('Native battle has ended')
+    const turn = this.battle.currentTurn,
+      phase = this.battle.currentPhase
     if (!this.battle.setSelection(selection)) throw new Error('Invalid native battle selection')
     if (selection.type === 'surrender') this.battle.abandonPlayer(selection.player)
+    this.acceptInput(selection, turn, phase)
   }
   BattleEvent(callback: (message: BattleMessage) => void, options?: NativeMessageView): () => void {
     // Each registration gets a distinct identity, even when the callback is reused across views.
@@ -310,6 +352,7 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     for (const subscription of this.subscriptions) subscription.detach()
     this.subscriptions.clear()
     this.timerSubscriptions.clear()
+    this.inputListeners.clear()
     this.expectedStops.add(this.battle)
     await this.battle.cleanup()
     await this.running

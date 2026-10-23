@@ -20,7 +20,12 @@
       "import": "./dist/native.js",
       "default": "./dist/native.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    }
   },
   "scripts": {
     "build": "run-s clear build:code build:types",

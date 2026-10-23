@@ -11,6 +11,10 @@ export * from './src/v4/values'
 export * from './src/v4/content'
 
 export { ExecutionBudgetExceeded, executionBudgetPolicy } from './src/v4/execution/budget'
+export {
+  PlayerSchema as NativePlayerSchema,
+  type PlayerSchemaType as NativePlayerSchemaType,
+} from './src/v4/legacy/schema/player'
 
 export * as effectAuthoring from './src/v4/content/authoring'
 export {

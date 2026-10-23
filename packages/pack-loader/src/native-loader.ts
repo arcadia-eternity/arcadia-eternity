@@ -19,6 +19,7 @@ export interface NativeContentResult {
   runtime: 'native-v4'
   content: ContentCatalog
   revision: string
+  packs: { id: string; version: string }[]
   build: EnvironmentBuildIdentity
 }
 export interface NativePackMetadataResult extends Omit<PackLoadResult, 'repository'> {
@@ -57,8 +58,11 @@ export class NativePackLoader extends PackTransport {
   }
 
   /** Use the caller's current metadata, including unsaved editor changes, with the same trusted code identity. */
-  async fromMetadata(data: ContentPrototypeData): Promise<NativeContentResult> {
-    return this.createContent(data, [])
+  async fromMetadata(
+    data: ContentPrototypeData,
+    options: { packs?: { id: string; version: string }[]; expectedRevision?: string } = {},
+  ): Promise<NativeContentResult> {
+    return this.createContent(data, options.packs ?? [], options.expectedRevision)
   }
 
   private async createContent(
@@ -70,7 +74,13 @@ export class NativePackLoader extends PackTransport {
     const revision = `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
     if (expectedRevision !== undefined && revision !== expectedRevision)
       throw new Error('Native content revision mismatch')
-    return { runtime: 'native-v4', content: this.contentFactory(captured, revision), revision, build: this.build }
+    return {
+      runtime: 'native-v4',
+      packs: structuredClone(packs),
+      content: this.contentFactory(captured, revision),
+      revision,
+      build: this.build,
+    }
   }
 
   async load(packRef = 'builtin:base', options: NativePackLoaderOptions = {}): Promise<NativePackLoadResult> {
@@ -137,11 +147,35 @@ export class NativePackLoader extends PackTransport {
   }
   private async loadNodeMetadata(packRef: string, transportOptions: PackLoaderOptions, errors: string[]) {
     const resolver = await this.importNodePackResolver()
-    const entryPath = await resolver.resolvePackPathFromRef(packRef)
-    const resolved = await resolver.resolvePackLoadOrder(entryPath, false, errors)
+    const entries = await resolver.resolvePackEntriesFromRef(packRef)
+    const order = new Map<string, Awaited<ReturnType<typeof resolver.resolvePackLoadOrder>>['order'][number]>()
+    const identities = new Map<string, string>()
+    for (const entryPath of entries) {
+      const resolved = await resolver.resolvePackLoadOrder(entryPath, false, errors)
+      for (const item of resolved.order) {
+        const previous = identities.get(item.manifest.id)
+        if (previous && previous !== item.path) throw new Error(`Duplicate native pack identity: ${item.manifest.id}`)
+        identities.set(item.manifest.id, item.path)
+        order.set(item.path, item)
+      }
+    }
     const { resolve } = await import('node:path')
     const packs: MetadataPack[] = []
-    for (const item of resolved.order) {
+    let lockfile: Awaited<ReturnType<typeof this.loadLockfileFromNodeFs>>
+    for (const item of order.values()) {
+      const assets = await this.loadAssetsFromNodeFs(item.path, item.manifest, transportOptions, errors)
+      lockfile = await this.loadLockfileFromNodeFs(item.path, transportOptions)
+      if (transportOptions.enforceLockfile && !lockfile)
+        throw new Error(`Native pack lockfile is required: ${item.path}`)
+      this.assertLockfileIssues(
+        await this.validateLockfile(lockfile, {
+          pack: item.manifest,
+          packSource: item.path,
+          packRaw: await this.readNodeText(item.path),
+          assets,
+        }),
+        transportOptions,
+      )
       packs.push({
         manifest: item.manifest,
         source: item.path,
@@ -153,10 +187,9 @@ export class NativePackLoader extends PackTransport {
           return parsed
         },
         readLocale: async file => YAML.parse(await this.readNodeText(resolve(item.localesRoot, file)), { merge: true }),
-        assets: await this.loadAssetsFromNodeFs(item.path, item.manifest, transportOptions, errors),
+        assets,
       })
     }
-    const lockfile = await this.loadLockfileFromNodeFs(entryPath, transportOptions)
     return { packs, lockfile }
   }
 

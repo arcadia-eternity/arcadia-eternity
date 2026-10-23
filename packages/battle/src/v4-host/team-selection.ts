@@ -230,7 +230,7 @@ export class NativeTeamSelection {
 
   available(id: playerId): PlayerSelection[] {
     const player = this.players.find(player => player.id === id)
-    if (!this.active || !player || this.config.mode === 'VIEW_ONLY') return []
+    if (!this.active || !player || this.choices.has(id) || this.config.mode === 'VIEW_ONLY') return []
     return [
       { type: 'team-selection', player: id, ...this.defaultChoice(player) },
       { type: 'surrender', player: id },

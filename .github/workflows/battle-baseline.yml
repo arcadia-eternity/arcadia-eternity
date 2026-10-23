@@ -123,3 +123,27 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup
         run: pnpm test:web-native:e2e
+
+  offline-cli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build offline dependency graph
+        run: pnpm --filter '@arcadia-eternity/cli^...' run build
+      - name: Check CLI types
+        run: pnpm typecheck:cli
+      - name: Run relocated offline CLI and lifecycle regressions
+        run: pnpm test:cli

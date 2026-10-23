@@ -44,6 +44,18 @@ export async function resolvePackPathFromRef(packRef: string): Promise<string> {
   return resolvedPackPath
 }
 
+/** Native hosts retain each workspace entry and its own lockfile instead of a temporary aggregate. */
+export async function resolvePackEntriesFromRef(packRef: string): Promise<string[]> {
+  if (packRef === 'builtin:workspace') {
+    const packsDir = await resolveBuiltinPacksDir()
+    if (packsDir) {
+      const entries = await discoverWorkspacePackDescriptors(packsDir)
+      if (entries.length) return entries.map(entry => entry.path)
+    }
+  }
+  return [await resolvePackPathFromRef(packRef)]
+}
+
 async function loadPackManifest(packPath: string): Promise<DataPackManifest> {
   const raw = JSON.parse(await readFile(packPath, 'utf-8')) as unknown
   if (typeof raw !== 'object' || raw === null) throw new Error(`Invalid pack manifest: ${packPath}`)

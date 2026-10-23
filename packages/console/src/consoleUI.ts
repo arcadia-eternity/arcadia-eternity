@@ -12,7 +12,6 @@ import {
   type PlayerSelection,
   type SkillMessage,
 } from '@arcadia-eternity/const'
-import { exit } from 'process'
 import readline from 'readline'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import i18next from 'i18next'
@@ -21,7 +20,15 @@ import TerminalRenderer from 'marked-terminal'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Delta } from 'jsondiffpatch'
 export class ConsoleUIV2 {
-  private messages: BattleMessage[] = []
+  private closed = false
+  private ended = false
+  private detachBattle?: () => void
+  private readonly prompts = new Set<readline.Interface>()
+  private rejectInput!: (error: unknown) => void
+  readonly inputFailure = new Promise<never>((_, reject) => {
+    this.rejectInput = reject
+  })
+  private inputTask: Promise<void> = Promise.resolve()
   public battleState: BattleState = {} as BattleState
   public currentPlayer: playerId[]
   private timerEventUnsubscribers: (() => void)[] = []
@@ -30,6 +37,7 @@ export class ConsoleUIV2 {
     private readonly battleInterface: IBattleSystem,
     ...currentPlayer: playerId[]
   ) {
+    void this.inputFailure.catch(() => undefined)
     this.setupEventHandlers()
     this.setupTimerEventListeners()
 
@@ -44,7 +52,17 @@ export class ConsoleUIV2 {
   }
 
   private setupEventHandlers() {
-    this.battleInterface.BattleEvent(m => this.handleBattleMessage.call(this, m))
+    this.detachBattle = this.battleInterface.BattleEvent(m => {
+      if (m.type === BattleMessageType.BattleEnd) {
+        this.ended = true
+        this.closePrompts()
+      }
+      this.inputTask = this.inputTask
+        .then(() => (this.closed ? undefined : this.handleBattleMessage(m)))
+        .catch(error => {
+          if (!this.closed && !this.ended) this.rejectInput(error)
+        })
+    })
   }
 
   private setupTimerEventListeners() {
@@ -112,7 +130,7 @@ export class ConsoleUIV2 {
   }
 
   private async handleBattleMessage(message: BattleMessage) {
-    this.messages.push(message)
+    if (this.closed) return
     const delta = message.stateDelta as Record<string, unknown> | undefined
     if (delta && Object.keys(delta).length > 0) {
       try {
@@ -123,6 +141,7 @@ export class ConsoleUIV2 {
       }
     }
     this.renderMessage(message)
+    if (this.ended) return
 
     // 只在需要当前玩家操作时触发输入
     if (message.type === BattleMessageType.TurnAction) {
@@ -362,7 +381,7 @@ export class ConsoleUIV2 {
           `\n🎉 对战结束！胜利者：${message.data.winner ? this.getPlayerNameById(message.data.winner) : '无'}`,
         )
         console.log(`➤ 结束原因：${this.translateEndReason(message.data.reason)}`)
-        exit(0)
+        this.closePrompts()
         break
 
       case BattleMessageType.ForcedSwitch:
@@ -698,6 +717,7 @@ export class ConsoleUIV2 {
     const choice = await this.prompt('请选择操作: ')
     const selection = this.parseSelection(selections, parseInt(choice))
 
+    if (this.closed) return
     if (selection) {
       await this.battleInterface.submitAction(selection)
     } else {
@@ -796,17 +816,26 @@ export class ConsoleUIV2 {
   }
 
   private prompt(question: string): Promise<string> {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    })
-
-    return new Promise(resolve =>
+    if (this.closed) return Promise.reject(new Error('Console input closed'))
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+    this.prompts.add(rl)
+    return new Promise((resolve, reject) => {
+      let answered = false
+      rl.once('close', () => {
+        this.prompts.delete(rl)
+        if (!answered) reject(new Error('Console input ended before a choice was entered'))
+      })
       rl.question(question, answer => {
+        answered = true
         rl.close()
         resolve(answer)
-      }),
-    )
+      })
+    })
+  }
+
+  private closePrompts(): void {
+    for (const prompt of this.prompts) prompt.close()
+    this.prompts.clear()
   }
 
   private async handleTeamSelection(playerId: playerId, config: string | Record<string, unknown>) {
@@ -858,7 +887,7 @@ export class ConsoleUIV2 {
       console.log(`\n请选择 ${minTeamSize}-${maxTeamSize} 只精灵组成队伍`)
       console.log('输入精灵编号，用空格分隔 (例如: 1 3 5):')
 
-      while (selectedPets.length < minTeamSize || selectedPets.length > maxTeamSize) {
+      while (!this.closed && (selectedPets.length < minTeamSize || selectedPets.length > maxTeamSize)) {
         const input = await this.prompt('选择精灵: ')
         const indices = input
           .split(' ')
@@ -898,7 +927,7 @@ export class ConsoleUIV2 {
         console.log(`${index + 1}. ${pet?.name}`)
       })
 
-      while (!starterPetId) {
+      while (!this.closed && !starterPetId) {
         const input = await this.prompt('选择首发精灵编号: ')
         const index = parseInt(input.trim())
 
@@ -922,6 +951,7 @@ export class ConsoleUIV2 {
 
     console.log('\n团队选择完成！')
     // 临时类型断言，后续需要更新PlayerSelection类型定义
+    if (this.closed) return
     await this.battleInterface.submitAction(teamSelection as unknown as PlayerSelection)
   }
 
@@ -938,6 +968,10 @@ export class ConsoleUIV2 {
    * 清理资源
    */
   public cleanup(): void {
+    if (this.closed) return
+    this.closed = true
+    this.detachBattle?.()
+    this.closePrompts()
     // 清理计时器事件监听器
     this.timerEventUnsubscribers.forEach(unsubscribe => unsubscribe())
     this.timerEventUnsubscribers = []

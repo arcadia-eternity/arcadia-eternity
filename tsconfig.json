@@ -18,6 +18,6 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["./bin/**/*"],
+  "include": ["./bin/**/*", "./packages/cli/src/**/*.ts"],
   "exclude": ["./node_modules", "./dist"]
 }

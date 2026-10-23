@@ -1,10 +1,10 @@
-import i18next from 'i18next'
+import i18next, { type Resource } from 'i18next'
 import Backend from 'i18next-chained-backend'
 import fsBackend from 'i18next-fs-backend'
 
 let isInitialized = false
 
-export async function initI18n(debug = false): Promise<void> {
+export async function initI18n(debug = false, resources?: Record<string, Record<string, unknown>>): Promise<void> {
   if (isInitialized) {
     return
   }
@@ -13,6 +13,7 @@ export async function initI18n(debug = false): Promise<void> {
 
   await i18next.init({
     debug: debug,
+    resources: resources as Resource | undefined,
     lng: 'zh-CN',
     ns: ['skill', 'mark', 'mark_ability', 'mark_emblem', 'species'],
     backend: {
