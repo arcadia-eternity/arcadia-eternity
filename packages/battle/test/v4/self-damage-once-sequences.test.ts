@@ -30,7 +30,7 @@ const ids = [
 ] as const
 const candidates = { ...generatedVitalSequences, ...generatedVitalActions }
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const originals = ids.map(id => definitions.find((d: { id: string }) => d.id === id))

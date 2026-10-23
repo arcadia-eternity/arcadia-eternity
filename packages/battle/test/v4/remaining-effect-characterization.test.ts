@@ -19,7 +19,7 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 const definitions = ['mark', 'skill', 'ability'].flatMap(kind =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL(`./fixtures/effect-regression/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
     merge: true,
   }),
 )

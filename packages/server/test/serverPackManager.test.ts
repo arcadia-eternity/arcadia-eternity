@@ -53,6 +53,18 @@ describe('ServerPackManager', () => {
     expect(installed.some(pack => pack.id === 'arcadia-eternity.base-assets' && pack.kind === 'asset')).toBe(true)
   })
 
+  it('loads native content and editable metadata without effect YAML', async () => {
+    const loaded = await manager.load('builtin:base')
+
+    expect(loaded.pack?.data.effects).toEqual([])
+    expect(loaded.runtime).toBe('native-v4')
+    expect(loaded.errors).toEqual([])
+    expect(loaded.content.effects).toHaveLength(1065)
+    expect(loaded.data.species).toHaveLength(145)
+    expect(loaded.data.skills).toHaveLength(966)
+    expect(loaded.data.marks).toHaveLength(416)
+  })
+
   it('verifies generated base lockfile against installed packages', async () => {
     const result = await manager.verify(basePackLockfile())
 

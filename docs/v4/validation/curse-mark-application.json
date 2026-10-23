@@ -1,6 +1,6 @@
 {
   "id": "effect_mark_curse_add_random_status",
-  "sourceFile": "packs/base/data/effect_mark.yaml",
+  "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
   "sourcePath": "/7",
   "definitionSha256": "7973b17b256be575ef762083ab05994cddedc7191fceb095476175aa6c9a93d5",
   "classification": "U",

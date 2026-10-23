@@ -42,7 +42,16 @@ const ledger = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/compound-actions-candidates.json', import.meta.url), 'utf8'),
 )
 const allMarks = ['mark', 'mark_global', 'mark_ability', 'mark_emblem'].flatMap(n =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/${n}.yaml`, import.meta.url), 'utf8'), { merge: true }),
+  parse(
+    readFileSync(
+      new URL(
+        `${n.startsWith('effect_') ? './fixtures/effect-regression' : '../../../../packs/base/data'}/${n}.yaml`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    { merge: true },
+  ),
 )
 function dependencies() {
   return new Map(

@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_mark_double_stage_debuff",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/54",
       "definitionSha256": "b38c0fb9aab10e6e7a845e0b90bdfba5a9f4371494d820984877630dc61f4d0c",
       "status": "handwritten-candidate",

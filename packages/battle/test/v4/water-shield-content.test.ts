@@ -38,7 +38,16 @@ import { makeScenario } from './scenario'
 import { createOfficialWaterShieldContent } from '@arcadia-eternity/data-pack-base/native'
 
 const read = (file: string) =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/${file}.yaml`, import.meta.url), 'utf8'), { merge: true })
+  parse(
+    readFileSync(
+      new URL(
+        `${file.startsWith('effect_') ? './fixtures/effect-regression' : '../../../../packs/base/data'}/${file}.yaml`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    { merge: true },
+  )
 const skills = read('effect_skill'),
   effects = read('effect_mark'),
   marks = read('mark')

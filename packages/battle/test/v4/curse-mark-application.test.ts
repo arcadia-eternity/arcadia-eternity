@@ -22,7 +22,16 @@ import { createCurseMarkApplication } from '@arcadia-eternity/data-pack-base/nat
 
 const id = 'effect_mark_curse_add_random_status'
 const load = (name: string): { id: string; tags?: string[]; effect?: string[] }[] =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/${name}.yaml`, import.meta.url), 'utf8'), { merge: true })
+  parse(
+    readFileSync(
+      new URL(
+        `${name.startsWith('effect_') ? './fixtures/effect-regression' : '../../../../packs/base/data'}/${name}.yaml`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    { merge: true },
+  )
 const definition = load('effect_mark').find(d => d.id === id)!
 const oracle = EffectParser.parse(definition)
 const definitions = load('mark')

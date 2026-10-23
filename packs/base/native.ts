@@ -113,3 +113,5 @@ export {
   followingInstancePenalty,
   entryStackPenalty,
 } from './src/effects/authored/weakness-speed'
+
+export { officialEffectMarkRelations, type EffectMarkRelation } from './src/effect-mark-relations'

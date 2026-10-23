@@ -3,7 +3,7 @@
   "records": [
     {
       "id": "effect_emblem_destroy_meihuo_onturnend",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/4",
       "definitionSha256": "3c67a321eae50e042df96eee3428c38ecdaca1d793c0a3a87cb5f18b26175118",
       "recipe": {
@@ -24,7 +24,7 @@
     },
     {
       "id": "effect_mark_onCritDamage_recovery",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/4",
       "definitionSha256": "229f716065b53dbcb11de55d66bc42dd0b5e98ee6eaa9bed83d28d2c316edc5a",
       "recipe": {
@@ -40,7 +40,7 @@
     },
     {
       "id": "effect_mark_onDamage_over100_recovery",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/6",
       "definitionSha256": "c29d7b7d7e83fc4a0feafb802cfcf9aa5fd901490aceefa3be63de707478badf",
       "recipe": {
@@ -56,7 +56,7 @@
     },
     {
       "id": "effect_mark_onDamage_recovery",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/3",
       "definitionSha256": "2378b167176b976dc5850396c6e9b10852c7673a121131519ead8cc4f7510d43",
       "recipe": {
@@ -72,7 +72,7 @@
     },
     {
       "id": "effect_mark_remove_after_use_skill",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/84",
       "definitionSha256": "67497f096f7ecddcdb60a8e6766c261c8322f1d22321e6f71b73fe2285381886",
       "recipe": {
@@ -88,7 +88,7 @@
     },
     {
       "id": "effect_mark_yingfeng_destroy_on_hit_or_miss",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/146",
       "definitionSha256": "686894e304ff5544d1c281108a1b537e769206e4494c7ca8051dc74d5869611c",
       "recipe": {
@@ -104,7 +104,7 @@
     },
     {
       "id": "effect_skill_clear_status",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/102",
       "definitionSha256": "6790e448677fb80e9b789d6386052ea0fb1c76d4e5d6a5e8676aea6427ff3efb",
       "recipe": {
@@ -125,7 +125,7 @@
     },
     {
       "id": "effect_skill_clear_status_hit_or_miss",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/386",
       "definitionSha256": "8a6c04b612d56dd2529d5045e193e99c496b0245ae56b75314a629b675afc6ff",
       "recipe": {
@@ -146,7 +146,7 @@
     },
     {
       "id": "effect_skill_clear_status_if_has_niliu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/544",
       "definitionSha256": "54a72789d205507a50e2a5496b94a0674406e5e00db3849ad5cbe3ee34dae201",
       "recipe": {
@@ -167,7 +167,7 @@
     },
     {
       "id": "effect_skill_consume_mark_huohuanzhixin",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/516",
       "definitionSha256": "95dab3155a8f1667791ed36b046a8caebaf042a2415dc8ea31cecf2d68f09b7c",
       "recipe": {
@@ -188,7 +188,7 @@
     },
     {
       "id": "effect_skill_consume_mark_shuiliangbaohe",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/510",
       "definitionSha256": "a4049035b4097565ef9ee27c0291a0c0df4f6fee165e777e76e82bb7b12b3a0d",
       "recipe": {
@@ -209,7 +209,7 @@
     },
     {
       "id": "effect_skill_consume_mark_shuiliangchongzu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/511",
       "definitionSha256": "d18fa4b6c9a3abb91e280219a9e4cb7463fc3b30f5e9a611c2e2ac929a848d27",
       "recipe": {
@@ -230,7 +230,7 @@
     },
     {
       "id": "effect_skill_destroy_mark_zhongdu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/150",
       "definitionSha256": "87dd99783d2c8ec2667c5a0367750fda5f051cf1ac29c79c1b8bd4d2e6730dfa",
       "recipe": {

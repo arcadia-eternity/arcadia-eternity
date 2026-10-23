@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_ability_exp_boost_50_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/22",
       "definitionSha256": "01033128d92c1a004ca33ebe3d1450a63b8f1158b78fc3adccf76111c7de89ef",
       "status": "handwritten-candidate",

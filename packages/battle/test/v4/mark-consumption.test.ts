@@ -23,7 +23,7 @@ import { generatedMarkConsumption } from '@arcadia-eternity/data-pack-base/nativ
 
 type Id = keyof typeof generatedMarkConsumption
 const originals = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const ids = Object.keys(generatedMarkConsumption) as Id[]

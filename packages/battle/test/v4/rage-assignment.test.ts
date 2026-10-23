@@ -24,7 +24,7 @@ import { generatedRageAssignment } from '@arcadia-eternity/data-pack-base/native
 const definitions = new Map<string, unknown>()
 for (const kind of ['ability', 'mark', 'skill'])
   for (const d of parse(
-    readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'),
+    readFileSync(new URL(`./fixtures/effect-regression/effect_${kind}.yaml`, import.meta.url), 'utf8'),
     { merge: true },
   ))
     definitions.set(d.id, d)

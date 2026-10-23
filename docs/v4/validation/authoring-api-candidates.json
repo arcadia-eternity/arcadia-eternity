@@ -4,7 +4,7 @@
   "records": [
     {
       "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/456",
       "definitionSha256": "b45e37643c95f08f9d8e6a3fd5b0741df1f7777acbdacc57e668bd8495a2d843",
       "implementation": "packages/battle/src/v4/official/authored/fantasy-defense.ts",
@@ -18,7 +18,7 @@
     },
     {
       "id": "effect_mark_damage_boost_based_on_hp_percentage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/164",
       "definitionSha256": "8259e9545f1f589bfe6b898c05cc78e84c85e124d480b7b31f28aecbdd08df24",
       "implementation": "packages/battle/src/v4/official/authored/damage-by-hp.ts",
@@ -32,7 +32,7 @@
     },
     {
       "id": "effect_mark_shiguangchongsheng",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/162",
       "definitionSha256": "9aafce55ffd8dc0dfd82890fc4d985fe3ec0e8aa88977f1c11ba5ca4acc96008",
       "implementation": "packages/battle/src/v4/official/authored/time-rebirth.ts",
@@ -46,7 +46,7 @@
     },
     {
       "id": "effect_mark_reduce_speed_ruodian",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/23",
       "definitionSha256": "bf8d85bf6e6765aa8b58be8a3a6cc9dc6a1ebe96d9aaccc8dd5b08ea7b78a3c0",
       "implementation": "packages/battle/src/v4/official/authored/weakness-speed.ts",

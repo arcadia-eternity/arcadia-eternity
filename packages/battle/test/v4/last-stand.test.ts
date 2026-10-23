@@ -24,7 +24,7 @@ import { createLastStand } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_mark_set_health_to_1_on_damage'
 const definition = (
-  parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'), {
     merge: true,
   }) as { id: string }[]
 ).find(d => d.id === id)!

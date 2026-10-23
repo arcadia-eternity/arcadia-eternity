@@ -28,7 +28,7 @@ import { createStackTriggerProbability } from '@arcadia-eternity/data-pack-base/
 
 const id = 'effect_mark_increase_skill_trigger_rate_with_stack'
 const definition = (
-  parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'), {
     merge: true,
   }) as { id: string }[]
 ).find(d => d.id === id)!

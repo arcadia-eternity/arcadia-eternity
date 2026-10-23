@@ -22,7 +22,7 @@ import { createWeaknessTransfer } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_emblem_set_ruodianbiaoji_keeponswitchout'
 const original = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_emblem.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_emblem.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).find((d: { id: string }) => d.id === id)
 function repaired() {

@@ -24,7 +24,7 @@ import { generatedDamageModifierEffects } from '@arcadia-eternity/data-pack-base
 const ids = ['effect_skill_fixed_damage_30_70', 'effect_skill_fixed_damage_30_70_if_opponent_has_cuimian'] as const
 type Id = (typeof ids)[number]
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const originals = new Map(ids.map(id => [id, definitions.find((d: { id: string }) => d.id === id)]))

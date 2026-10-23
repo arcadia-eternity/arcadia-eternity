@@ -1,5 +1,7 @@
 # Hit and critical outcome candidates
 
+This document records historical conversion evidence. The offline generators have been removed; maintained behavior lives in `packs/base/src/effects/`. Retained candidate records and YAML fixtures support behavior regression tests.
+
 The offline generator emits all 65 current single-action definitions with no rejected definitions in this mechanism. All records remain U pending acceptance; production registration is unchanged. The generated TypeScript calls the shared skill-context selectors, conditions and outcome operators. It imports no legacy parser or runtime DSL.
 
 Every emitted record pins its source hash and exact C07 selector spelling changes. Original YAML remains unchanged. Reference fixtures independently copy `useSkillContext` to `usingSkillContext` only in base/target fields and assert that the unmodified definition fails parsing. The source/ledger audit checks every emitted ID and recipe, including action priority separately from effect priority.
@@ -10,7 +12,7 @@ Conditions are collected once. BeforeEffect changes do not revoke admission, but
 
 The defensive extension below completes this single-action inventory. Embedded outcome actions in lists, dependency closure and per-ID acceptance remain part of the migration goal.
 
-Reproduce generation with `node scripts/effect-migration/skill-outcomes.mjs --check`. Run the public test file `packages/battle/test/v4/skill-outcomes.test.ts` after building the battle package. Full-game and fresh-catalog checkpoint acceptance for these IDs remain pending.
+Run the public test file `packages/battle/test/v4/skill-outcomes.test.ts` after building the battle package. Full-game and fresh-catalog checkpoint acceptance for these IDs remain pending.
 
 Defensive semantic constraint: legacy `opponentUseSkill` searches for the nearest skill context and compares `source.owner !== skill.pet`. It does not check opposing player membership. A same-player bench source can therefore satisfy it, while `selfBeSkillTarget` separately requires the direct skill event's actual target. The shared predicate preserves those distinct checks; bench/global ownership is explicitly tested below.
 

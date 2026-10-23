@@ -1,9 +1,9 @@
 # Native TypeScript source authority
 
-The reviewed issue #206 requires TypeScript to own behavior after conversion and forbids a later migration rerun from overwriting manual repairs. All eight generators that emit native TS now use `writeMigrationArtifact`. Their shared sequence emitter also covers its mechanism-specific callers.
+Reviewed TypeScript in `packs/base/src/effects/` owns official behavior. The completed DSL conversion generators and their dedicated tests have been removed. Edit the native source directly and validate the affected behavior through the V4 regression suite.
 
-A migration command may create a missing TS file once. Existing identical TS is left untouched; different TS causes an error before its paired ledger is written. Exclusive first creation (`wx`) also refuses to replace a file created after the initial read. There is no force-overwrite option. Behavior changes use explicit source edits and review. Metadata-only reports can still be regenerated. `--check` remains a read-only reproducibility check, and reports source/template drift rather than repairing it.
+Species, Skill and Mark metadata remain editable YAML selected by the base pack manifest. The reusable content-structure tool inventories references and reorganizes explicitly owned metadata without regenerating behavior. See [content structure](../content-structure.md).
 
-Four regressions verify initial creation, manual and empty-file preservation, missing/drifting check-mode rejection, metadata generation, and an actual skill-power command rerun in an isolated fixture. That command encounters a reviewed TS edit, exits with failure, and leaves both the source and paired ledger unchanged. The complete offline migration suite passes 196 cases. Independent Standards and Spec reviews report zero findings, each separately rerunning all four protection checks.
+Fixed candidate records and historical YAML fixtures remain test inputs for differential behavior, parameter, lifecycle and restoration checks. They are not inputs to the production native catalog or a source from which to overwrite maintained TypeScript.
 
-This only changes offline migration tools. It adds no runtime parser or DSL dependency and does not change the fixed native build used by the complete battle regression.
+Before removal, the offline generators rejected attempts to overwrite manually repaired TypeScript. That protection was verified by initial-creation, preservation and command-level regressions. With the generators removed, native source edits and their behavior checks form the ongoing maintenance workflow.

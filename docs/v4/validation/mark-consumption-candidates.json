@@ -3,7 +3,7 @@
   "records": [
     {
       "id": "effect_skill_consume_all_kongqichuliang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/166",
       "definitionSha256": "e0218355f58d505a3734231183510f3972d7132d581eb2011d01b8f1a163114e",
       "recipe": {
@@ -24,7 +24,7 @@
     },
     {
       "id": "effect_skill_consume_all_opponent_manxingduyao",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/152",
       "definitionSha256": "ae858ff5e8a5f8aebe162d3272a9c9dd420932098771cb4ad3ad2c9574bdd0f2",
       "recipe": {
@@ -45,7 +45,7 @@
     },
     {
       "id": "effect_skill_consume_all_zengzhong",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/123",
       "definitionSha256": "da1df3b327a8c16af1c15055c6e5e7935b15819faf05a88b79c374a6fa80bf2f",
       "recipe": {
@@ -66,7 +66,7 @@
     },
     {
       "id": "effect_skill_consume_all_zhongzinengliang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/69",
       "definitionSha256": "0c809344d7c03fff3d25c2af2f7656280b2d8c6a05edeba72a1e8691764fe6a3",
       "recipe": {
@@ -87,7 +87,7 @@
     },
     {
       "id": "effect_skill_consume_ruodian",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/42",
       "definitionSha256": "4540c96dea10efdf23798209830bf0b6f1fbccd09c4160b03288f5acaea64d8b",
       "recipe": {
@@ -108,7 +108,7 @@
     },
     {
       "id": "effect_skill_consume_shuiwenzhenji",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/177",
       "definitionSha256": "343c67ac8bcf8340752e2be08a3f9213f0e40fd043893521efcf9a6c98fa20a6",
       "recipe": {
@@ -129,7 +129,7 @@
     },
     {
       "id": "effect_skill_consume_xinzhiyinji_multihit_consume",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/231",
       "definitionSha256": "4288752dcda7990be911073b80c505c6f33733d073857597532a3323cf4143d7",
       "recipe": {

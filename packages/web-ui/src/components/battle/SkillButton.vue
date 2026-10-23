@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { officialEffectMarkRelations } from '@arcadia-eternity/data-pack-base/native'
 import { type SkillMessage, type AttributeModifierInfo, Category } from '@arcadia-eternity/const'
 import BattleFrame from './BattleFrame.vue'
 import ElementIcon from './ElementIcon.vue'
@@ -141,6 +142,7 @@ const skillMarkRelations = computed(() => {
     gameDataStore.skills.byId,
     gameDataStore.marks.byId,
     gameDataStore.effects.byId,
+    officialEffectMarkRelations,
   )
 
   const analysis = relationService.analyzeSkillMarkRelations(props.skill.baseId)

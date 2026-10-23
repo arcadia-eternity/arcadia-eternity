@@ -1,117 +1,18 @@
-# 脚本式声明系统
+# 维护脚本
 
-## 概述
+官方效果实现在 `packs/base/src/effects/`，Species、Skill 和 Mark 的编辑数据由 `packs/base/pack.json` 选取。内容结构与编辑方式见 [内容结构](../docs/v4/content-structure.md)。
 
-脚本式声明系统允许通过TypeScript和JavaScript脚本定义游戏内容（效果、技能、标记、种族等），支持装饰器模式和函数式API两种声明方式。
+| 脚本                             | 用途                                                   |
+| -------------------------------- | ------------------------------------------------------ |
+| `content-structure.mjs`          | 检查内容引用、生成显式归属的分组计划并应用文件布局调整 |
+| `content-structure.test.mjs`     | 验证批量整理的顺序保持、冲突检查和重复执行             |
+| `build-battle-environment.mjs`   | 根据战斗核心构建产物生成身份信息                       |
+| `build-base-environment.mjs`     | 根据基础内容包与核心构建产物生成原生内容身份           |
+| `verify-content-environment.mjs` | 在 Node 和 Chrome 中检查编译内容环境与身份             |
+| `verify-native-content.mjs`      | 检查原生内容目录及浏览器构建                           |
+| `verify-native-pack.mjs`         | 检查原生内容加载、完整对战与恢复                       |
+| `verify-v1-port.mjs`             | 检查保留的 V1 核心移植来源                             |
+| `verify-v1-hosts.mjs`            | 检查历史对照在 Node 和 Chrome 中的一致性               |
+| `run-v1-battle.ts`               | 运行历史对照示例                                       |
 
-## 特性
-
-- ✅ 支持TypeScript和JavaScript脚本
-- ✅ 装饰器模式声明
-- ✅ 函数式API声明
-- ✅ 服务器端和Web端加载
-- ✅ 递归目录扫描
-- ✅ 动态导入
-- ✅ 类型安全
-
-## 使用方法
-
-### 装饰器模式（TypeScript）
-
-```typescript
-// scripts/effects/my-effect.ts
-import { Effect } from '@arcadia-eternity/battle'
-import { EffectTrigger } from '@arcadia-eternity/const'
-import { RegisterEffect } from '@arcadia-eternity/data-repository'
-
-@RegisterEffect()
-export class MyEffect extends Effect<EffectTrigger.OnDamage> {
-  constructor() {
-    super(
-      'my_effect',
-      EffectTrigger.OnDamage,
-      context => {
-        // 效果逻辑
-        console.log('我的效果被触发:', context)
-      },
-      0, // priority
-      undefined, // condition
-      undefined, // consumesStacks
-      ['custom'], // tags
-    )
-  }
-}
-```
-
-### 函数式API（JavaScript）
-
-```javascript
-// scripts/effects/my-effect.js
-import { Effect } from '@arcadia-eternity/battle'
-import { EffectTrigger } from '@arcadia-eternity/const'
-import { declareEffect } from '@arcadia-eternity/data-repository'
-
-const myEffect = new Effect(
-  'my_functional_effect',
-  EffectTrigger.OnDamage,
-  context => {
-    console.log('函数式效果被触发:', context)
-  },
-  0,
-  undefined,
-  undefined,
-  ['functional', 'custom'],
-)
-
-declareEffect(myEffect)
-```
-
-## 目录结构
-
-```
-scripts/
-├── effects/          # 效果脚本
-├── skills/           # 技能脚本
-├── marks/            # 标记脚本
-├── species/          # 种族脚本
-└── README.md         # 本文档
-```
-
-## 加载方式
-
-### 服务器端（Node.js）
-
-```javascript
-import { ScriptLoader } from '@arcadia-eternity/data-repository'
-
-const loader = new ScriptLoader({ scriptPaths: ['./scripts'], recursive: true })
-await loader.loadScriptsFromFileSystem('./scripts')
-```
-
-### Web端（浏览器）
-
-```javascript
-import { ScriptLoader } from '@arcadia-eternity/data-repository'
-
-const loader = new ScriptLoader({
-  baseUrl: '/scripts',
-  scriptPaths: ['effects/my-effect.js'],
-})
-await loader.loadScriptsFromHttp('/scripts', ['effects/my-effect.js'])
-```
-
-## 注意事项
-
-1. TypeScript文件需要先编译为JavaScript才能在运行时加载
-2. 装饰器需要在tsconfig.json中启用experimentalDecorators
-3. 脚本加载是异步的，需要在游戏数据加载后进行
-4. 脚本中的声明会自动注册到DataRepository中
-
-## 示例
-
-查看 `scripts/` 目录下的示例文件：
-
-- `effects/example-effect.ts` - 装饰器模式示例
-- `effects/example-effect-functional.js` - 函数式API示例
-- `skills/example-skill.ts` - 技能声明示例
-- `species/example-species.ts` - 种族声明示例
+旧 DSL 转 TypeScript 的一次性转换工具已经移除。修改效果时直接编辑原生 TypeScript，并运行对应行为回归；固定的历史数据与候选记录继续供测试使用。

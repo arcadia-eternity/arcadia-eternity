@@ -31,7 +31,7 @@ const ledger = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/damage-sequences-candidates.json', import.meta.url), 'utf8'),
 )
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 type Id = keyof typeof generatedDamageSequences

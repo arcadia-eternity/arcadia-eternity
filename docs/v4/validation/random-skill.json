@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_mark_random_use_skill",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/5",
       "definitionSha256": "c9646a2f0263d7c2490d5b7fc3ec33b374703ddb143c6fcf28e423a6b65796e2",
       "status": "handwritten-candidate",
@@ -11,7 +11,7 @@
     },
     {
       "id": "effect_mark_random_use_skill_except_jingshenshikong",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/186",
       "definitionSha256": "cd93b49e4d942ae341630a73c1b73416b22d3fb94bca741bd70211627b42c713",
       "status": "handwritten-candidate",

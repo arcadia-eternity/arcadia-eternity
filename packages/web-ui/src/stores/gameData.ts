@@ -1,70 +1,18 @@
 // src/stores/gameData.ts
 import { defineStore } from 'pinia'
-import { PackLoader, type V2DataPackManifest } from '@arcadia-eternity/pack-loader'
-import type {
-  SpeciesSchemaType,
-  SkillSchemaType,
-  MarkSchemaType,
-  Effect,
-  LearnableSkill,
-} from '@arcadia-eternity/schema'
-import type { BaseMarkData, BaseSkillData, SpeciesData } from '@arcadia-eternity/battle'
-import { AttackTargetOpinion, Category, Element, IgnoreStageStrategy, StackStrategy } from '@arcadia-eternity/const'
+import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
+import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
 import YAML from 'yaml'
 import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
 const BASE_PACK_ID = 'arcadia-eternity.base'
 
-type EffectDefLike = {
-  id: string
-  triggers: unknown
-  priority?: unknown
-  apply?: unknown
-  condition?: unknown
-  consumesStacks?: unknown
-  tags?: unknown
-}
-
-const ELEMENT_SET = new Set(Object.values(Element))
-const CATEGORY_SET = new Set(Object.values(Category))
-const TARGET_SET = new Set(Object.values(AttackTargetOpinion))
-const IGNORE_STAGE_SET = new Set(Object.values(IgnoreStageStrategy))
-const STACK_STRATEGY_SET = new Set(Object.values(StackStrategy))
-
-function normalizeElement(value: unknown): SkillSchemaType['element'] {
-  if (typeof value === 'string' && ELEMENT_SET.has(value as Element)) {
-    return value as SkillSchemaType['element']
-  }
-  return Element.Normal as SkillSchemaType['element']
-}
-
-function normalizeCategory(value: unknown): SkillSchemaType['category'] {
-  if (typeof value === 'string' && CATEGORY_SET.has(value as Category)) {
-    return value as SkillSchemaType['category']
-  }
-  return Category.Status as SkillSchemaType['category']
-}
-
-function normalizeTarget(value: unknown): SkillSchemaType['target'] {
-  if (typeof value === 'string' && TARGET_SET.has(value as AttackTargetOpinion)) {
-    return value as SkillSchemaType['target']
-  }
-  return undefined
-}
-
-function normalizeIgnoreStage(value: unknown): SkillSchemaType['ignoreOpponentStageStrategy'] {
-  if (typeof value === 'string' && IGNORE_STAGE_SET.has(value as IgnoreStageStrategy)) {
-    return value as SkillSchemaType['ignoreOpponentStageStrategy']
-  }
-  return IgnoreStageStrategy.none as SkillSchemaType['ignoreOpponentStageStrategy']
-}
-
-function normalizeStackStrategy(value: unknown): NonNullable<MarkSchemaType['config']>['stackStrategy'] {
-  if (typeof value === 'string' && STACK_STRATEGY_SET.has(value as StackStrategy)) {
-    return value as NonNullable<MarkSchemaType['config']>['stackStrategy']
-  }
-  return StackStrategy.extend as NonNullable<MarkSchemaType['config']>['stackStrategy']
+function createMetadataLoader() {
+  return new NativePackLoader(nativeBuildIdentity, createOfficialContent)
 }
 
 interface WorkspaceGameDataLayer {
@@ -99,6 +47,7 @@ interface GameDataState {
     byId: Record<string, Effect>
     allIds: string[]
   }
+  nativeEffectIds: string[]
   loaded: boolean
   gameDataLoaded: boolean
   error: string | null
@@ -146,6 +95,7 @@ export const useGameDataStore = defineStore('gameData', {
       byId: {},
       allIds: [],
     },
+    nativeEffectIds: [],
     gameDataLoaded: false,
     workspaceRuntime: emptyWorkspaceRuntime(),
   }),
@@ -182,6 +132,7 @@ export const useGameDataStore = defineStore('gameData', {
       this.skills = { byId: {}, allIds: [] }
       this.marks = { byId: {}, allIds: [] }
       this.effects = { byId: {}, allIds: [] }
+      this.nativeEffectIds = []
       this.workspaceRuntime = emptyWorkspaceRuntime()
     },
 
@@ -307,15 +258,12 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     async loadWorkspaceLayer(folderName: string): Promise<WorkspaceGameDataLayer> {
-      const loader = new PackLoader()
+      const loader = createMetadataLoader()
       const packRef = await resolveWorkspaceFileUrl(`packs/${encodeURIComponent(folderName)}/pack.json`)
-      const result = await loader.load(packRef, {
+      const result = await loader.loadMetadata(packRef, {
         source: 'http',
-        continueOnError: false,
-        validateReferences: true,
         enforceLockfile: true,
       })
-      const learnableSkillsMap = await loadLearnableSkillsMap(packRef, result.pack)
 
       // Build sourceFile mapping: kind → recordId → relativePath
       const sourceFiles: Record<string, Record<string, string>> = {}
@@ -349,48 +297,27 @@ export const useGameDataStore = defineStore('gameData', {
         }
       }
 
-      const rawSpecies = Array.from(result.repository.allSpecies()).map(species => {
-        const learnableSkills = learnableSkillsMap.get(species.id)
-        if (!learnableSkills) {
-          throw new Error(`Species '${species.id}' missing learnable_skills in pack source`)
-        }
-        return speciesToSchema(species, learnableSkills)
-      })
-
       return {
         folderName,
-        species: this.normalizeData(rawSpecies).byId,
-        skills: this.normalizeData(Array.from(result.repository.allSkills()).map(skillToSchema)).byId,
-        marks: this.normalizeData(Array.from(result.repository.allMarks()).map(markToSchema)).byId,
-        effects: this.normalizeData(Array.from(result.repository.allEffects()).map(effectToSchema)).byId,
+        species: this.normalizeData(result.data.species.map(raw => parseWithErrors(SpeciesSchema, raw))).byId,
+        skills: this.normalizeData(result.data.skills.map(raw => parseWithErrors(SkillSchema, raw))).byId,
+        marks: this.normalizeData(result.data.marks.map(raw => parseWithErrors(MarkSchema, raw))).byId,
+        effects: {},
         sourceFiles,
       }
     },
 
     async loadFromPackRef(packRef: string) {
-      const loader = new PackLoader()
-      const result = await loader.load(packRef, {
+      const loader = createMetadataLoader()
+      const result = await loader.loadMetadata(packRef, {
         source: 'http',
-        continueOnError: false,
-        validateReferences: true,
         enforceLockfile: true,
       })
-      const learnableSkillsMap = await loadLearnableSkillsMap(packRef, result.pack)
-      const rawSpecies = Array.from(result.repository.allSpecies()).map(species => {
-        const learnableSkills = learnableSkillsMap.get(species.id)
-        if (!learnableSkills) {
-          throw new Error(`Species '${species.id}' missing learnable_skills in pack source`)
-        }
-        return speciesToSchema(species, learnableSkills)
-      })
-      const rawSkills = Array.from(result.repository.allSkills()).map(skillToSchema)
-      const rawMarks = Array.from(result.repository.allMarks()).map(markToSchema)
-      const rawEffects = Array.from(result.repository.allEffects()).map(effectToSchema)
-
-      this.species = this.normalizeData(rawSpecies)
-      this.skills = this.normalizeData(rawSkills)
-      this.marks = this.normalizeData(rawMarks)
-      this.effects = this.normalizeData(rawEffects)
+      this.species = this.normalizeData(result.data.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
+      this.skills = this.normalizeData(result.data.skills.map(raw => parseWithErrors(SkillSchema, raw)))
+      this.marks = this.normalizeData(result.data.marks.map(raw => parseWithErrors(MarkSchema, raw)))
+      this.effects = { byId: {}, allIds: [] }
+      this.refreshNativeEffectReferences()
 
       this.workspaceRuntime = emptyWorkspaceRuntime()
       this.validateDataIntegrity()
@@ -433,6 +360,7 @@ export const useGameDataStore = defineStore('gameData', {
       this.skills = this.normalizeRecordData(skillsById)
       this.marks = this.normalizeRecordData(marksById)
       this.effects = this.normalizeRecordData(effectsById)
+      this.refreshNativeEffectReferences()
       this.validateDataIntegrity()
     },
 
@@ -464,6 +392,19 @@ export const useGameDataStore = defineStore('gameData', {
       }
     },
 
+    refreshNativeEffectReferences() {
+      // Build after merging layers: native callbacks may refer to marks defined by another layer.
+      const content = createOfficialContent(
+        {
+          marks: this.marks.allIds.map(id => ({ ...JSON.parse(JSON.stringify(this.marks.byId[id])), effect: [] })),
+          skills: [],
+          species: [],
+        },
+        'web-native-effects',
+      )
+      this.nativeEffectIds = content.effects.map(effect => effect.id)
+    },
+
     validateDataIntegrity() {
       const errors: string[] = []
 
@@ -490,11 +431,12 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     validateCrossReferences(errors: string[]) {
+      const nativeEffects = new Set(this.nativeEffectIds)
       this.skills.allIds.forEach(skillId => {
         const skill = this.skills.byId[skillId]
         if (skill?.effect && Array.isArray(skill.effect)) {
           skill.effect.forEach((effectId: string) => {
-            if (!this.effects.byId[effectId]) {
+            if (!this.effects.byId[effectId] && !nativeEffects.has(effectId)) {
               errors.push(`技能 ${skillId} 引用了不存在的效果 ${effectId}`)
             }
           })
@@ -505,7 +447,7 @@ export const useGameDataStore = defineStore('gameData', {
         const mark = this.marks.byId[markId]
         if (mark?.effect && Array.isArray(mark.effect)) {
           mark.effect.forEach((effectId: string) => {
-            if (!this.effects.byId[effectId]) {
+            if (!this.effects.byId[effectId] && !nativeEffects.has(effectId)) {
               errors.push(`标记 ${markId} 引用了不存在的效果 ${effectId}`)
             }
           })
@@ -542,79 +484,6 @@ export const useGameDataStore = defineStore('gameData', {
     },
   },
 })
-
-function markToSchema(mark: BaseMarkData): MarkSchemaType {
-  return {
-    id: mark.id,
-    iconRef: mark.iconRef,
-    config: {
-      ...mark.config,
-      stackStrategy: normalizeStackStrategy(mark.config.stackStrategy),
-    },
-    tags: mark.tags,
-    effect: mark.effectIds,
-  }
-}
-
-function skillToSchema(skill: BaseSkillData): SkillSchemaType {
-  return {
-    id: skill.id,
-    sfxRef: skill.sfxRef,
-    element: normalizeElement(skill.element),
-    category: normalizeCategory(skill.category),
-    power: skill.power,
-    rage: skill.rage,
-    accuracy: skill.accuracy,
-    priority: skill.priority,
-    target: normalizeTarget(skill.target),
-    multihit: skill.multihit,
-    sureHit: skill.sureHit,
-    sureCrit: skill.sureCrit,
-    ignoreShield: skill.ignoreShield,
-    ignoreOpponentStageStrategy: normalizeIgnoreStage(skill.ignoreOpponentStageStrategy),
-    tags: skill.tags,
-    effect: skill.effectIds,
-  }
-}
-
-function speciesToSchema(species: SpeciesData, learnableSkills: LearnableSkill[]): SpeciesSchemaType {
-  return {
-    id: species.id,
-    num: species.num,
-    assetRef: species.assetRef,
-    element: normalizeElement(species.element),
-    baseStats: species.baseStats,
-    genderRatio: species.genderRatio,
-    heightRange: species.heightRange,
-    weightRange: species.weightRange,
-    learnable_skills: learnableSkills,
-    ability: species.abilityIds,
-    emblem: species.emblemIds,
-  }
-}
-
-async function loadLearnableSkillsMap(
-  packRef: string,
-  manifest: V2DataPackManifest | undefined,
-): Promise<Map<string, LearnableSkill[]>> {
-  if (!manifest) return new Map()
-  const map = new Map<string, LearnableSkill[]>()
-  const manifestUrl = toAbsoluteHttpUrl(packRef)
-  const dataRoot = resolveDirectoryUrl(manifest.paths?.dataDir ?? '.', manifestUrl)
-
-  for (const file of manifest.data.species) {
-    const fileUrl = new URL(file, dataRoot).toString()
-    const rows = await fetchArray(fileUrl)
-    for (const row of rows) {
-      const speciesId = row.id as string | undefined
-      if (!speciesId) continue
-      const learnableSkills = (Array.isArray(row.learnable_skills) ? row.learnable_skills : []) as LearnableSkill[]
-      map.set(speciesId, learnableSkills)
-    }
-  }
-
-  return map
-}
 
 function resolveDirectoryUrl(dir: string, baseUrl: string): URL {
   const normalizedDir = dir === '.' ? './' : `${dir.replace(/\/+$/, '')}/`
@@ -662,16 +531,4 @@ async function fetchText(url: string): Promise<string> {
     throw new Error(`HTTP ${response.status} for ${url}`)
   }
   return response.text()
-}
-
-function effectToSchema(effect: EffectDefLike): Effect {
-  return {
-    id: effect.id,
-    trigger: Array.isArray(effect.triggers) ? effect.triggers : [],
-    priority: typeof effect.priority === 'number' ? effect.priority : 0,
-    apply: effect.apply as Effect['apply'],
-    condition: effect.condition as Effect['condition'],
-    consumesStacks: typeof effect.consumesStacks === 'boolean' ? effect.consumesStacks : undefined,
-    tags: Array.isArray(effect.tags) ? effect.tags.filter((tag): tag is string => typeof tag === 'string') : [],
-  } as Effect
 }

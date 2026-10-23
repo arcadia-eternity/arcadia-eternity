@@ -1,5 +1,7 @@
 # Skill power correction candidates
 
+This document records historical conversion evidence. The offline generators have been removed; maintained behavior lives in `packs/base/src/effects/`. Retained candidate records and YAML fixtures support behavior regression tests.
+
 The current production source contains 104 single-action `amplifyPower`/`addPower` definitions. This batch statically emits 104 candidates (83 literal, 18 dynamic-valued and three conditional-valued) and records no rejected definitions in this single-action scope with precise source hashes and reasons. The generated module contains ordinary TypeScript; neither legacy parser nor migration expressions run in the candidate implementation.
 
 ## C07: skill selector spelling
@@ -71,8 +73,6 @@ Both independent implementation reviews pass after the recognition fixes. All 10
 Reproduce:
 
 ```sh
-node scripts/effect-migration/skill-power.mjs --check
-node --test scripts/effect-migration/skill-power.test.mjs scripts/effect-migration/damage-modifiers.test.mjs
 pnpm --filter @arcadia-eternity/battle build:code
 pnpm --filter @arcadia-eternity/battle exec vitest run --config vitest.v4.config.mjs test/v4/skill-power.test.ts
 pnpm test:effect-authoring-design

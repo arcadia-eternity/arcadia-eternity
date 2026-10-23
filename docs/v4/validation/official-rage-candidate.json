@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "id": "effect_skill_add_rage_20_if_rage_below_40",
-  "sourceFile": "packs/base/data/effect_skill.yaml",
+  "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
   "sourcePath": "/282",
   "definitionSha256": "71dbd173fa5e8da78d68832fa097f8d3c3c3febca67754374beafdc509bd944b",
   "implementation": "packages/battle/src/v4/official/rage.ts",

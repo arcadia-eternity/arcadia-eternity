@@ -25,7 +25,7 @@ import { createAutomaticStackConsumption } from '@arcadia-eternity/data-pack-bas
 
 const candidates = createAutomaticStackConsumption()
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ) as { id: string }[]
 const battles: Battle[] = []

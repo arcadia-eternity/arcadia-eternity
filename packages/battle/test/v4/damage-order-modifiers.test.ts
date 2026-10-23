@@ -31,7 +31,7 @@ const ids = [
 ] as const
 type Id = (typeof ids)[number]
 const definitions = ['ability', 'skill'].flatMap(kind =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL(`./fixtures/effect-regression/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
     merge: true,
   }),
 )

@@ -48,7 +48,7 @@ interface SourceDefinition {
 const definitions = new Map<string, SourceDefinition>()
 for (const name of ['global', 'ability', 'emblem', 'mark', 'skill'])
   for (const d of parse(
-    readFileSync(new URL(`../../../../packs/base/data/effect_${name}.yaml`, import.meta.url), 'utf8'),
+    readFileSync(new URL(`./fixtures/effect-regression/effect_${name}.yaml`, import.meta.url), 'utf8'),
     { merge: true },
   ))
     definitions.set(d.id, d)

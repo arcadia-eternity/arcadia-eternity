@@ -28,10 +28,16 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-import { generatedStatStageSequences } from '@arcadia-eternity/data-pack-base/native'
+import { compileEffect } from '@arcadia-eternity/battle/v4/authoring'
+import { consumeFantasyForDefense, generatedStatStageSequences } from '@arcadia-eternity/data-pack-base/native'
+
+const statStageSequences = {
+  ...generatedStatStageSequences,
+  effect_skill_consume_huanxiang_raise_def_1_stage: compileEffect(consumeFantasyForDefense),
+}
 
 interface RecordEntry {
-  id: keyof typeof generatedStatStageSequences
+  id: keyof typeof statStageSequences
   sourceFile: string
   definitionSha256: string
   recipe: {
@@ -162,7 +168,7 @@ function run(
     for (const owner of [a.activePet, b.activePet]) owner.marks = owner.marks.filter(m => !support.includes(m))
   }
   if (variant === 'missing-support') clearSupports()
-  source.effects.push(native ? generatedStatStageSequences[r.id] : oracles.get(r.id)!)
+  source.effects.push(native ? statStageSequences[r.id] : oracles.get(r.id)!)
   const turn = new TurnContext(battle)
   let use = new UseSkillContext(turn, a, a.activePet, AttackTargetOpinion.opponent, skill)
   use.updateActualTarget()
@@ -375,7 +381,7 @@ for (const r of records) {
     }
 }
 it('exports exactly the stat-stage sequence ledger', () =>
-  expect(Object.keys(generatedStatStageSequences).sort()).toEqual(records.map(r => r.id).sort()))
+  expect(Object.keys(statStageSequences).sort()).toEqual(records.map(r => r.id).sort()))
 
 for (const seed of [1, 2, 3, 4, 5, 100, 999, 8001])
   it(`random stat complete shuffle RNG seed ${seed}`, () => {

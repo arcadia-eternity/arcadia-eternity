@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_ability_add_shuiwenpingzhang_value_if_yutian",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/12",
       "definitionSha256": "157697436ac739d5c214c46bfa6d96a47aad17eeac5deab8495eb9c18e3a59cb",
       "status": "handwritten-candidate",

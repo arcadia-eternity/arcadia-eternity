@@ -858,919 +858,919 @@
   "effects": [
     {
       "id": "effect_ability_damage_reduction_below_25_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/2",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_physical_damage_reduction_below_25_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/5",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_reduce_physical_damage_30_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/28",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_increase_special_damage_taken_15_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/29",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_reduce_damage_10_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/33",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_reduce_damage_10_percent_has_shazhidanke",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/34",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_damage_reduction_10",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/36",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_reduce_damage_10_if_has_mark_huanxiang",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/48",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_damage_boost_10_percent_when_first",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/49",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_ability_damage_reduction_10_percent_when_last",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/50",
       "types": ["isLastSkillUsedThisTurn", "selfBeDamaged"]
     },
     {
       "id": "effect_ability_damage_reduction_50_percent_at_full_hp",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/53",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_gugao_prevent_rage_when_opponent_use_skill",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/59",
       "types": ["BeforeRageGain"]
     },
     {
       "id": "effect_ability_keep_rage_at_least_25",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/65",
       "types": ["OnRageGain", "OnRageLoss", "setRage"]
     },
     {
       "id": "effect_ability_reduce_damage_when_max_hp_over_500",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/66",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_fixed_damage_15_when_has_penti",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/68",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_add_rage_5_when_first_attack",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/70",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_ability_reduce_special_damage_10_percent",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/78",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/80",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_emblem_increase_rage_on_damage",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/1",
       "types": ["BeforeRageGain", "selfBeDamaged"]
     },
     {
       "id": "effect_emblem_add_xukongtizhi_when_opponent_hit_self",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/21",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_emblem_yuren_dealdamage_on_physical_skill",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/48",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_emblem_xianzhi_crit_rate_5_percent_if_first",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/49",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_mark_onDamage_recovery",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/3",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_onCritDamage_recovery",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/4",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_onDamage_over100_recovery",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/6",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_damage_taken",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/24",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_damage_taken_50",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/25",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_damage_taken_once",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/26",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_damage_taken_once",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/27",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_set_health_to_1_on_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/33",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_zhongzinengliang_damage_reduction",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/34",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_absorb_damage_to_heal",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/46",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_special_damage_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/47",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_physical_damage_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/48",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_damage_with_weight",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/50",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reflect_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/52",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/55",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reflect_damage_1_4",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/58",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_taken_damage_30_xstack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/69",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_limit_rage_gain",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/73",
       "types": ["BeforeRageGain"]
     },
     {
       "id": "effect_mark_double_physical_damage_taken",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/77",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reflect_physical_damage_30",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/79",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_damage_taken_75_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/81",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_consume_stack_on_skill_use",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/89",
       "types": ["SkillUseEnd"]
     },
     {
       "id": "effect_mark_reduce_damage_taken_10_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/95",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_damage_taken_20_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/97",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_special_damage_30",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/99",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_paralyze_on_physical_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/100",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_increase_damage_taken_once_50_percent_double_effect_if_frozen",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/101",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_block_damage_under_60",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/103",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_rage_on_damage_10_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/107",
       "types": ["BeforeRageGain", "selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_rage_on_damage_20_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/108",
       "types": ["BeforeRageGain", "selfBeDamaged"]
     },
     {
       "id": "effect_mark_fear_consume_stacks_at_3",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/111",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_mark_double_special_damage_taken",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/113",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_explode_on_stack_over_100",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/115",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_mark_hongbaoshizhiguang_add_200_fixed_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/117",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_lanbaoshizhiguang_add_200_fixed_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/118",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_block_next_special_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/119",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_special_damage_reduction_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/121",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_damage_taken_15_percent_per_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/123",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_jiguang_add_200_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/125",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_jueying_add_200_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/126",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_increase_damage_taken_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/127",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_baiyapo_add_damage_based_on_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/129",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_heiyapao_add_damage_based_on_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/130",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_next_skill_damage_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/131",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_damage_taken_15_percent_per_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/132",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_damage_30_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/135",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_damage_cap_half_max_hp",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/139",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_damage_15_percent_per_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/140",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reflect_special_damage_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/142",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_add_damage_taken_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/143",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_buxieanguang_reduce_light_damage_half",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/147",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_zhenshihuanxiang_prevent_consume",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/151",
       "types": ["OnBeforeConsumeStack"]
     },
     {
       "id": "effect_mark_add_crit_on_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/154",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_damage_taken_25_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/156",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_fantan_reflect_damage_1_3",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/159",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_shiguangchongsheng",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/162",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/163",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_stack_mark_with_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/166",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_opponent_rage_15_if_damage_below_75",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/169",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_block_climax_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/170",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reduce_fire_damage_half",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/171",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_clear_rage_on_turn_start",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/173",
       "types": ["setRage"]
     },
     {
       "id": "effect_mark_clear_rage_on_switch_out",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/174",
       "types": ["setRage"]
     },
     {
       "id": "effect_mark_reduce_damage_taken_by_25_per_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/176",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_reflect_special_damage_max_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/180",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_raise_def_1_when_hit_and_remove_self",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/182",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_mark_prevent_rage_loss_on_switch",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/187",
       "types": ["BeforeRageLoss"]
     },
     {
       "id": "effect_mark_hunluan_consume_stacks_at_2",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/196",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_mark_increase_damage_taken_40",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/202",
       "types": ["selfBeDamaged"]
     },
     {
       "id": "effect_skill_consume_ruodian",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/42",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_all_zhongzinengliang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/69",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_all_zengzhong",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/123",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_all_opponent_manxingduyao",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/152",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/161",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/162",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/163",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/164",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_all_kongqichuliang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/166",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_shuiwenzhenji",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/177",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_power_2x_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/203",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_mark_shanbi_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/217",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_consume_xinzhiyinji_multihit_consume",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/231",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_maimaijinzhen_add_liuxie_50",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/246",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_maimaijinzhen_heal_self_50",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/251",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_maimaijinzhen_add_maidijinzhen",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/252",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_maidijinzhen_add_jinzhenfenmo",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/253",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_power_2x_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/289",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_mark_opponent_shiming_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/299",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_crit_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/305",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_set_field_qingtian_or_yemu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/306",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_add_multihit_1_consume_shazhidanke",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/346",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_add_power_10_consume_shazhidanke",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/347",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_sure_hit_consume_shazhidanke",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/348",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_priority_plus_1_consume_shazhidanke",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/350",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_clear_transform_when_use",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/379",
       "types": ["SkillUseEnd"]
     },
     {
       "id": "effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/416",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_add_power_50_consume_heianwuzhi",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/418",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_heimowuzhi_2_sure_crit",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/421",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_huanxiang_multihit_2",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/450",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_huanxiang_raise_spa_1_stage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/451",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_huanxiang_add_mark_opponent_dongshang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/452",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_huanxiang_set_sure_hit",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/454",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/456",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_huanxiang_multihit_4_to_5",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/460",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_consume_huanxiang_raise_spd_1_stage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/461",
       "types": ["consumeStacks"]
     },
     {
       "id": "effect_skill_add_mark_zhaocai_or_jinbao",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/462",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_add_power_40_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/473",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_power_40_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/474",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_multihit_4_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/475",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_multihit_4_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/476",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_damage_increase_30_percent_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/477",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_damage_increase_30_percent_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/478",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_fixed_damage_50_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/481",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_fixed_damage_50_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/482",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/485",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_sure_hit_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/495",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_crit_rate_50_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/496",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_crit_rate_65_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/500",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_rage_15_if_first",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/542",
       "types": ["isFirstSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_set_opponent_rage_to_self",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/561",
       "types": ["setRage"]
     },
     {
       "id": "effect_skill_fixed_damage_30_70_if_opponent_has_cuimian",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/601",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_fixed_damage_30_70",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/607",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_random_xifa_effect",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/649",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/654",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/657",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/666",
       "types": ["selectorValue"]
     },
     {
       "id": "effect_skill_add_damage_50_percent_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/689",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/690",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/692",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_add_mark_opponent_liuxie_40_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/693",
       "types": ["isLastSkillUsedThisTurn"]
     },
     {
       "id": "effect_skill_multihit_4_times_if_last",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/695",
       "types": ["isLastSkillUsedThisTurn"]
     }

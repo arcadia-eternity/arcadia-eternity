@@ -28,7 +28,7 @@ import { createOfficialWaterShieldCandidate } from '@arcadia-eternity/data-pack-
 const id = 'effect_skill_add_mark_shuiwenpingzhang',
   markId = 'mark_shuiwenpingzhang'
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const markDefinitions = parse(readFileSync(new URL('../../../../packs/base/data/mark.yaml', import.meta.url), 'utf8'), {
@@ -219,7 +219,7 @@ it('pins both the source action and dependency configuration without claiming do
 
 it('keeps the unresolved downstream oracle dependency visible instead of silently dropping it', () => {
   const effects = parse(
-    readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
+    readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
     { merge: true },
   )
   const destroy = effects.find((entry: { id: string }) => entry.id === markDefinition.effect[0])

@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_skill_heal_self_1_6_max_hp",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/301",
       "definitionSha256": "8686b01ce3f76ee73c2f799a7b0df274947b93ff72db263471eef5450b5900db",
       "status": "handwritten-candidate",
@@ -24,7 +24,7 @@
     },
     {
       "id": "effect_skill_heal_quarter_if_guanghuilingyu",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/304",
       "definitionSha256": "7836e1f2be9a614fed548964d9f9f5f46b74ff3d05c5bc08fd9bee33abd4ba78",
       "status": "handwritten-candidate",
@@ -46,7 +46,7 @@
     },
     {
       "id": "effect_skill_heal_self_1_6_max_hp_on_defeat_opponent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/526",
       "definitionSha256": "a29539df4649263b60c75c2a78be45fa9c006a6535f8674deed6ff978d4b05b9",
       "status": "handwritten-candidate",

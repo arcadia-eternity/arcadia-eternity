@@ -3,7 +3,7 @@
   "records": [
     {
       "id": "effect_ability_keep_rage_at_least_25",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/65",
       "definitionSha256": "e3c3c7d4c43347cf8f9e35797b37be76203015852932ebcf4fe8459faae32d35",
       "recipe": {
@@ -19,7 +19,7 @@
     },
     {
       "id": "effect_mark_clear_rage_on_switch_out",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/174",
       "definitionSha256": "0d332fbb804ca51c552693842ac7d7ccd71669df434fc960bfea18c3b678db42",
       "recipe": {
@@ -35,7 +35,7 @@
     },
     {
       "id": "effect_mark_clear_rage_on_turn_start",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/173",
       "definitionSha256": "dff26a8fc152ebba6038104c7b9a62da06bea544c2f2f65cc05c236eb042f9df",
       "recipe": {
@@ -51,7 +51,7 @@
     },
     {
       "id": "effect_skill_set_opponent_rage_to_self",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/561",
       "definitionSha256": "5b70a0c3e445cafa8f1e2f5cb1f49f08751e3c5ae04b5754eb5f548546ccc21c",
       "recipe": {

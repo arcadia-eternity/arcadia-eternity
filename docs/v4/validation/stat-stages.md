@@ -1,5 +1,7 @@
 # Native stat-stage candidates
 
+This document records historical conversion evidence. The offline generators have been removed; maintained behavior lives in `packs/base/src/effects/`. Retained candidate records and YAML fixtures support behavior regression tests.
+
 The offline generator recognizes all 102 current single-action statStageBuff definitions and records no rejected definitions. It emits ordinary TypeScript calls to Pet.addStatStage, preserving the existing mark creation, level merging, limits and attribute modifiers. No parser, selector builder or runtime DSL is imported by generated code. Production registration is unchanged and every record remains U.
 
 Admission supports selfUseSkill and ordered nested every conditions containing self probability evaluators. Generated boolean expressions preserve short-circuit order, including repeated self tests. The probability value is read before drawing one battle RNG sample, even for 0 or 100 percent. Raw numeric probability values become 42 public parameters with stable effect/node/field addresses, original tags and explicit Config aliases where present. Effective values remain finite numbers without introducing a 0–100 clamp. Tagged modifiers continue to use the source scope; unnamed legacy random keys are not copied into stable addresses.
@@ -13,9 +15,6 @@ These tests establish the action and admission boundary only. Full-game sequence
 Reproduce:
 
 ```sh
-node scripts/effect-migration/stat-stages.mjs
-node scripts/effect-migration/stat-stages.mjs --check
-node --test scripts/effect-migration/stat-stages.test.mjs
 pnpm test:battle-v4 test/v4/stat-stages.test.ts test/v4/conditional-stat-stages.test.ts --maxWorkers=2
 ```
 

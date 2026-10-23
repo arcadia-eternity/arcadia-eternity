@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_mark_consume_stack_on_skill_use",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/89",
       "definitionSha256": "1770a99968b77c3c67e3cbbc3668510ef024ba2e4723b1f9d1a38d928cb7c65b",
       "status": "handwritten-candidate",
@@ -11,7 +11,7 @@
     },
     {
       "id": "effect_mark_anyingzhiguang_consume_stack_on_skill_use",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/105",
       "definitionSha256": "adfe59270c0c1effb462280a7cf05762dc499be79e4590c77426850a38cad5d1",
       "status": "handwritten-candidate",

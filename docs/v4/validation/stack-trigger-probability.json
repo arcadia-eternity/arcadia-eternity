@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_mark_increase_skill_trigger_rate_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/114",
       "definitionSha256": "f5c164c48c71e8243531c43b07df585638e55e1cd8f0fb4efc1b73fc6e08d550",
       "status": "handwritten-candidate",

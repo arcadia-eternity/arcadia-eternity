@@ -75,7 +75,7 @@ it('historical operator invokes selected functions in order, preserving duplicat
   expect(seen).toEqual([1, 2, 1])
 })
 const originals = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).filter((d: { apply?: { type?: string } }) => d.apply?.type === 'executeActions')
 it('pins the current action-selection inventory', () => expect(originals).toHaveLength(3))

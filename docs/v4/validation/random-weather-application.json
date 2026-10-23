@@ -1,6 +1,6 @@
 {
   "id": "effect_skill_set_field_qingtian_or_yemu",
-  "sourceFile": "packs/base/data/effect_skill.yaml",
+  "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
   "sourcePath": "/306",
   "definitionSha256": "5b5bf6ada5d715738760790e03dab75a9e0807499a83bca586df132ddba28bca",
   "classification": "U",

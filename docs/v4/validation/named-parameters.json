@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_emblem_fengbaozhixing_rage_boost_5",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/23",
       "definitionSha256": "a5f2908b08b96ce86cf5b779dedc595945e981fa99c48f23c86aa2fa065e2f0b",
       "status": "handwritten-candidate",
@@ -11,7 +11,7 @@
     },
     {
       "id": "effect_emblem_dianhe_crit_rate_boost_5_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/24",
       "definitionSha256": "938b400d74137171e3e8a2a981d2943f6ff1a7de0e79298941181fd137be99d6",
       "status": "handwritten-candidate",
@@ -20,7 +20,7 @@
     },
     {
       "id": "effect_emblem_shenjie_freeze_rate_boost_5_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/25",
       "definitionSha256": "8770a376b64c23ab00c19e3b66ab263722b35c13a59a23736308b1a5ae0e6b34",
       "status": "handwritten-candidate",
@@ -29,7 +29,7 @@
     },
     {
       "id": "effect_emblem_wuzhe_reduce_damage_increase_5_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/34",
       "definitionSha256": "2777ddb67fdc11068ae022c107832c57116e8f8fd96c675c6ddb856d4ed37971",
       "status": "handwritten-candidate",
@@ -38,7 +38,7 @@
     },
     {
       "id": "effect_emblem_renzhe_reduce_damage_reduction_5_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/35",
       "definitionSha256": "1987178870aaa7fec9af1176f6296e26bc1f7b5dc67ed593613c715ce4950df5",
       "status": "handwritten-candidate",
@@ -47,7 +47,7 @@
     },
     {
       "id": "effect_emblem_dengxin_reduce_accuracy_5_percent_per_stack",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/42",
       "definitionSha256": "8c1264f01e69238490541341378a1e64f6bcc57801ca564908ce1ee6b505873d",
       "status": "handwritten-candidate",
@@ -56,7 +56,7 @@
     },
     {
       "id": "effect_emblem_increase_chaoshui_nishui_chance_10_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/51",
       "definitionSha256": "81caa27202722954ac124f9ab5fbe030a83681ce6aef3a3cc37f89fe3752e798",
       "status": "handwritten-candidate",
@@ -65,7 +65,7 @@
     },
     {
       "id": "effect_emblem_shabaozhen_plus_5_percent_dodge",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/65",
       "definitionSha256": "e3a916627118376def1ecfd6f676912fbacfcada2a1724582840f24b9de751bd",
       "status": "handwritten-candidate",
@@ -74,7 +74,7 @@
     },
     {
       "id": "effect_emblem_increase_douzhanzhihun_fixed_damage_50_percent",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/67",
       "definitionSha256": "f5ac32bdd18798e50f0945100e9503bdd8cf2bc6bcc46ab833225ff809c097ab",
       "status": "handwritten-candidate",

@@ -19,8 +19,8 @@ import { parseSkill } from '../data/parsers/skill-parser.js'
 import { parseSpecies } from '../data/parsers/species-parser.js'
 
 const TEST_DIR = fileURLToPath(new URL('.', import.meta.url))
-const DATA_DIR = resolve(TEST_DIR, '../../../../../packs/base/data')
-const PACK_PATH = resolve(TEST_DIR, '../../../../../packs/base/pack.json')
+const DATA_DIR = resolve(TEST_DIR, '../../../test/v4/fixtures/effect-regression')
+const PACK_PATH = resolve(DATA_DIR, 'pack.json')
 
 // ---------------------------------------------------------------------------
 // V2DataRepository unit tests
@@ -459,12 +459,12 @@ describe('parseSpecies', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Data loader integration tests (uses base data pack payload)
+// Data loader integration tests (legacy effects with current editable metadata)
 // ---------------------------------------------------------------------------
 
 describe('loadV2GameData', () => {
   test('loads all YAML files and populates repository', async () => {
-    const { repository, errors } = await loadV2GameData(DATA_DIR, { continueOnError: true })
+    const { repository, errors } = await loadV2GameData(DATA_DIR, { packRef: PACK_PATH, continueOnError: true })
     const stats = repository.stats()
 
     // Should have loaded a significant number of each type
@@ -483,6 +483,7 @@ describe('loadV2GameData', () => {
 
   test('cross-reference validation finds no missing effects for skills', async () => {
     const { errors } = await loadV2GameData(DATA_DIR, {
+      packRef: PACK_PATH,
       continueOnError: true,
       validateReferences: true,
     })
@@ -497,7 +498,7 @@ describe('loadV2GameData', () => {
   })
 
   test('known species exists after loading', async () => {
-    const { repository } = await loadV2GameData(DATA_DIR, { continueOnError: true })
+    const { repository } = await loadV2GameData(DATA_DIR, { packRef: PACK_PATH, continueOnError: true })
     // pet_dilan is the first species in species.yaml
     const species = repository.findSpecies('pet_dilan')
     expect(species).toBeDefined()
@@ -511,7 +512,7 @@ describe('loadV2GameData', () => {
       validateReferences: true,
     })
 
-    expect(pack?.id).toBe('arcadia-eternity.base')
+    expect(pack?.id).toBe('arcadia-eternity.effect-regression')
     expect(pack?.layoutVersion).toBe(1)
     expect(repository.stats().skills).toBeGreaterThan(100)
     expect(errors.length).toBeLessThan(50)
@@ -520,13 +521,13 @@ describe('loadV2GameData', () => {
     expect(locales?.['zh-CN']?.mark).toBeDefined()
   })
 
-  test('loads data pack via npm ref', async () => {
+  test('loads editable metadata via npm ref without legacy effect definitions', async () => {
     const { repository, pack } = await loadV2GameDataFromPack('npm:@arcadia-eternity/data-pack-base', {
       continueOnError: false,
-      validateReferences: true,
+      validateReferences: false,
     })
     expect(pack?.id).toBe('arcadia-eternity.base')
-    expect(repository.stats().effects).toBeGreaterThan(100)
+    expect(repository.stats().effects).toBe(0)
     expect(repository.findSkill('skill_paida')).toBeDefined()
   })
 

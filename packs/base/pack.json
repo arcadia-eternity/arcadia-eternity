@@ -9,13 +9,7 @@
     "localesDir": "locales"
   },
   "data": {
-    "effects": [
-      "effect_ability.yaml",
-      "effect_emblem.yaml",
-      "effect_global.yaml",
-      "effect_mark.yaml",
-      "effect_skill.yaml"
-    ],
+    "effects": [],
     "marks": ["mark.yaml", "mark_ability.yaml", "mark_emblem.yaml", "mark_global.yaml"],
     "skills": ["skill.yaml"],
     "species": [

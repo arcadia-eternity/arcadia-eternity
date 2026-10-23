@@ -31,7 +31,7 @@ import { createRainWaterShield, createOfficialWaterShieldCandidate } from '@arca
 const id = 'effect_ability_add_shuiwenpingzhang_value_if_yutian'
 const alias = 'effect_skill_add_mark_shuiwenpingzhang.multiply_value'
 const original = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_ability.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_ability.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).find((entry: { id: string }) => entry.id === id)
 function reference() {

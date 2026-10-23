@@ -70,7 +70,7 @@ import { createRandomMarkApplications } from './random-mark-applications'
 import { createRandomWeatherApplication } from './random-weather-application'
 import { createCurseMarkApplication } from './curse-mark-application'
 
-/** Compose existing candidates only. This is not production admission or a legacy fallback. */
+/** Compose the reviewed native implementations with the host's canonical mark prototypes. */
 export function createOfficialEffectCandidates(marks: ReadonlyMap<string, BaseMark>) {
   const effects = new Map<string, Effect<EffectTrigger>>()
   const families = new Map<string, string>()
@@ -79,12 +79,6 @@ export function createOfficialEffectCandidates(marks: ReadonlyMap<string, BaseMa
     const entries = group instanceof Effect ? [group] : Object.values(group)
     for (const effect of entries) {
       if (!(effect instanceof Effect)) throw new Error(`Invalid candidate in ${family}`)
-      // The authored example is the declared owner of this duplicate implementation.
-      if (
-        effect.id === 'effect_skill_consume_huanxiang_raise_def_1_stage' &&
-        family === 'stat-stage-sequences.generated'
-      )
-        continue
       if (effects.has(effect.id))
         throw new Error(`Duplicate candidate: ${effect.id} (${families.get(effect.id)}, ${family})`)
       effects.set(effect.id, effect)

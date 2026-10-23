@@ -8,7 +8,7 @@ import {
   stringifyYamlAnchoredDataset,
 } from '../schemas/yamlAnchoredRecords'
 
-const yamlPath = path.resolve(__dirname, '../../../../../../packs/base/data/effect_skill.yaml')
+const yamlPath = path.resolve(__dirname, '../../../../../battle/test/v4/fixtures/effect-regression/effect_skill.yaml')
 const rawYaml = fs.readFileSync(yamlPath, 'utf-8')
 
 function freshDataset() {

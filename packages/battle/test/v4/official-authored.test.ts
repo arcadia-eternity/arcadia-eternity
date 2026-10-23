@@ -23,7 +23,7 @@ import { makeScenario } from './scenario'
 import { officialAuthoredEffects } from '@arcadia-eternity/data-pack-base/native'
 
 const definitions: { id: string }[] = ['skill', 'mark'].flatMap(kind =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL(`./fixtures/effect-regression/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
     merge: true,
   }),
 )

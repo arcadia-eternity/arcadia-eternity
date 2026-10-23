@@ -26,7 +26,7 @@ const ids = [
 ] as const
 type Id = (typeof ids)[number]
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const originals = new Map(ids.map(id => [id, definitions.find((d: { id: string }) => d.id === id)]))
@@ -193,7 +193,7 @@ for (const variant of ['missing-weight', 'zero-weight', 'reactive-stack'] as con
         configurable: true,
       })
     const sourceDefinitions = reactive
-      ? parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {
+      ? parse(readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'), {
           merge: true,
         })
       : definitions

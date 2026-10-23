@@ -22,7 +22,7 @@ pnpm test:effect-authoring-design
 | [api.ts](api.ts)                                  | 作者入口；转向 `src/v4/content/authoring` 中的契约与实现                                                          |
 | [type-tests.ts](type-tests.ts)                    | 精确类型断言和必须失败的用法                                                                                      |
 
-原始定义位于 `packs/base/data/effect_skill.yaml` 和 `packs/base/data/effect_mark.yaml`，通过上述 ID 查找。示例未改变这些定义。弱点记号示例只选择第一个符合条件的印记，未把旧操作消费首值的行为改成求和。`spd` 是特防，`spe` 是速度；降速示例明确使用 `spe`。
+用于行为对比的旧定义位于 `packages/battle/test/v4/fixtures/effect-regression/` 中的 `effect_skill.yaml` 和 `effect_mark.yaml`，通过上述 ID 查找；当前行为以基础内容包的 TS 实现为准。弱点记号示例只选择第一个符合条件的印记，未把旧操作消费首值的行为改成求和。`spd` 是特防，`spe` 是速度；降速示例明确使用 `spe`。
 
 ## 编译已验证的接口约束
 

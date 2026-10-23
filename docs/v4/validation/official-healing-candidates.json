@@ -4,7 +4,7 @@
   "records": [
     {
       "id": "effect_skill_heal_self_90_hp",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/128",
       "definitionSha256": "3e78d527935b580c40e70026f2e14397fe2f675e0e8aa41c7e2534f2e6ccea84",
       "implementation": "packages/battle/src/v4/official/healing.ts",
@@ -60,7 +60,7 @@
     },
     {
       "id": "effect_heal_self_half",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/65",
       "definitionSha256": "92b5944deaa27f7583e7cc40d2cbcc926c1b1546ebf287c9eef3f7c829eb8a36",
       "implementation": "packages/battle/src/v4/official/healing.ts",
@@ -132,7 +132,7 @@
     },
     {
       "id": "effect_heal_self_onethird",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/66",
       "definitionSha256": "92127dcc7d5173ca0f52483cac9f907bd89d308d50817e0dcd3fb1c7144a04e8",
       "implementation": "packages/battle/src/v4/official/healing.ts",
@@ -204,7 +204,7 @@
     },
     {
       "id": "effect_skill_heal_self_quarter",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/67",
       "definitionSha256": "feea4cc890d2ec156db7163f1dc337d14c4ab6a93465fb14c9c0dd2c315a5f7a",
       "implementation": "packages/battle/src/v4/official/healing.ts",

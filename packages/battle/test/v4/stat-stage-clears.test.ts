@@ -29,7 +29,7 @@ const mixed = [2, -1, 3, -2, 4]
 type Id = keyof typeof generatedStatStageClears
 const ids = Object.keys(generatedStatStageClears) as Id[]
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const originals = new Map(ids.map(id => [id, definitions.find((d: { id: string }) => d.id === id)]))

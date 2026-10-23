@@ -28,7 +28,7 @@ import { createSkillTransformationRemoval } from '@arcadia-eternity/data-pack-ba
 
 const id = 'effect_skill_clear_transform_when_use'
 const definition = (
-  parse(readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'), {
     merge: true,
   }) as { id: string }[]
 ).find(d => d.id === id)!

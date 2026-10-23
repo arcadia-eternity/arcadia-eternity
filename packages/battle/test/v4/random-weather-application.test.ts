@@ -24,7 +24,16 @@ import { createRandomWeatherApplication, randomWeatherDependencies } from '@arca
 
 const id = 'effect_skill_set_field_qingtian_or_yemu'
 const load = (name: string): { id: string }[] =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/${name}.yaml`, import.meta.url), 'utf8'), { merge: true })
+  parse(
+    readFileSync(
+      new URL(
+        `${name.startsWith('effect_') ? './fixtures/effect-regression' : '../../../../packs/base/data'}/${name}.yaml`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    { merge: true },
+  )
 const definition = load('effect_skill').find(d => d.id === id)!
 const oracle = EffectParser.parse(definition)
 const markDefinitions = load('mark_global')

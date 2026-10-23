@@ -32,9 +32,12 @@ import { makeScenario } from './scenario'
 import { createGeneratedSkillContributions } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_mark_amplify_power_20x_stack'
-const original = parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {
-  merge: true,
-}).find((d: { id: string }) => d.id === id)
+const original = parse(
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
+  {
+    merge: true,
+  },
+).find((d: { id: string }) => d.id === id)
 const legacy = EffectParser.parse(original)
 const battles: Battle[] = [],
   errors: unknown[][] = []

@@ -22,7 +22,7 @@ afterEach(async () => {
 })
 const id = 'effect_skill_ignore_opponent_shield_if_has_shunliu'
 const original = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).find((d: { id: string }) => d.id === id)
 const effect = EffectParser.parse(original)

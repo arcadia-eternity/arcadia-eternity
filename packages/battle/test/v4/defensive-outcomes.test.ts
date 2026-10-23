@@ -27,7 +27,7 @@ import { makeScenario } from './scenario'
 import { generatedSkillOutcomeEffects } from '@arcadia-eternity/data-pack-base/native'
 
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const ids = [

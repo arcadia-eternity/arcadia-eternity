@@ -3,12 +3,11 @@ import { program } from 'commander'
 import path from 'path'
 import fs from 'fs/promises'
 import yaml from 'yaml'
-import type { V2DataRepository } from '@arcadia-eternity/battle'
 import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-eternity/schema'
 import type { playerId } from '@arcadia-eternity/const'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import { runInMemoryP2PE2E } from '@arcadia-eternity/p2p-transport'
-import type { ServerDataRepository } from '@arcadia-eternity/rules'
+import { createRuleSpeciesRepository, loadNativeCliPack } from './native-pack'
 
 // 加载环境变量
 dotenv.config()
@@ -96,49 +95,15 @@ async function parsePlayerFile(filePath: string, _options?: { validateData?: boo
   }
 }
 
-function createRuleSpeciesRepository(repo: V2DataRepository): {
-  getSpeciesById: (id: string) => unknown
-  getAllSpecies: () => unknown[]
-} {
-  return {
-    getSpeciesById: (id: string) => {
-      const species = repo.findSpecies(id)
-      if (!species) return undefined
-      return {
-        id: species.id,
-        num: species.num,
-        element: species.element,
-        baseStats: species.baseStats,
-        learnable_skills: species.learnableSkills ?? [],
-      }
-    },
-    getAllSpecies: () =>
-      Array.from(repo.allSpecies()).map(species => ({
-        id: species.id,
-        num: species.num,
-        element: species.element,
-        baseStats: species.baseStats,
-        learnable_skills: species.learnableSkills ?? [],
-      })),
-  }
-}
-
 async function preflightPack(options: { strict?: boolean; validateData?: boolean }): Promise<void> {
   const strict = !!options.strict
   const validateData = !!options.validateData
   if (!strict && !validateData) return
 
-  const { PackLoader } = await import('@arcadia-eternity/pack-loader')
-  const packLoader = new PackLoader()
-
   console.log('[🌀] 正在预加载数据包...')
-  const result = await packLoader.load('builtin:workspace', {
-    continueOnError: !strict,
-    validateReferences: true,
-  })
-  const summary = packLoader.summarize(result)
+  const result = await loadNativeCliPack()
   console.log(
-    `[📦] 数据包 ${summary.packId ?? summary.packRef}@${summary.packVersion ?? 'unknown'} 加载完成: effect=${summary.effectCount}, mark=${summary.markCount}, skill=${summary.skillCount}, species=${summary.speciesCount}`,
+    `[📦] 数据包 ${result.pack?.id ?? result.packRef}@${result.pack?.version ?? 'unknown'} 加载完成: effect=${result.content.effects.length}, mark=${result.content.marks.length}, skill=${result.content.skills.length}, species=${result.content.species.length}`,
   )
 
   if (result.errors.length > 0) {
@@ -394,11 +359,9 @@ program
           // 资源加载完成后初始化规则系统
           console.log('[⚖️] 正在初始化服务端规则系统...')
           try {
-            const loadedRepository = resourceLoadingManager.getLoadedRepository()
-            if (loadedRepository) {
-              await ServerRuleIntegration.initializeServer(
-                createRuleSpeciesRepository(loadedRepository) as ServerDataRepository,
-              )
+            const loadedMetadata = resourceLoadingManager.getLoadedMetadata()
+            if (loadedMetadata) {
+              await ServerRuleIntegration.initializeServer(createRuleSpeciesRepository(loadedMetadata))
             } else {
               await ServerRuleIntegration.initializeServer()
             }
@@ -562,22 +525,16 @@ program
   .description('验证游戏数据完整性')
   .option('--strict', '使用严格模式验证（发现错误直接失败）', false)
   .option('--verbose', '显示详细的验证信息', false)
-  .option('--continue-on-error', '发现错误时继续验证', false)
+  .option('--continue-on-error', '显示可收集的错误；原生内容引用错误会立即终止', false)
   .option('--pack-ref <ref>', '数据包引用，默认 builtin:workspace', 'builtin:workspace')
   .action(async options => {
     try {
-      const { PackLoader } = await import('@arcadia-eternity/pack-loader')
-      const packLoader = new PackLoader()
       console.log('[🔍] 开始数据包验证...')
-      const result = await packLoader.load(options.packRef, {
-        continueOnError: options.continueOnError,
-        validateReferences: true,
-      })
-      const summary = packLoader.summarize(result)
+      const result = await loadNativeCliPack(options.packRef)
 
-      console.log(`[📦] pack=${summary.packId ?? summary.packRef}@${summary.packVersion ?? 'unknown'}`)
+      console.log(`[📦] pack=${result.pack?.id ?? result.packRef}@${result.pack?.version ?? 'unknown'}`)
       console.log(
-        `[📊] effect=${summary.effectCount}, mark=${summary.markCount}, skill=${summary.skillCount}, species=${summary.speciesCount}`,
+        `[📊] effect=${result.content.effects.length}, mark=${result.content.marks.length}, skill=${result.content.skills.length}, species=${result.content.species.length}`,
       )
 
       if (result.errors.length === 0) {

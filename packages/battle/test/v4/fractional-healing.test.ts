@@ -25,7 +25,7 @@ import { createFractionalHealing } from '@arcadia-eternity/data-pack-base/native
 
 const candidates = createFractionalHealing()
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ) as { id: string }[]
 const oracles = new Map(

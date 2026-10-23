@@ -3,7 +3,7 @@
   "records": [
     {
       "id": "effect_mark_decrease_heal",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/17",
       "definitionSha256": "27baa4023ac2a04f6f0d6562f7ad3d0000f534cecee6b2fbdfe2e45382a96ce2",
       "classification": "U",
@@ -11,7 +11,7 @@
     },
     {
       "id": "effect_mark_increase_heal_20_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/109",
       "definitionSha256": "d073809536724dc42105c63b270b78f6974673c0fcbecfeac070786589a67cf2",
       "classification": "U",
@@ -19,7 +19,7 @@
     },
     {
       "id": "effect_mark_increase_heal_40_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/110",
       "definitionSha256": "5b34012578dd9708a1bb70169cee2121b781051d89623c651a7f767e3edff6c2",
       "classification": "U",
@@ -27,7 +27,7 @@
     },
     {
       "id": "effect_mark_reduce_healing_50_percent",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/199",
       "definitionSha256": "fa8d629a1e45ea48572e8bd83d8e315324695a9828e35c0de0a8c89eb630aacf",
       "classification": "U",
@@ -35,7 +35,7 @@
     },
     {
       "id": "effect_emblem_20percent_double_heal",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/3",
       "definitionSha256": "90a66ec022394ddd70ff377ea5ed2244c410c4f5da4a480fc89295e513e92245",
       "classification": "U",

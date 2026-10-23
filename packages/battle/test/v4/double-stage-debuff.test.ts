@@ -22,9 +22,12 @@ import { makeScenario } from './scenario'
 import { createDoubleStageDebuff } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_mark_double_stage_debuff'
-const original = parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {
-  merge: true,
-}).find((d: { id: string }) => d.id === id)
+const original = parse(
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
+  {
+    merge: true,
+  },
+).find((d: { id: string }) => d.id === id)
 function reference() {
   // Explicit typed-reader correction: the old metadata cannot narrow BaseMark.
   // Keep the original condition/operator implementations for the rest of the path.

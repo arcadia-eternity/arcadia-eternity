@@ -28,9 +28,18 @@ import { createOfficialAuthoredEffects } from '@arcadia-eternity/data-pack-base/
 
 const id = 'effect_mark_reduce_speed_ruodian'
 const definitions = (kind: string) =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/${kind}.yaml`, import.meta.url), 'utf8'), {
-    merge: true,
-  }) as { id: string }[]
+  parse(
+    readFileSync(
+      new URL(
+        `${kind.startsWith('effect_') ? './fixtures/effect-regression' : '../../../../packs/base/data'}/${kind}.yaml`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    {
+      merge: true,
+    },
+  ) as { id: string }[]
 const source = definitions('effect_mark').find(definition => definition.id === id)!
 const markDefinition = definitions('mark').find(definition => definition.id === 'mark_ruodianjihao')!
 const systems: LocalBattleSystemV4[] = []

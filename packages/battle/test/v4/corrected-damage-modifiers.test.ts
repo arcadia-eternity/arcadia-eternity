@@ -85,7 +85,7 @@ const specs = [
 type Spec = (typeof specs)[number]
 const sourceFiles = ['ability', 'emblem', 'mark', 'skill'].flatMap(
   name =>
-    parse(readFileSync(new URL(`../../../../packs/base/data/effect_${name}.yaml`, import.meta.url), 'utf8'), {
+    parse(readFileSync(new URL(`./fixtures/effect-regression/effect_${name}.yaml`, import.meta.url), 'utf8'), {
       merge: true,
     }) as { id: string }[],
 )

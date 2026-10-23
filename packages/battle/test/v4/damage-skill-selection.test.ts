@@ -88,7 +88,7 @@ const specs = {
 type Id = keyof typeof specs
 const ids = Object.keys(specs) as Id[]
 const definitions = ['ability', 'emblem', 'mark'].flatMap(kind =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL(`./fixtures/effect-regression/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
     merge: true,
   }),
 )

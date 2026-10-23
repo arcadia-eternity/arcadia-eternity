@@ -30,7 +30,7 @@ import { officialRageCandidate } from '@arcadia-eternity/data-pack-base/native'
 const id = 'effect_skill_add_rage_20_if_rage_below_40'
 const alias = `${id}.add_rage_value`
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const definition = definitions.find((entry: { id: string }) => entry.id === id)

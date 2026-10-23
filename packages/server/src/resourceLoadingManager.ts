@@ -1,5 +1,4 @@
-import { ScriptLoader } from '@arcadia-eternity/data-repository'
-import type { V2DataRepository } from '@arcadia-eternity/battle'
+import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 import pino from 'pino'
 import { serverPackManager } from './pack/serverPackManager.js'
 
@@ -24,7 +23,6 @@ export interface ResourceLoadingProgress {
 
 export interface ResourceLoadingOptions {
   packRef?: string
-  scriptPaths?: string[]
   validateData?: boolean
   continueOnError?: boolean
 }
@@ -43,7 +41,7 @@ export class ResourceLoadingManager {
   }
   private loadingPromise: Promise<void> | null = null
   private options: ResourceLoadingOptions = {}
-  private loadedRepository: V2DataRepository | null = null
+  private loadedMetadata: ContentPrototypeData | null = null
 
   static getInstance(): ResourceLoadingManager {
     if (!ResourceLoadingManager.instance) {
@@ -68,7 +66,6 @@ export class ResourceLoadingManager {
 
     this.options = {
       packRef: 'builtin:workspace',
-      scriptPaths: ['./scripts'],
       validateData: false,
       continueOnError: true,
       ...options,
@@ -128,8 +125,8 @@ export class ResourceLoadingManager {
     return this.progress.status === ResourceLoadingStatus.Completed
   }
 
-  getLoadedRepository(): V2DataRepository | null {
-    return this.loadedRepository
+  getLoadedMetadata(): ContentPrototypeData | null {
+    return this.loadedMetadata
   }
 
   /**
@@ -143,7 +140,7 @@ export class ResourceLoadingManager {
       validationCompleted: false,
     }
     this.loadingPromise = null
-    this.loadedRepository = null
+    this.loadedMetadata = null
     logger.info('资源加载状态已重置')
   }
 
@@ -156,10 +153,10 @@ export class ResourceLoadingManager {
       const loadResult = await serverPackManager.load(this.options.packRef ?? 'builtin:workspace', {
         enforceLockfile: true,
       })
-      this.loadedRepository = loadResult.repository
       if (this.options.validateData && loadResult.errors.length > 0 && !this.options.continueOnError) {
         throw new Error(`数据包校验失败，共 ${loadResult.errors.length} 个错误`)
       }
+      this.loadedMetadata = loadResult.data
       this.progress.gameDataLoaded = true
       logger.info(
         {
@@ -174,10 +171,9 @@ export class ResourceLoadingManager {
         '数据包加载完成',
       )
 
-      logger.info('开始加载脚本声明...')
-      await this.loadScripts()
+      // Native loading validates metadata against the host's compiled effects before returning.
       this.progress.scriptsLoaded = true
-      logger.info('脚本声明加载完成')
+      logger.info('编译效果加载完成')
 
       if (this.options.validateData) {
         logger.info('数据包校验完成')
@@ -199,28 +195,6 @@ export class ResourceLoadingManager {
       if (!this.options.continueOnError) {
         throw error
       }
-    }
-  }
-
-  /**
-   * 加载脚本声明
-   */
-  private async loadScripts(): Promise<void> {
-    try {
-      const loader = new ScriptLoader({
-        scriptPaths: this.options.scriptPaths || ['./scripts'],
-        recursive: true,
-      })
-
-      for (const scriptPath of this.options.scriptPaths || ['./scripts']) {
-        await loader.loadScriptsFromFileSystem(scriptPath)
-      }
-
-      const stats = loader.getLoadedScriptsStats()
-      logger.info({ stats }, '脚本加载统计')
-    } catch (error) {
-      logger.warn({ error: error instanceof Error ? error.message : error }, '脚本加载失败，继续使用YAML数据')
-      // 脚本加载失败不应该阻止整个流程
     }
   }
 }

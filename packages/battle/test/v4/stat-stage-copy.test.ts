@@ -25,7 +25,7 @@ import { generatedStatStageCandidates } from '@arcadia-eternity/data-pack-base/n
 
 const id = 'effect_skill_set_self_spa_to_atk'
 const original = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).find((d: { id: string }) => d.id === id)
 const battles: Battle[] = []

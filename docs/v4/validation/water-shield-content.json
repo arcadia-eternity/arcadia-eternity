@@ -6,21 +6,21 @@
   "records": [
     {
       "id": "effect_skill_add_mark_shuiwenpingzhang",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/182",
       "definitionSha256": "fc68939202c5a4742c854c496371c9bc85f7a72c6563d6f9dbd8876e5d7df009",
       "classification": "U"
     },
     {
       "id": "effect_mark_amplify_next_damage_skill_power_with_stack",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/32",
       "definitionSha256": "dac584118224940f53d784ca9865492c5437a4f01a70ad29e7add59e320170ae",
       "classification": "U"
     },
     {
       "id": "effect_mark_onDestroy_add_mark_shanghaizengjia",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/57",
       "definitionSha256": "b1fd8000a0a30bb281387c9c243a4c43a943660ae621fc7b5e591c8e32d13153",
       "classification": "U"

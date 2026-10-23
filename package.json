@@ -39,7 +39,7 @@
     "typecheck:battle-v4": "pnpm exec tsgo -p packages/battle/tsconfig.v4-test.json",
     "typecheck:server-native": "pnpm exec tsgo -p packages/server/tsconfig.native-runtime-test.json",
     "test:server-native": "pnpm --filter @arcadia-eternity/server exec vitest run test/nativeBattleRuntimeFactory.test.ts test/clusterBattleService.v2.test.ts --maxWorkers=1",
-    "test:cli-native": "pnpm exec vitest run bin/__tests__/native-local-battle.test.ts --maxWorkers=1",
+    "test:cli-native": "pnpm exec vitest run bin/__tests__/native-local-battle.test.ts bin/__tests__/native-pack.test.ts --maxWorkers=1",
     "lint:server-native": "pnpm exec eslint --config eslint.config.server-native.js packages/server/src/domain/battle/runtime/localBattleRuntimeFactory.ts packages/server/src/domain/battle/runtime/nativeBattleRuntime.ts packages/server/src/domain/battle/runtime/runtimeIdentity.ts packages/server/src/domain/battle/services/clusterBattleService.ts packages/server/test/nativeBattleRuntimeFactory.test.ts",
     "typecheck:web-native": "pnpm --filter @arcadia-eternity/web-ui exec vue-tsc --noEmit -p tsconfig.native-test.json",
     "test:web-native": "pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/nativeBattleFactory.test.ts src/p2p/__tests__/p2pBattleSystem.test.ts --maxWorkers=1",

@@ -30,7 +30,16 @@ import {
 } from '@arcadia-eternity/data-pack-base/native'
 
 const load = (name: string) =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/${name}.yaml`, import.meta.url), 'utf8'), { merge: true })
+  parse(
+    readFileSync(
+      new URL(
+        `${name.startsWith('effect_') ? './fixtures/effect-regression' : '../../../../packs/base/data'}/${name}.yaml`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+    { merge: true },
+  )
 const definitions = load('effect_skill') as { id: string }[]
 const id = 'effect_skill_random_xifa_effect'
 const original = definitions.find(d => d.id === id)!

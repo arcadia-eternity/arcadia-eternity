@@ -15,7 +15,7 @@ import { createExperiencePlaceholder } from '@arcadia-eternity/data-pack-base/na
 
 const id = 'effect_ability_exp_boost_50_percent'
 const original = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_ability.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_ability.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).find((d: { id: string }) => d.id === id)
 const battles: Battle[] = []

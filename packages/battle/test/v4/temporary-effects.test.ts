@@ -195,7 +195,7 @@ for (const seed of [1, 2, 3, 4])
   it(`original xifa selects one effect and expires with its turn seed=${seed}`, () => {
     const f = fixture()
     const original = parse(
-      readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+      readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
       { merge: true },
     ).find((d: { id: string }) => d.id === 'effect_skill_random_xifa_effect')
     const ids: string[] = original.apply.effect.value.map((v: { value: string }) => v.value)

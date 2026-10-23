@@ -1,5 +1,7 @@
 # Native damage modifier candidates
 
+This document records historical conversion evidence. The offline generators have been removed; maintained behavior lives in `packs/base/src/effects/`. Retained candidate records and YAML fixtures support behavior regression tests.
+
 > Historical baseline review (2026-10-20): later V1 provides behavior missing from the imported oracle. Claims below about C07/C08/C14/C15 require revalidation; see [the audit](historical-v1-audit.md). Earlier passing tests establish agreement with the imported/corrected reference, not with final V1.
 
 The offline generator recognizes 103 candidates from 117 current single-action `addModified` definitions. It preserves the existing handwritten HP-tier candidate separately, and records 13 unsupported definitions with source hashes and rejection reasons. These are candidates only: all records remain U and production loading is unchanged.
@@ -49,8 +51,6 @@ Unchanged-YAML oracle scenarios exclude corrected records, but the full ID/sourc
 Reproduce:
 
 ```sh
-node scripts/effect-migration/damage-modifiers.mjs --check
-node --test scripts/effect-migration/damage-modifiers.test.mjs
 pnpm --filter @arcadia-eternity/battle build:code
 pnpm --filter @arcadia-eternity/battle exec vitest run --config vitest.v4.config.mjs test/v4/damage-modifiers.test.ts test/v4/corrected-damage-modifiers.test.ts
 pnpm test:effect-authoring-design

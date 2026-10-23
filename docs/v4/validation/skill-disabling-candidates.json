@@ -3,7 +3,7 @@
   "records": [
     {
       "id": "effect_mark_40probability_stun",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/2",
       "definitionSha256": "fdb202765b00bae940951559a929bcf3a2a890df7a9900ce6de1fbff90811942",
       "recipe": {
@@ -20,7 +20,7 @@
     },
     {
       "id": "effect_mark_physical_stun",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/11",
       "definitionSha256": "1db6ca2d5d0490c04462577f4e656ddfa6815d325608b17c536d7d4f07104e1e",
       "recipe": {
@@ -37,7 +37,7 @@
     },
     {
       "id": "effect_mark_stun",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/0",
       "definitionSha256": "ff2d93cf1a5c4d0d714cf296e02073645643c7ee588f5a3d85b9a9983a5deffc",
       "recipe": {
@@ -54,7 +54,7 @@
     },
     {
       "id": "effect_mark_taunt",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/10",
       "definitionSha256": "4a861a41ecad7c0011982db722bdddd4db26d2ae21be1cdb6003c9d235998ed5",
       "recipe": {

@@ -1,5 +1,7 @@
 # C08: record the actual turn schedule
 
+This document records historical conversion evidence. The offline generators have been removed; maintained behavior lives in `packs/base/src/effects/`. Retained candidate records and YAML fixtures support behavior regression tests.
+
 > Historical baseline review (2026-10-20): later V1 provides behavior missing from the imported oracle. Claims below about C07/C08/C14/C15 require revalidation; see [the audit](historical-v1-audit.md). Earlier passing tests establish agreement with the imported/corrected reference, not with final V1.
 
 C08 initially corrected missing bookkeeping in the imported `phase/turn.ts`. Later V1 already populated planned contexts and registered execution attempts in the skill/switch phase wrappers. It also used recursive ancestor predicates. The earlier direct-parent/no-op interpretation is withdrawn.
@@ -18,7 +20,7 @@ The current actual-order plan remains in place: it follows the sorted phase sche
 
 ## Scope and acceptance
 
-[Potential reference inventory](turn-order-correction.json) pins all 27 current official definitions containing first/last skill predicates, their stages, hashes and node paths. Reproduce with `node scripts/effect-migration/turn-order.mjs --check`. It is a scope inventory, not acceptance of all 27 definitions.
+[Potential reference inventory](turn-order-correction.json) pins all 27 current official definitions containing first/last skill predicates, their stages, hashes and node paths. It is a scope inventory, not acceptance of all 27 definitions.
 
 Current restoration evidence: 138 source checks pass (16 historical ancestor/direct-phase checks, 112 damage-order comparisons, and 10 execution-lifecycle cases), plus all 14 damage-order full-game/checkpoint comparisons and 87 authoring/value-binding tests. Every damage-order full game now requires a positive effect-application count. Older evidence below is historical and does not certify the restored nested-context behavior or all other affected families.
 

@@ -25,7 +25,7 @@ const id = 'effect_mark_yingfeng_heal_50_on_evasion_in_yemu'
 const markId = 'mark_huifu_50_per_turn'
 const load = (path: string): { id: string }[] =>
   parse(readFileSync(new URL(`../../../../${path}`, import.meta.url), 'utf8'), { merge: true })
-const definitions = load('packs/base/data/effect_mark.yaml')
+const definitions = load('packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml')
 const oracle = EffectParser.parse(definitions.find(d => d.id === id))
 const ledger: { records: { status: string; recipe: { markId: string }; dependency: { sourceFile: string } }[] } =
   JSON.parse(

@@ -3,7 +3,7 @@
   "records": [
     {
       "id": "effect_ability_immune_exceptional_if_rage_gt_50",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/64",
       "definitionSha256": "e0e2160ec997be410ddcfa5f94c3f96df70f8dc4ec2f61e74f91d97d4302fa7f",
       "recipe": {
@@ -23,7 +23,7 @@
     },
     {
       "id": "effect_ability_shenguang_immune_status_above_half_hp",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/57",
       "definitionSha256": "adc84de21d97d37f8776d22feafaa026149eeae39180e5f70be7084fa0968998",
       "recipe": {
@@ -43,7 +43,7 @@
     },
     {
       "id": "effect_emblem_anying_immune_fear_early_wake",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/26",
       "definitionSha256": "38dc193487b3b4c3532d6c31627d0fafc530849a2ed6861402cef6560b6aed8c",
       "recipe": {
@@ -63,7 +63,7 @@
     },
     {
       "id": "effect_emblem_immune_mark_haipa",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/15",
       "definitionSha256": "ab3fae1ab80c1b2ee7c0fcf6afe2f21dc2fabc282aad6cbbfe78a086f87475cf",
       "recipe": {
@@ -83,7 +83,7 @@
     },
     {
       "id": "effect_emblem_immune_mark_zhixi",
-      "sourceFile": "packs/base/data/effect_emblem.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
       "sourcePath": "/10",
       "definitionSha256": "b90941488f8457f57a5e4a2fa02ab7e7985176bff3f55079fa1e839ea54d02bb",
       "recipe": {
@@ -103,7 +103,7 @@
     },
     {
       "id": "effect_mark_disabled_xingzhili_effect",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/56",
       "definitionSha256": "10b551d8da8fc260f63c4bc50a6fa5535fec3dca06c0334e2286cff95ccd28ae",
       "recipe": {
@@ -119,7 +119,7 @@
     },
     {
       "id": "effect_mark_immune_exceptional",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/61",
       "definitionSha256": "139d6975ddaeb70948270131dbd573204d1b7da8e5dc9813a449824d291075e2",
       "recipe": {
@@ -139,7 +139,7 @@
     },
     {
       "id": "effect_mark_immune_stage_debuff",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/53",
       "definitionSha256": "e8bdfe2f1b8c8d465c1e4724f048ff46e6dde0b821a57069314b9351d2d5cedf",
       "recipe": {
@@ -155,7 +155,7 @@
     },
     {
       "id": "effect_mark_immune_status",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/60",
       "definitionSha256": "21edeec82d797f581b06158cdf276674316c37439e325689f5102b9ad7aa7cdd",
       "recipe": {
@@ -175,7 +175,7 @@
     },
     {
       "id": "effect_mark_immune_zhongdu",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/198",
       "definitionSha256": "39699e762f4226e9f41907211a53d0bc4603fb443286cb33293d91fd31af5899",
       "recipe": {
@@ -197,14 +197,14 @@
   "rejected": [
     {
       "id": "effect_ability_gugao_prevent_rage_when_opponent_use_skill",
-      "sourceFile": "packs/base/data/effect_ability.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
       "sourcePath": "/59",
       "definitionSha256": "cb45eebe7074657703dd656a5bf387cbe5fa89fca4e3bb8958d900fd43e278c5",
       "reason": "unsupported trigger"
     },
     {
       "id": "effect_mark_zhenshihuanxiang_prevent_consume",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/151",
       "definitionSha256": "4e11b3e660d8b33a0061d4756bd6232dd82cee0f81beda4539f520dbffb9b037",
       "reason": "unsupported trigger"

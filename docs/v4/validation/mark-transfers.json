@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_skill_transfer_debuff_stage_to_opponent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/219",
       "definitionSha256": "6505209facfb49c5794fd53083eac57146af8c7b78879405614b6ad334c7b6a9",
       "status": "handwritten-candidate",
@@ -11,7 +11,7 @@
     },
     {
       "id": "effect_skill_transfer_status_marks_to_opponent",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/375",
       "definitionSha256": "eb61d3a15f7ae9800011f8222cf107c234f3d53efadb86f2567b66295454890e",
       "status": "handwritten-candidate",
@@ -20,7 +20,7 @@
     },
     {
       "id": "effect_mark_transfer_to_opponent_on_hit",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/124",
       "definitionSha256": "e142b89349696125644c2c710a3ecc1275251f5dadb19ff541a1cf3aba2e581d",
       "status": "handwritten-candidate",

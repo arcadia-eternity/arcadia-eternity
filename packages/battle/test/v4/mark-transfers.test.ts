@@ -24,10 +24,10 @@ import { createMarkTransfers } from '@arcadia-eternity/data-pack-base/native'
 
 const candidates = createMarkTransfers()
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_skill.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).concat(
-  parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'), {
     merge: true,
   }),
 ) as { id: string }[]

@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_mark_reduce_damage_with_weight",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/50",
       "definitionSha256": "ffb44ece54815bcdbb60575f2442ed86e5d0d7e6b4b6e6a4d405aab3ea8595ca",
       "status": "handwritten-candidate",
@@ -14,7 +14,7 @@
     },
     {
       "id": "effect_skill_fixed_damage_by_weight",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/118",
       "definitionSha256": "ea380f0d6708cc834f3c1b99706c629fdc0dc464ce5a5c101a79c6be4b2be0ea",
       "status": "handwritten-candidate",
@@ -23,7 +23,7 @@
     },
     {
       "id": "effect_skill_damage_by_opponent_weight",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "sourcePath": "/308",
       "definitionSha256": "cedc37364276328df3f9122cbb20cc9e9f185b1c338dd119cb2fb4ade59b02b7",
       "status": "handwritten-candidate",

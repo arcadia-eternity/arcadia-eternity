@@ -29,7 +29,7 @@ import { createTaggedParameterModifiers } from '@arcadia-eternity/data-pack-base
 
 const candidates = createTaggedParameterModifiers()
 const definitions = ['ability', 'emblem'].flatMap(k =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/effect_${k}.yaml`, import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL(`./fixtures/effect-regression/effect_${k}.yaml`, import.meta.url), 'utf8'), {
     merge: true,
   }),
 )

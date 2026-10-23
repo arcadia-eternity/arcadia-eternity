@@ -63,7 +63,7 @@ it('restores the exact historical operation body', () => {
 })
 for (const kind of ['ability', 'mark', 'skill']) {
   const definitions = parse(
-    readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'),
+    readFileSync(new URL(`./fixtures/effect-regression/effect_${kind}.yaml`, import.meta.url), 'utf8'),
     { merge: true },
   )
   for (const d of definitions.filter((d: { apply?: { type?: string } }) => d.apply?.type === 'setRage'))

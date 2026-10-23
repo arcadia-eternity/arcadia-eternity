@@ -21,7 +21,10 @@ export interface NativeContentResult {
   revision: string
   build: EnvironmentBuildIdentity
 }
-export interface NativePackLoadResult extends Omit<PackLoadResult, 'repository'>, NativeContentResult {}
+export interface NativePackMetadataResult extends Omit<PackLoadResult, 'repository'> {
+  data: ContentPrototypeData
+}
+export interface NativePackLoadResult extends NativePackMetadataResult, NativeContentResult {}
 interface MetadataPack {
   manifest: PackManifest
   source: string
@@ -71,8 +74,27 @@ export class NativePackLoader extends PackTransport {
   }
 
   async load(packRef = 'builtin:base', options: NativePackLoaderOptions = {}): Promise<NativePackLoadResult> {
-    const source = options.source ?? 'node-fs'
     const expectedRevision = options.expectedRevision
+    const { metadata, identities } = await this.loadMetadataBatch(packRef, options)
+    // Source URLs and presentation assets do not change executable content identity.
+    // Metadata order and its JSON representation are part of this versioned contract.
+    const authority = await this.createContent(metadata.data, identities, expectedRevision)
+    return { ...metadata, ...authority }
+  }
+
+  /** Read editable data before composing layers; linking and trusted behavior validation happen in load/fromMetadata. */
+  async loadMetadata(
+    packRef = 'builtin:base',
+    options: Pick<NativePackLoaderOptions, 'source' | 'enforceLockfile'> = {},
+  ): Promise<NativePackMetadataResult> {
+    return (await this.loadMetadataBatch(packRef, options)).metadata
+  }
+
+  private async loadMetadataBatch(
+    packRef: string,
+    options: Pick<NativePackLoaderOptions, 'source' | 'enforceLockfile'>,
+  ) {
+    const source = options.source ?? 'node-fs'
     const transportOptions: PackLoaderOptions = { enforceLockfile: options.enforceLockfile, continueOnError: false }
     const errors: string[] = []
     const batch =
@@ -95,16 +117,9 @@ export class NativePackLoader extends PackTransport {
     })
     this.assertLockfileIssues(lockfileIssues, transportOptions)
     const { data, locales } = await this.readMetadata(packs)
-    // Source URLs and presentation assets do not change executable content identity.
-    // Metadata order and its JSON representation are part of this versioned contract.
-    const authority = await this.createContent(
-      data,
-      packs.map(pack => ({ id: pack.manifest.id, version: pack.manifest.version })),
-      expectedRevision,
-    )
     const assets = packs.flatMap(pack => pack.assets)
-    return {
-      ...authority,
+    const metadata: NativePackMetadataResult = {
+      data,
       errors,
       pack: entry.manifest,
       packRef,
@@ -114,6 +129,10 @@ export class NativePackLoader extends PackTransport {
       locales,
       assets: assets.map(asset => asset.manifest),
       assetConflicts: this.detectAssetConflicts(assets),
+    }
+    return {
+      metadata,
+      identities: packs.map(pack => ({ id: pack.manifest.id, version: pack.manifest.version })),
     }
   }
   private async loadNodeMetadata(packRef: string, transportOptions: PackLoaderOptions, errors: string[]) {

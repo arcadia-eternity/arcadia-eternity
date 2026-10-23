@@ -39,6 +39,47 @@ function serveBase(change?: (path: string, raw: string) => string, extra: Record
 }
 
 describe('NativePackLoader', () => {
+  for (const source of ['node-fs', 'http'] as const)
+    it(`reads an incomplete metadata layer without executing its content factory: ${source}`, async () => {
+      const skill = {
+        id: 'skill_overlay',
+        element: 'Normal',
+        category: 'Physical',
+        power: 40,
+        rage: 0,
+        accuracy: 95,
+        effect: ['effect_from_another_layer'],
+      }
+      const manifest = JSON.stringify({
+        id: 'fixture.overlay',
+        version: '1.0.0',
+        engine: 'seer2-v2',
+        data: { effects: ['missing-effect.yaml'], marks: [], skills: ['skills.yaml'], species: [] },
+      })
+      const skills = YAML.stringify([skill])
+      let ref = `${origin}overlay/pack.json`
+      if (source === 'http') {
+        serveBase(undefined, { 'overlay/pack.json': manifest, 'overlay/skills.yaml': skills })
+      } else {
+        const root = await mkdtemp(resolve(tmpdir(), 'native-metadata-overlay-'))
+        temporary.push(root)
+        ref = resolve(root, 'pack.json')
+        await writeFile(ref, manifest)
+        await writeFile(resolve(root, 'skills.yaml'), skills)
+      }
+      const factory = vi.fn(createContentCatalog)
+      const loader = new NativePackLoader(build, factory)
+      const metadata = await loader.loadMetadata(ref, { source })
+      expect(metadata.data).toEqual({ marks: [], skills: [skill], species: [] })
+      expect(metadata.pack?.id).toBe('fixture.overlay')
+      expect(metadata.errors).toEqual([])
+      expect(factory).not.toHaveBeenCalled()
+      await expect(loader.load(ref, { source })).rejects.toThrow('Unknown content effect: effect_from_another_layer')
+      await expect(loader.fromMetadata(metadata.data)).rejects.toThrow(
+        'Unknown content effect: effect_from_another_layer',
+      )
+    })
+
   it('assembles captured metadata with the host-selected content factory', async () => {
     const data = { marks: [] as unknown[], skills: [], species: [] }
     const factory = vi.fn(createContentCatalog)
@@ -103,6 +144,7 @@ describe('NativePackLoader', () => {
       enforceLockfile: true,
     })
     expect(remote.runtime).toBe('native-v4')
+    expect(remote.data).toEqual(local.data)
     expect(remote.revision).toBe(local.revision)
     expect(remote.errors).toEqual([])
     expect(remote.lockfileIssues).toEqual([])
@@ -194,6 +236,25 @@ describe('NativePackLoader', () => {
     await expect(new NativePackLoader(build, createOfficialContent).load(resolve(root, 'pack.json'))).rejects.toThrow(
       'cycle',
     )
+  })
+
+  it('includes every dependency version in identity even when metadata is unchanged', async () => {
+    const root = await mkdtemp(resolve(tmpdir(), 'native-pack-version-'))
+    temporary.push(root)
+    const entry = resolve(root, 'pack.json')
+    const dependency = resolve(root, 'dependency.json')
+    const metadata = { version: '1.0.0', engine: 'seer2-v2', data: { effects: [], marks: [], skills: [], species: [] } }
+    await writeFile(
+      entry,
+      JSON.stringify({ ...metadata, id: 'fixture.root', dependencies: [{ path: 'dependency.json' }] }),
+    )
+    await writeFile(dependency, JSON.stringify({ ...metadata, id: 'fixture.dependency' }))
+    const loader = new NativePackLoader(build, createContentCatalog)
+    const first = await loader.load(entry)
+    await writeFile(dependency, JSON.stringify({ ...metadata, id: 'fixture.dependency', version: '1.1.0' }))
+    const next = await loader.load(entry)
+    expect(next.data).toEqual(first.data)
+    expect(next.revision).not.toBe(first.revision)
   })
 
   for (const source of ['node-fs', 'http'] as const)

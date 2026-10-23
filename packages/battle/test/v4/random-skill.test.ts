@@ -29,7 +29,7 @@ import { createRandomSkillSelection } from '@arcadia-eternity/data-pack-base/nat
 
 const candidates = createRandomSkillSelection()
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ) as { id: string }[]
 const battles: Battle[] = []

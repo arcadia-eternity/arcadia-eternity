@@ -22,7 +22,7 @@ import { generatedVitalSequences } from '@arcadia-eternity/data-pack-base/native
 
 const id = 'effect_mark_absorb_hp_to_opponent'
 const definitions = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_mark.yaml', import.meta.url), 'utf8'),
   { merge: true },
 )
 const original = definitions.find((d: { id: string }) => d.id === id)

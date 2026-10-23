@@ -81,7 +81,7 @@ it('does not invent an entity field alias for skillId', () => {
 // repairing unrelated paths/operators. Those must remain rejected on both sides.
 for (const kind of ['global', 'ability', 'emblem', 'mark', 'skill']) {
   const definitions = parse(
-    readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'),
+    readFileSync(new URL(`./fixtures/effect-regression/effect_${kind}.yaml`, import.meta.url), 'utf8'),
     { merge: true },
   )
   for (const definition of definitions) {

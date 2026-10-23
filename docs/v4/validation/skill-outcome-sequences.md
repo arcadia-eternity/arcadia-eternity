@@ -1,5 +1,7 @@
 # Ordered skill outcome and power action-list candidates
 
+This document records historical conversion evidence. The offline generators have been removed; maintained behavior lives in `packs/base/src/effects/`. Retained candidate records and YAML fixtures support behavior regression tests.
+
 All twelve current top-level action lists containing a hit/critical outcome or power action now have native candidates. Eight contain hit/critical actions; four additional lists contain only power actions and mark removal/consumption. These are additional complete definitions, separate from the 65 single-action outcome and 104 single-action power definitions. Every list is emitted as one effect with `actions.sequence`, preserving one collect-time condition, source metadata, automatic consumption and every ordered action. They remain U candidates with no production registration.
 
 The offline generator reuses the existing outcome/power action classifiers, condition emitter and mark selection emitter. Unsupported actions reject the complete list; no action is dropped and no partial effect is admitted. Conditional action values and unassigned turn-order corrections are explicitly rejected. This scope does not accept the other action-list mechanisms, arbitrary parameters or nested conditional actions implicitly.
@@ -24,7 +26,7 @@ The public suite contains eight source/hash/ordered-node audits, 256 behavior ch
 
 Review found and repaired two verification boundaries: reusing the power classifier could otherwise accept unreviewed conditional-value ownership/order semantics; real-turn destruction callbacks initially observed an unexecuted fixture context. The generator now rejects those conditional values, and the fixture captures the actual turn context before actions with independent destruction-time assertions.
 
-Reproduce generation with `node scripts/effect-migration/skill-outcome-sequences.mjs --check`. After building the battle package, run `test/v4/skill-outcome-sequences.test.ts` with the V4 Vitest configuration. Complete-game/fresh-catalog checkpoint acceptance and production cutover remain pending.
+After building the battle package, run `test/v4/skill-outcome-sequences.test.ts` with the V4 Vitest configuration. Complete-game/fresh-catalog checkpoint acceptance and production cutover remain pending.
 
 Final verification passes all 265 public checks, all 82 offline generator checks, all 69 authoring design checks, V4 typechecking and lint, declaration generation and source provenance. Both review axes closed their findings. Strengthened turn assertions initially exposed two trace-count failures from unrelated turn cleanup; restricting traces to removal contexts parented by the candidate effect keeps the independent ordering assertions while excluding that cleanup.
 

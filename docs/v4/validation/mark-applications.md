@@ -1,6 +1,8 @@
 # Generated fixed-reference mark-application candidates
 
-The offline generator `scripts/effect-migration/mark-applications.mjs` emits 282 native effect candidates with 188 explicit mark dependencies. It recognizes only a single addMark action with a fixed BaseMark ID, self/opponent position, the incoming switch pet or the current battle, optional literal, configured or supported queried stack/duration, and admission on the explicitly supported skill, damage, entry and lifecycle stages described below. Additional conditions use the shared skill-condition emitter: mark presence, HP comparisons, gender, use count, turn order and conditional weight probability are covered by the current catalog. It rejects extra fields, unsupported selectors/conditions/triggers, unmapped action value expressions. The three shapes rejected by this fixed-reference generator are recorded; all now have separate [lucky-mark](random-mark-applications.md), [curse-status](curse-mark-application.md) and [random-weather](random-weather-application.md) candidates. Nested action lists are outside this scan family.
+This document records historical conversion evidence. The offline generators have been removed; maintained behavior lives in `packs/base/src/effects/`. Retained candidate records and YAML fixtures support behavior regression tests.
+
+The former offline generator emitted 282 native effect candidates with 188 explicit mark dependencies. It recognizes only a single addMark action with a fixed BaseMark ID, self/opponent position, the incoming switch pet or the current battle, optional literal, configured or supported queried stack/duration, and admission on the explicitly supported skill, damage, entry and lifecycle stages described below. Additional conditions use the shared skill-condition emitter: mark presence, HP comparisons, gender, use count, turn order and conditional weight probability are covered by the current catalog. It rejects extra fields, unsupported selectors/conditions/triggers, unmapped action value expressions. The three shapes rejected by this fixed-reference generator are recorded; all now have separate [lucky-mark](random-mark-applications.md), [curse-status](curse-mark-application.md) and [random-weather](random-weather-application.md) candidates. Nested action lists are outside this scan family.
 
 Generated code consists of typed `compileEffect(defineEffect(...))` declarations using shared `conditions.selfUsesSkill`, `targets.ownerPet` / `targets.opponentActive` and `ops.addMark`. Context traversal and mark application are implemented once in the authoring runtime. No YAML, legacy parser, DataRepository, selector builder or custom runtime type system is imported. `createGeneratedMarkApplications` requires all declared BaseMark objects with exact matching IDs before publishing the candidate collection. It captures its own resolved map, so clearing or rebinding the caller's map cannot change published dependencies. It does not manufacture missing marks or empty downstream effects. Supplying trusted immutable mark definitions remains the caller's responsibility until the complete official environment is built.
 
@@ -17,15 +19,11 @@ The initial 2,770 runtime tests cover all 173 unconditional IDs with skill and m
 
 These are application-boundary tests. Dependency test doubles use the official mark parser to retain normalized config/tags, then replace downstream effects with an observable creation hook. That replacement exists only in tests; it does not prove the 152 marks' own effects migrated. Dependency closure, real skill/full-game sequences, checkpoint restoration and final E/C classification remain pending. No production catalog is switched.
 
-Reproduce from repository root:
+Run the retained behavior regression from repository root:
 
 ```sh
-node scripts/effect-migration/mark-applications.mjs
-node scripts/effect-migration/mark-applications.mjs --check
-node --test scripts/effect-migration/mark-applications.test.mjs
+pnpm test:battle-v4 test/v4/mark-applications.test.ts
 ```
-
-The read-only check fails on any generated-source or ledger drift. The initial three generator tests cover exact recognition, truthiness semantics, unsupported-field/value rejection and complete reproducibility. Only dedicated generated output and its ledger are written.
 
 Initial batch validation: the targeted runtime suite passed all 2,770 tests with the normal two-worker configuration. The complete V4 suite passed 3,685 tests across 34 files; V4 typecheck and lint passed. The three generator tests and exact regeneration check passed. Standards review found no blockers; independent Spec review remains pending its existing availability limit. This evidence does not change the U classifications or authorize production registration.
 

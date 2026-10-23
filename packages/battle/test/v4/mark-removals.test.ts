@@ -26,7 +26,7 @@ import { makeScenario } from './scenario'
 import { generatedMarkRemovals } from '@arcadia-eternity/data-pack-base/native'
 
 const definitions = ['global', 'ability', 'emblem', 'mark', 'skill'].flatMap(name =>
-  parse(readFileSync(new URL(`../../../../packs/base/data/effect_${name}.yaml`, import.meta.url), 'utf8'), {
+  parse(readFileSync(new URL(`./fixtures/effect-regression/effect_${name}.yaml`, import.meta.url), 'utf8'), {
     merge: true,
   }),
 )

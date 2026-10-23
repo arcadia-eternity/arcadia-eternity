@@ -3,7 +3,7 @@
   "records": [
     {
       "id": "effect_mark_add_stack_on_turn_end",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/141",
       "definitionSha256": "3a2dfb58bfc7314bad32d4fd53a59899deac0866be838d942a8d89f0fef37e74",
       "recipe": {
@@ -19,7 +19,7 @@
     },
     {
       "id": "effect_mark_stack_mark_with_damage",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/166",
       "definitionSha256": "f597901ec8004f2fe8f342fa863755762030a5ce5ccc50e98c6508847ae0e6ab",
       "recipe": {

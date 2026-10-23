@@ -1,10 +1,14 @@
-# Effect migration execution ledger
+# Effect migration history
 
-Goal: complete the current official Effect DSL → TypeScript migration with bounded UGC authoring. This goal is active; a passing runtime slice is not catalog completion.
+The official Effect DSL → TypeScript conversion is complete. Current content architecture and editing rules are documented in [content structure](content-structure.md). The dated sections below preserve historical evidence and decisions; their provisional classifications and generation commands describe those earlier checkpoints.
 
 Authoritative contracts: reviewed sections of issues [205](https://github.com/arcadia-eternity/arcadia-eternity/issues/205), [206](https://github.com/arcadia-eternity/arcadia-eternity/issues/206), [223](https://github.com/arcadia-eternity/arcadia-eternity/issues/223), plus [218](https://github.com/arcadia-eternity/arcadia-eternity/issues/218) and [224](https://github.com/arcadia-eternity/arcadia-eternity/issues/224).
 
-## Evidence as of 2026-10-23
+## Tooling cleanup (2026-10-23)
+
+The completed conversion generators and their dedicated tests have been removed. TypeScript in `packs/base/src/effects/` owns native behavior. The reusable content-structure inventory and grouping tool remains available. Fixed candidate records and historical YAML fixtures used by behavioral regressions are retained. The unused per-ID migration inventory has been removed.
+
+## Historical evidence as of 2026-10-23
 
 All 1065 definitions have native candidates. The latest fixed build at `d1d2b0dc`, including the restored raw parameters and actual weakness lifecycle, passed the complete V4 suite in one run: **152 files, 27,486 tests, zero failures or skipped tests**, in 633.93 seconds. Earlier complete fixed-build runs remain recorded separately. The subsequent cleanup changes only offline tooling; 189 remaining generator checks and 27 focused runtime checks pass. See [full regression checkpoint](validation/full-candidate-regression-checkpoint.md).
 
@@ -117,7 +121,7 @@ These are current source findings. Server, local browser, P2P and local CLI crea
 - Built-in UGC healing now provides self-skill-hit, owner HP threshold, fixed healing and maximum-HP-ratio healing with editable/shared parameters. A saved JSON example executes through real HealPhase; see [authoring evidence](validation/core-healing-capabilities.md).
 - Bounded condition trees now compose registered predicates with all/any/not, preserve identities/references and validate every branch before runtime short-circuiting. See [condition evidence](validation/condition-trees.md).
 - 11,803 tests across all 43 V4 files pass for the 237-mark-candidate snapshot; 358 subsequent targeted checks pass for the fourteen additions bringing that catalog to 251. These are separate verification runs. The separate authoring/value-binding suite at that snapshot passes 60 tests. V4 typecheck/lint, source provenance and existing Node/Chrome host/checkpoint checks pass. Both read-only review axes passed the runtime slice after reported defects were repaired; parameter-layer review also passes after correcting nested object closure.
-- [Per-ID inventory](validation/effect-migration-inventory.json) records source revision/hashes, node paths/types, config declarations/references, callers, parser acceptance and unverified migration status. The generator for this historical inventory has been removed; it is not an active verification gate.
+- The former per-ID inventory recorded source revision/hashes, node paths/types, config declarations/references, callers, parser acceptance and provisional migration status. The unused inventory and its generator have been removed; behavior regressions remain the validation boundary.
 - Historical fixtures: 666 definitions, 666 accepted by the legacy V4 parser, 859 direct references. Current production: 1065 definitions, 748 accepted, 317 rejected, 1437 direct references. Neither dataset has duplicate Effect IDs or dangling direct skill/mark Effect references.
 - Relative to historical fixtures, production has 422 new IDs, 23 removed IDs, 251 changed definitions and 392 structurally identical definitions. These are structural facts, not behavioral equivalence results.
 - The initial audit recorded every production definition as **U / behavior not run / not generated**. Subsequent mechanism ledgers supersede that historical classification: the skill-power records with completed acceptance are now C under C07. Parser acceptance is only one prerequisite for using the current DSL as an oracle. Rejected definitions require a concrete mechanism diagnosis; no fallback or generated no-op counts as conversion.

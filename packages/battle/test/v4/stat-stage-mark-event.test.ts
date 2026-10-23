@@ -23,7 +23,7 @@ import { generatedStatStageCandidates } from '@arcadia-eternity/data-pack-base/n
 
 const id = 'effect_ability_enhance_atk_when_spa_enhanced'
 const original = parse(
-  readFileSync(new URL('../../../../packs/base/data/effect_ability.yaml', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/effect-regression/effect_ability.yaml', import.meta.url), 'utf8'),
   { merge: true },
 ).find((d: { id: string }) => d.id === id)
 const corrected = structuredClone(original)

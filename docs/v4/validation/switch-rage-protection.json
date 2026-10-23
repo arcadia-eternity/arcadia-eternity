@@ -2,7 +2,7 @@
   "records": [
     {
       "id": "effect_mark_prevent_rage_loss_on_switch",
-      "sourceFile": "packs/base/data/effect_mark.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
       "sourcePath": "/187",
       "definitionSha256": "ad473f53cd19fa2bc5b9c43786c6d2fc0e1a5800b4be69c56fc8856296fdf6ed",
       "status": "handwritten-candidate",

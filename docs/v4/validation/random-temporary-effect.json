@@ -1,6 +1,6 @@
 {
   "id": "effect_skill_random_xifa_effect",
-  "sourceFile": "packs/base/data/effect_skill.yaml",
+  "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
   "sourcePath": "/649",
   "definitionSha256": "f72753f8efa95a565301730c8b02ca9a97d7c6da8f2e46118b53546ab3668fb1",
   "status": "handwritten-candidate",
@@ -9,22 +9,22 @@
   "dependencies": [
     {
       "id": "effect_skill_add_mark_shanbi_below_1_8_hp",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "definitionSha256": "dd245d79282a5fd2329bccc00a3d54fe4a90e0dc4b24e3c2d234462604d3ae8e"
     },
     {
       "id": "effect_skill_add_mark_both_shanghaizengjia_50",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "definitionSha256": "f81e672f51ccbbfb4d233f2236e33685019a58d95916ef9662b10ee9f97cc71a"
     },
     {
       "id": "effect_skill_add_mark_opponent_mingzhongxiajiang_15",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "definitionSha256": "1f621bb6b5d34f356cd7e207eeef0ad4b14c155b17a3632099001491a09d6a6d"
     },
     {
       "id": "effect_skill_priority_plus_1",
-      "sourceFile": "packs/base/data/effect_skill.yaml",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
       "definitionSha256": "ff74e3e7ece39166bac6a63dd8b7474b9cb581122277a5b5c4292a3f6d5603ae"
     }
   ],
