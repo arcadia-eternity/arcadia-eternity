@@ -1,5 +1,0 @@
-$ node scripts/verify-v1-hosts.mjs --browser
-{"minifiedBrowserBundle":true,"bidirectionalNodeCheckpoint":true}
-{"isolatedProcessRestore":true,"checkpoint":{"first":{"turn":1,"partial":"switch-pet","marks":1,"accuracy":90},"turn":4,"winner":"A","damage":[13,383,398],"hp":[246,247,0,0]}}
-{"node":{"turns":4,"winner":"A","originalDsl":{"skill":"skill_qili","attackRatio":1.5}},"modules":{"node":39,"browser":39}}
-{"browser":"Chrome","minified":true,"nodeCheckpointRestored":true,"matchesNode":true,"originalDsl":{"skill":"skill_qili","attackRatio":1.5}}

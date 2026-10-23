@@ -11,6 +11,7 @@ import {
   RageContext,
   SkillInstance,
   StackContext,
+  ConsumeStackContext,
   SwitchPetContext,
   TurnContext,
   UseSkillContext,
@@ -18,7 +19,7 @@ import {
 import type { Condition, ValueSource } from './effectBuilder'
 import { ContinuousUseSkillStrategy, StatTypeWithoutHp } from '@arcadia-eternity/const'
 import { GetValueFromSource } from './operator'
-import { findContextRecursively } from './selector'
+import { BaseSelector, findContextRecursively } from './selector'
 
 export const Conditions = {
   some: (...conditions: Condition[]): Condition => {
@@ -104,6 +105,9 @@ export const Conditions = {
       }
       if (context.parent instanceof StackContext) {
         return context.source.owner === context.parent.existingMark.owner
+      }
+      if (context.parent instanceof ConsumeStackContext) {
+        return context.source.owner === context.parent.mark.owner
       }
       return false
     }
@@ -309,14 +313,15 @@ export const Conditions = {
   // 精灵当回合使用技能且该技能为本回合最先使用的技能时
   isFirstSkillUsedThisTurn: (): Condition => {
     return context => {
-      if (!(context.parent instanceof UseSkillContext)) {
+      const currentUseSkillContext = findContextRecursively(context, UseSkillContext)
+      if (!currentUseSkillContext) {
         return false
       }
-      const currentUseSkillContext = context.parent
-      if (!(currentUseSkillContext.parent instanceof TurnContext)) {
+
+      const turnContext = findContextRecursively(context, TurnContext)
+      if (!turnContext) {
         return false
       }
-      const turnContext = currentUseSkillContext.parent
 
       const executedSkillContextsInOrder = turnContext.appledContexts.filter(
         (ctx): ctx is UseSkillContext => ctx instanceof UseSkillContext,
@@ -333,14 +338,15 @@ export const Conditions = {
   // 精灵当回合使用技能且该技能为本回合（到目前为止）最后使用的技能时
   isLastSkillUsedThisTurn: (): Condition => {
     return context => {
-      if (!(context.parent instanceof UseSkillContext)) {
+      const currentUseSkillContext = findContextRecursively(context, UseSkillContext)
+      if (!currentUseSkillContext) {
         return false
       }
-      const currentUseSkillContext = context.parent
-      if (!(currentUseSkillContext.parent instanceof TurnContext)) {
+
+      const turnContext = findContextRecursively(context, TurnContext)
+      if (!turnContext) {
         return false
       }
-      const turnContext = currentUseSkillContext.parent
 
       const plannedSkillContextsThisTurn = turnContext.contexts.filter(
         (ctx): ctx is UseSkillContext => ctx instanceof UseSkillContext,
@@ -352,6 +358,30 @@ export const Conditions = {
 
       // 由于 contextQueue.pop() 从尾部取，turnContext.contexts[0] 是计划中最后执行的技能
       return plannedSkillContextsThisTurn[0] === currentUseSkillContext
+    }
+  },
+
+  // 简化版：检查自己是否有指定baseId的印记
+  selfHasMark: (baseId: ValueSource<string>): Condition => {
+    return context => {
+      if (context.source.owner instanceof Pet) {
+        const _baseId = GetValueFromSource(context, baseId)
+        if (_baseId.length === 0) return false
+        return context.source.owner.marks.some(mark => mark.baseId === _baseId[0])
+      }
+      return false
+    }
+  },
+
+  // 简化版：检查对手是否有指定baseId的印记
+  opponentHasMark: (baseId: ValueSource<string>): Condition => {
+    return context => {
+      const opponentPet: Pet = BaseSelector.opponent.build()(context)[0]
+      if (!opponentPet) return false
+
+      const _baseId = GetValueFromSource(context, baseId)
+      if (_baseId.length === 0) return false
+      return opponentPet.marks.some(mark => mark.baseId === _baseId[0])
     }
   },
 

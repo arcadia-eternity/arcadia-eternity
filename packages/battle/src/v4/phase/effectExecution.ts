@@ -5,6 +5,7 @@ import type { Battle } from '../battle'
 import { Effect, type EffectContainer } from '../effect'
 
 import { createChildLogger } from '../logger'
+import { usesSingleAdmission } from '../content/admission'
 
 /**
  * EffectExecutionPhase handles effect execution operations
@@ -27,7 +28,6 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
   protected createContext(): TriggerContextMap[T] {
     return this._context!
   }
-
 
   protected executeOperation(): void {
     const context = this._context!
@@ -102,6 +102,7 @@ export function executeEffectExecutionOperation<T extends EffectTrigger>(
       // Apply AfterEffect effects
       battle.applyEffects(context, EffectTrigger.AfterEffect)
     } catch (error) {
+      battle.executionBudget.assertActive()
       logger.error(`Effect Error ${effect.id}:`, error)
       context.success = false
 
@@ -131,16 +132,24 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
     context: EffectContext<EffectTrigger>
   }> = []
 
+  const admissions = new Map<EffectContainer, Set<string>>()
   const addedEffects = new Set<string>()
 
   effectContainers.forEach(container => {
-    if ('isActive' in container && (!container.isActive || ('isSuppressed' in container && container.isSuppressed))) return
+    if ('isActive' in container && (!container.isActive || ('isSuppressed' in container && container.isSuppressed)))
+      return
     if ('effects' in container && Array.isArray((container as any).effects)) {
-      const containerEffects = (container as any).effects as Effect<EffectTrigger>[]
+      const containerEffects = container.getEffects ? container.getEffects(trigger) : container.effects
 
       containerEffects
         .filter(effect => effect.triggers.includes(trigger))
         .forEach(effect => {
+          if (usesSingleAdmission(effect)) {
+            const admitted = admissions.get(container) ?? new Set<string>()
+            if (admitted.has(effect.id)) return
+            admitted.add(effect.id)
+            admissions.set(container, admitted)
+          }
           const effectContext = new EffectContext(parentContext, trigger, container as any, effect)
 
           try {
@@ -153,6 +162,7 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
               }
             }
           } catch (err) {
+            parentContext.battle.executionBudget.assertActive()
             console.error('Error in effect condition:', err)
           }
         })

@@ -1,12 +1,16 @@
 import { BaseSkill, Effect } from '../../index'
 import { EffectTrigger, type baseSkillId, type effectId } from '@arcadia-eternity/const'
 import { DataRepository } from '../dataRepository'
-import { SkillSchema } from '../schema/index'
+import { SkillSchema } from '../schema/skill'
 import { fromZodError } from 'zod-validation-error'
 import { ZodError } from 'zod'
+import type { PrototypeLookup } from '../../content/prototype-lookup'
 
 export class SkillParser {
-  static parse(rawData: unknown): BaseSkill {
+  static parse(
+    rawData: unknown,
+    repository: Pick<PrototypeLookup, 'getEffect'> = DataRepository.getInstance(),
+  ): BaseSkill {
     let validated: ReturnType<typeof SkillSchema.parse>
     try {
       validated = SkillSchema.parse(rawData)
@@ -27,7 +31,7 @@ export class SkillParser {
     if (validated.effect) {
       effects = validated.effect.map((effectId, index) => {
         try {
-          return DataRepository.getInstance().getEffect(effectId as effectId)
+          return repository.getEffect(effectId as effectId)
         } catch (e) {
           throw new Error(
             `[SkillParser] 技能 '${validated.id}' 的第 ${index + 1} 个效果 '${effectId}' 加载失败: ${(e as Error).message}`,

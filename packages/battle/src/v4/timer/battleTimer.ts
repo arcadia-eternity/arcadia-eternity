@@ -11,6 +11,7 @@ import {
 } from '@arcadia-eternity/const'
 import mitt, { type Emitter } from 'mitt'
 import { createChildLogger } from '../logger'
+import type { SavedBattleTimer } from './snapshotState'
 
 type BattleTimerEvents = {
   timerEvent: TimerEvent
@@ -36,6 +37,9 @@ export class BattleTimer {
   private lastEmittedState: TimerState = TimerState.Stopped
   private lastSnapshotTime: number = 0
   private pauseReason?: 'animation' | 'system'
+  private restoredSuspended = false
+  private restoredAnimationDeadline?: number
+  private restoredTurnReset?: { at: number; selected: boolean }
 
   constructor(
     private readonly playerId: playerId,
@@ -72,10 +76,10 @@ export class BattleTimer {
   /**
    * 重置回合时间并启动计时器
    */
-  public resetTurn(): void {
+  public resetTurn(timeLimit = this.config.turnTimeLimit): void {
     if (!this.config.enabled) return
 
-    this.remainingTurnTime = this.config.turnTimeLimit || Infinity
+    this.remainingTurnTime = timeLimit || Infinity
     this.state = TimerState.Running
     this.pauseReason = undefined
     this.lastUpdateTime = Date.now()
@@ -132,6 +136,7 @@ export class BattleTimer {
     this.stopUpdateTimer()
     this.pauseStartTime = undefined
     this.totalPausedTime = 0
+    this.restoredTurnReset = undefined
 
     this.emitEvent(TimerEventType.Stop)
   }
@@ -150,10 +155,7 @@ export class BattleTimer {
    * 获取当前状态
    */
   public getState(): PlayerTimerState {
-    // 如果正在运行，更新时间
-    if (this.state === TimerState.Running) {
-      this.updateTime()
-    }
+    this.updateTime()
 
     return {
       playerId: this.playerId,
@@ -198,6 +200,7 @@ export class BattleTimer {
    */
   private startUpdateTimer(): void {
     this.stopUpdateTimer()
+    if (this.restoredSuspended) return
     this.updateTimer = setInterval(() => {
       this.updateTime()
       this.checkTimeout()
@@ -220,13 +223,26 @@ export class BattleTimer {
   /**
    * 更新时间
    */
-  private updateTime(): void {
+  private updateTime(now = Date.now()): void {
+    const reset = this.restoredTurnReset
+    if (this.restoredSuspended && reset && now >= reset.at) {
+      this.remainingTurnTime = this.config.turnTimeLimit || Infinity
+      this.state = reset.selected ? TimerState.Paused : TimerState.Running
+      this.pauseReason = reset.selected ? 'system' : undefined
+      this.lastUpdateTime = reset.at
+      this.pauseStartTime = reset.selected ? reset.at : undefined
+      this.totalPausedTime = 0
+      this.restoredTurnReset = undefined
+    }
     if (this.state !== TimerState.Running) return
 
-    const now = Date.now()
+    // Recovery reads project the original animation window even before its callbacks are activated.
+    if (this.restoredSuspended && this.restoredAnimationDeadline !== undefined) {
+      this.lastUpdateTime = Math.max(this.lastUpdateTime, Math.min(now, this.restoredAnimationDeadline))
+    }
 
     // 如果有活跃动画，不推进计时器但更新时间戳
-    if (this.hasActiveAnimationsCallback && this.hasActiveAnimationsCallback()) {
+    else if (this.hasActiveAnimationsCallback && this.hasActiveAnimationsCallback()) {
       this.logger.debug(`player ${this.playerId} - skipping time update due to active animations`)
       // 更新时间戳以避免动画结束后时间跳跃
       this.lastUpdateTime = now
@@ -269,7 +285,7 @@ export class BattleTimer {
   /**
    * 发送事件
    */
-  private emitEvent(type: TimerEventType, data?: any): void {
+  private emitEvent(type: TimerEventType, data?: unknown): void {
     const event: TimerEvent = {
       type,
       playerId: this.playerId,
@@ -283,10 +299,7 @@ export class BattleTimer {
    * 创建Timer快照 - 包含前端本地计算所需的所有信息
    */
   public createSnapshot(): TimerSnapshot {
-    // 确保获取最新状态
-    if (this.state === TimerState.Running) {
-      this.updateTime()
-    }
+    this.updateTime()
 
     return {
       timestamp: Date.now(),
@@ -298,6 +311,53 @@ export class BattleTimer {
       hasActiveAnimations: this.hasActiveAnimationsCallback ? this.hasActiveAnimationsCallback() : false,
       pauseReason: this.pauseReason,
     }
+  }
+
+  public exportRuntimeState(capturedAt = Date.now()): SavedBattleTimer {
+    this.updateTime(capturedAt)
+    return {
+      playerId: this.playerId,
+      config: { ...this.config },
+      state: this.state,
+      remainingTurnTime: Number.isFinite(this.remainingTurnTime) ? Math.max(0, this.remainingTurnTime) : null,
+      remainingTotalTime: Number.isFinite(this.remainingTotalTime) ? Math.max(0, this.remainingTotalTime) : null,
+      lastUpdateTime: this.lastUpdateTime,
+      pauseStartTime: this.pauseStartTime,
+      totalPausedTime: this.totalPausedTime,
+      lastEmittedState: this.lastEmittedState,
+      lastSnapshotTime: this.lastSnapshotTime,
+      pauseReason: this.pauseReason,
+    }
+  }
+  /** Hydrate quietly; the restored selection phase activates callbacks after host attachment. */
+  public restoreRuntimeState(
+    saved: SavedBattleTimer,
+    recovery?: { animationPauseUntil?: number; resetTurnAt?: number; selected: boolean },
+  ): void {
+    this.stopUpdateTimer()
+    this.restoredSuspended = true
+    this.state = saved.state
+    this.remainingTurnTime = saved.remainingTurnTime ?? Infinity
+    this.remainingTotalTime = saved.remainingTotalTime ?? Infinity
+    this.lastUpdateTime = Math.min(saved.lastUpdateTime, Date.now())
+    this.pauseStartTime = saved.pauseStartTime === undefined ? undefined : Math.min(saved.pauseStartTime, Date.now())
+    this.totalPausedTime = saved.totalPausedTime
+    this.lastEmittedState = saved.lastEmittedState
+    this.lastSnapshotTime = saved.lastSnapshotTime
+    this.pauseReason = saved.pauseReason
+    this.restoredAnimationDeadline = recovery?.animationPauseUntil
+    this.restoredTurnReset =
+      recovery?.resetTurnAt === undefined ? undefined : { at: recovery.resetTurnAt, selected: recovery.selected }
+  }
+  public activateRestoredState(): void {
+    if (!this.restoredSuspended) return
+    this.updateTime()
+    this.restoredSuspended = false
+    this.restoredAnimationDeadline = undefined
+    this.restoredTurnReset = undefined
+    if (this.state !== TimerState.Running) return
+    this.checkTimeout()
+    if (this.state === TimerState.Running) this.startUpdateTimer()
   }
 
   /**

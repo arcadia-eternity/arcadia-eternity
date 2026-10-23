@@ -1,0 +1,23 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_skill_ignore_opponent_shield_if_has_shunliu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/540",
+      "definitionSha256": "62b0c90db2c471bcf17444dd285b0625a64ffe71dd26e16b3a8399aba19193de",
+      "recipe": {
+        "id": "effect_skill_ignore_opponent_shield_if_has_shunliu",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shunliu\").condition(checks.exists()))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.skillUse.apply(ops.setIgnoreShield())" }],
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "U",
+      "compatibility": "historical-useSkillContext-alias",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

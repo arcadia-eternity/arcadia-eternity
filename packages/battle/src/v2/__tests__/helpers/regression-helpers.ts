@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import {
   AttackTargetOpinion,
   BattleMessageType,
@@ -18,7 +19,7 @@ import type { UseSkillContextData } from '../../schemas/context.schema.js'
 import type { BattleInstance } from '../../game.js'
 import { LocalBattleSystemV2 } from '../../local-battle.js'
 
-const PACK_REF = 'builtin:base'
+const PACK_REF = fileURLToPath(new URL('../../../../test/v4/fixtures/effect-regression/pack.json', import.meta.url))
 
 let repoPromise: Promise<V2DataRepository> | undefined
 

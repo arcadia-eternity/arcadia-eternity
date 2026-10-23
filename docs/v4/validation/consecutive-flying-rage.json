@@ -1,0 +1,15 @@
+{
+  "records": [
+    {
+      "id": "effect_ability_add_20_rage_when_use_fly_skill_twice",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/37",
+      "definitionSha256": "7db5106ec92a573ad884ab9c9b43b46255e633aba4e64a4b285fcc9e17cc0f37",
+      "status": "handwritten-candidate",
+      "decisions": [
+        "User-approved consecutive Flying uses: compare captured previous completed element at OnHit, reward from second use"
+      ],
+      "nativeFile": "packages/battle/src/v4/official/consecutive-flying-rage.ts"
+    }
+  ]
+}

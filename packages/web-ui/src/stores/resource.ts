@@ -2,7 +2,9 @@
 import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
 import type { AssetManifest, MarkImageSchemaType } from '@arcadia-eternity/schema'
-import { PackLoader } from '@arcadia-eternity/pack-loader'
+import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
+import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 import { listWorkspacePacks, type WorkspacePackSummary, resolveWorkspaceFileUrl } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -211,7 +213,7 @@ export const useResourceStore = defineStore('Resource', {
         devBasePath: '/resource',
         prodBaseUrl: import.meta.env.VITE_API_BASE || '/resource',
       })
-      const packLoader = new PackLoader()
+      const packLoader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
 
       try {
         const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound, rawPetSwf] = await Promise.all([
@@ -242,10 +244,8 @@ export const useResourceStore = defineStore('Resource', {
           }
         }
 
-        const packResult = await packLoader.load(packRef, {
+        const packResult = await packLoader.loadMetadata(packRef, {
           source: 'http',
-          continueOnError: true,
-          validateReferences: false,
           enforceLockfile: false,
         })
 
@@ -313,7 +313,7 @@ export const useResourceStore = defineStore('Resource', {
       }
 
       const targetFolder = normalizeFolderName(input.folderName)
-      const packLoader = new PackLoader()
+      const packLoader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
       for (const pack of enabledPacks) {
         const isTarget = normalizeFolderName(pack.folderName) === targetFolder
         if (!nextLayers[pack.folderName] || (input.enabled && isTarget)) {
@@ -349,7 +349,7 @@ export const useResourceStore = defineStore('Resource', {
     async initializeFromWorkspacePacks(
       enabledPacks: WorkspacePackSummary[],
       baseLayer: ResourceLayer,
-      packLoader: PackLoader,
+      packLoader: NativePackLoader,
     ) {
       const layers: Record<string, ResourceLayer> = {}
       for (const pack of enabledPacks) {
@@ -366,12 +366,10 @@ export const useResourceStore = defineStore('Resource', {
       this.validateDataIntegrity()
     },
 
-    async loadWorkspaceLayer(folderName: string, packLoader: PackLoader): Promise<ResourceLayer> {
+    async loadWorkspaceLayer(folderName: string, packLoader: NativePackLoader): Promise<ResourceLayer> {
       const packRef = await resolveWorkspaceFileUrl(`packs/${encodeURIComponent(folderName)}/pack.json`)
-      const packResult = await packLoader.load(packRef, {
+      const packResult = await packLoader.loadMetadata(packRef, {
         source: 'http',
-        continueOnError: true,
-        validateReferences: false,
         enforceLockfile: false,
       })
 

@@ -1,3 +1,6 @@
+import { ConsumeStackPhase } from './phase/consumeStack'
+import { initializeOwnerRelations } from './values/relations'
+import { normalizeMarkInstanceParams, markParameterContract, type MarkInstanceParams } from './content/mark-parameters'
 import {
   BattleMessageType,
   EffectTrigger,
@@ -22,7 +25,7 @@ import {
   SwitchPetContext,
   TurnContext,
 } from './context'
-import { Effect, type EffectContainer } from './effect'
+import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import type { Emitter } from 'mitt'
@@ -31,7 +34,6 @@ import {
   DurationType,
   MarkAttributeSystem,
   createStatLevelMarkAttributeSystem,
-
   type BaseMarkAccessors,
   type LevelAccessors,
 } from './attributeSystem'
@@ -62,6 +64,7 @@ export class BaseMark implements Prototype, IBaseMark {
   ) {}
 
   createInstance(overrides?: {
+    instanceParams?: MarkInstanceParams
     duration?: number
     stack?: number
     config?: Partial<BaseMark['config']>
@@ -82,6 +85,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   readonly tags: string[]
   isSuppressed: boolean
 
+  readonly instanceParams: MarkInstanceParams | undefined
   readonly base: BaseMark
   readonly attributeSystem: MarkAttributeSystem
 
@@ -93,6 +97,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   get stack(): number
   set stack(value: number)
   get baseId(): baseMarkId
+  registerBattle(battle: Battle): void
   setOwner(owner: MarkOwner, emitter: Emitter<Events>): void
   attachTo(target: MarkOwner): void
   detach(): void
@@ -100,15 +105,40 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
   get isStackable(): boolean
 
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void
+  clearTemporaryEffects(phaseId: string): void
+  getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[]
   cleanupAttributeModifiers(): void
+  addAttributeModifierCleanup(cleanup: () => void): void
   transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
   toMessage(): MarkMessage
 }
 
 export class MarkInstanceImpl implements MarkInstance {
+  private temporaryEffects: TemporaryEffect[] = []
+
+  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void {
+    this.temporaryEffects.push({ effect, phaseId })
+  }
+
+  clearTemporaryEffects(phaseId: string): void {
+    this.temporaryEffects = this.temporaryEffects.filter(entry => entry.phaseId !== phaseId)
+  }
+
+  getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
+    return [...this.effects, ...this.temporaryEffects.map(entry => entry.effect)].filter(effect =>
+      effect.triggers.includes(trigger),
+    )
+  }
+
+  public readonly instanceParams: MarkInstanceParams | undefined
   private suppression = new Signal(false)
-  get isSuppressed(): boolean { return this.suppression.value }
-  set isSuppressed(value: boolean) { this.suppression.next(value) }
+  get isSuppressed(): boolean {
+    return this.suppression.value
+  }
+  set isSuppressed(value: boolean) {
+    this.suppression.next(value)
+  }
   public owner: Battle | Pet | null = null
 
   public readonly id: markId
@@ -127,6 +157,7 @@ export class MarkInstanceImpl implements MarkInstance {
   constructor(
     public readonly base: BaseMark,
     overrides?: {
+      instanceParams?: MarkInstanceParams
       duration?: number
       stack?: number
       config?: Partial<BaseMark['config']>
@@ -134,6 +165,8 @@ export class MarkInstanceImpl implements MarkInstance {
       effects?: Effect<EffectTrigger>[]
     },
   ) {
+    this.instanceParams = normalizeMarkInstanceParams(base, overrides?.instanceParams)
+    initializeOwnerRelations(this)
     this.id = nanoid() as markId
     const mergedConfig = {
       ...base.config,
@@ -198,8 +231,15 @@ export class MarkInstanceImpl implements MarkInstance {
 
   OnMarkCreated(target: Battle | Pet, context: AddMarkContext) {
     this.setOwner(target, target.emitter!)
-    context.battle.applyEffects(context, EffectTrigger.OnMarkCreated, this)
-    context.battle.applyEffects(context, EffectTrigger.OnAnyMarkAdded)
+    const parameters = markParameterContract(this.base)
+    try {
+      parameters?.installScope(context.battle.configSystem, this)
+      context.battle.applyEffects(context, EffectTrigger.OnMarkCreated, this)
+      context.battle.applyEffects(context, EffectTrigger.OnAnyMarkAdded)
+    } catch (error) {
+      if (parameters) context.battle.configSystem.releaseScope(this)
+      throw error
+    }
 
     this.attachTo(target)
     target.marks.push(this)
@@ -211,11 +251,13 @@ export class MarkInstanceImpl implements MarkInstance {
     this.emitter = emitter
 
     // Set battleId for attribute system
-    if (owner instanceof Pet && owner.owner?.battle) {
-      this.attributeSystem.setBattleId(owner.owner.battle.id)
-    } else if (owner instanceof Battle) {
-      this.attributeSystem.setBattleId(owner.id)
-    }
+    const battle = owner instanceof Pet ? owner.owner?.battle : owner
+    if (battle) this.registerBattle(battle)
+  }
+
+  /** Track lifetime without assigning an owner to an incoming stacking operand. */
+  registerBattle(battle: Battle): void {
+    this.attributeSystem.setBattleId(battle.id)
   }
 
   attachTo(target: Battle | Pet) {
@@ -236,18 +278,15 @@ export class MarkInstanceImpl implements MarkInstance {
   }
 
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
-    const actual = Math.min(amount, this.stack)
-    this.stack -= actual
+    // Use ConsumeStackPhase for unified stack consumption
+    const consumePhase = new ConsumeStackPhase(context.battle, context, this, amount)
+    context.battle.phaseManager.registerPhase(consumePhase)
+    const result = context.battle.phaseManager.executePhase(consumePhase.id)
 
-    if (this.stack <= 0) {
-      // Use RemoveMarkPhase for unified mark destruction
-      const removeMarkContext = new RemoveMarkContext(context, this)
-      context.battle.removeMark(removeMarkContext)
+    if (result.success && consumePhase.context) {
+      return consumePhase.context.actualAmount
     }
-
-    // Note: dirty flag removed, attribute system handles recalculation automatically
-
-    return actual
+    return 0
   }
 
   get isStackable() {
@@ -354,10 +393,9 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
     this.stageMultiplier$ = projectValue(this.statLevelAttributeSystem.getAttribute$('level'), 'stage')
   }
 
-  override setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
-    super.setOwner(owner, emitter)
-    const battleId = owner instanceof Pet ? owner.owner?.battle?.id : owner.id
-    if (battleId) this.statLevelAttributeSystem.setBattleId(battleId)
+  override registerBattle(battle: Battle): void {
+    super.registerBattle(battle)
+    this.statLevelAttributeSystem.setBattleId(battle.id)
   }
 
   // level的getter和setter，操作attributeSystem

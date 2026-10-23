@@ -1,10 +1,11 @@
+import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from './content/mark-parameters'
 import mitt from 'mitt'
 import { BattleStatus, BattlePhase, type EffectTrigger, type Events } from '@arcadia-eternity/const'
 import { Battle } from './battle'
 import { Player, AIPlayer } from './player'
 import { Pet } from './pet'
 import { BaseSkill, SkillInstance } from './skill'
-import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, StatLevelMarkInstanceImpl } from './mark'
+import { type MarkInstance, BaseMark, BaseStatLevelMark, MarkInstanceImpl, StatLevelMarkInstanceImpl } from './mark'
 import { Effect } from './effect'
 import {
   ComposableAttributeSystem,
@@ -25,6 +26,7 @@ import { PhaseManager, PhaseState } from './phase'
 import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
 import { createChildLogger } from './logger'
+import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
 import {
   Signal,
@@ -38,6 +40,10 @@ import {
   type ValueProjection,
 } from './reactiveValue'
 import { getCleanupBinding, getModifierCleanup, describeCleanup } from './snapshotBindings'
+import { bindValue, RestoredBoundValue, validateBindingState, type BoundValue } from './values/binding'
+import { bindingEntity, bindingOwner, type BindingTarget } from './values/dependencies'
+import type { ValueDefinition, BindingState } from './values/plan'
+import { initializeOwnerRelations, initializePetRelations, initializePlayerRelations } from './values/relations'
 
 type Atom = null | boolean | string | number
 type Encoded = Atom | { ref: number } | { atom: 'undefined' | 'Infinity' | '-Infinity' | 'NaN' | '-0' }
@@ -48,6 +54,7 @@ interface Node {
 export interface BattleSnapshot {
   format: 'arcadia.v1.battle-snapshot'
   version: 1
+  boundary?: 'initial'
   catalog: string
   root: Encoded
   nodes: Node[]
@@ -55,12 +62,23 @@ export interface BattleSnapshot {
 
 /** Effects are executable content, resolved from trusted, revisioned content after loading JSON. */
 export class SnapshotCatalog {
+  private sealed = false
+  /** Prevent registration changes after publishing a content environment. */
+  seal(): this {
+    this.sealed = true
+    Object.freeze(this)
+    return this
+  }
+  private assertWritable(): void {
+    if (this.sealed) throw new Error('Snapshot catalog is sealed')
+  }
   private effects = new Map<string, Effect<EffectTrigger>>()
   private effectKeys = new WeakMap<Effect<EffectTrigger>, string>()
   private content = new Map<string, object>()
   private contentKeys = new WeakMap<object, string>()
   /** Registered prototypes are immutable content supplied by the same revision on each host. */
   registerContent(key: string, value: object): this {
+    this.assertWritable()
     if (
       !(value instanceof BaseMark) &&
       !(value instanceof BaseSkill) &&
@@ -84,16 +102,63 @@ export class SnapshotCatalog {
     if (!this.values.has(key)) throw new Error(`Missing snapshot value factory: ${key}`)
   }
   private values = new Map<string, (args: unknown) => ReactiveValue<unknown>>()
+  private bindings = new Map<string, (args: unknown, state: BindingState, target: BindingTarget) => BoundValue>()
+  private bindingDefinitions = new Map<string, object>()
+  private bindingSources = new Map<string, (args: unknown) => MarkInstance>()
+  registerValueBinding<A>(definition: ValueDefinition<A>): this {
+    this.assertWritable()
+    if (this.bindings.has(definition.id)) throw new Error(`Duplicate value binding definition: ${definition.id}`)
+    this.bindings.set(definition.id, (args, state, target) => bindValue(definition, args as A, target, state, true))
+    this.bindingDefinitions.set(definition.id, definition)
+    const source = definition.source
+    if (source) this.bindingSources.set(definition.id, args => source(args as A))
+    return this
+  }
+  /** Preflight a trusted effect and all its factories before mutating this catalog. */
+  registerEffectWithBindings<A>(
+    key: string,
+    effect: Effect<EffectTrigger>,
+    definitions: readonly ValueDefinition<A>[],
+  ): this {
+    this.assertWritable()
+    if (this.effects.has(key) && this.effects.get(key) !== effect) throw new Error(`Duplicate snapshot effect: ${key}`)
+    const unique = new Map<string, ValueDefinition<A>>()
+    for (const definition of definitions) {
+      const previous = unique.get(definition.id) ?? this.bindingDefinitions.get(definition.id)
+      if (previous && previous !== definition) throw new Error(`Duplicate value binding definition: ${definition.id}`)
+      unique.set(definition.id, definition)
+    }
+    this.registerEffect(key, effect)
+    for (const definition of unique.values()) {
+      if (!this.bindingDefinitions.has(definition.id)) this.registerValueBinding(definition)
+    }
+    return this
+  }
+  assertValueBindingSource(key: string, args: unknown, source: unknown): void {
+    this.assertValueBinding(key)
+    const expected = this.bindingSources.get(key)
+    if (expected && expected(args) !== source) throw new Error('Invalid bound contribution source')
+  }
+  assertValueBinding(key: string): void {
+    if (!this.bindings.has(key)) throw new Error(`Missing value binding definition: ${key}`)
+  }
+  restoreValueBinding(key: string, args: unknown, state: unknown, target: BindingTarget): BoundValue {
+    this.assertValueBinding(key)
+    validateBindingState(state)
+    return this.bindings.get(key)!(args, state, target)
+  }
   constructor(public readonly revision: string) {
     if (!revision) throw new Error('Snapshot catalog revision is required')
   }
   registerEffect(key: string, effect: Effect<EffectTrigger>): this {
+    this.assertWritable()
     if (this.effects.has(key) && this.effects.get(key) !== effect) throw new Error(`Duplicate snapshot effect: ${key}`)
     this.effects.set(key, effect)
     this.effectKeys.set(effect, key)
     return this
   }
   registerValue(key: string, restore: (args: unknown) => ReactiveValue<unknown>): this {
+    this.assertWritable()
     if (this.values.has(key)) throw new Error(`Duplicate snapshot value: ${key}`)
     this.values.set(key, restore)
     return this
@@ -136,13 +201,39 @@ function attributeTag(value: object): string {
 function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
   if (!recipe || typeof recipe !== 'object') throw new Error('Invalid snapshot value binding')
   switch (recipe.type) {
+    case 'bound':
+      if (
+        typeof recipe.key !== 'string' ||
+        !recipe.target ||
+        typeof recipe.target !== 'object' ||
+        !(
+          ('attribute' in recipe.target &&
+            typeof recipe.target.attribute === 'string' &&
+            !('scope' in recipe.target) &&
+            (('pet' in recipe.target && !('skill' in recipe.target) && recipe.target.pet instanceof Pet) ||
+              ('skill' in recipe.target &&
+                !('pet' in recipe.target) &&
+                recipe.target.skill instanceof SkillInstance))) ||
+          ('scope' in recipe.target &&
+            !('pet' in recipe.target) &&
+            !('skill' in recipe.target) &&
+            !('attribute' in recipe.target) &&
+            (recipe.target.scope instanceof Pet || recipe.target.scope instanceof Player) &&
+            'parameter' in recipe.target &&
+            typeof recipe.target.parameter === 'string')
+        )
+      )
+        break
+      catalog.assertValueBinding(recipe.key)
+      validateBindingState(recipe.state)
+      return
     case 'attribute':
       if (recipe.target instanceof AttributeSystem && typeof recipe.key === 'string') return
       break
     case 'project':
       if (
         recipe.input instanceof ReactiveValue &&
-        ['add', 'multiply', 'divide', 'min', 'max', 'sum', 'stage'].includes(recipe.operation as string) &&
+        ['add', 'multiply', 'divide', 'min', 'max', 'sum', 'average', 'stage'].includes(recipe.operation as string) &&
         typeof recipe.operand === 'number' &&
         Number.isFinite(recipe.operand) &&
         !(recipe.operation === 'divide' && recipe.operand === 0)
@@ -163,6 +254,7 @@ function validateRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): void {
   throw new Error('Invalid snapshot value binding')
 }
 function validateCleanup(binding: Record<string, unknown>): void {
+  if (binding?.type === 'bound-value' && binding.modifier instanceof Modifier) return
   if (binding?.type === 'noop') return
   if (
     binding?.type === 'group' &&
@@ -195,7 +287,7 @@ const ledger = {
     fields:
       'type lastStateMessage id allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap sequenceId playerA playerB',
     runtime:
-      'battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
+      'executionBudget battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
   },
   Player: {
     ctor: Player,
@@ -210,23 +302,25 @@ const ledger = {
   Pet: {
     ctor: Pet,
     fields:
-      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes attributeSystem name id originalSpecies level evs ivs nature baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
+      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes lastUsedSkillElement attributeSystem name id originalSpecies level evs ivs nature baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
     runtime: 'emitter',
   },
   SkillInstance: {
     ctor: SkillInstance,
-    fields: 'owner id category element target multihit sureHit sureCrit ignoreShield tags effects attributeSystem base',
+    fields:
+      'owner id category element target multihit sureHit sureCrit ignoreShield tags effects temporaryEffects attributeSystem base',
     runtime: '',
   },
   MarkInstanceImpl: {
     ctor: MarkInstanceImpl,
-    fields: 'base suppression owner id effects config tags attributeSystem attributeModifierCleanups',
+    fields:
+      'base instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups',
     runtime: 'emitter',
   },
   StatLevelMarkInstanceImpl: {
     ctor: StatLevelMarkInstanceImpl,
     fields:
-      'base suppression owner id effects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
+      'base instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
     runtime: 'emitter levelAccessors',
   },
   BaseSkill: {
@@ -270,8 +364,12 @@ function set(object: object, fields: Record<string, unknown>) {
   for (const [key, value] of Object.entries(fields))
     Object.defineProperty(object, key, { value, writable: true, enumerable: true, configurable: true })
 }
-function assertBoundary(battle: Battle) {
-  if (!battle.isSnapshotBoundary()) throw new Error('Snapshot requires a settled selection input boundary')
+function assertBoundary(battle: Battle, initial: boolean) {
+  if (initial ? !battle.isInitialSnapshotBoundary() : !battle.isSnapshotBoundary())
+    throw new Error(
+      initial ? 'Snapshot requires an initial input boundary' : 'Snapshot requires a settled selection input boundary',
+    )
+  if (initial) battle.timerManager.assertInitialSnapshotSafe()
   battle.timerManager.assertSnapshotSafe()
   if (
     battle.phaseManager.getPhasesByState(PhaseState.Pending).length ||
@@ -279,10 +377,23 @@ function assertBoundary(battle: Battle) {
   )
     throw new Error('Snapshot cannot discard pending or failed phases')
   battle.phaseManager.assertSnapshotSafe()
+  for (const container of [
+    ...battle.marks,
+    ...[...battle.petMap.values()].flatMap(pet => [...pet.skills, ...pet.marks]),
+  ]) {
+    const temporaryEffects = Reflect.get(container, 'temporaryEffects')
+    if (!Array.isArray(temporaryEffects) || temporaryEffects.length)
+      throw new Error('Snapshot does not support active temporary effects')
+  }
 }
 
-export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): BattleSnapshot {
-  assertBoundary(battle)
+export function snapshotBattle(
+  battle: Battle,
+  catalog: SnapshotCatalog,
+  options?: { boundary: 'initial' },
+): BattleSnapshot {
+  const initial = options?.boundary === 'initial'
+  assertBoundary(battle, initial)
   const ids = new Map<object, number>(),
     nodes: Node[] = []
   const encode = (value: unknown): Encoded => {
@@ -330,12 +441,26 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
     else {
       const kind = specFor(value)
       if (kind) {
+        if (value instanceof Modifier) {
+          const recipe = getValueRecipe(value.value)
+          if (recipe?.type === 'bound')
+            catalog.assertValueBindingSource(recipe.key as string, recipe.args, value.source)
+        }
+        if (value instanceof BaseMark && markParameterContract(value))
+          throw new Error('Parameterized mark requires registered snapshot content')
+        if (value instanceof MarkInstanceImpl) {
+          const params = normalizeMarkInstanceParams(value.base, value.instanceParams)
+          if (!sameMarkInstanceParams(params, value.instanceParams)) throw new Error('Invalid mark instance parameters')
+          markParameterContract(value.base)?.validateScope(battle.configSystem.exportSnapshotState(), value)
+        }
         const fields = readFields(value, kind)
         if (value instanceof Battle) {
           const rng: unknown = Reflect.get(value, 'rng')
           if (!(rng instanceof GameRng)) throw new Error('Injected RNG requires a snapshot adapter')
+          fields.executionBudgetState = value.executionBudget.exportState()
           fields.rngState = rng.getState()
           fields.timerConfig = value.getTimerConfig()
+          if (value.timerManager.isEnabled()) fields.timerRuntime = value.timerManager.exportRuntimeState()
           fields.transformations = value.transformationSystem.exportSnapshotState()
         }
         write(kind, fields)
@@ -351,6 +476,7 @@ export function snapshotBattle(battle: Battle, catalog: SnapshotCatalog): Battle
   const result: BattleSnapshot = {
     format: 'arcadia.v1.battle-snapshot',
     version: 1,
+    ...(initial ? { boundary: 'initial' as const } : {}),
     catalog: catalog.revision,
     root: encode(battle),
     nodes,
@@ -401,6 +527,28 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
             object = new Signal<unknown>(undefined)
             break
           case 'value': {
+            const recipeRef = node.fields.recipe
+            const owned =
+              recipeRef &&
+              typeof recipeRef === 'object' &&
+              'ref' in recipeRef &&
+              snapshot.nodes[recipeRef.ref]?.fields.type === 'bound'
+            if (owned) {
+              object = new RestoredBoundValue(() => {
+                const recipe = decode(node.fields.recipe) as ValueRecipe
+                return catalog.restoreValueBinding(
+                  recipe.key as string,
+                  recipe.args,
+                  recipe.state,
+                  recipe.target as BindingTarget,
+                )
+              })
+              deferred.push(() => {
+                describeValue(object as ReactiveValue<unknown>, decode(node.fields.recipe) as ValueRecipe)
+                if (node.fields.complete) (object as ReactiveValue<unknown>).complete()
+              })
+              break
+            }
             let restored: ReactiveValue<unknown> | undefined
             object = derived(() => {
               restored ??= restoreRecipe(decode(node.fields.recipe) as ValueRecipe, catalog)
@@ -490,22 +638,35 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       if (node.kind === 'cleanup') validateCleanup(decode(node.fields.binding) as Record<string, unknown>)
     }
     battle = decode(snapshot.root) as Battle
+    const initial = snapshot.boundary === 'initial'
     if (
       !(battle instanceof Battle) ||
-      battle.status !== BattleStatus.OnBattle ||
+      battle.status !== (initial ? BattleStatus.Unstarted : BattleStatus.OnBattle) ||
       battle.currentPhase !== BattlePhase.SelectionPhase
     )
       throw new Error('Invalid snapshot Battle root/boundary')
     if (ConfigSystem.getBattleConfig(battle.id))
       throw new Error('Snapshot Battle is already active; dispose the source before restoring its identity')
     const data = battle as Battle & {
+      executionBudgetState: ReturnType<ExecutionBudget['exportState']>
       rngState: ReturnType<GameRng['getState']>
       timerConfig: ReturnType<Battle['getTimerConfig']>
+      timerRuntime?: unknown
       transformations: ReturnType<TransformationSystem['exportSnapshotState']>
     }
-    if (!data.timerConfig || data.timerConfig.enabled) throw new Error('Snapshot does not support enabled timers')
+    if (!data.timerConfig) throw new Error('Snapshot is missing timer configuration')
+    if (data.timerConfig.enabled && !data.timerRuntime)
+      throw new Error('Snapshot enabled timers require saved timer state')
+    if (!data.timerConfig.enabled && data.timerRuntime !== undefined)
+      throw new Error('Disabled timers cannot carry saved timer state')
+    const savedBudget = new ExecutionBudget(() => battle!.stopForExecutionFault())
+    savedBudget.restoreState(data.executionBudgetState)
+    if (data.executionBudgetState.turn !== battle.currentTurn && !(initial && data.executionBudgetState.turn === -1))
+      throw new Error('Execution budget turn mismatch')
     const emitter = mitt<Events>()
     set(battle, {
+      // Rebuilding subscriptions has its own finite allowance; never spend saved gameplay credit.
+      executionBudget: new ExecutionBudget(() => {}),
       parent: null,
       battle,
       emitter,
@@ -516,14 +677,104 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       transformationSystem: new TransformationSystem(battle),
       cancelled: false,
       _isStarting: false,
-      restoredSelection: true,
+      restoredSelection: !initial,
       cleanupPromise: undefined,
       waitingResolvers: {},
       messageCallbacks: [],
     })
+    if (data.timerConfig.enabled) battle.timerManager.restoreRuntimeState(data.timerRuntime)
+    if (initial) {
+      if (!battle.isInitialSnapshotBoundary()) throw new Error('Invalid initial snapshot boundary')
+      battle.timerManager.assertInitialSnapshotSafe()
+    }
     for (const { object, state } of attributes) object.restoreSnapshotBase(state, battle.id)
     for (const restore of deferred) restore()
+    const ownedValues = new Set<ReactiveValue<unknown>>()
+    for (const { object, state } of attributes) {
+      for (const [key, modifiers] of state.modifiers) {
+        for (const modifier of modifiers) {
+          const recipe = getValueRecipe(modifier.value)
+          if (recipe?.type !== 'bound') continue
+          const target = recipe.target as BindingTarget
+          if (!('attribute' in target)) throw new Error('Invalid attribute binding target')
+          const entity = bindingEntity(target)
+          const targetOwner = bindingOwner(target)
+          const source = modifier.source
+          const owner = source?.owner
+          const players = [battle.playerA, battle.playerB]
+          if (
+            ownedValues.has(modifier.value) ||
+            entity.attributeSystem !== object ||
+            target.attribute !== key ||
+            !targetOwner?.owner ||
+            !players.includes(targetOwner.owner) ||
+            !targetOwner.owner.team.includes(targetOwner) ||
+            (entity instanceof SkillInstance && !targetOwner.skills.includes(entity)) ||
+            !(source instanceof MarkInstanceImpl) ||
+            !owner ||
+            !owner.marks.includes(source) ||
+            (owner !== battle && (!(owner instanceof Pet) || !owner.owner || !players.includes(owner.owner)))
+          )
+            throw new Error('Invalid bound contribution ownership')
+          catalog.assertValueBindingSource(recipe.key as string, recipe.args, source)
+          ownedValues.add(modifier.value)
+        }
+      }
+    }
+    const bindingBattle = battle
+    for (const { object, state } of configs) {
+      const validate = (key: string, modifier: ConfigModifier, scope?: object) => {
+        const recipe = getValueRecipe(modifier.value)
+        if (recipe?.type !== 'bound') return
+        const target = recipe.target as BindingTarget
+        const source = modifier.source
+        const players = [bindingBattle.playerA, bindingBattle.playerB]
+        if (
+          ownedValues.has(modifier.value) ||
+          object !== bindingBattle.configSystem ||
+          !('scope' in target) ||
+          target.scope !== scope ||
+          target.parameter !== key ||
+          !(target.scope instanceof Player
+            ? players.includes(target.scope)
+            : target.scope.owner &&
+              players.includes(target.scope.owner) &&
+              target.scope.owner.team.includes(target.scope)) ||
+          !(source instanceof MarkInstanceImpl) ||
+          !source.owner ||
+          !source.owner.marks.includes(source) ||
+          (source.owner !== battle &&
+            (!(source.owner instanceof Pet) || !source.owner.owner || !players.includes(source.owner.owner)))
+        )
+          throw new Error('Invalid bound parameter ownership')
+        catalog.assertValueBindingSource(recipe.key as string, recipe.args, source)
+        ownedValues.add(modifier.value)
+      }
+      for (const [key, modifiers] of state.global) for (const modifier of modifiers) validate(key, modifier)
+      for (const [scope, entries] of state.scopedModifiers)
+        for (const [key, modifiers] of entries) for (const modifier of modifiers) validate(key, modifier, scope)
+    }
+    for (const object of objects) {
+      if (object instanceof SkillInstance || object instanceof MarkInstanceImpl) {
+        const temporaryEffects = Reflect.get(object, 'temporaryEffects')
+        if (temporaryEffects === undefined) set(object, { temporaryEffects: [] })
+        else if (!Array.isArray(temporaryEffects) || temporaryEffects.length)
+          throw new Error('Snapshot does not support active temporary effects')
+      }
+    }
     for (const { object, state } of attributes) object.restoreSnapshotModifiers(state)
+    for (const object of objects)
+      if (object instanceof MarkInstanceImpl) {
+        const params = normalizeMarkInstanceParams(object.base, object.instanceParams)
+        if (!sameMarkInstanceParams(params, object.instanceParams)) throw new Error('Invalid mark instance parameters')
+        const contract = markParameterContract(object.base)
+        if (contract) {
+          const config = configs.find(entry => entry.object === data.configSystem)
+          if (!config) throw new Error('Missing mark parameter config')
+          contract.validateScope(config.state, object)
+        }
+        set(object, { instanceParams: params })
+      }
     for (const { object, state } of configs) object.restoreSnapshotState(state)
     for (const { object } of configs) object.registerRestoredBattle(battle.id)
     ConfigSystem.bindBattle(battle)
@@ -531,9 +782,12 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     for (const object of objects) {
       if (object instanceof Player) {
         set(object, { battle, owner: battle, emitter, messageCallbacks: [] })
+        initializePlayerRelations(object)
         battle.registerListener(object.handleMessage.bind(object))
         if (object instanceof AIPlayer) object.restoreSnapshotRuntime()
       } else if (object instanceof Pet || object instanceof MarkInstanceImpl) set(object, { emitter })
+      if (object instanceof Pet) initializePetRelations(object)
+      else if (object instanceof MarkInstanceImpl || object instanceof SkillInstance) initializeOwnerRelations(object)
       if (object instanceof StatLevelMarkInstanceImpl)
         set(object, {
           levelAccessors: (
@@ -542,6 +796,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
         })
     }
     battle.transformationSystem.restoreSnapshotState(data.transformations)
+    for (const object of objects) if (object instanceof RestoredBoundValue) object.initialize()
     for (const object of objects)
       if (typeof object === 'function') {
         // Retain cleanup descriptions so a restored Battle can be saved again.
@@ -567,8 +822,12 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
           })
         }
       }
+    battle.executionBudget.assertActive()
+    set(battle, { executionBudget: savedBudget })
+    Reflect.deleteProperty(battle, 'executionBudgetState')
     Reflect.deleteProperty(battle, 'rngState')
     Reflect.deleteProperty(battle, 'timerConfig')
+    Reflect.deleteProperty(battle, 'timerRuntime')
     Reflect.deleteProperty(battle, 'transformations')
     return battle
   } catch (error) {
@@ -577,6 +836,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     for (const object of objects) {
       try {
         if (object instanceof AttributeSystem || object instanceof ConfigSystem) object.destroy()
+        if (object instanceof RestoredBoundValue) object.complete()
       } catch {
         /* Retain the original validation error; no host callbacks survive hydration. */
       }
@@ -606,6 +866,10 @@ function restoreRecipe(recipe: ValueRecipe, catalog: SnapshotCatalog): ReactiveV
   }
 }
 function runCleanup(binding: Record<string, unknown>): void {
+  if (binding.type === 'bound-value') {
+    ;(binding.modifier as Modifier).value.complete()
+    return
+  }
   if (binding.type === 'noop') return
   if (binding.type === 'group') {
     for (const cleanup of binding.cleanups as (() => void)[]) cleanup()
@@ -629,6 +893,7 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
   if (
     s.format !== 'arcadia.v1.battle-snapshot' ||
     s.version !== 1 ||
+    (s.boundary !== undefined && s.boundary !== 'initial') ||
     s.catalog !== catalog.revision ||
     !Array.isArray(s.nodes) ||
     s.nodes.length > 100000
@@ -687,10 +952,14 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
       const spec = ledger[node.kind as LedgerKind]
       const allowed = new Set([
         ...spec.fields.split(' '),
-        ...(node.kind === 'Battle' ? ['rngState', 'timerConfig', 'transformations'] : []),
+        ...(node.kind === 'Battle'
+          ? ['rngState', 'timerConfig', 'timerRuntime', 'transformations', 'executionBudgetState']
+          : []),
       ])
       if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
-      const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem'] : [])
+      const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem', 'lastUsedSkillElement'] : [])
+      if (['SkillInstance', 'MarkInstanceImpl', 'StatLevelMarkInstanceImpl'].includes(node.kind))
+        optional.add('temporaryEffects')
       if (spec.fields.split(' ').some(key => !optional.has(key) && !Object.hasOwn(node.fields, key)))
         throw new Error('Missing snapshot domain field')
     }

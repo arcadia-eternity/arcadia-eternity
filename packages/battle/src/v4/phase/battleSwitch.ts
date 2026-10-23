@@ -85,6 +85,8 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
       return
     }
 
+    this.battle.timerManager.startSwitchPhase(playersNeedingSwitch.map(player => player.id))
+
     // 发送更换请求消息
     if (this.battle.pendingForcedSwitches.length > 0) {
       this.battle.emitMessage(BattleMessageType.ForcedSwitch, {
@@ -103,6 +105,7 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
 
     this.battle.assertRunning()
     if (this.battle.isBattleEnded()) return
+    this.battle.timerManager.finishDecisionPhase()
     // 执行所有更换操作
     for (const player of playersNeedingSwitch) {
       if (player.selection?.type === 'switch-pet') {

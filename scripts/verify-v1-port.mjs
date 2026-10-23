@@ -55,6 +55,7 @@ const dependencies = new Set(Object.keys(packageJson.dependencies))
 const external = new Set()
 const allowed = new Set([
   '@arcadia-eternity/const',
+  '@sinclair/typebox', // Schema-derived public parameter contracts; already a battle dependency.
   'jsondiffpatch',
   'mitt',
   'nanoid',

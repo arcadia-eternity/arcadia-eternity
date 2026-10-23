@@ -49,6 +49,12 @@ import {
   type LocalBattleRuntimeInstance,
 } from '../runtime/battleRuntimeHost'
 import { LocalBattleRuntimeFactory } from '../runtime/localBattleRuntimeFactory'
+import {
+  readRuntimeDescriptor,
+  type BattleRuntimeDescriptor,
+  type BattleRuntimeIdentity,
+  type BattleRuntimeRequest,
+} from '../runtime/runtimeIdentity'
 import { cleanupLocalBattleRuntime, startLocalBattleRuntime } from '../runtime/localBattleRuntimeLifecycle'
 import {
   RedisOwnershipCoordinator,
@@ -93,12 +99,16 @@ type BattleRuntimeBootstrap = {
   player1Data: PlayerSchemaType
   player2Data: PlayerSchemaType
   createdAt: number
+  runtime?: BattleRuntimeIdentity
+  initial?: BattleRuntimeSnapshot
 }
 
 type RoomRuntimeBootstrapMetadata = {
   player1Data: PlayerSchemaType
   player2Data: PlayerSchemaType
   createdAt: number
+  runtime?: BattleRuntimeIdentity
+  initial?: BattleRuntimeSnapshot
 }
 
 type BattleActionLogEntry = {
@@ -167,6 +177,7 @@ export class ClusterBattleService implements IBattleService {
   private readonly runtimePhaseStacks = new Map<string, RuntimePhaseExecutionEntry[]>()
   private readonly runtimeSnapshotSeq = new Map<string, number>()
   private readonly phaseExecutionUnsubscribers = new Map<string, () => void>()
+  private readonly battleEndCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private ownershipLeaseRenewalTimer: ReturnType<typeof setInterval> | null = null
 
   // TTL 过期监听器状态（兼容旧逻辑保留字段，当前不再用于战斗判负）
@@ -495,10 +506,31 @@ export class ClusterBattleService implements IBattleService {
     roomState: RoomState,
     player1Data: PlayerSchemaType,
     player2Data: PlayerSchemaType,
-    options?: { preserveRuntimeJournal?: boolean },
+    options?: { preserveRuntimeJournal?: boolean; runtime?: BattleRuntimeRequest },
   ): Promise<IBattleSystem> {
-    const battle = await this.localBattleFactory.createBattleSystem(roomState, player1Data, player2Data)
+    const battle = await this.localBattleFactory.createBattleSystem(
+      roomState,
+      player1Data,
+      player2Data,
+      options?.runtime,
+    )
+    const descriptor = this.localBattleFactory.describe(battle)
     const localRoom = this.localBattleFactory.createRoomData(roomState, battle, player1Data, player2Data)
+
+    // Native input IDs must be recoverable before this instance can accept readiness or actions.
+    if (!options?.preserveRuntimeJournal && descriptor.runtime.kind === 'native-v4') {
+      const saved = await this.persistBattleRuntimeBootstrap(roomState.id, player1Data, player2Data, descriptor)
+      const mirrored = await this.persistRoomMetadataRuntimeBootstrap(
+        roomState.id,
+        player1Data,
+        player2Data,
+        descriptor,
+      )
+      if (!saved && !mirrored) {
+        await battle.cleanup()
+        throw new Error('Native battle bootstrap could not be persisted')
+      }
+    }
 
     this.runtimeHost.register(localRoom)
     await this.ownershipCoordinator.claim(roomState.id, this.instanceId)
@@ -510,8 +542,10 @@ export class ClusterBattleService implements IBattleService {
 
     // 设置战斗事件监听
     await this.setupBattleEventListeners(battle, roomState.id)
-    await this.persistBattleRuntimeBootstrap(roomState.id, player1Data, player2Data)
-    await this.persistRoomMetadataRuntimeBootstrap(roomState.id, player1Data, player2Data)
+    if (!options?.preserveRuntimeJournal && descriptor.runtime.kind === 'legacy-v2') {
+      await this.persistBattleRuntimeBootstrap(roomState.id, player1Data, player2Data, descriptor)
+      await this.persistRoomMetadataRuntimeBootstrap(roomState.id, player1Data, player2Data, descriptor)
+    }
     if (!options?.preserveRuntimeJournal) {
       await this.resetBattleActionJournal(roomState.id)
       await this.clearRuntimeInflightPhase(roomState.id)
@@ -640,11 +674,6 @@ export class ClusterBattleService implements IBattleService {
             runtimeSeed,
             requiredPackLock,
             requiredAssetLock,
-            runtimeBootstrap: {
-              player1Data,
-              player2Data,
-              createdAt: Date.now(),
-            } satisfies RoomRuntimeBootstrapMetadata,
           },
         }
 
@@ -666,8 +695,10 @@ export class ClusterBattleService implements IBattleService {
 
         // 更新房间状态（不再存储 battleState 到 Redis）
         logger.info({ roomId }, 'About to update room state')
+        const persistedRoomState = await this.stateManager.getRoomState(roomId)
+        if (!persistedRoomState) throw new Error('Created battle room disappeared before activation')
         const roomState: RoomState = {
-          ...tempRoomState,
+          ...persistedRoomState,
           status: 'active', // 更新状态为活跃
           // 移除 battleState 存储，避免 Redis 超时
           // battleState: battle.getState(player1Data.id, false),
@@ -1199,7 +1230,11 @@ export class ClusterBattleService implements IBattleService {
           }
 
           // 延迟清理所有资源，给客户端一些时间处理战斗结束事件
-          setTimeout(async () => {
+          if (this.runtimeHost.getInstance(roomId) !== runtime) return
+          this.clearBattleEndCleanup(roomId)
+          const cleanupTimer = setTimeout(async () => {
+            this.battleEndCleanupTimers.delete(roomId)
+            if (this.runtimeHost.getInstance(roomId) !== runtime) return
             const currentRoomState = await this.stateManager.getRoomState(roomId)
             if (currentRoomState) {
               // 清理会话映射
@@ -1225,6 +1260,7 @@ export class ClusterBattleService implements IBattleService {
               'Battle cleanup completed',
             )
           }, 5000) // 5秒延迟
+          this.battleEndCleanupTimers.set(roomId, cleanupTimer)
         }
       },
       { showAll: true },
@@ -1463,7 +1499,8 @@ export class ClusterBattleService implements IBattleService {
     roomId: string,
     player1Data: PlayerSchemaType,
     player2Data: PlayerSchemaType,
-  ): Promise<void> {
+    descriptor: BattleRuntimeDescriptor = { runtime: { kind: 'legacy-v2' } },
+  ): Promise<boolean> {
     try {
       const client = this.stateManager.redisManager.getClient()
       const payload: BattleRuntimeBootstrap = {
@@ -1471,14 +1508,17 @@ export class ClusterBattleService implements IBattleService {
         player1Data,
         player2Data,
         createdAt: Date.now(),
+        ...descriptor,
       }
       await client.setex(
         REDIS_KEYS.BATTLE_RUNTIME_BOOTSTRAP(roomId),
         this.getBattleRuntimeDataTtlSeconds(),
         JSON.stringify(payload),
       )
+      return true
     } catch (error) {
       logger.warn({ roomId, error }, 'Failed to persist battle runtime bootstrap payload')
+      return false
     }
   }
 
@@ -1516,6 +1556,7 @@ export class ClusterBattleService implements IBattleService {
           player1Data: parsed.player1Data as PlayerSchemaType,
           player2Data: parsed.player2Data as PlayerSchemaType,
           createdAt: parsed.createdAt,
+          ...readRuntimeDescriptor(parsed),
         }
       }
 
@@ -1526,7 +1567,12 @@ export class ClusterBattleService implements IBattleService {
         return null
       }
 
-      await this.persistBattleRuntimeBootstrap(roomId, metadataBootstrap.player1Data, metadataBootstrap.player2Data)
+      await this.persistBattleRuntimeBootstrap(
+        roomId,
+        metadataBootstrap.player1Data,
+        metadataBootstrap.player2Data,
+        readRuntimeDescriptor(metadataBootstrap),
+      )
 
       logger.warn(
         { roomId },
@@ -1538,6 +1584,7 @@ export class ClusterBattleService implements IBattleService {
         player1Data: metadataBootstrap.player1Data,
         player2Data: metadataBootstrap.player2Data,
         createdAt: metadataBootstrap.createdAt,
+        ...readRuntimeDescriptor(metadataBootstrap),
       }
     } catch (error) {
       logger.warn({ roomId, error }, 'Failed to read battle runtime bootstrap payload')
@@ -1563,6 +1610,7 @@ export class ClusterBattleService implements IBattleService {
         player1Data,
         player2Data,
         createdAt,
+        ...readRuntimeDescriptor(candidate),
       }
     } catch (error) {
       logger.warn({ error }, 'Invalid room metadata runtime bootstrap payload')
@@ -1574,6 +1622,8 @@ export class ClusterBattleService implements IBattleService {
     player1Data?: unknown
     player2Data?: unknown
     createdAt?: unknown
+    runtime?: unknown
+    initial?: unknown
   } {
     const parsedRaw = this.parseMaybeJson(raw)
     if (!parsedRaw || typeof parsedRaw !== 'object') {
@@ -1586,6 +1636,8 @@ export class ClusterBattleService implements IBattleService {
       player2Data?: unknown
       createdAt?: unknown
       payload?: unknown
+      runtime?: unknown
+      initial?: unknown
     }
 
     if (!candidate.player1Data || !candidate.player2Data) {
@@ -1595,11 +1647,15 @@ export class ClusterBattleService implements IBattleService {
           player1Data?: unknown
           player2Data?: unknown
           createdAt?: unknown
+          runtime?: unknown
+          initial?: unknown
         }
         return {
           player1Data: payloadCandidate.player1Data,
           player2Data: payloadCandidate.player2Data,
           createdAt: payloadCandidate.createdAt,
+          runtime: payloadCandidate.runtime,
+          initial: payloadCandidate.initial,
         }
       }
     }
@@ -1608,6 +1664,8 @@ export class ClusterBattleService implements IBattleService {
       player1Data: candidate.player1Data,
       player2Data: candidate.player2Data,
       createdAt: candidate.createdAt,
+      runtime: candidate.runtime,
+      initial: candidate.initial,
     }
   }
 
@@ -1627,16 +1685,22 @@ export class ClusterBattleService implements IBattleService {
     roomId: string,
     player1Data: PlayerSchemaType,
     player2Data: PlayerSchemaType,
-  ): Promise<void> {
+    descriptor: BattleRuntimeDescriptor = { runtime: { kind: 'legacy-v2' } },
+  ): Promise<boolean> {
     try {
       const roomState = await this.stateManager.getRoomState(roomId)
       if (!roomState) {
-        return
+        return false
       }
 
       const existing = this.parseRoomMetadataBootstrap(roomState.metadata?.runtimeBootstrap)
-      if (existing && existing.player1Data.id === player1Data.id && existing.player2Data.id === player2Data.id) {
-        return
+      if (
+        existing &&
+        existing.player1Data.id === player1Data.id &&
+        existing.player2Data.id === player2Data.id &&
+        JSON.stringify(readRuntimeDescriptor(existing)) === JSON.stringify(descriptor)
+      ) {
+        return true
       }
 
       roomState.metadata = {
@@ -1645,11 +1709,14 @@ export class ClusterBattleService implements IBattleService {
           player1Data,
           player2Data,
           createdAt: Date.now(),
+          ...descriptor,
         } satisfies RoomRuntimeBootstrapMetadata,
       }
       await this.stateManager.setRoomState(roomState)
+      return true
     } catch (error) {
       logger.warn({ roomId, error }, 'Failed to persist room metadata runtime bootstrap')
+      return false
     }
   }
 
@@ -1826,14 +1893,15 @@ export class ClusterBattleService implements IBattleService {
       ) {
         return null
       }
-      if (parsed.format !== RUNTIME_SNAPSHOT_FORMAT || parsed.version !== RUNTIME_SNAPSHOT_VERSION) {
+      const supported =
+        (parsed.format === RUNTIME_SNAPSHOT_FORMAT && parsed.version === RUNTIME_SNAPSHOT_VERSION) ||
+        (parsed.format === 'arcadia.battle.native.v4' && [1, 2].includes(parsed.version))
+      if (!supported) {
         logger.warn(
           {
             roomId,
             format: parsed.format,
             version: parsed.version,
-            expectedFormat: RUNTIME_SNAPSHOT_FORMAT,
-            expectedVersion: RUNTIME_SNAPSHOT_VERSION,
           },
           'Ignore incompatible runtime world snapshot during recovery',
         )
@@ -1973,8 +2041,16 @@ export class ClusterBattleService implements IBattleService {
     }
 
     try {
+      const descriptor = readRuntimeDescriptor(bootstrap)
+      const latestActionSeq = await this.readBattleActionSeq(roomId)
+      const runtimeSnapshot = await this.readBattleRuntimeWorldSnapshot(roomId)
+      const inflightPhase = await this.readRuntimeInflightPhase(roomId)
+      const native = 'initial' in descriptor
+      if (!native && runtimeSnapshot?.format === 'arcadia.battle.native.v4')
+        throw new Error('Native snapshot conflicts with a legacy bootstrap identity')
       await this.createLocalBattle(roomState, bootstrap.player1Data, bootstrap.player2Data, {
         preserveRuntimeJournal: true,
+        runtime: native ? { kind: 'native-v4', expected: descriptor.runtime } : { kind: 'legacy-v2' },
       })
       const runtime = this.runtimeHost.getInstance(roomId)
       if (!runtime) {
@@ -1988,10 +2064,27 @@ export class ClusterBattleService implements IBattleService {
       }
 
       let replayStartSeq = 0
-      const latestActionSeq = await this.readBattleActionSeq(roomId)
-      const runtimeSnapshot = await this.readBattleRuntimeWorldSnapshot(roomId)
-      const inflightPhase = await this.readRuntimeInflightPhase(roomId)
-      if (runtimeSnapshot && this.isSnapshotCapableBattleSystem(runtime.battle)) {
+      if (native) {
+        if (!this.isSnapshotCapableBattleSystem(runtime.battle))
+          throw new Error('Native runtime cannot restore its bootstrap')
+        const usableLatest =
+          runtimeSnapshot &&
+          runtimeSnapshot.format === 'arcadia.battle.native.v4' &&
+          runtimeSnapshot.actionSeq <= latestActionSeq &&
+          (!inflightPhase || runtimeSnapshot.actionSeq <= inflightPhase.replayBaselineSeq)
+        if (usableLatest) {
+          try {
+            await runtime.battle.restoreRuntimeSnapshot(runtimeSnapshot)
+            replayStartSeq = runtimeSnapshot.actionSeq
+          } catch (snapshotRestoreError) {
+            logger.warn(
+              { roomId, snapshotRestoreError },
+              'Failed native checkpoint restore; using its original initial snapshot',
+            )
+            await runtime.battle.restoreRuntimeSnapshot(descriptor.initial)
+          }
+        } else await runtime.battle.restoreRuntimeSnapshot(descriptor.initial)
+      } else if (runtimeSnapshot && this.isSnapshotCapableBattleSystem(runtime.battle)) {
         try {
           await runtime.battle.restoreRuntimeSnapshot(runtimeSnapshot)
           const snapshotActionSeq = Math.max(0, runtimeSnapshot.actionSeq)
@@ -2016,7 +2109,7 @@ export class ClusterBattleService implements IBattleService {
         }
       }
 
-      if (inflightPhase) {
+      if (inflightPhase && !native) {
         const adjustedReplaySeq = Math.min(replayStartSeq, inflightPhase.replayBaselineSeq)
         if (adjustedReplaySeq !== replayStartSeq) {
           logger.warn(
@@ -2037,11 +2130,9 @@ export class ClusterBattleService implements IBattleService {
 
       this.runtimeSnapshotSeq.set(roomId, replayStartSeq)
 
-      const skipBattleLoop = this.shouldSkipBattleLoopForRecoveredSnapshot(
-        runtimeSnapshot,
-        replayStartSeq,
-        latestActionSeq,
-      )
+      // Native roots are unstarted or live selection checkpoints; terminal metadata cannot replace their state.
+      const skipBattleLoop =
+        !native && this.shouldSkipBattleLoopForRecoveredSnapshot(runtimeSnapshot, replayStartSeq, latestActionSeq)
       if (skipBattleLoop) {
         runtime.status = 'ended'
         logger.info(
@@ -2049,7 +2140,12 @@ export class ClusterBattleService implements IBattleService {
           'Recovered runtime at terminal snapshot boundary, skipping battle loop restart',
         )
       } else {
-        await this.startBattleAsync(roomId, runtime.data)
+        if (native)
+          await this.startBattleAsync(roomId, runtime.data, {
+            preserveReconnectGrace: true,
+            preserveRuntimeJournal: true,
+          })
+        else await this.startBattleAsync(roomId, runtime.data)
       }
 
       const previousCursor = await this.readBattleReplayCursor(roomId)
@@ -2188,15 +2284,22 @@ export class ClusterBattleService implements IBattleService {
   /**
    * 异步启动战斗，不阻塞调用方法
    */
-  private async startBattleAsync(roomId: string, localRoom: LocalBattleRoomData): Promise<void> {
+  private async startBattleAsync(
+    roomId: string,
+    localRoom: LocalBattleRoomData,
+    options?: { preserveReconnectGrace?: boolean; preserveRuntimeJournal?: boolean },
+  ): Promise<void> {
     try {
       await startLocalBattleRuntime(logger, roomId, localRoom, async () => {
+        if (localRoom.runtimeIdentity?.kind === 'native-v4') return
         const { resourceLoadingManager } = await import('../../../resourceLoadingManager')
         await resourceLoadingManager.waitForResourcesReady()
       })
+      // Native ready observes the first input boundary; subsequent calls expose asynchronous startup faults.
+      if (localRoom.runtimeIdentity?.kind === 'native-v4') await localRoom.battle.getState()
 
       const runtime = this.runtimeHost.getInstance(roomId)
-      if (runtime) {
+      if (runtime && !options?.preserveReconnectGrace) {
         for (const battlePlayerId of localRoom.battlePlayerIds) {
           await runtime.startReconnectGraceTimer(battlePlayerId as playerId, this.DISCONNECT_GRACE_PERIOD / 1000)
         }
@@ -2205,7 +2308,7 @@ export class ClusterBattleService implements IBattleService {
       logger.error({ error, roomId }, 'Battle ended with error')
 
       localRoom.status = 'ended'
-      await this.cleanupLocalRoom(roomId)
+      await this.cleanupLocalRoom(roomId, { removeRuntimeArtifacts: !options?.preserveRuntimeJournal })
 
       // 重新抛出错误，让调用方的 catch 处理
       throw error
@@ -2274,6 +2377,7 @@ export class ClusterBattleService implements IBattleService {
     const { removeRuntimeArtifacts = true, releaseOwnership = true, publishCleanupEvent = true } = options
 
     try {
+      this.clearBattleEndCleanup(roomId)
       const unsubscribePhaseExecution = this.phaseExecutionUnsubscribers.get(roomId)
       if (unsubscribePhaseExecution) {
         unsubscribePhaseExecution()
@@ -2294,6 +2398,7 @@ export class ClusterBattleService implements IBattleService {
 
         // 从本地映射中移除
         this.runtimeHost.remove(roomId)
+        this.clearBattleEndCleanup(roomId)
         if (releaseOwnership) {
           await this.ownershipCoordinator.release(roomId, this.instanceId)
         }
@@ -2324,6 +2429,12 @@ export class ClusterBattleService implements IBattleService {
         this.performanceTracker.recordError('room_cleanup_error', 'clusterBattleService')
       }
     }
+  }
+
+  private clearBattleEndCleanup(roomId: string): void {
+    const timer = this.battleEndCleanupTimers.get(roomId)
+    if (timer) clearTimeout(timer)
+    this.battleEndCleanupTimers.delete(roomId)
   }
 
   private async cleanupBattleStateSnapshots(roomId: string, battlePlayers: string[]): Promise<void> {
@@ -2685,6 +2796,7 @@ export class ClusterBattleService implements IBattleService {
     try {
       logger.info('开始清理 ClusterBattleService 资源')
       this.stopOwnershipLeaseRenewalLoop()
+      for (const roomId of this.battleEndCleanupTimers.keys()) this.clearBattleEndCleanup(roomId)
 
       // 清理所有本地房间
       const localRoomIds = this.runtimeHost.listRoomIds()
@@ -2702,6 +2814,8 @@ export class ClusterBattleService implements IBattleService {
 
       // 清理Timer系统
       this.timerEventBatcher.cleanup()
+      await this.cleanupAllBatches()
+      await Promise.all([...this.spectatorMessageBatches.keys()].map(roomId => this.flushSpectatorBatch(roomId)))
 
       // 清理战报服务
       if (this.battleReportService) {

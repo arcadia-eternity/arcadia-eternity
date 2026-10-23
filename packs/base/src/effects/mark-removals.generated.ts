@@ -1,0 +1,165 @@
+// Reviewed native behavior; edit this TypeScript source directly.
+import {
+  compileEffect,
+  defineEffect,
+  conditions,
+  contexts,
+  targets,
+  checks,
+  ops,
+  actions,
+  type EffectFrame,
+} from '@arcadia-eternity/battle/v4/authoring'
+export function createGeneratedMarkRemovals() {
+  return Object.freeze({
+    effect_emblem_destroy_meihuo_onturnend: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_destroy_meihuo_onturnend',
+        on: 'TurnEnd',
+        priority: 0,
+        when: conditions.all(
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_meihuo').condition(checks.exists()),
+        ),
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_meihuo').apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_mark_onCritDamage_recovery: compileEffect(
+      defineEffect({
+        id: 'effect_mark_onCritDamage_recovery',
+        on: 'OnCritPostDamage',
+        priority: 0,
+        when: conditions.selfBeDamaged,
+        execute: actions.sequence(targets.sourceMark.apply(ops.removeMark())),
+      }),
+    ),
+    effect_mark_onDamage_over100_recovery: compileEffect(
+      defineEffect({
+        id: 'effect_mark_onDamage_over100_recovery',
+        on: 'PostDamage',
+        priority: 0,
+        when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
+          const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+          const right = 100
+          return left !== undefined && right !== undefined && left >= right
+        }),
+        execute: actions.sequence(targets.sourceMark.apply(ops.removeMark())),
+      }),
+    ),
+    effect_mark_onDamage_recovery: compileEffect(
+      defineEffect({
+        id: 'effect_mark_onDamage_recovery',
+        on: 'PostDamage',
+        priority: 0,
+        when: conditions.selfBeDamaged,
+        execute: actions.sequence(targets.sourceMark.apply(ops.removeMark())),
+      }),
+    ),
+    effect_mark_remove_after_use_skill: compileEffect(
+      defineEffect({
+        id: 'effect_mark_remove_after_use_skill',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(targets.sourceMark.apply(ops.removeMark())),
+      }),
+    ),
+    effect_mark_yingfeng_destroy_on_hit_or_miss: compileEffect(
+      defineEffect({
+        id: 'effect_mark_yingfeng_destroy_on_hit_or_miss',
+        on: ['OnHit', 'OnMiss'],
+        priority: -1,
+        when: conditions.all(conditions.skillActorDiffersFromOwner, conditions.ownerIsSkillTarget),
+        execute: actions.sequence(targets.sourceMark.apply(ops.removeMark())),
+      }),
+    ),
+    effect_skill_clear_status: compileEffect(
+      defineEffect({
+        id: 'effect_skill_clear_status',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.tags.includes('status')).apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_skill_clear_status_hit_or_miss: compileEffect(
+      defineEffect({
+        id: 'effect_skill_clear_status_hit_or_miss',
+        on: ['OnHit', 'OnMiss'],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.tags.includes('status')).apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_skill_clear_status_if_has_niliu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_clear_status_if_has_niliu',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
+        ),
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.tags.includes('status')).apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_skill_consume_mark_huohuanzhixin: compileEffect(
+      defineEffect({
+        id: 'effect_skill_consume_mark_huohuanzhixin',
+        on: 'OnHit',
+        priority: -1,
+        when: conditions.selfUsesSkill,
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_huohuanzhixin').apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_skill_consume_mark_shuiliangbaohe: compileEffect(
+      defineEffect({
+        id: 'effect_skill_consume_mark_shuiliangbaohe',
+        on: 'OnHit',
+        priority: -1,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
+        ),
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_skill_consume_mark_shuiliangchongzu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_consume_mark_shuiliangchongzu',
+        on: 'OnHit',
+        priority: -1,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').condition(checks.exists()),
+        ),
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').apply(ops.removeMark()),
+        ),
+      }),
+    ),
+    effect_skill_destroy_mark_zhongdu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_destroy_mark_zhongdu',
+        on: 'OnHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill),
+        execute: actions.sequence(
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhongdu').apply(ops.removeMark()),
+        ),
+      }),
+    ),
+  })
+}
+export const generatedMarkRemovals = createGeneratedMarkRemovals()

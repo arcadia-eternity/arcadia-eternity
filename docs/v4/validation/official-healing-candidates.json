@@ -1,0 +1,278 @@
+{
+  "formatVersion": 1,
+  "evidence": "Handwritten native candidates with bounded differential scenarios, not full per-ID acceptance or production cutover.",
+  "records": [
+    {
+      "id": "effect_skill_heal_self_90_hp",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/128",
+      "definitionSha256": "3e78d527935b580c40e70026f2e14397fe2f675e0e8aa41c7e2534f2e6ccea84",
+      "implementation": "packages/battle/src/v4/official/healing.ts",
+      "classification": "U",
+      "candidateDecision": "E",
+      "status": "handwritten-candidate",
+      "sourceNodes": [
+        {
+          "path": "/apply",
+          "type": "heal"
+        },
+        {
+          "path": "/condition",
+          "type": "selfUseSkill"
+        }
+      ],
+      "decisions": [
+        {
+          "sourcePath": "/condition",
+          "oldBehavior": "Collect-time selfUseSkill; Skill requires same instance and owner, Mark requires same owner.",
+          "expectedBehavior": "preserve",
+          "test": "wrong-skill"
+        },
+        {
+          "sourcePath": "/apply/target",
+          "oldBehavior": "Resolve source.owner at action execution, after BeforeEffect.",
+          "expectedBehavior": "preserve",
+          "test": "late-owner"
+        },
+        {
+          "sourcePath": "/apply/value",
+          "oldBehavior": "Constant 90; primitive literal has no Config address.",
+          "expectedBehavior": "preserve",
+          "test": "normal,late-max-hp"
+        }
+      ],
+      "testFile": "packages/battle/test/v4/official-healing.test.ts",
+      "scenarios": [
+        "normal",
+        "full",
+        "fainted",
+        "wrong-skill",
+        "cancel-effect",
+        "cancel-heal",
+        "late-max-hp",
+        "late-owner"
+      ],
+      "remaining": [
+        "complete per-ID acceptance beyond pilot scenarios",
+        "native catalog and host registration",
+        "parameterized and complex sample families"
+      ]
+    },
+    {
+      "id": "effect_heal_self_half",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/65",
+      "definitionSha256": "92b5944deaa27f7583e7cc40d2cbcc926c1b1546ebf287c9eef3f7c829eb8a36",
+      "implementation": "packages/battle/src/v4/official/healing.ts",
+      "classification": "U",
+      "candidateDecision": "E",
+      "status": "handwritten-candidate",
+      "sourceNodes": [
+        {
+          "path": "/apply",
+          "type": "heal"
+        },
+        {
+          "path": "/apply/value",
+          "type": "dynamic"
+        },
+        {
+          "path": "/apply/value/selector/chain/0",
+          "type": "select"
+        },
+        {
+          "path": "/apply/value/selector/chain/0/arg",
+          "type": "base"
+        },
+        {
+          "path": "/apply/value/selector/chain/1",
+          "type": "divide"
+        },
+        {
+          "path": "/condition",
+          "type": "selfUseSkill"
+        }
+      ],
+      "decisions": [
+        {
+          "sourcePath": "/condition",
+          "oldBehavior": "Collect-time selfUseSkill; Skill requires same instance and owner, Mark requires same owner.",
+          "expectedBehavior": "preserve",
+          "test": "wrong-skill"
+        },
+        {
+          "sourcePath": "/apply/target",
+          "oldBehavior": "Resolve source.owner at action execution, after BeforeEffect.",
+          "expectedBehavior": "preserve",
+          "test": "late-owner"
+        },
+        {
+          "sourcePath": "/apply/value",
+          "oldBehavior": "Read current owner maxHp at action execution and floor division before HealContext.",
+          "expectedBehavior": "preserve",
+          "test": "normal,late-max-hp"
+        }
+      ],
+      "testFile": "packages/battle/test/v4/official-healing.test.ts",
+      "scenarios": [
+        "normal",
+        "full",
+        "fainted",
+        "wrong-skill",
+        "cancel-effect",
+        "cancel-heal",
+        "late-max-hp",
+        "late-owner"
+      ],
+      "remaining": [
+        "complete per-ID acceptance beyond pilot scenarios",
+        "native catalog and host registration",
+        "parameterized and complex sample families"
+      ]
+    },
+    {
+      "id": "effect_heal_self_onethird",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/66",
+      "definitionSha256": "92127dcc7d5173ca0f52483cac9f907bd89d308d50817e0dcd3fb1c7144a04e8",
+      "implementation": "packages/battle/src/v4/official/healing.ts",
+      "classification": "U",
+      "candidateDecision": "E",
+      "status": "handwritten-candidate",
+      "sourceNodes": [
+        {
+          "path": "/apply",
+          "type": "heal"
+        },
+        {
+          "path": "/apply/value",
+          "type": "dynamic"
+        },
+        {
+          "path": "/apply/value/selector/chain/0",
+          "type": "select"
+        },
+        {
+          "path": "/apply/value/selector/chain/0/arg",
+          "type": "base"
+        },
+        {
+          "path": "/apply/value/selector/chain/1",
+          "type": "divide"
+        },
+        {
+          "path": "/condition",
+          "type": "selfUseSkill"
+        }
+      ],
+      "decisions": [
+        {
+          "sourcePath": "/condition",
+          "oldBehavior": "Collect-time selfUseSkill; Skill requires same instance and owner, Mark requires same owner.",
+          "expectedBehavior": "preserve",
+          "test": "wrong-skill"
+        },
+        {
+          "sourcePath": "/apply/target",
+          "oldBehavior": "Resolve source.owner at action execution, after BeforeEffect.",
+          "expectedBehavior": "preserve",
+          "test": "late-owner"
+        },
+        {
+          "sourcePath": "/apply/value",
+          "oldBehavior": "Read current owner maxHp at action execution and floor division before HealContext.",
+          "expectedBehavior": "preserve",
+          "test": "normal,late-max-hp"
+        }
+      ],
+      "testFile": "packages/battle/test/v4/official-healing.test.ts",
+      "scenarios": [
+        "normal",
+        "full",
+        "fainted",
+        "wrong-skill",
+        "cancel-effect",
+        "cancel-heal",
+        "late-max-hp",
+        "late-owner"
+      ],
+      "remaining": [
+        "complete per-ID acceptance beyond pilot scenarios",
+        "native catalog and host registration",
+        "parameterized and complex sample families"
+      ]
+    },
+    {
+      "id": "effect_skill_heal_self_quarter",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/67",
+      "definitionSha256": "feea4cc890d2ec156db7163f1dc337d14c4ab6a93465fb14c9c0dd2c315a5f7a",
+      "implementation": "packages/battle/src/v4/official/healing.ts",
+      "classification": "U",
+      "candidateDecision": "E",
+      "status": "handwritten-candidate",
+      "sourceNodes": [
+        {
+          "path": "/apply",
+          "type": "heal"
+        },
+        {
+          "path": "/apply/value",
+          "type": "dynamic"
+        },
+        {
+          "path": "/apply/value/selector/chain/0",
+          "type": "select"
+        },
+        {
+          "path": "/apply/value/selector/chain/0/arg",
+          "type": "base"
+        },
+        {
+          "path": "/apply/value/selector/chain/1",
+          "type": "divide"
+        },
+        {
+          "path": "/condition",
+          "type": "selfUseSkill"
+        }
+      ],
+      "decisions": [
+        {
+          "sourcePath": "/condition",
+          "oldBehavior": "Collect-time selfUseSkill; Skill requires same instance and owner, Mark requires same owner.",
+          "expectedBehavior": "preserve",
+          "test": "wrong-skill"
+        },
+        {
+          "sourcePath": "/apply/target",
+          "oldBehavior": "Resolve source.owner at action execution, after BeforeEffect.",
+          "expectedBehavior": "preserve",
+          "test": "late-owner"
+        },
+        {
+          "sourcePath": "/apply/value",
+          "oldBehavior": "Read current owner maxHp at action execution and floor division before HealContext.",
+          "expectedBehavior": "preserve",
+          "test": "normal,late-max-hp"
+        }
+      ],
+      "testFile": "packages/battle/test/v4/official-healing.test.ts",
+      "scenarios": [
+        "normal",
+        "full",
+        "fainted",
+        "wrong-skill",
+        "cancel-effect",
+        "cancel-heal",
+        "late-max-hp",
+        "late-owner"
+      ],
+      "remaining": [
+        "complete per-ID acceptance beyond pilot scenarios",
+        "native catalog and host registration",
+        "parameterized and complex sample families"
+      ]
+    }
+  ]
+}

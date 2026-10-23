@@ -14,8 +14,9 @@ import {
   type skillId,
   type TimerConfig,
 } from '@arcadia-eternity/const'
+import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
-import { ConfigSystem } from './config'
+import { ConfigSystem, PhaseType } from './config'
 import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
 import { type EffectContainer } from './effect'
 import { type MarkOwner } from './entity'
@@ -65,6 +66,13 @@ export class Battle extends Context implements MarkOwner {
   public readonly emitter = mitt<Events>()
   private readonly rng: BattleRng
   private actionLog: BattleActionRecord[] = []
+
+  public readonly executionBudget = new ExecutionBudget(() => this.stopForExecutionFault())
+
+  public stopForExecutionFault(): void {
+    this.timerManager.stopAllTimers()
+    this.resolveWaiting()
+  }
 
   public status: BattleStatus = BattleStatus.Unstarted
   public currentPhase: BattlePhase = BattlePhase.SelectionPhase
@@ -225,22 +233,27 @@ export class Battle extends Context implements MarkOwner {
 
   // 发送消息给所有回调
   public emitMessage<T extends BattleMessageType>(type: T, data: BattleMessageData[T]) {
-    const currentState = this.toMessage('' as playerId, this.showHidden)
-    const stateDelta = jsondiffpatch.diff(this.lastStateMessage, currentState)
+    return this.executionBudget.run(this.currentTurn, () => {
+      const currentState = this.toMessage('' as playerId, this.showHidden)
+      const stateDelta = jsondiffpatch.diff(this.lastStateMessage, currentState)
 
-    const message: BaseBattleMessage<T> = {
-      battleId: this.id,
-      type,
-      data,
-      sequenceId: this.sequenceId++,
-      stateDelta: stateDelta,
-    }
+      const message: BaseBattleMessage<T> = {
+        battleId: this.id,
+        type,
+        data,
+        sequenceId: this.sequenceId++,
+        stateDelta: stateDelta,
+      }
 
-    // 更新 lastStateMessage 为当前状态
-    this.lastStateMessage = currentState
+      // 更新 lastStateMessage 为当前状态
+      this.lastStateMessage = currentState
 
-    // 调用所有包装器（每个包装器会使用自己的 lastState）
-    this.messageCallbacks.forEach(cb => cb.wrapped(jsondiffpatch.clone(message) as BattleMessage))
+      // 调用所有包装器（每个包装器会使用自己的 lastState）
+      this.messageCallbacks.forEach(cb => {
+        cb.wrapped(jsondiffpatch.clone(message) as BattleMessage)
+        this.executionBudget.assertActive()
+      })
+    })
   }
 
   public addMark(context: AddMarkContext) {
@@ -257,6 +270,7 @@ export class Battle extends Context implements MarkOwner {
     )
     this.phaseManager.registerPhase(addMarkPhase)
     this.phaseManager.executePhase(addMarkPhase.id)
+    return context.result
   }
 
   public removeMark(context: RemoveMarkContext) {
@@ -296,20 +310,22 @@ export class Battle extends Context implements MarkOwner {
     trigger: T,
     ...target: EffectContainer[]
   ) {
-    let effectContainers = [...target]
-    if (target.length == 0)
-      effectContainers = [
-        ...this.marks,
-        ...this.playerA.team.map(p => p.marks).flat(),
-        ...this.playerB.team.map(p => p.marks).flat(),
-        ...this.playerA.team.map(p => p.skills).flat(),
-        ...this.playerB.team.map(p => p.skills).flat(),
-      ]
+    return this.executionBudget.dispatch(this.currentTurn, () => {
+      let effectContainers = [...target]
+      if (target.length == 0)
+        effectContainers = [
+          ...this.marks,
+          ...this.playerA.team.map(p => p.marks).flat(),
+          ...this.playerB.team.map(p => p.marks).flat(),
+          ...this.playerA.team.map(p => p.skills).flat(),
+          ...this.playerB.team.map(p => p.skills).flat(),
+        ]
 
-    // Use EffectExecutionPhase managed by PhaseManager
-    const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
-    this.phaseManager.registerPhase(effectExecutionPhase)
-    this.phaseManager.executePhase(effectExecutionPhase.id)
+      // Use EffectExecutionPhase managed by PhaseManager
+      const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
+      this.phaseManager.registerPhase(effectExecutionPhase)
+      this.phaseManager.executePhase(effectExecutionPhase.id)
+    })
   }
 
   // Turn execution logic has been moved to TurnPhase
@@ -367,6 +383,7 @@ export class Battle extends Context implements MarkOwner {
     this._isStarting = true
 
     try {
+      this.timerManager.activateRestoredState(false)
       // Phase 0: Initialize battle
       this.currentPhase = BattlePhase.StartPhase
       const startPhase = new BattleStartPhase(this)
@@ -380,14 +397,19 @@ export class Battle extends Context implements MarkOwner {
     } finally {
       // 无论成功还是失败，都要清除启动标志
       this._isStarting = false
+      this.resolveInputReady()
     }
   }
 
   /** Continue a hydrated selection checkpoint without replaying start/turn effects. */
   public async resumeBattle(): Promise<void> {
     this.assertRunning()
-    if (this._isStarting || this.status !== BattleStatus.OnBattle ||
-      this.currentPhase !== BattlePhase.SelectionPhase || !this.restoredSelection)
+    if (
+      this._isStarting ||
+      this.status !== BattleStatus.OnBattle ||
+      this.currentPhase !== BattlePhase.SelectionPhase ||
+      !this.restoredSelection
+    )
       throw new Error('Battle is not a restored selection checkpoint')
     this.restoredSelection = false
     this._isStarting = true
@@ -398,13 +420,42 @@ export class Battle extends Context implements MarkOwner {
     } catch (error) {
       this.assertRunning()
       throw error
-    } finally { this._isStarting = false }
+    } finally {
+      this._isStarting = false
+      this.resolveInputReady()
+    }
   }
   private restoredSelection = false
+  public isInitialSnapshotBoundary(): boolean {
+    return (
+      !this.cancelled &&
+      !this._isStarting &&
+      !this.executionBudget.fault &&
+      this.status === BattleStatus.Unstarted &&
+      this.currentPhase === BattlePhase.SelectionPhase &&
+      this.currentTurn === 0 &&
+      this.actionLog.length === 0 &&
+      !this.playerA.selection &&
+      !this.playerB.selection &&
+      !this.victor &&
+      !this.lastKiller &&
+      this.pendingForcedSwitches.length === 0 &&
+      !this.pendingFaintSwitch &&
+      !this.isInitialSwitchPhase &&
+      this.phaseManager.getAllPhases().length === 0
+    )
+  }
   public isSnapshotBoundary(): boolean {
-    return !this.cancelled && this.status === BattleStatus.OnBattle && this.currentPhase === BattlePhase.SelectionPhase && (this.restoredSelection ||
-      (!!this.waitingResolvers.bothPlayersReady && this.currentPhase === BattlePhase.SelectionPhase &&
-       this.phaseManager.getCurrentPhase() instanceof SelectionPhase))
+    return (
+      !this.executionBudget.fault &&
+      !this.cancelled &&
+      this.status === BattleStatus.OnBattle &&
+      this.currentPhase === BattlePhase.SelectionPhase &&
+      (this.restoredSelection ||
+        (!!this.waitingResolvers.bothPlayersReady &&
+          this.currentPhase === BattlePhase.SelectionPhase &&
+          this.phaseManager.getCurrentPhase() instanceof SelectionPhase))
+    )
   }
 
   // Legacy generator method removed - use startBattlePhased() instead
@@ -427,12 +478,17 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public setSelection(selection: PlayerSelection): boolean {
+    this.assertRunning()
     const player = [this.playerA, this.playerB].find(p => p.id === selection.player)
     if (!player) return false
     const result = player.setSelection(selection)
     if (result) {
-      this.actionLog.push({ sequence: this.actionLog.length, turn: this.currentTurn, phase: this.currentPhase,
-        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection })
+      this.actionLog.push({
+        sequence: this.actionLog.length,
+        turn: this.currentTurn,
+        phase: this.currentPhase,
+        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection,
+      })
       this.checkWaitingResolvers()
 
       // 通知TimerManager玩家选择状态变化
@@ -540,6 +596,7 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public abandonPlayer(playerId: playerId) {
+    this.assertRunning()
     const abandonPlayer = [this.playerA, this.playerB].find(v => v.id === playerId)
     if (!abandonPlayer) return
     this.victor = this.getOpponent(abandonPlayer)
@@ -548,6 +605,23 @@ export class Battle extends Context implements MarkOwner {
     // 停止所有计时器
     this.timerManager.stopAllTimers()
     this.getVictor(true)
+  }
+
+  /** Match historical Skill > Turn > current phase lifetime selection. */
+  getTemporaryEffectPhaseId(): string | undefined {
+    return (
+      this.configSystem.getCurrentPhaseOfType(PhaseType.Skill) ??
+      this.configSystem.getCurrentPhaseOfType(PhaseType.Turn) ??
+      this.phaseManager.getCurrentPhase()
+    )?.id
+  }
+
+  cleanupPhaseEffects(phaseId: string): void {
+    for (const mark of this.marks) mark.clearTemporaryEffects(phaseId)
+    for (const pet of this.petMap.values()) {
+      for (const skill of pet.skills) skill.clearTemporaryEffects(phaseId)
+      for (const mark of pet.marks) mark.clearTemporaryEffects(phaseId)
+    }
   }
 
   toMessage(viewerId?: playerId, showHidden = false): BattleState {
@@ -572,7 +646,23 @@ export class Battle extends Context implements MarkOwner {
   private waitingResolvers: {
     switchSelections?: { players: Player[]; resolve: () => void }
     bothPlayersReady?: { resolve: () => void }
+    inputReady?: Set<() => void>
   } = {}
+
+  /** Wait for a decision phase to establish its input wait, or for execution to end. */
+  public async waitForInputReady(): Promise<void> {
+    this.assertRunning()
+    if (this.waitingResolvers.bothPlayersReady || this.waitingResolvers.switchSelections || this.isBattleEnded()) return
+    return new Promise<void>(resolve => {
+      ;(this.waitingResolvers.inputReady ??= new Set()).add(resolve)
+    })
+  }
+
+  private resolveInputReady(): void {
+    const resolvers = this.waitingResolvers.inputReady
+    delete this.waitingResolvers.inputReady
+    for (const resolve of resolvers ?? []) resolve()
+  }
 
   public async waitForSwitchSelections(players: Player[]): Promise<void> {
     this.assertRunning()
@@ -610,6 +700,7 @@ export class Battle extends Context implements MarkOwner {
         players,
         resolve,
       }
+      this.resolveInputReady()
     })
   }
 
@@ -630,6 +721,7 @@ export class Battle extends Context implements MarkOwner {
       this.waitingResolvers.bothPlayersReady = {
         resolve,
       }
+      this.resolveInputReady()
     })
   }
 
@@ -672,9 +764,13 @@ export class Battle extends Context implements MarkOwner {
     }
   }
 
-  public assertRunning(): void { if (this.cancelled) throw new Error('Battle cancelled') }
+  public assertRunning(): void {
+    this.executionBudget.assertActive()
+    if (this.cancelled) throw new Error('Battle cancelled')
+  }
 
   private resolveWaiting(): void {
+    this.resolveInputReady()
     const waiting = this.waitingResolvers
     this.waitingResolvers = {}
     waiting.bothPlayersReady?.resolve()

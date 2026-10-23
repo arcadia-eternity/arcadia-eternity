@@ -1,0 +1,446 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_ability_add_self_evasion_10",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/17",
+      "definitionSha256": "f189f30dab7d7131bb5096d19c27520659566338a8c44a2d93c1218b237e81b7",
+      "recipe": {
+        "id": "effect_ability_add_self_evasion_10",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"evasion\",\"delta\",10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_hongxin_increase_accuracy_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/18",
+      "definitionSha256": "e5ffb1f0d1804fe5350336c9220dd7f940f604fd8eea400822e05795f59d9e59",
+      "recipe": {
+        "id": "effect_ability_hongxin_increase_accuracy_5_percent",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"accuracy\",\"delta\",5))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_increase_accuracy_5_percent_if_height_above_100",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/19",
+      "definitionSha256": "21786e8b45138f42fc42809f1bf9923366b535fb03f264325cba0206079ed020",
+      "recipe": {
+        "id": "effect_ability_increase_accuracy_5_percent_if_height_above_100",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.height).first());const right=100;return left!==undefined && right!==undefined && left > right}))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"accuracy\",\"delta\",5))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_ability_rage_boost_5_per_turn",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/23",
+      "definitionSha256": "08a7c795d4c2d66a3e2c8274ece0f1354da8f50446cdaf7cb11199066ebf5a4f",
+      "recipe": {
+        "id": "effect_ability_rage_boost_5_per_turn",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"ragePerTurn\",\"delta\",5))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_increase_weight_10kg",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/6",
+      "definitionSha256": "46a201bfb79da5338ddef2fc61fe7d9e36aa1dea1bc4013e8cfbdbff096c67f6",
+      "recipe": {
+        "id": "effect_emblem_increase_weight_10kg",
+        "trigger": "OnBattleStart",
+        "priority": 1,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"weight\",\"delta\",10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_jingsongzhiyan_accuracy_boost_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/44",
+      "definitionSha256": "c4c0f1d0d34176e783c3a131fb928c9177b19c1ed82bbf5af17e6139f640fd14",
+      "recipe": {
+        "id": "effect_emblem_jingsongzhiyan_accuracy_boost_5_percent",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => skill.baseId === \"skill_jingsongzhiyan\").apply(ops.addSkillAttributeModifier(\"accuracy\",\"delta\",5))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_xifa_skill_accuracy_boost_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/68",
+      "definitionSha256": "8fe2f9145d2a6bf26ba1c0bc0a25a5f4b3508ae05b959077ffb201644564cb67",
+      "recipe": {
+        "id": "effect_emblem_xifa_skill_accuracy_boost_5_percent",
+        "trigger": "OnBattleStart",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfSkills.where(skill => skill.tags.includes(\"xifa\")).apply(ops.addSkillAttributeModifier(\"accuracy\",\"delta\",5))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_crit_rate_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/179",
+      "definitionSha256": "bb6c5d2c6ab8c6733475ab5a9573a089a169ba93aa9d98fbf9d1bde449f35d38",
+      "recipe": {
+        "id": "effect_mark_add_crit_rate_10_percent",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"critRate\",\"delta\",10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_add_crit_rate_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/59",
+      "definitionSha256": "da151d89566d600d80ec0dbef38f9582684b303222c5ddd28bbab7b8672df3a1",
+      "recipe": {
+        "id": "effect_mark_add_crit_rate_5_percent",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"critRate\",\"delta\",5))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_decrease_atk",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/15",
+      "definitionSha256": "1eedde739258e9da4ae832c8e447098dfaa6df81a87e985699d56ec9c3c08fb5",
+      "recipe": {
+        "id": "effect_mark_decrease_atk",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"atk\",\"percent\",-25))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_decrease_spa",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/16",
+      "definitionSha256": "de8c82eacb86860d43eee046212268a470b7f6b5de5e50685512b8c19f8faacd",
+      "recipe": {
+        "id": "effect_mark_decrease_spa",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"spa\",\"percent\",-25))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_crit_rate_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/93",
+      "definitionSha256": "ef09c646efb96a581cadb2fa652e21c5252084ed68e02e358a8be5681dabfcee",
+      "recipe": {
+        "id": "effect_mark_increase_crit_rate_10_percent",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"critRate\",\"delta\",10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_crit_rate_20_percent_per_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/92",
+      "definitionSha256": "fba7dec2b27361a3222d23d520baae542e73cc2ea6911405e5f2dda424efd5cf",
+      "recipe": {
+        "id": "effect_mark_increase_crit_rate_20_percent_per_stack",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.bindAttribute({key:\"action0_value_binding\",attribute:\"critRate\",operation:\"delta\",value:bindings.combine(targets.sourceMark.first().capture({key:\"source\",scope:\"binding\"}).attribute(\"stack\").follow({key:\"stack\"}),parameters.action0_value_factor.capture({key:\"factor\",scope:\"binding\"}),(stack,factor)=>Math.floor(stack*factor)),stacking:\"append\",lifetime:\"sourceMark\",missing:\"detach\"}))"
+          }
+        ],
+        "parameters": [{ "name": "action0_value_factor", "value": 20, "configId": "crit_rate_increase_per_stack" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_evasion_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/94",
+      "definitionSha256": "800af3f1a7a37d3ee631582790ae988fdb5c8e0aba4dfbd973f26974a52a5800",
+      "recipe": {
+        "id": "effect_mark_increase_evasion_10_percent",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"evasion\",\"delta\",10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_evasion_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/190",
+      "definitionSha256": "8d1677736c7538bbede69b27d80fa43e42e7a2d7902da1175dd3fb4746cfee2c",
+      "recipe": {
+        "id": "effect_mark_increase_evasion_15_percent",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"evasion\",\"delta\",parameters.action0_value))"
+          }
+        ],
+        "parameters": [{ "name": "action0_value", "value": 15, "configId": "evasion_increase" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_evasion_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/189",
+      "definitionSha256": "ac4959976a9edb1f1fe17744a1358a306256bd743e273d513047f063e11031c5",
+      "recipe": {
+        "id": "effect_mark_increase_evasion_5_percent",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"evasion\",\"delta\",5))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_increase_self_crit_rate",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/87",
+      "definitionSha256": "9091d40e3e798c60f128d7a458dfc05e57040b11c0d02ef63bd43192d659ca7d",
+      "recipe": {
+        "id": "effect_mark_increase_self_crit_rate",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.selfTeam.apply(ops.addAttributeModifier(\"critRate\",\"delta\",10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_accuracy_10",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/14",
+      "definitionSha256": "79782ddd63779347911260cd007d5aa66e2c5209c5deafa7e1a400afff985fd0",
+      "recipe": {
+        "id": "effect_mark_reduce_accuracy_10",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"accuracy\",\"percent\",-10))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_accuracy_15",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/30",
+      "definitionSha256": "2b2a7f77ab8c431da55c87328a228c7830087a2afa94ad7c0e93e8d3664ec627",
+      "recipe": {
+        "id": "effect_mark_reduce_accuracy_15",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"accuracy\",\"delta\",-15))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_accuracy_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/20",
+      "definitionSha256": "7193dc2753fe49023edf08651b9a00b0cb6d820f6d11ef5959bb2183dbf08ffe",
+      "recipe": {
+        "id": "effect_mark_reduce_accuracy_50",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"accuracy\",\"delta\",-50))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_speed_50",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/62",
+      "definitionSha256": "ad83f7e4f7d8d4084bf750d96cf1781944265e4fb1ddfc30f0f4087641f7f6e0",
+      "recipe": {
+        "id": "effect_mark_reduce_speed_50",
+        "trigger": "OnMarkCreated",
+        "priority": 0,
+        "when": "() => true",
+        "actions": [
+          { "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.addAttributeModifier(\"spe\",\"delta\",-50))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

@@ -1,4 +1,4 @@
-# Seer2 V2 Data Pack Format
+# Base Content Pack Format
 
 ## Recommended Folder Layout
 
@@ -9,10 +9,11 @@
     assets.json
     *.png|*.jpg|*.webp|*.mp3|...
   data/
-    effect_*.yaml
     mark*.yaml
     skill*.yaml
-    species*.yaml
+    groups/<group>/species.*.yaml
+  src/effects/
+    *.ts
   locales/
     <locale>/
       *.yaml
@@ -33,7 +34,8 @@ For this repository's built-in pack package:
 - `paths.dataDir`: base dir for `data.*` file lists
 - `paths.localesDir`: base dir for locale files
 - `dependencies`: dependent pack list, loaded before current pack
-- `data.effects|marks|skills|species`: YAML filenames relative to `dataDir`
+- `data.marks|skills|species`: YAML filenames relative to `dataDir`
+- `data.effects`: empty in the native base pack; retained for legacy manifest compatibility
 - `locales`: locale -> namespace list (namespace maps to `<localesDir>/<locale>/<namespace>.yaml`)
 
 ## Assets Manifests (optional but recommended)
@@ -61,15 +63,13 @@ Dependency item format:
 
 ## Loader APIs
 
-- `loadV2GameData(dataDir, { packPath })`
-- `loadV2GameDataFromPack(packPath)`
-- `loadV2GameData(dataDir, { packRef })`
-- `loadV2GameDataFromPack(packRef)`
+Hosts construct `NativePackLoader` with the selected content package's build identity and trusted content factory.
 
-Both return:
+- `load(packRef)`: load metadata, validate references against compiled effects, and return the executable content catalog
+- `loadMetadata(packRef)`: read editable species, skill, and mark data for layer composition or resource inspection
+- `fromMetadata(data)`: validate and assemble composed or unsaved metadata
 
-- parsed data repository
-- optional `locales` bundle: `Record<locale, Record<namespace, unknown>>`
+File loading also returns locale bundles, asset manifests, and lockfile diagnostics. Native effects are maintained in TypeScript; legacy effect YAML is kept only in regression fixtures.
 
 ## npm Pack Resolution
 

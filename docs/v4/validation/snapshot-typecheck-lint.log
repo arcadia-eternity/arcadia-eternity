@@ -1,6 +1,0 @@
-$ pnpm exec tsgo -p packages/battle/tsconfig.v4-test.json
-$ pnpm exec eslint --config eslint.config.v4.js packages/battle/test/v4/*.ts packages/battle/v4.ts packages/battle/v4-legacy.ts packages/battle/src/v4/api.ts packages/battle/src/v4/reactiveValue.ts packages/battle/src/v4/rng.ts packages/battle/src/v4/snapshot.ts packages/battle/src/v4/snapshotBindings.ts
-$ pnpm exec tsgo -p packages/battle/tsconfig.baseline.json
-$ pnpm exec eslint --config eslint.config.baseline.js packages/battle/src/v2/__tests__/helpers/golden-battle.ts packages/battle/src/v2/__tests__/v2-golden-battle.test.ts packages/battle/src/v2/__tests__/v2-baseline-known-defects.test.ts
-$ node scripts/verify-v1-port.mjs
-{"source":"c086289812885e7a4903b181e2b8989e201452b8","coreFiles":42,"mappedFiles":87,"byteIdentical":42,"modified":45,"external":["@arcadia-eternity/const","jsondiffpatch","mitt","nanoid","zod","zod-validation-error"]}

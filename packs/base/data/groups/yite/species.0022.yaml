@@ -1,0 +1,42 @@
+- id: pet_yite
+  num: 91
+  element: Normal
+  baseStats:
+    hp: 83
+    atk: 131
+    spa: 119
+    def: 114
+    spd: 113
+    spe: 118
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 7
+    - 12
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_sucheng
+  emblem:
+    - mark_emblem_zhongji

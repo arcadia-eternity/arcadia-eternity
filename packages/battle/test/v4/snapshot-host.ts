@@ -9,7 +9,7 @@ import {
   type BattleSnapshot,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
-function catalogFor(fixture: ReturnType<typeof makeScenario>) {
+export function catalogFor(fixture: ReturnType<typeof makeScenario>) {
   const catalog = new SnapshotCatalog('v1-host-fixture/1')
   for (const player of [fixture.a, fixture.b])
     for (const pet of player.team) {

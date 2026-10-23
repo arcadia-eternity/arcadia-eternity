@@ -1,0 +1,251 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_mark_raise_def_1_when_hit_and_remove_self",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/182",
+      "definitionSha256": "f5a8e0338b39c9817cc6c4b08e75640e7a55504e8e9c573dfaf8519fc1357f11",
+      "recipe": {
+        "id": "effect_mark_raise_def_1_when_hit_and_remove_self",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.changeStatStage(\"def\",1))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/416",
+      "definitionSha256": "7f8c74992a0982563fe7154025013e03410454062cfe46f0f3a29d7e9a3fb003",
+      "recipe": {
+        "id": "effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").select(mark => mark.stack).all());const right=0;return right!==undefined && left.some(value => value > right)}))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").apply(ops.consumeStacks(1))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.opponentActive.apply(ops.changeStatStage(\"spd\",-1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/456",
+      "definitionSha256": "b45e37643c95f08f9d8e6a3fd5b0741df1f7777acbdacc57e668bd8495a2d843",
+      "recipe": {
+        "id": "effect_skill_consume_huanxiang_raise_def_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").apply(ops.consumeStacks(1))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.ownerPet.apply(ops.changeStatStage(\"def\",1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spa_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/451",
+      "definitionSha256": "dcd0daa19b1b9fed9fe30e07abd07992c905270287c0b83a74b0309b965eda50",
+      "recipe": {
+        "id": "effect_skill_consume_huanxiang_raise_spa_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").apply(ops.consumeStacks(1))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.ownerPet.apply(ops.changeStatStage(\"spa\",1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_raise_spd_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/461",
+      "definitionSha256": "39de9fcee5f77cbb1b020c66ed7e9e7bc58acea2f5adea098087778a5fc46509",
+      "recipe": {
+        "id": "effect_skill_consume_huanxiang_raise_spd_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").apply(ops.consumeStacks(1))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.ownerPet.apply(ops.changeStatStage(\"spd\",1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/485",
+      "definitionSha256": "b165b06fee42b4015d15c41bbe2734c91d8506ac71143265208b8f238de3773a",
+      "recipe": {
+        "id": "effect_skill_raise_atk_1_stage_and_other_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.changeStatStage(\"atk\",1))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerPet.apply((ctx,pets) => {const stat=ctx.read(selectFrom([\"def\",\"spd\",\"spa\",\"spe\"] as const).shuffled().first());if(stat!==undefined) ops.changeStatStage(stat,1)(ctx,pets)})"
+          }
+        ],
+        "repairedPaths": [],
+        "valueRepairs": [{ "path": "/apply/1/statType/type", "before": "selectorValue", "after": "selector" }]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C10"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_raise_atk_def_1_stage_if_male",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/663",
+      "definitionSha256": "26579a0baf7f198047b4437720dceed11b4d6ef1b0b3af3fb5f3118f34a0263a",
+      "recipe": {
+        "id": "effect_skill_raise_atk_def_1_stage_if_male",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.changeStatStage(\"atk\",1))" },
+          { "sourcePath": "/apply/1", "code": "targets.ownerPet.apply(ops.changeStatStage(\"def\",1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_raise_both_spe_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/491",
+      "definitionSha256": "40c6ea59e2c4f95e50256ee10a2a6cf62e3f3325650857e5ff77aa091eccb8f8",
+      "recipe": {
+        "id": "effect_skill_raise_both_spe_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.changeStatStage(\"spe\",1))" },
+          { "sourcePath": "/apply/1", "code": "targets.opponentActive.apply(ops.changeStatStage(\"spe\",1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_raise_spa_spd_1_stage_if_female",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/662",
+      "definitionSha256": "dbde7354661b12f66d97a8df78e224492d2b3e8e4f1036e4d2b20d8f88d448a3",
+      "recipe": {
+        "id": "effect_skill_raise_spa_spd_1_stage_if_female",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerPet.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.changeStatStage(\"spa\",1))" },
+          { "sourcePath": "/apply/1", "code": "targets.ownerPet.apply(ops.changeStatStage(\"spd\",1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_reduce_both_spa_1_stage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/493",
+      "definitionSha256": "373f65ed0cc9f5c339b6eab2708b13e8f386d7c43b129d958f604072f03cc084",
+      "recipe": {
+        "id": "effect_skill_reduce_both_spa_1_stage",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.ownerPet.apply(ops.changeStatStage(\"spa\",-1))" },
+          { "sourcePath": "/apply/1", "code": "targets.opponentActive.apply(ops.changeStatStage(\"spa\",-1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_atk_def_1_stage_if_opponent_male",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/665",
+      "definitionSha256": "451b76ee057934de77fe257872487aa4ab62658f3891f5e8d74c4205d6ad08c1",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_atk_def_1_stage_if_opponent_male",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Male\")))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.opponentActive.apply(ops.changeStatStage(\"atk\",-1))" },
+          { "sourcePath": "/apply/1", "code": "targets.opponentActive.apply(ops.changeStatStage(\"def\",-1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_reduce_opponent_spa_spd_1_stage_if_opponent_female",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/664",
+      "definitionSha256": "b12b67890addece6887b673b408660005d7ff48c411b8e9fff596e8036a30302",
+      "recipe": {
+        "id": "effect_skill_reduce_opponent_spa_spd_1_stage_if_opponent_female",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.gender === \"Female\")))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "targets.opponentActive.apply(ops.changeStatStage(\"spa\",-1))" },
+          { "sourcePath": "/apply/1", "code": "targets.opponentActive.apply(ops.changeStatStage(\"spd\",-1))" }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

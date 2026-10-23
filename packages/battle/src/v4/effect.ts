@@ -40,4 +40,11 @@ export class Effect<T extends EffectTrigger> implements Prototype {
 
 export interface EffectContainer {
   effects: Effect<EffectTrigger>[]
+  /** Effective list; mutable permanent effects remain separate from phase-scoped additions. */
+  getEffects?(trigger: EffectTrigger): Effect<EffectTrigger>[]
+}
+
+export interface TemporaryEffect {
+  readonly effect: Effect<EffectTrigger>
+  readonly phaseId: string
 }

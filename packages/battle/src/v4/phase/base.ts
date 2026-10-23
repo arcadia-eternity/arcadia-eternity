@@ -107,7 +107,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
 
     try {
       // Execute the core operation
-      this.executeOperation()
+      this.battle.executionBudget.run(this.battle.currentTurn, () => this.executeOperation())
       if (this.isCancelled()) return this.result!
       this.state = PhaseState.Completed
       this.result = {
@@ -304,7 +304,9 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   /**
    * Check if the phase is finished (completed, failed, or cancelled)
    */
-  public isCancelled(): boolean { return this.state === PhaseState.Cancelled }
+  public isCancelled(): boolean {
+    return this.state === PhaseState.Cancelled
+  }
 
   public isFinished(): boolean {
     return [PhaseState.Completed, PhaseState.Failed, PhaseState.Cancelled].includes(this.state)
@@ -340,7 +342,7 @@ export abstract class SynchronousPhase<TContext extends Context = Context> exten
 
     try {
       // Execute the core operation synchronously (no await)
-      this.executeOperation()
+      this.battle.executionBudget.run(this.battle.currentTurn, () => this.executeOperation())
 
       if (this.isCancelled()) return this.result!
       this.state = PhaseState.Completed

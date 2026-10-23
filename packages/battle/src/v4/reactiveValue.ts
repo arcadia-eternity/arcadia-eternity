@@ -3,6 +3,35 @@ export interface ValueSubscription {
   unsubscribe(): void
 }
 let collecting: Set<ReactiveValue<unknown>> | undefined
+let readGuard: ((value: ReactiveValue<unknown>) => void) | undefined
+
+/** The typed binding path validates reads before subscribing to them. */
+export function withValueReadGuard<T>(guard: (value: ReactiveValue<unknown>) => void, read: () => T): T {
+  const previous = readGuard
+  readGuard = guard
+  try {
+    return read()
+  } finally {
+    readGuard = previous
+  }
+}
+export function checkValueRead(value: ReactiveValue<unknown>): void {
+  readGuard?.(value)
+}
+export function isStrictValueRead(): boolean {
+  return readGuard !== undefined
+}
+
+/** Capture a result without retaining the captured inputs as live dependencies. */
+export function untracked<T>(read: () => T): T {
+  const previous = collecting
+  collecting = undefined
+  try {
+    return read()
+  } finally {
+    collecting = previous
+  }
+}
 
 export abstract class ReactiveValue<T> {
   private listeners = new Set<() => void>()
@@ -12,6 +41,7 @@ export abstract class ReactiveValue<T> {
   protected unobserved(): void {}
 
   get value(): T {
+    checkValueRead(this)
     collecting?.add(this as ReactiveValue<unknown>)
     return this.read()
   }
@@ -57,6 +87,12 @@ export abstract class ReactiveValue<T> {
 
   protected changed(): void {
     for (const listener of [...this.listeners]) if (this.listeners.has(listener)) listener()
+  }
+
+  /** Availability is observable independently of reading a potentially faulted value. */
+  get isAvailable(): boolean {
+    collecting?.add(this as ReactiveValue<unknown>)
+    return true
   }
 
   get isComplete(): boolean {
@@ -162,7 +198,7 @@ export function describeValue<T>(value: ReactiveValue<T>, recipe: ValueRecipe): 
 export function getValueRecipe(value: ReactiveValue<unknown>): ValueRecipe | undefined {
   return recipes.get(value)
 }
-export type ValueProjection = 'add' | 'multiply' | 'divide' | 'min' | 'max' | 'sum' | 'stage'
+export type ValueProjection = 'add' | 'multiply' | 'divide' | 'min' | 'max' | 'sum' | 'average' | 'stage'
 export function projectValue(
   value: ReactiveValue<unknown>,
   operation: ValueProjection,
@@ -171,6 +207,10 @@ export function projectValue(
   return describeValue(
     derived(() => {
       const input = value.value
+      if (operation === 'average') {
+        const values = input as number[]
+        return values.length === 0 ? 0 : values.reduce((a, b) => a + b, 0) / values.length
+      }
       if (operation === 'sum') return (input as number[]).reduce((a, b) => a + b, 0)
       const n = Number(input)
       switch (operation) {

@@ -1,4 +1,3 @@
-import { createLocalBattleFromYAML } from '@arcadia-eternity/battle/node'
 import type { BattleConfig as V2BattleConfig, TeamConfig } from '@arcadia-eternity/battle'
 import type { playerId } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
@@ -10,6 +9,8 @@ import type { Logger } from 'pino'
 import type { RoomState } from '../../../cluster/types'
 import { resolvePackRefFromLock } from '../pack'
 import type { LocalBattleRoomData } from './battleRuntimeHost'
+import { createNativeBattleRuntime } from './nativeBattleRuntime'
+import { readRuntimeRequest, type BattleRuntimeDescriptor, type BattleRuntimeRequest } from './runtimeIdentity'
 
 function toTeamConfig(player: PlayerSchemaType): TeamConfig {
   return {
@@ -59,17 +60,57 @@ function resolveRuntimeSeed(roomState: RoomState): string {
 }
 
 export class LocalBattleRuntimeFactory {
+  private readonly descriptors = new WeakMap<IBattleSystem, BattleRuntimeDescriptor>()
   constructor(private readonly logger: Logger) {}
+
+  describe(battle: IBattleSystem): BattleRuntimeDescriptor {
+    const descriptor = this.descriptors.get(battle)
+    if (!descriptor) throw new Error('Battle does not belong to this runtime factory')
+    return structuredClone(descriptor)
+  }
 
   async createBattleSystem(
     roomState: RoomState,
     player1Data: PlayerSchemaType,
     player2Data: PlayerSchemaType,
+    request: BattleRuntimeRequest = { kind: 'native-v4' },
   ): Promise<IBattleSystem> {
+    player1Data = structuredClone(player1Data)
+    player2Data = structuredClone(player2Data)
+    request = readRuntimeRequest(request)
     const ruleSetId = (roomState.metadata?.ruleSetId as string) || 'casual_standard_ruleset'
     const requiredPackLock = roomState.metadata?.requiredPackLock as PackLock | undefined
     const packRef = resolvePackRefFromLock(requiredPackLock)
     const runtimeSeed = resolveRuntimeSeed(roomState)
+    let attemptedCreation = false
+    const create = async (config: V2BattleConfig): Promise<IBattleSystem> => {
+      attemptedCreation = true
+      if (request.kind === 'native-v4') {
+        const result = await createNativeBattleRuntime(
+          packRef,
+          player1Data,
+          player2Data,
+          {
+            rngSeed: config.seed ?? config.rngSeed,
+            allowFaintSwitch: config.allowFaintSwitch,
+            showHidden: config.showHidden,
+            timerConfig: config.timerConfig,
+          },
+          request.expected,
+        )
+        this.descriptors.set(result.battle, result.descriptor)
+        return result.battle
+      }
+      const { createLocalBattleFromYAML } = await import('@arcadia-eternity/battle/node')
+      const battle = await createLocalBattleFromYAML(
+        packRef,
+        toTeamConfig(player1Data),
+        toTeamConfig(player2Data),
+        config,
+      )
+      this.descriptors.set(battle, { runtime: { kind: 'legacy-v2' } })
+      return battle
+    }
 
     this.logger.info(
       {
@@ -114,12 +155,7 @@ export class LocalBattleRuntimeFactory {
         timerConfig: battleValidation.battleOptions.timerConfig,
       }
 
-      const battle = await createLocalBattleFromYAML(
-        packRef,
-        toTeamConfig(player1Data),
-        toTeamConfig(player2Data),
-        battleConfig,
-      )
+      const battle = await create(battleConfig)
 
       this.logger.info(
         {
@@ -128,11 +164,12 @@ export class LocalBattleRuntimeFactory {
           battleOptions: battleValidation.battleOptions,
           runtimeSeed,
         },
-        'V2 battle created with validated rule options',
+        `${request.kind} battle created with validated rule options`,
       )
 
       return battle
     } catch (error) {
+      if (request.kind === 'native-v4' && attemptedCreation) throw error
       this.logger.warn(
         {
           roomId: roomState.id,
@@ -157,7 +194,7 @@ export class LocalBattleRuntimeFactory {
         },
       }
 
-      return createLocalBattleFromYAML(packRef, toTeamConfig(player1Data), toTeamConfig(player2Data), fallbackConfig)
+      return create(fallbackConfig)
     }
   }
 
@@ -179,6 +216,7 @@ export class LocalBattleRuntimeFactory {
       lastActive: Date.now(),
       battleRecordId: roomState.metadata?.battleRecordId as string | undefined,
       privateRoom: roomState.metadata?.privateRoom as boolean | undefined,
+      runtimeIdentity: structuredClone(this.descriptors.get(battle)?.runtime),
     }
   }
 }

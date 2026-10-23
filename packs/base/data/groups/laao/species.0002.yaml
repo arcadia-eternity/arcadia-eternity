@@ -1,0 +1,159 @@
+- id: pet_laao
+  num: 7
+  element: Grass
+  baseStats:
+    hp: 91
+    atk: 104
+    spa: 113
+    def: 123
+    spd: 128
+    spe: 105
+  genderRatio:
+    - 1
+    - 0
+  heightRange:
+    - 28
+    - 33
+  weightRange:
+    - 4
+    - 9
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongzibaodan
+      level: 5
+      hidden: false
+    - skill_id: skill_zhiyu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhongzinengliang
+      level: 15
+      hidden: false
+  ability:
+    - mark_ability_jianren
+  emblem:
+    - mark_emblem_zhiyu
+- id: pet_laaomiao
+  num: 8
+  element: Grass
+  baseStats:
+    hp: 131
+    atk: 129
+    spa: 138
+    def: 153
+    spd: 158
+    spe: 125
+  genderRatio:
+    - 1
+    - 0
+  heightRange:
+    - 38
+    - 43
+  weightRange:
+    - 11
+    - 16
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongzibaodan
+      level: 5
+      hidden: false
+    - skill_id: skill_zhiyu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhongzinengliang
+      level: 15
+      hidden: false
+    - skill_id: skill_nengliangshifang
+      level: 20
+      hidden: false
+    - skill_id: skill_xueruo
+      level: 25
+      hidden: false
+    - skill_id: skill_feiyesushe
+      level: 30
+      hidden: false
+    - skill_id: skill_jishengzhongzi
+      level: 35
+      hidden: false
+  ability:
+    - mark_ability_jianren
+  emblem:
+    - mark_emblem_zhiyu
+- id: pet_laaoye
+  num: 9
+  element: Grass
+  baseStats:
+    hp: 191
+    atk: 154
+    spa: 163
+    def: 183
+    spd: 188
+    spe: 145
+  genderRatio:
+    - 1
+    - 0
+  heightRange:
+    - 78
+    - 83
+  weightRange:
+    - 28
+    - 33
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongzibaodan
+      level: 5
+      hidden: false
+    - skill_id: skill_zhiyu
+      level: 10
+      hidden: false
+    - skill_id: skill_zhongzinengliang
+      level: 15
+      hidden: false
+    - skill_id: skill_nengliangshifang
+      level: 20
+      hidden: false
+    - skill_id: skill_xueruo
+      level: 25
+      hidden: false
+    - skill_id: skill_feiyesushe
+      level: 30
+      hidden: false
+    - skill_id: skill_jishengzhongzi
+      level: 35
+      hidden: false
+    - skill_id: skill_nengliangzhaqu
+      level: 40
+      hidden: false
+    - skill_id: skill_jinghuazhiye
+      level: 45
+      hidden: false
+    - skill_id: skill_lirendaoye
+      level: 50
+      hidden: false
+    - skill_id: skill_ganrao
+      level: 55
+      hidden: false
+    - skill_id: skill_laaodehuhuan
+      level: 60
+      hidden: false
+    - skill_id: skill_qianyesha
+      level: 60
+      hidden: true
+    - skill_id: skill_jishengzhadan
+      level: 60
+      hidden: true
+    - skill_id: skill_yinbaozhongzi
+      level: 60
+      hidden: true
+    - skill_id: skill_dixiulazhinu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_jianren
+  emblem:
+    - mark_emblem_zhiyu

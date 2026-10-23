@@ -89,7 +89,7 @@ export const dynamicValueSchema: z.ZodSchema<DynamicValue> = z.lazy(() =>
 
 export const selectorValueSchema: z.ZodSchema<SelectorValue> = z.lazy(() =>
   z.object({
-    type: z.literal('selector'),
+    type: z.enum(['selector', 'selectorValue']),
     value: valueSchema,
     chain: z.array(selectorChainSchema).optional(),
   }),
@@ -115,10 +115,21 @@ export const valueSchema: z.ZodSchema<Value> = z.lazy(() =>
     rawBaseMarkIdValueSchema,
     rawBaseSkillIdValueSchema,
     rawSpeciesIdValueSchema,
+    z.object({ type: z.literal('entity:effect'), value: z.string() }),
     dynamicValueSchema,
     selectorValueSchema,
     conditionalValueSchema,
     z.array(valueSchema),
+    // Gate recursive operator values before parsing their fields. Otherwise a missing
+    // numeric value re-enters operator validation through every union alternative.
+    z
+      .custom<OperatorDSL>(
+        value =>
+          typeof value === 'object' &&
+          value !== null &&
+          ('target' in value || ('type' in value && value.type === 'conditional' && 'trueOperator' in value)),
+      )
+      .pipe(operatorDSLSchema),
   ]),
 )
 
@@ -180,7 +191,7 @@ export const selectorChainSchema: z.ZodSchema<SelectorChain> = z.lazy(() =>
       arg: valueSchema,
     }),
     z.object({
-      type: z.literal('sum'),
+      type: z.enum(['sum', 'avg', 'sampleBetween']),
     }),
     z.object({
       type: z.literal('add'),
@@ -295,11 +306,11 @@ export const evaluatorDSLSchema: z.ZodSchema<EvaluatorDSL> = z.lazy(() =>
 )
 
 export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
-  z.union([
+  z.discriminatedUnion('type', [
     z.object({
       type: z.literal('TODO'),
     }),
-    conditionalOperatorSchema,
+    conditionalOperatorSchema.schema,
     z.object({
       type: z.literal('dealDamage'),
       target: selectorDSLSchema,
@@ -461,6 +472,11 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       value: valueSchema,
     }),
     z.object({
+      type: z.literal('setRage'),
+      target: selectorDSLSchema,
+      value: valueSchema,
+    }),
+    z.object({
       type: z.literal('amplifyPower'),
       target: selectorDSLSchema,
       value: valueSchema,
@@ -513,6 +529,10 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       type: z.literal('setSureNoCrit'),
       target: selectorDSLSchema,
       priority: z.number(),
+    }),
+    z.object({
+      type: z.literal('setIgnoreShield'),
+      target: selectorDSLSchema,
     }),
     z.object({
       type: z.literal('destroyMark'),
@@ -748,6 +768,15 @@ export const operatorDSLSchema: z.ZodSchema<OperatorDSL> = z.lazy(() =>
       permanentStrategy: z.enum(['preserve_temporary', 'clear_temporary']).optional(),
     }),
     z.object({
+      type: z.literal('addTemporaryEffect'),
+      target: selectorDSLSchema,
+      effect: valueSchema,
+    }),
+    z.object({
+      type: z.literal('executeActions'),
+      target: selectorDSLSchema,
+    }),
+    z.object({
       type: z.literal('removeTransformation'),
       target: selectorDSLSchema,
     }),
@@ -856,6 +885,8 @@ export const conditionDSLSchema: z.ZodSchema<ConditionDSL> = z.lazy(() =>
     z.object({
       type: z.literal('selfBeSkillTarget'),
     }),
+    z.object({ type: z.literal('selfHasMark'), baseId: valueSchema }),
+    z.object({ type: z.literal('opponentHasMark'), baseId: valueSchema }),
   ]),
 )
 

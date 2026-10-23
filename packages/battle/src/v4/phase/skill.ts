@@ -26,7 +26,9 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
     super(battle, id)
   }
 
-  public get effectivePriority(): number { return this.existingContext?.priority ?? this.skill.priority }
+  public get effectivePriority(): number {
+    return this.existingContext?.priority ?? this.skill.priority
+  }
 
   // Public getters for sorting purposes (before context is initialized)
   public get skillInstance(): SkillInstance {
@@ -47,6 +49,9 @@ export class SkillPhase extends SynchronousPhase<UseSkillContext> {
 
   protected executeOperation(): void {
     const context = this._context!
+
+    // Register the attempt before any skill hooks, including direct phase execution.
+    if (context.parent instanceof TurnContext) context.parent.appledContexts.push(context)
 
     // Execute the skill operation logic (extracted from performAttack)
     executeSkillOperation(context, this.battle)
@@ -91,6 +96,8 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     return
   }
 
+  context.previousSkillElement = context.pet.lastUsedSkillElement
+
   // Emit skill use message
   battle.emitMessage(BattleMessageType.SkillUse, {
     user: context.pet.id,
@@ -116,7 +123,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     battle.applyEffects(context, EffectTrigger.BeforeMultiHit)
 
     // Execute multihit loop
-    for (; context.multihitResult > 0; context.multihitResult--) {
+    for (; context.currentHitCount <= context.multihitResult; context.currentHitCount++) {
       // Hit check
       if (!context.hitResult) {
         battle.emitMessage(BattleMessageType.SkillMiss, {
@@ -140,7 +147,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
 
           const damageContext = new DamageContext(
             context,
-            context.pet,
+            context.skill,
             context.actualTarget,
             context.baseDamage,
             context.damageType,
@@ -157,11 +164,13 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
           // Apply damage
           context.actualTarget.damage(damageContext)
 
-          // Target gains rage from taking damage
-          const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
-          context.actualTarget.owner!.addRage(
-            new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
-          )
+          // A cancelled damage operation must not dispatch damage-derived rage, even with a zero amount.
+          if (damageContext.available) {
+            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
+            context.actualTarget.owner!.addRage(
+              new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
+            )
+          }
         }
 
         battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
@@ -190,6 +199,9 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     const markCleanupPhase = new MarkCleanupPhase(battle, context.parent as TurnContext)
     battle.phaseManager.registerPhase(markCleanupPhase)
     battle.phaseManager.executePhase(markCleanupPhase.id)
+
+    context.pet.lastUsedSkillElement = context.element
+    battle.applyEffects(context, EffectTrigger.SkillUseEnd)
 
     battle.emitMessage(BattleMessageType.SkillUseEnd, {
       user: context.pet.id,

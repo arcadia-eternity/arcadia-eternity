@@ -10,4 +10,14 @@ export default [
       },
     },
   },
+  {
+    files: ['packs/base/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: './packs/base/tsconfig.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
 ]

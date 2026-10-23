@@ -29,7 +29,7 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build battle dependency graph
-        run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/pack-loader... run build
+        run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/pack-loader... run build
       - name: Lint
         run: |
           pnpm lint
@@ -54,3 +54,70 @@ jobs:
           name: original-v1-host-evidence
           path: packages/battle/dist/v1-host-check/
           if-no-files-found: ignore
+
+  native-server-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build server, console and native runtime dependencies
+        run: pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/console... --filter @arcadia-eternity/cli-validator... --filter @arcadia-eternity/p2p-transport... run build
+      - name: Verify native metadata and converted JSON locale loading
+        run: pnpm --filter @arcadia-eternity/pack-loader exec vitest run test/native-loader.test.ts --maxWorkers=1
+      - name: Check native server source and test types
+        run: |
+          pnpm typecheck:server-native
+          pnpm lint:server-native
+      - name: Verify native construction, recovery and disconnect handling
+        run: pnpm test:server-native
+      - name: Verify native content and bootstrap in Node and Chrome
+        run: pnpm verify:battle-v4-native-pack
+      - name: Check CLI types and native local execution
+        run: |
+          pnpm typecheck
+          pnpm exec eslint bin/cli.ts bin/native-local-battle.ts
+          pnpm test:cli-native
+
+  native-browser-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build browser dependencies
+        run: pnpm --filter '@arcadia-eternity/web-ui^...' run build
+      - name: Build browser application and generate auto-import lint globals
+        run: pnpm --filter @arcadia-eternity/web-ui run build-only
+      - name: Check native browser construction and transport types
+        run: |
+          pnpm typecheck:web-native
+          pnpm lint:web-native
+      - name: Verify shared native factory and actual P2P messages
+        run: pnpm test:web-native
+      - name: Install browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
+      - name: Verify native local page, selected teams and cold startup
+        run: pnpm test:web-native:e2e

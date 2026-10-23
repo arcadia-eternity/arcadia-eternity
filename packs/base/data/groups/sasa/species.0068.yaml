@@ -1,0 +1,141 @@
+- id: pet_sasa
+  num: 181
+  element: Flying
+  baseStats:
+    hp: 81
+    atk: 115
+    spa: 116
+    def: 110
+    spd: 115
+    spe: 107
+  genderRatio: [0, 10]
+  heightRange: [23, 29]
+  weightRange: [16, 21]
+  learnable_skills:
+    - skill_id: skill_mengji
+      level: 1
+      hidden: false
+    - skill_id: skill_fuchong
+      level: 5
+      hidden: false
+    - skill_id: skill_chengjizitai
+      level: 11
+      hidden: false
+    - skill_id: skill_kaowenzhe
+      level: 16
+      hidden: false
+  ability:
+    - mark_ability_kaowen
+  emblem:
+    - mark_emblem_kaoda
+- id: pet_sabo
+  num: 182
+  element: Flying
+  baseStats:
+    hp: 121
+    atk: 140
+    spa: 146
+    def: 140
+    spd: 140
+    spe: 127
+  genderRatio: [0, 10]
+  heightRange: [48, 53]
+  weightRange: [30, 35]
+  learnable_skills:
+    - skill_id: skill_mengji
+      level: 1
+      hidden: false
+    - skill_id: skill_fuchong
+      level: 5
+      hidden: false
+    - skill_id: skill_chengjizitai
+      level: 11
+      hidden: false
+    - skill_id: skill_kaowenzhe
+      level: 16
+      hidden: false
+    - skill_id: skill_jijiangfa
+      level: 21
+      hidden: false
+    - skill_id: skill_kaowenzhuoji
+      level: 26
+      hidden: false
+    - skill_id: skill_guhuofa
+      level: 31
+      hidden: false
+    - skill_id: skill_yanshouzitai
+      level: 36
+      hidden: false
+  ability:
+    - mark_ability_kaowen
+  emblem:
+    - mark_emblem_kaoda
+- id: pet_saber
+  num: 183
+  element: Flying
+  baseStats:
+    hp: 181
+    atk: 165
+    spa: 176
+    def: 170
+    spd: 165
+    spe: 147
+  genderRatio: [0, 10]
+  heightRange: [89, 94]
+  weightRange: [71, 76]
+  learnable_skills:
+    - skill_id: skill_mengji
+      level: 1
+      hidden: false
+    - skill_id: skill_fuchong
+      level: 5
+      hidden: false
+    - skill_id: skill_chengjizitai
+      level: 11
+      hidden: false
+    - skill_id: skill_kaowenzhe
+      level: 16
+      hidden: false
+    - skill_id: skill_jijiangfa
+      level: 21
+      hidden: false
+    - skill_id: skill_kaowenzhuoji
+      level: 26
+      hidden: false
+    - skill_id: skill_guhuofa
+      level: 31
+      hidden: false
+    - skill_id: skill_yanshouzitai
+      level: 36
+      hidden: false
+    - skill_id: skill_dajifa
+      level: 41
+      hidden: false
+    - skill_id: skill_kaowensilie
+      level: 46
+      hidden: false
+    - skill_id: skill_weixiafa
+      level: 51
+      hidden: false
+    - skill_id: skill_kaowenlianfa
+      level: 56
+      hidden: false
+    - skill_id: skill_xinlingzhenbao
+      level: 60
+      hidden: true
+    - skill_id: skill_tongjilianxie
+      level: 60
+      hidden: true
+    - skill_id: skill_bileiyanshen
+      level: 60
+      hidden: true
+    - skill_id: skill_fangkongdong
+      level: 60
+      hidden: true
+    - skill_id: skill_zuizhongcaijue
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_kaowen
+  emblem:
+    - mark_emblem_kaoda

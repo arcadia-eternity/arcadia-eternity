@@ -11,6 +11,13 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
 import { execSync } from 'node:child_process'
+import { existsSync, readdirSync } from 'node:fs'
+
+// Auto-imported styles are injected after Vite's initial dependency scan.
+const elementPlusComponents = new URL('./components/', import.meta.resolve('element-plus'))
+const elementPlusStyles = readdirSync(elementPlusComponents, { withFileTypes: true })
+  .filter(entry => entry.isDirectory() && existsSync(new URL(`${entry.name}/style/css.mjs`, elementPlusComponents)))
+  .map(entry => `element-plus/es/components/${entry.name}/style/css`)
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -40,6 +47,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    include: ['element-plus/es', ...elementPlusStyles],
     exclude: ['seer2-pet-animator'],
   },
   build: {

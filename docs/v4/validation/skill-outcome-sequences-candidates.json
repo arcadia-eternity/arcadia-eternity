@@ -1,0 +1,270 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_emblem_add_crit_rate_5_percent_if_has_shuiwenzhenji",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/12",
+      "definitionSha256": "39ee7ac2238271a6113585ab24783b74938d5142d73928a1ed3d6c66ffb77dae",
+      "recipe": {
+        "id": "effect_emblem_add_crit_rate_5_percent_if_has_shuiwenzhenji",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,targets.ownerMarks.where(mark => mark.baseId === \"mark_shuiwenzhenji\").condition(checks.exists()))",
+        "actions": [{ "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addCritRate(5))" }],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_amplify_next_damage_skill_power_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/32",
+      "definitionSha256": "dac584118224940f53d784ca9865492c5437a4f01a70ad29e7add59e320170ae",
+      "recipe": {
+        "id": "effect_mark_amplify_next_damage_skill_power_with_stack",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,contexts.skillUse.condition((_ctx,events) => events[0]?.category !== \"Status\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.skillUse.apply(ops.amplifyPower(targets.sourceMark.select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 0.01 : 0)))).map(items => items.map((n,index) => n + (index === 0 ? 1 : 0)))))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/condition/conditions/1/target/base", "/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_amplify_next_electric_skill",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/177",
+      "definitionSha256": "93503bf57128f05a4e5ea920d84fa014f5dc2d0344efdc86f4546d0815fb9d65",
+      "recipe": {
+        "id": "effect_mark_amplify_next_electric_skill",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.element === \"Electric\"))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.amplifyPower(2))" },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/apply/0/target", "/condition/conditions/1/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_next_attack_damage_increase_50_percent_sure_hit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/75",
+      "definitionSha256": "57d8e4f1989d15e7b154fd88af094eaf129dd1cbba0fc0eb1c56b20ad25a3304",
+      "recipe": {
+        "id": "effect_mark_next_attack_damage_increase_50_percent_sure_hit",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,contexts.skillUse.condition((_ctx,events) => events[0]?.category !== \"Status\"))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.amplifyPower(1.5))" },
+          { "sourcePath": "/apply/1", "code": "contexts.skillUse.apply(ops.setSureHit(1))" }
+        ],
+        "repairedPaths": ["/condition/conditions/1/target/base", "/apply/0/target", "/apply/1/target"],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_next_non_status_skill_sure_crit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/152",
+      "definitionSha256": "b4c3b2d6390adccd74b7bfc86ad60f28180ae5693cbb319422780fd825bd9d78",
+      "recipe": {
+        "id": "effect_mark_next_non_status_skill_sure_crit",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.sourceOwnsEvent,conditions.selfUsesSkill,contexts.skillUse.condition((_ctx,events) => events[0]?.skill.category !== \"Status\"))",
+        "actions": [{ "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.setSureCrit(1))" }],
+        "repairedPaths": ["/condition/conditions/2/target/base", "/apply/0/target"],
+        "pathRepairs": [
+          { "path": "/condition/conditions/2/target/chain/0/arg", "before": "skillId", "after": "skill" }
+        ],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "decision": "C07",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_reduce_accuracy_next_skill_with_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/116",
+      "definitionSha256": "d5391d76a80434407c0de8374aebb43be01ddf4ac26e5b38156a32396a8b748f",
+      "recipe": {
+        "id": "effect_mark_reduce_accuracy_next_skill_with_stack",
+        "trigger": "BeforeUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.sourceOwnsEvent",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "contexts.skillUse.apply(ops.addAccuracy(targets.sourceMark.select(mark => mark.stack).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? -1 : 0))))))"
+          },
+          { "sourcePath": "/apply/1", "code": "targets.sourceMark.apply(ops.removeMark())" }
+        ],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_10_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/347",
+      "definitionSha256": "dad7288ebbe24910987215e19260e0414062e4d53e4de75ceaa204a522b907c2",
+      "recipe": {
+        "id": "effect_skill_add_power_10_consume_shazhidanke",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addPower(10))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_add_power_50_consume_heianwuzhi",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/418",
+      "definitionSha256": "6e87ac210a1c6cfcfd9795971416d2249c31ed47a4d06dc7eef6122dfaa94563",
+      "recipe": {
+        "id": "effect_skill_add_power_50_consume_heianwuzhi",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").select(mark => mark.stack).all());const right=0;return right!==undefined && left.some(value => value > right)}))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.addPower(50))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_consume_dongqifuti_sure_crit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/568",
+      "definitionSha256": "2cdf1e56e812b57da562d198f54768e84357a1f2c763f356952ca3409e4b3fab",
+      "recipe": {
+        "id": "effect_skill_consume_dongqifuti_sure_crit",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_dongqifuti\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.setSureCrit(0))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_dongqifuti\").apply(ops.removeMark())"
+          }
+        ],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_consume_heimowuzhi_2_sure_crit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/421",
+      "definitionSha256": "4c0b5d60bdaab96a3d8fd0cd6e5e0e4848081dc3c468d6e05fbe240ed5e0ab82",
+      "recipe": {
+        "id": "effect_skill_consume_heimowuzhi_2_sure_crit",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_heianwuzhi\"))),((ctx: EffectFrame) => {const left=ctx.read(targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").select(mark => mark.stack).all());const right=1;return right!==undefined && left.some(value => value > right)}))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.opponentMarks.where(mark => mark.baseId === \"mark_heianwuzhi\").apply(ops.consumeStacks(2))"
+          },
+          { "sourcePath": "/apply/1", "code": "contexts.skillUse.apply(ops.setSureCrit(1))" }
+        ],
+        "repairedPaths": ["/apply/1/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_consume_huanxiang_set_sure_hit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/454",
+      "definitionSha256": "fe0b52dbd7e3561a80f83774547e8c138318628540d946ae94b3948778f8629c",
+      "recipe": {
+        "id": "effect_skill_consume_huanxiang_set_sure_hit",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").condition(checks.exists()))",
+        "actions": [
+          {
+            "sourcePath": "/apply/0",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_huanxiang\").apply(ops.consumeStacks(1))"
+          },
+          { "sourcePath": "/apply/1", "code": "contexts.skillUse.apply(ops.setSureHit(99))" }
+        ],
+        "repairedPaths": ["/apply/1/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_sure_hit_consume_shazhidanke",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/348",
+      "definitionSha256": "e59cd46e8ba3e3671e2f1e29c3184a353eb3003453c36d9e0fb05ab0b8767eb1",
+      "recipe": {
+        "id": "effect_skill_sure_hit_consume_shazhidanke",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").condition(checks.exists()))",
+        "actions": [
+          { "sourcePath": "/apply/0", "code": "contexts.skillUse.apply(ops.setSureHit(2))" },
+          {
+            "sourcePath": "/apply/1",
+            "code": "targets.ownerMarks.where(mark => mark.baseId === \"mark_shazhidanke\").apply(ops.consumeStacks(1))"
+          }
+        ],
+        "repairedPaths": ["/apply/0/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    }
+  ],
+  "rejected": []
+}

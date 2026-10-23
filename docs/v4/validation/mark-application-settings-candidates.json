@@ -1,0 +1,368 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_emblem_add_manxingduyao_maxstack_4",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/9",
+      "definitionSha256": "ebc04a4ecfb65c4d48f37429b9be498927dc4b4430bfc11fcf3dc38c0f86477e",
+      "recipe": {
+        "id": "effect_emblem_add_manxingduyao_maxstack_4",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_manxingduyao\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkMaxStack(14))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_add_mark_yanhuo_duration_1",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/16",
+      "definitionSha256": "d42d5d0b3e5260fba36274c564b88d975fdcb8f59026546ab4287c1c55728fa6",
+      "recipe": {
+        "id": "effect_emblem_add_mark_yanhuo_duration_1",
+        "trigger": "OnBeforeAddMark",
+        "priority": 1,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_yanhuo\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "contexts.addMark.apply(ops.setMarkDuration(contexts.addMark.select(event => event.duration).all().map(items => items.map((n,index) => n + (index === 0 ? 1 : 0)))))"
+          }
+        ],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_add_shaoshang_duration",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/13",
+      "definitionSha256": "3d7b12cd280d1f1a17ea4330fd75a7ddd8610f1cb9d0de6471574793cb8a15b1",
+      "recipe": {
+        "id": "effect_emblem_add_shaoshang_duration",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_shaoshang\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(4))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_add_xingzhili_duration",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/11",
+      "definitionSha256": "4d096694a33b0ccd66d2bdeb4d192127e6bbefc30d823704316083965182e81a",
+      "recipe": {
+        "id": "effect_emblem_add_xingzhili_duration",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_xingzhili\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(10))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_add_xuanyun_duration",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/14",
+      "definitionSha256": "b98db1f37a7248661d06fcb57f075420e16339f663934a264c86c84c9039133b",
+      "recipe": {
+        "id": "effect_emblem_add_xuanyun_duration",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_xuanyun\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(6))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_add_zhenjiu_duration_1",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/20",
+      "definitionSha256": "faa8a1be7fc40b14c096bc0254b35f0dabcc417b96323fd8be290cb431e48ac6",
+      "recipe": {
+        "id": "effect_emblem_add_zhenjiu_duration_1",
+        "trigger": "OnBeforeAddMark",
+        "priority": 1,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_mianyibuliang\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "contexts.addMark.apply(ops.setMarkDuration(contexts.addMark.select(event => event.duration).all().map(items => items.map((n,index) => n + (index === 0 ? 1 : 0)))))"
+          }
+        ],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_dadiqiang_duration_boost_1",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/32",
+      "definitionSha256": "d163ed04ab043a56ed9b5ffe087624e7b254f63553a692a1b3fafe39f93c7f3b",
+      "recipe": {
+        "id": "effect_emblem_dadiqiang_duration_boost_1",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_yinghua\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "contexts.addMark.apply(ops.setMarkDuration(contexts.addMark.select(event => event.duration).all().map(items => items.map((n,index) => n + (index === 0 ? 1 : 0)))))"
+          }
+        ],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_decrease_liuxie_duration_1",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/7",
+      "definitionSha256": "d2343cc18e20fa37a0f8bff0da9c1c835fc41cd031954e188fa37c85eb08fdcc",
+      "recipe": {
+        "id": "effect_emblem_decrease_liuxie_duration_1",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_liuxie\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(2))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_decrease_shiming_duration_1",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/8",
+      "definitionSha256": "024be1c3b1363a251c170b9e3cf13ab7a0a7222ea286a29b0ad3167c4509e7b5",
+      "recipe": {
+        "id": "effect_emblem_decrease_shiming_duration_1",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_shiming\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(2))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_extend_bizhong_duration_5",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/47",
+      "definitionSha256": "5d33f97dcc5868da3362f8bb5d1c5b68c1920e402e37f814edb52df3dd7016bf",
+      "recipe": {
+        "id": "effect_emblem_extend_bizhong_duration_5",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_bizhong\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(10))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_increase_huohuanzhixin_maxstacks_4",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/52",
+      "definitionSha256": "4027d32d12f5903faf8a2cb13187149245cb305608d65f59192348d30ab4f900",
+      "recipe": {
+        "id": "effect_emblem_increase_huohuanzhixin_maxstacks_4",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_huohuanzhixin\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkMaxStack(10))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_increase_leishenjuexing_duration_1",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/58",
+      "definitionSha256": "c428f0192bb3b820dba96e2a7505a44776be9d4eec973184e71050dff8f22c07",
+      "recipe": {
+        "id": "effect_emblem_increase_leishenjuexing_duration_1",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_leishenjuexing\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(4))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_set_zhongdu_duration_2",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/5",
+      "definitionSha256": "eb8f330d8c015572f37604d708b298b6f41ac76b3412aeaa00813cd9d798b462",
+      "recipe": {
+        "id": "effect_emblem_set_zhongdu_duration_2",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_zhongdu\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(2))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_shazhidanke_max_stack_4",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/33",
+      "definitionSha256": "54ab9d8ef8f34f82a95fc672d8dd86eee27ad254b3d02a500d63085e896ef71a",
+      "recipe": {
+        "id": "effect_emblem_shazhidanke_max_stack_4",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_shazhidanke\"))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkMaxStack(4))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_emblem_xuruo_10percent_extra_debuff_stack",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/17",
+      "definitionSha256": "017d44255dd62ad1d1129aee2de2f204b8b87ecf2b2b2d364983080d63e198de",
+      "recipe": {
+        "id": "effect_emblem_xuruo_10percent_extra_debuff_stack",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerAddsMark,conditions.any(conditions.statStageChange(\"atk\",\"down\"),conditions.statStageChange(\"def\",\"down\"),conditions.statStageChange(\"spa\",\"down\"),conditions.statStageChange(\"spd\",\"down\"),conditions.statStageChange(\"spe\",\"down\")),conditions.chance(10))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "contexts.addMark.apply(ops.setMarkStack(contexts.addMark.select(event => event.stack).all().map(items => items.map((n,index) => n + (index === 0 ? 1 : 0)))))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_emblem_yaoling_extend_zhaocai_jinbao_duration",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_emblem.yaml",
+      "sourcePath": "/46",
+      "definitionSha256": "27fda72f0ca175fed1f2f1be609ffc1530f4cd6686281a33e23c13dd59b45789",
+      "recipe": {
+        "id": "effect_emblem_yaoling_extend_zhaocai_jinbao_duration",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events.some(event => ([\"mark_zhaocai\",\"mark_jinbao\"] as string[]).includes(event.baseMark.id))))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.addMark.apply(ops.setMarkDuration(6))" }],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ]
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_double_mark_yanhuo_duration",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/66",
+      "definitionSha256": "bdd853ba23b1f2e0df3b328213d4207e1641f3d25dda827761f6fffc3de5527d",
+      "recipe": {
+        "id": "effect_mark_double_mark_yanhuo_duration",
+        "trigger": "OnBeforeAddMark",
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerReceivesMark,contexts.addMark.condition((_ctx,events) => events[0]?.baseMark.id === \"mark_yanhuo\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "contexts.addMark.apply(ops.setMarkDuration(contexts.addMark.select(event => event.duration).all().map(items => items.map((n,index) => Math.floor(n * (index === 0 ? 2 : 0))))))"
+          }
+        ],
+        "repairedPaths": [],
+        "pathRepairs": [
+          { "path": "/condition/conditions/1/target/chain/0/arg", "before": "baseMarkId", "after": "baseMark.id" }
+        ],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "additionalDecisions": ["C09"],
+      "status": "generated-correction-candidate"
+    }
+  ],
+  "rejected": []
+}

@@ -1,0 +1,572 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_increase_damage_taken_once_50_percent_double_effect_if_frozen",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/101",
+      "definitionSha256": "d0ceb5890216668f211c39a008980719fed39fc221973182653e9b540f98dfb2",
+      "recipe": {
+        "id": "effect_increase_damage_taken_once_50_percent_double_effect_if_frozen",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_bingdong\").condition(checks.exists()),contexts.damage.apply(ops.modifyDamage({percent:100,delta:0})),contexts.damage.apply(ops.modifyDamage({percent:50,delta:0})))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": [],
+        "consumesStacks": 1
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_damage_100_or_add_mark_shijianzhadan",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/498",
+      "definitionSha256": "dc9452ded027cc48a81120f896ade945fa64da439414ea67723ee0e0d836e22d",
+      "recipe": {
+        "id": "effect_skill_add_damage_100_or_add_mark_shijianzhadan",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_shijianfaze\").condition(checks.exists()),contexts.damage.apply(ops.modifyDamage({percent:0,delta:100})),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shijianzhadan\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_shijianzhadan"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_damage_50_or_add_mark_dingshizhadan",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/489",
+      "definitionSha256": "809efd905fe19969a561a6420f55cef50b56cd6320f9ff41cae304cc7428f7ea",
+      "recipe": {
+        "id": "effect_skill_add_damage_50_or_add_mark_dingshizhadan",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.ownerMarks.where(mark => mark.baseId === \"mark_shijianfaze\").condition(checks.exists()),contexts.damage.apply(ops.modifyDamage({percent:0,delta:50})),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_dingshizhadan\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_dingshizhadan"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_mabi_30_percent_or_shandianluoyin_if_fail",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/436",
+      "definitionSha256": "faf2989ac661ce18e990fdbe0574e46a2a86611c60f07032ede65ec5ab3a1df1",
+      "recipe": {
+        "id": "effect_skill_add_mark_mabi_30_percent_or_shandianluoyin_if_fail",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(conditions.chance(parameters.action0_value_condition_percent),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_mabi\")!)),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shandianluoyin\")!)))"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action0_value_condition_percent",
+            "value": 30,
+            "tags": ["skill_effect_probability", "mark_mabi_chance"]
+          }
+        ],
+        "markDependencies": ["mark_mabi", "mark_shandianluoyin"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_mabi_15_percent_or_raise_spa_1_stage_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/396",
+      "definitionSha256": "03aabc28f30f49eeb1fd2904e1843bfe3f448fcf4ca27617d6d127cdb58218d0",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_mabi_15_percent_or_raise_spa_1_stage_50_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(conditions.chance(parameters.action0_value_condition_percent),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_mabi\")!)),actions.choose(conditions.chance(parameters.action0_value_false_condition_percent),targets.ownerPet.apply(ops.changeStatStage(\"spa\",1))))"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "action0_value_condition_percent",
+            "value": 15,
+            "tags": ["skill_effect_probability", "mark_mabi_chance"]
+          },
+          { "name": "action0_value_false_condition_percent", "value": 50, "tags": ["skill_effect_probability"] }
+        ],
+        "markDependencies": ["mark_mabi"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/48",
+      "definitionSha256": "a295a1020ad0f5e83a1ec5a680ed097f209064bdfcae007bae165a6279956a8b",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_10_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/50",
+      "definitionSha256": "28631aa3e4a07328722ab4784cdfa4978bd8893d69c8ef60b2ce4e51453b3594",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_10_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_1_percent)),targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "parameters": [{ "name": "condition_1_1_percent", "value": 10, "tags": ["skill_effect_probability"] }],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_15_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/51",
+      "definitionSha256": "d535c1d12b8117aeefe91f6c61bc59fa89ffff094cfe86065eed478662983441",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_15_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_percent),targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "parameters": [{ "name": "condition_1_percent", "value": 15, "tags": ["skill_effect_probability"] }],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_20_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/52",
+      "definitionSha256": "99c466082b5343b60f12833400bd8ea832f71e837edfb718c9c646b6c0dde82f",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_20_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_percent),targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "parameters": [{ "name": "condition_1_percent", "value": 20, "tags": ["skill_effect_probability"] }],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_30_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/53",
+      "definitionSha256": "d07075daeefb393ff5eb5a040f4a14318bb02583963e95825fd9417b8cea985c",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_30_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_percent),targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "parameters": [{ "name": "condition_1_percent", "value": 30, "tags": ["skill_effect_probability"] }],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_5_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/49",
+      "definitionSha256": "068c0519ca43a893bf8141394bbea428ff504019dfbc12699febd18a621d8567",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_5_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,conditions.all(conditions.selfUsesSkill,conditions.chance(parameters.condition_1_1_percent)),targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "parameters": [{ "name": "condition_1_1_percent", "value": 5, "tags": ["skill_effect_probability"] }],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/54",
+      "definitionSha256": "5010aa880332d89a09040f9acac84086c09f69eea3eb95720c7db246fd751f22",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_50_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),conditions.chance(parameters.condition_2_percent))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "condition_2_percent",
+            "value": 50,
+            "configId": "probability",
+            "tags": ["skill_effect_probability"]
+          }
+        ],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_60_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/55",
+      "definitionSha256": "9f528e12bdfb87fb8e32b9101c8cf58c387748a9d83aa20ad129df101d8548c3",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_60_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),conditions.chance(parameters.condition_2_percent))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "parameters": [{ "name": "condition_2_percent", "value": 60, "tags": ["skill_effect_probability"] }],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shaoshang_if_hp_above_75_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/405",
+      "definitionSha256": "03d87826bbf02afeb46fe0d336c1b6792fb815aef403db0e96a3534c0d899009",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shaoshang_if_hp_above_75_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n * 0.75)));return left!==undefined && right!==undefined && left > right}))",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentActive.condition((_ctx,pets) => pets[0]?.element !== \"Fire\"),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shaoshang\")!)))"
+          }
+        ],
+        "markDependencies": ["mark_shaoshang"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_spe_1_stage_50_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/397",
+      "definitionSha256": "dfbd27a69a9728d2668041e290fe3f2a67566e64b43b1c8a4e304c0b07ba9a50",
+      "recipe": {
+        "id": "effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_spe_1_stage_50_percent",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(conditions.chance(parameters.action0_value_condition_percent),targets.opponentActive.apply(ops.addMark(resolved.get(\"mark_shuimian\")!)),actions.choose(conditions.chance(parameters.action0_value_false_condition_percent),targets.ownerPet.apply(ops.changeStatStage(\"spe\",1))))"
+          }
+        ],
+        "parameters": [
+          { "name": "action0_value_condition_percent", "value": 15, "tags": ["skill_effect_probability"] },
+          { "name": "action0_value_false_condition_percent", "value": 50, "tags": ["skill_effect_probability"] }
+        ],
+        "markDependencies": ["mark_shuimian"],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_clear_opponent_spe_up_reverse_if_field_yemu",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/425",
+      "definitionSha256": "39c2757c66d9c2158c4999327ae1a7ad6bf68d1a61f7011d97fe9bfe795ba0f7",
+      "recipe": {
+        "id": "effect_skill_clear_opponent_spe_up_reverse_if_field_yemu",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(contexts.battle.flatMap(battle => battle.marks).where(mark => mark.baseId === \"mark_global_yemu\").condition(checks.exists()),targets.opponentActive.apply(ops.reverseStatStages({stats:[\"spe\"],strategy:\"positive\"})),targets.opponentActive.apply(ops.clearStatStages({stats:[\"spe\"],strategy:\"positive\"})))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/161",
+      "definitionSha256": "320ead1594017d9220e1c64fa76154eb0f52b50827e6764ff9b65eabfc05973f",
+      "recipe": {
+        "id": "effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").select(mark => mark.stack).all());const right=10;return right!==undefined && left.some(value => value >= right)}),targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").apply(ops.consumeStacks(10)),contexts.damage.apply(ops.modifyDamage({percent:-25,delta:0})))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/162",
+      "definitionSha256": "704fd717464c0de00425a5d89e8ae9667a5a6e0a8b5fec269724c457426478e9",
+      "recipe": {
+        "id": "effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").select(mark => mark.stack).all());const right=15;return right!==undefined && left.some(value => value >= right)}),targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").apply(ops.consumeStacks(15)),contexts.damage.apply(ops.modifyDamage({percent:-25,delta:0})))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/163",
+      "definitionSha256": "858422f59905ea5b94537225ecbe4c2ef33e342214f100890eb642ce7693e76f",
+      "recipe": {
+        "id": "effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").select(mark => mark.stack).all());const right=20;return right!==undefined && left.some(value => value >= right)}),targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").apply(ops.consumeStacks(20)),contexts.damage.apply(ops.modifyDamage({percent:-25,delta:0})))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/164",
+      "definitionSha256": "40a2606022e25fed6308ef3eb65a65350ca37a9cd7e93d118f596251e04fa230",
+      "recipe": {
+        "id": "effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill)",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").select(mark => mark.stack).all());const right=25;return right!==undefined && left.some(value => value >= right)}),targets.ownerMarks.where(mark => mark.baseId === \"mark_kongqichuliang\").apply(ops.consumeStacks(25)),contexts.damage.apply(ops.modifyDamage({percent:-25,delta:0})))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_consume_xinzhiyinji_multihit",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/230",
+      "definitionSha256": "9f53d5022e2ad275da64eb3a1a1f5b13182bc304c8862835a8ef4fad4fdca4e2",
+      "recipe": {
+        "id": "effect_skill_consume_xinzhiyinji_multihit",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(targets.opponentMarks.where(mark => mark.tags.includes(\"xinzhiyinji_tag\")).condition(checks.exists()),contexts.skillUse.apply(ops.setMultihit(selectFrom([5,8]).all())),contexts.skillUse.apply(ops.setMultihit(1)))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/trueOperator/target/base", "/apply/falseOperator/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_multihit_if_height_above_100",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/243",
+      "definitionSha256": "00d8feef5afdd9ebbbc2c3c071f397b7bddb0bc1ecc2f596e94f641656a04161",
+      "recipe": {
+        "id": "effect_skill_multihit_if_height_above_100",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.height).first());const right=100;return left!==undefined && right!==undefined && left > right}),contexts.skillUse.apply(ops.setMultihit(3)),contexts.skillUse.apply(ops.setMultihit(1)))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/trueOperator/target/base", "/apply/falseOperator/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_multihit_if_height_gt_opponent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/242",
+      "definitionSha256": "9fe2b21f3b25a77ac79804a86518b6d4e48a65094fc83609a91241320b245497",
+      "recipe": {
+        "id": "effect_skill_multihit_if_height_gt_opponent",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.height).first());const right=ctx.read(targets.opponentActive.select(pet => pet.height).first());return left!==undefined && right!==undefined && left > right}),contexts.skillUse.apply(ops.setMultihit(3)),contexts.skillUse.apply(ops.setMultihit(1)))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/trueOperator/target/base", "/apply/falseOperator/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_multihit_if_height_lt_opponent",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/244",
+      "definitionSha256": "594e9f0b3b01e184de98e4aa03a379cd7c1c412019e02321e0e2555856bbea7a",
+      "recipe": {
+        "id": "effect_skill_multihit_if_height_lt_opponent",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "actions.choose(((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.height).first());const right=ctx.read(targets.opponentActive.select(pet => pet.height).first());return left!==undefined && right!==undefined && left < right}),contexts.skillUse.apply(ops.setMultihit(3)),contexts.skillUse.apply(ops.setMultihit(1)))"
+          }
+        ],
+        "markDependencies": [],
+        "repairedPaths": ["/apply/trueOperator/target/base", "/apply/falseOperator/target/base"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    }
+  ],
+  "rejected": []
+}

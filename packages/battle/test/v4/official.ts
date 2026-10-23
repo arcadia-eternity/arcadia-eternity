@@ -18,6 +18,7 @@ import {
   PlayerParser,
 } from '@arcadia-eternity/battle/v4/legacy'
 import input from '../../src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import { loadBaseMetadata } from './base-metadata'
 
 /** All content uses the original V1 schemas, parsers and DSL. No effect reimplementation. */
 export async function loadHistoricalContent() {
@@ -69,10 +70,7 @@ export async function createHistoricalOfficialBattle() {
   const content = await loadHistoricalContent()
   // Huanli was added after V1. Feed its unchanged current species definition
   // through the original V1 parser; skills/effects still come from pinned V1 YAML.
-  const currentSpecies = parse(
-    await readFile(new URL('../../../../packs/base/data/species.yaml', import.meta.url), 'utf8'),
-    { merge: true },
-  ) as { id: string; ability: string[]; emblem: string[] }[]
+  const currentSpecies = loadBaseMetadata('species') as { id: string; ability: string[]; emblem: string[] }[]
   const huanli = currentSpecies.find(s => s.id === 'pet_huanli')
   if (!huanli) throw new Error('Missing #201 Huanli definition')
   // No ability/emblem is selected by #201's V2 factory; preserve that roster.

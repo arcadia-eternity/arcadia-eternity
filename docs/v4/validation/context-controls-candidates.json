@@ -1,0 +1,95 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_block_damage_under_60",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/103",
+      "definitionSha256": "150131ff2785311393fa7687009f31a8837cee442ee33674a43776c2e0067a0a",
+      "recipe": {
+        "id": "effect_block_damage_under_60",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfBeDamaged,((ctx: EffectFrame) => {const left=ctx.read(contexts.damage.select(event => event.damageResult).first());const right=60;return left!==undefined && right!==undefined && left <= right}))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.damage.apply(ops.preventDamage())" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_confuse",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/9",
+      "definitionSha256": "cfa55602bd0cf1e52786c1d72116f3a2d071174363d8056744ac275a6589a954",
+      "recipe": {
+        "id": "effect_mark_confuse",
+        "trigger": "AfterUseSkillCheck",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          { "sourcePath": "/apply", "code": "contexts.skillUse.apply(ops.setActualTarget(targets.ownerPet.first()))" }
+        ],
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_mark_prevent_damage",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/8",
+      "definitionSha256": "1111255f5d1868b91a0ec8d0ac0351d0bf32aecdf5e49b926cda0c5c78793ea6",
+      "recipe": {
+        "id": "effect_mark_prevent_damage",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.sourceOwnsEvent",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.damage.apply(ops.preventDamage())" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_ignore_opponent_stat_if_hp_above_quarter",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/410",
+      "definitionSha256": "bfaffd1c6515840f6b549af921eaf8542c3d6a1bcca7828c92590211b03b7673",
+      "recipe": {
+        "id": "effect_skill_ignore_opponent_stat_if_hp_above_quarter",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,((ctx: EffectFrame) => {const left=ctx.read(targets.ownerPet.select(pet => pet.currentHp).first());const right=ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n * 0.25)));return left!==undefined && right!==undefined && left > right}))",
+        "actions": [
+          { "sourcePath": "/apply", "code": "contexts.skillUse.apply(ops.setIgnoreStageStrategy(\"positive\"))" }
+        ],
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    },
+    {
+      "id": "effect_skill_ignore_stat_opponent_has_mark_kuihuazhongzi",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/98",
+      "definitionSha256": "05ffab9509528b00c9518173760ac0daa5ae1d7d4a10c5ef8fba7cbb923ea740",
+      "recipe": {
+        "id": "effect_skill_ignore_stat_opponent_has_mark_kuihuazhongzi",
+        "trigger": "BeforeHit",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.opponentActive.condition((_ctx,pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === \"mark_kuihuazhongzi\"))))",
+        "actions": [
+          { "sourcePath": "/apply", "code": "contexts.skillUse.apply(ops.setIgnoreStageStrategy(\"positive\"))" }
+        ],
+        "repairedPaths": ["/apply/target"]
+      },
+      "classification": "U",
+      "decision": "C07",
+      "status": "generated-correction-candidate"
+    }
+  ],
+  "rejected": []
+}

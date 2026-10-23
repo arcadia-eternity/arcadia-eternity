@@ -1,0 +1,96 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_mark_damage_cap_half_max_hp",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/139",
+      "definitionSha256": "dc59fd82eed2bd5df605890be41b821e468e48b41517343b27bc8b4814c6f43c",
+      "recipe": {
+        "id": "effect_mark_damage_cap_half_max_hp",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfBeDamaged",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "contexts.damage.apply(ops.setDamageThreshold({max:targets.ownerPet.select(pet => pet.stat.maxHp).first().map(n => Math.floor(n / 2))}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_min_damage_100",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/57",
+      "definitionSha256": "698961da35f3765c841c2f4ad7714668c9d79d6a5c50df6523a0e69ad2c295d6",
+      "recipe": {
+        "id": "effect_skill_min_damage_100",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.damage.apply(ops.setDamageThreshold({min:100}))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_min_damage_95",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/56",
+      "definitionSha256": "1dd214600f7160533254be9a4cf22faf0d5a198466487b79037c25de42ab1fce",
+      "recipe": {
+        "id": "effect_skill_min_damage_95",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.damage.apply(ops.setDamageThreshold({min:95}))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_minimum_damage_100_if_aideminyi",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/214",
+      "definitionSha256": "db7135c179b3a8251cdbaa18e6cf75ce46996dff650b59c2ee08b994d71b9aff",
+      "recipe": {
+        "id": "effect_skill_minimum_damage_100_if_aideminyi",
+        "trigger": "OnBeforeCalculateDamage",
+        "priority": 0,
+        "when": "conditions.all(conditions.selfUsesSkill,targets.ownerMarks.where(mark => mark.baseId === \"mark_aideminyi\").condition(checks.exists()))",
+        "actions": [{ "sourcePath": "/apply", "code": "contexts.damage.apply(ops.setDamageThreshold({min:100}))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_save_hp_to_1",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/84",
+      "definitionSha256": "d7164467f2d92a231ed11461a5309f284a8e0ecc3ea1f3fbd0d7fd5f8283f060",
+      "recipe": {
+        "id": "effect_skill_save_hp_to_1",
+        "trigger": "OnDamage",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "contexts.damage.apply(ops.setDamageThreshold({max:targets.opponentActive.select(pet => pet.currentHp).first().map(n => n + -1)}))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

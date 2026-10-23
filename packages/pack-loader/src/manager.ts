@@ -33,7 +33,7 @@ export interface PackInstallRequest {
   integrity?: string
 }
 
-export interface PackManager {
+export interface PackManager<LoadResult = PackLoadResult> {
   listInstalled(): Promise<InstalledPack[]>
   has(packageKey: string): Promise<boolean>
   verify(lockfile: PackLockfile): Promise<PackResolveResult>
@@ -44,5 +44,5 @@ export interface PackManager {
     options?: {
       enforceLockfile?: boolean
     },
-  ): Promise<PackLoadResult>
+  ): Promise<LoadResult>
 }

@@ -2,6 +2,7 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   BaseSkill,
   DamageContext,
+  DamageType,
   RageContext,
   Effect,
   type effectId,
@@ -115,7 +116,7 @@ it('sets rejected damage to zero and retains the caller context', () => {
       0,
     ),
   )
-  const ctx = new DamageContext(context(battle), b.activePet, a.activePet, 30)
+  const ctx = new DamageContext(context(battle), b.activePet, a.activePet, 30, DamageType.Physical)
   const hp = a.activePet.currentHp
   a.activePet.damage(ctx)
   expect(a.activePet.currentHp).toBe(hp)
@@ -127,7 +128,7 @@ it('honors a denied rage gain and returns its outcome in the caller context', ()
   a.activePet.skills[0].effects.push(
     new Effect<EffectTrigger>(
       'deny-rage' as effectId,
-      [EffectTrigger.OnRageGain],
+      [EffectTrigger.BeforeRageGain],
       ctx => {
         if (ctx.parent instanceof RageContext) ctx.parent.available = false
       },

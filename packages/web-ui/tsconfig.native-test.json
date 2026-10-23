@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "types": ["node", "vitest/globals"],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "env.d.ts",
+    "auto-imports.d.ts",
+    "src/services/nativeBattleFactory.ts",
+    "src/services/__tests__/nativeBattleFactory.test.ts",
+    "src/p2p/p2pBattleSystem.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

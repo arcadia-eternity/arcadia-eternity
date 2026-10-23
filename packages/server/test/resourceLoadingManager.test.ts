@@ -2,32 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockLoad = vi.fn()
 
-vi.mock('@arcadia-eternity/pack-loader', () => {
+vi.mock('../src/pack/serverPackManager', () => {
   return {
-    PackLoader: class {
-      load = mockLoad
-      summarize() {
-        return {
-          effectCount: 0,
-          markCount: 0,
-          skillCount: 0,
-          speciesCount: 0,
-          errorCount: 0,
-        }
-      }
-    },
-  }
-})
-
-vi.mock('@arcadia-eternity/data-repository', () => {
-  return {
-    ScriptLoader: class {
-      constructor(_options: unknown) {}
-      async loadScriptsFromFileSystem(_path: string): Promise<void> {}
-      getLoadedScriptsStats() {
-        return { total: 0, byType: { effect: 0, species: 0, skill: 0, mark: 0 } }
-      }
-    },
+    serverPackManager: { load: mockLoad },
   }
 })
 
@@ -39,9 +16,9 @@ describe('ResourceLoadingManager', () => {
   })
 
   it('marks ready when pack load succeeds', async () => {
-    const fakeRepo = { stats: () => ({ effects: 1, marks: 1, skills: 1, species: 1 }) }
+    const metadata = { species: [], skills: [], marks: [] }
     mockLoad.mockResolvedValue({
-      repository: fakeRepo,
+      data: metadata,
       errors: [],
       source: 'node-fs',
       packRef: 'builtin:base',
@@ -53,13 +30,14 @@ describe('ResourceLoadingManager', () => {
 
     expect(manager.isReady()).toBe(true)
     expect(manager.getProgress().status).toBe(ResourceLoadingStatus.Completed)
-    expect(manager.getLoadedRepository()).toBe(fakeRepo)
+    expect(manager.getLoadedMetadata()).toBe(metadata)
+    expect(manager.getProgress().scriptsLoaded).toBe(true)
+    expect(mockLoad).toHaveBeenCalledWith('builtin:workspace', { enforceLockfile: true })
   })
 
   it('fails when validation is enabled and pack load has errors', async () => {
-    const fakeRepo = { stats: () => ({ effects: 0, marks: 0, skills: 0, species: 0 }) }
     mockLoad.mockResolvedValue({
-      repository: fakeRepo,
+      data: { species: [], skills: [], marks: [] },
       errors: ['bad ref'],
       source: 'node-fs',
       packRef: 'builtin:base',
@@ -73,5 +51,16 @@ describe('ResourceLoadingManager', () => {
 
     expect(manager.isReady()).toBe(false)
     expect(manager.getProgress().status).toBe(ResourceLoadingStatus.Failed)
+    expect(manager.getLoadedMetadata()).toBeNull()
+  })
+
+  it('does not expose metadata when native reference validation fails', async () => {
+    mockLoad.mockRejectedValue(new Error('Unknown content effect: effect_missing'))
+    const { ResourceLoadingManager, ResourceLoadingStatus } = await import('../src/resourceLoadingManager')
+    const manager = ResourceLoadingManager.getInstance()
+    await expect(manager.startAsyncLoading({ continueOnError: false })).rejects.toThrow('Unknown content effect')
+    expect(manager.getLoadedMetadata()).toBeNull()
+    expect(manager.getProgress().status).toBe(ResourceLoadingStatus.Failed)
+    expect(manager.getProgress().scriptsLoaded).toBe(false)
   })
 })

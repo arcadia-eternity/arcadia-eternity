@@ -30,6 +30,7 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
     "@arcadia-eternity/database": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",

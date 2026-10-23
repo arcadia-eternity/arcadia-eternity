@@ -1,0 +1,75 @@
+{
+  "formatVersion": 1,
+  "records": [
+    {
+      "id": "effect_ability_keep_rage_at_least_25",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_ability.yaml",
+      "sourcePath": "/65",
+      "definitionSha256": "e3c3c7d4c43347cf8f9e35797b37be76203015852932ebcf4fe8459faae32d35",
+      "recipe": {
+        "id": "effect_ability_keep_rage_at_least_25",
+        "trigger": ["OnRageGain", "OnRageLoss", "OnBattleStart"],
+        "priority": 0,
+        "when": "conditions.all(conditions.ownerIsActive,((ctx: EffectFrame) => {const left=ctx.read(targets.selfPlayer.select(player => player.currentRage).first());const right=25;return left!==undefined && right!==undefined && left < right}))",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.setRage(25))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_clear_rage_on_switch_out",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/174",
+      "definitionSha256": "0d332fbb804ca51c552693842ac7d7ccd71669df434fc960bfea18c3b678db42",
+      "recipe": {
+        "id": "effect_mark_clear_rage_on_switch_out",
+        "trigger": "OnSwitchOut",
+        "priority": 0,
+        "when": "conditions.ownerSwitchesOut",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.setRage(0))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_mark_clear_rage_on_turn_start",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_mark.yaml",
+      "sourcePath": "/173",
+      "definitionSha256": "dff26a8fc152ebba6038104c7b9a62da06bea544c2f2f65cc05c236eb042f9df",
+      "recipe": {
+        "id": "effect_mark_clear_rage_on_turn_start",
+        "trigger": "TurnStart",
+        "priority": 0,
+        "when": "conditions.ownerIsActive",
+        "actions": [{ "sourcePath": "/apply", "code": "targets.ownerPet.apply(ops.setRage(0))" }],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    },
+    {
+      "id": "effect_skill_set_opponent_rage_to_self",
+      "sourceFile": "packages/battle/test/v4/fixtures/effect-regression/effect_skill.yaml",
+      "sourcePath": "/561",
+      "definitionSha256": "5b70a0c3e445cafa8f1e2f5cb1f49f08751e3c5ae04b5754eb5f548546ccc21c",
+      "recipe": {
+        "id": "effect_skill_set_opponent_rage_to_self",
+        "trigger": "OnHit",
+        "priority": 0,
+        "when": "conditions.selfUsesSkill",
+        "actions": [
+          {
+            "sourcePath": "/apply",
+            "code": "targets.opponentActive.apply(ops.setRage(targets.selfPlayer.select(player => player.currentRage).first()))"
+          }
+        ],
+        "repairedPaths": []
+      },
+      "classification": "U",
+      "status": "generated-candidate"
+    }
+  ],
+  "rejected": []
+}

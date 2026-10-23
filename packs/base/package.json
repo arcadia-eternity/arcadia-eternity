@@ -3,11 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Arcadia Eternity base data pack manifest",
+  "description": "Arcadia Eternity base content and trusted native effects",
   "arcadiaEternityPack": "pack.json",
   "arcadiaEternityAssets": "assets/assets.json",
   "scripts": {
-    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml"
+    "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml",
+    "build": "run-s clear build:code build:types",
+    "clear": "rm -rf dist",
+    "build:code": "rolldown -c && node ../../scripts/build-base-environment.mjs",
+    "build:types": "pnpm exec tsgo --emitDeclarationOnly",
+    "watch:code": "rolldown -c --watch",
+    "watch:types": "pnpm exec tsgo --emitDeclarationOnly --watch --preserveWatchOutput",
+    "watch": "run-p watch:code watch:types"
   },
   "files": [
     "pack.json",
@@ -16,6 +23,26 @@
     "data/**/*",
     "locales/**/*",
     "PACK_FORMAT.md",
-    "DATA_README.md"
-  ]
+    "DATA_README.md",
+    "dist/**/*",
+    "content-groups.yaml"
+  ],
+  "exports": {
+    "./native": {
+      "types": "./dist/types/native.d.ts",
+      "import": "./dist/native.js",
+      "default": "./dist/native.js"
+    },
+    "./build": {
+      "types": "./dist/native-build.d.ts",
+      "import": "./dist/native-build.mjs",
+      "default": "./dist/native-build.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/const": "workspace:^",
+    "@sinclair/typebox": "catalog:"
+  }
 }

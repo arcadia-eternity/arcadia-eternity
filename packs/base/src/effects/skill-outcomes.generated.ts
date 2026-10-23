@@ -1,0 +1,897 @@
+// Reviewed native behavior; edit this TypeScript source directly.
+import {
+  compileEffect,
+  defineEffect,
+  numberParam,
+  conditions,
+  contexts,
+  targets,
+  checks,
+  ops,
+  values,
+  type EffectFrame,
+} from '@arcadia-eternity/battle/v4/authoring'
+export function createGeneratedSkillOutcomeEffects() {
+  return Object.freeze({
+    effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shihua')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(10)),
+      }),
+    ),
+    effect_ability_add_skill_accuracy_10_percent_when_yanre: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_skill_accuracy_10_percent_when_yanre',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.sourceOwnsEvent,
+          contexts.battle
+            .flatMap(battle => battle.marks)
+            .where(mark => mark.baseId === 'mark_global_yanre')
+            .condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.addAccuracy(10)),
+      }),
+    ),
+    effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang: compileEffect(
+      defineEffect({
+        id: 'effect_ability_add_water_skill_accuracy_5_percent_has_kongqichuliang',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.sourceOwnsEvent,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
+          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Water'),
+        ),
+        execute: contexts.skillUse.apply(ops.addAccuracy(5)),
+      }),
+    ),
+    effect_ability_electric_crit_rate_boost_10_percent: compileEffect(
+      defineEffect({
+        id: 'effect_ability_electric_crit_rate_boost_10_percent',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.sourceOwnsEvent,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Electric'),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(10)),
+      }),
+    ),
+    effect_ability_shenguang_sure_hit_below_half_hp: compileEffect(
+      defineEffect({
+        id: 'effect_ability_shenguang_sure_hit_below_half_hp',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Light'),
+          (ctx: EffectFrame) => {
+            const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
+            const right = ctx.read(
+              targets.ownerPet
+                .select(pet => pet.stat.maxHp)
+                .first()
+                .map(n => Math.floor(n / 2)),
+            )
+            return left !== undefined && right !== undefined && left < right
+          },
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_ability_status_skill_sure_hit: compileEffect(
+      defineEffect({
+        id: 'effect_ability_status_skill_sure_hit',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Status'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_emblem_immune_skill_bandao: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_immune_skill_bandao',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.sourceOwnsEvent,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_bandao'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_emblem_increase_crit_rate_when_dongqifuti: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_increase_crit_rate_when_dongqifuti',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(
+          conditions.sourceOwnsEvent,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_dongqifuti').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(5)),
+      }),
+    ),
+    effect_emblem_sure_hit_when_yanre: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_sure_hit_when_yanre',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.battle
+            .flatMap(battle => battle.marks)
+            .where(mark => mark.baseId === 'mark_global_yanre')
+            .condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_emblem_xianzhi_crit_rate_5_percent_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_emblem_xianzhi_crit_rate_5_percent_if_first',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(conditions.sourceOwnsEvent, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addCritRate(5)),
+      }),
+    ),
+    effect_mark_bizhong: compileEffect(
+      defineEffect({
+        id: 'effect_mark_bizhong',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.sourceOwnsEvent),
+        execute: contexts.skillUse.apply(ops.setSureHit(99)),
+      }),
+    ),
+    effect_mark_cant_evasion: compileEffect(
+      defineEffect({
+        id: 'effect_mark_cant_evasion',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.sourceOwnsEvent,
+        execute: contexts.skillUse.apply(ops.setSureHit(1)),
+      }),
+    ),
+    effect_mark_evade: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.skillActorDiffersFromOwner, conditions.ownerIsSkillTarget),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evade_physical_attacks: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade_physical_attacks',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.skillActorDiffersFromOwner,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evade_physical_with_stack: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade_physical_with_stack',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.all(
+          conditions.skillActorDiffersFromOwner,
+          conditions.ownerIsSkillTarget,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evade_with_stack: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evade_with_stack',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        consumesStacks: 1,
+        when: conditions.all(conditions.skillActorDiffersFromOwner, conditions.ownerIsSkillTarget),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_evasion_special_attacks: compileEffect(
+      defineEffect({
+        id: 'effect_mark_evasion_special_attacks',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.skillActorDiffersFromOwner,
+          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_silence: compileEffect(
+      defineEffect({
+        id: 'effect_mark_silence',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.sourceOwnsEvent,
+          conditions.not(contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Status')),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureMiss(-1)),
+      }),
+    ),
+    effect_mark_skill_sure_hit: compileEffect(
+      defineEffect({
+        id: 'effect_mark_skill_sure_hit',
+        on: 'BeforeUseSkillCheck',
+        priority: 0,
+        when: conditions.sourceOwnsEvent,
+        execute: contexts.skillUse.apply(ops.setSureHit(1)),
+      }),
+    ),
+    effect_skill_add_accuracy_25_per_shahezhili_turn: (() => {
+      const parameters = { amount_step2: numberParam({ default: 25, tags: [], legacyAliases: [] }) }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_accuracy_25_per_shahezhili_turn',
+          on: 'AfterUseSkillCheck',
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.ownerMarks.where(mark => mark.baseId === 'mark_shahezhili').condition(checks.exists()),
+          ),
+          execute: contexts.skillUse.apply(
+            ops.addAccuracy(
+              values.combine(
+                targets.ownerMarks
+                  .where(mark => mark.baseId === 'mark_shahezhili')
+                  .select(mark => mark.duration)
+                  .all(),
+                parameters.amount_step2,
+                (items, factor) => items.map((n, index) => Math.floor(n * (index === 0 ? factor : 0))),
+              ),
+            ),
+          ),
+        }),
+      )
+    })(),
+    effect_skill_add_accuracy_when_reused: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_accuracy_when_reused',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          conditions.all(
+            conditions.ownerUsesSkill,
+            contexts.skillUse.condition((_ctx, events) => (events[0]?.skill.owner?.lastSkillUsedTimes ?? 0) >= 2),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.addAccuracy(25)),
+      }),
+    ),
+    effect_skill_add_crit_rate_15_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_15_percent',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(ops.addCritRate(15)),
+      }),
+    ),
+    effect_skill_add_crit_rate_15_percent_if_hp_lt_half: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_15_percent_if_hp_lt_half',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
+          const right = ctx.read(
+            targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => Math.floor(n * 0.5)),
+          )
+          return left !== undefined && right !== undefined && left < right
+        }),
+        execute: contexts.skillUse.apply(ops.addCritRate(15)),
+      }),
+    ),
+    effect_skill_add_crit_rate_25_per_shahezhili_turn: (() => {
+      const parameters = { amount_step2: numberParam({ default: 25, tags: [], legacyAliases: [] }) }
+      return compileEffect(
+        defineEffect({
+          id: 'effect_skill_add_crit_rate_25_per_shahezhili_turn',
+          on: 'AfterUseSkillCheck',
+          priority: 0,
+          parameters,
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            targets.ownerMarks.where(mark => mark.baseId === 'mark_shahezhili').condition(checks.exists()),
+          ),
+          execute: contexts.skillUse.apply(
+            ops.addCritRate(
+              values.combine(
+                targets.ownerMarks
+                  .where(mark => mark.baseId === 'mark_shahezhili')
+                  .select(mark => mark.duration)
+                  .all(),
+                parameters.amount_step2,
+                (items, factor) => items.map((n, index) => Math.floor(n * (index === 0 ? factor : 0))),
+              ),
+            ),
+          ),
+        }),
+      )
+    })(),
+    effect_skill_add_crit_rate_30_per_usetime: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_30_per_usetime',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill),
+        execute: contexts.skillUse.apply(
+          ops.addCritRate(
+            targets.ownerPet
+              .select(pet => pet.lastSkillUsedTimes)
+              .all()
+              .map(items => items.map((n, index) => n + (index === 0 ? -1 : 0)))
+              .map(items => items.map((n, index) => Math.min(n, index === 0 ? 3 : 0)))
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 30 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_add_crit_rate_30_percent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_30_percent',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(ops.addCritRate(30)),
+      }),
+    ),
+    effect_skill_add_crit_rate_50_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_50_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addCritRate(50)),
+      }),
+    ),
+    effect_skill_add_crit_rate_50_shuiwenzhenji: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_50_shuiwenzhenji',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(50)),
+      }),
+    ),
+    effect_skill_add_crit_rate_65_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_65_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.addCritRate(65)),
+      }),
+    ),
+    effect_skill_add_crit_rate_70_shuiwenzhenji: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_70_shuiwenzhenji',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(70)),
+      }),
+    ),
+    effect_skill_add_crit_rate_85_if_opponent_has_mark_shihua: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_85_if_opponent_has_mark_shihua',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shihua')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(85)),
+      }),
+    ),
+    effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
+          ),
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_haipa')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(85)),
+      }),
+    ),
+    effect_skill_add_crit_rate_95_if_has_jinbao: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_95_if_has_jinbao',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.addCritRate(95)),
+      }),
+    ),
+    effect_skill_add_crit_rate_ruodian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_add_crit_rate_ruodian',
+        on: 'AfterUseSkillCheck',
+        priority: 1,
+        when: conditions.selfUsesSkill,
+        execute: contexts.skillUse.apply(
+          ops.addCritRate(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_ruodianjihao')
+              .select(mark => mark.stack)
+              .all()
+              .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 45 : 0)))),
+          ),
+        ),
+      }),
+    ),
+    effect_skill_consume_xinzhiyinji_sure_hit: compileEffect(
+      defineEffect({
+        id: 'effect_skill_consume_xinzhiyinji_sure_hit',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_crit_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_crit_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
+    effect_skill_increase_accuracy_50_if_higher_level: compileEffect(
+      defineEffect({
+        id: 'effect_skill_increase_accuracy_50_if_higher_level',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.level).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.level).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.addAccuracy(50)),
+      }),
+    ),
+    effect_skill_increase_crit_rate_95_if_max_hp_gt_opponent: compileEffect(
+      defineEffect({
+        id: 'effect_skill_increase_crit_rate_95_if_max_hp_gt_opponent',
+        on: 'BeforeHit',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.stat.maxHp).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.addCritRate(95)),
+      }),
+    ),
+    effect_skill_set_sure_crit_if_hp_below_half: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_sure_crit_if_hp_below_half',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
+          const right = ctx.read(
+            targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => Math.floor(n * 0.5)),
+          )
+          return left !== undefined && right !== undefined && left < right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
+    effect_skill_set_sure_crit_if_hp_below_quarter: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_sure_crit_if_hp_below_quarter',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
+          const right = ctx.read(
+            targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => Math.floor(n / 4)),
+          )
+          return left !== undefined && right !== undefined && left <= right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
+    effect_skill_set_sure_hit_if_field_yemu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_sure_hit_if_field_yemu',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.battle
+            .flatMap(battle => battle.marks)
+            .where(mark => mark.baseId === 'mark_global_yemu')
+            .condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_set_sure_hit_if_has_niliu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_set_sure_hit_if_has_niliu',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_setsurehit_opponent_has_mark_kuihuazhongzi: compileEffect(
+      defineEffect({
+        id: 'effect_skill_setsurehit_opponent_has_mark_kuihuazhongzi',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kuihuazhongzi')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_crit_below_1_4: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_crit_below_1_4',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
+          const right = ctx.read(
+            targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => Math.floor(n / 4)),
+          )
+          return left !== undefined && right !== undefined && left <= right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureCrit(0)),
+      }),
+    ),
+    effect_skill_sure_crit_if_has_field: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_crit_if_has_field',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.tags.includes('area')).condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
+    effect_skill_sure_crit_if_has_yitelingyu: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_crit_if_has_yitelingyu',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
+    effect_skill_sure_crit_if_opponent_bingdong: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_crit_if_opponent_bingdong',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_bingdong')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
+    effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_kongjuzhinian')
+              .select(mark => mark.stack)
+              .all(),
+          )
+          const right = 2
+          return right !== undefined && left.some(value => value >= right)
+        }),
+        execute: contexts.skillUse.apply(ops.setSureCrit(1)),
+      }),
+    ),
+    effect_skill_sure_crit_shuiwenzhenji: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_crit_shuiwenzhenji',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureCrit(0)),
+      }),
+    ),
+    effect_skill_sure_hit_below_1_4_hp: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_below_1_4_hp',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
+          const right = ctx.read(
+            targets.ownerPet
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => Math.floor(n / 4)),
+          )
+          return left !== undefined && right !== undefined && left <= right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_atk_over_500: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_atk_over_500',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.atk).first())
+          const right = 500
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_first: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_first',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_has_mark_yinghua: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_has_mark_yinghua',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_yinghua').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_has_xukongganying: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_has_xukongganying',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_has_zhaocai: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_has_zhaocai',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_has_zhenkongzhixin: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_has_zhenkongzhixin',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhenkongzhixin').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_height_above_100: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_height_above_100',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
+          const right = 100
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_opponent_has_maimaijinzhen: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_opponent_has_maimaijinzhen',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_opponent_has_mark_mabi: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_opponent_has_mark_mabi',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_opponent_has_tongjiling: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_opponent_has_tongjiling',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_if_opponent_spa_gt_atk: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_if_opponent_spa_gt_atk',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.opponentActive.select(pet => pet.stat.spa).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.stat.atk).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_opponent_below_quarter_hp: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_opponent_below_quarter_hp',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
+          const right = ctx.read(
+            targets.opponentActive
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => Math.floor(n / 4)),
+          )
+          return left !== undefined && right !== undefined && left <= right
+        }),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_opponent_jingshencuoluan: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_opponent_jingshencuoluan',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentActive.condition((_ctx, pets) =>
+            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_jingshencuoluan')),
+          ),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_opponent_shaoshang: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_opponent_shaoshang',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.baseId === 'mark_shaoshang').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+    effect_skill_sure_hit_opponent_xuanyun: compileEffect(
+      defineEffect({
+        id: 'effect_skill_sure_hit_opponent_xuanyun',
+        on: 'AfterUseSkillCheck',
+        priority: 0,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.baseId === 'mark_xuanyun').condition(checks.exists()),
+        ),
+        execute: contexts.skillUse.apply(ops.setSureHit(2)),
+      }),
+    ),
+  })
+}
+export const generatedSkillOutcomeEffects = createGeneratedSkillOutcomeEffects()
