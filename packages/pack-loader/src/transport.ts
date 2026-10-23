@@ -1,5 +1,5 @@
 import type { AssetManifest } from '@arcadia-eternity/schema'
-import type { resolvePackLoadOrder } from '@arcadia-eternity/battle/pack'
+import type { resolvePackLoadOrder, resolvePackEntriesFromRef } from '@arcadia-eternity/battle/pack'
 import type { AssetConflict, PackLoaderOptions, PackLockfile, V2DataPackManifest } from './types'
 import YAML from 'yaml'
 
@@ -539,12 +539,14 @@ export class PackTransport {
 
   protected async importNodePackResolver(): Promise<{
     resolvePackPathFromRef: (packRef: string) => Promise<string>
+    resolvePackEntriesFromRef: typeof resolvePackEntriesFromRef
     resolvePackLoadOrder: typeof resolvePackLoadOrder
   }> {
     const specifier = '@arcadia-eternity/battle/pack'
     const module = await import(/* @vite-ignore */ specifier)
     return module as {
       resolvePackPathFromRef: (packRef: string) => Promise<string>
+      resolvePackEntriesFromRef: typeof resolvePackEntriesFromRef
       resolvePackLoadOrder: typeof resolvePackLoadOrder
     }
   }

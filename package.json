@@ -53,7 +53,9 @@
     "lint:battle-v4": "pnpm exec eslint --config eslint.config.v4.js packages/battle/test/v4/*.ts packages/battle/v4.ts packages/battle/v4-host.ts packages/battle/src/v4-host/*.ts packages/battle/v4-legacy.ts packages/battle/src/v4/api.ts packages/battle/src/v4/reactiveValue.ts packages/battle/src/v4/rng.ts packages/battle/src/v4/timer/*.ts packages/battle/src/v4/phase/selection.ts packages/battle/src/v4/phase/battleSwitch.ts packages/battle/src/v4/snapshot.ts packages/battle/src/v4/snapshotBindings.ts packages/battle/src/v4/values/*.ts packages/battle/src/v4/content/*.ts packages/battle/src/v4/content/authoring/*.ts packages/battle/src/v4/execution/*.ts packs/base/src/**/*.ts packs/base/native.ts packages/battle/v4-authoring.ts",
     "battle:v4-demo": "tsx scripts/run-v1-battle.ts",
     "content:inventory": "node scripts/content-structure.mjs inventory --pack packs/base/pack.json --groups packs/base/content-groups.yaml",
-    "test:content-structure": "node --test scripts/content-structure.test.mjs"
+    "test:content-structure": "node --test scripts/content-structure.test.mjs",
+    "test:cli": "pnpm build:cli && pnpm exec vitest run packages/cli/test --maxWorkers=1",
+    "typecheck:cli": "pnpm exec tsgo -p packages/cli/tsconfig.json"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
