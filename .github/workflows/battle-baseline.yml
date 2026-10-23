@@ -107,6 +107,8 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build browser dependencies
         run: pnpm --filter '@arcadia-eternity/web-ui^...' run build
+      - name: Build browser application and generate auto-import lint globals
+        run: pnpm --filter @arcadia-eternity/web-ui run build-only
       - name: Check native browser construction and transport types
         run: |
           pnpm typecheck:web-native
