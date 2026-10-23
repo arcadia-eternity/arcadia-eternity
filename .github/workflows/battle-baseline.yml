@@ -48,6 +48,8 @@ jobs:
         run: pnpm test:battle-v4
       - name: Build and execute original V1 in Node and Chrome
         run: pnpm verify:battle-v4-hosts
+      - name: Verify waiting checkpoints in Node and Chrome
+        run: pnpm verify:battle-v4-waiting-snapshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:

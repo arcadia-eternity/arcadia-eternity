@@ -1,5 +1,6 @@
 import {
   BattleMessageType,
+  BattlePhase,
   BattleStatus,
   type BattleMessage,
   type PlayerSelection,
@@ -230,16 +231,20 @@ export class LocalBattleSystemV4 implements IBattleSystem {
   }
   async createRuntimeSnapshot(): Promise<BattleRuntimeSnapshot> {
     this.assertOpen()
-    if (this.preparation?.pending) throw new Error('Team selection snapshots are not supported')
+    const teamSelection = this.preparation?.pending ? this.preparation.snapshot() : null
     return {
       format: 'arcadia.battle.native.v4',
-      version: 2,
-      payload: JSON.stringify({ battle: this.content.snapshot(this.battle), reconnect: this.reconnect.snapshot() }),
+      version: 3,
+      payload: JSON.stringify({
+        battle: this.content.snapshot(this.battle),
+        reconnect: this.reconnect.snapshot(),
+        teamSelection,
+      }),
     }
   }
   async restoreRuntimeSnapshot(snapshot: BattleRuntimeSnapshot): Promise<void> {
     this.assertOpen()
-    if (snapshot.format !== 'arcadia.battle.native.v4' || ![1, 2].includes(snapshot.version))
+    if (snapshot.format !== 'arcadia.battle.native.v4' || snapshot.version !== 3)
       return Promise.reject(new Error('Unsupported native runtime snapshot'))
     const task = this.replaceBattle(snapshot)
     this.restoring = task
@@ -251,23 +256,26 @@ export class LocalBattleSystemV4 implements IBattleSystem {
     // Validate and hydrate before changing the live battle or its subscriptions.
     const payload = JSON.parse(snapshot.payload)
     if (
-      snapshot.version === 2 &&
-      (!payload ||
-        typeof payload !== 'object' ||
-        Array.isArray(payload) ||
-        Object.keys(payload).length !== 2 ||
-        !Object.hasOwn(payload, 'battle') ||
-        !Object.hasOwn(payload, 'reconnect'))
+      !payload ||
+      typeof payload !== 'object' ||
+      Array.isArray(payload) ||
+      Object.keys(payload).length !== 3 ||
+      !Object.hasOwn(payload, 'battle') ||
+      !Object.hasOwn(payload, 'reconnect') ||
+      !Object.hasOwn(payload, 'teamSelection')
     )
       throw new Error('Invalid native runtime payload')
-    const restored = this.content.restore(snapshot.version === 1 ? payload : payload.battle)
+    const restored = this.content.restore(payload.battle)
     const previous = this.battle
     try {
-      const preparation = this.createPreparation(restored)
-      const windows: ReconnectWindow[] =
-        snapshot.version === 1
-          ? []
-          : readReconnectWindows(payload.reconnect, [restored.playerA.id, restored.playerB.id])
+      if (payload.teamSelection === null && restored.currentPhase === BattlePhase.TeamSelectionPhase)
+        throw new Error('Team selection runtime snapshot requires saved host choices')
+      const preparation =
+        payload.teamSelection === null ? undefined : NativeTeamSelection.restore(restored, payload.teamSelection)
+      const windows: ReconnectWindow[] = readReconnectWindows(payload.reconnect, [
+        restored.playerA.id,
+        restored.playerB.id,
+      ])
       this.reconnect.suspend()
       this.expectedStops.add(previous)
       this.preparation?.cancel()

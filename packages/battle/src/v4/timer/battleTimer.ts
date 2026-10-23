@@ -175,7 +175,7 @@ export class BattleTimer {
       return { timeout: true, type: TimeoutType.Total }
     }
     // 只有在设置了回合时间限制且时间用完时才算回合超时
-    if (this.config.turnTimeLimit && this.remainingTurnTime <= 0 && this.state === TimerState.Running) {
+    if (Number.isFinite(this.remainingTurnTime) && this.remainingTurnTime <= 0 && this.state === TimerState.Running) {
       return { timeout: true, type: TimeoutType.Turn }
     }
     return { timeout: false }
@@ -252,7 +252,7 @@ export class BattleTimer {
     const elapsed = (now - this.lastUpdateTime) / 1000 // 转换为秒
 
     // 只有在设置了时间限制时才减少时间
-    if (this.config.turnTimeLimit) {
+    if (Number.isFinite(this.remainingTurnTime)) {
       this.remainingTurnTime = Math.max(0, this.remainingTurnTime - elapsed)
     }
     if (this.config.totalTimeLimit) {

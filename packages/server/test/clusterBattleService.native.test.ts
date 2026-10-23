@@ -362,7 +362,7 @@ describe('ClusterBattleService native bootstrap persistence', () => {
     const active = writes.find(room => room.status === 'active')!
     expect(active.metadata?.runtimeBootstrap).toMatchObject({
       runtime: { kind: 'native-v4' },
-      initial: { format: 'arcadia.battle.native.v4', version: 2 },
+      initial: { format: 'arcadia.battle.native.v4', version: 3 },
     })
     const source = f.service.getLocalBattle(roomId)!
     expect(source).toBeInstanceOf(LocalBattleSystemV4)

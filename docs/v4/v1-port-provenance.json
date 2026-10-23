@@ -15,7 +15,7 @@
       "destination": "packages/battle/src/v4/battle.ts",
       "sourceBlob": "4447676e5e03cf1f816690453a5eaa6117798de5",
       "sourceSha256": "43a0c245e88c00c6d10ea023283d8a30aef60ba63560654d30a95a33aa30d24c",
-      "portedSha256": "4cfcc244305d93a592b16de3daca26ed8e30b5b6e06b18b1706cc1b470bf5a71",
+      "portedSha256": "55f4759905243644284a9bd743fd14532aecd59b4d3de45f0d9f3af5fc400f7e",
       "changed": true
     },
     {
@@ -151,7 +151,7 @@
       "destination": "packages/battle/src/v4/phase/battleLoop.ts",
       "sourceBlob": "04684be138d390b3f3e7859963e564477effecf9",
       "sourceSha256": "0d986fbd1392e8e76a0ca50f70b77dea671286892cc78c0a5908e516e322ca0c",
-      "portedSha256": "ec36338f6595f0ad4557709757de1f90b608294c9dce85e751e15ba32376a6f1",
+      "portedSha256": "01b99249e63e4ecf337f2004e503d2b851c98749291db98e02b4211a5aa98a67",
       "changed": true
     },
     {
@@ -167,7 +167,7 @@
       "destination": "packages/battle/src/v4/phase/battleSwitch.ts",
       "sourceBlob": "b97e8798ec5a87e4f5751f32e5f857758bde0eec",
       "sourceSha256": "1aa5207682f1b37274f6b20fc50f6777de517bef496ca30f5a54c44fdf2bc915",
-      "portedSha256": "623237938ceb6b886f19f1cb75344bc36b3ba72a5b9c3875d753817642670405",
+      "portedSha256": "9da3e2f83752f9bc7b565b092aa56051a7fc01e550886285c8e78e2c349d927b",
       "changed": true
     },
     {
@@ -303,7 +303,7 @@
       "destination": "packages/battle/src/v4/timer/battleTimer.ts",
       "sourceBlob": "7f3e83a053df65928db252d08f481f74537f4a49",
       "sourceSha256": "c4c190239d8d28936b9652c663038c40449d775e3031c7fe0bc0a5745dd37b19",
-      "portedSha256": "7a11ab2638f2caa072da0c0269bad8093c94d6a21b55a63a26741e2ca3536e48",
+      "portedSha256": "6fe4ec60b2d736451d4aca0502442627b1619363b3be5749a57ab1e96992b68d",
       "changed": true
     },
     {
@@ -319,7 +319,7 @@
       "destination": "packages/battle/src/v4/timer/timerManager.ts",
       "sourceBlob": "458d0b7831fbce0b10ce6876e231c4d4c0d9fb81",
       "sourceSha256": "fb636c9d6399ee869265744d6a766c2e9e43051974c69f0e035611fc843ad70e",
-      "portedSha256": "74c6df94b9b302be5771a4454fa697ff691e03e27fa3b2adb2005cf59408859e",
+      "portedSha256": "ee39f53d6dd2e8bb50e386d3375f73bb06fc6d799fa8fb09283812b4ba1cd072",
       "changed": true
     },
     {

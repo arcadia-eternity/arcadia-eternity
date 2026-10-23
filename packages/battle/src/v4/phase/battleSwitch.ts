@@ -22,7 +22,11 @@ export class BattleSwitchContext extends Context {
  * This includes forced switches and faint switches
  */
 export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
-  constructor(battle: Battle, id?: string) {
+  constructor(
+    battle: Battle,
+    id?: string,
+    private resumeWait = false,
+  ) {
     super(battle, id)
   }
 
@@ -31,6 +35,12 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
   }
 
   protected async executeOperation(): Promise<void> {
+    if (this.resumeWait) {
+      this.resumeWait = false
+      this.battle.assertSwitchSnapshotState(true)
+      await this.handleInitialSwitchPhase(true)
+      this.clearPendingSwitches()
+    }
     // 持续处理更换，直到没有更多需要更换的精灵
     while (true) {
       // 收集需要强制更换的玩家
@@ -66,14 +76,18 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
       }
 
       // 重置状态，准备下一轮检查
-      this.battle.isInitialSwitchPhase = false
-      this.battle.pendingForcedSwitches = []
-      this.battle.pendingFaintSwitch = undefined
-      this.battle.lastKiller = undefined
+      this.clearPendingSwitches()
     }
   }
 
-  private async handleInitialSwitchPhase(): Promise<void> {
+  private clearPendingSwitches(): void {
+    this.battle.isInitialSwitchPhase = false
+    this.battle.pendingForcedSwitches = []
+    this.battle.pendingFaintSwitch = undefined
+    this.battle.lastKiller = undefined
+  }
+
+  private async handleInitialSwitchPhase(restored = false): Promise<void> {
     // 收集所有需要更换的玩家
     const playersNeedingSwitch = [...this.battle.pendingForcedSwitches]
     if (this.battle.pendingFaintSwitch) {
@@ -85,16 +99,17 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
       return
     }
 
-    this.battle.timerManager.startSwitchPhase(playersNeedingSwitch.map(player => player.id))
+    if (restored) this.battle.timerManager.activateRestoredState()
+    else this.battle.timerManager.startSwitchPhase(playersNeedingSwitch.map(player => player.id))
 
     // 发送更换请求消息
-    if (this.battle.pendingForcedSwitches.length > 0) {
+    if (!restored && this.battle.pendingForcedSwitches.length > 0) {
       this.battle.emitMessage(BattleMessageType.ForcedSwitch, {
         player: this.battle.pendingForcedSwitches.map(p => p.id),
       })
     }
 
-    if (this.battle.pendingFaintSwitch) {
+    if (!restored && this.battle.pendingFaintSwitch) {
       this.battle.emitMessage(BattleMessageType.FaintSwitch, {
         player: this.battle.pendingFaintSwitch.id,
       })
