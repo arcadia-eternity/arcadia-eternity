@@ -1,6 +1,6 @@
 # Current production oracle mismatch diagnosis
 
-Reproduce using `pnpm exec tsx scripts/effect-migration/diagnose.mts`; use `--check` to compare the saved report. The tool verifies production file hashes and the imported legacy tree against the inventory. Its [per-ID report](effect-oracle-diagnostics.json) separates structural validation from parser construction.
+This is a historical diagnostic record. The source-hash and migration-audit utilities were removed at the user's request on October 23; the [saved report](effect-oracle-diagnostics.json) describes that earlier checkpoint and is not an active verification gate.
 
 Of the current 1065 definitions, 782 pass the imported legacy schema and 748 pass the full legacy parser. Thus 283 fail schema validation and another 34 fail afterward. The latter include paths such as AddMarkContext.baseMarkId and AddMarkContext.statLevelMarkLevel that the historical custom type metadata does not recognize. These counts do not establish runtime behavior for the accepted definitions.
 

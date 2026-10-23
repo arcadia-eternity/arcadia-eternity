@@ -2,7 +2,7 @@
 
 The imported oracle is based on `c086289812885e7a4903b181e2b8989e201452b8`. It is not the final V1 implementation. Searching only that oracle led to incorrect claims that several operations never existed. Candidate coverage is not semantic acceptance; affected candidates require revalidation against the later implementation before admission.
 
-The comparison revision is `61c349fa7ca35c392b0e751c9238759b02aefcb3`, the parent of the commit deleting the old effectBuilder/parser. It is a recoverable historical reference, not a claim that every historical defect should be preserved or that every file should replace the port wholesale. `scripts/effect-migration/audit-historical-v1.mjs` records source hashes, line references, missing parser/member names and affected current definitions in `historical-v1-audit.json`. It requires the Git objects; its report is checked in for shallow clones. Presence and hash checks establish source existence only, not behavioral equivalence.
+The comparison revision is `61c349fa7ca35c392b0e751c9238759b02aefcb3`, the parent of the commit deleting the old effectBuilder/parser. It is a recoverable historical reference, not a claim that every historical defect should be preserved or that every file should replace the port wholesale. `historical-v1-audit.json` retains the original comparison as historical evidence. The source-hash audit utility was removed at the user's request on October 23; this report is not an active verification gate.
 
 ## Confirmed findings
 

@@ -8,7 +8,7 @@ Three current production IDs now have handwritten native candidates in `packages
 | `125_hp_if_consecutive_half`  | 63                    | 125                         |
 | `quarter_if_consecutive_half` | floor(maxHp / 4)      | floor(maxHp / 8)            |
 
-The full IDs and normalized current-YAML hashes are pinned in [the candidate ledger](consecutive-healing-candidates.json). The apparently counterintuitive fixed-value branches are preserved exactly from YAML; effect names are not a specification for reversing them. The two fixed-value effects each contain two anonymous `raw:number` declarations. The 2026-10-23 audit repaired their conversion to literals: both branches now use separate authored parameters, with source-node addresses/defaults recorded in the ledger and the complete [parameter mapping](official-parameter-mapping.json). The ratio effect's divisors remain source literals.
+The full IDs are recorded in [the candidate ledger](consecutive-healing-candidates.json). The apparently counterintuitive fixed-value branches are preserved exactly from YAML; effect names are not a specification for reversing them. The two fixed-value effects each contain two anonymous `raw:number` declarations. Both branches now use separate authored parameters, with addresses/defaults recorded in the ledger. The ratio effect's divisors remain source literals.
 
 The native code preserves collect-time selfUseSkill admission, then resolves the current source owner at action execution. It reads that owner's lastSkillUsedTimes and (for the ratio candidate) current maxHp. The branch condition is strictly greater than one. The conditional divisor is chosen before division and flooring; the resulting number is passed into HealContext once. OnBeforeHeal can modify or cancel healing but cannot cause the source expression to be re-read. No selector interpreter, custom type metadata, RxJS or runtime YAML is imported by the candidate module.
 
@@ -20,8 +20,8 @@ Validation contains 88 tests:
 
 All records remain U with candidate decision E. Production registration, official skill/species closure, full-game traces, immutable environment publication and independent Spec review remain pending. These tests establish the branch/action-time behavior needed for subsequent static conversion; they do not constitute full catalog acceptance.
 
-The later parameter audit adds 20 red-to-green cases for edited branch values, Skill/Mark source scopes, lazy branch reads, edits after admission and fresh-host restoration. See [parameter surface evidence](official-parameter-surface.md). The combined default/parameter/weakness/native-content run passes 125 tests; types, lint and declaration generation pass. Earlier counts and acceptance boundaries below describe their original checkpoints.
+The later repair adds 20 red-to-green cases for edited branch values, Skill/Mark source scopes, lazy branch reads, edits after admission and fresh-host restoration. The combined default/parameter/weakness/native-content run passes 125 tests; types, lint and declaration generation pass. Earlier counts and acceptance boundaries below describe their original checkpoints.
 
-Review: the original Standards review found no blocking issues. The later parameter repair has separate Standards and Spec review evidence in the parameter surface record.
+Review: Standards and Spec reviews found no blocking issues in the later parameter repair.
 
 Verification: code/declaration builds, V4 typecheck/lint, all 784 tests across 31 V4 files, source provenance and existing Node/Chrome host/checkpoint checks pass.
