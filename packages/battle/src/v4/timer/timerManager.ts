@@ -71,7 +71,7 @@ export class TimerManager {
     if (this.config.enabled) this.exportRuntimeState()
   }
 
-  public assertTeamSelectionSnapshotSafe(selectedIds?: readonly playerId[]): void {
+  public assertTeamSelectionSnapshotSafe(selectedIds?: readonly playerId[], timeLimit?: number): void {
     if (this.animationTracker.hasActiveAnimations() || this.pendingTurnReset)
       throw new Error('Team selection snapshot cannot carry combat animations or deferred timer resets')
     if (!this.config.enabled) {
@@ -92,6 +92,11 @@ export class TimerManager {
       throw new Error('Invalid team selection timer state')
     if (selectedIds && saved.selections.some(([id, selected]) => selected !== selectedIds.includes(id as playerId)))
       throw new Error('Team selection choices disagree with timer confirmation state')
+    if (
+      timeLimit !== undefined &&
+      saved.players.some(clock => (clock.remainingTurnTime === null) !== (timeLimit === 0))
+    )
+      throw new Error('Team selection timer limit disagrees with preparation configuration')
   }
 
   public assertSwitchSnapshotSafe(): void {
@@ -106,6 +111,13 @@ export class TimerManager {
       saved.phase !== 'switch' ||
       saved.selections.length !== required.size ||
       saved.selections.some(([id]) => !required.has(id as playerId)) ||
+      saved.players.some(clock => {
+        if (!required.has(clock.playerId as playerId)) return false
+        const selected = saved.selections.find(([id]) => id === clock.playerId)?.[1]
+        if (selected) return clock.state !== TimerState.Paused && clock.state !== TimerState.Timeout
+        const waitingForAnimation = !!saved.pendingTurnReset?.includes(clock.playerId)
+        return clock.state !== TimerState.Running && !(waitingForAnimation && clock.state === TimerState.Paused)
+      }) ||
       (saved.pendingTurnReset &&
         (saved.pendingTurnReset.length !== required.size ||
           saved.pendingTurnReset.some(id => !required.has(id as playerId))))

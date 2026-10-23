@@ -303,7 +303,7 @@
       "destination": "packages/battle/src/v4/timer/battleTimer.ts",
       "sourceBlob": "7f3e83a053df65928db252d08f481f74537f4a49",
       "sourceSha256": "c4c190239d8d28936b9652c663038c40449d775e3031c7fe0bc0a5745dd37b19",
-      "portedSha256": "7a11ab2638f2caa072da0c0269bad8093c94d6a21b55a63a26741e2ca3536e48",
+      "portedSha256": "6fe4ec60b2d736451d4aca0502442627b1619363b3be5749a57ab1e96992b68d",
       "changed": true
     },
     {
@@ -319,7 +319,7 @@
       "destination": "packages/battle/src/v4/timer/timerManager.ts",
       "sourceBlob": "458d0b7831fbce0b10ce6876e231c4d4c0d9fb81",
       "sourceSha256": "fb636c9d6399ee869265744d6a766c2e9e43051974c69f0e035611fc843ad70e",
-      "portedSha256": "bfdf4e2ec43120db8ae5840ce762b931e1965258431f9b72e79e2752f27fc3d4",
+      "portedSha256": "ee39f53d6dd2e8bb50e386d3375f73bb06fc6d799fa8fb09283812b4ba1cd072",
       "changed": true
     },
     {

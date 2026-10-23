@@ -269,6 +269,66 @@ it('keeps an accepted switch clock paused and charges the pending reward deadlin
   expect(restored.currentPhase).toBe(BattlePhase.SelectionPhase)
   expect(restored.playerB.activePet.id).toBe('B/reserve')
 })
+for (const corruption of [
+  'stopped',
+  'paused',
+  'timeout',
+  'unlimited',
+  'foreign-animation',
+  'matching-animation',
+] as const)
+  it(`rejects an invalid pending switch clock before publishing runtime registrations: ${corruption}`, async () => {
+    vi.useFakeTimers()
+    const { battle, catalog } = await switchWait({
+      reward: false,
+      timerConfig: { enabled: true, turnTimeLimit: 3, totalTimeLimit: 30 },
+    })
+    if (corruption === 'foreign-animation')
+      battle.startAnimation('fixture/unrelated-animation', 1000, battle.playerA.id)
+    if (corruption === 'matching-animation') battle.startAnimation('fixture/own-animation', 1000, battle.playerB.id)
+    const saved = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog))) as ReturnType<typeof snapshotBattle>
+    const clock = saved.nodes.find(
+      node =>
+        node.kind === 'object' && node.fields.playerId === battle.playerB.id && 'remainingTurnTime' in node.fields,
+    )!
+    if (corruption === 'unlimited') clock.fields.remainingTurnTime = null
+    else {
+      clock.fields.state = corruption.endsWith('-animation') ? 'paused' : corruption
+      clock.fields.lastEmittedState = clock.fields.state
+      if (corruption === 'foreign-animation' || corruption === 'paused') clock.fields.pauseReason = 'system'
+      if (corruption === 'matching-animation') clock.fields.pauseReason = 'animation'
+    }
+    await battle.cleanup()
+    const count = AttributeSystem.getGlobalMemoryStats().totalInstances
+    expect(() => {
+      battles.push(restoreBattle(saved, catalog))
+    }).toThrow()
+    expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(count)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+it('restores a switch clock paused for its deferred reset while a saved animation is active', async () => {
+  vi.useFakeTimers()
+  const { battle, catalog } = await switchWait({
+    reward: false,
+    timerConfig: { enabled: true, turnTimeLimit: 3, totalTimeLimit: 30, animationPauseEnabled: true },
+  })
+  const animation = battle.startAnimation('fixture/switch-animation', 1000, battle.playerB.id)
+  battle.timerManager.startSwitchPhase([battle.playerB.id])
+  expect(battle.getPlayerTimerState(battle.playerB.id)?.state).toBe('paused')
+  const saved = JSON.parse(JSON.stringify(snapshotBattle(battle, catalog)))
+  await battle.cleanup()
+  const restored = restoreBattle(saved, catalog)
+  battles.push(restored)
+  expect(vi.getTimerCount()).toBe(0)
+  running(restored.resumeBattle())
+  restored.endAnimation(animation)
+  expect(restored.getPlayerTimerState(restored.playerB.id)).toMatchObject({
+    state: 'running',
+    remainingTurnTime: 3,
+  })
+  await finishWait(restored)
+})
 it('retains an AI forced-switch choice without choosing twice or consuming another RNG draw', async () => {
   const { battle, catalog } = await switchWait({ dual: true, ai: true })
   expect(battle.playerA.selection?.type).toBe('switch-pet')

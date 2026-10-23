@@ -94,7 +94,8 @@ export function readTimerRuntime(
   for (const player of saved.players)
     if (
       !player.config.enabled ||
-      (player.remainingTurnTime === null && player.config.turnTimeLimit) ||
+      // Preparation has its own limit; zero means unlimited even when combat turns are timed.
+      (player.remainingTurnTime === null && player.config.turnTimeLimit && saved.phase !== 'team-selection') ||
       (player.remainingTotalTime === null && player.config.totalTimeLimit)
     )
       throw new Error('Timer snapshot limit mismatch')

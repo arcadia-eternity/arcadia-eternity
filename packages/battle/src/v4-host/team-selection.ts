@@ -91,7 +91,8 @@ export class NativeTeamSelection {
     if (!this.pending) throw new Error('Team selection is no longer pending')
     if (this.timedOut && (!this.active || !this.choices.size))
       throw new Error('Team selection timeout is not at a settled input boundary')
-    if (this.active) this.battle.timerManager.assertTeamSelectionSnapshotSafe([...this.choices.keys()])
+    if (this.active)
+      this.battle.timerManager.assertTeamSelectionSnapshotSafe([...this.choices.keys()], this.config.timeLimit)
     else this.battle.timerManager.assertInitialSnapshotSafe()
     return {
       version: 1,

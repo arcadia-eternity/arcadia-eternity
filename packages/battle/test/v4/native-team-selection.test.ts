@@ -368,6 +368,86 @@ it('restores a submitted player paused and preserves the other preparation deadl
   })
 })
 
+it('roundtrips unlimited preparation without borrowing the finite combat turn deadline', async () => {
+  vi.useFakeTimers()
+  const source = fixture({ maxTeamSize: 1, timeLimit: 0 }, { enabled: true, turnTimeLimit: 30, totalTimeLimit: 100 })
+  await source.system.ready()
+  await vi.advanceTimersByTimeAsync(2000)
+  await source.system.submitAction(choice(source.a, [1]))
+  const saved = JSON.parse(JSON.stringify(await source.system.createRuntimeSnapshot()))
+  await source.system.cleanup()
+  await vi.advanceTimersByTimeAsync(5000)
+  const target = fixture({ timeLimit: 1 }),
+    timeout = vi.fn()
+  target.system.onTimerEvent('teamSelectionTimeout', timeout)
+  await target.system.restoreRuntimeSnapshot(saved)
+  await target.system.ready()
+  expect(await target.system.getPlayerTimerState(source.a.id)).toMatchObject({
+    state: 'paused',
+    remainingTurnTime: Infinity,
+    remainingTotalTime: 98,
+  })
+  expect(await target.system.getPlayerTimerState(source.b.id)).toMatchObject({
+    state: 'running',
+    remainingTurnTime: Infinity,
+    remainingTotalTime: 93,
+  })
+  await vi.advanceTimersByTimeAsync(31000)
+  expect(timeout).not.toHaveBeenCalled()
+  expect(target.restored!.currentPhase).toBe(BattlePhase.TeamSelectionPhase)
+  expect(await target.system.getPlayerTimerState(source.b.id)).toMatchObject({
+    remainingTurnTime: Infinity,
+    remainingTotalTime: 62,
+  })
+  const ready = target.restored!.waitForInputReady()
+  await target.system.submitAction(choice(target.restored!.playerB))
+  await ready
+  expect(await target.system.getPlayerTimerState(source.b.id)).toMatchObject({
+    state: 'running',
+    remainingTurnTime: 30,
+    remainingTotalTime: 62,
+  })
+})
+
+it('roundtrips a finite preparation deadline when combat turn time is unlimited', async () => {
+  vi.useFakeTimers()
+  const source = fixture({ maxTeamSize: 1, timeLimit: 3 }, { enabled: true, turnTimeLimit: 0, totalTimeLimit: 100 })
+  await source.system.ready()
+  await vi.advanceTimersByTimeAsync(1000)
+  await source.system.submitAction(choice(source.a, [1]))
+  expect(await source.system.getPlayerTimerState(source.b.id)).toMatchObject({
+    remainingTurnTime: 2,
+    remainingTotalTime: 99,
+  })
+  const saved = await source.system.createRuntimeSnapshot()
+  await source.system.cleanup()
+  await vi.advanceTimersByTimeAsync(1000)
+  const target = fixture({ timeLimit: 100 }),
+    timeout = vi.fn(),
+    starts = vi.fn()
+  target.system.onTimerEvent('teamSelectionTimeout', timeout)
+  target.system.BattleEvent(message => {
+    if (message.type === BattleMessageType.BattleStart) starts()
+  })
+  await target.system.restoreRuntimeSnapshot(JSON.parse(JSON.stringify(saved)))
+  await target.system.ready()
+  expect(await target.system.getPlayerTimerState(source.b.id)).toMatchObject({
+    remainingTurnTime: 1,
+    remainingTotalTime: 98,
+  })
+  const ready = target.restored!.waitForInputReady()
+  await vi.advanceTimersByTimeAsync(1000)
+  await ready
+  expect(timeout).toHaveBeenCalledTimes(1)
+  expect(starts).toHaveBeenCalledTimes(1)
+  expect(target.restored!.currentPhase).toBe(BattlePhase.SelectionPhase)
+  expect(await target.system.getPlayerTimerState(source.b.id)).toMatchObject({
+    state: 'running',
+    remainingTurnTime: Infinity,
+    remainingTotalTime: 97,
+  })
+})
+
 it('preserves a reported preparation timeout while the other player deadline is still pending', async () => {
   vi.useFakeTimers()
   const source = fixture({ maxTeamSize: 1, timeLimit: 2 }, { enabled: true, turnTimeLimit: 30, totalTimeLimit: 100 })
@@ -433,6 +513,21 @@ for (const timeout of ['preparation', 'total'] as const)
   })
 
 const malformedPreparations: [string, (payload: SnapshotMutation) => void][] = [
+  [
+    'missing finite preparation deadline',
+    payload => {
+      const clock = payload.battle.nodes.find(
+        node => node.kind === 'object' && node.fields.state === 'running' && 'remainingTurnTime' in node.fields,
+      )!
+      clock.fields.remainingTurnTime = null
+    },
+  ],
+  [
+    'finite deadline for unlimited preparation',
+    payload => {
+      payload.teamSelection!.config.timeLimit = 0
+    },
+  ],
   [
     'invalid timeout flag',
     payload => {
