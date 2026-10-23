@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { writeMigrationArtifact } from './artifacts.mjs'
 import { pathToFileURL } from 'node:url'
 import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
@@ -166,9 +167,7 @@ export async function generateSkillOutcome({ check = false } = {}) {
     ['docs/v4/validation/skill-outcomes-candidates.json', JSON.stringify({ formatVersion: 1, records, rejected })],
   ]) {
     const output = await format(raw, { ...(await resolveConfig(path)), filepath: path })
-    if (check) {
-      if ((await readFile(path, 'utf8')) !== output) throw new Error(`Generated drift: ${path}`)
-    } else await writeFile(path, output)
+    await writeMigrationArtifact(path, output, { check })
   }
   return { generated: records.length, rejected: rejected.length }
 }

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { writeMigrationArtifact } from './artifacts.mjs'
 import { pathToFileURL } from 'node:url'
 import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
@@ -145,9 +146,7 @@ export const generatedInstantLiteralEffects = Object.freeze({${entries.join(',\n
   ])
   for (const [path, raw] of files) {
     const output = await format(raw, { ...(await resolveConfig(path)), filepath: path })
-    if (check) {
-      if ((await readFile(path, 'utf8')) !== output) throw new Error(`Generated candidate drift: ${path}`)
-    } else await writeFile(path, output)
+    await writeMigrationArtifact(path, output, { check })
   }
   return { generated: candidates.length, protected: records.length - candidates.length, rejected: rejected.length }
 }

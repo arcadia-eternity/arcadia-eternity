@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { writeMigrationArtifact } from './artifacts.mjs'
 import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
 import { fields, normalize, condition } from './authoring-emitter.mjs'
@@ -215,9 +216,7 @@ export function ${profile.factory}(marks: ReadonlyMap<string, BaseMark>){
     ],
   ]) {
     const output = await format(raw, { ...(await resolveConfig(path)), filepath: path })
-    if (check) {
-      if ((await readFile(path, 'utf8')) !== output) throw new Error(`Generated drift: ${path}`)
-    } else await writeFile(path, output)
+    await writeMigrationArtifact(path, output, { check })
   }
   return {
     generated: records.length,

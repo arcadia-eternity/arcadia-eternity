@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { writeMigrationArtifact } from './artifacts.mjs'
 import { pathToFileURL } from 'node:url'
 import { parse } from 'yaml'
 import { format, resolveConfig } from 'prettier'
@@ -313,9 +314,7 @@ export const generatedStatStageCandidates=Object.freeze({parameters,effects:Obje
     ],
   ]) {
     const output = await format(raw, { ...(await resolveConfig(path)), filepath: path })
-    if (check) {
-      if ((await readFile(path, 'utf8')) !== output) throw new Error(`Generated drift: ${path}`)
-    } else await writeFile(path, output)
+    await writeMigrationArtifact(path, output, { check })
   }
   return { generated: records.length, parameters: parameters.length, rejected: rejected.length }
 }
