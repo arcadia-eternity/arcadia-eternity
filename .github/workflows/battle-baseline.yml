@@ -44,6 +44,8 @@ jobs:
         run: |
           pnpm typecheck:battle-v4
           pnpm lint:battle-v4
+      - name: Verify every migrated raw parameter and explicit extension
+        run: pnpm verify:battle-v4-parameters
       - name: Run real original V1 battles and mechanism regressions
         run: pnpm test:battle-v4
       - name: Build and execute original V1 in Node and Chrome

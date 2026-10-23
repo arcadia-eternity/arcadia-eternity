@@ -21,10 +21,25 @@
         },
         {
           "sourcePath": "/apply/value",
-          "behavior": "Read current source owner consecutive count and maxHp at action time; preserve > 1 branches, literal values and floor after conditional divisor. Heal hooks do not re-evaluate the chosen value."
+          "behavior": "Read current source owner consecutive count at action time, then only the selected raw branch parameter in the current source scope. Preserve source branch direction, HealContext sampling and the existing healing floor/clamp."
         }
       ],
-      "test": "packages/battle/test/v4/consecutive-healing.test.ts"
+      "test": "packages/battle/test/v4/consecutive-healing.test.ts",
+      "parameters": [
+        {
+          "sourcePath": "/apply/value/trueValue",
+          "address": "ae:param:[\"effect_skill_heal_self_120_hp_if_consecutive_half\",\"parameters\",\"trueValue\"]",
+          "defaultValue": 120,
+          "tags": []
+        },
+        {
+          "sourcePath": "/apply/value/falseValue",
+          "address": "ae:param:[\"effect_skill_heal_self_120_hp_if_consecutive_half\",\"parameters\",\"falseValue\"]",
+          "defaultValue": 60,
+          "tags": []
+        }
+      ],
+      "parameterTests": "packages/battle/test/v4/consecutive-healing-parameters.test.ts"
     },
     {
       "id": "effect_skill_heal_self_125_hp_if_consecutive_half",
@@ -46,10 +61,25 @@
         },
         {
           "sourcePath": "/apply/value",
-          "behavior": "Read current source owner consecutive count and maxHp at action time; preserve > 1 branches, literal values and floor after conditional divisor. Heal hooks do not re-evaluate the chosen value."
+          "behavior": "Read current source owner consecutive count at action time, then only the selected raw branch parameter in the current source scope. Preserve source branch direction, HealContext sampling and the existing healing floor/clamp."
         }
       ],
-      "test": "packages/battle/test/v4/consecutive-healing.test.ts"
+      "test": "packages/battle/test/v4/consecutive-healing.test.ts",
+      "parameters": [
+        {
+          "sourcePath": "/apply/value/trueValue",
+          "address": "ae:param:[\"effect_skill_heal_self_125_hp_if_consecutive_half\",\"parameters\",\"trueValue\"]",
+          "defaultValue": 125,
+          "tags": []
+        },
+        {
+          "sourcePath": "/apply/value/falseValue",
+          "address": "ae:param:[\"effect_skill_heal_self_125_hp_if_consecutive_half\",\"parameters\",\"falseValue\"]",
+          "defaultValue": 63,
+          "tags": []
+        }
+      ],
+      "parameterTests": "packages/battle/test/v4/consecutive-healing-parameters.test.ts"
     },
     {
       "id": "effect_skill_heal_self_quarter_if_consecutive_half",

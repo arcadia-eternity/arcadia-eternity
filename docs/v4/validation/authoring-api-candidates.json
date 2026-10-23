@@ -52,11 +52,14 @@
       "implementation": "packages/battle/src/v4/official/authored/weakness-speed.ts",
       "classification": "U",
       "status": "native-candidate",
-      "evidence": "mechanism and fresh-catalog JSON checkpoint tests pass; legacy removal policy, full-game comparison and production admission remain unaccepted",
+      "evidence": "Actual creation sees an empty selfMarks selection before source insertion in both runtimes. A pre-existing captured input becomes missing after destruction under the reviewed value contract; legacy retains its removed attribute source. Real lifecycle, scoped source cleanup and fresh host restoration are covered.",
       "tests": [
         "packages/battle/design/effect-authoring/runtime.test.ts",
-        "packages/battle/test/v4/authoring-snapshot.test.ts"
-      ]
+        "packages/battle/test/v4/authoring-snapshot.test.ts",
+        "packages/battle/test/v4/weakness-speed.test.ts"
+      ],
+      "candidateDecision": "C",
+      "decisions": ["C20"]
     }
   ]
 }

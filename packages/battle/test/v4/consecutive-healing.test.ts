@@ -5,6 +5,7 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
   officialConsecutiveHealingEffects,
+  effectAuthoring,
   defineNativeEffect,
   BaseMark,
   BaseSkill,
@@ -81,7 +82,9 @@ function run(id: Id, native: boolean, kind: 'skill' | 'mark', variant: (typeof v
     )
     source = owner.marks.find(mark => mark.base === base)!
   }
-  source.effects.push(candidate(id, native))
+  const effect = candidate(id, native)
+  if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
+  source.effects.push(effect)
   const amounts: number[] = [],
     events: unknown[] = []
   skill.effects.push(
@@ -154,7 +157,9 @@ async function skillSequence(id: Id, native: boolean, checkpoint: boolean) {
   battles.push(battle)
   let owner = f.a.activePet,
     skill = owner.skills[0]
-  skill.effects.splice(0, skill.effects.length, candidate(id, native))
+  const effect = candidate(id, native)
+  if (native) effectAuthoring.effectParameters(effect).install(battle.configSystem)
+  skill.effects.splice(0, skill.effects.length, effect)
   const catalog = () => {
     const result = new SnapshotCatalog('consecutive-healing/1')
     for (const pet of [...f.a.team, ...f.b.team])
