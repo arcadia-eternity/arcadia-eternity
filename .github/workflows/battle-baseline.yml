@@ -78,7 +78,7 @@ jobs:
         run: |
           pnpm typecheck:server-native
           pnpm lint:server-native
-      - name: Verify native construction and existing V2 recovery
+      - name: Verify native construction, recovery and disconnect handling
         run: pnpm test:server-native
       - name: Verify native content and bootstrap in Node and Chrome
         run: pnpm verify:battle-v4-native-pack

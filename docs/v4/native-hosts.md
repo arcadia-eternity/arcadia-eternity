@@ -24,11 +24,11 @@ await system.submitAction(selection)
 
 ## 各宿主入口
 
-| 宿主             | 入口与约定                                                                                                                   | 主要检查                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 服务端           | `packages/server/src/domain/battle/runtime/localBattleRuntimeFactory.ts` 默认创建 `native-v4`，显式 `legacy-v2` 保留历史恢复 | `pnpm test:server-native`、`pnpm typecheck:server-native`、`pnpm lint:server-native`                    |
-| 浏览器本地与 P2P | `packages/web-ui/src/services/nativeBattleFactory.ts` 捕获当前元数据，含未保存编辑；P2P 等待异步构造完成后初始化             | `pnpm test:web-native`、`pnpm typecheck:web-native`、`pnpm lint:web-native`、`pnpm test:web-native:e2e` |
-| CLI 本地         | `bin/native-local-battle.ts` 加载原生内容并通过现有控制台接口运行；输入仍为 YAML/JSON 队伍草稿                               | `pnpm test:cli-native`、`pnpm build:cli`                                                                |
+| 宿主             | 入口与约定                                                                                                                            | 主要检查                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 服务端           | `packages/server/src/domain/battle/runtime/localBattleRuntimeFactory.ts` 默认创建 `native-v4`，旧 V2 入口待移除，不再承诺历史恢复兼容 | `pnpm test:server-native`、`pnpm typecheck:server-native`、`pnpm lint:server-native`                    |
+| 浏览器本地与 P2P | `packages/web-ui/src/services/nativeBattleFactory.ts` 捕获当前元数据，含未保存编辑；P2P 等待异步构造完成后初始化                      | `pnpm test:web-native`、`pnpm typecheck:web-native`、`pnpm lint:web-native`、`pnpm test:web-native:e2e` |
+| CLI 本地         | `bin/native-local-battle.ts` 加载原生内容并通过现有控制台接口运行；输入仍为 YAML/JSON 队伍草稿                                        | `pnpm test:cli-native`、`pnpm build:cli`                                                                |
 
 各入口每场分配新的精灵/技能实例，保留队伍元数据与显式 HP。AI 使用已有 `AIPlayer`，通过 `Battle.setSelection` 提交动作，参与日志、等待通知与计时。队伍草稿即使来自同一文件，也不复用战斗实例身份。
 
@@ -42,7 +42,7 @@ await system.submitAction(selection)
 
 创建原生对战后，在发布本地实例前，先将完整初始快照、runtime kind、可信构建身份及内容 revision 保存到 Redis/房间元数据，至少一处成功。只保存队伍草稿会重建不同实例 ID，无法重放引用旧技能 ID 的动作日志。
 
-恢复先按持久身份选择实现：未标记的历史记录按 V2 处理，损坏的原生描述明确失败。原生恢复校验构建与内容身份，优先使用不超前于日志及未完成阶段基线的兼容检查点；无法使用时回到同一原生初始快照再重放已接受动作。恢复失败保留原 bootstrap 与日志。
+恢复先按持久身份选择实现：旧 V2 对局不在本次迁移的恢复兼容范围内；现存历史分派代码留待 V2 整体清理。损坏的原生描述明确失败。原生恢复校验构建与内容身份，优先使用不超前于日志及未完成阶段基线的兼容检查点；无法使用时回到同一原生初始快照再重放已接受动作。恢复失败保留原 bootstrap 与日志。
 
 激活房间前重新读取已保存记录，避免临时 waiting-room 数据覆盖 bootstrap。重连窗口恢复后保持原绝对期限；动作重放等待真实输入边界。详细快照边界见[快照指南](v1-snapshots.md)。
 

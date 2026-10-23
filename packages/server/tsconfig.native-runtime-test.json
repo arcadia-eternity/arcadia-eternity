@@ -5,6 +5,6 @@
     "noEmit": true,
     "resolveJsonModule": true
   },
-  "include": ["test/nativeBattleRuntimeFactory.test.ts", "test/clusterBattleService.v2.test.ts", "src/**/*.d.ts"],
+  "include": ["test/nativeBattleRuntimeFactory.test.ts", "test/clusterBattleService.native.test.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

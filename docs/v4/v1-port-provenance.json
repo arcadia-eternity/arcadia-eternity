@@ -567,8 +567,8 @@
       "destination": "packages/battle/src/v4/legacy/schema/pet.ts",
       "sourceBlob": "be83592274444e4f13552ecdab754ebb9815b6d9",
       "sourceSha256": "a840ea5d3aa9f1a8474495e060acf479c7021ec027f355317546f5f6dc98cd25",
-      "portedSha256": "a840ea5d3aa9f1a8474495e060acf479c7021ec027f355317546f5f6dc98cd25",
-      "changed": false
+      "portedSha256": "70d21283afb13f361893582e795b6324f6d905f0fa610de335d6e3e8ac9a2dae",
+      "changed": true
     },
     {
       "original": "packages/schema/src/player.ts",
