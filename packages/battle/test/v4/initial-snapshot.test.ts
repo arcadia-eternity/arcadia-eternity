@@ -1,11 +1,8 @@
-import { readFileSync } from 'node:fs'
-import { parse } from 'yaml'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import {
   AttributeSystem,
   BattleMessageType,
   BattleStatus,
-  createOfficialContent,
   setGlobalLogger,
   snapshotBattle,
   restoreBattle,
@@ -16,14 +13,10 @@ import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import input from '../../src/v2/__tests__/fixtures/baseline/official-switch.input.json'
 import { makeScenario } from './scenario'
 import { catalogFor } from './snapshot-host'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { loadBasePrototypeData } from './base-metadata'
 
-const dataRoot = new URL('../../../../packs/base/data/', import.meta.url)
-const load = (name: string) => parse(readFileSync(new URL(`${name}.yaml`, dataRoot), 'utf8'), { merge: true })
-const data = {
-  marks: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'].flatMap(load),
-  skills: load('skill'),
-  species: load('species'),
-}
+const data = loadBasePrototypeData()
 const content = () => createOfficialContent(data, 'initial/native/1')
 const battles: Battle[] = [],
   systems: LocalBattleSystemV4[] = [],

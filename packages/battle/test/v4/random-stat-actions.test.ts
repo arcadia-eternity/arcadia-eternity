@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { EffectParser, type EffectDSL } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createRandomStatActions,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -21,6 +20,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createRandomStatActions } from '@arcadia-eternity/data-pack-base/native'
+
 const candidates = createRandomStatActions()
 const definitions: EffectDSL[] = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),

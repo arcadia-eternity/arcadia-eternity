@@ -7,7 +7,6 @@ import {
   SnapshotCatalog,
   snapshotBattle,
   restoreBattle,
-  officialRageCandidate,
   defineNativeEffect,
   EffectTrigger,
   EffectContext,
@@ -26,6 +25,7 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { officialRageCandidate } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_skill_add_rage_20_if_rage_below_40'
 const alias = `${id}.add_rage_value`

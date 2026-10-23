@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedDamageModifierEffects,
   BaseMark,
   GameRng,
   EffectContext,
@@ -20,6 +19,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedDamageModifierEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const ids = ['effect_skill_fixed_damage_30_70', 'effect_skill_fixed_damage_30_70_if_opponent_has_cuimian'] as const
 type Id = (typeof ids)[number]
 const definitions = parse(

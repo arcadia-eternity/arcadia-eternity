@@ -8,8 +8,6 @@ import {
   snapshotBattle,
   restoreBattle,
   effectAuthoring,
-  officialHealModifierEffects,
-  createOfficialHealModifierEffects,
   AddMarkContext,
   BaseMark,
   HealContext,
@@ -24,6 +22,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { officialHealModifierEffects, createOfficialHealModifierEffects } from '@arcadia-eternity/data-pack-base/native'
 
 const definitions = ['effect_mark', 'effect_emblem'].flatMap(file =>
   parse(readFileSync(new URL(`../../../../packs/base/data/${file}.yaml`, import.meta.url), 'utf8'), { merge: true }),

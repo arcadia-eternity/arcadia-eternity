@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedDamageModifierEffects,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -26,6 +25,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedDamageModifierEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const specs = {
   effect_ability_add_damage_40_if_using_yutu_skill: {
     tag: 'yutu',

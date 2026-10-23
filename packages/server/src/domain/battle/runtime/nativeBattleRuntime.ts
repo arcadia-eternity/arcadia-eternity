@@ -1,10 +1,11 @@
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
+import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import type { BattleOptions } from '@arcadia-eternity/battle/v4'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import type { PlayerSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { readRuntimeDescriptor, readRuntimeIdentity, type NativeRuntimeIdentity } from './runtimeIdentity'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 
 /** Construct the native server runtime and retain its actual initial identities for journal recovery. */
 export async function createNativeBattleRuntime(
@@ -31,7 +32,7 @@ export async function createNativeBattleRuntime(
     team: player.team.map(pet => ({ ...structuredClone(pet), id: nanoid() })),
   }))
   const capturedOptions = options && { ...options, timerConfig: options.timerConfig && { ...options.timerConfig } }
-  const loaded = await new NativePackLoader(nativeBuildIdentity).load(packRef, {
+  const loaded = await new NativePackLoader(nativeBuildIdentity, createOfficialContent).load(packRef, {
     expectedRevision: expected?.contentRevision,
   })
   const [a, b] = loaded.content.parsePlayers(teams)

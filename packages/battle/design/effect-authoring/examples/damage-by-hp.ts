@@ -1,2 +1,2 @@
 /** Readable production candidate; not automatically installed. */
-export * from '../../../src/v4/official/authored/damage-by-hp'
+export { damageBoostByHp } from '@arcadia-eternity/data-pack-base/native'

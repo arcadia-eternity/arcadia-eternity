@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createLowHealthExecution,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -23,6 +22,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createLowHealthExecution } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_skill_execute_opponent_hp_under_75_hit_or_miss'
 const definition = (
   parse(readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'), {

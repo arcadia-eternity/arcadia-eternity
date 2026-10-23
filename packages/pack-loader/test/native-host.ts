@@ -9,6 +9,7 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { NativePackLoader } from '../src/native-loader'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 
 type Plan = { type: string; skill?: string; pet?: string }
 type RuntimeSnapshot = Awaited<ReturnType<LocalBattleSystemV4['createRuntimeSnapshot']>>
@@ -19,7 +20,7 @@ export async function verifyNativePackHost(
   options: { timed?: boolean } = {},
 ) {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
-  const loader = new NativePackLoader(build)
+  const loader = new NativePackLoader(build, createOfficialContent)
   const initial = await loader.load(packRef, { source: 'http', enforceLockfile: true })
   async function verifyAI() {
     const teams = structuredClone(input.teams) as { id: string; team: { skills: string[]; maxHp: number }[] }[]

@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedEventCancellation,
   effectAuthoring,
   BaseMark,
   BaseStatLevelMark,
@@ -21,6 +20,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedEventCancellation } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedEventCancellation
 const ledger = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/event-cancellation-candidates.json', import.meta.url), 'utf8'),

@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import YAML from 'yaml'
 import { NativePackLoader } from '../src/native-loader'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createContentCatalog } from '@arcadia-eternity/battle/v4'
 
 const basePath = fileURLToPath(new URL('../../../packs/base/', import.meta.url))
 const origin = 'https://example.test/native/'
@@ -37,15 +39,44 @@ function serveBase(change?: (path: string, raw: string) => string, extra: Record
 }
 
 describe('NativePackLoader', () => {
+  it('assembles captured metadata with the host-selected content factory', async () => {
+    const data = { marks: [] as unknown[], skills: [], species: [] }
+    const factory = vi.fn(createContentCatalog)
+    const loader = new NativePackLoader(build, factory)
+    const pending = loader.fromMetadata(data)
+    data.marks.push({ id: 'changed-after-capture' })
+
+    const result = await pending
+    expect(factory).toHaveBeenCalledExactlyOnceWith({ marks: [], skills: [], species: [] }, result.revision)
+    expect(factory.mock.calls[0][0]).not.toBe(data)
+    expect(result.content).toBe(factory.mock.results[0].value)
+    expect(result.content.revision).toBe(result.revision)
+    expect(result.content.effects).toEqual([])
+    expect(result.content.marks).toEqual([])
+  })
+
   it('captures current in-memory metadata and its identity without requesting effect DSL', async () => {
-    const read = async (name: string) =>
-      YAML.parse(await readFile(resolve(basePath, `data/${name}.yaml`), 'utf8'), { merge: true }) as unknown[]
+    const manifest = JSON.parse(await readFile(resolve(basePath, 'pack.json'), 'utf8')) as {
+      paths?: { dataDir?: string }
+      data: Record<'marks' | 'skills' | 'species', string[]>
+    }
+    const read = async (kind: 'marks' | 'skills' | 'species') =>
+      (
+        await Promise.all(
+          manifest.data[kind].map(
+            async file =>
+              YAML.parse(await readFile(resolve(basePath, manifest.paths?.dataDir ?? 'data', file), 'utf8'), {
+                merge: true,
+              }) as unknown[],
+          ),
+        )
+      ).flat()
     const data = {
-        marks: (await Promise.all(['mark', 'mark_ability', 'mark_emblem', 'mark_global'].map(read))).flat(),
-        skills: await read('skill'),
+        marks: await read('marks'),
+        skills: await read('skills'),
         species: await read('species'),
       },
-      loader = new NativePackLoader(build)
+      loader = new NativePackLoader(build, createOfficialContent)
     const skill = data.skills.find(value => (value as { id: string }).id === 'skill_paida') as {
       id: string
       power: number
@@ -64,7 +95,7 @@ describe('NativePackLoader', () => {
   })
   it('loads the same native content identity from filesystem and HTTP without reading effect DSL', async () => {
     const requests = serveBase()
-    const loader = new NativePackLoader(build)
+    const loader = new NativePackLoader(build, createOfficialContent)
     const local = await loader.load('builtin:base', { enforceLockfile: true })
     const remote = await loader.load(origin, {
       source: 'http',
@@ -91,8 +122,8 @@ describe('NativePackLoader', () => {
   })
 
   it('rejects a revision from another trusted code build', async () => {
-    const initial = await new NativePackLoader(build).load('builtin:base')
-    const other = new NativePackLoader({ ...build, registryBuildId: 'c'.repeat(64) })
+    const initial = await new NativePackLoader(build, createOfficialContent).load('builtin:base')
+    const other = new NativePackLoader({ ...build, registryBuildId: 'c'.repeat(64) }, createOfficialContent)
     await expect(other.load('builtin:base', { expectedRevision: initial.revision })).rejects.toThrow(
       'revision mismatch',
     )
@@ -100,10 +131,12 @@ describe('NativePackLoader', () => {
 
   it('copies the trusted build identity before any asynchronous load', async () => {
     const mutable = { ...build } as { formatVersion: 1; coreBuildId: string; registryBuildId: string }
-    const loader = new NativePackLoader(mutable)
+    const loader = new NativePackLoader(mutable, createOfficialContent)
     mutable.registryBuildId = 'c'.repeat(64)
     expect((await loader.load('builtin:base')).build).toEqual(build)
-    expect(() => new NativePackLoader({ ...build, coreBuildId: 'untrusted-name' })).toThrow('trusted native build')
+    expect(() => new NativePackLoader({ ...build, coreBuildId: 'untrusted-name' }, createOfficialContent)).toThrow(
+      'trusted native build',
+    )
   })
 
   for (const invalid of ['effect-reference', 'non-array', 'manifest-engine'] as const)
@@ -117,7 +150,7 @@ describe('NativePackLoader', () => {
         marks[0].effect = ['effect_not_registered_in_typescript']
         return YAML.stringify(marks)
       })
-      const loader = new NativePackLoader(build)
+      const loader = new NativePackLoader(build, createOfficialContent)
       await expect(loader.load(origin, { source: 'http' })).rejects.toThrow()
     })
 
@@ -135,12 +168,12 @@ describe('NativePackLoader', () => {
         data: { effects: ['missing-effect.yaml'], marks: [], skills: [], species: [] },
       }),
     )
-    const result = await new NativePackLoader(build).load(file)
+    const result = await new NativePackLoader(build, createOfficialContent).load(file)
     expect(result.pack?.id).toBe('fixture.native.entry')
     expect(result.content.effects).toHaveLength(1065)
     expect(result.content.skills).toHaveLength(966)
     const options = { enforceLockfile: true }
-    const strictLoad = new NativePackLoader(build).load(file, options)
+    const strictLoad = new NativePackLoader(build, createOfficialContent).load(file, options)
     options.enforceLockfile = false
     await expect(strictLoad).rejects.toThrow('lockfile is required')
   })
@@ -158,7 +191,9 @@ describe('NativePackLoader', () => {
       resolve(root, 'child/pack.json'),
       JSON.stringify({ ...metadata, id: 'fixture.child', dependencies: [{ path: '../pack.json' }] }),
     )
-    await expect(new NativePackLoader(build).load(resolve(root, 'pack.json'))).rejects.toThrow('cycle')
+    await expect(new NativePackLoader(build, createOfficialContent).load(resolve(root, 'pack.json'))).rejects.toThrow(
+      'cycle',
+    )
   })
 
   for (const source of ['node-fs', 'http'] as const)
@@ -199,6 +234,8 @@ describe('NativePackLoader', () => {
           }),
         )
       }
-      await expect(new NativePackLoader(build).load(ref, { source })).rejects.toThrow(/id mismatch/i)
+      await expect(new NativePackLoader(build, createOfficialContent).load(ref, { source })).rejects.toThrow(
+        /id mismatch/i,
+      )
     })
 })

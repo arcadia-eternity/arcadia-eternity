@@ -52,9 +52,9 @@ test('the actual skill-power command preserves edited TS and its ledger on a rej
     const relative = `packs/base/data/effect_${kind}.yaml`
     await copyFile(relative, join(dir, relative))
   }
-  await mkdir(join(dir, 'packages/battle/src/v4/official'), { recursive: true })
+  await mkdir(join(dir, 'packs/base/src/effects'), { recursive: true })
   await mkdir(join(dir, 'docs/v4/validation'), { recursive: true })
-  const source = join(dir, 'packages/battle/src/v4/official/skill-power.generated.ts')
+  const source = join(dir, 'packs/base/src/effects/skill-power.generated.ts')
   const ledger = join(dir, 'docs/v4/validation/skill-power-candidates.json')
   await writeFile(source, '// reviewed manual repair\n')
   await writeFile(ledger, '{"reviewed":true}\n')

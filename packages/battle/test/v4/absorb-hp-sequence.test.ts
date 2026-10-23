@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedVitalSequences,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -19,6 +18,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedVitalSequences } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_mark_absorb_hp_to_opponent'
 const definitions = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),

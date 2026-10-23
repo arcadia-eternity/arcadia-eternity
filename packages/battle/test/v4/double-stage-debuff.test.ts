@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { Conditions, EffectParser, Operators } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createDoubleStageDebuff,
   BaseMark,
   BaseStatLevelMark,
   StatLevelMarkInstanceImpl,
@@ -20,6 +19,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createDoubleStageDebuff } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_mark_double_stage_debuff'
 const original = parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {

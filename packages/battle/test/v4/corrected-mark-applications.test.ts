@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createGeneratedMarkApplications,
   defineNativeEffect,
   BaseMark,
   SkillInstance,
@@ -22,6 +21,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createGeneratedMarkApplications } from '@arcadia-eternity/data-pack-base/native'
+
 type RecordEntry = {
   id: keyof ReturnType<typeof createGeneratedMarkApplications>
   sourceFile: string

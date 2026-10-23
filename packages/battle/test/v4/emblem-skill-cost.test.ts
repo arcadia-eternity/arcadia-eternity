@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createEmblemSkillCost,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -27,6 +26,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createEmblemSkillCost } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_emblem_yinji_reduce_rage_cost_xinzhiyinji'
 const original = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_emblem.yaml', import.meta.url), 'utf8'),

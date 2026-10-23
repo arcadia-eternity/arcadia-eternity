@@ -20,17 +20,24 @@ import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleS
 import { createNativeWebBattleSystem, type NativeGameDataStoreLike } from '../nativeBattleFactory'
 import input from '../../../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'
 
-const root = new URL('../../../../../packs/base/data/', import.meta.url)
-const read = (file: string) =>
-  parse(readFileSync(new URL(`${file}.yaml`, root), 'utf8'), { merge: true }) as { id: string }[]
+const root = new URL('../../../../../packs/base/', import.meta.url)
+const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8')) as {
+  paths?: { dataDir?: string }
+  data: Record<'marks' | 'skills' | 'species', string[]>
+}
+const dataRoot = new URL(`${manifest.paths?.dataDir ?? 'data'}/`, root)
+const read = (kind: 'marks' | 'skills' | 'species') =>
+  manifest.data[kind].flatMap(
+    file => parse(readFileSync(new URL(file, dataRoot), 'utf8'), { merge: true }) as { id: string }[],
+  )
 const dictionary = (rows: { id: string }[]) => ({
   allIds: rows.map(row => row.id),
   byId: Object.fromEntries(rows.map(row => [row.id, row])),
 })
 function fixture() {
   const data: NativeGameDataStoreLike = reactive({
-    marks: dictionary(['mark', 'mark_ability', 'mark_emblem', 'mark_global'].flatMap(read)),
-    skills: dictionary(read('skill')),
+    marks: dictionary(read('marks')),
+    skills: dictionary(read('skills')),
     species: dictionary(read('species')),
   })
   Object.defineProperty(data, 'effects', {

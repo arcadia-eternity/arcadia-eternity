@@ -44,6 +44,11 @@
       "types": "./dist/native-build.d.ts",
       "import": "./dist/native-build.mjs",
       "default": "./dist/native-build.mjs"
+    },
+    "./v4/authoring": {
+      "types": "./dist/types/v4-authoring.d.ts",
+      "import": "./dist/v4-authoring.js",
+      "default": "./dist/v4-authoring.js"
     }
   },
   "scripts": {

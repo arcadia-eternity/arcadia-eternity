@@ -1,7 +1,6 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   effectAuthoring,
-  createOfficialAuthoredEffects,
   defineValue,
   values as planValues,
   SnapshotCatalog,
@@ -25,6 +24,8 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createOfficialAuthoredEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const { targets, ops, compileEffect, defineEffect, registerEffect, actions } = effectAuthoring
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))

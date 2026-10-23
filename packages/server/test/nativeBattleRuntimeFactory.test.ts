@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import pino from 'pino'
 import { AttributeSystem, BattleMessageType, BattleStatus, setGlobalLogger } from '@arcadia-eternity/battle/v4'
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
+import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { playerId, BattleState } from '@arcadia-eternity/const'
@@ -117,7 +117,7 @@ for (const invalid of ['schema', 'reference', 'same-player'] as const)
     if (invalid === 'reference') f.players[1].team[0].skills[0] = 'skill_unknown'
     if (invalid === 'same-player') f.players[1].id = f.players[0].id
     await expect(create(f)).rejects.toThrow(
-      invalid === 'schema' ? '100' : invalid === 'reference' ? 'Unknown official skill' : 'distinct identities',
+      invalid === 'schema' ? '100' : invalid === 'reference' ? 'Unknown content skill' : 'distinct identities',
     )
   })
 for (const request of [

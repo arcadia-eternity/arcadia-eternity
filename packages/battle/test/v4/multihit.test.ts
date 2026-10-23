@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, Operators } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedMultihit,
   effectAuthoring,
   BaseMark,
   BaseSkill,
@@ -29,6 +28,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedMultihit } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedMultihit
 const ledger = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/multihit-candidates.json', import.meta.url), 'utf8'),

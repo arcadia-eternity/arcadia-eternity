@@ -1,2 +1,2 @@
 /** Readable production candidate; not automatically installed. */
-export * from '../../../src/v4/official/authored/fantasy-defense'
+export { consumeFantasyForDefense } from '@arcadia-eternity/data-pack-base/native'

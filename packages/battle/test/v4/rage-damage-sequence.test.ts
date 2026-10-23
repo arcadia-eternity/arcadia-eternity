@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedVitalSequences,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -30,6 +29,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedVitalSequences } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_skill_clear_rage_add_fixed_damage'
 const original = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),

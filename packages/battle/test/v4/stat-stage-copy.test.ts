@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedStatStageCandidates,
   AddMarkContext,
   BaseMark,
   EffectContext,
@@ -22,6 +21,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedStatStageCandidates } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_skill_set_self_spa_to_atk'
 const original = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),

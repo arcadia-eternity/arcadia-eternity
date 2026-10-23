@@ -4,8 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedSkillContributions,
-  createGeneratedSkillContributions,
   SnapshotCatalog,
   snapshotBattle,
   restoreBattle,
@@ -31,6 +29,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedSkillContributions, createGeneratedSkillContributions } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedSkillContributions
 const ids = Object.keys(generatedSkillContributions).filter(id => id !== 'effect_mark_amplify_power_20x_stack') as Id[]
 const ledger = JSON.parse(

@@ -55,9 +55,9 @@ export async function generateRageModifiers({ check = false } = {}) {
     }
   }
   records.sort((a, b) => a.id.localeCompare(b.id, 'en'))
-  const code = `// Generated candidates preserving historical pre-settlement damage-rage behavior.\nimport {compileEffect,defineEffect,conditions,contexts,ops} from '../content/authoring'\nexport function createGeneratedRageModifiers(){return Object.freeze({${records.map(({ recipe: r }) => `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:'BeforeRageGain',priority:0,when:conditions.ownerReceivesDamageRage,execute:contexts.rage.apply(ops.modifyRage({percent:${r.percent},delta:0}))}))`).join(',')}})}\nexport const generatedRageModifiers=createGeneratedRageModifiers()\n`
+  const code = `// Generated candidates preserving historical pre-settlement damage-rage behavior.\nimport {compileEffect,defineEffect,conditions,contexts,ops} from '@arcadia-eternity/battle/v4/authoring'\nexport function createGeneratedRageModifiers(){return Object.freeze({${records.map(({ recipe: r }) => `${JSON.stringify(r.id)}:compileEffect(defineEffect({id:${JSON.stringify(r.id)},on:'BeforeRageGain',priority:0,when:conditions.ownerReceivesDamageRage,execute:contexts.rage.apply(ops.modifyRage({percent:${r.percent},delta:0}))}))`).join(',')}})}\nexport const generatedRageModifiers=createGeneratedRageModifiers()\n`
   for (const [path, raw] of [
-    ['packages/battle/src/v4/official/rage-modifiers.generated.ts', code],
+    ['packs/base/src/effects/rage-modifiers.generated.ts', code],
     [
       'docs/v4/validation/rage-modifiers-candidates.json',
       JSON.stringify({ formatVersion: 1, records, rejected }, null, 2),

@@ -13,7 +13,6 @@ import {
   TurnContext,
   RemoveMarkContext,
   SwitchPetPhase,
-  createOfficialAuthoredEffects,
   effectAuthoring,
   defineNativeEffect,
   snapshotBattle,
@@ -25,6 +24,7 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 import { catalogFor } from './snapshot-host'
+import { createOfficialAuthoredEffects } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_mark_reduce_speed_ruodian'
 const definitions = (kind: string) =>

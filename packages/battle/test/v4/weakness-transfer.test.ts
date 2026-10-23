@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createWeaknessTransfer,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -19,6 +18,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createWeaknessTransfer } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_emblem_set_ruodianbiaoji_keeponswitchout'
 const original = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_emblem.yaml', import.meta.url), 'utf8'),

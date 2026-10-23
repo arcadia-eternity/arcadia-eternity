@@ -3,12 +3,7 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createRandomTemporaryEffect,
   effectAuthoring,
-  randomTemporaryEffectDependencies,
-  createGeneratedMarkApplications,
-  createGeneratedCompoundActions,
-  generatedSkillNumericReferences,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -26,6 +21,14 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import {
+  createRandomTemporaryEffect,
+  randomTemporaryEffectDependencies,
+  createGeneratedMarkApplications,
+  createGeneratedCompoundActions,
+  generatedSkillNumericReferences,
+} from '@arcadia-eternity/data-pack-base/native'
+
 const load = (name: string) =>
   parse(readFileSync(new URL(`../../../../packs/base/data/${name}.yaml`, import.meta.url), 'utf8'), { merge: true })
 const definitions = load('effect_skill') as { id: string }[]

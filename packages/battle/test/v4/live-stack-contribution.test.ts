@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createGeneratedAttributeContributions,
   effectAuthoring,
   BaseMark,
   AddMarkContext,
@@ -23,6 +22,8 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createGeneratedAttributeContributions } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_mark_increase_crit_rate_20_percent_per_stack'
 const original = parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {
   merge: true,

@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { beforeAll, expect, it } from 'vitest'
 import { MarkParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createOfficialEffectCandidates,
   ConfigSystem,
   BaseMark,
   EffectContext,
@@ -14,6 +13,7 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createOfficialEffectCandidates } from '@arcadia-eternity/data-pack-base/native'
 
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 function marks() {

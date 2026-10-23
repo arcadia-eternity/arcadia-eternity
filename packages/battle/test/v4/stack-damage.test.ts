@@ -2,7 +2,6 @@ import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   SkillPhase,
   Category,
-  createStackDamageEffects,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -20,6 +19,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createStackDamageEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const reduction = 'effect_mark_special_damage_reduction_with_stack'
 const amplification = 'effect_skill_add_damage_30_per_niliu'
 const battles: Battle[] = []

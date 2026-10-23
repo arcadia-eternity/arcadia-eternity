@@ -1,10 +1,11 @@
-import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
+import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { LocalBattleSystemV4, type NativeBattleHostOptions } from '@arcadia-eternity/battle/v4/host'
 import { GameRng, type BattleOptions } from '@arcadia-eternity/battle/v4'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { toRaw } from 'vue'
+import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 
 export interface NativeGameDataStoreLike {
   marks: { allIds: string[]; byId: Record<string, unknown> }
@@ -42,7 +43,7 @@ export async function createNativeWebBattleSystem(
   if (options.rngSeed !== undefined) new GameRng(options.rngSeed)
   const records = (kind: keyof NativeGameDataStoreLike) =>
       dataStore[kind].allIds.map(id => copy(dataStore[kind].byId[id])),
-    loaded = await new NativePackLoader(nativeBuildIdentity).fromMetadata({
+    loaded = await new NativePackLoader(nativeBuildIdentity, createOfficialContent).fromMetadata({
       marks: records('marks'),
       skills: records('skills'),
       species: records('species'),

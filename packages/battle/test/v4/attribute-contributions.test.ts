@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedAttributeContributions,
   effectAuthoring,
   BaseMark,
   BaseSkill,
@@ -27,6 +26,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedAttributeContributions } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = Exclude<keyof typeof generatedAttributeContributions, 'effect_mark_increase_crit_rate_20_percent_per_stack'>
 const ids = (Object.keys(generatedAttributeContributions) as (keyof typeof generatedAttributeContributions)[]).filter(
   id => id !== 'effect_mark_increase_crit_rate_20_percent_per_stack',

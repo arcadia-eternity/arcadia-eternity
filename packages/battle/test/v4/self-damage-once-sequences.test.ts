@@ -4,8 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedVitalSequences,
-  generatedVitalActions,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -23,6 +21,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedVitalSequences, generatedVitalActions } from '@arcadia-eternity/data-pack-base/native'
+
 const ids = [
   'effect_mark_self_damage_50_percent_once',
   'effect_mark_self_damage_50_percent_once_when_special',

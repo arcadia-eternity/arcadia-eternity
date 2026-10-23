@@ -4,8 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedSkillFlags,
-  createGeneratedSkillFlags,
   SnapshotCatalog,
   snapshotBattle,
   restoreBattle,
@@ -31,6 +29,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedSkillFlags, createGeneratedSkillFlags } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedSkillFlags
 const ids = Object.keys(generatedSkillFlags) as Id[]
 const ledger = JSON.parse(

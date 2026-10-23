@@ -1,13 +1,14 @@
 import {
-  createOfficialContent,
   type EnvironmentBuildIdentity,
-  type OfficialContent,
-  type OfficialPrototypeData,
+  type ContentCatalog,
+  type ContentPrototypeData,
 } from '@arcadia-eternity/battle/v4'
 import type { PackManifest } from '@arcadia-eternity/schema'
 import YAML from 'yaml'
 import { PackTransport, type AssetLoadRecord } from './transport'
 import type { PackLoadResult, PackLoaderOptions, PackSource, LocaleBundles } from './types'
+
+export type NativeContentFactory = (data: ContentPrototypeData, revision: string) => ContentCatalog
 
 export interface NativePackLoaderOptions {
   source?: PackSource
@@ -16,7 +17,7 @@ export interface NativePackLoaderOptions {
 }
 export interface NativeContentResult {
   runtime: 'native-v4'
-  content: OfficialContent
+  content: ContentCatalog
   revision: string
   build: EnvironmentBuildIdentity
 }
@@ -33,7 +34,10 @@ interface MetadataPack {
 /** Load transport metadata against the trusted host's compiled effect directory. */
 export class NativePackLoader extends PackTransport {
   private readonly build: EnvironmentBuildIdentity
-  constructor(build: EnvironmentBuildIdentity) {
+  constructor(
+    build: EnvironmentBuildIdentity,
+    private readonly contentFactory: NativeContentFactory,
+  ) {
     super()
     if (
       build.formatVersion !== 1 ||
@@ -41,6 +45,7 @@ export class NativePackLoader extends PackTransport {
       !/^[a-f0-9]{64}$/.test(build.registryBuildId)
     )
       throw new Error('Invalid trusted native build identity')
+    if (typeof contentFactory !== 'function') throw new Error('A trusted native content factory is required')
     this.build = Object.freeze({
       formatVersion: 1,
       coreBuildId: build.coreBuildId,
@@ -49,12 +54,12 @@ export class NativePackLoader extends PackTransport {
   }
 
   /** Use the caller's current metadata, including unsaved editor changes, with the same trusted code identity. */
-  async fromMetadata(data: OfficialPrototypeData): Promise<NativeContentResult> {
+  async fromMetadata(data: ContentPrototypeData): Promise<NativeContentResult> {
     return this.createContent(data, [])
   }
 
   private async createContent(
-    data: OfficialPrototypeData,
+    data: ContentPrototypeData,
     packs: { id: string; version: string }[],
     expectedRevision?: string,
   ): Promise<NativeContentResult> {
@@ -62,7 +67,7 @@ export class NativePackLoader extends PackTransport {
     const revision = `arcadia.native-content/1:${await this.computeIntegrity(JSON.stringify({ build: this.build, packs, data: captured }))}`
     if (expectedRevision !== undefined && revision !== expectedRevision)
       throw new Error('Native content revision mismatch')
-    return { runtime: 'native-v4', content: createOfficialContent(captured, revision), revision, build: this.build }
+    return { runtime: 'native-v4', content: this.contentFactory(captured, revision), revision, build: this.build }
   }
 
   async load(packRef = 'builtin:base', options: NativePackLoaderOptions = {}): Promise<NativePackLoadResult> {

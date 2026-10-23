@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, Operators } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createRandomSkillSelection,
   effectAuthoring,
   BaseSkill,
   SkillInstance,
@@ -26,6 +25,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createRandomSkillSelection } from '@arcadia-eternity/data-pack-base/native'
+
 const candidates = createRandomSkillSelection()
 const definitions = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),

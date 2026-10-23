@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createAutomaticStackConsumption,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -22,6 +21,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createAutomaticStackConsumption } from '@arcadia-eternity/data-pack-base/native'
+
 const candidates = createAutomaticStackConsumption()
 const definitions = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'),

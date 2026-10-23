@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createOfficialWaterShieldCandidate,
   defineNativeEffect,
   BaseMark,
   Pet,
@@ -24,6 +23,7 @@ import {
   type MarkConfig,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createOfficialWaterShieldCandidate } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_skill_add_mark_shuiwenpingzhang',
   markId = 'mark_shuiwenpingzhang'

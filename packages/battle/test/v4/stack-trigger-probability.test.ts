@@ -4,7 +4,6 @@ import { Type } from '@sinclair/typebox'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createStackTriggerProbability,
   AddMarkContext,
   effectAuthoring,
   SnapshotCatalog,
@@ -25,6 +24,8 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createStackTriggerProbability } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_mark_increase_skill_trigger_rate_with_stack'
 const definition = (
   parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {

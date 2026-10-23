@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedStatStageCandidates,
   defineNativeEffect,
   EffectTrigger,
   EffectContext,
@@ -24,6 +23,8 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedStatStageCandidates } from '@arcadia-eternity/data-pack-base/native'
+
 interface Entry {
   id: keyof typeof generatedStatStageCandidates.effects
   sourceFile: string

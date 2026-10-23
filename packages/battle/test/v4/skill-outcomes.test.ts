@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedSkillOutcomeEffects,
   parameterAddress,
   ConfigModifier,
   ConfigModifierType,
@@ -121,6 +120,8 @@ afterEach(async () => {
   expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(attributeInstancesBefore)
 })
 import { makeScenario } from './scenario'
+import { generatedSkillOutcomeEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const parameterVariants = ['config-zero', 'config-custom', 'foreign-config', 'late-config'] as const
 const stackVariants = ['stack-empty', 'stack-one', 'stack-two', 'stack-later', 'stack-first', 'late-stack'] as const
 const turnVariants = ['turn-first', 'turn-second'] as const

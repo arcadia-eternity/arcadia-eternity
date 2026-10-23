@@ -14,10 +14,8 @@ import {
   BaseSkill,
   SnapshotCatalog,
   effectAuthoring,
-  createGeneratedSkillPowerEffects,
   SkillPhase,
   PhaseState,
-  generatedSkillPowerEffects,
   AddMarkContext,
   BaseMark,
   EffectContext,
@@ -36,6 +34,8 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 import { playCandidateGame } from './candidate-game'
+import { createGeneratedSkillPowerEffects, generatedSkillPowerEffects } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedSkillPowerEffects
 interface RecordEntry {
   id: Id

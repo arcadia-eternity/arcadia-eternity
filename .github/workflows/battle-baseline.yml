@@ -29,7 +29,7 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build battle dependency graph
-        run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/pack-loader... run build
+        run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/pack-loader... run build
       - name: Lint
         run: |
           pnpm lint

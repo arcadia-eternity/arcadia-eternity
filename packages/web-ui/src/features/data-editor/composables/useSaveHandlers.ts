@@ -127,7 +127,7 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         existingIndex = resolved.index
       } else {
         // If editorState.createTargetFile is set (e.g. by doCreate with targetFile), use it
-        const preferredFile = editorState.createTargetFile
+        const preferredFile = editorState.createTargetFile ?? editorState.selectedDataFile
         const dataFiles = (manifest.data as Record<string, string[]>)?.[kind] ?? []
         const firstFile = preferredFile ?? dataFiles[0] ?? cfg.dataFile
         if (!firstFile) {
@@ -159,6 +159,7 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
         await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile!, content: yamlText })
       }
 
+      editorState.recordSourceFiles[id] = targetFile
       editorState.isDirty = false
       console.log('[DataEditor] Saved', id, 'to', isBase ? 'base/' : packFolder + '/', targetFile)
       ElMessage.success('已保存')
@@ -188,18 +189,11 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
     editorState.selectedRecordId = newId
     editorState.isDirty = true
 
-    // If targetFile specified, set it on editorState for doSave's fallback to use
-    if (options?.targetFile) {
-      editorState.createTargetFile = options.targetFile
-    }
+    // A creation call without an explicit target uses the current file filter.
+    editorState.createTargetFile = options?.targetFile ?? null
 
     // Auto-save to store + YAML
     await doSave()
-
-    const savedFile = editorState.createTargetFile
-    if (savedFile) {
-      editorState.recordSourceFiles[newId] = savedFile
-    }
 
     // Re-affirm selection after save (reloadDataFromDisk may have cleared it on desktop)
     editorState.selectedRecordId = newId
@@ -306,7 +300,7 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
 
     const packFolder = editorState.packFilters.enabledPacks[0] || 'base'
     const isBase = packFolder === 'base' && window.arcadiaDesktop?.readBasePackFile
-    const cfg = seer2Config.entities[kind] ?? baseEntities.effects
+    const deletedIds = new Set<string>()
 
     try {
       // Read YAML file
@@ -329,56 +323,55 @@ export function useSaveHandlers(options: UseSaveHandlersOptions) {
 
       const resolved = await resolveTargetFileBatch({ manifest, kind, packFolder, isBase: !!isBase, readFile }, idSet)
 
-      if (!resolved) {
+      if (resolved.length === 0) {
         ElMessage.error('未找到匹配的记录')
         return
       }
 
-      const { relativePath: targetFile, dataset: targetDataset, indices } = resolved
-
-      for (const idx of indices) {
-        deleteYamlAnchoredRecord(targetDataset, idx)
-      }
-
-      const yamlText = stringifyYamlAnchoredDataset(targetDataset)
-      if (isBase) {
-        await window.arcadiaDesktop!.writeBasePackFile({
-          folderName: 'base',
-          relativePath: targetFile,
-          content: yamlText,
-        })
-      } else {
-        await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile, content: yamlText })
-      }
-
-      // Remove from in-memory store
       const store = gameDataStore as StoreLike
-      if (store[kind]) {
-        for (const id of ids) {
-          delete store[kind].byId[id]
-        }
-        store[kind].allIds = store[kind].allIds.filter(i => !idSet.has(i))
-      }
+      for (const { relativePath: targetFile, dataset: targetDataset, indices } of resolved) {
+        const fileIds = new Set(indices.map(index => targetDataset.rows[index].id))
+        for (const idx of indices) deleteYamlAnchoredRecord(targetDataset, idx)
 
-      // Clear selection if selected record was deleted
-      if (editorState.selectedRecordId && idSet.has(editorState.selectedRecordId)) {
-        editorState.selectedRecordId = null
-        draftRef.value = {}
-        editorState.isDirty = false
+        const yamlText = stringifyYamlAnchoredDataset(targetDataset)
+        if (isBase) {
+          await window.arcadiaDesktop!.writeBasePackFile({
+            folderName: 'base',
+            relativePath: targetFile,
+            content: yamlText,
+          })
+        } else {
+          await writeWorkspacePackFile({ folderName: packFolder, relativePath: targetFile, content: yamlText })
+        }
+
+        // Keep records from unwritten files available if a later write fails.
+        for (const id of fileIds) {
+          deletedIds.add(id)
+          if (store[kind]) delete store[kind].byId[id]
+          delete editorState.recordSourceFiles[id]
+        }
+        if (store[kind]) store[kind].allIds = store[kind].allIds.filter(id => !fileIds.has(id))
+        if (editorState.selectedRecordId && fileIds.has(editorState.selectedRecordId)) {
+          editorState.selectedRecordId = null
+          draftRef.value = {}
+          editorState.isDirty = false
+        }
       }
 
       console.log(
         '[DataEditor] Batch deleted',
-        ids.length,
+        deletedIds.size,
         'records from',
         isBase ? 'base/' : packFolder + '/',
-        targetFile,
+        resolved.map(file => file.relativePath),
       )
-      ElMessage.success(`已删除 ${ids.length} 条记录`)
+      if (deletedIds.size === idSet.size) ElMessage.success(`已删除 ${deletedIds.size} 条记录`)
+      else ElMessage.warning(`已删除 ${deletedIds.size} 条记录，${idSet.size - deletedIds.size} 条未找到`)
       await reloadDataFromDisk(gameDataStore)
     } catch (err) {
       console.error('[DataEditor] Batch delete failed:', err)
-      ElMessage.error('批量删除失败: ' + (err instanceof Error ? err.message : String(err)))
+      const progress = deletedIds.size > 0 ? `已删除 ${deletedIds.size} 条记录，其余未完成: ` : '批量删除失败: '
+      ElMessage.error(progress + (err instanceof Error ? err.message : String(err)))
     }
   }
 

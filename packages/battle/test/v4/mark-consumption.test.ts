@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedMarkConsumption,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -20,6 +19,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedMarkConsumption } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedMarkConsumption
 const originals = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),

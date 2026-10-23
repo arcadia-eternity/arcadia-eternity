@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, Operators } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedMarkApplicationSettings,
   effectAuthoring,
   BaseMark,
   BaseStatLevelMark,
@@ -21,6 +20,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedMarkApplicationSettings } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedMarkApplicationSettings
 const ids = Object.keys(generatedMarkApplicationSettings) as Id[]
 const ledger = JSON.parse(

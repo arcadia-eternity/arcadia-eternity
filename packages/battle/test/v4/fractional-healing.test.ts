@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createFractionalHealing,
   BattleMessageType,
   effectAuthoring,
   parameterAddress,
@@ -22,6 +21,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createFractionalHealing } from '@arcadia-eternity/data-pack-base/native'
+
 const candidates = createFractionalHealing()
 const definitions = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),

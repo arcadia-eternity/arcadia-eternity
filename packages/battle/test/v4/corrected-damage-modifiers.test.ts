@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createGeneratedDamageModifierEffects,
   BaseMark,
   SkillInstance,
   SkillPhase,
@@ -25,6 +24,8 @@ import {
   type Effect,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createGeneratedDamageModifierEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const specs = [
   {
     id: 'effect_ability_ice_damage_boost_15_percent',

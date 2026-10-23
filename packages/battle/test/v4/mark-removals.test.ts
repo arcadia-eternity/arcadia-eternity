@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedMarkRemovals,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -24,6 +23,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedMarkRemovals } from '@arcadia-eternity/data-pack-base/native'
+
 const definitions = ['global', 'ability', 'emblem', 'mark', 'skill'].flatMap(name =>
   parse(readFileSync(new URL(`../../../../packs/base/data/effect_${name}.yaml`, import.meta.url), 'utf8'), {
     merge: true,

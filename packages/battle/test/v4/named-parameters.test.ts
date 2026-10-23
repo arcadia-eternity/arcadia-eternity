@@ -3,15 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createNamedParameterModifiers,
-  namedParameterModifierDependencies,
-  createGeneratedAttributeContributions,
-  createGeneratedDynamicContributions,
-  createGeneratedDamageModifierEffects,
-  createGeneratedVitalSequences,
-  createGeneratedMarkApplications,
-  generatedMarkApplicationDependencies,
-  officialRageCandidate,
   effectAuthoring,
   BaseMark,
   EffectContext,
@@ -29,6 +20,18 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import {
+  createNamedParameterModifiers,
+  namedParameterModifierDependencies,
+  createGeneratedAttributeContributions,
+  createGeneratedDynamicContributions,
+  createGeneratedDamageModifierEffects,
+  createGeneratedVitalSequences,
+  createGeneratedMarkApplications,
+  generatedMarkApplicationDependencies,
+  officialRageCandidate,
+} from '@arcadia-eternity/data-pack-base/native'
+
 const definitions = ['skill', 'mark', 'emblem'].flatMap(kind =>
   parse(readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'), {
     merge: true,

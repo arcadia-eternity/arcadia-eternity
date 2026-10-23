@@ -6,12 +6,12 @@ import { pathToFileURL } from 'node:url'
 import { rolldown } from 'rolldown'
 import { parse } from 'yaml'
 
-const root = resolve('packages/battle/src/v4')
+const root = resolve('packs/base/src')
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-native-content-'))
 const modules = []
 try {
   const entry = join(directory, 'entry.ts')
-  await writeFile(entry, `export { createOfficialContent } from ${JSON.stringify(join(root, 'official/content.ts'))};`)
+  await writeFile(entry, `export { createOfficialContent } from ${JSON.stringify(join(root, 'content.ts'))};`)
   const build = await rolldown({
     input: entry,
     platform: 'browser',

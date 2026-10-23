@@ -1,0 +1,117 @@
+- id: pet_shazhihe
+  num: 81
+  element: Desert
+  baseStats:
+    hp: 92
+    atk: 115
+    def: 110
+    spa: 133
+    spd: 120
+    spe: 113
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 8
+    - 13
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 10
+      hidden: false
+    - skill_id: skill_shahezhiguang
+      level: 15
+      hidden: false
+    - skill_id: skill_shachenfengbao
+      level: 19
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_shahe
+  emblem:
+    - mark_emblem_shahe
+- id: pet_shahuangniao
+  num: 82
+  element: Desert
+  baseStats:
+    hp: 182
+    atk: 160
+    def: 155
+    spa: 183
+    spd: 165
+    spe: 163
+  genderRatio:
+    - 10
+    - 0
+  heightRange:
+    - 93
+    - 98
+  weightRange:
+    - 45
+    - 50
+  learnable_skills:
+    - skill_id: skill_lizhua
+      level: 1
+      hidden: false
+    - skill_id: skill_jiasu
+      level: 5
+      hidden: false
+    - skill_id: skill_shachen
+      level: 10
+      hidden: false
+    - skill_id: skill_shahezhiguang
+      level: 15
+      hidden: false
+    - skill_id: skill_shachenfengbao
+      level: 19
+      hidden: false
+    - skill_id: skill_shuaitui
+      level: 24
+      hidden: false
+    - skill_id: skill_shahuangzhiqu
+      level: 30
+      hidden: false
+    - skill_id: skill_shazhiquti
+      level: 35
+      hidden: false
+    - skill_id: skill_shuairuo
+      level: 40
+      hidden: false
+    - skill_id: skill_zhimingshamo
+      level: 45
+      hidden: false
+    - skill_id: skill_shazhiwang
+      level: 50
+      hidden: false
+    - skill_id: skill_hongbaoshizhiguang
+      level: 56
+      hidden: false
+    - skill_id: skill_shahuangxiangyuewu
+      level: 60
+      hidden: true
+    - skill_id: skill_haishishenglou
+      level: 60
+      hidden: true
+    - skill_id: skill_shunxunzhiqu
+      level: 60
+      hidden: true
+    - skill_id: skill_shazhihaixiao
+      level: 60
+      hidden: true
+    - skill_id: skill_shahuangshuangshan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shahe
+  emblem:
+    - mark_emblem_shahe

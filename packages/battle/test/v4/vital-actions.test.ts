@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedVitalActions,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -33,6 +32,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedVitalActions } from '@arcadia-eternity/data-pack-base/native'
+
 // Source-instance recursion is covered by self-damage-once-sequences.test.ts.
 type Id = Exclude<keyof typeof generatedVitalActions, 'effect_mark_self_damage_25_percent'>
 const ledger = JSON.parse(

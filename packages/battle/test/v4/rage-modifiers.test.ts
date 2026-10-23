@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedRageModifiers,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -20,6 +19,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedRageModifiers } from '@arcadia-eternity/data-pack-base/native'
+
 const specs = {
   effect_emblem_increase_rage_on_damage: 20,
   effect_mark_increase_rage_on_damage_10_percent: 10,

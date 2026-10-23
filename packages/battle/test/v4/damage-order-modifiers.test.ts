@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedDamageModifierEffects,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -19,6 +18,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedDamageModifierEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const ids = [
   'effect_ability_damage_boost_10_percent_when_first',
   'effect_ability_damage_reduction_10_percent_when_last',

@@ -1,10 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { parse } from 'yaml'
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import {
-  createOfficialContent,
   AttributeSystem,
   AIPlayer,
   BattleMessageType,
@@ -13,19 +10,14 @@ import {
   setGlobalLogger,
   type Battle,
   type BattleMessage,
-  type OfficialPrototypeData,
   type baseMarkId,
   type baseSkillId,
 } from '@arcadia-eternity/battle/v4'
 import input from '../../src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import { createOfficialContent, type OfficialPrototypeData } from '@arcadia-eternity/data-pack-base/native'
+import { loadBasePrototypeData } from './base-metadata'
 
-const root = new URL('../../../../packs/base/data/', import.meta.url)
-const load = (name: string) => parse(readFileSync(new URL(`${name}.yaml`, root), 'utf8'), { merge: true })
-const data: OfficialPrototypeData = {
-  marks: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'].flatMap(load),
-  skills: load('skill'),
-  species: load('species'),
-}
+const data: OfficialPrototypeData = loadBasePrototypeData()
 const revision = 'official-native/test-build-1'
 const content = () => createOfficialContent(data, revision)
 const battles: Battle[] = []
@@ -89,7 +81,7 @@ it('validates a whole player creation batch before allocating instances', () => 
     if (invalid === 'schema') teams[1].team[0].level = 101
     else teams[1].team[0].skills[0] = 'skill_unknown'
     const before = AttributeSystem.getGlobalMemoryStats().totalInstances
-    expect(() => directory.parsePlayers(teams)).toThrow(invalid === 'schema' ? '100' : 'Unknown official skill')
+    expect(() => directory.parsePlayers(teams)).toThrow(invalid === 'schema' ? '100' : 'Unknown content skill')
     expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(before)
   }
   const [a, b] = directory.parsePlayers(input.teams)
@@ -243,8 +235,8 @@ it('keeps prototype references and editable parameters local to independent dire
   first.parametersFor('effect_skill_add_mark_shuiwenpingzhang')!.set(worlds[0].configSystem, alias, 1.5)
   expect(first.parametersFor('effect_skill_add_mark_shuiwenpingzhang')!.read(worlds[0].configSystem, alias)).toBe(1.5)
   expect(second.parametersFor('effect_skill_add_mark_shuiwenpingzhang')!.read(worlds[1].configSystem, alias)).toBe(1)
-  expect(() => second.snapshot(worlds[0])).toThrow('different official content directory')
-  expect(() => second.createBattle(worlds[0].playerA, worlds[0].playerB)).toThrow('Foreign official species')
+  expect(() => second.snapshot(worlds[0])).toThrow('different content directory')
+  expect(() => second.createBattle(worlds[0].playerA, worlds[0].playerB)).toThrow('Foreign content species')
 })
 
 async function play(checkpoint: boolean) {

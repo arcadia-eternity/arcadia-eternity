@@ -1,0 +1,70 @@
+- id: pet_feiyite
+  num: 97
+  element: Flying
+  baseStats:
+    hp: 179
+    atk: 168
+    def: 162
+    spa: 182
+    spd: 162
+    spe: 164
+  genderRatio: [5, 5]
+  heightRange: [65, 70]
+  weightRange: [28, 33]
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisu
+      level: 9
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 13
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 17
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 21
+      hidden: false
+    - skill_id: skill_feixuanzhiyu
+      level: 24
+      hidden: false
+    - skill_id: skill_jikongyu
+      level: 29
+      hidden: false
+    - skill_id: skill_feikongnengliang
+      level: 34
+      hidden: false
+    - skill_id: skill_jikongzhan
+      level: 40
+      hidden: false
+    - skill_id: skill_feixuanzhen
+      level: 46
+      hidden: false
+    - skill_id: skill_feixuanzhiguang
+      level: 52
+      hidden: false
+    - skill_id: skill_feikongluoxuanzhan
+      level: 60
+      hidden: true
+    - skill_id: skill_feizhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_feitianguangren
+      level: 60
+      hidden: true
+    - skill_id: skill_feikongjingneng
+      level: 60
+      hidden: true
+    - skill_id: skill_miewangsanjiaozhen
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_feikong
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_feixuan

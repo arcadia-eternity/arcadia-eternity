@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createLastStand,
   effectAuthoring,
   parameterAddress,
   BaseMark,
@@ -21,6 +20,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createLastStand } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_mark_set_health_to_1_on_damage'
 const definition = (
   parse(readFileSync(new URL('../../../../packs/base/data/effect_mark.yaml', import.meta.url), 'utf8'), {

@@ -6,12 +6,13 @@ import {
   BaseMark,
   EffectContext,
   EffectTrigger,
-  createExperiencePlaceholder,
   setGlobalLogger,
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createExperiencePlaceholder } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_ability_exp_boost_50_percent'
 const original = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_ability.yaml', import.meta.url), 'utf8'),

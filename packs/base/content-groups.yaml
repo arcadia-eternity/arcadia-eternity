@@ -1,0 +1,568 @@
+formatVersion: 1
+groups:
+  - id: dilan
+    species:
+      - pet_dilan
+      - pet_didilan
+      - pet_dilante
+  - id: xiuxiu
+    species:
+      - pet_xiuxiu
+      - pet_xiuyier
+      - pet_xiuluosi
+  - id: laao
+    species:
+      - pet_laao
+      - pet_laaomiao
+      - pet_laaoye
+  - id: fala
+    species:
+      - pet_fala
+      - pet_fana
+      - pet_fayina
+  - id: xiaoxiaokui
+    species:
+      - pet_xiaoxiaokui
+      - pet_daidaokui
+      - pet_xiaoxiaokui_2
+  - id: buer
+    species:
+      - pet_buer
+      - pet_bulutuo
+  - id: xiaoshugen
+    species:
+      - pet_xiaoshugen
+      - pet_shugenshizhe
+  - id: qilu
+    species:
+      - pet_qilu
+      - pet_kuqilu
+  - id: gusi
+    species:
+      - pet_gusi
+      - pet_gujialuo
+      - pet_gujialuosi
+  - id: anke
+    species:
+      - pet_anke
+      - pet_anya
+      - pet_anmiya
+  - id: lanmiao
+    species:
+      - pet_lanmiao
+      - pet_lanhujing
+  - id: aka
+    species:
+      - pet_aka
+      - pet_akanasi
+  - id: youni
+    species:
+      - pet_youni
+      - pet_qiaoni
+  - id: xiaoyanfu
+    species:
+      - pet_xiaoyanfu
+      - pet_dajiaoyanfu
+      - pet_dajiangyanfu
+  - id: huoke
+    species:
+      - pet_huoke
+      - pet_huokenuer
+  - id: xiaochitun
+    species:
+      - pet_xiaochitun
+      - pet_chiyanshou
+  - id: shuimodian
+    species:
+      - pet_shuimodian
+      - pet_shuimofeima
+  - id: jiujiu
+    species:
+      - pet_jiujiu
+      - pet_weiniqiujiu
+      - pet_kadunqiujiu
+  - id: xiaoyuetu
+    species:
+      - pet_xiaoyuetu
+      - pet_fuxiaotu
+  - id: daerhou
+    species:
+      - pet_daerhou
+      - pet_quantaohou
+      - pet_changbihou
+  - id: maimaizi
+    species:
+      - pet_maimaizi
+      - pet_maimaitou
+      - pet_maimaidi
+  - id: xijie
+    species:
+      - pet_xijie
+      - pet_xijietie
+  - id: yite
+    species:
+      - pet_yite
+  - id: fengyite
+    species:
+      - pet_fengyite
+  - id: dianyite
+    species:
+      - pet_dianyite
+  - id: bingyite
+    species:
+      - pet_bingyite
+  - id: anyite
+    species:
+      - pet_anyite
+  - id: guangyite
+    species:
+      - pet_guangyite
+  - id: tangni
+    species:
+      - pet_tangni
+      - pet_taini
+      - pet_luni
+  - id: duomo
+    species:
+      - pet_duomo
+      - pet_duomosang
+  - id: mogu
+    species:
+      - pet_mogu
+      - pet_juchuimogu
+  - id: shazhihe
+    species:
+      - pet_shazhihe
+      - pet_shahuangniao
+  - id: gexike
+    species:
+      - pet_gexike
+      - pet_geerxike
+  - id: zhikejji
+    species:
+      - pet_zhikejji
+      - pet_kukejji
+      - pet_dankejji
+  - id: kate
+    species:
+      - pet_kate
+      - pet_kateluo
+  - id: kaluo
+    species:
+      - pet_kaluo
+      - pet_kaluote
+  - id: feiya
+    species:
+      - pet_feiya
+      - pet_feiyasi
+  - id: ailu
+    species:
+      - pet_ailu
+      - pet_ailudake
+  - id: yingguangdie
+    species:
+      - pet_yingguangdie
+      - pet_huancaidie
+  - id: leike
+    species:
+      - pet_leike
+      - pet_leikesi
+      - pet_leikesasi
+  - id: nigu
+    species:
+      - pet_nigu
+      - pet_nilu
+      - pet_nigulasi
+  - id: xiaoba
+    species:
+      - pet_xiaoba
+      - pet_batu
+  - id: sanyanxie
+    species:
+      - pet_sanyanxie
+      - pet_sanyanshixie
+  - id: yilu
+    species:
+      - pet_yilu
+      - pet_yiluxin
+  - id: abao
+    species:
+      - pet_abao
+      - pet_acai
+  - id: chilunying
+    species:
+      - pet_chilunying
+      - pet_daimuchilunying
+  - id: salan
+    species:
+      - pet_salan
+      - pet_salanguer
+  - id: taimu
+    species:
+      - pet_taimu
+      - pet_taimuer
+  - id: niuniu
+    species:
+      - pet_niuniu
+      - pet_niudun
+  - id: wuda
+    species:
+      - pet_wuda
+      - pet_wuguda
+  - id: dada
+    species:
+      - pet_dada
+      - pet_dakeer
+      - pet_dakelaer
+  - id: aixi
+    species:
+      - pet_aixi
+      - pet_ailixisi
+  - id: linna
+    species:
+      - pet_linna
+      - pet_katelinna
+  - id: naipu
+    species:
+      - pet_naipu
+      - pet_naiputulong
+  - id: leiyi
+    species:
+      - pet_leiyi
+  - id: kaisa
+    species:
+      - pet_kaisa
+  - id: dongqigui
+    species:
+      - pet_dongqigui
+      - pet_hanbinggui
+  - id: duoli
+    species:
+      - pet_duoli
+      - pet_duopuli
+  - id: saobatou
+    species:
+      - pet_saobatou
+      - pet_meihuatou
+      - pet_baozhatou
+  - id: pige
+    species:
+      - pet_pige
+      - pet_pipige
+  - id: feiyite
+    species:
+      - pet_feiyite
+  - id: shayite
+    species:
+      - pet_shayite
+  - id: chongyite
+    species:
+      - pet_chongyite
+  - id: zhanyite
+    species:
+      - pet_zhanyite
+  - id: aika
+    species:
+      - pet_aika
+      - pet_aikaweite
+  - id: huanhuan
+    species:
+      - pet_huanhuan
+      - pet_huanli
+  - id: shasha
+    species:
+      - pet_shasha
+      - pet_shajita
+  - id: fenfen
+    species:
+      - pet_fenfen
+      - pet_leifen
+      - pet_geleifen
+  - id: sasa
+    species:
+      - pet_sasa
+      - pet_sabo
+      - pet_saber
+relations:
+  - from: pet_dilan
+    to: pet_didilan
+    kind: evolution
+  - from: pet_didilan
+    to: pet_dilante
+    kind: evolution
+  - from: pet_xiuxiu
+    to: pet_xiuyier
+    kind: evolution
+  - from: pet_xiuyier
+    to: pet_xiuluosi
+    kind: evolution
+  - from: pet_laao
+    to: pet_laaomiao
+    kind: evolution
+  - from: pet_laaomiao
+    to: pet_laaoye
+    kind: evolution
+  - from: pet_fala
+    to: pet_fana
+    kind: evolution
+  - from: pet_fana
+    to: pet_fayina
+    kind: evolution
+  - from: pet_xiaoxiaokui
+    to: pet_daidaokui
+    kind: evolution
+  - from: pet_daidaokui
+    to: pet_xiaoxiaokui_2
+    kind: evolution
+  - from: pet_buer
+    to: pet_bulutuo
+    kind: evolution
+  - from: pet_xiaoshugen
+    to: pet_shugenshizhe
+    kind: evolution
+  - from: pet_qilu
+    to: pet_kuqilu
+    kind: evolution
+  - from: pet_gusi
+    to: pet_gujialuo
+    kind: evolution
+  - from: pet_gujialuo
+    to: pet_gujialuosi
+    kind: evolution
+  - from: pet_anke
+    to: pet_anya
+    kind: evolution
+  - from: pet_anya
+    to: pet_anmiya
+    kind: evolution
+  - from: pet_lanmiao
+    to: pet_lanhujing
+    kind: evolution
+  - from: pet_aka
+    to: pet_akanasi
+    kind: evolution
+  - from: pet_youni
+    to: pet_qiaoni
+    kind: evolution
+  - from: pet_xiaoyanfu
+    to: pet_dajiaoyanfu
+    kind: evolution
+  - from: pet_dajiaoyanfu
+    to: pet_dajiangyanfu
+    kind: evolution
+  - from: pet_huoke
+    to: pet_huokenuer
+    kind: evolution
+  - from: pet_xiaochitun
+    to: pet_chiyanshou
+    kind: evolution
+  - from: pet_shuimodian
+    to: pet_shuimofeima
+    kind: evolution
+  - from: pet_jiujiu
+    to: pet_weiniqiujiu
+    kind: evolution
+  - from: pet_weiniqiujiu
+    to: pet_kadunqiujiu
+    kind: evolution
+  - from: pet_tangni
+    to: pet_taini
+    kind: evolution
+  - from: pet_taini
+    to: pet_luni
+    kind: evolution
+  - from: pet_duomo
+    to: pet_duomosang
+    kind: evolution
+  - from: pet_abao
+    to: pet_acai
+    kind: evolution
+  - from: pet_niuniu
+    to: pet_niudun
+    kind: evolution
+  - from: pet_maimaizi
+    to: pet_maimaitou
+    kind: evolution
+  - from: pet_maimaitou
+    to: pet_maimaidi
+    kind: evolution
+  - from: pet_daerhou
+    to: pet_quantaohou
+    kind: evolution
+  - from: pet_quantaohou
+    to: pet_changbihou
+    kind: evolution
+  - from: pet_xiaoyuetu
+    to: pet_fuxiaotu
+    kind: evolution
+  - from: pet_gexike
+    to: pet_geerxike
+    kind: evolution
+  - from: pet_huanhuan
+    to: pet_huanli
+    kind: evolution
+  - from: pet_zhikejji
+    to: pet_kukejji
+    kind: evolution
+  - from: pet_kukejji
+    to: pet_dankejji
+    kind: evolution
+  - from: pet_wuda
+    to: pet_wuguda
+    kind: evolution
+  - from: pet_dada
+    to: pet_dakeer
+    kind: evolution
+  - from: pet_dakeer
+    to: pet_dakelaer
+    kind: evolution
+  - from: pet_chilunying
+    to: pet_daimuchilunying
+    kind: evolution
+  - from: pet_mogu
+    to: pet_juchuimogu
+    kind: evolution
+  - from: pet_shazhihe
+    to: pet_shahuangniao
+    kind: evolution
+  - from: pet_saobatou
+    to: pet_meihuatou
+    kind: evolution
+  - from: pet_meihuatou
+    to: pet_baozhatou
+    kind: evolution
+  - from: pet_sanyanxie
+    to: pet_sanyanshixie
+    kind: evolution
+  - from: pet_pige
+    to: pet_pipige
+    kind: evolution
+  - from: pet_yite
+    to: pet_fengyite
+    kind: evolution
+  - from: pet_yite
+    to: pet_dianyite
+    kind: evolution
+  - from: pet_yite
+    to: pet_bingyite
+    kind: evolution
+  - from: pet_yite
+    to: pet_anyite
+    kind: evolution
+  - from: pet_yite
+    to: pet_guangyite
+    kind: evolution
+  - from: pet_yite
+    to: pet_feiyite
+    kind: evolution
+  - from: pet_yite
+    to: pet_shayite
+    kind: evolution
+  - from: pet_yite
+    to: pet_chongyite
+    kind: evolution
+  - from: pet_yite
+    to: pet_zhanyite
+    kind: evolution
+  - from: pet_fengyite
+    to: pet_yite
+    kind: branch
+  - from: pet_dianyite
+    to: pet_yite
+    kind: branch
+  - from: pet_bingyite
+    to: pet_yite
+    kind: branch
+  - from: pet_anyite
+    to: pet_yite
+    kind: branch
+  - from: pet_guangyite
+    to: pet_yite
+    kind: branch
+  - from: pet_feiyite
+    to: pet_yite
+    kind: branch
+  - from: pet_shayite
+    to: pet_yite
+    kind: branch
+  - from: pet_chongyite
+    to: pet_yite
+    kind: branch
+  - from: pet_zhanyite
+    to: pet_yite
+    kind: branch
+  - from: pet_aika
+    to: pet_aikaweite
+    kind: evolution
+  - from: pet_shasha
+    to: pet_shajita
+    kind: evolution
+  - from: pet_dongqigui
+    to: pet_hanbinggui
+    kind: evolution
+  - from: pet_yilu
+    to: pet_yiluxin
+    kind: evolution
+  - from: pet_duoli
+    to: pet_duopuli
+    kind: evolution
+  - from: pet_xijie
+    to: pet_xijietie
+    kind: evolution
+  - from: pet_xiaoba
+    to: pet_batu
+    kind: evolution
+  - from: pet_feiya
+    to: pet_feiyasi
+    kind: evolution
+  - from: pet_leike
+    to: pet_leikesi
+    kind: evolution
+  - from: pet_leikesi
+    to: pet_leikesasi
+    kind: evolution
+  - from: pet_fenfen
+    to: pet_leifen
+    kind: evolution
+  - from: pet_leifen
+    to: pet_geleifen
+    kind: evolution
+  - from: pet_kate
+    to: pet_kateluo
+    kind: evolution
+  - from: pet_kaluo
+    to: pet_kaluote
+    kind: evolution
+  - from: pet_nigu
+    to: pet_nilu
+    kind: evolution
+  - from: pet_nilu
+    to: pet_nigulasi
+    kind: evolution
+  - from: pet_sasa
+    to: pet_sabo
+    kind: evolution
+  - from: pet_sabo
+    to: pet_saber
+    kind: evolution
+  - from: pet_taimu
+    to: pet_taimuer
+    kind: evolution
+  - from: pet_yingguangdie
+    to: pet_huancaidie
+    kind: evolution
+  - from: pet_aixi
+    to: pet_ailixisi
+    kind: evolution
+  - from: pet_naipu
+    to: pet_naiputulong
+    kind: evolution
+  - from: pet_ailu
+    to: pet_ailudake
+    kind: evolution
+  - from: pet_linna
+    to: pet_katelinna
+    kind: evolution
+  - from: pet_salan
+    to: pet_salanguer
+    kind: evolution

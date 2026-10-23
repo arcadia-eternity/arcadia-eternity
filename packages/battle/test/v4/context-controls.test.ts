@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedContextControls,
   BaseMark,
   EffectContext,
   effectAuthoring,
@@ -21,6 +20,8 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedContextControls } from '@arcadia-eternity/data-pack-base/native'
+
 type Id = keyof typeof generatedContextControls
 const ids = Object.keys(generatedContextControls) as Id[]
 const ledger = JSON.parse(

@@ -4,7 +4,6 @@ import {
   snapshotBattle,
   restoreBattle,
   effectAuthoring,
-  createSwitchRageProtection,
   BaseMark,
   SwitchPetPhase,
   SwitchPetContext,
@@ -19,6 +18,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createSwitchRageProtection } from '@arcadia-eternity/data-pack-base/native'
+
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {

@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedStatStageSequences,
   BaseMark,
   BaseSkill,
   SkillInstance,
@@ -29,6 +28,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedStatStageSequences } from '@arcadia-eternity/data-pack-base/native'
+
 interface RecordEntry {
   id: keyof typeof generatedStatStageSequences
   sourceFile: string

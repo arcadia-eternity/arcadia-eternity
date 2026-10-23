@@ -4,8 +4,6 @@ import { parse } from 'yaml'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createGeneratedConditionalActions,
-  generatedConditionalActionDependencies,
   effectAuthoring,
   BaseMark,
   Pet,
@@ -26,6 +24,11 @@ import {
   type baseMarkId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import {
+  createGeneratedConditionalActions,
+  generatedConditionalActionDependencies,
+} from '@arcadia-eternity/data-pack-base/native'
+
 const ledger = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/conditional-actions-candidates.json', import.meta.url), 'utf8'),
 )

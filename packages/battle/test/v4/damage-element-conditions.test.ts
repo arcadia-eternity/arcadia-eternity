@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedDamageModifierEffects,
   BaseMark,
   Element,
   EffectContext,
@@ -20,6 +19,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedDamageModifierEffects } from '@arcadia-eternity/data-pack-base/native'
+
 const specs = {
   effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian: -10,
   effect_mark_increase_self_element_damage_10_percent: 10,

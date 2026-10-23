@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedStatStageCandidates,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -23,6 +22,8 @@ import {
   type StatTypeWithoutHp,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedStatStageCandidates } from '@arcadia-eternity/data-pack-base/native'
+
 interface Entry {
   id: string
   sourceFile: string

@@ -1,0 +1,70 @@
+- id: pet_shayite
+  num: 98
+  element: Desert
+  baseStats:
+    hp: 178
+    atk: 180
+    def: 164
+    spa: 166
+    spd: 161
+    spe: 163
+  genderRatio: [5, 5]
+  heightRange: [63, 68]
+  weightRange: [23, 28]
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisu
+      level: 9
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 13
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 17
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 21
+      hidden: false
+    - skill_id: skill_shachenjiejie
+      level: 24
+      hidden: false
+    - skill_id: skill_shaxuanwo
+      level: 29
+      hidden: false
+    - skill_id: skill_jisushanji
+      level: 34
+      hidden: false
+    - skill_id: skill_shachenzhili
+      level: 40
+      hidden: false
+    - skill_id: skill_shabaozhen
+      level: 46
+      hidden: false
+    - skill_id: skill_shalieshe
+      level: 52
+      hidden: false
+    - skill_id: skill_baolieluoshajiao
+      level: 60
+      hidden: true
+    - skill_id: skill_shazhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_shabaozhan
+      level: 60
+      hidden: true
+    - skill_id: skill_mizongbu
+      level: 60
+      hidden: true
+    - skill_id: skill_miewangsanjiaozhen
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_shasu
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_shazhen

@@ -3,8 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createRainWaterShield,
-  createOfficialWaterShieldCandidate,
   BaseMark,
   BaseSkill,
   SkillInstance,
@@ -28,6 +26,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createRainWaterShield, createOfficialWaterShieldCandidate } from '@arcadia-eternity/data-pack-base/native'
 
 const id = 'effect_ability_add_shuiwenpingzhang_value_if_yutian'
 const alias = 'effect_skill_add_mark_shuiwenpingzhang.multiply_value'

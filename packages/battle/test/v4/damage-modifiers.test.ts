@@ -4,13 +4,11 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  generatedDamageModifierEffects,
   MarkInstanceImpl,
   ConfigModifier,
   ConfigModifierType,
   ConfigDurationType,
   parameterAddress,
-  createGeneratedDamageModifierEffects,
   effectAuthoring,
   BaseSkill,
   SkillInstance,
@@ -38,6 +36,11 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import {
+  generatedDamageModifierEffects,
+  createGeneratedDamageModifierEffects,
+} from '@arcadia-eternity/data-pack-base/native'
+
 interface Entry {
   id: keyof typeof generatedDamageModifierEffects
   sourceFile: string

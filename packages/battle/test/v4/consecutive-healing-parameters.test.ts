@@ -14,7 +14,6 @@ import {
   UseSkillContext,
   AttackTargetOpinion,
   BattleMessageType,
-  officialConsecutiveHealingEffects,
   effectAuthoring,
   parameterAddress,
   defineNativeEffect,
@@ -29,6 +28,7 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 import { catalogFor } from './snapshot-host'
+import { officialConsecutiveHealingEffects } from '@arcadia-eternity/data-pack-base/native'
 
 const ids = [
   'effect_skill_heal_self_120_hp_if_consecutive_half',

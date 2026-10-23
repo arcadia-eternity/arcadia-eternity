@@ -12,8 +12,6 @@ import {
   SkillPhase,
   SkillInstance,
   defineNativeEffect,
-  generatedIgnoreShield,
-  createGeneratedIgnoreShield,
   SnapshotCatalog,
   snapshotBattle,
   restoreBattle,
@@ -25,6 +23,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { generatedIgnoreShield, createGeneratedIgnoreShield } from '@arcadia-eternity/data-pack-base/native'
+
 const id = 'effect_skill_ignore_opponent_shield_if_has_shunliu'
 const original = parse(
   readFileSync(new URL('../../../../packs/base/data/effect_skill.yaml', import.meta.url), 'utf8'),

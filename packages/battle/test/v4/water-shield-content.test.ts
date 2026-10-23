@@ -15,7 +15,6 @@ import {
   Operators,
 } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createOfficialWaterShieldContent,
   EffectTrigger,
   Category,
   DamageContext,
@@ -36,6 +35,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createOfficialWaterShieldContent } from '@arcadia-eternity/data-pack-base/native'
 
 const read = (file: string) =>
   parse(readFileSync(new URL(`../../../../packs/base/data/${file}.yaml`, import.meta.url), 'utf8'), { merge: true })

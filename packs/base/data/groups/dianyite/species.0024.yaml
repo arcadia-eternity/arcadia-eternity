@@ -1,0 +1,76 @@
+- id: pet_dianyite
+  num: 93
+  element: Electric
+  baseStats:
+    hp: 180
+    atk: 183
+    spa: 164
+    def: 163
+    spd: 159
+    spe: 165
+  genderRatio:
+    - 5
+    - 5
+  heightRange:
+    - 64
+    - 69
+  weightRange:
+    - 28
+    - 33
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_tisu
+      level: 10
+      hidden: false
+    - skill_id: skill_yitelingyu
+      level: 15
+      hidden: false
+    - skill_id: skill_yiteguanghuan
+      level: 20
+      hidden: false
+    - skill_id: skill_yitejieji
+      level: 25
+      hidden: false
+    - skill_id: skill_jingdianmaichong
+      level: 30
+      hidden: false
+    - skill_id: skill_xunleiqie
+      level: 35
+      hidden: false
+    - skill_id: skill_jidiantushan
+      level: 40
+      hidden: false
+    - skill_id: skill_bairen
+      level: 45
+      hidden: false
+    - skill_id: skill_diancizhixing
+      level: 50
+      hidden: false
+    - skill_id: skill_shandianwaiyi
+      level: 55
+      hidden: false
+    - skill_id: skill_shandianxingguangzhan
+      level: 60
+      hidden: false
+    - skill_id: skill_dianzhilingyu
+      level: 60
+      hidden: true
+    - skill_id: skill_tianleishan
+      level: 60
+      hidden: true
+    - skill_id: skill_shanyue
+      level: 60
+      hidden: true
+    - skill_id: skill_yitesanlianxing
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_zhiming
+  emblem:
+    - mark_emblem_zhongji
+    - mark_emblem_dianhe

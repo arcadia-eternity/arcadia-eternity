@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createGeneratedMarkApplications,
   defineNativeEffect,
   BaseMark,
   Pet,
@@ -23,6 +22,8 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 import { thresholdSeeds } from './probability-threshold'
+import { createGeneratedMarkApplications } from '@arcadia-eternity/data-pack-base/native'
+
 const probabilitySeeds = thresholdSeeds(50)
 
 type RecordEntry = {

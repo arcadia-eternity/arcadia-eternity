@@ -7,12 +7,13 @@ import {
   RageContext,
   TurnContext,
   defineNativeEffect,
-  createGeneratedRageAssignment,
   setGlobalLogger,
   type Battle,
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createGeneratedRageAssignment } from '@arcadia-eternity/data-pack-base/native'
+
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {

@@ -5,8 +5,6 @@ import { afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import { EffectParser, MarkParser, DataRepository } from '@arcadia-eternity/battle/v4/legacy'
 import {
   AttributeSystem,
-  createGeneratedMarkApplications,
-  generatedMarkApplicationDependencies,
   defineNativeEffect,
   BaseMark,
   Pet,
@@ -32,6 +30,10 @@ import {
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
 import { thresholdSeeds } from './probability-threshold'
+import {
+  createGeneratedMarkApplications,
+  generatedMarkApplicationDependencies,
+} from '@arcadia-eternity/data-pack-base/native'
 
 type Candidates = ReturnType<typeof createGeneratedMarkApplications>
 interface RecordEntry {

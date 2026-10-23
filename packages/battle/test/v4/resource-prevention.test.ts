@@ -3,7 +3,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createResourcePrevention,
   BaseMark,
   EffectContext,
   EffectTrigger,
@@ -20,6 +19,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createResourcePrevention } from '@arcadia-eternity/data-pack-base/native'
+
 const candidates = createResourcePrevention()
 const definitions = ['mark', 'ability'].flatMap(kind =>
   parse(readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'), {

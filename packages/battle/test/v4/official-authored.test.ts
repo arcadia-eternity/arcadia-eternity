@@ -4,7 +4,6 @@ import { parse } from 'yaml'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  officialAuthoredEffects,
   AddMarkContext,
   BaseMark,
   DamageContext,
@@ -21,6 +20,7 @@ import {
   type MarkInstance,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { officialAuthoredEffects } from '@arcadia-eternity/data-pack-base/native'
 
 const definitions: { id: string }[] = ['skill', 'mark'].flatMap(kind =>
   parse(readFileSync(new URL(`../../../../packs/base/data/effect_${kind}.yaml`, import.meta.url), 'utf8'), {

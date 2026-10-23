@@ -4,7 +4,6 @@ import { Type } from '@sinclair/typebox'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { EffectParser } from '@arcadia-eternity/battle/v4/legacy'
 import {
-  createTaggedParameterModifiers,
   effectAuthoring,
   SnapshotCatalog,
   snapshotBattle,
@@ -26,6 +25,8 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import { createTaggedParameterModifiers } from '@arcadia-eternity/data-pack-base/native'
+
 const candidates = createTaggedParameterModifiers()
 const definitions = ['ability', 'emblem'].flatMap(k =>
   parse(readFileSync(new URL(`../../../../packs/base/data/effect_${k}.yaml`, import.meta.url), 'utf8'), {

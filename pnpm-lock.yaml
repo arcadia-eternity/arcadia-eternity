@@ -91,6 +91,9 @@ importers:
 
   .:
     dependencies:
+      '@arcadia-eternity/data-pack-base':
+        specifier: workspace:^
+        version: link:packs/base
       '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:packages/battle
@@ -531,6 +534,9 @@ importers:
 
   packages/server:
     dependencies:
+      '@arcadia-eternity/data-pack-base':
+        specifier: workspace:^
+        version: link:../../packs/base
       '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
@@ -655,6 +661,9 @@ importers:
 
   packages/web-ui:
     dependencies:
+      '@arcadia-eternity/data-pack-base':
+        specifier: workspace:^
+        version: link:../../packs/base
       '@arcadia-eternity/battle':
         specifier: workspace:^
         version: link:../battle
@@ -912,7 +921,17 @@ importers:
         specifier: ^9.0.4
         version: 9.0.4(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
 
-  packs/base: {}
+  packs/base:
+    dependencies:
+      '@arcadia-eternity/battle':
+        specifier: workspace:^
+        version: link:../../packages/battle
+      '@arcadia-eternity/const':
+        specifier: workspace:^
+        version: link:../../packages/const
+      '@sinclair/typebox':
+        specifier: 'catalog:'
+        version: 0.34.48
 
 packages:
 
