@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { Pool } from 'pg'
+import { io, type Socket } from 'socket.io-client'
 import type { AccountIdentity, ServerSession } from '@arcadia-eternity/protocol'
 import { createSingleProcessApp } from '../src/standalone/app'
 import { PgAccountDirectory } from '../src/standalone/accounts/directory'
@@ -16,12 +17,14 @@ const profile = { id: 'local-profile-is-not-proof', name: 'Alice' }
 
 type Host = { app: ReturnType<typeof createSingleProcessApp>; url: string }
 type Authorization = { challenge: string; subject: number }
+type RoomReply<T> = { status: 'SUCCESS'; data: T } | { status: 'ERROR'; code: string }
 
 describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAuth', () => {
   const authorizations = new Map<string, Authorization>()
   const accessTokens = new Map<string, number>()
   const pools: Pool[] = []
   const apps: Host[] = []
+  const sockets: Socket[] = []
   const serverIds = new Set<string>()
   let apiUrl = ''
   const issuer = 'https://github.com'
@@ -115,6 +118,7 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
   })
 
   afterEach(async () => {
+    for (const socket of sockets.splice(0)) socket.disconnect()
     await Promise.all(apps.splice(0).map(({ app }) => app.stop()))
   })
 
@@ -195,6 +199,31 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
     return ((await completed.json()) as { session: ServerSession }).session
   }
 
+  async function connect(host: Host, session: ServerSession): Promise<Socket> {
+    const socket = io(host.url, {
+      auth: { token: session.token },
+      transports: ['websocket'],
+      reconnection: false,
+      autoConnect: false,
+    })
+    sockets.push(socket)
+    const connected = new Promise<void>((resolve, reject) => {
+      socket.once('connect', () => resolve())
+      socket.once('connect_error', reject)
+    })
+    socket.connect()
+    await connected
+    return socket
+  }
+
+  function roomRequest<T>(socket: Socket, event: string, data?: unknown): Promise<RoomReply<T>> {
+    return new Promise((resolve, reject) => {
+      const reply = (error: Error | null, response: RoomReply<T>) => (error ? reject(error) : resolve(response))
+      if (data === undefined) socket.timeout(5000).emit(event, reply)
+      else socket.timeout(5000).emit(event, data, reply)
+    })
+  }
+
   async function githubComplete(
     host: Host,
     intent: 'login' | 'link',
@@ -233,6 +262,42 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
       token,
     )
   }
+
+  it('recovers the same email account after restart without restoring its room or session', async () => {
+    const serverId = `full-stack-${randomUUID()}`
+    serverIds.add(serverId)
+    const codes = new Map<string, string>()
+    const first = await boot(serverId, codes)
+    const original = await emailLogin(first, codes, 'recovery@example.test')
+    expect(original.principal.kind).toBe('account')
+    const oldSocket = await connect(first, original)
+    const created = await roomRequest<{ roomCode: string }>(oldSocket, 'createPrivateRoom', {
+      config: { battleMode: 'server' },
+    })
+    expect(created.status).toBe('SUCCESS')
+    if (created.status !== 'SUCCESS') throw new Error(created.code)
+    expect(first.app.rooms.size).toBe(1)
+
+    await first.app.stop()
+    const second = await boot(serverId, codes)
+    expect(second.app.rooms.size).toBe(0)
+    expect((await request(second, '/session', 'GET', undefined, original.token)).status).toBe(401)
+
+    const recovered = await emailLogin(second, codes, 'recovery@example.test')
+    expect(recovered.principal).toEqual(original.principal)
+    expect(recovered.serverId).toBe(original.serverId)
+    expect(recovered.bootId).not.toBe(original.bootId)
+    expect(recovered.sessionId).not.toBe(original.sessionId)
+    expect(recovered.seatId).not.toBe(original.seatId)
+    expect(recovered.token).not.toBe(original.token)
+
+    const newSocket = await connect(second, recovered)
+    expect(await roomRequest(newSocket, 'getCurrentPrivateRoom')).toEqual({ status: 'SUCCESS', data: null })
+    expect(await roomRequest(newSocket, 'joinPrivateRoom', { roomCode: created.data.roomCode })).toEqual({
+      status: 'ERROR',
+      code: 'ROOM_NOT_FOUND',
+    })
+  }, 20_000)
 
   it('keeps one account across process restart while replacing seats and revoking deactivated access', async () => {
     const serverId = `full-stack-${randomUUID()}`

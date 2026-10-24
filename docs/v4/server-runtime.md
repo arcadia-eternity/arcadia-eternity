@@ -87,6 +87,8 @@ GitHub App 最多登记 10 条回调；服务端同样拒绝超过 10 条或重�
 
 Sites 的 Workers 支持 HTTP 和 WebSocket，但不能直接运行此常驻 Node 入口。其 D1/R2 能保存结构化记录和文件，并不能恢复这里约定为停机即解散的内存房间；若以后以 Sites 运行权威对战，需要另做运行时适配和验收。参见 [Sites 能力](https://learn.chatgpt.com/docs/sites)与 [CloudBase 云托管能力](https://docs.cloudbase.net/run/introduction)。
 
+账号存储取决于是否启用 G3：游客专用社区服无需数据库；能访问外部 PostgreSQL 的常驻 Node 部署可使用当前 `DATABASE_URL` 账号目录，官方服沿用现有 Supabase PostgreSQL。对不能运行本入口或不能使用当前账号目录的边缘、Worker 等宿主，未来须通过独立账号服务 API 接入，或另做 `AccountDirectory` 存储适配器。无论后端选什么，都必须原子保证每服外部身份唯一归属、绑定冲突、最后一种恢复方式不可解绑，以及停用后保留身份键并拒绝重新登录；不能直接以任意 KV 替换 PostgreSQL。本轮只实现 PostgreSQL 目录和常驻 Node 入口，不包含这些账号 API、存储适配器或 Worker 对战运行时。
+
 ## 验证
 
 ```sh

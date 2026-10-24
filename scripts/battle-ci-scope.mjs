@@ -34,7 +34,7 @@ const jobFiles = {
     /^docs\/v4\/v1-(?:port-provenance|import-graph|extra-source-map)\.json$/,
     /^docs\/v4\/(?:examples|validation)\//,
   ],
-  server: [/^bin\//, /^eslint\.config\.server-native\.js$/, /^scripts\/verify-native-pack\.mjs$/],
+  server: [/^bin\//, /^eslint\.config\.server-standalone\.js$/, /^scripts\/verify-native-pack\.mjs$/],
   browser: [/^resource\//],
   // The offline bundle includes the root entry and lazy legacy command module.
   cli: [/^bin\//, /^rolldown\.config\.js$/],

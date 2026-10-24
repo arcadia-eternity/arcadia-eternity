@@ -222,14 +222,14 @@ describe('server session identity boundaries', () => {
   })
 
   it('does not expose unavailable account providers on a guest-only server', async () => {
-    const request = requester().mockResolvedValueOnce(
-      json({ ...info, authModes: ['guest'], accountProviders: undefined }),
-    )
+    const request = requester()
+      .mockResolvedValueOnce(json({ ...info, authModes: ['guest'], accountProviders: undefined }))
+      .mockResolvedValueOnce(json({ ...info, authModes: ['guest'], accountProviders: undefined }))
     const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
     await client.refresh()
     await expect(client.requestEmailCode('player@example.com', 'login')).rejects.toThrow('未启用邮箱登录')
     await expect(client.startGitHub('login')).rejects.toThrow('未启用 GitHub 登录')
-    expect(request).toHaveBeenCalledTimes(1)
+    expect(request).toHaveBeenCalledTimes(2)
   })
 
   it('logs in with a verified email code and revokes the former guest seat', async () => {
@@ -238,27 +238,116 @@ describe('server session identity boundaries', () => {
       .mockResolvedValueOnce(json(makeSession('guest')))
     const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
     await client.ensure(profile)
-    request.mockResolvedValueOnce(json({ challengeId: 'challenge-1', expiresAt: Date.now() + 60_000 }))
+    request
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(makeSession('guest')))
+      .mockResolvedValueOnce(json({ challengeId: 'challenge-1', expiresAt: Date.now() + 60_000 }))
     await client.requestEmailCode('player@example.com', 'login')
-    expect(JSON.parse(request.mock.calls[2][1]?.body as string)).toEqual({
+    const challengeCall = request.mock.calls.find(([url]) => String(url).endsWith('/auth/email/challenges'))!
+    expect(JSON.parse(challengeCall[1]?.body as string)).toEqual({
       email: 'player@example.com',
       intent: 'login',
     })
-    expect(request.mock.calls[2][1]?.headers).not.toHaveProperty('Authorization')
+    expect(challengeCall[1]?.headers).not.toHaveProperty('Authorization')
 
     const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
-    request.mockResolvedValueOnce(json({ session: account })).mockResolvedValueOnce(new Response(null, { status: 204 }))
+    request
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(makeSession('guest')))
+      .mockResolvedValueOnce(json({ session: account }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
     const result = await client.completeEmailCode('challenge-1', '123456', 'login', profile)
     expect(result).toEqual(account)
     expect(client.session?.seatId).toBe('account')
     expect(client.session?.profile.id).toBe(profile.id)
-    expect(JSON.parse(request.mock.calls[3][1]?.body as string)).toEqual({
+    const completeCall = request.mock.calls.find(([url]) => String(url).endsWith('/auth/email/complete'))!
+    expect(JSON.parse(completeCall[1]?.body as string)).toEqual({
       challengeId: 'challenge-1',
       code: '123456',
       intent: 'login',
       profile,
     })
-    expect(request.mock.calls[4][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-guest' })
+    const revocationCall = request.mock.calls.find(
+      ([url, init]) => String(url).endsWith('/session') && init?.method === 'DELETE',
+    )!
+    expect(revocationCall[1]?.headers).toMatchObject({ Authorization: 'Bearer secret-guest' })
+  })
+
+  it('refreshes the server boot before issuing an email challenge so its completed account session can be adopted', async () => {
+    let bootId = 'boot-1'
+    const request = requester().mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/server-info')) return json({ ...info, bootId })
+      if (url.endsWith('/auth/email/challenges'))
+        return json({ challengeId: 'challenge-after-restart', expiresAt: Date.now() + 60_000 })
+      if (url.endsWith('/auth/email/complete')) {
+        return json({
+          session: makeSession('account', {
+            bootId,
+            principal: { kind: 'account', accountId: 'account-1' },
+          }),
+        })
+      }
+      throw new Error(`unexpected request: ${url}`)
+    })
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+
+    await client.refresh()
+    bootId = 'boot-2'
+
+    await client.requestEmailCode('player@example.com', 'login')
+    expect(request.mock.calls.map(([url]) => String(url)).slice(-2)).toEqual([
+      'https://game.example/api/v1/server-info',
+      'https://game.example/api/v1/auth/email/challenges',
+    ])
+
+    bootId = 'boot-3'
+    await expect(
+      client.completeEmailCode('challenge-after-restart', '123456', 'login', profile),
+    ).resolves.toMatchObject({
+      bootId: 'boot-3',
+    })
+    expect(client.info?.bootId).toBe('boot-3')
+    expect(request.mock.calls.map(([url]) => String(url)).slice(-2)).toEqual([
+      'https://game.example/api/v1/server-info',
+      'https://game.example/api/v1/auth/email/complete',
+    ])
+  })
+
+  it('refreshes once more when the server restarts while completing an email code', async () => {
+    let bootId = 'boot-1'
+    const request = requester().mockImplementation(async input => {
+      const url = String(input)
+      if (url.endsWith('/server-info')) return json({ ...info, bootId })
+      if (url.endsWith('/auth/email/challenges'))
+        return json({ challengeId: 'challenge-race', expiresAt: Date.now() + 60_000 })
+      if (url.endsWith('/auth/email/complete')) {
+        bootId = 'boot-4'
+        return json({
+          session: makeSession('account', {
+            bootId,
+            principal: { kind: 'account', accountId: 'account-1' },
+          }),
+        })
+      }
+      throw new Error(`unexpected request: ${url}`)
+    })
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+
+    await client.refresh()
+    bootId = 'boot-2'
+    await client.requestEmailCode('player@example.com', 'login')
+    bootId = 'boot-3'
+
+    await expect(client.completeEmailCode('challenge-race', '123456', 'login', profile)).resolves.toMatchObject({
+      bootId: 'boot-4',
+    })
+    expect(client.info?.bootId).toBe('boot-4')
+    expect(request.mock.calls.map(([url]) => String(url)).slice(-3)).toEqual([
+      'https://game.example/api/v1/server-info',
+      'https://game.example/api/v1/auth/email/complete',
+      'https://game.example/api/v1/server-info',
+    ])
   })
 
   it('links a second verified identity only to the authenticated account', async () => {
@@ -266,18 +355,26 @@ describe('server session identity boundaries', () => {
     const request = requester().mockResolvedValueOnce(json(info)).mockResolvedValueOnce(json(account))
     const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
     await client.ensure(profile)
-    request.mockResolvedValueOnce(json({ challengeId: 'link-1', expiresAt: Date.now() + 60_000 }))
+    request
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(account))
+      .mockResolvedValueOnce(json({ challengeId: 'link-1', expiresAt: Date.now() + 60_000 }))
     await client.requestEmailCode('second@example.com', 'link')
-    expect(request.mock.calls[2][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+    const challengeCall = request.mock.calls.find(([url]) => String(url).endsWith('/auth/email/challenges'))!
+    expect(challengeCall[1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
     const identities = [{ providerId: 'email', issuer: 'email', subject: 'second@example.com' }]
-    request.mockResolvedValueOnce(json({ identities }))
+    request
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(account))
+      .mockResolvedValueOnce(json({ identities }))
     expect(await client.completeEmailCode('link-1', '654321', 'link', profile)).toEqual(identities)
-    expect(JSON.parse(request.mock.calls[3][1]?.body as string)).toEqual({
+    const completeCall = request.mock.calls.find(([url]) => String(url).endsWith('/auth/email/complete'))!
+    expect(JSON.parse(completeCall[1]?.body as string)).toEqual({
       challengeId: 'link-1',
       code: '654321',
       intent: 'link',
     })
-    expect(request.mock.calls[3][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+    expect(completeCall[1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
     expect(client.session).toEqual(account)
   })
 
@@ -365,11 +462,19 @@ describe('server session identity boundaries', () => {
     await client.ensure(profile)
     const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
     request
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(makeSession('guest')))
       .mockResolvedValueOnce(json({ session: account }))
       .mockRejectedValueOnce(new TypeError('offline'))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
     await expect(client.completeEmailCode('challenge', '123456', 'login', profile)).rejects.toThrow('offline')
     expect(client.session?.seatId).toBe('guest')
-    expect(request.mock.calls[4][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+    const accountCleanupCall = request.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith('/session') &&
+        init?.method === 'DELETE' &&
+        (init.headers as Record<string, string> | undefined)?.Authorization === 'Bearer secret-account',
+    )!
+    expect(accountCleanupCall[1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
   })
 })

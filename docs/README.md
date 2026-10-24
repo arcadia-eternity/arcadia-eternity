@@ -13,9 +13,15 @@ V4 的入口、内容维护和恢复约定从 [V4 指南](v4/direct-v1-port.md) 
 | 历史 DSL 示例                   | [Config 修饰](ConfigModifierDSLExamples.md)、[阶段修饰](PhaseAwareDSLExamples.md)、[标签配置](TaggedConfigSystemExamples.md) |
 | Modifier 界面                   | [使用示例](MODIFIER_UI_USAGE_EXAMPLE.md)                                                                                     |
 | 通用内容包格式                  | [Pack Spec](pack-spec.md)、[lockfile](pack-lockfile-v2.md)                                                                   |
-| 服务端运行失败处理              | [运行失败矩阵](server-runtime-failure-matrix.md)                                                                             |
-| 集群运维                        | [部署](cluster-deployment.md)、[端口](cluster-port-configuration.md)                                                         |
-| 战报运维                        | [战报系统](battle-report-system.md)、[故障排查](battle-reports-troubleshooting.md)                                           |
+| 当前服务端运行与部署            | [单进程房间与身份](v4/server-runtime.md)                                                                                     |
+| 服务端账号与持久化              | [账号提供商设计](v4/account-provider-design.md)                                                                              |
 | 测试入口                        | [测试指南](testing-guide.md)、[V4 检查命令](v4/direct-v1-port.md#验证)                                                       |
 
 历史 DSL 示例与旧迁移计划对应其原版本；修改 V4 时，以本指南链接的当前约定及源码为准。历史提交、逐批实现过程和旧验证输出可从 Git 查询。
+
+## 历史服务端文档
+
+以下文档记录已退出默认服务端的集群与战报方案，仅供追溯旧实现；当前服务端部署、账号配置和停机语义以[单进程房间与身份](v4/server-runtime.md)为准。
+
+- 旧集群：[部署指南](cluster-deployment.md)、[端口配置](cluster-port-configuration.md)、[运行失败矩阵](server-runtime-failure-matrix.md)。
+- 旧战报：[战报系统](battle-report-system.md)、[故障排查](battle-reports-troubleshooting.md)。

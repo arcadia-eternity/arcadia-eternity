@@ -216,8 +216,16 @@ export class ServerSessionClient {
 
   private async adoptAccountSession(next: ServerSession): Promise<ServerSession> {
     if (next.principal.kind !== 'account') throw new Error('服务器未返回账号会话')
-    if (!this.info || next.serverId !== this.info.serverId || next.bootId !== this.info.bootId) {
+    if (!this.info || next.serverId !== this.info.serverId) {
       throw new Error('服务器返回了不匹配的账号会话')
+    }
+    if (next.bootId !== this.info.bootId) {
+      // A restart can happen after the last pre-flight refresh but before the one-time proof is
+      // exchanged. Refresh once before rejecting the just-issued account credential.
+      const { info } = await this.refresh()
+      if (next.serverId !== info.serverId || next.bootId !== info.bootId) {
+        throw new Error('服务器返回了不匹配的账号会话')
+      }
     }
     this.identityEpoch += 1
     const previous = this.session
@@ -253,8 +261,11 @@ export class ServerSessionClient {
   }
 
   async requestEmailCode(email: string, intent: AccountIntent): Promise<AccountChallengeResponse> {
-    if (!this.info) await this.refresh()
-    if (!this.info!.accountProviders?.includes('email')) throw new Error('此服务器未启用邮箱登录')
+    // The account page can remain open while the server restarts. Refresh before asking the
+    // server to issue a one-time challenge so a subsequent account session is checked against
+    // the current boot, not the boot that originally loaded the page.
+    const { info } = await this.refresh()
+    if (!info.accountProviders?.includes('email')) throw new Error('此服务器未启用邮箱登录')
     return this.call<AccountChallengeResponse>('/auth/email/challenges', {
       method: 'POST',
       headers: intent === 'link' ? this.accountHeaders() : undefined,
@@ -268,6 +279,9 @@ export class ServerSessionClient {
     intent: AccountIntent,
     profile: LocalProfile,
   ): Promise<AccountIdentity[] | ServerSession> {
+    // Keep the code unconsumed until the current boot has been observed. This also prevents a
+    // stale account session from being used for identity linking after a server restart.
+    await this.refresh()
     const result = await this.call<AccountIdentityListResponse | AccountSessionResponse>('/auth/email/complete', {
       method: 'POST',
       headers: intent === 'link' ? this.accountHeaders() : undefined,
