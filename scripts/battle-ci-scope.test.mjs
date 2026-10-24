@@ -7,8 +7,8 @@ import { after, test } from 'node:test'
 import { affectedBattleJobs, changedBattlePaths, selectBattleJobs, workspacePackages } from './battle-ci-scope.mjs'
 
 const packages = workspacePackages()
-const none = { headless: false, server: false, browser: false }
-const all = { headless: true, server: true, browser: true }
+const none = { headless: false, server: false, browser: false, cli: false }
+const all = { headless: true, server: true, browser: true, cli: true }
 
 for (const path of [
   'README.md',
@@ -36,11 +36,28 @@ for (const path of [
   })
 }
 
-for (const path of ['packages/server/src/app.ts', 'packages/console/src/index.ts', 'bin/native-local-battle.ts']) {
-  test(`server or CLI change runs only its job: ${path}`, () => {
+for (const path of ['packages/server/src/app.ts']) {
+  test(`server dependency change runs server checks without offline CLI: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, server: true })
   })
 }
+
+for (const path of [
+  'packages/console/src/index.ts',
+  'packages/cli/src/main.ts',
+  'packages/cli/test/commands.test.ts',
+  'bin/cli.ts',
+  'bin/legacy-cli.ts',
+  'bin/native-local-battle.ts',
+]) {
+  test(`CLI source or shared console changes cover both CLI checks: ${path}`, () => {
+    assert.deepEqual(affectedBattleJobs([path], packages), { ...none, server: true, cli: true })
+  })
+}
+
+test('root offline bundle configuration runs offline CLI checks', () => {
+  assert.deepEqual(affectedBattleJobs(['rolldown.config.js'], packages), { ...none, cli: true })
+})
 
 for (const path of ['packages/web-ui/src/pages/localBattlePage.vue', 'resource/background.yaml']) {
   test(`browser change runs only its job: ${path}`, () => {
@@ -48,9 +65,13 @@ for (const path of ['packages/web-ui/src/pages/localBattlePage.vue', 'resource/b
   })
 }
 
-test('client and database changes cover server/CLI and browser, without headless tests', () => {
-  for (const path of ['packages/client/src/index.ts', 'packages/database/src/index.ts'])
-    assert.deepEqual(affectedBattleJobs([path], packages), { headless: false, server: true, browser: true })
+test('client, database and P2P changes cover server and browser without offline CLI', () => {
+  for (const path of [
+    'packages/client/src/index.ts',
+    'packages/database/src/index.ts',
+    'packages/p2p-transport/src/index.ts',
+  ])
+    assert.deepEqual(affectedBattleJobs([path], packages), { ...none, server: true, browser: true })
 })
 
 for (const path of [
@@ -58,6 +79,7 @@ for (const path of [
   'docs/v4/examples/ugc-healing.json',
   'docs/v4/v1-port-provenance.json',
   'scripts/verify-v1-hosts.mjs',
+  'scripts/verify-waiting-snapshots.mjs',
 ]) {
   test(`headless test input runs headless checks: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, headless: true })
@@ -69,6 +91,7 @@ test('mixed changed paths combine job scopes', () => {
     headless: false,
     server: true,
     browser: true,
+    cli: true,
   })
 })
 
@@ -81,6 +104,21 @@ test('new workspace dependencies are followed automatically', () => {
   })
   updated.set('@arcadia-eternity/new-runtime', { directory: 'packages/new-runtime', dependencies: [] })
   assert.deepEqual(affectedBattleJobs(['packages/new-runtime/src/index.ts'], updated), all)
+})
+
+test('new CLI workspace dependencies cover offline CLI and root CLI typecheck', () => {
+  const updated = new Map(packages)
+  const cli = packages.get('@arcadia-eternity/cli')
+  updated.set('@arcadia-eternity/cli', {
+    ...cli,
+    dependencies: [...cli.dependencies, '@arcadia-eternity/new-cli-runtime'],
+  })
+  updated.set('@arcadia-eternity/new-cli-runtime', { directory: 'packages/new-cli-runtime', dependencies: [] })
+  assert.deepEqual(affectedBattleJobs(['packages/new-cli-runtime/src/index.ts'], updated), {
+    ...none,
+    server: true,
+    cli: true,
+  })
 })
 
 test('manual runs, unsupported events and a new branch run all checks', () => {

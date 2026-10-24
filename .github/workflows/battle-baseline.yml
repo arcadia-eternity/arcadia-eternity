@@ -22,6 +22,7 @@ jobs:
       headless: ${{ steps.scope.outputs.headless }}
       server: ${{ steps.scope.outputs.server }}
       browser: ${{ steps.scope.outputs.browser }}
+      cli: ${{ steps.scope.outputs.cli }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -157,6 +158,8 @@ jobs:
         run: pnpm test:web-native:e2e
 
   offline-cli:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

@@ -6,8 +6,9 @@ import { pathToFileURL } from 'node:url'
 const jobPackages = {
   headless: ['battle', 'data-pack-base', 'pack-loader'],
   // The CLI typecheck also resolves its lazy client/console/server imports.
-  server: ['server', 'console', 'client', 'cli-validator', 'p2p-transport'],
+  server: ['server', 'console', 'client', 'cli', 'cli-validator', 'p2p-transport'],
   browser: ['web-ui'],
+  cli: ['cli'],
 }
 
 const sharedFiles = new Set([
@@ -28,11 +29,14 @@ const jobFiles = {
   headless: [
     /^eslint\.config\.(?:baseline|v4)\.js$/,
     /^scripts\/verify-v1-(?:port|hosts)\.mjs$/,
+    /^scripts\/verify-waiting-snapshots\.mjs$/,
     /^docs\/v4\/v1-(?:port-provenance|import-graph|extra-source-map)\.json$/,
     /^docs\/v4\/(?:examples|validation)\//,
   ],
   server: [/^bin\//, /^eslint\.config\.server-native\.js$/, /^scripts\/verify-native-pack\.mjs$/],
   browser: [/^resource\//],
+  // The offline bundle includes the root entry and lazy legacy command module.
+  cli: [/^bin\//, /^rolldown\.config\.js$/],
 }
 
 function git(args, cwd) {
@@ -128,14 +132,14 @@ export function selectBattleJobs(eventName, event, cwd = process.cwd()) {
     return {
       jobs:
         paths === null
-          ? { headless: true, server: true, browser: true }
+          ? { headless: true, server: true, browser: true, cli: true }
           : affectedBattleJobs(paths, workspacePackages(cwd)),
       paths,
     }
   } catch (error) {
     // Missing push history (for example after a force push) must never silently remove coverage.
     console.warn(`Cannot determine battle CI scope; running all checks: ${error.message}`)
-    return { jobs: { headless: true, server: true, browser: true }, paths: null }
+    return { jobs: { headless: true, server: true, browser: true, cli: true }, paths: null }
   }
 }
 
