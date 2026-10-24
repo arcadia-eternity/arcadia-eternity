@@ -10,8 +10,36 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: battle-regression-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      headless: ${{ steps.scope.outputs.headless }}
+      server: ${{ steps.scope.outputs.server }}
+      browser: ${{ steps.scope.outputs.browser }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check battle CI path selection
+        run: node --test scripts/battle-ci-scope.test.mjs
+      - name: Select affected battle checks
+        id: scope
+        run: node scripts/battle-ci-scope.mjs
+
+  # Keep these checks present on every PR; workflow-level paths can leave required checks pending.
+  # If scope detection fails, run all jobs so a filtering error cannot remove test coverage.
   headless-battle:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.headless == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -58,6 +86,8 @@ jobs:
           if-no-files-found: ignore
 
   native-server-entry:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.server == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -93,6 +123,8 @@ jobs:
           pnpm test:cli-native
 
   native-browser-entry:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.browser == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

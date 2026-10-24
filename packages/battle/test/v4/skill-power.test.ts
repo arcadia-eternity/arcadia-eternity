@@ -57,13 +57,16 @@ interface RecordEntry {
 const { records }: { records: RecordEntry[] } = JSON.parse(
   readFileSync(new URL('../../../../docs/v4/validation/skill-power-candidates.json', import.meta.url), 'utf8'),
 )
+const definitionSources = new Map<string, ReturnType<typeof parse>>()
 const definitions = new Map(
-  records.map(r => [
-    r.id,
-    parse(readFileSync(new URL(`../../../../${r.sourceFile}`, import.meta.url), 'utf8'), { merge: true })[
-      Number(r.sourcePath.slice(1))
-    ],
-  ]),
+  records.map(r => {
+    if (!definitionSources.has(r.sourceFile))
+      definitionSources.set(
+        r.sourceFile,
+        parse(readFileSync(new URL(`../../../../${r.sourceFile}`, import.meta.url), 'utf8'), { merge: true }),
+      )
+    return [r.id, structuredClone(definitionSources.get(r.sourceFile)[Number(r.sourcePath.slice(1))])]
+  }),
 )
 // Independent test reference: repair only selector spelling; no coefficients, paths or predicates change.
 function corrected(v: unknown): unknown {
