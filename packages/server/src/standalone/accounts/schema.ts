@@ -184,7 +184,7 @@ async function validateAccountSchema(client: PoolClient): Promise<void> {
     SELECT source.relname AS table_name,
            account_constraint.contype AS constraint_type,
            ARRAY(
-             SELECT attribute.attname
+             SELECT attribute.attname::text
              FROM unnest(account_constraint.conkey) WITH ORDINALITY AS column_key(attnum, position)
              JOIN pg_attribute AS attribute
                ON attribute.attrelid = account_constraint.conrelid
@@ -194,7 +194,7 @@ async function validateAccountSchema(client: PoolClient): Promise<void> {
            target_namespace.nspname AS referenced_schema,
            target.relname AS referenced_table,
            CASE WHEN account_constraint.confrelid = 0 THEN NULL ELSE ARRAY(
-             SELECT attribute.attname
+             SELECT attribute.attname::text
              FROM unnest(account_constraint.confkey) WITH ORDINALITY AS column_key(attnum, position)
              JOIN pg_attribute AS attribute
                ON attribute.attrelid = account_constraint.confrelid
