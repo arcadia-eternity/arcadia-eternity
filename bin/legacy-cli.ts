@@ -7,7 +7,8 @@ import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import type { playerId } from '@arcadia-eternity/const'
 import { runInMemoryP2PE2E } from '@arcadia-eternity/p2p-transport'
-import { createRuleSpeciesRepository, loadNativeCliPack } from './native-pack'
+import { loadNativeCliPack } from './native-pack'
+import type { ServerInfo, ServerSession, PrivateRoomEvent } from '@arcadia-eternity/protocol'
 
 // 加载环境变量
 dotenv.config()
@@ -39,9 +40,12 @@ async function preflightPack(options: { strict?: boolean; validateData?: boolean
 
 program
   .command('online')
-  .description('启动在线对战')
+  .description('创建或加入单进程服务器的好友房')
   .requiredOption('-d, --data <path>', '玩家数据文件路径')
   .option('-s, --server <url>', '服务器地址', process.env.BATTLE_SERVER_URL || 'ws://localhost:8102')
+  .option('-r, --room <code>', '加入现有房间；省略则创建房间')
+  .option('--password <password>', '房间密码')
+  .option('--private', '创建需要密码的房间', false)
   .option('--validate-data', '启用数据完整性验证', false)
   .action(async options => {
     try {
@@ -56,15 +60,37 @@ program
       const content = await fs.readFile(path.resolve(options.data), 'utf-8')
       const rawData = yaml.parse(content)
       const player = parseWithErrors(PlayerSchema, rawData)
+      const serverUrl = new URL(options.server)
+      if (serverUrl.protocol === 'ws:') serverUrl.protocol = 'http:'
+      if (serverUrl.protocol === 'wss:') serverUrl.protocol = 'https:'
+      serverUrl.pathname = serverUrl.pathname.replace(/\/$/, '')
+      const apiUrl = new URL(`${serverUrl.toString().replace(/\/$/, '')}/api/v1/`)
+      const infoResponse = await fetch(new URL('server-info', apiUrl))
+      if (!infoResponse.ok) throw new Error(`读取服务器能力失败：HTTP ${infoResponse.status}`)
+      const info = (await infoResponse.json()) as ServerInfo
+      if (info.protocolVersion !== 1 || !info.runtime) throw new Error('服务器协议或原生对战版本不兼容')
+      const sessionResponse = await fetch(new URL('sessions', apiUrl), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: { id: player.id, name: player.name } }),
+      })
+      if (!sessionResponse.ok) throw new Error(`创建服务器会话失败：HTTP ${sessionResponse.status}`)
+      const session = (await sessionResponse.json()) as ServerSession
+      if (session.serverId !== info.serverId || session.bootId !== info.bootId)
+        throw new Error('服务器在创建会话时重启，请重试')
 
       const client = new BattleClient({
-        serverUrl: options.server,
+        serverUrl: serverUrl.toString(),
+        auth: {
+          getToken: () => session.token,
+          getSessionId: () => session.sessionId,
+        },
       })
 
       const remote = new RemoteBattleSystem(client)
 
       await initI18n()
-      const ui = new ConsoleUIV2(remote, player.id as playerId)
+      const ui = new ConsoleUIV2(remote, session.seatId as playerId)
       const stop = remote.BattleEvent(event => {
         if (event.type === BattleMessageType.BattleEnd) {
           setImmediate(() => {
@@ -74,17 +100,47 @@ program
           })
         }
       })
-      await client.connect()
-
-      // 监听匹配成功事件，自动准备
-      client.once('matchSuccess', async () => {
-        console.log('🎯 匹配成功！正在准备战斗...')
-        await remote.ready()
-        console.log('✅ 已准备就绪，等待对手准备...')
+      let started = false
+      let readySent = false
+      let roomCode = options.room as string | undefined
+      client.on('privateRoomEvent', (event: PrivateRoomEvent) => {
+        void (async () => {
+          if (event.type === 'roomClosed') {
+            console.log(`房间已关闭：${event.data.reason}`)
+            ui.cleanup()
+            client.disconnect()
+          }
+          if (event.type === 'battleStarted' && event.data.battleMode === 'server' && !readySent) {
+            readySent = true
+            await remote.ready()
+            console.log('已进入对战。')
+          }
+          if (
+            !options.room &&
+            !started &&
+            event.type === 'roomUpdate' &&
+            event.data.config.roomCode === roomCode &&
+            event.data.players.length === 2 &&
+            event.data.players.every(member => member.isReady)
+          ) {
+            started = true
+            await client.startPrivateRoomBattle(player.team)
+          }
+        })().catch(error => console.error('房间事件处理失败:', error))
       })
-
-      console.log('等待匹配对手...')
-      await client.joinMatchmaking(player)
+      await client.connect()
+      if (roomCode) {
+        await client.joinPrivateRoom({ roomCode, password: options.password, expectedRuntime: info.runtime })
+        console.log(`已加入房间 ${roomCode}，等待房主开始。`)
+      } else {
+        if (options.private && !options.password) throw new Error('私密房间需要 --password')
+        roomCode = await client.createPrivateRoom({
+          expectedRuntime: info.runtime,
+          config: { battleMode: 'server', isPrivate: options.private, password: options.password },
+        })
+        console.log(`房间号：${roomCode}。请让另一位玩家用 --room ${roomCode} 加入。`)
+      }
+      await client.togglePrivateRoomReady(player.team)
     } catch (err) {
       console.error('[💥] 错误:', err instanceof Error ? err.message : err)
       process.exit(1)
@@ -137,249 +193,6 @@ program
       console.log('[📨] host received sample:', JSON.stringify(result.hostReceived[0] ?? null))
     } catch (err) {
       console.error('[💥] P2P websocket e2e failed:', err instanceof Error ? err.message : err)
-      process.exit(1)
-    }
-  })
-
-program
-  .command('server')
-  .description('启动对战服务器')
-  .option('-p, --port <number>', '服务器端口', process.env.PORT || '8102')
-  .option('--enable-battle-reports', '启用战报功能和API', false)
-  .option('--validate-data', '启用数据完整性验证', false)
-  .option('--supabase-url <url>', 'Supabase项目URL（可通过 SUPABASE_URL 环境变量设置）')
-  .option('--supabase-anon-key <key>', 'Supabase匿名密钥（可通过 SUPABASE_ANON_KEY 环境变量设置）')
-  .option('--supabase-service-key <key>', 'Supabase服务密钥（可通过 SUPABASE_SERVICE_KEY 环境变量设置）')
-  .option(
-    '--cors-origin <origins>',
-    'CORS允许的源（逗号分隔）',
-    process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:5173',
-  )
-
-  // 邮件服务配置选项
-  .option('--email-provider <provider>', '邮件服务提供商 (console|smtp|sendgrid|ses)')
-  .option('--email-from <email>', '发件人邮箱地址')
-  .option('--email-from-name <name>', '发件人名称')
-  // SMTP 配置选项
-  .option('--smtp-host <host>', 'SMTP服务器地址')
-  .option('--smtp-port <port>', 'SMTP服务器端口')
-  .option('--smtp-secure', 'SMTP是否使用SSL/TLS', false)
-  .option('--smtp-user <user>', 'SMTP用户名')
-  .option('--smtp-pass <pass>', 'SMTP密码')
-  // SendGrid 配置选项
-  .option('--sendgrid-api-key <key>', 'SendGrid API密钥')
-  // AWS SES 配置选项
-  .option('--aws-ses-region <region>', 'AWS SES区域')
-  .option('--aws-access-key-id <id>', 'AWS访问密钥ID')
-  .option('--aws-secret-access-key <key>', 'AWS访问密钥')
-
-  // Redis 配置选项
-  .option('--redis-host <host>', 'Redis服务器地址', process.env.REDIS_HOST || 'localhost')
-  .option('--redis-port <port>', 'Redis服务器端口', process.env.REDIS_PORT || '6379')
-  .option('--redis-password <password>', 'Redis密码')
-  .option('--redis-db <db>', 'Redis数据库编号', process.env.REDIS_DB || '0')
-  .option('--redis-key-prefix <prefix>', 'Redis键前缀', process.env.REDIS_KEY_PREFIX || 'arcadia:')
-  .option('--redis-max-retries <retries>', 'Redis最大重试次数', process.env.REDIS_MAX_RETRIES || '3')
-  .option('--redis-retry-delay <delay>', 'Redis重试延迟(毫秒)', process.env.REDIS_RETRY_DELAY || '100')
-  .option('--redis-enable-ready-check', 'Redis启用就绪检查', process.env.REDIS_ENABLE_READY_CHECK !== 'false')
-  .option('--redis-lazy-connect', 'Redis延迟连接', process.env.REDIS_LAZY_CONNECT !== 'false')
-
-  // 集群配置选项
-  .option('--cluster-enabled', '启用集群模式', process.env.CLUSTER_ENABLED !== 'false')
-  .option('--cluster-instance-id <id>', '集群实例ID', process.env.CLUSTER_INSTANCE_ID)
-  .option('--cluster-instance-host <host>', '集群实例主机名', process.env.CLUSTER_INSTANCE_HOST)
-  .option('--cluster-instance-region <region>', '集群实例区域', process.env.CLUSTER_INSTANCE_REGION)
-  .option(
-    '--cluster-heartbeat-interval <interval>',
-    '集群心跳间隔(毫秒)',
-    process.env.CLUSTER_HEARTBEAT_INTERVAL || '30000',
-  )
-  .option(
-    '--cluster-health-check-interval <interval>',
-    '集群健康检查间隔(毫秒)',
-    process.env.CLUSTER_HEALTH_CHECK_INTERVAL || '60000',
-  )
-  .option(
-    '--cluster-failover-timeout <timeout>',
-    '集群故障转移超时(毫秒)',
-    process.env.CLUSTER_FAILOVER_TIMEOUT || '120000',
-  )
-  .action(async options => {
-    try {
-      const [
-        { resourceLoadingManager, createEmailConfigFromCli, createClusterApp, createClusterConfigFromCli },
-        { ServerRuleIntegration },
-      ] = await Promise.all([import('@arcadia-eternity/server'), import('@arcadia-eternity/rules')])
-
-      console.log('[🌀] 启动异步游戏资源加载...')
-      // 启动异步资源加载，不等待完成
-      resourceLoadingManager
-        .startAsyncLoading({
-          packRef: 'builtin:workspace',
-          validateData: options.validateData,
-          continueOnError: true,
-        })
-        .then(async () => {
-          // 资源加载完成后初始化规则系统
-          console.log('[⚖️] 正在初始化服务端规则系统...')
-          try {
-            const loadedMetadata = resourceLoadingManager.getLoadedMetadata()
-            if (loadedMetadata) {
-              await ServerRuleIntegration.initializeServer(createRuleSpeciesRepository(loadedMetadata))
-            } else {
-              await ServerRuleIntegration.initializeServer()
-            }
-            console.log('[✅] 服务端规则系统初始化成功')
-          } catch (error) {
-            console.error('[❌] 服务端规则系统初始化失败:', error)
-          }
-        })
-        .catch(error => {
-          console.error('[❌] 异步资源加载失败:', error instanceof Error ? error.message : error)
-        })
-
-      console.log('[✅] 异步资源加载已启动，服务器将在后台加载资源')
-
-      // 配置战报服务
-      let battleReportConfig:
-        | {
-            enableReporting: boolean
-            enableApi: boolean
-            database: {
-              supabaseUrl: string
-              supabaseAnonKey: string
-              supabaseServiceKey?: string
-            }
-          }
-        | undefined
-
-      // 从环境变量或命令行参数获取配置
-      const supabaseUrl = options.supabaseUrl || process.env.SUPABASE_URL
-      const supabaseAnonKey = options.supabaseAnonKey || process.env.SUPABASE_ANON_KEY
-      const supabaseServiceKey = options.supabaseServiceKey || process.env.SUPABASE_SERVICE_KEY
-
-      if (options.enableBattleReports && supabaseUrl && supabaseAnonKey) {
-        battleReportConfig = {
-          enableReporting: true,
-          enableApi: true,
-          database: {
-            supabaseUrl,
-            supabaseAnonKey,
-            supabaseServiceKey,
-          },
-        }
-        console.log('[📊] 战报功能和API已启用')
-      } else if (options.enableBattleReports) {
-        console.warn('[⚠️] 战报功能需要Supabase配置，已禁用')
-        console.warn('    请设置 --supabase-url 和 --supabase-anon-key 参数')
-        console.warn('    或设置 SUPABASE_URL 和 SUPABASE_ANON_KEY 环境变量')
-      }
-
-      // 创建邮件配置
-      const emailCliOptions = {
-        emailProvider: options.emailProvider,
-        emailFrom: options.emailFrom,
-        emailFromName: options.emailFromName,
-        smtpHost: options.smtpHost,
-        smtpPort: options.smtpPort,
-        smtpSecure: options.smtpSecure,
-        smtpUser: options.smtpUser,
-        smtpPass: options.smtpPass,
-        sendgridApiKey: options.sendgridApiKey,
-        awsSesRegion: options.awsSesRegion,
-        awsAccessKeyId: options.awsAccessKeyId,
-        awsSecretAccessKey: options.awsSecretAccessKey,
-      }
-      const emailConfig = createEmailConfigFromCli(emailCliOptions)
-
-      // 创建集群配置
-      const clusterCliOptions = {
-        redisHost: options.redisHost,
-        redisPort: options.redisPort,
-        redisPassword: options.redisPassword,
-        redisDb: options.redisDb,
-        redisKeyPrefix: options.redisKeyPrefix,
-        redisMaxRetries: options.redisMaxRetries,
-        redisRetryDelay: options.redisRetryDelay,
-        redisEnableReadyCheck: options.redisEnableReadyCheck,
-        redisLazyConnect: options.redisLazyConnect,
-        clusterEnabled: options.clusterEnabled,
-        clusterInstanceId: options.clusterInstanceId,
-        clusterInstanceHost: options.clusterInstanceHost,
-        clusterInstanceRegion: options.clusterInstanceRegion,
-        clusterHeartbeatInterval: options.clusterHeartbeatInterval,
-        clusterHealthCheckInterval: options.clusterHealthCheckInterval,
-        clusterFailoverTimeout: options.clusterFailoverTimeout,
-        port: options.port,
-      }
-      const clusterConfig = createClusterConfigFromCli(clusterCliOptions)
-
-      // 配置CORS
-      const corsOrigins = options.corsOrigin.split(',').map((origin: string) => origin.trim())
-
-      // 使用集群模式应用
-      const { start, stop } = createClusterApp({
-        port: parseInt(options.port),
-        cors: {
-          origin: corsOrigins,
-          credentials: true,
-        },
-        battleReport: battleReportConfig,
-        email: emailConfig,
-        cluster: clusterConfig,
-      })
-
-      // 优雅关闭处理
-      const gracefulShutdown = async (signal: string) => {
-        console.log(`\n[📡] 收到 ${signal} 信号，开始优雅关闭...`)
-        try {
-          await stop()
-          console.log('[✅] 服务器已安全关闭')
-          process.exit(0)
-        } catch (error) {
-          console.error('[❌] 关闭服务器时出错:', error)
-          process.exit(1)
-        }
-      }
-
-      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
-      process.on('SIGINT', () => gracefulShutdown('SIGINT'))
-
-      // 启动服务器
-      await start()
-
-      console.log(`🖥  Express服务器已启动`)
-      console.log(`📡 监听端口: ${options.port}`)
-      console.log(`🌐 CORS允许源: ${corsOrigins.join(', ')}`)
-      console.log(`🔧 运行模式: ${clusterConfig.cluster.enabled ? '集群模式' : '单实例模式'}`)
-      console.log(`⚔  等待玩家连接...`)
-      console.log(`🏥 健康检查端点: http://localhost:${options.port}/health`)
-
-      if (clusterConfig.cluster.enabled) {
-        console.log(`🔗 集群状态端点: http://localhost:${options.port}/cluster/status`)
-        console.log(`📊 Prometheus指标: http://localhost:${options.port}/metrics`)
-        console.log(`🗄️  Redis连接: ${clusterConfig.redis.host}:${clusterConfig.redis.port}`)
-        console.log(`🏷️  Redis键前缀: ${clusterConfig.redis.keyPrefix}`)
-        console.log(`🆔 集群实例ID: ${clusterConfig.instance.id}`)
-        if (clusterConfig.instance.region) {
-          console.log(`🌍 集群区域: ${clusterConfig.instance.region}`)
-        }
-      }
-
-      if (battleReportConfig?.enableReporting) {
-        console.log(`📊 战报功能: 已启用`)
-        console.log(`🔗 战报API: http://localhost:${options.port}/api/v1`)
-        console.log(`   - GET /api/v1/battles - 获取战报列表`)
-        console.log(`   - GET /api/v1/leaderboard - 获取排行榜`)
-        console.log(`   - GET /api/v1/statistics - 获取统计信息`)
-      } else {
-        console.log(`📊 战报功能: 已禁用`)
-      }
-
-      console.log(`📈 服务器统计: http://localhost:${options.port}/api/stats`)
-      console.log(`📧 邮件服务: ${emailConfig.provider} (${emailConfig.from})`)
-    } catch (err) {
-      console.error('[💥] 服务器启动失败:', err instanceof Error ? err.message : err)
       process.exit(1)
     }
   })

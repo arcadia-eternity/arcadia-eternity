@@ -11,33 +11,21 @@ import type {
   PlayerSelectionSchemaType,
   PrivateRoomBattleStartInfo,
   PrivateRoomInfo,
+  UpdatePrivateRoomConfigRequest,
 } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
-import { nanoid } from 'nanoid'
-
-// 全局 sessionId 管理（在 store 外部，确保整个应用生命周期中唯一）
-const getOrCreateGlobalSessionId = (): string => {
-  try {
-    // 首先尝试从 sessionStorage 获取（标签页级别）
-    let sessionId = sessionStorage.getItem('battle-session-id')
-
-    if (!sessionId) {
-      // 直接用 nanoid 生成全局唯一ID
-      sessionId = nanoid()
-      sessionStorage.setItem('battle-session-id', sessionId)
-    }
-
-    return sessionId
-  } catch {
-    // 如果 sessionStorage 不可用，直接生成
-    return nanoid()
-  }
-}
+const serverUrl =
+  import.meta.env.VITE_WS_URL ||
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '') ||
+  'http://localhost:8102'
 
 export const useBattleClientStore = defineStore('battleClient', () => {
+  const authStore = useAuthStore()
+  const playerId = computed(() => authStore.session?.seatId ?? '')
+
   type ServerWarmupState = 'idle' | 'waking' | 'ready' | 'failed'
 
   // 状态
@@ -88,7 +76,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     const wsUrl = new URL(serverUrl, window.location.origin)
     if (wsUrl.protocol === 'ws:') wsUrl.protocol = 'http:'
     if (wsUrl.protocol === 'wss:') wsUrl.protocol = 'https:'
-    wsUrl.pathname = '/ready'
+    wsUrl.pathname = `${wsUrl.pathname.replace(/\/+$/, '')}/health`
     wsUrl.search = ''
     wsUrl.hash = ''
     return wsUrl.toString()
@@ -99,7 +87,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
       throw new Error('BattleClient not initialized')
     }
 
-    const readyUrl = resolveReadyUrl(import.meta.env.VITE_WS_URL)
+    const readyUrl = resolveReadyUrl(serverUrl)
     const startedAt = Date.now()
     serverWarmupState.value = 'waking'
     serverWarmupError.value = null
@@ -160,32 +148,15 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     const authStore = useAuthStore()
 
     return new BattleClient({
-      serverUrl: import.meta.env.VITE_WS_URL,
+      serverUrl,
       socketPath: import.meta.env.VITE_SOCKET_IO_PATH || '/socket.io',
       actionTimeout: 10000,
-      sessionId: getOrCreateGlobalSessionId(), // 使用全局 sessionId // 10秒超时，比默认的30秒更快
       auth: {
-        getToken: () => {
-          // 只有注册用户需要token
-          if (playerStore.is_registered && playerStore.requiresAuth) {
-            return authStore.getAccessToken()
-          }
-          return null
-        },
-        getPlayerId: () => {
-          return playerStore.id
-        },
+        getToken: () => authStore.getAccessToken(),
+        getPlayerId: () => authStore.session?.seatId ?? '',
+        getSessionId: () => authStore.session?.sessionId ?? null,
         refreshAuth: async () => {
-          // 注册用户需要通过邮箱恢复获得token，这里只能尝试刷新现有token
-          if (playerStore.is_registered) {
-            try {
-              await authStore.refreshAccessToken()
-            } catch (error) {
-              // 触发回退到游客模式
-              authStore.fallbackToGuest()
-              throw error
-            }
-          }
+          await authStore.ensureSession({ id: playerStore.id, name: playerStore.name })
         },
       },
     })
@@ -261,6 +232,8 @@ export const useBattleClientStore = defineStore('battleClient', () => {
       return
     }
     await waitForServerReady()
+    const profile = usePlayerStore()
+    await authStore.ensureSession({ id: profile.id, name: profile.name })
     return _instance.value.connect()
   }
 
@@ -456,14 +429,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.updatePrivateRoomRuleSet(data)
   }
 
-  const updatePrivateRoomConfig = async (data: {
-    ruleSetId?: string
-    allowSpectators?: boolean
-    maxSpectators?: number
-    spectatorMode?: 'free' | 'player1' | 'player2' | 'god'
-    isPrivate?: boolean
-    password?: string
-  }): Promise<void> => {
+  const updatePrivateRoomConfig = async (data: UpdatePrivateRoomConfigRequest): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
@@ -534,6 +500,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
   return {
     // 状态
+    playerId,
     isInitialized,
     initComplete,
     currentState,

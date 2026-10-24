@@ -6,7 +6,8 @@ import { pathToFileURL } from 'node:url'
 const jobPackages = {
   headless: ['battle', 'data-pack-base', 'pack-loader'],
   // The CLI typecheck also resolves its lazy client/console/server imports.
-  server: ['server', 'console', 'client', 'cli', 'cli-validator', 'p2p-transport'],
+  // Keep database changes under server coverage after the direct dependency was removed.
+  server: ['server', 'console', 'client', 'database', 'cli', 'cli-validator', 'p2p-transport'],
   browser: ['web-ui'],
   cli: ['cli'],
 }
@@ -33,7 +34,7 @@ const jobFiles = {
     /^docs\/v4\/v1-(?:port-provenance|import-graph|extra-source-map)\.json$/,
     /^docs\/v4\/(?:examples|validation)\//,
   ],
-  server: [/^bin\//, /^eslint\.config\.server-native\.js$/, /^scripts\/verify-native-pack\.mjs$/],
+  server: [/^bin\//, /^eslint\.config\.server-standalone\.js$/, /^scripts\/verify-native-pack\.mjs$/],
   browser: [/^resource\//],
   // The offline bundle includes the root entry and lazy legacy command module.
   cli: [/^bin\//, /^rolldown\.config\.js$/],

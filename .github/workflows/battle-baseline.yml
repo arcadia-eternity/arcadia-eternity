@@ -94,6 +94,21 @@ jobs:
     env:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      TEST_DATABASE_URL: postgres://arcadia_test:arcadia_test@localhost:5432/arcadia_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: arcadia_test
+          POSTGRES_PASSWORD: arcadia_test
+          POSTGRES_DB: arcadia_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U arcadia_test -d arcadia_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -152,6 +167,8 @@ jobs:
           pnpm lint:web-native
       - name: Verify shared native factory and actual P2P messages
         run: pnpm test:web-native
+      - name: Verify server account client and recovery flows
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverSession.test.ts --maxWorkers=1
       - name: Install browser
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup

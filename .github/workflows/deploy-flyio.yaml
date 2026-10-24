@@ -102,6 +102,15 @@ jobs:
           echo "Using production image: $IMAGE_REF"
           echo "image-ref=$IMAGE_REF" >> $GITHUB_OUTPUT
 
+      # A room cannot be routed between independent in-memory owners.
+      - name: Require a single server instance
+        run: |
+          count="$(flyctl machine list --json | jq '[.[] | select(.state != "destroyed")] | length')"
+          if [ "$count" -gt 1 ]; then
+            echo "This runtime requires one Machine. Reduce the fleet during planned maintenance before deploying."
+            exit 1
+          fi
+
       - name: Deploy to production
         run: |
           echo "Deploying to production with image: ${{ steps.image-info.outputs.image-ref }}"
@@ -111,6 +120,7 @@ jobs:
           flyctl deploy \
             --image "${{ steps.image-info.outputs.image-ref }}" \
             --remote-only \
+            --ha=false \
             --wait-timeout 600 \
             --verbose
         env:
@@ -122,10 +132,12 @@ jobs:
           echo "Production URL: https://test-battle.fly.dev"
           echo "Version: ${{ steps.version.outputs.version }}"
 
-          # Wait for app to start
-          sleep 60
-          if curl -f https://test-battle.fly.dev/health > /dev/null 2>&1; then
-            echo "✅ Production health check passed!"
-          else
-            echo "⚠️  Production health check failed, but deployment may still be starting up"
-          fi
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --max-time 10 https://test-battle.fly.dev/health > /dev/null; then
+              echo "Production health check passed."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Production health check failed after deployment." >&2
+          exit 1

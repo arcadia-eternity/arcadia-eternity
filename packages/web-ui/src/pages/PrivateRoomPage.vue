@@ -40,7 +40,9 @@
         </div>
 
         <div class="room-info">
-          <el-tag>{{ getRuleSetName(privateRoomStore.currentRoom.config.ruleSetId) }}</el-tag>
+          <el-tag>{{
+            privateRoomStore.currentRoom.config.battleMode === 'p2p' ? '房主运行对战' : '服务器对战'
+          }}</el-tag>
           <el-tag type="info">房主: {{ getHostPlayerName() }}</el-tag>
           <el-button type="primary" size="small" @click="copyRoomCode"> 复制房间码 </el-button>
           <el-button type="primary" size="small" @click="copyRoomLink"> 复制链接 </el-button>
@@ -69,7 +71,7 @@
                   :player="player"
                   :isHost="player.playerId === privateRoomStore.currentRoom.config.hostPlayerId"
                   :isReady="player.isReady"
-                  :isCurrentPlayer="player.playerId === playerStore.player.id"
+                  :isCurrentPlayer="player.playerId === battleClientStore.playerId"
                   :canTransferHost="
                     privateRoomStore.isHost &&
                     privateRoomStore.currentRoom?.status === 'waiting' &&
@@ -79,7 +81,7 @@
                     privateRoomStore.isHost &&
                     privateRoomStore.currentRoom?.status === 'waiting' &&
                     player.playerId !== privateRoomStore.currentRoom.config.hostPlayerId &&
-                    player.playerId !== playerStore.player.id
+                    player.playerId !== battleClientStore.playerId
                   "
                   :isLoading="privateRoomStore.isLoading"
                   @transferHost="transferHost"
@@ -114,7 +116,7 @@
                     privateRoomStore.isHost &&
                     privateRoomStore.currentRoom?.status === 'waiting' &&
                     spectator.playerId !== privateRoomStore.currentRoom?.config.hostPlayerId &&
-                    spectator.playerId !== playerStore.player.id
+                    spectator.playerId !== battleClientStore.playerId
                   "
                   class="spectator-actions-corner"
                 >
@@ -148,7 +150,7 @@
                         size="small"
                         >房主</el-tag
                       >
-                      <el-tag v-if="spectator.playerId === playerStore.player.id" type="primary" size="small"
+                      <el-tag v-if="spectator.playerId === battleClientStore.playerId" type="primary" size="small"
                         >我</el-tag
                       >
                     </div>
@@ -175,7 +177,6 @@
         <TeamSelector
           v-model="selectedTeam"
           data-testid="room-team-selector"
-          :selected-rule-set-id="privateRoomStore.currentRoom.config.ruleSetId"
           @update:is-valid="isTeamValid = $event"
           @update:validation-errors="teamValidationErrors = $event"
         />
@@ -190,7 +191,7 @@
             v-if="privateRoomStore.currentRoom?.status === 'waiting' && privateRoomStore.canStartBattle"
             type="primary"
             data-testid="start-battle-button"
-            :disabled="privateRoomStore.isLoading"
+            :disabled="privateRoomStore.isLoading || (privateRoomStore.isPlayer && !isTeamValid)"
             @click="startBattle"
           >
             开始对战
@@ -239,7 +240,7 @@
           "
           :type="privateRoomStore.myReadyStatus ? 'success' : 'primary'"
           data-testid="toggle-ready-button"
-          :disabled="privateRoomStore.isLoading"
+          :disabled="privateRoomStore.isLoading || (!privateRoomStore.myReadyStatus && !isTeamValid)"
           @click="toggleReady"
         >
           {{ privateRoomStore.myReadyStatus ? '取消准备' : '准备' }}
@@ -274,25 +275,9 @@
     </div>
 
     <!-- 房间配置对话框 -->
-    <el-dialog v-model="showRoomConfigDialog" title="房间设置" width="500px">
+    <el-dialog v-model="showRoomConfigDialog" title="房间设置" width="min(500px, 92vw)">
       <el-form :model="privateRoomStore.roomConfigForm" label-width="120px">
-        <!-- 规则集选择 -->
-        <el-form-item label="游戏规则">
-          <el-select v-model="privateRoomStore.roomConfigForm.ruleSetId" placeholder="选择规则集" style="width: 100%">
-            <el-option
-              v-for="ruleSet in validationStore.availableRuleSets"
-              :key="ruleSet.id"
-              :label="ruleSet.name"
-              :value="ruleSet.id"
-            >
-              <div style="display: flex; justify-content: space-between; align-items: center">
-                <span>{{ ruleSet.name }}</span>
-                <el-tag size="small" type="info">{{ ruleSet.ruleCount }} 条规则</el-tag>
-              </div>
-            </el-option>
-          </el-select>
-          <div class="form-help-text">当前: {{ getRuleSetName(privateRoomStore.roomConfigForm.ruleSetId) }}</div>
-        </el-form-item>
+        <RoomBattleOptions v-model="battleOptions" />
 
         <!-- 房间隐私设置 -->
         <el-form-item label="房间类型">
@@ -302,13 +287,13 @@
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="privateRoomStore.currentRoom?.config.battleMode === 'p2p'" label="P2P 传输">
+        <el-form-item v-if="battleOptions.battleMode === 'p2p'" label="P2P 传输">
           <el-radio-group v-model="privateRoomStore.roomConfigForm.p2pTransport">
             <el-radio value="auto">自动</el-radio>
             <el-radio value="webrtc">WebRTC</el-radio>
             <el-radio value="relay">Relay</el-radio>
           </el-radio-group>
-          <div class="form-help-text">自动模式下，浏览器手测默认优先 WebRTC；自动化测试和受限环境会回退到 Relay。</div>
+          <div class="form-help-text">自动模式优先建立直连；连接受限时使用服务器中继。</div>
         </el-form-item>
 
         <el-form-item v-if="privateRoomStore.roomConfigForm.isPrivate" label="房间密码">
@@ -336,29 +321,35 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { usePlayerStore } from '@/stores/player'
-import { useValidationStore } from '@/stores/validation'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { useAuthStore } from '@/stores/auth'
 import { User, Loading, MoreFilled, Star, Close } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import PlayerCard from '@/components/PlayerCard.vue'
 import TeamSelector from '@/components/TeamSelector.vue'
+import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
+import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
+import type { UpdatePrivateRoomConfigRequest } from '@arcadia-eternity/protocol'
 
 const route = useRoute()
 const router = useRouter()
 const privateRoomStore = usePrivateRoomStore()
 const playerStore = usePlayerStore()
-const validationStore = useValidationStore()
 const battleClientStore = useBattleClientStore()
+const authStore = useAuthStore()
+let pageDisposed = false
+const canJoinRoom = () => !pageDisposed && !authStore.invalidationReason
 
 const roomCode = route.params.roomCode as string
 
-type TeamWithPets = { name: string; pets: unknown[]; ruleSetId: string }
+type TeamWithPets = { name: string; pets: unknown[]; ruleSetId?: string }
 const selectedTeam = ref<TeamWithPets | null>(null)
 const isTeamValid = ref(false)
 const teamValidationErrors = ref<string[]>([])
 
 const showRoomConfigDialog = ref(false)
+const battleOptions = ref(createDefaultRoomBattleOptions())
 
 watch(selectedTeam, newTeam => {
   if (newTeam) {
@@ -367,11 +358,6 @@ watch(selectedTeam, newTeam => {
     privateRoomStore.updateSelectedTeam([])
   }
 })
-
-// 计算属性
-const getRuleSetName = (ruleSetId: string): string => {
-  return validationStore.getRuleSetName(ruleSetId)
-}
 
 const getHostPlayerName = (): string => {
   if (!privateRoomStore.currentRoom) return ''
@@ -449,7 +435,7 @@ const getStartBattleDisabledReason = (): string => {
     return '请先选择队伍'
   }
 
-  if (!isTeamValid.value) {
+  if (privateRoomStore.isPlayer && !isTeamValid.value) {
     return teamValidationErrors.value[0] || '队伍不符合规则'
   }
 
@@ -487,6 +473,7 @@ const copyRoomLink = async () => {
 }
 
 const toggleReady = async () => {
+  if (!privateRoomStore.myReadyStatus && !isTeamValid.value) return
   try {
     await privateRoomStore.toggleReady()
     ElMessage.success(privateRoomStore.myReadyStatus ? '已准备' : '已取消准备')
@@ -496,6 +483,7 @@ const toggleReady = async () => {
 }
 
 const startBattle = async () => {
+  if (privateRoomStore.isPlayer && !isTeamValid.value) return
   try {
     await privateRoomStore.startBattle()
     ElMessage.success('战斗已开始')
@@ -589,17 +577,25 @@ const confirmSwitchToPlayer = async () => {
 const openRoomConfigDialog = () => {
   // 初始化配置表单
   privateRoomStore.initializeRoomConfigForm()
+  const defaults = createDefaultRoomBattleOptions()
+  const config = privateRoomStore.currentRoom?.config
+  battleOptions.value = {
+    battleMode: config?.battleMode ?? defaults.battleMode,
+    timerConfig: { ...defaults.timerConfig, ...config?.timerConfig },
+    allowFaintSwitch: config?.allowFaintSwitch ?? defaults.allowFaintSwitch,
+    showHidden: config?.showHidden ?? defaults.showHidden,
+  }
   showRoomConfigDialog.value = true
 }
 
 const saveRoomConfig = async () => {
   try {
-    const configUpdates: {
-      ruleSetId?: string
-      isPrivate?: boolean
-      password?: string
-      p2pTransport?: 'auto' | 'webrtc' | 'relay'
-    } = { ...privateRoomStore.roomConfigForm }
+    const configUpdates: UpdatePrivateRoomConfigRequest = {
+      isPrivate: privateRoomStore.roomConfigForm.isPrivate,
+      password: privateRoomStore.roomConfigForm.password,
+      p2pTransport: privateRoomStore.roomConfigForm.p2pTransport,
+      ...battleOptions.value,
+    }
 
     // 如果密码为空字符串，设置为undefined
     if (configUpdates.password === '') {
@@ -615,6 +611,10 @@ const saveRoomConfig = async () => {
 }
 
 onMounted(async () => {
+  if (authStore.invalidationReason) {
+    router.replace('/')
+    return
+  }
   if (!roomCode) {
     ElMessage.error('房间码无效')
     router.push('/')
@@ -622,12 +622,14 @@ onMounted(async () => {
   }
 
   const joinRoomAction = async () => {
+    if (!canJoinRoom()) return
     try {
       const existingRoom =
         privateRoomStore.currentRoom?.config.roomCode === roomCode
           ? privateRoomStore.currentRoom
           : await privateRoomStore.checkCurrentRoom()
 
+      if (!canJoinRoom()) return
       if (existingRoom?.config.roomCode === roomCode) {
         console.log('🏠 Already in room after restore, skipping join logic.', {
           roomCode,
@@ -638,9 +640,30 @@ onMounted(async () => {
 
       console.log(`🚪 Attempting to join room: ${roomCode}`)
       await privateRoomStore.joinRoom(roomCode)
+      if (!canJoinRoom()) return
       console.log(`✅ Successfully joined room: ${roomCode}`)
     } catch (error: unknown) {
+      if (!canJoinRoom()) return
       const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('INVALID_PASSWORD') || errorMessage.includes('密码')) {
+        try {
+          const { value } = await ElMessageBox.prompt('输入房间密码', '加入私人房间', {
+            inputType: 'password',
+            confirmButtonText: '加入',
+            cancelButtonText: '取消',
+          })
+          if (!canJoinRoom()) return
+          await privateRoomStore.joinRoom(roomCode, value)
+          return
+        } catch (passwordError) {
+          if (!canJoinRoom()) return
+          if (passwordError !== 'cancel' && passwordError !== 'close') {
+            ElMessage.error('加入房间失败: ' + (passwordError as Error).message)
+          }
+          router.push('/')
+          return
+        }
+      }
       if (errorMessage.includes('ALREADY_IN_ROOM') || errorMessage.includes('已在房间')) {
         try {
           await privateRoomStore.getRoomInfo(roomCode)
@@ -662,7 +685,7 @@ onMounted(async () => {
     const unwatch = watch(
       () => battleClientStore.currentState.status,
       newStatus => {
-        if (newStatus === 'connected') {
+        if (newStatus === 'connected' && canJoinRoom()) {
           joinRoomAction()
           unwatch() // Stop watching after the action is triggered
         }
@@ -672,14 +695,9 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(async () => {
+  pageDisposed = true
   // 页面离开时只取消准备状态，不离开房间
-  if (privateRoomStore.myReadyStatus && privateRoomStore.isPlayer) {
-    try {
-      await privateRoomStore.toggleReady()
-    } catch (err) {
-      console.error('Failed to cancel ready on page leave:', err)
-    }
-  }
+  await privateRoomStore.handlePageLeave()
 })
 </script>
 

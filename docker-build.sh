@@ -48,6 +48,4 @@ if [ "$2" = "test" ]; then
 fi
 
 echo "🎉 All done! You can run the image with:"
-echo "   docker-compose up (single instance cluster mode)"
-echo "   or"
-echo "   docker-compose -f docker-compose.cluster.yml up (multi-instance cluster)"
+echo "   docker compose up (one in-memory server; restarting abandons all rooms)"

@@ -42,6 +42,10 @@ for (const path of ['packages/server/src/app.ts']) {
   })
 }
 
+test('standalone server lint configuration runs server checks', () => {
+  assert.deepEqual(affectedBattleJobs(['eslint.config.server-standalone.js'], packages), { ...none, server: true })
+})
+
 for (const path of [
   'packages/console/src/index.ts',
   'packages/cli/src/main.ts',

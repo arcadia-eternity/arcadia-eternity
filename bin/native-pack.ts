@@ -1,5 +1,4 @@
 import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
-import type { ServerDataRepository } from '@arcadia-eternity/rules'
 import { SpeciesSchema, parseWithErrors } from '@arcadia-eternity/schema'
 
 /** Validate metadata against the same compiled content used by local and server battles. */
@@ -13,11 +12,11 @@ export async function loadNativeCliPack(packRef = 'builtin:workspace') {
 }
 
 /** Rules query editable species metadata, including learnsets absent from runtime prototypes. */
-export function createRuleSpeciesRepository(data: ContentPrototypeData): ServerDataRepository {
+export function createRuleSpeciesRepository(data: ContentPrototypeData) {
   const species = data.species.map(raw => parseWithErrors(SpeciesSchema, raw))
   const byId = new Map(species.map(value => [value.id, value]))
   return {
-    getSpeciesById: id => byId.get(id),
+    getSpeciesById: (id: string) => byId.get(id),
     getAllSpecies: () => species,
   }
 }

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "composite": false,
-    "types": ["node", "vitest/globals"],
+    "types": ["node", "vitest/globals", "pinia-plugin-persistedstate"],
     "resolveJsonModule": true
   },
   "include": [
@@ -11,6 +11,11 @@
     "auto-imports.d.ts",
     "src/services/nativeBattleFactory.ts",
     "src/services/__tests__/nativeBattleFactory.test.ts",
+    "src/services/serverSession.ts",
+    "src/services/__tests__/serverSession.test.ts",
+    "src/stores/auth.ts",
+    "src/pages/accountPage.vue",
+    "src/components/auth/AuthStatus.vue",
     "src/p2p/p2pBattleSystem.ts"
   ],
   "exclude": ["node_modules", "dist"]

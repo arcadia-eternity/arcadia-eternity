@@ -7,7 +7,10 @@ const mockedSocketIo = vi.hoisted(() => {
 
   class FakeSocket {
     connected = false
-    auth: Record<string, unknown> = {}
+    auth: Record<string, unknown> | ((callback: (data: Record<string, unknown>) => void) => void) = {}
+    handshakes: Array<{ auth: Record<string, unknown>; query: Record<string, unknown> }> = []
+    connectionErrors: Error[] = []
+    emitted: string[] = []
     io: { opts: { query: Record<string, unknown> } } = { opts: { query: {} } }
 
     private listeners = new Map<string, Set<Handler>>()
@@ -43,6 +46,7 @@ const mockedSocketIo = vi.hoisted(() => {
     }
 
     emit(event: string, ...args: any[]): this {
+      this.emitted.push(event)
       const responder = this.responders.get(event)
       if (responder) {
         responder(...args)
@@ -51,6 +55,19 @@ const mockedSocketIo = vi.hoisted(() => {
     }
 
     connect(): this {
+      let auth: Record<string, unknown> = {}
+      if (typeof this.auth === 'function')
+        this.auth(data => {
+          auth = data
+        })
+      else auth = this.auth
+      this.handshakes.push({ auth, query: { ...this.io.opts.query } })
+      const error = this.connectionErrors.shift()
+      if (error) {
+        this.connected = false
+        this.trigger('connect_error', error)
+        return this
+      }
       this.connected = true
       this.trigger('connect')
       return this
@@ -91,8 +108,10 @@ const mockedSocketIo = vi.hoisted(() => {
 })
 
 vi.mock('socket.io-client', () => ({
-  io: () => {
+  io: (_url: string, options: Record<string, any>) => {
     const socket = new mockedSocketIo.FakeSocket()
+    socket.auth = options.auth ?? {}
+    socket.io.opts.query = options.query ?? {}
     mockedSocketIo.sockets.push(socket)
     return socket
   },
@@ -251,5 +270,199 @@ describe('BattleClient reconnect regressions', () => {
         ]),
       }),
     )
+  })
+})
+
+describe('BattleClient server session authorization', () => {
+  beforeEach(() => {
+    mockedSocketIo.sockets.length = 0
+    vi.stubGlobal('sessionStorage', createSessionStorageMock())
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function createAuthenticatedClient() {
+    const credentials = { token: 'token-old', sessionId: 'session-old' }
+    const getPlayerId = vi.fn(() => 'local-profile-is-not-authority')
+    const refreshAuth = vi.fn(async () => {
+      credentials.token = 'token-new'
+      credentials.sessionId = 'session-new'
+    })
+    const client = new BattleClient({
+      serverUrl: 'http://localhost:8102',
+      auth: {
+        getToken: () => credentials.token || null,
+        getSessionId: () => credentials.sessionId || null,
+        getPlayerId,
+        refreshAuth,
+      },
+    })
+    const socket = mockedSocketIo.sockets.at(-1)!
+    return { client, socket, credentials, getPlayerId, refreshAuth }
+  }
+
+  function enterBattle(socket: InstanceType<typeof mockedSocketIo.FakeSocket>) {
+    socket.trigger('matchSuccess', {
+      status: 'SUCCESS',
+      data: { roomId: 'room-old', opponent: { id: 'seat-other', name: 'Opponent' } },
+    })
+  }
+
+  it('authenticates with only a token and never sends profile, seat or tab IDs in query', async () => {
+    const { client, socket, getPlayerId } = createAuthenticatedClient()
+    await client.connect()
+    expect(socket.handshakes).toEqual([{ auth: { token: 'token-old' }, query: {} }])
+    expect(getPlayerId).not.toHaveBeenCalled()
+  })
+
+  it('preserves battle state when a valid session reconnects with a refreshed token', async () => {
+    const { client, socket, credentials } = createAuthenticatedClient()
+    await client.connect()
+    enterBattle(socket)
+    socket.disconnect()
+    credentials.token = 'token-refreshed'
+    socket.connect()
+    expect(socket.handshakes.at(-1)?.auth).toEqual({ token: 'token-refreshed' })
+    expect(client.currentState).toMatchObject({ status: 'connected', battle: 'active', roomId: 'room-old' })
+  })
+
+  it('reacquires an expired session and clears its former room instead of reclaiming it by UID', async () => {
+    const { client, socket, refreshAuth } = createAuthenticatedClient()
+    const terminated = vi.fn()
+    ;(client as any).on('battleTerminated', terminated)
+    await client.connect()
+    enterBattle(socket)
+    socket.trigger('timerSnapshot', { snapshots: [{ playerId: 'seat-old' }] })
+    socket.disconnect()
+    socket.connectionErrors.push(new Error('INVALID_SESSION'))
+    await client.connect()
+
+    expect(refreshAuth).toHaveBeenCalledTimes(1)
+    expect(socket.handshakes.at(-1)).toEqual({ auth: { token: 'token-new' }, query: {} })
+    expect(client.currentState).toMatchObject({ status: 'connected', battle: 'idle', matchmaking: 'idle' })
+    expect(client.currentState.roomId).toBeUndefined()
+    expect(client.getAllTimerSnapshots()).toEqual([])
+    expect(terminated).toHaveBeenCalledWith({ reason: 'session-changed' })
+    // The failed connection attempt must not leave a second connect listener behind.
+    expect(socket.emitted.filter(event => event === 'getServerState')).toHaveLength(2)
+  })
+
+  it('refreshes authentication after an automatic reconnect is rejected', async () => {
+    const { client, socket, refreshAuth } = createAuthenticatedClient()
+    await client.connect()
+    enterBattle(socket)
+    socket.disconnect()
+    socket.connectionErrors.push(new Error('SESSION_EXPIRED'))
+    socket.connect()
+
+    await vi.waitFor(() => expect(socket.connected).toBe(true))
+    expect(refreshAuth).toHaveBeenCalledTimes(1)
+    expect(socket.handshakes.at(-1)?.auth).toEqual({ token: 'token-new' })
+    expect(client.currentState.roomId).toBeUndefined()
+  })
+
+  it('removes obsolete credentials when the auth provider no longer has a token', async () => {
+    const { client, socket, credentials } = createAuthenticatedClient()
+    await client.connect()
+    enterBattle(socket)
+    socket.disconnect()
+    credentials.token = ''
+    socket.connect()
+    expect(socket.handshakes.at(-1)).toEqual({ auth: {}, query: {} })
+    expect(client.currentState.roomId).toBeUndefined()
+  })
+
+  it('does not reconnect after explicit disconnect while session renewal is pending', async () => {
+    const { client, socket, refreshAuth } = createAuthenticatedClient()
+    let finishRefresh!: () => void
+    refreshAuth.mockImplementationOnce(
+      () =>
+        new Promise<void>(resolve => {
+          finishRefresh = resolve
+        }),
+    )
+    await client.connect()
+    socket.disconnect()
+    socket.connectionErrors.push(new Error('INVALID_SESSION'))
+    socket.connect()
+    client.disconnect()
+    finishRefresh()
+    await vi.waitFor(() => expect(refreshAuth).toHaveBeenCalledTimes(1))
+    await Promise.resolve()
+    expect(socket.handshakes).toHaveLength(2)
+    expect(client.currentState.status).toBe('disconnected')
+  })
+})
+
+describe('BattleClient command ordering', () => {
+  beforeEach(() => {
+    mockedSocketIo.sockets.length = 0
+    vi.stubGlobal('sessionStorage', createSessionStorageMock())
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('reuses the same command ID and expected turn after an acknowledgement timeout', async () => {
+    vi.useFakeTimers()
+    const { client, socket } = await createConnectedBattleClient()
+    socket.trigger('battleEvent', { type: 'TURN_START', data: { turn: 4 }, stateDelta: {} })
+    const requests: Array<Record<string, unknown>> = []
+    socket.setResponder('submitPlayerSelection', (request, ack) => {
+      requests.push(request)
+      if (requests.length === 2) ack({ status: 'SUCCESS', data: { status: 'ACTION_ACCEPTED' } })
+    })
+    const action = { player: 'seat-a', type: 'do-nothing' } as any
+    const submitted = client.sendplayerSelection(action)
+    await vi.advanceTimersByTimeAsync(30000)
+    await submitted
+    expect(requests).toHaveLength(2)
+    expect(requests[0]).toEqual(requests[1])
+    expect(requests[0]).toMatchObject({ ...action, expectedTurn: 4, requestId: expect.any(String) })
+  })
+
+  it('tracks turn deltas and full reconnect state before sending a new command', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    const requests: Array<Record<string, unknown>> = []
+    socket.setResponder('submitPlayerSelection', (request, ack) => {
+      requests.push(request)
+      ack({ status: 'SUCCESS', data: { status: 'ACTION_ACCEPTED' } })
+    })
+    socket.trigger('battleReconnect', {
+      roomId: 'room-1',
+      shouldRedirect: true,
+      battleState: 'active',
+      fullBattleState: { currentTurn: 7 },
+    })
+    await client.sendplayerSelection({ player: 'seat-a', type: 'do-nothing' } as any)
+    socket.trigger('battleEventBatch', [{ type: 'TURN_START', data: { turn: 8 }, stateDelta: { currentTurn: [7, 8] } }])
+    await client.sendplayerSelection({ player: 'seat-a', type: 'do-nothing' } as any)
+    expect(requests.map(request => request.expectedTurn)).toEqual([7, 8])
+    expect(requests[0].requestId).not.toBe(requests[1].requestId)
+  })
+
+  it('loads the current turn when restoring a battle without a full state', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    socket.setResponder('getState', ack => ack({ status: 'SUCCESS', data: { currentTurn: 3 } }))
+    const submit = vi.fn((_request, ack) => ack({ status: 'SUCCESS', data: { status: 'ACTION_ACCEPTED' } }))
+    socket.setResponder('submitPlayerSelection', submit)
+    await client.sendplayerSelection({ player: 'seat-a', type: 'do-nothing' } as any)
+    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ expectedTurn: 3 }), expect.any(Function))
+  })
+
+  it('passes spectator passwords and authoritative host completion to the server', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    const spectator = vi.fn((_data, ack) => ack({ status: 'SUCCESS', data: { status: 'JOINED' } }))
+    const finish = vi.fn((_data, ack) => ack({ status: 'SUCCESS', data: { status: 'FINISHED' } }))
+    socket.setResponder('joinPrivateRoomAsSpectator', spectator)
+    socket.setResponder('finishPrivateRoomBattle', finish)
+    await client.joinPrivateRoomAsSpectator({ roomCode: 'secret-room', password: 'room-password' })
+    await client.finishPrivateRoomBattle({ winner: 'seat-a', reason: 'all-pets-defeated' })
+    expect(spectator).toHaveBeenCalledWith({ roomCode: 'secret-room', password: 'room-password' }, expect.any(Function))
+    expect(finish).toHaveBeenCalledWith({ winner: 'seat-a', reason: 'all-pets-defeated' }, expect.any(Function))
   })
 })

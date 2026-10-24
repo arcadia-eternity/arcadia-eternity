@@ -43,7 +43,7 @@
         </div>
         <div class="flex gap-3 items-center">
           <el-button type="primary" icon="House" @click="router.push('/')" :disabled="$route.path === '/'">
-            匹配大厅
+            好友大厅
           </el-button>
           <el-button
             type="warning"
@@ -61,20 +61,7 @@
           >
             人机对战
           </el-button>
-          <el-dropdown @command="handleBattleReportCommand">
-            <el-button type="info" icon="Document">
-              战报
-              <el-icon class="el-icon--right">
-                <ArrowDown />
-              </el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="online-reports" icon="Document">在线战报</el-dropdown-item>
-                <el-dropdown-item command="local-reports" icon="FolderOpened">本地战报</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <el-button type="info" icon="Document" @click="router.push('/local-battle-reports')">本地战报</el-button>
           <!-- 房间状态显示 -->
           <el-button v-if="privateRoomStore.currentRoom" type="warning" size="small" @click="handleRoomButtonClick">
             <el-icon><House /></el-icon>
@@ -124,7 +111,7 @@
             :class="{ 'bg-blue-50 text-blue-600 border-l-blue-600': $route.path === '/' }"
           >
             <el-icon><House /></el-icon>
-            <span>匹配大厅</span>
+            <span>好友大厅</span>
           </router-link>
           <router-link
             to="/team-builder"
@@ -152,15 +139,6 @@
           >
             <el-icon><Box /></el-icon>
             <span>精灵仓库</span>
-          </router-link>
-          <router-link
-            to="/battle-reports"
-            @click="showMobileMenu = false"
-            class="flex items-center gap-4 px-6 py-4 text-gray-600 no-underline text-base font-medium transition-all border-l-4 border-transparent hover:bg-gray-100 hover:text-gray-800"
-            :class="{ 'bg-blue-50 text-blue-600 border-l-blue-600': $route.path === '/battle-reports' }"
-          >
-            <el-icon><Document /></el-icon>
-            <span>战报记录</span>
           </router-link>
           <router-link
             to="/local-battle-reports"
@@ -406,26 +384,13 @@ import { useServerStateStore } from './stores/serverState'
 import { useGameSettingStore } from './stores/gameSetting'
 import { usePrivateRoomStore } from './stores/privateRoom'
 import { BattleMessageType, type BattleState } from '@arcadia-eternity/const'
-import {
-  Menu,
-  Close,
-  House,
-  Edit,
-  MagicStick,
-  Box,
-  Document,
-  User,
-  Setting,
-  ArrowDown,
-  FolderOpened,
-} from '@element-plus/icons-vue'
+import { Menu, Close, House, Edit, MagicStick, Box, User, Setting, FolderOpened } from '@element-plus/icons-vue'
 import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import { autoCheckForUpdates } from '@/utils/version'
 import { createAppBootstrap } from '@/app/bootstrap'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { ClientRuleIntegration } from '@arcadia-eternity/rules'
 
 const router = useRouter()
 const dataStore = useGameDataStore()
@@ -510,7 +475,7 @@ const setupBattleReconnectHandler = () => {
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
             await battleStore.initBattleWithState(
               battleInterface,
-              playerStore.id,
+              battleClientStore.playerId,
               data.fullBattleState as unknown as BattleState,
             )
           }
@@ -524,7 +489,7 @@ const setupBattleReconnectHandler = () => {
             const battleInterface = new RemoteBattleSystem(battleClientStore._instance as unknown as BattleClient)
             await battleStore.initBattleWithState(
               battleInterface,
-              playerStore.id,
+              battleClientStore.playerId,
               data.fullBattleState as unknown as BattleState,
             )
           }
@@ -562,8 +527,20 @@ const handleRoomButtonClick = () => {
   }
 }
 
+const handleServerSessionInvalidated = (event: Event) => {
+  const reason = (event as CustomEvent<{ reason: string }>).detail.reason
+  const wasOnlineBattle =
+    privateRoomStore.currentRoom !== null || router.currentRoute.value.query.privateRoom === 'true'
+  privateRoomStore.cleanup()
+  battleClientStore.resetState()
+  if (wasOnlineBattle) void battleStore.resetBattleWithoutSurrender()
+  ElMessage.warning(reason)
+  if (router.currentRoute.value.path.startsWith('/room/') || wasOnlineBattle) void router.replace('/')
+}
+
 // 初始化连接
 onMounted(async () => {
+  window.addEventListener('server-session-invalidated', handleServerSessionInvalidated)
   try {
     const bootstrap = createAppBootstrap()
     let initResourcePromise: Promise<void> | null = null
@@ -576,15 +553,6 @@ onMounted(async () => {
       },
     })
     bootstrap.register({
-      name: 'client-rules',
-      phase: 'pre-init',
-      critical: false,
-      run: () =>
-        ClientRuleIntegration.initializeClient().catch(error => {
-          console.error('客户端规则系统初始化失败:', error)
-        }),
-    })
-    bootstrap.register({
       name: 'game-data',
       phase: 'data-ready',
       order: 1,
@@ -592,16 +560,6 @@ onMounted(async () => {
         initResourcePromise = resourceStore.initialize()
         await dataStore.initialize()
       },
-    })
-    bootstrap.register({
-      name: 'species-provider',
-      phase: 'data-ready',
-      order: 2,
-      critical: false,
-      run: () =>
-        ClientRuleIntegration.initializeSpeciesDataProvider(dataStore).catch(error => {
-          console.error('❌ 种族数据提供者初始化失败:', error)
-        }),
     })
     bootstrap.register({
       name: 'player-identity',
@@ -626,6 +584,7 @@ onMounted(async () => {
     bootstrap.register({
       name: 'battle-client-connect',
       phase: 'network-ready',
+      critical: false,
       order: 2,
       run: async () => {
         await Promise.all([initResourcePromise, battleClientStore.connect()])
@@ -634,6 +593,7 @@ onMounted(async () => {
     bootstrap.register({
       name: 'resume-private-room',
       phase: 'network-ready',
+      critical: false,
       order: 3,
       run: async () => {
         const currentRoom = await privateRoomStore.checkCurrentRoom()
@@ -664,6 +624,7 @@ onMounted(async () => {
 
 // 清理事件监听器
 onUnmounted(() => {
+  window.removeEventListener('server-session-invalidated', handleServerSessionInvalidated)
   if (battleReconnectHandler) {
     window.removeEventListener('battleReconnect', battleReconnectHandler as EventListener)
     battleReconnectHandler = null
@@ -693,18 +654,6 @@ const handleSave = () => {
 const navigateToAccount = () => {
   showEditDialog.value = false
   router.push('/account')
-}
-
-// 处理战报下拉菜单命令
-const handleBattleReportCommand = (command: string) => {
-  switch (command) {
-    case 'online-reports':
-      router.push('/battle-reports')
-      break
-    case 'local-reports':
-      router.push('/local-battle-reports')
-      break
-  }
 }
 
 // 日志类型图标映射

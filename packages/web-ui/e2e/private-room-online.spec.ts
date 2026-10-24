@@ -19,8 +19,6 @@ const ALLOWED_CONSOLE_PATTERNS = [
   /StateDelta: \{players: Object\}/i,
   /Current battleState: Proxy\(Object\)/i,
   /动画执行失败: Error: 找不到精灵组件/i,
-  /Failed to get player all ELOs/i,
-  /Failed to fetch player ELOs/i,
   /WebSocket connection to 'ws:\/\/127\.0\.0\.1:\d+\/socket\.io\/.*transport=websocket.*Unexpected response code: 400/i,
   /Serious error loading Ruffle/i,
   /Serious error occurred loading SWF file/i,
@@ -52,6 +50,7 @@ async function logStage(page: Page, stage: string) {
 
 async function openFreshLobby(context: BrowserContext) {
   const page = await context.newPage()
+  await page.addInitScript(() => localStorage.setItem('gameSetting.battleRenderer', '"image"'))
   const { unexpectedConsoleErrors, debugConsole } = collectUnexpectedConsole(page)
   const createRoomButton = page.getByTestId('create-private-room-button')
   const disconnectedBadge = page.getByText('连接断开')
@@ -103,6 +102,7 @@ async function createPrivateRoom(page: Page) {
               ruleSetId?: string
               isPrivate?: boolean
               password?: string
+              battleMode?: 'server' | 'p2p'
               p2pTransport?: 'auto' | 'webrtc' | 'relay'
             }) => Promise<string>
           }
@@ -117,6 +117,7 @@ async function createPrivateRoom(page: Page) {
         debug.createPrivateRoom({
           ruleSetId: 'casual_standard_ruleset',
           isPrivate: false,
+          battleMode: 'p2p',
           p2pTransport: transport,
         }),
         new Promise<string>((_, reject) => {

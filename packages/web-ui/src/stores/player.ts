@@ -1,514 +1,57 @@
 import { defineStore } from 'pinia'
 import { toRaw } from 'vue'
-import { Type } from '@sinclair/typebox'
-import { type PlayerSchemaType, parseWithErrors } from '@arcadia-eternity/schema'
+import { type PlayerSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
-import { useAuthStore, type PlayerInfo, type PlayerStatus } from './auth'
-import { ElMessage } from 'element-plus'
-import { AxiosError } from 'axios'
 
-declare global {
-  interface Window {
-    __authFallbackListenerAdded?: boolean
-  }
-}
-
-// 用于 pick id + name 的局部 schema
-const PlayerIdNameSchema = Type.Object({
-  id: Type.String(),
-  name: Type.String({ minLength: 1 }),
-})
-
-// 定义状态类型
-interface PlayerState {
-  id: string
-  name: string
-  email: string | null
-  email_verified: boolean
-  email_bound_at: string | null
-  is_registered: boolean
-  requiresAuth: boolean
-  isAuthenticated: boolean
-  isInitialized: boolean
-}
-
-// 辅助函数：检测是否为网络错误
-function isNetworkError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const err = error as Record<string, unknown>
-  const message = typeof err.message === 'string' ? err.message : ''
-  return (
-    message.includes('网络') ||
-    message.includes('连接') ||
-    message.includes('timeout') ||
-    err.code === 'NETWORK_ERROR' ||
-    err.code === 'ECONNABORTED' ||
-    err.name === 'AxiosError' ||
-    message.includes('timeout')
-  )
-}
-
+/** Device-local game data. A profile ID is never a server credential. */
 export const usePlayerStore = defineStore('player', {
-  state: (): PlayerState => ({
-    id: '',
-    name: '',
-    email: null,
-    email_verified: false,
-    email_bound_at: null,
-    is_registered: false,
-    requiresAuth: false,
-    isAuthenticated: false,
-    isInitialized: false,
-  }),
-
-  persist: {
-    // 插件配置
-    key: 'player-data',
-    pick: ['id', 'name', 'email', 'email_verified', 'email_bound_at', 'is_registered'],
-    beforeHydrate: ctx => {
-      if (!ctx.store.$state.id) {
-        // 只做本地初始化，不调用API（避免在Pinia初始化前调用）
-        const newId = nanoid() // 直接使用nanoid
-        ctx.store.$patch({
-          // @ts-expect-error Partial state patch during hydration includes extra fields
-          id: newId,
-          name: `游客-${newId.slice(-4)}`,
-          email: null,
-          email_verified: false,
-          email_bound_at: null,
-          is_registered: false,
-          requiresAuth: false,
-          isAuthenticated: false,
-          isInitialized: false, // 标记为未初始化，稍后在initializePlayer中处理
-        })
-      }
-    },
-  },
-
+  state: () => ({ id: '', name: '', isInitialized: false }),
+  persist: { key: 'player-data', pick: ['id', 'name'] },
   actions: {
     saveToLocal() {
-      try {
-        // 确保必要字段有值
-        const dataToSave = {
-          id: this.id || nanoid(), // 直接使用nanoid，不加前缀
-          name: this.name || `游客-${Date.now().toString(36)}`,
-        }
-
-        // 使用TypeBox验证数据格式
-        const validated = parseWithErrors(PlayerIdNameSchema, dataToSave)
-
-        localStorage.setItem('player', JSON.stringify(validated))
-      } catch (err) {
-        console.error('保存玩家数据失败:', err)
-        if (err instanceof Error) {
-          ElMessage.error('玩家数据格式错误，保存失败')
-        }
-      }
+      localStorage.setItem('player', JSON.stringify({ id: this.id, name: this.name }))
     },
-
-    /**
-     * 处理认证回退到游客模式
-     */
-    handleAuthFallbackToGuest() {
-      // 保持当前的玩家ID和名称，但清除注册状态和认证信息
-      this.is_registered = false
-      this.requiresAuth = false
-      this.isAuthenticated = true // 游客模式下认为已认证
-      this.email = null
-      this.email_verified = false
-      this.email_bound_at = null
-      this.saveToLocal()
-      console.log('Player fallback to guest mode:', { id: this.id, name: this.name })
-    },
-
-    /**
-     * 设置认证回退监听器
-     */
-    setupAuthFallbackListener() {
-      // 避免重复添加监听器
-      if (window.__authFallbackListenerAdded) return
-
-      window.addEventListener('auth-fallback-to-guest', () => {
-        this.handleAuthFallbackToGuest()
-      })
-      window.__authFallbackListenerAdded = true
-    },
-
     loadFromLocal() {
       try {
-        const saved = localStorage.getItem('player')
-        if (!saved) return
-
-        // 解析时进行严格验证
-        const parsed = parseWithErrors(PlayerIdNameSchema, JSON.parse(saved))
-
-        this.id = parsed.id
-        this.name = parsed.name
-      } catch (err) {
-        console.error('读取玩家数据失败:', err)
-        localStorage.removeItem('player')
-        ElMessage.error('本地玩家数据损坏，已重置')
-      }
-    },
-
-    async setName(newName: string) {
-      if (!newName.trim()) {
-        ElMessage.warning('玩家名称不能为空')
-        return
-      }
-      if (newName.length > 30) {
-        ElMessage.warning('名称长度不能超过30个字符')
-        return
-      }
-
-      // 先保存到本地
-      this.name = newName
-      this.saveToLocal()
-
-      // 尝试同步到服务器
-      try {
-        const authStore = useAuthStore()
-        const api = authStore.getApiInstance()
-
-        const response = await api.put('/auth/update-player-name', {
-          playerId: this.id,
-          name: newName,
-        })
-
-        if (response.data.success) {
-          console.log('Name synced to server successfully')
-        } else {
-          console.warn('Failed to sync name to server:', response.data.message)
-          ElMessage.warning('名称同步到服务器失败，但本地已保存')
+        const saved = JSON.parse(localStorage.getItem('player') || 'null')
+        if (saved && typeof saved.id === 'string' && saved.id && typeof saved.name === 'string') {
+          this.id = saved.id
+          this.name = saved.name
         }
-      } catch (error: unknown) {
-        console.warn('Failed to sync name to server:', String(error))
-        if (error instanceof AxiosError) {
-          if (error.response?.status === 405) {
-            ElMessage.error('服务器不支持此操作，请检查服务器配置')
-          } else if (error.response?.data?.message) {
-            ElMessage.warning(`同步失败: ${error.response.data.message}`)
-          } else {
-            ElMessage.warning('名称同步到服务器失败，但本地已保存')
-          }
-        } else {
-          ElMessage.warning('名称同步到服务器失败，但本地已保存')
-        }
+      } catch {
+        // Keep the persisted profile if the older backup format cannot be read.
       }
     },
-
-    generateNewId() {
-      // 生成新的ID
-      const newId = nanoid()
-
-      // 重置玩家状态（但保留宠物数据）
-      this.id = newId
-      this.name = `游客-${newId.slice(-4)}`
-      this.email = null
-      this.email_verified = false
-      this.email_bound_at = null
-      this.is_registered = false
-      this.requiresAuth = false
-      this.isAuthenticated = false
-      this.isInitialized = false
-
-      this.saveToLocal()
-      ElMessage.success('已生成新的玩家ID，宠物数据已保留')
-    },
-
-    /**
-     * 初始化玩家状态 - 检查是否需要认证
-     */
     async initializePlayer() {
       if (this.isInitialized) return
-
-      // 设置认证回退监听器
-      this.setupAuthFallbackListener()
-
-      // 确保有基本的ID和name
-      if (!this.id) {
-        this.id = nanoid()
-      }
-      if (!this.name) {
-        this.name = `游客-${this.id.slice(-4)}`
-      }
-
-      try {
-        // 首先检查当前玩家是否在服务器上存在
-        let playerExists = false
-        let status: PlayerStatus | null = null
-
-        try {
-          console.log('Checking if player exists on server:', this.id)
-          const authStore = useAuthStore()
-          status = await authStore.checkPlayerStatus(this.id)
-          playerExists = true
-          console.log('Player exists on server:', status)
-        } catch (error: unknown) {
-          console.log('Player does not exist on server or server error:', error)
-          playerExists = false
-
-          // 如果是网络错误且本地有注册用户信息，保留本地状态
-          if (this.is_registered && isNetworkError(error)) {
-            console.log('Network error detected, preserving local registered user state')
-            const authStore = useAuthStore()
-            this.isAuthenticated = authStore.isAuthenticated
-            this.isInitialized = true
-            this.saveToLocal()
-            ElMessage.warning('网络连接异常，使用本地缓存数据')
-            return
-          }
-        }
-
-        if (playerExists && status) {
-          // 玩家在服务器上存在，使用服务器数据
-          // 优先使用本地名字，只有在本地没有名字时才使用服务器的名字
-          if (!this.name && status.playerName) {
-            this.name = status.playerName
-          }
-          this.is_registered = status.isRegistered || false
-          this.requiresAuth = status.requiresAuth || false
-          this.email = status.email || null
-
-          // 如果是注册用户，检查是否已认证
-          if (this.is_registered) {
-            const authStore = useAuthStore()
-            this.isAuthenticated = authStore.isAuthenticated
-
-            // 如果没有认证，尝试验证现有token
-            if (!this.isAuthenticated) {
-              const tokenResult = await authStore.verifyToken()
-              this.isAuthenticated = tokenResult.valid
-
-              // 如果token验证失败，回退到游客模式
-              if (!this.isAuthenticated) {
-                console.log('Token验证失败，回退到游客模式')
-                this.handleAuthFallbackToGuest()
-                ElMessage.warning('认证已过期，已切换到游客模式。如需恢复注册用户身份，请通过邮箱恢复玩家ID')
-              }
-            }
-          } else {
-            // 游客用户不需要认证
-            this.isAuthenticated = true
-          }
-
-          this.isInitialized = true
-          this.saveToLocal()
-          ElMessage.success(`欢迎${this.is_registered ? '注册用户' : '游客'}: ${this.name}`)
-        } else {
-          // 对已存在的本地游客，保持稳定的 playerId。
-          // 否则页面刷新会把房间/战斗里的身份引用全部打断。
-          const isPrivateRoomRecoveryRoute =
-            typeof window !== 'undefined' &&
-            (window.location.pathname.startsWith('/room/') ||
-              (window.location.pathname === '/battle' && window.location.search.includes('privateRoom=true')))
-
-          if (!this.is_registered && this.id && this.name && isPrivateRoomRecoveryRoute) {
-            console.log('Preserving existing local guest identity:', { id: this.id, name: this.name })
-            this.is_registered = false
-            this.requiresAuth = false
-            this.isAuthenticated = true
-            this.isInitialized = true
-            this.saveToLocal()
-            return
-          }
-
-          // 没有可用本地身份时，才向服务端申请新的游客
-          try {
-            console.log('Creating new guest on server...')
-            const authStore = useAuthStore()
-            const guestPlayer = await authStore.createGuest()
-            console.log('Server returned guest player:', guestPlayer)
-
-            const newId = guestPlayer.id
-            const newName = guestPlayer.name
-
-            if (newId && newName) {
-              this.id = newId
-              this.name = newName
-            }
-
-            this.is_registered = false
-            this.requiresAuth = false
-            this.isAuthenticated = true
-            this.isInitialized = true
-            this.saveToLocal()
-            ElMessage.success(`欢迎新游客: ${this.name}`)
-          } catch (error: unknown) {
-            console.warn('Failed to create guest on server, using local ID:', error)
-            this.is_registered = false
-            this.requiresAuth = false
-            this.isAuthenticated = true
-            this.isInitialized = true
-            this.saveToLocal()
-
-            if (isNetworkError(error)) {
-              ElMessage.warning('网络连接异常，使用离线模式')
-            } else {
-              ElMessage.warning('无法连接服务器，使用离线模式')
-            }
-          }
-        }
-      } catch (error: unknown) {
-        console.error('Failed to initialize player:', error)
-
-        // 确保总是有一个有效的ID和name（保留现有值）
-        if (!this.id) {
-          this.id = nanoid()
-        }
-        if (!this.name) {
-          this.name = `游客-${this.id.slice(-4)}`
-        }
-
-        console.log('After error handling:', { id: this.id, name: this.name })
-
-        // 如果是注册用户且是网络错误，保留注册状态
-        if (this.is_registered && isNetworkError(error)) {
-          console.log('Network error for registered user, preserving registration status')
-          const authStore = useAuthStore()
-          this.isAuthenticated = authStore.isAuthenticated
-          this.isInitialized = true
-          this.saveToLocal()
-          ElMessage.warning('网络连接异常，已保留本地用户状态')
-        } else {
-          // 如果服务器检查失败，就当作游客处理
-          this.is_registered = false
-          this.requiresAuth = false
-          this.isAuthenticated = true
-          this.isInitialized = true
-          this.saveToLocal()
-          ElMessage.warning('无法连接服务器，使用离线模式')
-        }
-      }
-    },
-
-    /**
-     * 登录注册用户 - 已禁用，只能通过邮箱恢复获得token
-     */
-    async loginRegisteredUser() {
-      if (!this.is_registered) {
-        ElMessage.warning('当前是游客用户，无需登录')
-        return false
-      }
-
-      ElMessage.warning('注册用户需要通过邮箱恢复玩家ID来获得认证令牌')
-      return false
-    },
-
-    /**
-     * 登出
-     */
-    async logout() {
-      try {
-        const authStore = useAuthStore()
-        await authStore.logout()
-        this.isAuthenticated = false
-        ElMessage.success('已登出')
-      } catch (error) {
-        console.error('Logout failed:', error)
-        this.isAuthenticated = false
-      }
-    },
-
-    /**
-     * 升级为注册用户（绑定邮箱后）
-     */
-    upgradeToRegisteredUser(playerInfo: PlayerInfo) {
-      this.id = playerInfo.id
-      this.name = playerInfo.name
-      this.email = playerInfo.email || null
-      this.email_verified = playerInfo.emailVerified || false
-      this.email_bound_at = playerInfo.emailBoundAt || null
-      this.is_registered = true
-      this.requiresAuth = true
-      const authStore = useAuthStore()
-      this.isAuthenticated = authStore.isAuthenticated
+      if (!this.id) this.loadFromLocal()
+      if (!this.id) this.id = nanoid()
+      if (!this.name) this.name = `游客-${this.id.slice(-4)}`
+      this.isInitialized = true
       this.saveToLocal()
-      ElMessage.success('已升级为注册用户')
     },
-
-    /**
-     * 创建新的游客用户
-     */
-    async createNewGuest() {
-      try {
-        const authStore = useAuthStore()
-        const guestPlayer = await authStore.createGuest()
-
-        // 使用服务器返回的数据
-        this.id = guestPlayer.id
-        this.name = guestPlayer.name
-        this.email = null
-        this.email_verified = false
-        this.email_bound_at = null
-        this.is_registered = false
-        this.requiresAuth = false
-        this.isAuthenticated = true
-        this.isInitialized = true
-        this.saveToLocal()
-        ElMessage.success('已创建新的游客账户')
-      } catch (error: unknown) {
-        console.error('Failed to create guest:', String(error))
-
-        // 如果是网络错误，创建本地游客账户
-        if (isNetworkError(error)) {
-          console.log('Network error, creating local guest account')
-          const newId = nanoid()
-          this.id = newId
-          this.name = `游客-${newId.slice(-4)}`
-          this.email = null
-          this.email_verified = false
-          this.email_bound_at = null
-          this.is_registered = false
-          this.requiresAuth = false
-          this.isAuthenticated = true
-          this.isInitialized = true
-          this.saveToLocal()
-          ElMessage.warning('网络连接异常，已创建本地游客账户')
-        } else {
-          ElMessage.error(error instanceof Error ? error.message : '创建游客账户失败')
-        }
-      }
+    async setName(name: string) {
+      const trimmed = name.trim()
+      if (!trimmed || trimmed.length > 30) throw new Error('名称需要包含 1 至 30 个字符')
+      this.name = trimmed
+      this.saveToLocal()
+    },
+    generateNewId() {
+      this.id = nanoid()
+      this.name = `游客-${this.id.slice(-4)}`
+      this.isInitialized = true
+      this.saveToLocal()
     },
   },
-
   getters: {
-    player: (state): PlayerSchemaType => {
-      const petStorage = usePetStorageStore()
-      const team = petStorage.getCurrentTeam().map(pet => ({ ...toRaw(pet) }))
-      // 只取 state 的实际状态字段，避免 ...state 展开整个 store 实例（包含 getters/actions），
-      // 在 Pinia 3 中 getter 的 state 参数实际是 store 实例，展开会触发 player getter 自身递归导致栈溢出
-      return {
-        id: state.id,
-        name: state.name,
-        email: state.email,
-        email_verified: state.email_verified,
-        email_bound_at: state.email_bound_at,
-        is_registered: state.is_registered,
-        requiresAuth: state.requiresAuth,
-        isAuthenticated: state.isAuthenticated,
-        isInitialized: state.isInitialized,
-        team,
-      } as PlayerSchemaType
-    },
-
-    /**
-     * 是否可以使用功能（已初始化且已认证）
-     */
-    canUseFeatures: (state): boolean => {
-      return state.isInitialized && state.isAuthenticated
-    },
-
-    /**
-     * 获取认证状态描述
-     */
-    authStatusText: (state): string => {
-      if (!state.isInitialized) return '初始化中...'
-      if (state.is_registered) {
-        return state.isAuthenticated ? '已登录' : '需要通过邮箱恢复'
-      }
-      return '游客模式'
-    },
+    player: (state): PlayerSchemaType => ({
+      id: state.id,
+      name: state.name,
+      team: usePetStorageStore()
+        .getCurrentTeam()
+        .map(pet => ({ ...toRaw(pet) })),
+    }),
+    canUseFeatures: state => state.isInitialized,
   },
 })

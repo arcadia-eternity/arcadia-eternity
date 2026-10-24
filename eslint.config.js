@@ -21,6 +21,8 @@ export default tseslint.config(
       'scripts/**',
       'tools/**',
       'examples/**',
+      // This isolated Better Auth sketch is intentionally not a runtime dependency.
+      'design/better-auth-github/auth.config.example.ts',
       'test-*.ts',
       'packages/*/index.ts',
       'packages/*/test/**',

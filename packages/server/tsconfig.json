@@ -15,10 +15,8 @@
     "types": ["node"],
     "declaration": true,
     "declarationMap": true,
-    "skipLibCheck": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "skipLibCheck": true
   },
-  "include": ["./src/**/*"],
+  "include": ["./index.ts", "./src/index.ts", "./src/standalone/**/*.ts"],
   "exclude": ["./node_modules", "./dist"]
 }

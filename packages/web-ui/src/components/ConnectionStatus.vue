@@ -84,8 +84,8 @@
               <span>{{ serverState.onlinePlayers }}</span>
             </div>
             <div class="flex justify-between">
-              <span>匹配队列:</span>
-              <span>{{ serverState.matchmakingQueue }}</span>
+              <span>房间:</span>
+              <span>{{ serverState.rooms }}</span>
             </div>
           </div>
         </div>
