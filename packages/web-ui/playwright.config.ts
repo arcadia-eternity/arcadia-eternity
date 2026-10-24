@@ -25,13 +25,16 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.PLAYWRIGHT_CHROME_CHANNEL === 'chrome' ? { channel: 'chrome' as const } : {}),
+      },
     },
   ],
   webServer: onlineMode
     ? [
         {
-          command: `pnpm --filter @arcadia-eternity/server... run build && CLUSTER_ENABLED=false SINGLE_INSTANCE_INMEMORY_REDIS=true pnpm --workspace-root cli server --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
+          command: `pnpm --filter @arcadia-eternity/server... run build && pnpm --workspace-root cli server --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
           url: `http://${loopbackHost}:${onlineServerPort}/health`,
           reuseExistingServer: true,
           stdout: 'ignore',

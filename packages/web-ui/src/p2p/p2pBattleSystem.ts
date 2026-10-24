@@ -87,23 +87,24 @@ class P2PHostBattleSystem implements IBattleSystem {
     private readonly transport: PeerTransport,
   ) {
     this.messageUnsubscribe = this.transport.onMessage(message => {
-      void this.handlePeerMessage(message)
+      void this.handlePeerMessage(message).catch(error => console.error('Failed to handle P2P message:', error))
     })
 
     this.relayUnsubscribe = this.localSystem.BattleEvent(
       message => {
         this.recordRemoteEvent(message)
-        void this.bridge.sendMessage('p2p-battle-event', {
+        this.sendBackgroundMessage('p2p-battle-event', {
           viewerId: this.remotePlayerId,
           message,
         } satisfies P2PBattleMessage['payload'])
-        void this.pushRemoteSelections()
+        if (this.transport.getState() !== 'failed' && this.transport.getState() !== 'closed')
+          void this.pushRemoteSelections().catch(error => console.error('Failed to sync P2P selections:', error))
       },
       { viewerId: this.remotePlayerId, showHidden: false },
     )
     this.timerRelayUnsubscribers = P2P_TIMER_EVENT_TYPES.map(eventType =>
       this.localSystem.onTimerEvent(eventType, data => {
-        void this.bridge.sendMessage('p2p-battle-timer-event', {
+        this.sendBackgroundMessage('p2p-battle-timer-event', {
           viewerId: this.remotePlayerId,
           eventType,
           data,
@@ -113,8 +114,16 @@ class P2PHostBattleSystem implements IBattleSystem {
 
     this.offStateChange = this.transport.onStateChange(state => {
       if (state === 'connected') {
-        void this.pushInitialStateIfReady()
+        void this.pushInitialStateIfReady().catch(error => console.error('Failed to sync P2P battle:', error))
       }
+    })
+  }
+
+  private sendBackgroundMessage(type: string, payload: P2PBattleMessage['payload']): void {
+    if (this.transport.getState() === 'failed' || this.transport.getState() === 'closed') return
+    void this.bridge.sendMessage(type, payload).catch(error => {
+      if (this.transport.getState() !== 'failed' && this.transport.getState() !== 'closed')
+        console.error('Failed to send P2P message:', error)
     })
   }
 

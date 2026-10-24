@@ -9,7 +9,7 @@ function write(stream: NodeJS.WriteStream, text: string): Promise<void> {
   return new Promise((resolve, reject) => stream.write(text, error => (error ? reject(error) : resolve())))
 }
 export async function runCli(args: string[], legacy?: () => Promise<void>): Promise<number> {
-  if (['online', 'server', 'p2p-e2e', 'p2p-ws-e2e'].includes(args[0])) {
+  if (['online', 'p2p-e2e', 'p2p-ws-e2e'].includes(args[0])) {
     if (!legacy) throw new CliError('COMMAND_UNAVAILABLE', 'Legacy command entry unavailable')
     await legacy()
     return 0
@@ -39,7 +39,7 @@ export async function runCli(args: string[], legacy?: () => Promise<void>): Prom
   })
   for (const [name, description] of [
     ['online', 'Online battle'],
-    ['server', 'Existing server entry (#210)'],
+    ['server', 'Single-process in-memory battle server'],
     ['p2p-e2e', 'P2P smoke test'],
     ['p2p-ws-e2e', 'WebSocket P2P smoke test'],
   ])

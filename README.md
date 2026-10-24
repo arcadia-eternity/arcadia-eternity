@@ -24,15 +24,19 @@ QQ群：805146068
 ### 开启测试战斗
 
 ```sh
-pnpm run cli -1 testteam.yaml -2 testteam.yaml
+pnpm run cli local --player1 testteam.yaml --player2 testteam.yaml
 ```
 
 ### 启动服务器
 
 ```sh
-# 启动后端服务器
-pnpm run cli server --port 8102
+# 构建依赖后启动后端服务器（无需 Redis / 数据库）
+pnpm install
+pnpm build:prod
+pnpm run cli server --port 8102 --server-id arcadia-local
 
 # 启动前端开发服务器
 pnpm web:dev
 ```
+
+服务器采用单进程内存房间：停机、重启或部署会结束所有房间；页面刷新和短时断线可在原进程仍存活时重连。本地 UID 不承担登录或席位权限。详见[服务端运行与身份约定](docs/v4/server-runtime.md)。

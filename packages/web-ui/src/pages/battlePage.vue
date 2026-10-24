@@ -890,6 +890,7 @@ const pendingPause = ref(false) // 是否有待执行的暂停
 let battleDisposed = false
 let releasePreparationWait: (() => void) | undefined
 let releaseBattleStartWait: (() => void) | undefined
+let releaseBattleStateWait: (() => void) | undefined
 let playerReadySent = false
 const preparation = useBattlePreparation()
 const {
@@ -941,8 +942,34 @@ const initializeBattleResources = async () => {
       label: '对局数据',
       required: true,
       run: async () => {
-        if (props.replayMode) await loadReplayData()
-        else if (!store.battleState) throw new Error('没有可用的对局数据，请返回大厅')
+        if (props.replayMode) {
+          await loadReplayData()
+        } else {
+          if (!store.battleState && route.query.privateRoom === 'true') {
+            await new Promise<void>((resolve, reject) => {
+              let settled = false
+              const timeout = setTimeout(() => finish(new Error('恢复对局超时，请返回大厅重试')), 10_000)
+              const stop = watch(
+                () => store.battleState,
+                state => {
+                  if (state) finish()
+                },
+              )
+              function finish(error?: Error) {
+                if (settled) return
+                settled = true
+                clearTimeout(timeout)
+                stop()
+                releaseBattleStateWait = undefined
+                if (error) reject(error)
+                else resolve()
+              }
+              releaseBattleStateWait = () => finish()
+              if (store.battleState) finish()
+            })
+          }
+          if (!store.battleState) throw new Error('没有可用的对局数据，请返回大厅')
+        }
       },
     },
     {
@@ -2115,6 +2142,7 @@ const setupMessageSubscription = async () => {
 
 onUnmounted(async () => {
   battleDisposed = true
+  releaseBattleStateWait?.()
   cancelSpriteWaits()
   releasePreparationWait?.()
   preparation.cancel()

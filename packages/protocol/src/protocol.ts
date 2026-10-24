@@ -7,6 +7,7 @@ import type {
   PackLock,
   AssetLock,
 } from '@arcadia-eternity/schema'
+import type { NativeRuntimeIdentity } from './session'
 
 // 重新导出常用类型
 export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
@@ -24,6 +25,12 @@ export type ErrorResponse = {
 }
 
 export type AckResponse<T = unknown> = (response: SuccessResponse<T> | ErrorResponse) => void
+
+/** Standalone servers require both fields; optional here for legacy transport compatibility. */
+export type SubmitPlayerSelectionRequest = PlayerSelectionSchemaType & {
+  requestId?: string
+  expectedTurn?: number
+}
 
 export type ServerState = {
   onlinePlayers: number
@@ -101,7 +108,7 @@ export interface ClientToServerEvents {
 
   // 玩家动作
   submitPlayerSelection: (
-    selection: PlayerSelectionSchemaType,
+    selection: SubmitPlayerSelectionRequest,
     callback: AckResponse<{ status: 'ACTION_ACCEPTED' }>,
   ) => void
   // 获取状态
@@ -128,6 +135,10 @@ export interface ClientToServerEvents {
   leavePrivateRoom: (ack: AckResponse<{ status: 'LEFT' }>) => void
   togglePrivateRoomReady: (data: TogglePrivateRoomReadyRequest, ack: AckResponse<{ status: 'READY_TOGGLED' }>) => void
   startPrivateRoomBattle: (data: StartPrivateRoomBattleRequest, ack: AckResponse<PrivateRoomBattleStartInfo>) => void
+  finishPrivateRoomBattle: (
+    data: { winner: string | null; reason: string },
+    ack: AckResponse<{ status: 'FINISHED' }>,
+  ) => void
   sendPrivateRoomPeerSignal: (data: SendPrivateRoomPeerSignalRequest, ack: AckResponse<{ status: 'FORWARDED' }>) => void
   switchToSpectator: (data: Record<string, never>, ack: AckResponse<{ status: 'SWITCHED' }>) => void
   switchToPlayer: (data: { team: PetSchemaType[] }, ack: AckResponse<{ status: 'SWITCHED' }>) => void
@@ -143,12 +154,16 @@ export interface ClientToServerEvents {
 
 // 私人房间相关类型定义
 export interface CreatePrivateRoomRequest {
+  expectedRuntime?: NativeRuntimeIdentity
   config: {
     ruleSetId?: string
     isPrivate?: boolean
     password?: string
     battleMode?: 'p2p' | 'server'
     p2pTransport?: 'auto' | 'webrtc' | 'relay'
+    timerConfig?: Partial<TimerConfig>
+    allowFaintSwitch?: boolean
+    showHidden?: boolean
     requiredPackLock?: PackLock
     requiredAssetLock?: AssetLock
   }
@@ -156,6 +171,7 @@ export interface CreatePrivateRoomRequest {
 
 export interface JoinPrivateRoomRequest {
   roomCode: string
+  expectedRuntime?: NativeRuntimeIdentity
   password?: string
   clientPackLock?: PackLock
   clientAssetLock?: AssetLock
@@ -163,6 +179,8 @@ export interface JoinPrivateRoomRequest {
 
 export interface JoinPrivateRoomSpectatorRequest {
   roomCode: string
+  expectedRuntime?: NativeRuntimeIdentity
+  password?: string
   clientPackLock?: PackLock
   clientAssetLock?: AssetLock
 }
@@ -181,6 +199,9 @@ export interface UpdatePrivateRoomConfigRequest {
   password?: string
   battleMode?: 'p2p' | 'server'
   p2pTransport?: 'auto' | 'webrtc' | 'relay'
+  timerConfig?: Partial<TimerConfig>
+  allowFaintSwitch?: boolean
+  showHidden?: boolean
   requiredPackLock?: PackLock
   requiredAssetLock?: AssetLock
 }
@@ -255,6 +276,9 @@ export interface PrivateRoomInfo {
     password?: string
     battleMode: 'p2p' | 'server'
     p2pTransport?: 'auto' | 'webrtc' | 'relay'
+    timerConfig?: Partial<TimerConfig>
+    allowFaintSwitch?: boolean
+    showHidden?: boolean
     requiredPackLock?: PackLock
     requiredAssetLock?: AssetLock
   }

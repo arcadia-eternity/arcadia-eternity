@@ -17,7 +17,6 @@ import { isDesktop } from '@/utils/env'
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
 const BattleRecordDetail = () => import('@/components/battleReport/BattleRecordDetail.vue')
 const LocalBattleReports = () => import('@/components/battleReport/LocalBattleReports.vue')
-const Leaderboard = () => import('@/components/battleReport/Leaderboard.vue')
 const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
 const routes: RouteRecordRaw[] = [
   {
@@ -25,7 +24,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Lobby',
     component: LobbyView,
     meta: {
-      title: '匹配大厅',
+      title: '好友大厅',
     },
     props: route => ({
       // 将查询参数转换为props
@@ -158,14 +157,6 @@ const routes: RouteRecordRaw[] = [
     }),
     meta: {
       title: '战报预览',
-    },
-  },
-  {
-    path: '/leaderboard',
-    name: 'Leaderboard',
-    component: Leaderboard,
-    meta: {
-      title: '排行榜',
     },
   },
   {

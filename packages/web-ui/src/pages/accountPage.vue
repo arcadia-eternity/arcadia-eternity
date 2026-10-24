@@ -3,33 +3,33 @@
     <div class="container mx-auto px-4 py-8">
       <!-- 页面标题 -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">账户管理</h1>
-        <p class="text-gray-600">管理您的玩家信息和跨设备继承设置</p>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">档案与账号</h1>
+        <p class="text-gray-600">管理本地档案，查看当前服务器身份</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- 玩家信息卡片 -->
+        <!-- 本地档案 -->
         <div class="space-y-6">
           <el-card>
             <template #header>
               <div class="flex items-center">
                 <el-icon class="mr-2"><User /></el-icon>
-                <span>玩家信息</span>
+                <span>本地档案</span>
               </div>
             </template>
 
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">玩家ID</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">档案 UID</label>
                 <div class="flex items-center space-x-2">
-                  <code class="bg-gray-100 px-3 py-2 rounded text-sm font-mono flex-1">
+                  <code class="bg-gray-100 px-3 py-2 rounded text-sm font-mono flex-1 min-w-0 break-all">
                     {{ playerStore.id }}
                   </code>
-                  <el-button size="small" @click="copyPlayerId">
+                  <el-button size="small" aria-label="复制档案 UID" @click="copyPlayerId">
                     <el-icon><DocumentCopy /></el-icon>
                   </el-button>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">这是您的唯一标识符，请妥善保管</p>
+                <p class="text-xs text-gray-500 mt-1">UID 是公开的档案编号，不能用于登录或接管对战席位。</p>
               </div>
 
               <div>
@@ -57,22 +57,13 @@
                 </div>
               </div>
 
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">用户状态</label>
-                <div class="flex items-center space-x-2">
-                  <el-tag v-if="playerStore.is_registered" type="success" size="small">
-                    <el-icon class="mr-1"><CircleCheck /></el-icon>
-                    注册用户
-                  </el-tag>
-                  <el-tag v-else type="info" size="small">
-                    <el-icon class="mr-1"><User /></el-icon>
-                    匿名用户
-                  </el-tag>
-                  <span class="text-xs text-gray-500">
-                    {{ playerStore.is_registered ? '数据可跨设备同步' : '数据仅保存在本设备' }}
-                  </span>
-                </div>
-              </div>
+              <el-alert title="资料保存在当前设备" type="info" :closable="false" show-icon>
+                <p>本地档案、队伍和设置可以离线使用。登录或退出服务器账号不会改变档案 UID。</p>
+                <p class="mt-2">
+                  请保留完整的本地资料备份。清空本地数据且没有备份时，仅凭 UID
+                  无法找回资料；账号只能恢复服务器实际保存过的内容。
+                </p>
+              </el-alert>
             </div>
           </el-card>
 
@@ -86,15 +77,6 @@
             </template>
 
             <div class="space-y-3">
-              <el-button type="warning" @click="generateNewId" :loading="generatingId" class="w-full">
-                <el-icon class="mr-2"><Refresh /></el-icon>
-                生成新的玩家ID
-              </el-button>
-
-              <p class="text-xs text-gray-500">⚠️ 生成新ID将清空当前所有数据，请谨慎操作</p>
-
-              <el-divider />
-
               <router-link to="/storage">
                 <el-button type="primary" class="w-full">
                   <el-icon class="mr-2"><FolderOpened /></el-icon>
@@ -146,9 +128,40 @@
           </el-card>
         </div>
 
-        <!-- 邮箱继承功能 -->
-        <div>
-          <EmailInheritance />
+        <div class="space-y-6">
+          <el-card>
+            <template #header>
+              <div class="flex items-center">
+                <el-icon class="mr-2"><User /></el-icon>
+                <span>当前服务器身份</span>
+              </div>
+            </template>
+
+            <div class="space-y-4">
+              <el-tag :type="authStore.isAccount ? 'success' : 'info'">
+                {{ sessionStatus }}
+              </el-tag>
+              <p v-if="authStore.isAccount" class="text-sm text-gray-600">
+                当前使用服务器账号。账号身份由服务器验证，本地档案和队伍仍由本设备保存。
+              </p>
+              <p v-else-if="authStore.isAuthenticated" class="text-sm text-gray-600">
+                当前使用游客会话，无需注册。服务器通过会话凭证授权房间席位，相同 UID 不会获得相同权限。
+              </p>
+              <p v-else class="text-sm text-gray-600">
+                尚未建立有效服务器会话。您仍可使用本地档案；加入联机房间时会申请游客会话。
+              </p>
+              <p v-if="authStore.session" class="text-xs text-gray-500 break-all">
+                服务器：{{ authStore.session.serverId }}
+              </p>
+              <p class="text-sm text-gray-600">
+                服务器账号是可选功能，登录方式由所连接的服务器提供。账号数据不会自动跨服务器共享。
+              </p>
+              <el-alert title="房间只在服务器本次运行期间有效" type="info" :closable="false" show-icon>
+                网络短断后可凭有效会话重连。服务器重启后，原会话、房间和席位全部失效，需要重新加入。
+              </el-alert>
+              <el-button v-if="authStore.isAccount" :loading="loggingOut" @click="logout"> 退出服务器账号 </el-button>
+            </div>
+          </el-card>
         </div>
       </div>
     </div>
@@ -167,24 +180,38 @@ import {
   Refresh,
   FolderOpened,
   Plus,
-  CircleCheck,
   Download,
 } from '@element-plus/icons-vue'
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
-import EmailInheritance from '@/components/EmailInheritance.vue'
-import { useBattleClientStore } from '@/stores/battleClient'
+import { useAuthStore } from '@/stores/auth'
 import { petResourceCache } from '@/services/petResourceCache'
 import { isDesktop } from '@/utils/env'
 
 const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
-const battleClientStore = useBattleClientStore()
+const authStore = useAuthStore()
+const loggingOut = ref(false)
+const sessionStatus = computed(() => {
+  if (!authStore.isAuthenticated) return '未连接服务器身份'
+  return authStore.isAccount ? '服务器账号' : '游客会话'
+})
+
+const logout = async () => {
+  loggingOut.value = true
+  try {
+    await authStore.logout()
+    ElMessage.success('已退出服务器账号，本地档案已保留')
+  } catch {
+    ElMessage.error('退出失败，请重试')
+  } finally {
+    loggingOut.value = false
+  }
+}
 
 // 编辑名称相关
 const editingName = ref(false)
 const newName = ref('')
-const generatingId = ref(false)
 const nameInput = ref()
 
 // 预缓存相关
@@ -230,11 +257,11 @@ const cancelEdit = () => {
   editingName.value = false
 }
 
-// 复制玩家ID
+// 复制公开的档案编号
 const copyPlayerId = async () => {
   try {
     await navigator.clipboard.writeText(playerStore.id)
-    ElMessage.success('玩家ID已复制到剪贴板')
+    ElMessage.success('档案 UID 已复制到剪贴板')
   } catch {
     // 降级方案
     const textArea = document.createElement('textarea')
@@ -243,45 +270,7 @@ const copyPlayerId = async () => {
     textArea.select()
     document.execCommand('copy')
     document.body.removeChild(textArea)
-    ElMessage.success('玩家ID已复制到剪贴板')
-  }
-}
-
-// 生成新的玩家ID
-const generateNewId = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '生成新的玩家ID将重置玩家信息（ID、名称、认证状态等），但会保留您的精灵和队伍数据。此操作不可撤销。是否继续？',
-      '确认生成新ID',
-      {
-        confirmButtonText: '确认',
-        cancelButtonText: '取消',
-        type: 'warning',
-      },
-    )
-
-    generatingId.value = true
-
-    // 生成新ID并重置玩家状态
-    playerStore.generateNewId()
-
-    // 重新初始化玩家状态
-    await playerStore.initializePlayer()
-
-    // 重新初始化battleClient以使用新的玩家ID
-    try {
-      battleClientStore.reset()
-      battleClientStore.initialize()
-      await battleClientStore.connect()
-      console.log('BattleClient重新连接成功，使用新的玩家ID')
-    } catch (error: unknown) {
-      console.warn('BattleClient重新连接失败:', error)
-      // 不阻塞用户操作，只是记录警告
-    }
-  } catch {
-    // 用户取消操作
-  } finally {
-    generatingId.value = false
+    ElMessage.success('档案 UID 已复制到剪贴板')
   }
 }
 

@@ -4,9 +4,9 @@ import { isBuiltin } from 'node:module'
 // Offline commands are self-contained. Existing network/server commands retain lazy service dependencies.
 const legacyDependencies = new Set([
   'dotenv',
+  'dotenv/config',
   '@arcadia-eternity/client',
   '@arcadia-eternity/server',
-  '@arcadia-eternity/rules',
   '@arcadia-eternity/p2p-transport',
   '@arcadia-eternity/p2p-transport/node',
 ])

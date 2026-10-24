@@ -51,6 +51,7 @@ async function bootstrap() {
           }
           createPrivateRoom: (config: {
             ruleSetId?: string
+            battleMode?: 'server' | 'p2p'
             isPrivate?: boolean
             password?: string
             p2pTransport?: 'auto' | 'webrtc' | 'relay'
