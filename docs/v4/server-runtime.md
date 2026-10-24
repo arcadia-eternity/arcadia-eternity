@@ -50,7 +50,9 @@ pnpm web:dev
 
 默认 `ACCOUNT_MODE=guest`（或不设置）只开放游客。部署者主动设为 `ACCOUNT_MODE=g3` 时，必须提供稳定的 `SERVER_ID`、`DATABASE_URL`、`SMTP_HOST`、`SMTP_FROM`、`OIDC_ISSUER`、`OIDC_CLIENT_ID`、`OIDC_REDIRECT_URI` 和明确的 `CORS_ORIGIN`；不得使用 `*`。OIDC 回跳地址应指向同一网页应用的账号页，且其 origin 必须包含在 `CORS_ORIGIN` 中。按邮件服务要求可设置 `SMTP_PORT`（默认 587）及成对的 `SMTP_USER`/`SMTP_PASSWORD`；OIDC 服务商要求机密客户端时设置 `OIDC_CLIENT_SECRET`，并按服务商元数据选择可选的 `OIDC_CLIENT_AUTH_METHOD`（`client_secret_post`、`client_secret_basic` 或公开客户端的 `none`）。这些凭据由部署环境秘密配置提供，不写进仓库。
 
-启用账号时，启动会检查 PostgreSQL 表结构、SMTP 可用性和 OIDC 发现结果；任一项失败则不开放监听。账号目录使用独立的 `arcadia_auth` schema，不复用旧 `players.id`、旧验证码或旧 RLS。邮箱发送及核销限流目前按进程计数，重启会清零；G4 官方服公开上线前还需邮件服务商配额或持久限流，避免通过反复重启绕过发送限制。网页端提供邮箱和 OIDC 两条路径；打包 Electron 首版提供邮箱路径，OIDC 的桌面回跳需要后续独立适配，不在网页流程中伪装为可用。登录可在重启后重新取得同一 accountId，但会得到新 token 和席位，不恢复旧房间。
+官方服继续使用现有 Supabase 项目的 **PostgreSQL 数据库**：`DATABASE_URL` 是只供服务端使用的 Postgres 连接串，新账号表位于同库的私有 `arcadia_auth` schema，不新建 Supabase 项目，也不将 `public.players` 或 Supabase Auth 用户自动认领为本服账号。`SUPABASE_URL`、浏览器 publishable/anon key 和 service-role key 都不是此连接串。2026-10-24 只读检查时，现有正式与开发项目尚无 `arcadia_auth` 表；本轮没有改动线上数据库。常驻容器优先使用 Supabase [直连或 IPv4 环境中的 session pooler](https://supabase.com/docs/guides/database/connecting-to-postgres)，按项目连接信息启用 TLS；transaction pooler 主要面向短命连接，且不支持 prepared statements。`arcadia_auth` 不加入 [Data API 的 exposed schemas](https://supabase.com/docs/guides/api/using-custom-schemas)，不向 `anon`、`authenticated` 或浏览器授予账号表权限。
+
+启用账号时，启动会检查 PostgreSQL 表结构、SMTP 可用性和 OIDC 发现结果；任一项失败则不开放监听。G3 实现目前在启动时用数据库连接角色执行 `CREATE SCHEMA/TABLE IF NOT EXISTS`，因此首次启用需要该角色具备 DDL 权限；正式上线前应将建表改为受控迁移，让常驻服务只持有私有 schema 的最小读写权限。账号目录不复用旧 `players.id`、旧验证码或旧 RLS。邮箱发送及核销限流目前按进程计数，重启会清零；G4 官方服公开上线前还需邮件服务商配额或持久限流，避免通过反复重启绕过发送限制。网页端提供邮箱和 OIDC 两条路径；打包 Electron 首版提供邮箱路径，OIDC 的桌面回跳需要后续独立适配，不在网页流程中伪装为可用。登录可在重启后重新取得同一 accountId，但会得到新 token 和席位，不恢复旧房间。
 
 ## 默认接口
 

@@ -163,7 +163,7 @@
 
           <el-card v-if="accountEnabled">
             <template #header>
-              <span>{{ authStore.isAccount ? '添加登录或找回方式' : '登录服务器账号' }}</span>
+              <span>{{ authStore.isAccount ? '添加登录或找回方式' : '登录或创建服务器账号' }}</span>
             </template>
 
             <div class="space-y-4">
@@ -171,7 +171,7 @@
                 {{
                   authStore.isAccount
                     ? '先验证新的方式，再将它绑定到当前服务器账号。不能用本地 UID 绑定账号。'
-                    : '验证邮箱或 OpenID Connect 身份后，服务器会签发新的账号会话和对战席位。原游客席位不会转移。'
+                    : '验证邮箱或 OpenID Connect 身份后登录；首次验证会创建本服务器的账号。邮箱验证码不能找回未备份的本地 UID、队伍或存档。原游客席位不会转移。'
                 }}
               </p>
 
@@ -184,7 +184,7 @@
                   placeholder="邮箱地址"
                   :disabled="accountBusy"
                 />
-                <el-button :loading="accountBusy" :disabled="!email.trim()" @click="requestEmailCode">
+                <el-button :loading="accountBusy" :disabled="!profileReady || !email.trim()" @click="requestEmailCode">
                   {{ authStore.isAccount ? '发送绑定验证码' : '发送登录验证码' }}
                 </el-button>
                 <div v-if="challengeId" class="flex flex-wrap gap-2">
@@ -200,7 +200,7 @@
                   <el-button
                     type="primary"
                     :loading="accountBusy"
-                    :disabled="!emailCode.trim()"
+                    :disabled="!profileReady || !emailCode.trim()"
                     @click="completeEmailCode"
                   >
                     {{ challengeIntent === 'link' ? '验证并绑定' : '验证并登录' }}
@@ -210,7 +210,7 @@
 
               <div v-if="oidcEnabled" class="space-y-2">
                 <h3 class="font-medium">OpenID Connect</h3>
-                <el-button :loading="accountBusy" @click="startOidc">
+                <el-button :loading="accountBusy" :disabled="!profileReady" @click="startOidc">
                   {{ authStore.isAccount ? '验证并绑定 OIDC 身份' : '使用 OIDC 登录' }}
                 </el-button>
                 <p class="text-xs text-gray-500">将跳转到服务器配置的身份提供商，完成验证后返回此页。</p>
@@ -274,7 +274,7 @@ import {
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { useAuthStore } from '@/stores/auth'
-import { consumeOidcCallback, SessionRequestError } from '@/services/serverSession'
+import { takeBootOidcCallback, SessionRequestError } from '@/services/serverSession'
 import { petResourceCache } from '@/services/petResourceCache'
 import { isDesktop } from '@/utils/env'
 
@@ -283,6 +283,7 @@ const gameDataStore = useGameDataStore()
 const authStore = useAuthStore()
 const loggingOut = ref(false)
 const accountBusy = ref(false)
+const profileReady = ref(false)
 const email = ref('')
 const emailCode = ref('')
 const challengeId = ref('')
@@ -301,6 +302,12 @@ const sessionStatus = computed(() => {
 })
 
 const localProfile = () => ({ id: playerStore.id, name: playerStore.name })
+const ensureLocalProfile = async () => {
+  await playerStore.initializePlayer()
+  if (!playerStore.id || !playerStore.name) throw new Error('本地档案尚未准备好，请重试')
+  profileReady.value = true
+  return localProfile()
+}
 const identityKey = (identity: AccountIdentity) =>
   `${identity.providerId}\u0000${identity.issuer}\u0000${identity.subject}`
 
@@ -338,7 +345,8 @@ const completeEmailCode = async () => {
   if (!challengeId.value || !challengeIntent.value) return
   accountBusy.value = true
   try {
-    await authStore.completeEmailCode(challengeId.value, emailCode.value.trim(), challengeIntent.value, localProfile())
+    const profile = await ensureLocalProfile()
+    await authStore.completeEmailCode(challengeId.value, emailCode.value.trim(), challengeIntent.value, profile)
     ElMessage.success(challengeIntent.value === 'link' ? '新的登录方式已绑定' : '已登录服务器账号，请重新加入房间')
     challengeId.value = ''
     challengeIntent.value = null
@@ -353,6 +361,7 @@ const completeEmailCode = async () => {
 const startOidc = async () => {
   accountBusy.value = true
   try {
+    await ensureLocalProfile()
     const authorizationUrl = await authStore.startOidc(authStore.isAccount ? 'link' : 'login')
     window.location.assign(authorizationUrl)
   } catch (error) {
@@ -536,13 +545,21 @@ const resetCacheStatus = async () => {
 
 // 组件挂载时初始化缓存统计
 onMounted(async () => {
-  const callback = consumeOidcCallback(window.location, window.history)
   petResourceCache.initStats()
+  try {
+    await ensureLocalProfile()
+  } catch (error) {
+    ElMessage.error(accountError(error))
+  }
   try {
     await authStore.refreshAccountContext()
   } catch (error) {
     ElMessage.error(accountError(error))
+    return
   }
+  if (!profileReady.value) return
+  const callback = takeBootOidcCallback()
+  if (!callback) return
   if (callback.error) ElMessage.error('身份提供商未完成验证，请重新发起登录。')
   if (!callback.code || !callback.state) return
   accountBusy.value = true

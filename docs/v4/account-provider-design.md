@@ -1,6 +1,6 @@
 # 可选账号提供商设计草案
 
-状态：G3 设计及实施依据。2026-10-24 已确定本分支合并门槛为 G3，首批两条登录／恢复路径为**邮箱一次性验证码 + 通用 OIDC**；实际完成状态以 [#220](https://github.com/arcadia-eternity/arcadia-eternity/issues/220) 的验收为准。本文基于提交 `c09d044d` 的旧账号实现和当前单进程服务端源码；没有核对生产数据库内容，也没有执行迁移或部署。G4 排位及战绩、在线录像分别留在 [#233](https://github.com/arcadia-eternity/arcadia-eternity/issues/233) 和 [#234](https://github.com/arcadia-eternity/arcadia-eternity/issues/234) 后期实施；UGC 不在本轮范围内。
+状态：G3 设计及实施依据。2026-10-24 已确定本分支合并门槛为 G3，首批两条登录／恢复路径为**邮箱一次性验证码 + 通用 OIDC**；实际完成状态以 [#220](https://github.com/arcadia-eternity/arcadia-eternity/issues/220) 的验收为准。本文基于提交 `c09d044d` 的旧账号实现和当前单进程服务端源码；只读核对了现有 Supabase 项目的表清单，没有读取玩家记录，也没有执行迁移或部署。G4 排位及战绩、在线录像分别留在 [#233](https://github.com/arcadia-eternity/arcadia-eternity/issues/233) 和 [#234](https://github.com/arcadia-eternity/arcadia-eternity/issues/234) 后期实施；UGC 不在本轮范围内。
 
 ## 旧系统实际提供了什么
 
@@ -12,6 +12,25 @@
 - [旧 `petStorage.ts`](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/web-ui/src/stores/petStorage.ts#L165-L279)把宠物队伍保存在浏览器 `localStorage`；旧“找回玩家 ID”并不等于恢复本地宠物或队伍。
 
 旧验证码由 `Math.random()` 生成并以明文保存，使用过程是先查询、后标记；旧 JWT 撤销使用进程内集合。仓库中的旧 RLS 策略还包含 `auth.uid() IS NULL` 放行写入的条件，[#195](https://github.com/arcadia-eternity/arcadia-eternity/issues/195)也提出了相关疑问。这是源码风险，不能据此断言生产数据库已经部署了同样的策略。旧 SQL、旧 JWT 和旧验证码实现均不能直接接回新服务端。
+
+## 官方数据库与不接 OAuth 的登录
+
+官方服务器沿用现有 **Supabase PostgreSQL**，新账号目录只在同一数据库增加私有 `arcadia_auth` schema。Supabase 在此首先是数据库托管方；G3 当前的邮箱验证码由服务端发送和核销，OIDC 由服务端验证，尚未把 Supabase Auth 当作登录提供商。旧 `public.players`、旧邮箱验证码和 `auth.users` 都不会自动转换成 `arcadia_auth.accounts`。`DATABASE_URL` 只给服务端，不能用浏览器 key 或 service-role key 代替；账号表不对 [Supabase Data API](https://supabase.com/docs/guides/api/using-custom-schemas) 暴露。常驻服务可使用 [Postgres 直连或 session pooler](https://supabase.com/docs/guides/database/connecting-to-postgres)，取决于宿主是否支持 IPv6。
+
+不接外部 OAuth 也可以提供完整的注册、登录和找回流程。成熟系统采用的形式不同，但都把凭证与公开用户编号分开：
+
+| 参考系统                                                                                              | 无外部 OAuth 时的做法                                                                                                                                                                                             | 对本项目的启示                                                     |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [Supabase Auth](https://supabase.com/docs/guides/auth/auth-email-passwordless)                        | 邮箱 OTP 或 Magic Link；首次验证可自动注册，也可用 `shouldCreateUser=false` 限制为既有用户                                                                                                                        | 邮箱控制权可以同时承担注册和登录，但“能收到邮件”不等于持有本地 UID |
+| [Keycloak](https://www.keycloak.org/docs/latest/server_admin/index.html)                              | 本地账号可自助注册或由管理员创建；邮箱确认、密码及忘记密码流程分别配置                                                                                                                                            | 私服可以关闭开放注册，采用邀请或管理员准入，不必另造 OAuth 提供商  |
+| [GitLab Self-Managed](https://docs.gitlab.com/administration/settings/sign_up_restrictions/)          | 本地密码账号可限制注册、要求审批，并提供[密码重置](https://docs.gitlab.com/user/profile/user_passwords/)；其[恢复代码](https://docs.gitlab.com/user/profile/account/two_factor_authentication/)只用于恢复第二因素 | 公开注册必须考虑滥用与密码找回；第二因素恢复代码不是独立登录方式   |
+| [Synapse](https://element-hq.github.io/synapse/develop/usage/configuration/config_documentation.html) | 可关闭公开注册；开放时建议邮箱验证、CAPTCHA 或注册令牌，并对注册限流                                                                                                                                              | “任何人填一个用户名就注册”不足以承担可找回的持久账号               |
+
+Arcadia 的无 OAuth 注册可复用当前邮箱流程：玩家提交邮箱，服务端发送短时一次性验证码；验证通过后，账号目录按 `(serverId, providerId='email', issuer='mailto', subject=address)` 找到账号或原子创建新账号。以后用同一邮箱验证码登录。注册与登录可以共用“继续使用邮箱”入口，避免预先暴露某个邮箱是否已有账号；开放注册时还需要邮件发送配额、跨重启限流或准入控制。当前 G3 的邮箱限流只在内存中，故官方服公开上线前还要补强。
+
+**只有邮箱一条路径不能满足本分支选定的 G3 双路径验收。** 如果以后完全不接 OIDC/OAuth，可将第二条做成 WebAuthn 通行密钥或独立密码凭据，并实现注册、绑定、丢失设备后的恢复和停用撤权；一次性恢复代码可以辅助找回，但不能直接把 GitLab 的第二因素恢复代码算成独立登录方式，也不能把“管理员临时帮忙找回”伪称为已经可用的第二条玩家登录路径。直接采用 Supabase Auth 的邮箱/密码功能也是备选，但属于新的验证器适配：服务端要核验其令牌，把 Supabase 用户 ID 映射为外部身份，仍由 Arcadia 账号目录决定本服 `accountId`。尤其要审查 Supabase Auth 的[同邮箱自动关联身份](https://supabase.com/docs/guides/auth/auth-identity-linking)行为，不能让它绕过 Arcadia 的显式绑定和冲突规则。
+
+外部“OAuth 登录”应优先选能返回并验证 ID Token 的 OIDC 服务商；纯 OAuth 2.0 授权码本身只代表授权，若要接入非 OIDC 平台，还要由服务端用访问令牌调用该平台的受信用户信息接口，取得稳定、应用范围内的 subject，不能用邮箱或昵称推断身份。G3 当前实现的是通用 OIDC，不宣称支持任意 OAuth 平台。
 
 ## 拟定的身份模型
 

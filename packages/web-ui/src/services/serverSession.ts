@@ -61,6 +61,26 @@ export function consumeOidcCallback(
   return { code, state, error }
 }
 
+let bootOidcCallback: ReturnType<typeof consumeOidcCallback> | null = null
+
+/** Capture a redirect before bootstrap waits for unrelated game assets. */
+export function captureOidcCallbackAtBoot(
+  location: Pick<Location, 'href'>,
+  history: Pick<History, 'state' | 'replaceState'>,
+): void {
+  const path = new URL(location.href).pathname.replace(/\/+$/, '')
+  if (!path.endsWith('/account')) return
+  const callback = consumeOidcCallback(location, history)
+  if (callback.code !== null || callback.state !== null || callback.error !== null) bootOidcCallback = callback
+}
+
+/** Return a one-time callback to the account page, then forget its authorization code. */
+export function takeBootOidcCallback(): ReturnType<typeof consumeOidcCallback> | null {
+  const callback = bootOidcCallback
+  bootOidcCallback = null
+  return callback
+}
+
 /** Credentials are scoped to the exact API endpoint and server ID, and stored per tab. */
 export class ServerSessionClient {
   readonly baseUrl: string

@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ServerSessionClient, consumeOidcCallback, type SessionStorage, normalizeServerUrl } from '../serverSession'
+import {
+  ServerSessionClient,
+  captureOidcCallbackAtBoot,
+  consumeOidcCallback,
+  takeBootOidcCallback,
+  type SessionStorage,
+  normalizeServerUrl,
+} from '../serverSession'
 import type { ServerInfo, ServerSession } from '@arcadia-eternity/protocol'
 
 const profile = { id: 'shared-public-local-id', name: 'Player' }
@@ -56,6 +63,17 @@ describe('server session identity boundaries', () => {
     const callback = consumeOidcCallback({ href: visibleUrl }, { state: null, replaceState })
     expect(callback).toEqual({ code: null, state: null, error: 'access_denied' })
     expect(visibleUrl).toBe('https://game.example/account')
+  })
+
+  it('captures an account callback before bootstrap and delivers it only once', () => {
+    let visibleUrl = 'https://game.example/account?code=one-time-code&state=state-1'
+    const replaceState = vi.fn((_state: unknown, _unused: string, url: string | URL | null | undefined) => {
+      visibleUrl = `https://game.example${url}`
+    })
+    captureOidcCallbackAtBoot({ href: visibleUrl }, { state: null, replaceState })
+    expect(visibleUrl).toBe('https://game.example/account')
+    expect(takeBootOidcCallback()).toEqual({ code: 'one-time-code', state: 'state-1', error: null })
+    expect(takeBootOidcCallback()).toBeNull()
   })
 
   it('normalizes origins and strips query credentials without collapsing server base paths', () => {

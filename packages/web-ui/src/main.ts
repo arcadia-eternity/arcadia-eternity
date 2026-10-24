@@ -13,6 +13,10 @@ import i18next from 'i18next'
 import { useAuthStore } from './stores/auth'
 import { usePrivateRoomStore } from './stores/privateRoom'
 import { ensureRuffleRuntime } from './bootstrap/ruffle'
+import { captureOidcCallbackAtBoot } from './services/serverSession'
+
+// The account redirect must leave the address bar before Ruffle or game data can delay mounting.
+captureOidcCallbackAtBoot(window.location, window.history)
 
 async function bootstrap() {
   await ensureRuffleRuntime().catch(error => {
