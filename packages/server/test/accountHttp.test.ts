@@ -108,23 +108,25 @@ class MemoryDirectory implements AccountDirectory {
   }
 }
 
-function services(directory = new MemoryDirectory()) {
+function services(directory = new MemoryDirectory(), githubRedirectUris = ['http://localhost:3000/account']) {
   const codes = new Map<string, string>()
   const email = new EmailCodeVerifier({
     sendCode: async (address, code) => {
       codes.set(address, code)
     },
   })
-  const pending = new Map<string, { intent: AuthIntent; browserSecret: string }>()
+  const pending = new Map<string, { intent: AuthIntent; browserSecret: string; redirectUri: string }>()
   let sequence = 0
-  const oidc: G3AccountServices['oidc'] = {
-    providerId: 'oidc',
-    async begin({ intent }) {
+  const github: G3AccountServices['github'] = {
+    providerId: 'github',
+    callbackOrigins: githubRedirectUris.map(uri => new URL(uri).origin),
+    async begin({ intent, redirectUri }) {
+      if (!githubRedirectUris.includes(redirectUri)) throw new ProviderError('INVALID_AUTH_REQUEST', 400)
       const state = `test-state-${++sequence}`
       const browserSecret = `test-secret-${sequence}`
-      pending.set(state, { intent, browserSecret })
+      pending.set(state, { intent, browserSecret, redirectUri })
       return {
-        authorizationUrl: `https://issuer.example/authorize?state=${state}`,
+        authorizationUrl: `https://github.com/login/oauth/authorize?state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`,
         state,
         browserSecret,
         expiresAt: Date.now() + 60_000,
@@ -135,19 +137,21 @@ function services(directory = new MemoryDirectory()) {
       if (!value || value.browserSecret !== browserSecret || JSON.stringify(value.intent) !== JSON.stringify(intent))
         throw new ProviderError('AUTH_PROOF_MISMATCH', 401)
       pending.delete(state)
-      if (!code.startsWith('subject:')) throw new ProviderError('AUTH_PROOF_INVALID', 401)
-      return { issuer: 'https://issuer.example/', subject: code.slice(8), verifiedAt: Date.now() }
+      if (!/^github-user:[1-9]\d*$/.test(code)) throw new ProviderError('AUTH_PROOF_INVALID', 401)
+      const id = Number(code.slice('github-user:'.length))
+      if (!Number.isSafeInteger(id)) throw new ProviderError('AUTH_PROOF_INVALID', 401)
+      return { issuer: 'https://github.com', subject: String(id), verifiedAt: Date.now() }
     },
   }
-  return { accounts: { directory, email, oidc }, codes, directory }
+  return { accounts: { directory, email, github }, codes, directory }
 }
 
-async function boot(accounts?: G3AccountServices) {
+async function boot(accounts?: G3AccountServices, corsOrigins = ['http://localhost:3000']) {
   const app = createSingleProcessApp({
     port: 0,
     host: '127.0.0.1',
     serverId: 'g3-test-server',
-    corsOrigins: ['http://localhost:3000'],
+    corsOrigins,
     accounts,
   })
   apps.push(app)
@@ -155,12 +159,13 @@ async function boot(accounts?: G3AccountServices) {
   return { app, url: `http://127.0.0.1:${app.address!.port}` }
 }
 
-function request(url: string, path: string, method = 'GET', body?: unknown, token?: string) {
+function request(url: string, path: string, method = 'GET', body?: unknown, token?: string, origin?: string) {
   return fetch(`${url}/api/v1${path}`, {
     method,
     headers: {
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(origin ? { Origin: origin } : {}),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
@@ -181,8 +186,13 @@ async function emailLogin(host: Awaited<ReturnType<typeof boot>>, codes: Map<str
   return ((await completed.json()) as { session: ServerSession }).session
 }
 
-async function oidcFlow(host: Awaited<ReturnType<typeof boot>>, intent: 'login' | 'link', token?: string) {
-  const begun = await request(host.url, '/auth/oidc/authorizations', 'POST', { intent }, token)
+async function githubFlow(
+  host: Awaited<ReturnType<typeof boot>>,
+  intent: 'login' | 'link',
+  token?: string,
+  origin = 'http://localhost:3000',
+) {
+  const begun = await request(host.url, '/auth/github/authorizations', 'POST', { intent }, token, origin)
   expect(begun.status).toBe(201)
   const auth = (await begun.json()) as { state: string; browserSecret: string; authorizationUrl: string }
   expect(auth.authorizationUrl).toContain(auth.state)
@@ -205,11 +215,91 @@ describe('G3 account HTTP integration', () => {
     expect(() => createSingleProcessApp({ accounts })).toThrow('explicit stable serverId')
   })
 
+  it('selects the registered GitHub callback from the allowed request origin and rejects missing or foreign origins', async () => {
+    const callbacks = ['https://battle.yuuinih.com/account', 'https://test-battle.netlify.app/account']
+    const fixture = services(undefined, callbacks)
+    const host = await boot(fixture.accounts, ['https://battle.yuuinih.com', 'https://test-battle.netlify.app'])
+    const missingOrigin = await request(host.url, '/auth/github/authorizations', 'POST', { intent: 'login' })
+    expect(missingOrigin.status).toBe(400)
+    const foreignOrigin = await request(
+      host.url,
+      '/auth/github/authorizations',
+      'POST',
+      { intent: 'login' },
+      undefined,
+      'https://attacker.example',
+    )
+    expect(foreignOrigin.status).toBe(400)
+    const unregisteredOrigin = await request(
+      host.url,
+      '/auth/github/authorizations',
+      'POST',
+      { intent: 'login' },
+      undefined,
+      'https://configured-but-unregistered.example',
+    )
+    expect(unregisteredOrigin.status).toBe(400)
+
+    const production = await githubFlow(host, 'login', undefined, 'https://battle.yuuinih.com')
+    const staging = await githubFlow(host, 'login', undefined, 'https://test-battle.netlify.app')
+    expect(production.state).toBe('test-state-1')
+    expect(new URL(production.authorizationUrl).searchParams.get('redirect_uri')).toBe(
+      'https://battle.yuuinih.com/account',
+    )
+    expect(new URL(staging.authorizationUrl).searchParams.get('redirect_uri')).toBe(
+      'https://test-battle.netlify.app/account',
+    )
+  })
+
+  it('rejects a G3 server configuration whose GitHub callbacks and CORS origins differ', () => {
+    const fixture = services(undefined, ['https://battle.yuuinih.com/account'])
+    expect(() =>
+      createSingleProcessApp({
+        serverId: 'g3-test-server',
+        corsOrigins: ['https://battle.yuuinih.com', 'https://test-battle.netlify.app'],
+        accounts: fixture.accounts,
+      }),
+    ).toThrow('GitHub App callbacks must exactly match CORS origins')
+  })
+
+  it('creates an account directly from a GitHub user ID and recovers it after restart', async () => {
+    const fixture = services()
+    const first = await boot(fixture.accounts)
+    const begun = await githubFlow(first, 'login')
+    const created = await request(first.url, '/auth/github/complete', 'POST', {
+      intent: 'login',
+      state: begun.state,
+      browserSecret: begun.browserSecret,
+      code: 'github-user:2001',
+      profile,
+    })
+    expect(created.status).toBe(201)
+    const session = ((await created.json()) as { session: ServerSession }).session
+    expect(session.principal.kind).toBe('account')
+    const identities = await request(first.url, '/account/identities', 'GET', undefined, session.token)
+    expect(((await identities.json()) as { identities: AccountIdentity[] }).identities).toMatchObject([
+      { providerId: 'github', issuer: 'https://github.com', subject: '2001' },
+    ])
+
+    await first.app.stop()
+    const second = await boot(fixture.accounts)
+    const repeat = await githubFlow(second, 'login')
+    const recovered = await request(second.url, '/auth/github/complete', 'POST', {
+      intent: 'login',
+      state: repeat.state,
+      browserSecret: repeat.browserSecret,
+      code: 'github-user:2001',
+      profile: { id: 'another-local-uid', name: 'Renamed GitHub user' },
+    })
+    expect(recovered.status).toBe(201)
+    expect(((await recovered.json()) as { session: ServerSession }).session.principal).toEqual(session.principal)
+  })
+
   it('restores an account across restart, binds another proof explicitly, handles conflicts, and never trusts a UID', async () => {
     const fixture = services()
     const first = await boot(fixture.accounts)
     const info = await request(first.url, '/server-info')
-    expect(((await info.json()) as ServerInfo).accountProviders).toEqual(['email', 'oidc'])
+    expect(((await info.json()) as ServerInfo).accountProviders).toEqual(['email', 'github'])
     const alice = await emailLogin(first, fixture.codes, 'alice@example.test')
     expect(alice.principal.kind).toBe('account')
     const accountId = (alice.principal as { kind: 'account'; accountId: string }).accountId
@@ -223,44 +313,44 @@ describe('G3 account HTTP integration', () => {
     const guest = await request(first.url, '/sessions', 'POST', { profile: { id: accountId, name: 'Impostor' } })
     expect(((await guest.json()) as ServerSession).principal.kind).toBe('guest')
 
-    const link = await oidcFlow(first, 'link', alice.token)
+    const link = await githubFlow(first, 'link', alice.token)
     const linked = await request(
       first.url,
-      '/auth/oidc/complete',
+      '/auth/github/complete',
       'POST',
       {
         intent: 'link',
         state: link.state,
         browserSecret: link.browserSecret,
-        code: 'subject:alice-oidc',
+        code: 'github-user:1001',
       },
       alice.token,
     )
     expect(linked.status).toBe(200)
     expect(((await linked.json()) as { identities: AccountIdentity[] }).identities).toHaveLength(2)
 
-    const oidcLogin = await oidcFlow(first, 'login')
-    const sameAccount = await request(first.url, '/auth/oidc/complete', 'POST', {
+    const githubLogin = await githubFlow(first, 'login')
+    const sameAccount = await request(first.url, '/auth/github/complete', 'POST', {
       intent: 'login',
-      state: oidcLogin.state,
-      browserSecret: oidcLogin.browserSecret,
-      code: 'subject:alice-oidc',
+      state: githubLogin.state,
+      browserSecret: githubLogin.browserSecret,
+      code: 'github-user:1001',
       profile: { id: 'different-uid', name: 'Alice' },
     })
     expect(sameAccount.status).toBe(201)
     expect(((await sameAccount.json()) as { session: ServerSession }).session.principal).toEqual(alice.principal)
 
     const bob = await emailLogin(first, fixture.codes, 'bob@example.test')
-    const conflict = await oidcFlow(first, 'link', bob.token)
+    const conflict = await githubFlow(first, 'link', bob.token)
     const conflictResponse = await request(
       first.url,
-      '/auth/oidc/complete',
+      '/auth/github/complete',
       'POST',
       {
         intent: 'link',
         state: conflict.state,
         browserSecret: conflict.browserSecret,
-        code: 'subject:alice-oidc',
+        code: 'github-user:1001',
       },
       bob.token,
     )
@@ -284,9 +374,9 @@ describe('G3 account HTTP integration', () => {
       '/account/identities',
       'DELETE',
       {
-        providerId: 'oidc',
-        issuer: 'https://issuer.example/',
-        subject: 'alice-oidc',
+        providerId: 'github',
+        issuer: 'https://github.com',
+        subject: '1001',
       },
       alice.token,
     )
@@ -297,12 +387,12 @@ describe('G3 account HTTP integration', () => {
     await first.app.stop()
     const second = await boot(fixture.accounts)
     expect((await request(second.url, '/session', 'GET', undefined, oldToken)).status).toBe(401)
-    const restored = await oidcFlow(second, 'login')
-    const recovered = await request(second.url, '/auth/oidc/complete', 'POST', {
+    const restored = await githubFlow(second, 'login')
+    const recovered = await request(second.url, '/auth/github/complete', 'POST', {
       intent: 'login',
       state: restored.state,
       browserSecret: restored.browserSecret,
-      code: 'subject:alice-oidc',
+      code: 'github-user:1001',
       profile,
     })
     expect(recovered.status).toBe(201)
@@ -314,17 +404,17 @@ describe('G3 account HTTP integration', () => {
     const host = await boot(fixture.accounts)
     const alice = await emailLogin(host, fixture.codes, 'alice@example.test')
     const again = await emailLogin(host, fixture.codes, 'alice@example.test')
-    const pendingLink = await oidcFlow(host, 'link', alice.token)
+    const pendingLink = await githubFlow(host, 'link', alice.token)
     expect((await request(host.url, '/session', 'DELETE', undefined, alice.token)).status).toBe(204)
     const stale = await request(
       host.url,
-      '/auth/oidc/complete',
+      '/auth/github/complete',
       'POST',
       {
         intent: 'link',
         state: pendingLink.state,
         browserSecret: pendingLink.browserSecret,
-        code: 'subject:unwanted',
+        code: 'github-user:1002',
       },
       alice.token,
     )
@@ -433,16 +523,16 @@ describe('G3 account HTTP integration', () => {
     const host = await boot(fixture.accounts)
     const original = await emailLogin(host, fixture.codes, 'unlinked@example.test')
     const accountId = (original.principal as { kind: 'account'; accountId: string }).accountId
-    const oidc = await oidcFlow(host, 'link', original.token)
+    const github = await githubFlow(host, 'link', original.token)
     const link = await request(
       host.url,
-      '/auth/oidc/complete',
+      '/auth/github/complete',
       'POST',
       {
         intent: 'link',
-        state: oidc.state,
-        browserSecret: oidc.browserSecret,
-        code: 'subject:backup-path',
+        state: github.state,
+        browserSecret: github.browserSecret,
+        code: 'github-user:1003',
       },
       original.token,
     )

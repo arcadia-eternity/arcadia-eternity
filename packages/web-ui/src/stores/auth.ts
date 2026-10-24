@@ -84,14 +84,14 @@ export const useAuthStore = defineStore('auth', {
         this.serverInfo = client!.info
       }
     },
-    async startOidc(intent: AccountIntent): Promise<string> {
+    async startGitHub(intent: AccountIntent): Promise<string> {
       this.initialize()
-      return client!.startOidc(intent)
+      return client!.startGitHub(intent)
     },
-    async completeOidc(state: string, code: string, profile: LocalProfile) {
+    async completeGitHub(state: string, code: string, profile: LocalProfile) {
       this.initialize()
       try {
-        const result = await client!.completeOidc(state, code, profile)
+        const result = await client!.completeGitHub(state, code, profile)
         if (Array.isArray(result)) this.identities = result
         else {
           this.session = result

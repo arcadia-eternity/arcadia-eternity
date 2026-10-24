@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer'
 import {
   createSingleProcessApp,
   EmailCodeVerifier,
-  OidcVerifier,
+  GithubAppVerifier,
   PgAccountDirectory,
   ensureAccountSchema,
   type G3AccountServices,
@@ -49,6 +49,10 @@ export async function runServerCli(args: string[]): Promise<number> {
       'SMTP_FROM',
       'SMTP_USER',
       'SMTP_PASSWORD',
+      'GITHUB_APP_CLIENT_ID',
+      'GITHUB_APP_CLIENT_SECRET',
+      'GITHUB_APP_REDIRECT_URIS',
+      'GITHUB_APP_REDIRECT_URI',
       'OIDC_ISSUER',
       'OIDC_CLIENT_ID',
       'OIDC_CLIENT_SECRET',
@@ -74,29 +78,34 @@ export async function runServerCli(args: string[]): Promise<number> {
       const databaseUrl = required('DATABASE_URL')
       const smtpHost = required('SMTP_HOST')
       const smtpFrom = required('SMTP_FROM')
-      const issuer = required('OIDC_ISSUER')
-      const clientId = required('OIDC_CLIENT_ID')
-      const redirectUri = required('OIDC_REDIRECT_URI')
-      const redirectOrigin = new URL(redirectUri).origin
-      if (!corsOrigins.includes(redirectOrigin)) throw new Error('OIDC_REDIRECT_URI origin must appear in CORS_ORIGIN')
+      if (accountKeys.some(key => key.startsWith('OIDC_') && !!process.env[key]))
+        throw new Error('OIDC configuration is not supported in GitHub App account mode')
+      const clientId = required('GITHUB_APP_CLIENT_ID')
+      const clientSecret = required('GITHUB_APP_CLIENT_SECRET')
+      const configuredRedirectUris = process.env.GITHUB_APP_REDIRECT_URIS?.trim()
+      const legacyRedirectUri = process.env.GITHUB_APP_REDIRECT_URI?.trim()
+      if (configuredRedirectUris && legacyRedirectUri)
+        throw new Error('Use GITHUB_APP_REDIRECT_URIS instead of GITHUB_APP_REDIRECT_URI, not both')
+      const redirectUris = (configuredRedirectUris ?? legacyRedirectUri ?? '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean)
+      if (!redirectUris.length) throw new Error('GITHUB_APP_REDIRECT_URIS is required for G3 accounts')
+      for (const redirectUri of redirectUris) {
+        let redirectOrigin: string
+        try {
+          redirectOrigin = new URL(redirectUri).origin
+        } catch {
+          throw new Error('GITHUB_APP_REDIRECT_URIS must contain valid URLs')
+        }
+        if (!corsOrigins.includes(redirectOrigin))
+          throw new Error('Every GITHUB_APP_REDIRECT_URIS origin must appear in CORS_ORIGIN')
+      }
       const smtpPort = portNumber(process.env.SMTP_PORT ?? '587')
       if (smtpPort === 0) throw new Error('SMTP_PORT must be between 1 and 65535')
       const smtpUser = process.env.SMTP_USER
       const smtpPassword = process.env.SMTP_PASSWORD
       if (!!smtpUser !== !!smtpPassword) throw new Error('SMTP_USER and SMTP_PASSWORD must both be set or both absent')
-      const clientAuthMethod = process.env.OIDC_CLIENT_AUTH_METHOD
-      if (
-        clientAuthMethod &&
-        clientAuthMethod !== 'client_secret_post' &&
-        clientAuthMethod !== 'client_secret_basic' &&
-        clientAuthMethod !== 'none'
-      )
-        throw new Error('OIDC_CLIENT_AUTH_METHOD must be client_secret_post, client_secret_basic, or none')
-      const verifiedClientAuthMethod = clientAuthMethod as
-        | 'client_secret_post'
-        | 'client_secret_basic'
-        | 'none'
-        | undefined
       accountPool = new pg.Pool({ connectionString: databaseUrl, connectionTimeoutMillis: 10_000 })
       mailer = nodemailer.createTransport({
         host: smtpHost,
@@ -120,17 +129,15 @@ export async function runServerCli(args: string[]): Promise<number> {
           })
         },
       })
-      const oidc = await OidcVerifier.create({
-        issuer,
+      const github = new GithubAppVerifier({
         clientId,
-        clientSecret: process.env.OIDC_CLIENT_SECRET,
-        clientAuthMethod: verifiedClientAuthMethod,
-        redirectUri,
+        clientSecret,
+        redirectUris,
       })
       accounts = {
         directory: new PgAccountDirectory(pool, options.serverId),
         email,
-        oidc,
+        github,
         ready: async () => {
           await ensureAccountSchema(pool)
           await smtp.verify()

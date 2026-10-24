@@ -5,7 +5,7 @@ const serverInfo = {
   serverId: 'g3-browser-test',
   bootId: 'g3-boot',
   authModes: ['guest', 'account'],
-  accountProviders: ['email', 'oidc'],
+  accountProviders: ['email', 'github'],
   protocolVersion: 1,
 }
 const identities = [{ providerId: 'email', issuer: 'mailto', subject: 'player@example.com' }]
@@ -38,7 +38,7 @@ async function mockAccountApi(page: Page, completedProfiles: { id: string; name:
     if (path === '/server-info') return send(serverInfo)
     if (path === '/auth/email/challenges')
       return send({ challengeId: 'challenge-1', expiresAt: Date.now() + 600_000 }, 201)
-    if (path === '/auth/email/complete' || path === '/auth/oidc/complete') {
+    if (path === '/auth/email/complete' || path === '/auth/github/complete') {
       const profile = request.postDataJSON().profile as { id: string; name: string }
       completedProfiles.push(profile)
       if (!profile?.id || !profile?.name) return send({ code: 'INVALID_PROFILE' }, 400)
@@ -54,6 +54,7 @@ test('first-time email verification creates an account with a valid local profil
   await mockAccountApi(page, completedProfiles)
   await page.goto('/account')
   await expect(page.getByText('登录或创建服务器账号')).toBeVisible()
+  await expect(page.getByRole('button', { name: '使用 GitHub 登录' })).toBeVisible()
   await page.locator('input[type="email"]').fill('player@example.com')
   await page.getByRole('button', { name: '发送登录验证码' }).click()
   await page.locator('input[autocomplete="one-time-code"]').fill('12345678')
@@ -64,11 +65,13 @@ test('first-time email verification creates an account with a valid local profil
   expect(completedProfiles[0].name).toBeTruthy()
 })
 
-test('OIDC callback is scrubbed before delayed game assets load and uses an initialized profile', async ({ page }) => {
+test('GitHub callback is scrubbed before delayed game assets load and uses an initialized profile', async ({
+  page,
+}) => {
   const completedProfiles: { id: string; name: string }[] = []
   await mockAccountApi(page, completedProfiles)
   await page.addInitScript(({ key, value }) => sessionStorage.setItem(key, JSON.stringify(value)), {
-    key: `server-oidc:${encodeURIComponent(apiBase)}:${serverInfo.serverId}`,
+    key: `server-github:${encodeURIComponent(apiBase)}:${serverInfo.serverId}`,
     value: {
       state: 'pending-state',
       browserSecret: 'tab-held-secret',

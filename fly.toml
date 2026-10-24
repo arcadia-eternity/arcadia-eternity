@@ -33,4 +33,4 @@ cpus = 1
 
 [env]
 SERVER_ID = 'arcadia-official'
-CORS_ORIGIN = 'https://battle.yuuinih.com,https://test-battle.netlify.app'
+CORS_ORIGIN = 'https://battle.yuuinih.com'

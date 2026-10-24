@@ -5,7 +5,7 @@ import type {
   AccountIntent,
   AccountSessionResponse,
   LocalProfile,
-  OidcAuthorizationResponse,
+  OAuthAuthorizationResponse,
   ServerInfo,
   ServerSession,
 } from '@arcadia-eternity/protocol'
@@ -36,7 +36,7 @@ export class SessionRequestError extends Error {
   }
 }
 
-interface PendingOidcAuthorization {
+interface PendingGitHubAuthorization {
   state: string
   browserSecret: string
   intent: AccountIntent
@@ -44,7 +44,7 @@ interface PendingOidcAuthorization {
 }
 
 /** Remove one-time authorization values synchronously before any network call or telemetry. */
-export function consumeOidcCallback(
+export function consumeOAuthCallback(
   location: Pick<Location, 'href'>,
   history: Pick<History, 'state' | 'replaceState'>,
 ) {
@@ -61,23 +61,23 @@ export function consumeOidcCallback(
   return { code, state, error }
 }
 
-let bootOidcCallback: ReturnType<typeof consumeOidcCallback> | null = null
+let bootOAuthCallback: ReturnType<typeof consumeOAuthCallback> | null = null
 
 /** Capture a redirect before bootstrap waits for unrelated game assets. */
-export function captureOidcCallbackAtBoot(
+export function captureOAuthCallbackAtBoot(
   location: Pick<Location, 'href'>,
   history: Pick<History, 'state' | 'replaceState'>,
 ): void {
   const path = new URL(location.href).pathname.replace(/\/+$/, '')
   if (!path.endsWith('/account')) return
-  const callback = consumeOidcCallback(location, history)
-  if (callback.code !== null || callback.state !== null || callback.error !== null) bootOidcCallback = callback
+  const callback = consumeOAuthCallback(location, history)
+  if (callback.code !== null || callback.state !== null || callback.error !== null) bootOAuthCallback = callback
 }
 
 /** Return a one-time callback to the account page, then forget its authorization code. */
-export function takeBootOidcCallback(): ReturnType<typeof consumeOidcCallback> | null {
-  const callback = bootOidcCallback
-  bootOidcCallback = null
+export function takeBootOAuthCallback(): ReturnType<typeof consumeOAuthCallback> | null {
+  const callback = bootOAuthCallback
+  bootOAuthCallback = null
   return callback
 }
 
@@ -101,8 +101,8 @@ export class ServerSessionClient {
     return `server-session:${encodeURIComponent(this.baseUrl)}:${encodeURIComponent(serverId)}`
   }
 
-  private oidcKey(serverId: string): string {
-    return `server-oidc:${encodeURIComponent(this.baseUrl)}:${encodeURIComponent(serverId)}`
+  private githubKey(serverId: string): string {
+    return `server-github:${encodeURIComponent(this.baseUrl)}:${encodeURIComponent(serverId)}`
   }
 
   private async call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -277,30 +277,30 @@ export class ServerSessionClient {
     return this.adoptAccountSession((result as AccountSessionResponse).session)
   }
 
-  async startOidc(intent: AccountIntent): Promise<string> {
+  async startGitHub(intent: AccountIntent): Promise<string> {
     if (!this.info) await this.refresh()
-    if (!this.info!.accountProviders?.includes('oidc')) throw new Error('此服务器未启用 OpenID Connect 登录')
-    const result = await this.call<OidcAuthorizationResponse>('/auth/oidc/authorizations', {
+    if (!this.info!.accountProviders?.includes('github')) throw new Error('此服务器未启用 GitHub 登录')
+    const result = await this.call<OAuthAuthorizationResponse>('/auth/github/authorizations', {
       method: 'POST',
       headers: intent === 'link' ? this.accountHeaders() : undefined,
       body: JSON.stringify({ intent }),
     })
-    const pending: PendingOidcAuthorization = {
+    const pending: PendingGitHubAuthorization = {
       state: result.state,
       browserSecret: result.browserSecret,
       intent,
       expiresAt: result.expiresAt,
     }
-    this.storage.setItem(this.oidcKey(this.info!.serverId), JSON.stringify(pending))
+    this.storage.setItem(this.githubKey(this.info!.serverId), JSON.stringify(pending))
     return result.authorizationUrl
   }
 
-  async completeOidc(state: string, code: string, profile: LocalProfile): Promise<AccountIdentity[] | ServerSession> {
+  async completeGitHub(state: string, code: string, profile: LocalProfile): Promise<AccountIdentity[] | ServerSession> {
     if (!this.info) await this.refresh()
-    const key = this.oidcKey(this.info!.serverId)
-    let pending: PendingOidcAuthorization | null = null
+    const key = this.githubKey(this.info!.serverId)
+    let pending: PendingGitHubAuthorization | null = null
     try {
-      pending = JSON.parse(this.storage.getItem(key) || 'null') as PendingOidcAuthorization | null
+      pending = JSON.parse(this.storage.getItem(key) || 'null') as PendingGitHubAuthorization | null
     } catch {
       this.storage.removeItem(key)
     }
@@ -310,7 +310,7 @@ export class ServerSessionClient {
     const { intent, browserSecret } = pending
     let result: AccountIdentityListResponse | AccountSessionResponse
     try {
-      result = await this.call<AccountIdentityListResponse | AccountSessionResponse>('/auth/oidc/complete', {
+      result = await this.call<AccountIdentityListResponse | AccountSessionResponse>('/auth/github/complete', {
         method: 'POST',
         headers: intent === 'link' ? this.accountHeaders() : undefined,
         body: JSON.stringify(

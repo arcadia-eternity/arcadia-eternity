@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   ServerSessionClient,
-  captureOidcCallbackAtBoot,
-  consumeOidcCallback,
-  takeBootOidcCallback,
+  captureOAuthCallbackAtBoot,
+  consumeOAuthCallback,
+  takeBootOAuthCallback,
   type SessionStorage,
   normalizeServerUrl,
 } from '../serverSession'
@@ -14,7 +14,7 @@ const info: ServerInfo = {
   serverId: 'server-a',
   bootId: 'boot-1',
   authModes: ['guest', 'account'],
-  accountProviders: ['email', 'oidc'],
+  accountProviders: ['email', 'github'],
   protocolVersion: 1,
 }
 const makeSession = (seatId: string, changes: Partial<ServerSession> = {}): ServerSession => ({
@@ -43,12 +43,12 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const requester = () => vi.fn<typeof fetch>()
 
 describe('server session identity boundaries', () => {
-  it('clears OIDC code and state from the visible URL before another operation can run', () => {
+  it('clears GitHub authorization code and state from the visible URL before another operation can run', () => {
     let visibleUrl = 'https://game.example/account?code=one-time-code&state=state-1&tab=account#profile'
     const replaceState = vi.fn((_state: unknown, _unused: string, url: string | URL | null | undefined) => {
       visibleUrl = `https://game.example${url}`
     })
-    const callback = consumeOidcCallback({ href: visibleUrl }, { state: { route: 'account' }, replaceState })
+    const callback = consumeOAuthCallback({ href: visibleUrl }, { state: { route: 'account' }, replaceState })
     expect(callback).toEqual({ code: 'one-time-code', state: 'state-1', error: null })
     expect(visibleUrl).toBe('https://game.example/account#profile')
     expect(replaceState).toHaveBeenCalledOnce()
@@ -60,7 +60,7 @@ describe('server session identity boundaries', () => {
     const replaceState = vi.fn((_state: unknown, _unused: string, url: string | URL | null | undefined) => {
       visibleUrl = `https://game.example${url}`
     })
-    const callback = consumeOidcCallback({ href: visibleUrl }, { state: null, replaceState })
+    const callback = consumeOAuthCallback({ href: visibleUrl }, { state: null, replaceState })
     expect(callback).toEqual({ code: null, state: null, error: 'access_denied' })
     expect(visibleUrl).toBe('https://game.example/account')
   })
@@ -70,10 +70,10 @@ describe('server session identity boundaries', () => {
     const replaceState = vi.fn((_state: unknown, _unused: string, url: string | URL | null | undefined) => {
       visibleUrl = `https://game.example${url}`
     })
-    captureOidcCallbackAtBoot({ href: visibleUrl }, { state: null, replaceState })
+    captureOAuthCallbackAtBoot({ href: visibleUrl }, { state: null, replaceState })
     expect(visibleUrl).toBe('https://game.example/account')
-    expect(takeBootOidcCallback()).toEqual({ code: 'one-time-code', state: 'state-1', error: null })
-    expect(takeBootOidcCallback()).toBeNull()
+    expect(takeBootOAuthCallback()).toEqual({ code: 'one-time-code', state: 'state-1', error: null })
+    expect(takeBootOAuthCallback()).toBeNull()
   })
 
   it('normalizes origins and strips query credentials without collapsing server base paths', () => {
@@ -218,7 +218,7 @@ describe('server session identity boundaries', () => {
     const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
     expect((await client.refresh()).session).toBeNull()
     expect(request).toHaveBeenCalledTimes(1)
-    expect(client.info?.accountProviders).toEqual(['email', 'oidc'])
+    expect(client.info?.accountProviders).toEqual(['email', 'github'])
   })
 
   it('does not expose unavailable account providers on a guest-only server', async () => {
@@ -228,7 +228,7 @@ describe('server session identity boundaries', () => {
     const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
     await client.refresh()
     await expect(client.requestEmailCode('player@example.com', 'login')).rejects.toThrow('未启用邮箱登录')
-    await expect(client.startOidc('login')).rejects.toThrow('未启用 OpenID Connect 登录')
+    await expect(client.startGitHub('login')).rejects.toThrow('未启用 GitHub 登录')
     expect(request).toHaveBeenCalledTimes(1)
   })
 
@@ -281,23 +281,25 @@ describe('server session identity boundaries', () => {
     expect(client.session).toEqual(account)
   })
 
-  it('keeps OIDC state and browser secret in the initiating tab and rejects an unsolicited callback', async () => {
+  it('keeps GitHub state and browser secret in the initiating tab and rejects an unsolicited callback', async () => {
     const store = storage()
     const request = requester().mockResolvedValueOnce(json(info))
     const client = new ServerSessionClient('https://game.example/api/v1', store, request)
     await client.refresh()
-    const authorizationUrl = 'https://identity.example/authorize?state=state-1'
+    const authorizationUrl = 'https://github.com/login/oauth/authorize?state=state-1'
     request.mockResolvedValueOnce(
       json({ authorizationUrl, state: 'state-1', browserSecret: 'browser-only', expiresAt: Date.now() + 60_000 }),
     )
-    expect(await client.startOidc('login')).toBe(authorizationUrl)
+    expect(await client.startGitHub('login')).toBe(authorizationUrl)
+    expect(request.mock.calls[1][0]).toBe('https://game.example/api/v1/auth/github/authorizations')
     expect(request.mock.calls[1][1]?.headers).not.toHaveProperty('Authorization')
-    await expect(client.completeOidc('attacker-state', 'code', profile)).rejects.toThrow('已失效')
+    await expect(client.completeGitHub('attacker-state', 'code', profile)).rejects.toThrow('已失效')
     expect(request).toHaveBeenCalledTimes(2)
 
-    const account = makeSession('oidc', { principal: { kind: 'account', accountId: 'account-2' } })
+    const account = makeSession('github', { principal: { kind: 'account', accountId: 'account-2' } })
     request.mockResolvedValueOnce(json({ session: account }))
-    expect(await client.completeOidc('state-1', 'authorization-code', profile)).toEqual(account)
+    expect(await client.completeGitHub('state-1', 'authorization-code', profile)).toEqual(account)
+    expect(request.mock.calls[2][0]).toBe('https://game.example/api/v1/auth/github/complete')
     expect(JSON.parse(request.mock.calls[2][1]?.body as string)).toEqual({
       state: 'state-1',
       code: 'authorization-code',
@@ -306,27 +308,27 @@ describe('server session identity boundaries', () => {
       profile,
     })
     expect(authorizationUrl).not.toContain('browser-only')
-    expect(store.getItem('server-oidc:https%3A%2F%2Fgame.example%2Fapi%2Fv1:server-a')).toBeNull()
+    expect(store.getItem('server-github:https%3A%2F%2Fgame.example%2Fapi%2Fv1:server-a')).toBeNull()
   })
 
-  it('binds OIDC only with the current account session and never sends the local UID for linking', async () => {
+  it('binds GitHub only with the current account session and never sends the local UID for linking', async () => {
     const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
     const request = requester().mockResolvedValueOnce(json(info)).mockResolvedValueOnce(json(account))
     const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
     await client.ensure(profile)
     request.mockResolvedValueOnce(
       json({
-        authorizationUrl: 'https://identity.example/authorize?state=link-state',
+        authorizationUrl: 'https://github.com/login/oauth/authorize?state=link-state',
         state: 'link-state',
         browserSecret: 'tab-only',
         expiresAt: Date.now() + 60_000,
       }),
     )
-    await client.startOidc('link')
+    await client.startGitHub('link')
     expect(request.mock.calls[2][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
-    const identities = [{ providerId: 'oidc', issuer: 'https://identity.example', subject: 'subject-2' }]
+    const identities = [{ providerId: 'github', issuer: 'https://github.com', subject: '123456' }]
     request.mockResolvedValueOnce(json({ identities }))
-    expect(await client.completeOidc('link-state', 'code-2', profile)).toEqual(identities)
+    expect(await client.completeGitHub('link-state', 'code-2', profile)).toEqual(identities)
     expect(request.mock.calls[3][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
     expect(JSON.parse(request.mock.calls[3][1]?.body as string)).toEqual({
       state: 'link-state',

@@ -6,7 +6,7 @@ export interface LocalProfile {
 
 export type ServerPrincipal = { kind: 'guest'; guestId: string } | { kind: 'account'; accountId: string }
 
-export type AccountProviderId = 'email' | 'oidc'
+export type AccountProviderId = 'email' | 'github'
 export type AccountIntent = 'login' | 'link'
 
 /** Verified by this server. A local profile ID is never an account identity. */
@@ -22,7 +22,7 @@ export interface AccountChallengeResponse {
   expiresAt: number
 }
 
-export interface OidcAuthorizationResponse {
+export interface OAuthAuthorizationResponse {
   authorizationUrl: string
   state: string
   /** Keep in the initiating tab; send only to the completion endpoint, never in the redirect URL. */
@@ -51,7 +51,7 @@ export interface ServerInfo {
   /** Identifies the running process; sessions and rooms expire when it changes. */
   bootId: string
   authModes: ('guest' | 'account')[]
-  /** Present only when the durable account directory and both verification paths are configured. */
+  /** Present only when the durable account directory and its verification paths are configured. */
   accountProviders?: AccountProviderId[]
   protocolVersion: 1
   runtime?: NativeRuntimeIdentity

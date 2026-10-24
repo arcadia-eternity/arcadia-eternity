@@ -171,7 +171,7 @@
                 {{
                   authStore.isAccount
                     ? '先验证新的方式，再将它绑定到当前服务器账号。不能用本地 UID 绑定账号。'
-                    : '验证邮箱或 OpenID Connect 身份后登录；首次验证会创建本服务器的账号。邮箱验证码不能找回未备份的本地 UID、队伍或存档。原游客席位不会转移。'
+                    : '验证邮箱或 GitHub 身份后登录；首次验证会创建本服务器的账号。邮箱验证码不能找回未备份的本地 UID、队伍或存档。原游客席位不会转移。'
                 }}
               </p>
 
@@ -208,12 +208,12 @@
                 </div>
               </div>
 
-              <div v-if="oidcEnabled" class="space-y-2">
-                <h3 class="font-medium">OpenID Connect</h3>
-                <el-button :loading="accountBusy" :disabled="!profileReady" @click="startOidc">
-                  {{ authStore.isAccount ? '验证并绑定 OIDC 身份' : '使用 OIDC 登录' }}
+              <div v-if="githubEnabled" class="space-y-2">
+                <h3 class="font-medium">GitHub</h3>
+                <el-button :loading="accountBusy" :disabled="!profileReady" @click="startGitHub">
+                  {{ authStore.isAccount ? '验证并绑定 GitHub 身份' : '使用 GitHub 登录' }}
                 </el-button>
-                <p class="text-xs text-gray-500">将跳转到服务器配置的身份提供商，完成验证后返回此页。</p>
+                <p class="text-xs text-gray-500">将跳转到 GitHub 授权页面，完成验证后返回此页。</p>
               </div>
             </div>
           </el-card>
@@ -224,7 +224,7 @@
               <p class="text-sm text-gray-600">这些身份均属于当前服务器账号。至少保留一种可用的登录或找回方式。</p>
               <div v-for="identity in authStore.identities" :key="identityKey(identity)" class="identity-row">
                 <div class="min-w-0">
-                  <strong>{{ identity.providerId === 'email' ? '邮箱' : 'OpenID Connect' }}</strong>
+                  <strong>{{ identityProviderLabel(identity) }}</strong>
                   <p class="text-xs text-gray-500 break-all">{{ identity.issuer }} · {{ identity.subject }}</p>
                 </div>
                 <el-button
@@ -274,7 +274,7 @@ import {
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { useAuthStore } from '@/stores/auth'
-import { takeBootOidcCallback, SessionRequestError } from '@/services/serverSession'
+import { takeBootOAuthCallback, SessionRequestError } from '@/services/serverSession'
 import { petResourceCache } from '@/services/petResourceCache'
 import { isDesktop } from '@/utils/env'
 
@@ -293,8 +293,8 @@ const accountEnabled = computed(
 )
 const emailEnabled = computed(() => accountEnabled.value && authStore.serverInfo?.accountProviders?.includes('email'))
 // A packaged desktop app needs a dedicated redirect bridge; the email path remains available there.
-const oidcEnabled = computed(
-  () => !isDesktop && accountEnabled.value && authStore.serverInfo?.accountProviders?.includes('oidc'),
+const githubEnabled = computed(
+  () => !isDesktop && accountEnabled.value && authStore.serverInfo?.accountProviders?.includes('github'),
 )
 const sessionStatus = computed(() => {
   if (!authStore.isAuthenticated) return '未连接服务器身份'
@@ -310,6 +310,8 @@ const ensureLocalProfile = async () => {
 }
 const identityKey = (identity: AccountIdentity) =>
   `${identity.providerId}\u0000${identity.issuer}\u0000${identity.subject}`
+const identityProviderLabel = (identity: AccountIdentity) =>
+  identity.providerId === 'email' ? '邮箱' : identity.providerId === 'github' ? 'GitHub' : identity.providerId
 
 const accountError = (error: unknown): string => {
   if (error instanceof SessionRequestError) {
@@ -358,11 +360,11 @@ const completeEmailCode = async () => {
   }
 }
 
-const startOidc = async () => {
+const startGitHub = async () => {
   accountBusy.value = true
   try {
     await ensureLocalProfile()
-    const authorizationUrl = await authStore.startOidc(authStore.isAccount ? 'link' : 'login')
+    const authorizationUrl = await authStore.startGitHub(authStore.isAccount ? 'link' : 'login')
     window.location.assign(authorizationUrl)
   } catch (error) {
     ElMessage.error(accountError(error))
@@ -373,7 +375,7 @@ const startOidc = async () => {
 const unlinkIdentity = async (identity: AccountIdentity) => {
   try {
     await ElMessageBox.confirm(
-      `确定解绑 ${identity.providerId === 'email' ? '邮箱' : 'OIDC'} 身份 ${identity.subject} 吗？`,
+      `确定解绑 ${identityProviderLabel(identity)} 身份 ${identity.subject} 吗？`,
       '解绑登录方式',
       { confirmButtonText: '解绑', cancelButtonText: '取消', type: 'warning' },
     )
@@ -558,14 +560,17 @@ onMounted(async () => {
     return
   }
   if (!profileReady.value) return
-  const callback = takeBootOidcCallback()
+  const callback = takeBootOAuthCallback()
   if (!callback) return
-  if (callback.error) ElMessage.error('身份提供商未完成验证，请重新发起登录。')
+  if (callback.error) {
+    ElMessage.error('GitHub 授权未完成，请重新发起登录。')
+    return
+  }
   if (!callback.code || !callback.state) return
   accountBusy.value = true
   try {
-    await authStore.completeOidc(callback.state, callback.code, localProfile())
-    ElMessage.success('OIDC 身份验证成功；如已切换账号，请重新加入房间')
+    await authStore.completeGitHub(callback.state, callback.code, localProfile())
+    ElMessage.success('GitHub 身份验证成功；如已切换账号，请重新加入房间')
   } catch (error) {
     ElMessage.error(accountError(error))
   } finally {

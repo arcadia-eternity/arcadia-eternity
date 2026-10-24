@@ -7,12 +7,12 @@ import { SessionRegistry, SessionError, readProfile, type AccountProvider } from
 import { RoomRegistry, RoomError, object, type RoomOptions } from './rooms'
 import { getStandaloneRuntimeIdentity } from './native'
 import { AccountDirectoryError, type AccountDirectory, type VerifiedIdentity } from './accounts/directory'
-import { ProviderError, type AuthIntent, type EmailCodeVerifier, type OidcVerifier } from './providers'
+import { ProviderError, type AuthIntent, type EmailCodeVerifier, type GithubAppVerifier } from './providers'
 
 export interface G3AccountServices {
   directory: AccountDirectory
   email: Pick<EmailCodeVerifier, 'providerId' | 'begin' | 'verify'>
-  oidc: Pick<OidcVerifier, 'providerId' | 'begin' | 'verify'>
+  github: Pick<GithubAppVerifier, 'providerId' | 'begin' | 'verify' | 'callbackOrigins'>
   /** Check database/schema before opening the listener. */
   ready?: () => Promise<void>
 }
@@ -45,11 +45,19 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     throw new Error('G3 accounts require an explicit stable serverId and cannot use the legacy accountProvider')
   if (
     options.accounts &&
-    (options.accounts.email.providerId !== 'email' || options.accounts.oidc.providerId !== 'oidc')
+    (options.accounts.email.providerId !== 'email' || options.accounts.github.providerId !== 'github')
   )
-    throw new Error('G3 accounts require email and oidc verifiers')
+    throw new Error('G3 accounts require email and GitHub App verifiers')
   if (options.accounts && (!options.corsOrigins?.length || options.corsOrigins.includes('*')))
     throw new Error('G3 accounts require explicit non-wildcard CORS origins')
+  if (
+    options.accounts &&
+    options.corsOrigins &&
+    (new Set(options.corsOrigins).size !== options.corsOrigins.length ||
+      options.accounts.github.callbackOrigins.length !== options.corsOrigins.length ||
+      options.corsOrigins.some(origin => !options.accounts!.github.callbackOrigins.includes(origin)))
+  )
+    throw new Error('G3 GitHub App callbacks must exactly match CORS origins')
   const port = options.port ?? 8102
   const host = options.host ?? '0.0.0.0'
   const sessions = new SessionRegistry({
@@ -96,7 +104,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   app.get('/api/v1/server-info', async (_req, res) => {
     res.json({
       ...sessions.getServerInfo(),
-      ...(options.accounts ? { accountProviders: ['email', 'oidc'] as const } : {}),
+      ...(options.accounts ? { accountProviders: ['email', 'github'] as const } : {}),
       runtime: await getStandaloneRuntimeIdentity(),
     })
   })
@@ -269,15 +277,20 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       }),
     )
     app.post(
-      '/api/v1/auth/oidc/authorizations',
+      '/api/v1/auth/github/authorizations',
       limited(async (req, res) => {
         const authIntent = intent(req, object(req.body).intent)
-        const authorization = await providerCall(() => accounts.oidc.begin({ intent: authIntent }))
+        // A browser never supplies a callback URI. Its allowed Origin maps to
+        // that web application's fixed /account callback.
+        const requestOrigin = req.get('origin')
+        if (!requestOrigin || !allowed.includes(requestOrigin)) throw new SessionError('INVALID_AUTH_ORIGIN', 400)
+        const redirectUri = new URL('/account', requestOrigin).href
+        const authorization = await providerCall(() => accounts.github.begin({ intent: authIntent, redirectUri }))
         res.status(201).json(authorization)
       }),
     )
     app.post(
-      '/api/v1/auth/oidc/complete',
+      '/api/v1/auth/github/complete',
       limited(async (req, res) => {
         const input = object(req.body)
         const authIntent = intent(req, input.intent)
@@ -289,7 +302,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
         )
           throw new SessionError('INVALID_REQUEST', 400)
         const identity = await providerCall(() =>
-          accounts.oidc.verify(
+          accounts.github.verify(
             {
               state: input.state as string,
               code: input.code as string,
@@ -298,7 +311,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
             authIntent,
           ),
         )
-        await complete(req, res, verified(accounts.oidc.providerId, identity), authIntent)
+        await complete(req, res, verified(accounts.github.providerId, identity), authIntent)
       }),
     )
     app.get('/api/v1/account/identities', async (req, res) => {
