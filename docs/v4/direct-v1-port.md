@@ -24,7 +24,7 @@ V4 从 V1 的 Battle、Player、Pet、Skill、Mark 和 Phase 领域模型直接�
 pnpm build:package
 pnpm typecheck:battle-v4
 pnpm lint:battle-v4
-pnpm test:battle-v4 --maxWorkers=2
+pnpm test:battle-v4
 pnpm typecheck:effect-authoring-design
 pnpm test:effect-authoring-design
 pnpm verify:battle-v4-source
@@ -32,6 +32,8 @@ pnpm verify:battle-v4-hosts
 pnpm verify:battle-v4-native
 pnpm verify:battle-v4-native-pack
 ```
+
+测试并行方式、局部运行和 CI 触发范围见[战斗测试性能说明](testing-performance.md)。
 
 `verify:battle-v4-source` 使用[核心导入图](v1-import-graph.json)、[额外来源映射](v1-extra-source-map.json)和[来源清单](v1-port-provenance.json)校验移植文件与依赖。修改映射源码后，先审查 diff，再用 `node scripts/verify-v1-port.mjs --refresh` 更新清单。历史源码可用 `git show <revision>:<path>` 查询。
 
