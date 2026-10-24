@@ -16,6 +16,8 @@ export interface SessionRegistryOptions {
   serverId: string
   bootId?: string
   accountProvider?: AccountProvider
+  /** Account sessions are issued by a separately verified identity flow. */
+  accountEnabled?: boolean
   ttlMs?: number
   maxSessions?: number
 }
@@ -40,7 +42,7 @@ function boundedString(value: unknown, maxLength: number): value is string {
   )
 }
 
-function readProfile(value: unknown): LocalProfile {
+export function readProfile(value: unknown): LocalProfile {
   if (typeof value !== 'object' || value === null) throw new SessionError('INVALID_PROFILE', 400)
   const profile = value as Record<string, unknown>
   if (!boundedString(profile.id, 128) || !boundedString(profile.name, 64))
@@ -54,9 +56,12 @@ export class SessionRegistry {
   readonly bootId: string
   private readonly sessions = new Map<string, ServerSession>()
   private readonly accountProvider?: AccountProvider
+  private readonly accountEnabled: boolean
+  private readonly blockedAccounts = new Set<string>()
   private readonly ttlMs: number
   private readonly maxSessions: number
   private generation = 0
+  private closed = false
 
   constructor(options: SessionRegistryOptions) {
     if (!boundedString(options.serverId, 128))
@@ -66,6 +71,7 @@ export class SessionRegistry {
     this.serverId = options.serverId
     this.bootId = options.bootId ?? nanoid()
     this.accountProvider = options.accountProvider
+    this.accountEnabled = options.accountEnabled ?? false
     this.ttlMs = options.ttlMs ?? 24 * 60 * 60 * 1000
     this.maxSessions = options.maxSessions ?? 10_000
     if (!Number.isSafeInteger(this.ttlMs) || this.ttlMs <= 0) throw new Error('ttlMs must be a positive safe integer')
@@ -77,12 +83,13 @@ export class SessionRegistry {
     return {
       serverId: this.serverId,
       bootId: this.bootId,
-      authModes: this.accountProvider ? ['guest', 'account'] : ['guest'],
+      authModes: this.accountProvider || this.accountEnabled ? ['guest', 'account'] : ['guest'],
       protocolVersion: 1,
     }
   }
 
   async create(value: unknown, accountProof?: unknown): Promise<ServerSession> {
+    if (this.closed) throw new SessionError('SESSION_REGISTRY_RESET', 503)
     const profile = readProfile(value)
     const generation = this.generation
     if (this.size >= this.maxSessions) throw new SessionError('SESSION_CAPACITY', 503)
@@ -108,7 +115,19 @@ export class SessionRegistry {
     }
 
     // Account verification can suspend; shutdown and capacity may change while it runs.
-    if (generation !== this.generation) throw new SessionError('SESSION_REGISTRY_RESET', 503)
+    return this.issue(profile, principal, generation)
+  }
+
+  /** Called only after a fresh proof has been checked against the durable directory. */
+  issueVerifiedAccount(value: unknown, accountId: string): ServerSession {
+    if (!this.accountEnabled || !boundedString(accountId, 256)) throw new SessionError('ACCOUNT_AUTH_UNAVAILABLE', 503)
+    return this.issue(readProfile(value), { kind: 'account', accountId }, this.generation)
+  }
+
+  private issue(profile: LocalProfile, principal: ServerPrincipal, generation: number): ServerSession {
+    if (this.closed || generation !== this.generation) throw new SessionError('SESSION_REGISTRY_RESET', 503)
+    if (principal.kind === 'account' && this.blockedAccounts.has(principal.accountId))
+      throw new SessionError('ACCOUNT_DEACTIVATED', 403)
     if (this.size >= this.maxSessions) throw new SessionError('SESSION_CAPACITY', 503)
     const session: ServerSession = {
       serverId: this.serverId,
@@ -128,6 +147,10 @@ export class SessionRegistry {
     if (typeof token !== 'string') return undefined
     const session = this.sessions.get(token)
     if (!session) return undefined
+    if (session.principal.kind === 'account' && this.blockedAccounts.has(session.principal.accountId)) {
+      this.sessions.delete(token)
+      return undefined
+    }
     if (session.expiresAt <= Date.now()) {
       this.sessions.delete(token)
       return undefined
@@ -139,7 +162,30 @@ export class SessionRegistry {
     return typeof token === 'string' && this.sessions.delete(token)
   }
 
+  /** Immediately denies new account sessions and removes every live capability for it. */
+  blockAccount(accountId: string): ServerSession[] {
+    this.blockedAccounts.add(accountId)
+    const removed: ServerSession[] = []
+    for (const [token, session] of this.sessions) {
+      if (session.principal.kind !== 'account' || session.principal.accountId !== accountId) continue
+      this.sessions.delete(token)
+      removed.push(structuredClone(session))
+    }
+    return removed
+  }
+
+  revokeAccount(accountId: string): ServerSession[] {
+    const removed: ServerSession[] = []
+    for (const [token, session] of this.sessions) {
+      if (session.principal.kind !== 'account' || session.principal.accountId !== accountId) continue
+      this.sessions.delete(token)
+      removed.push(structuredClone(session))
+    }
+    return removed
+  }
+
   clear(): void {
+    this.closed = true
     this.generation++
     this.sessions.clear()
   }

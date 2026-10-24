@@ -28,8 +28,8 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
-    "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
@@ -37,12 +37,17 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "nanoid": "catalog:",
+    "nodemailer": "^10.2.1",
+    "openid-client": "^6.8.8",
+    "pg": "^8.23.1",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
-    "socket.io-client": "catalog:",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6"
+    "@types/express": "^5.0.6",
+    "@types/node": "catalog:",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "socket.io-client": "catalog:"
   }
 }

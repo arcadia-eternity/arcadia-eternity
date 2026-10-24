@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia'
-import type { LocalProfile, ServerInfo, ServerSession } from '@arcadia-eternity/protocol'
+import type {
+  AccountIdentity,
+  AccountIntent,
+  LocalProfile,
+  ServerInfo,
+  ServerSession,
+} from '@arcadia-eternity/protocol'
 import { ServerSessionClient } from '@/services/serverSession'
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8102/api/v1'
@@ -9,6 +15,7 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     session: null as ServerSession | null,
     serverInfo: null as ServerInfo | null,
+    identities: [] as AccountIdentity[],
     invalidationReason: null as string | null,
   }),
   getters: {
@@ -20,6 +27,7 @@ export const useAuthStore = defineStore('auth', {
       if (client) return
       client = new ServerSessionClient(API_BASE_URL, sessionStorage, fetch, reason => {
         this.session = null
+        this.identities = []
         this.invalidationReason = reason
         window.dispatchEvent(new CustomEvent('server-session-invalidated', { detail: { reason } }))
       })
@@ -35,6 +43,18 @@ export const useAuthStore = defineStore('auth', {
         this.serverInfo = client!.info
       }
     },
+    async refreshAccountContext(): Promise<void> {
+      this.initialize()
+      try {
+        const { info, session } = await client!.refresh()
+        this.serverInfo = info
+        this.session = session
+        this.identities = session?.principal.kind === 'account' ? await client!.listIdentities() : []
+      } finally {
+        this.serverInfo = client!.info
+        this.session = client!.session
+      }
+    },
     async loginWithAccount(profile: LocalProfile, proof: unknown): Promise<ServerSession> {
       this.initialize()
       try {
@@ -45,10 +65,64 @@ export const useAuthStore = defineStore('auth', {
         this.serverInfo = client!.info
       }
     },
+    async requestEmailCode(email: string, intent: AccountIntent) {
+      this.initialize()
+      return client!.requestEmailCode(email, intent)
+    },
+    async completeEmailCode(challengeId: string, code: string, intent: AccountIntent, profile: LocalProfile) {
+      this.initialize()
+      try {
+        const result = await client!.completeEmailCode(challengeId, code, intent, profile)
+        if (Array.isArray(result)) this.identities = result
+        else {
+          this.session = result
+          this.identities = await client!.listIdentities()
+        }
+        return result
+      } finally {
+        this.session = client!.session
+        this.serverInfo = client!.info
+      }
+    },
+    async startOidc(intent: AccountIntent): Promise<string> {
+      this.initialize()
+      return client!.startOidc(intent)
+    },
+    async completeOidc(state: string, code: string, profile: LocalProfile) {
+      this.initialize()
+      try {
+        const result = await client!.completeOidc(state, code, profile)
+        if (Array.isArray(result)) this.identities = result
+        else {
+          this.session = result
+          this.identities = await client!.listIdentities()
+        }
+        return result
+      } finally {
+        this.session = client!.session
+        this.serverInfo = client!.info
+      }
+    },
+    async loadIdentities(): Promise<void> {
+      this.initialize()
+      this.identities = await client!.listIdentities()
+    },
+    async unlinkIdentity(identity: AccountIdentity): Promise<void> {
+      this.initialize()
+      await client!.unlinkIdentity(identity)
+      this.identities = await client!.listIdentities()
+    },
+    async deactivateAccount(): Promise<void> {
+      this.initialize()
+      await client!.deactivateAccount()
+      this.session = null
+      this.identities = []
+    },
     async logout() {
       this.initialize()
       await client!.logout()
       this.session = null
+      this.identities = []
     },
     getAccessToken(): string | null {
       return this.session?.token ?? null

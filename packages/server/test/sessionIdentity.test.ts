@@ -131,6 +131,13 @@ describe('standalone session identity', () => {
     expect(registry.size).toBe(0)
   })
 
+  it('cannot issue verified account sessions after shutdown clears the registry', async () => {
+    const registry = new SessionRegistry({ serverId: 'official', accountEnabled: true })
+    registry.clear()
+    expect(() => registry.issueVerifiedAccount(profile, 'account-1')).toThrow('SESSION_REGISTRY_RESET')
+    await expect(registry.create(profile)).rejects.toMatchObject({ code: 'SESSION_REGISTRY_RESET' })
+  })
+
   it('enforces capacity after concurrent account verification', async () => {
     const completions: ((account: { accountId: string }) => void)[] = []
     const registry = new SessionRegistry({

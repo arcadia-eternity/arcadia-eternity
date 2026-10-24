@@ -153,13 +153,101 @@
               <p v-if="authStore.session" class="text-xs text-gray-500 break-all">
                 服务器：{{ authStore.session.serverId }}
               </p>
-              <p class="text-sm text-gray-600">
-                服务器账号是可选功能，登录方式由所连接的服务器提供。账号数据不会自动跨服务器共享。
-              </p>
+              <p class="text-sm text-gray-600">登录方式由所连接的服务器提供。账号数据不会自动跨服务器共享。</p>
               <el-alert title="房间只在服务器本次运行期间有效" type="info" :closable="false" show-icon>
                 网络短断后可凭有效会话重连。服务器重启后，原会话、房间和席位全部失效，需要重新加入。
               </el-alert>
               <el-button v-if="authStore.isAccount" :loading="loggingOut" @click="logout"> 退出服务器账号 </el-button>
+            </div>
+          </el-card>
+
+          <el-card v-if="accountEnabled">
+            <template #header>
+              <span>{{ authStore.isAccount ? '添加登录或找回方式' : '登录服务器账号' }}</span>
+            </template>
+
+            <div class="space-y-4">
+              <p class="text-sm text-gray-600">
+                {{
+                  authStore.isAccount
+                    ? '先验证新的方式，再将它绑定到当前服务器账号。不能用本地 UID 绑定账号。'
+                    : '验证邮箱或 OpenID Connect 身份后，服务器会签发新的账号会话和对战席位。原游客席位不会转移。'
+                }}
+              </p>
+
+              <div v-if="emailEnabled" class="space-y-2">
+                <h3 class="font-medium">邮箱验证码</h3>
+                <el-input
+                  v-model.trim="email"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="邮箱地址"
+                  :disabled="accountBusy"
+                />
+                <el-button :loading="accountBusy" :disabled="!email.trim()" @click="requestEmailCode">
+                  {{ authStore.isAccount ? '发送绑定验证码' : '发送登录验证码' }}
+                </el-button>
+                <div v-if="challengeId" class="flex flex-wrap gap-2">
+                  <el-input
+                    v-model.trim="emailCode"
+                    class="max-w-48"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    placeholder="验证码"
+                    :disabled="accountBusy"
+                    @keyup.enter="completeEmailCode"
+                  />
+                  <el-button
+                    type="primary"
+                    :loading="accountBusy"
+                    :disabled="!emailCode.trim()"
+                    @click="completeEmailCode"
+                  >
+                    {{ challengeIntent === 'link' ? '验证并绑定' : '验证并登录' }}
+                  </el-button>
+                </div>
+              </div>
+
+              <div v-if="oidcEnabled" class="space-y-2">
+                <h3 class="font-medium">OpenID Connect</h3>
+                <el-button :loading="accountBusy" @click="startOidc">
+                  {{ authStore.isAccount ? '验证并绑定 OIDC 身份' : '使用 OIDC 登录' }}
+                </el-button>
+                <p class="text-xs text-gray-500">将跳转到服务器配置的身份提供商，完成验证后返回此页。</p>
+              </div>
+            </div>
+          </el-card>
+
+          <el-card v-if="authStore.isAccount">
+            <template #header><span>已绑定的登录方式</span></template>
+            <div class="space-y-4">
+              <p class="text-sm text-gray-600">这些身份均属于当前服务器账号。至少保留一种可用的登录或找回方式。</p>
+              <div v-for="identity in authStore.identities" :key="identityKey(identity)" class="identity-row">
+                <div class="min-w-0">
+                  <strong>{{ identity.providerId === 'email' ? '邮箱' : 'OpenID Connect' }}</strong>
+                  <p class="text-xs text-gray-500 break-all">{{ identity.issuer }} · {{ identity.subject }}</p>
+                </div>
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  :disabled="authStore.identities.length <= 1 || accountBusy"
+                  @click="unlinkIdentity(identity)"
+                >
+                  解绑
+                </el-button>
+              </div>
+              <el-empty v-if="authStore.identities.length === 0" description="正在读取已绑定的身份" :image-size="60" />
+              <p v-if="authStore.identities.length === 1" class="text-xs text-gray-500">
+                这是最后一种找回方式，不能解绑。请先绑定另一种方式。
+              </p>
+              <el-divider />
+              <el-button type="danger" plain :loading="accountBusy" @click="deactivateAccount"
+                >停用服务器账号</el-button
+              >
+              <p class="text-xs text-gray-500">
+                停用会撤销所有会话及房间权限，之后无法自行登录恢复；本地档案不会删除。
+              </p>
             </div>
           </el-card>
         </div>
@@ -170,6 +258,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, computed, onMounted } from 'vue'
+import type { AccountIdentity, AccountIntent } from '@arcadia-eternity/protocol'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   User,
@@ -185,6 +274,7 @@ import {
 import { usePlayerStore } from '@/stores/player'
 import { useGameDataStore } from '@/stores/gameData'
 import { useAuthStore } from '@/stores/auth'
+import { consumeOidcCallback, SessionRequestError } from '@/services/serverSession'
 import { petResourceCache } from '@/services/petResourceCache'
 import { isDesktop } from '@/utils/env'
 
@@ -192,10 +282,126 @@ const playerStore = usePlayerStore()
 const gameDataStore = useGameDataStore()
 const authStore = useAuthStore()
 const loggingOut = ref(false)
+const accountBusy = ref(false)
+const email = ref('')
+const emailCode = ref('')
+const challengeId = ref('')
+const challengeIntent = ref<AccountIntent | null>(null)
+const accountEnabled = computed(
+  () => authStore.serverInfo?.authModes.includes('account') && (authStore.serverInfo.accountProviders?.length ?? 0) > 0,
+)
+const emailEnabled = computed(() => accountEnabled.value && authStore.serverInfo?.accountProviders?.includes('email'))
+// A packaged desktop app needs a dedicated redirect bridge; the email path remains available there.
+const oidcEnabled = computed(
+  () => !isDesktop && accountEnabled.value && authStore.serverInfo?.accountProviders?.includes('oidc'),
+)
 const sessionStatus = computed(() => {
   if (!authStore.isAuthenticated) return '未连接服务器身份'
   return authStore.isAccount ? '服务器账号' : '游客会话'
 })
+
+const localProfile = () => ({ id: playerStore.id, name: playerStore.name })
+const identityKey = (identity: AccountIdentity) =>
+  `${identity.providerId}\u0000${identity.issuer}\u0000${identity.subject}`
+
+const accountError = (error: unknown): string => {
+  if (error instanceof SessionRequestError) {
+    if (error.status === 409) {
+      if (error.code?.includes('LAST')) return '必须保留至少一种已验证的登录或找回方式。'
+      return '该身份已绑定到其他账号，不能合并或接管。'
+    }
+    if (error.status === 429) return '操作过于频繁，请稍后重试。'
+    if (error.status === 401 || error.status === 403) return '验证或会话已失效，请重新验证。'
+    if (error.status === 410) return '验证码或登录请求已过期，请重新发起。'
+    if (error.status >= 500) return '服务器暂时无法处理账号操作，请稍后重试。'
+  }
+  return error instanceof Error ? error.message : '账号操作失败，请重试。'
+}
+
+const requestEmailCode = async () => {
+  const intent: AccountIntent = authStore.isAccount ? 'link' : 'login'
+  accountBusy.value = true
+  try {
+    const challenge = await authStore.requestEmailCode(email.value.trim(), intent)
+    challengeId.value = challenge.challengeId
+    challengeIntent.value = intent
+    emailCode.value = ''
+    ElMessage.success('验证码已发送，请检查邮箱')
+  } catch (error) {
+    ElMessage.error(accountError(error))
+  } finally {
+    accountBusy.value = false
+  }
+}
+
+const completeEmailCode = async () => {
+  if (!challengeId.value || !challengeIntent.value) return
+  accountBusy.value = true
+  try {
+    await authStore.completeEmailCode(challengeId.value, emailCode.value.trim(), challengeIntent.value, localProfile())
+    ElMessage.success(challengeIntent.value === 'link' ? '新的登录方式已绑定' : '已登录服务器账号，请重新加入房间')
+    challengeId.value = ''
+    challengeIntent.value = null
+    emailCode.value = ''
+  } catch (error) {
+    ElMessage.error(accountError(error))
+  } finally {
+    accountBusy.value = false
+  }
+}
+
+const startOidc = async () => {
+  accountBusy.value = true
+  try {
+    const authorizationUrl = await authStore.startOidc(authStore.isAccount ? 'link' : 'login')
+    window.location.assign(authorizationUrl)
+  } catch (error) {
+    ElMessage.error(accountError(error))
+    accountBusy.value = false
+  }
+}
+
+const unlinkIdentity = async (identity: AccountIdentity) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定解绑 ${identity.providerId === 'email' ? '邮箱' : 'OIDC'} 身份 ${identity.subject} 吗？`,
+      '解绑登录方式',
+      { confirmButtonText: '解绑', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  accountBusy.value = true
+  try {
+    await authStore.unlinkIdentity(identity)
+    ElMessage.success('登录方式已解绑')
+  } catch (error) {
+    ElMessage.error(accountError(error))
+  } finally {
+    accountBusy.value = false
+  }
+}
+
+const deactivateAccount = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '停用后，这个服务器账号的所有会话与房间权限都会被撤销，且无法自行登录恢复。本地档案不会删除。确定继续吗？',
+      '停用服务器账号',
+      { confirmButtonText: '停用账号', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  accountBusy.value = true
+  try {
+    await authStore.deactivateAccount()
+    ElMessage.success('账号已停用')
+  } catch (error) {
+    ElMessage.error(accountError(error))
+  } finally {
+    accountBusy.value = false
+  }
+}
 
 const logout = async () => {
   loggingOut.value = true
@@ -329,8 +535,25 @@ const resetCacheStatus = async () => {
 }
 
 // 组件挂载时初始化缓存统计
-onMounted(() => {
+onMounted(async () => {
+  const callback = consumeOidcCallback(window.location, window.history)
   petResourceCache.initStats()
+  try {
+    await authStore.refreshAccountContext()
+  } catch (error) {
+    ElMessage.error(accountError(error))
+  }
+  if (callback.error) ElMessage.error('身份提供商未完成验证，请重新发起登录。')
+  if (!callback.code || !callback.state) return
+  accountBusy.value = true
+  try {
+    await authStore.completeOidc(callback.state, callback.code, localProfile())
+    ElMessage.success('OIDC 身份验证成功；如已切换账号，请重新加入房间')
+  } catch (error) {
+    ElMessage.error(accountError(error))
+  } finally {
+    accountBusy.value = false
+  }
 })
 </script>
 
@@ -347,6 +570,16 @@ onMounted(() => {
 code {
   font-family: 'Courier New', monospace;
   font-size: 0.9em;
+}
+
+.identity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
 }
 
 :deep(.el-card) {

@@ -3,9 +3,19 @@ import type { AddressInfo } from 'node:net'
 import express, { type Request, type Response, type NextFunction, type Express } from 'express'
 import cors from 'cors'
 import { Server } from 'socket.io'
-import { SessionRegistry, SessionError, type AccountProvider } from './session'
+import { SessionRegistry, SessionError, readProfile, type AccountProvider } from './session'
 import { RoomRegistry, RoomError, object, type RoomOptions } from './rooms'
 import { getStandaloneRuntimeIdentity } from './native'
+import { AccountDirectoryError, type AccountDirectory, type VerifiedIdentity } from './accounts/directory'
+import { ProviderError, type AuthIntent, type EmailCodeVerifier, type OidcVerifier } from './providers'
+
+export interface G3AccountServices {
+  directory: AccountDirectory
+  email: Pick<EmailCodeVerifier, 'providerId' | 'begin' | 'verify'>
+  oidc: Pick<OidcVerifier, 'providerId' | 'begin' | 'verify'>
+  /** Check database/schema before opening the listener. */
+  ready?: () => Promise<void>
+}
 
 export interface SingleProcessAppOptions extends RoomOptions {
   port?: number
@@ -15,6 +25,7 @@ export interface SingleProcessAppOptions extends RoomOptions {
   sessionTtlMs?: number
   maxSessions?: number
   accountProvider?: AccountProvider
+  accounts?: G3AccountServices
 }
 
 export interface SingleProcessApp {
@@ -30,6 +41,15 @@ export interface SingleProcessApp {
 
 /** A deliberately ephemeral Node host: restarts invalidate every room and session. */
 export function createSingleProcessApp(options: SingleProcessAppOptions = {}): SingleProcessApp {
+  if (options.accounts && (!options.serverId || options.accountProvider))
+    throw new Error('G3 accounts require an explicit stable serverId and cannot use the legacy accountProvider')
+  if (
+    options.accounts &&
+    (options.accounts.email.providerId !== 'email' || options.accounts.oidc.providerId !== 'oidc')
+  )
+    throw new Error('G3 accounts require email and oidc verifiers')
+  if (options.accounts && (!options.corsOrigins?.length || options.corsOrigins.includes('*')))
+    throw new Error('G3 accounts require explicit non-wildcard CORS origins')
   const port = options.port ?? 8102
   const host = options.host ?? '0.0.0.0'
   const sessions = new SessionRegistry({
@@ -37,6 +57,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     ttlMs: options.sessionTtlMs,
     maxSessions: options.maxSessions,
     accountProvider: options.accountProvider,
+    accountEnabled: !!options.accounts,
   })
   const app = express()
   app.disable('x-powered-by')
@@ -73,7 +94,11 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     res.status(stopped ? 503 : 200).json({ status: stopped ? 'stopped' : 'ok' })
   })
   app.get('/api/v1/server-info', async (_req, res) => {
-    res.json({ ...sessions.getServerInfo(), runtime: await getStandaloneRuntimeIdentity() })
+    res.json({
+      ...sessions.getServerInfo(),
+      ...(options.accounts ? { accountProviders: ['email', 'oidc'] as const } : {}),
+      runtime: await getStandaloneRuntimeIdentity(),
+    })
   })
   const admissions = new Map<string, { count: number; until: number }>()
   let pendingAdmissions = 0
@@ -122,7 +147,224 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     await rooms.revoke(session)
     res.sendStatus(204)
   })
+  if (options.accounts) {
+    const accounts = options.accounts
+    const source = (req: Request) => req.socket.remoteAddress ?? 'unknown'
+    const accountSession = (req: Request) => {
+      const session = sessions.authenticate(token(req))
+      if (!session) throw new SessionError('INVALID_SESSION', 401)
+      if (session.principal.kind !== 'account') throw new SessionError('ACCOUNT_REQUIRED', 403)
+      return session as typeof session & { principal: { kind: 'account'; accountId: string } }
+    }
+    const intent = (req: Request, value: unknown): AuthIntent => {
+      if (value === 'login') return { kind: 'login' }
+      if (value === 'link') {
+        const current = accountSession(req)
+        return { kind: 'link', accountId: current.principal.accountId, sessionId: current.sessionId }
+      }
+      throw new SessionError('INVALID_AUTH_INTENT', 400)
+    }
+    const providerCall = async <T>(action: () => Promise<T>): Promise<T> => {
+      try {
+        return await action()
+      } catch (error) {
+        if (error instanceof ProviderError || error instanceof SessionError) throw error
+        throw new SessionError('PROVIDER_UNAVAILABLE', 503)
+      }
+    }
+    const accountStore = async <T>(action: () => Promise<T>): Promise<T> => {
+      try {
+        return await action()
+      } catch (error) {
+        if (error instanceof AccountDirectoryError || error instanceof SessionError) throw error
+        throw new SessionError('ACCOUNT_STORE_UNAVAILABLE', 503)
+      }
+    }
+    const verified = (providerId: string, identity: { issuer: string; subject: string; verifiedAt: number }) =>
+      ({ providerId, ...identity }) satisfies VerifiedIdentity
+    const complete = async (req: Request, res: Response, identity: VerifiedIdentity, authIntent: AuthIntent) => {
+      if (stopped) throw new SessionError('SERVER_STOPPED', 503)
+      if (authIntent.kind === 'link') {
+        const current = accountSession(req)
+        if (current.principal.accountId !== authIntent.accountId || current.sessionId !== authIntent.sessionId)
+          throw new SessionError('AUTH_PROOF_MISMATCH', 401)
+        await accountStore(() => accounts.directory.link(authIntent.accountId, identity))
+        const identities = await accountStore(() => accounts.directory.list(authIntent.accountId))
+        res.json({ identities })
+        return
+      }
+      const profile = readProfile(object(req.body).profile)
+      const account = await accountStore(() => accounts.directory.resolveOrCreate(identity))
+      let issued: ReturnType<SessionRegistry['issueVerifiedAccount']> | undefined
+      try {
+        await accountStore(() =>
+          accounts.directory.withActiveIdentity(account.accountId, identity, () => {
+            issued = sessions.issueVerifiedAccount(profile, account.accountId)
+          }),
+        )
+      } catch (error) {
+        // COMMIT can fail after the callback issued a token; never retain it.
+        if (issued) sessions.revoke(issued.token)
+        throw error
+      }
+      if (!issued) throw new SessionError('ACCOUNT_STORE_UNAVAILABLE', 503)
+      res.status(201).json({ session: issued })
+    }
+    // The proof endpoints share the same bounded in-process admission budget as guest sessions.
+    const limited =
+      (handler: (req: Request, res: Response) => Promise<void>) =>
+      async (req: Request, res: Response, next: NextFunction) => {
+        const address = source(req)
+        const now = Date.now()
+        let admission = admissions.get(address)
+        if (!admission || admission.until <= now) {
+          admission = { count: 0, until: now + 60_000 }
+          if (admissions.size >= 1024) admissions.delete(admissions.keys().next().value!)
+          admissions.set(address, admission)
+        }
+        if (++admission.count > 60 || pendingAdmissions >= 32) {
+          res.status(429).json({ code: 'RATE_LIMITED' })
+          return
+        }
+        if (stopped) {
+          res.status(503).json({ code: 'SERVER_STOPPED' })
+          return
+        }
+        pendingAdmissions++
+        try {
+          await handler(req, res)
+        } catch (error) {
+          next(error)
+        } finally {
+          pendingAdmissions--
+        }
+      }
+    app.post(
+      '/api/v1/auth/email/challenges',
+      limited(async (req, res) => {
+        const input = object(req.body)
+        const authIntent = intent(req, input.intent)
+        if (typeof input.email !== 'string') throw new SessionError('INVALID_EMAIL', 400)
+        const challenge = await providerCall(() =>
+          accounts.email.begin({ email: input.email as string, source: source(req), intent: authIntent }),
+        )
+        res.status(201).json(challenge)
+      }),
+    )
+    app.post(
+      '/api/v1/auth/email/complete',
+      limited(async (req, res) => {
+        const input = object(req.body)
+        const authIntent = intent(req, input.intent)
+        if (authIntent.kind === 'login') readProfile(input.profile)
+        if (typeof input.challengeId !== 'string' || typeof input.code !== 'string')
+          throw new SessionError('INVALID_REQUEST', 400)
+        const identity = await providerCall(() =>
+          accounts.email.verify(
+            { challengeId: input.challengeId as string, code: input.code as string, source: source(req) },
+            authIntent,
+          ),
+        )
+        await complete(req, res, verified(accounts.email.providerId, identity), authIntent)
+      }),
+    )
+    app.post(
+      '/api/v1/auth/oidc/authorizations',
+      limited(async (req, res) => {
+        const authIntent = intent(req, object(req.body).intent)
+        const authorization = await providerCall(() => accounts.oidc.begin({ intent: authIntent }))
+        res.status(201).json(authorization)
+      }),
+    )
+    app.post(
+      '/api/v1/auth/oidc/complete',
+      limited(async (req, res) => {
+        const input = object(req.body)
+        const authIntent = intent(req, input.intent)
+        if (authIntent.kind === 'login') readProfile(input.profile)
+        if (
+          typeof input.state !== 'string' ||
+          typeof input.code !== 'string' ||
+          typeof input.browserSecret !== 'string'
+        )
+          throw new SessionError('INVALID_REQUEST', 400)
+        const identity = await providerCall(() =>
+          accounts.oidc.verify(
+            {
+              state: input.state as string,
+              code: input.code as string,
+              browserSecret: input.browserSecret as string,
+            },
+            authIntent,
+          ),
+        )
+        await complete(req, res, verified(accounts.oidc.providerId, identity), authIntent)
+      }),
+    )
+    app.get('/api/v1/account/identities', async (req, res) => {
+      const current = accountSession(req)
+      const identities = await accountStore(() => accounts.directory.list(current.principal.accountId))
+      res.json({ identities })
+    })
+    app.delete('/api/v1/account/identities', async (req, res) => {
+      const current = accountSession(req)
+      const input = object(req.body)
+      await accountStore(() =>
+        accounts.directory.unlink(current.principal.accountId, {
+          providerId: input.providerId as string,
+          issuer: input.issuer as string,
+          subject: input.subject as string,
+        }),
+      )
+      res.sendStatus(204)
+    })
+    app.delete('/api/v1/account', async (req, res) => {
+      const current = accountSession(req)
+      const accountId = current.principal.accountId
+      const revokeLiveAccount = async () => {
+        const revoked = sessions.blockAccount(accountId)
+        const results = await Promise.allSettled(revoked.map(session => rooms.revoke(session)))
+        if (results.some(result => result.status === 'rejected'))
+          throw new SessionError('ACCOUNT_REVOCATION_FAILED', 503)
+      }
+      try {
+        // The directory serializes this commit with in-flight account issuance.
+        await accountStore(() => accounts.directory.deactivate(accountId))
+      } catch (error) {
+        let status: Awaited<ReturnType<AccountDirectory['getStatus']>> | undefined
+        try {
+          status = await accounts.directory.getStatus(accountId)
+        } catch {
+          // An ambiguous database outcome must not leave a possibly deactivated account authorized.
+        }
+        if (status === 'active') throw error
+        if (status !== 'deactivated') {
+          await revokeLiveAccount().catch(() => undefined)
+          throw error
+        }
+        // COMMIT may have succeeded even if its acknowledgement was lost.
+      }
+      await revokeLiveAccount()
+      res.sendStatus(204)
+    })
+  }
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    if (error instanceof ProviderError) {
+      res.status(error.statusCode).json({ code: error.code })
+      return
+    }
+    if (error instanceof AccountDirectoryError) {
+      const status = {
+        INVALID_IDENTITY: 400,
+        ACCOUNT_NOT_FOUND: 404,
+        ACCOUNT_DEACTIVATED: 403,
+        IDENTITY_CONFLICT: 409,
+        IDENTITY_NOT_FOUND: 404,
+        LAST_RECOVERY_METHOD: 409,
+      }[error.code]
+      res.status(status).json({ code: error.code })
+      return
+    }
     if (error instanceof SessionError) {
       res.status(error.statusCode).json({ code: error.code })
       return
@@ -163,6 +405,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     async start(): Promise<void> {
       if (stopped) throw new Error('Stopped apps cannot restart; create a new instance')
       if (started) return
+      if (options.accounts?.ready) await options.accounts.ready()
       await getStandaloneRuntimeIdentity()
       await new Promise<void>((resolve, reject) => {
         const onError = (error: Error) => {

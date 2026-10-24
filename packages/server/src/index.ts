@@ -1,3 +1,8 @@
 export { createSingleProcessApp } from './standalone/app'
 export { SessionRegistry, SessionError } from './standalone/session'
 export type { AccountProvider, VerifiedAccount, SessionRegistryOptions } from './standalone/session'
+export { PgAccountDirectory, AccountDirectoryError } from './standalone/accounts/directory'
+export { ensureAccountSchema } from './standalone/accounts/schema'
+export { EmailCodeVerifier, OidcVerifier, ProviderError } from './standalone/providers'
+export type { AccountDirectory, VerifiedIdentity } from './standalone/accounts/directory'
+export type { G3AccountServices } from './standalone/app'

@@ -1,0 +1,122 @@
+# 可选账号提供商设计草案
+
+状态：G3 设计及实施依据。2026-10-24 已确定本分支合并门槛为 G3，首批两条登录／恢复路径为**邮箱一次性验证码 + 通用 OIDC**；实际完成状态以 [#220](https://github.com/arcadia-eternity/arcadia-eternity/issues/220) 的验收为准。本文基于提交 `c09d044d` 的旧账号实现和当前单进程服务端源码；没有核对生产数据库内容，也没有执行迁移或部署。G4 排位及战绩、在线录像分别留在 [#233](https://github.com/arcadia-eternity/arcadia-eternity/issues/233) 和 [#234](https://github.com/arcadia-eternity/arcadia-eternity/issues/234) 后期实施；UGC 不在本轮范围内。
+
+## 旧系统实际提供了什么
+
+旧系统没有通用账号提供商，也没有 OAuth/OIDC。`players.id` 同时充当本地玩家 UID 和数据库主键；每个游客在 `players` 中建一行，但不取得能证明该 ID 归属的凭据。邮箱验证码可把一行 `players` 标记为已注册，之后按该邮箱找回玩家 ID 并签发自有 JWT。Supabase 在这里主要是 PostgreSQL 数据库，而非登录提供商。
+
+- [旧游客接口](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/app/routes/authRoutes.ts#L94-L125)创建数据库玩家，但[旧 `smartAuth`](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/app/middlewares/smartAuthMiddleware.ts#L28-L83)对未注册玩家直接接受请求中的 `playerId`；不能继承“报出 UID 即有权操作”的判断。
+- [旧邮箱路由](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/app/routes/emailInheritanceRoutes.ts#L443-L596)负责邮箱验证码绑定与恢复，[旧 `AuthService`](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/server/src/domain/auth/services/authService.ts)签发 JWT。可保留“凭独立证明恢复”的产品语义，凭证实现必须重做。
+- [`players.email`](../../packages/database/sql/01_create_tables.sql)唯一且与 `is_registered` 绑定，没有外部身份表；邮箱不应继续占据通用账号模型的中心。
+- [旧 `petStorage.ts`](https://github.com/arcadia-eternity/arcadia-eternity/blob/c09d044d45b45160a16bc8e13609435496f28b31/packages/web-ui/src/stores/petStorage.ts#L165-L279)把宠物队伍保存在浏览器 `localStorage`；旧“找回玩家 ID”并不等于恢复本地宠物或队伍。
+
+旧验证码由 `Math.random()` 生成并以明文保存，使用过程是先查询、后标记；旧 JWT 撤销使用进程内集合。仓库中的旧 RLS 策略还包含 `auth.uid() IS NULL` 放行写入的条件，[#195](https://github.com/arcadia-eternity/arcadia-eternity/issues/195)也提出了相关疑问。这是源码风险，不能据此断言生产数据库已经部署了同样的策略。旧 SQL、旧 JWT 和旧验证码实现均不能直接接回新服务端。
+
+## 拟定的身份模型
+
+| 名称             | 含义与权限                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| 本地资料 UID     | 客户端创建、应支持备份导出的公开资料标识。知道或导入 UID 不构成所有权证明。                                    |
+| 外部身份         | 提供商验证后得到的 `(provider, issuer, subject)`；昵称和邮箱展示值均不能代替稳定 subject。                     |
+| 服务器账号       | 某个 `serverId` 范围内的持久 `accountId`，可绑定多个经验证的外部身份。                                         |
+| 账号登录凭据     | 提供商证明或账号服务签发的设备凭据，用于取得新的服务器会话。它与房间席位凭据分离。                             |
+| 服务器会话与席位 | 当前 `bootId` 下的短期 token、sessionId 和 seatId。只有有效 token 加房间成员资格才能操作对战；重启后全部失效。 |
+
+网页、Electron、静态托管页面和 CLI 是运行宿主，不各自拥有一套账号。某个宿主若能提供服务端可验证的身份票据，可以增加相应提供商适配器；没有该能力时仍可使用游客模式或其他登录方式。
+
+提供商只验证凭据并返回外部身份，不能自行决定本服务器的 `accountId`。账号目录原子地将外部身份映射到服务器账号。账号认证服务负责编排两者；`SessionRegistry` 只接收内部已经确认的 principal，签发本次进程的 token 和席位。当前的 `AccountProvider.verify(proof) -> accountId` 把验证、落库和会话接入混在一起，适合占位，不适合作为最终多提供商接口。
+
+```
+本地 UID（展示、导入导出） ─────────────────────────────┐
+游客 ──────────────────────────────────────────────┤
+提供商证明 → 验证 issuer + subject → 本服 accountId ──┤→ 本次会话 token → 房间 seatId
+```
+
+服务器能力查询应公布可用提供商及登录方式；发起/完成邮箱验证码、OIDC 回调或平台票据交换由具体适配器实现。适配器须按各自协议验证签名、受众、时效及防重放状态，`issuer` 由服务端配置并核验。OIDC 用 `(iss, sub)` 标识身份，不能以 `email` 或昵称代替 `sub`；邮箱验证码适配器则把规范化后的、**当前可接收邮件的地址**作为 subject，这种控制权可能随邮箱回收而转移。[OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0-18.html)规定了 ID Token 验证及 `(iss, sub)` 的身份语义。客户端不能直接提交 `accountId`、自称的 `issuer` 或 UID 来登录。提供商返回的昵称只能作为资料建议，不能悄悄覆盖本地档案。
+
+## 适配器与编排边界
+
+接口以职责表达；具体请求类型由各提供商定义，不强迫邮箱、OIDC 和宿主平台共用一种原始 proof 格式。只有服务器内部能构造 `VerifiedIdentity`；外部请求中的同名字段一律不可信。
+
+```ts
+type AuthIntent = { kind: 'login' } | { kind: 'link'; accountId: string; sessionId: string } // 由当前有效会话生成
+
+interface VerifiedIdentity {
+  issuer: string // 适配器按服务端配置核验或给出
+  subject: string // 按该提供商契约识别身份；邮箱仅代表当前邮箱控制权
+  verifiedAt: number
+}
+
+interface VerifiedIdentityKey extends VerifiedIdentity {
+  providerId: string // 认证服务从已配置的适配器取得
+}
+
+interface IdentityVerifier {
+  readonly providerId: string
+  begin?(intent: AuthIntent): Promise<unknown> // 邮箱、OIDC 等多步流程
+  verify(proof: unknown, intent: AuthIntent): Promise<VerifiedIdentity>
+}
+
+interface AccountDirectory {
+  resolveOrCreate(serverId: string, identity: VerifiedIdentityKey): Promise<{ accountId: string }>
+  link(serverId: string, accountId: string, identity: VerifiedIdentityKey): Promise<void>
+}
+```
+
+`VerifiedIdentityKey` 是认证服务从**已配置的** `providerId`、**已核验的** `issuer`、`subject` 构造的内部值。认证服务提供 `login(providerId, proof)` 和 `link(currentSession, providerId, proof)`；它先调用适配器，再调用账号目录。`SessionRegistry` 不查询提供商或账号库，只保留 `createGuest(profile)` 和仅供内部调用的 `createAuthenticated(profile, accountId)`。对外登录接口从当前的裸 `accountProof` 改为明确的提供商选择和该提供商的交换流程；服务器能力查询也从 `authModes` 扩充为提供商与流程清单。账号模式启用时必须显式配置稳定的 `SERVER_ID`，不能依赖按监听地址生成的默认值。
+
+验证器的界限是“证明玩家此刻控制该外部身份”。OIDC 验证 `iss`、`aud`、签名、有效期及请求对应的 `state`/`nonce`，授权码流程遵守 [OAuth 安全实践中的 PKCE 要求](https://datatracker.ietf.org/doc/html/rfc9700)；平台票据须由服务器向可信宿主或平台验证，不能把任意客户端请求头当作身份。邮箱流程需要密码学随机验证码、固定邮箱规范化规则、限流和一次性核销。绑定身份比普通登录多一个要求：验证流程必须由当前账号会话发起，挑战或回调状态绑定 `link` 用途与该 `accountId`，完成时再次核对会话；不能把一次登录证明拿来绑定别的账号。无法提供新鲜、用途绑定证明的适配器暂不开放绑定功能。
+
+验证**可能写状态**，但只能写其自身的短期挑战记录：验证码尝试数与消费状态、OIDC `state`/`nonce` 等。它不能写 `accounts`、`external_identities`，也不能返回自己指定的 `accountId`。认证服务负责把验证结果交给账号目录；验证失败或账号库不可用均不得自动降级为游客。
+
+## 落库操作及一致性
+
+账号目录是唯一改动账号归属的模块。完整账号模式必须持久保存前两张表；第三张是验证器按所选证明方式使用的短期状态：
+
+| 表                        | 必要字段                                                                      | 数据库约束                                                                |
+| ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `accounts`                | `server_id`, `account_id`, `status`, `created_at`                             | 主键 `(server_id, account_id)`                                            |
+| `external_identities`     | `server_id`, `provider_id`, `issuer`, `subject`, `account_id`, `linked_at`    | 唯一 `(server_id, provider_id, issuer, subject)`；复合外键指向 `accounts` |
+| `auth_challenges`（可选） | `server_id`, `challenge_id`, `provider_id`, `purpose`, 过期、次数、消费等字段 | 短期验证状态；由验证层管理，和账号归属表分开                              |
+
+`subject` 及 `issuer` 都不得为空，长度、编码和提供商配置必须校验。单实例首版可把短期挑战放内存，随 `bootId` 失效；这要求重启后重新申请验证码。若要跨重启保留挑战、持续限流或扩展多实例，才把 `auth_challenges` 放入数据库或支持原子操作的共享存储。无论用哪种存储，都要记录用途及绑定账号/会话、到期时间、尝试数、消费时间；低熵邮箱验证码不能明文保存，也不能仅用无密钥的普通哈希，应保存带服务器密钥的摘要并原子限制尝试和消费。挑战不是账号所有权记录；邮件发送频率还需跨重启限流或依赖邮件服务的配额。若使用 Supabase/Postgres，账号表应在不向浏览器直开的私有访问边界；若确实暴露到 Data API，必须同时配置最小权限和匹配所有权语义的 RLS，不能复用旧匿名写入策略。
+
+一次**首次登录**按此顺序执行：验证证明并消费一次性挑战；以复合外部身份查找账号；不存在时在**同一短事务**中新建 `accounts` 行和身份映射；检查账号仍启用；提交成功后才签发内存会话。两个首次登录并发时由数据库唯一约束仲裁：输的一方整体回滚新账号，再读取胜方映射；不能只插账号而留下孤儿。已有身份通常只读查询，不必每次登录都写 `last_login`。网络上的提供商验证和邮件发送都发生在账号事务外，以免长时间持锁。[PostgreSQL 的唯一约束](https://www.postgresql.org/docs/current/ddl-constraints.html)和 [`ON CONFLICT` 语义](https://www.postgresql.org/docs/current/sql-insert.html)可支撑这一并发边界。
+
+一次**绑定**要有当前有效的账号会话和绑定专用的新鲜证明。账号目录在事务中检查账号状态、目标身份是否已有归属，再插入唯一映射；已属于同一账号可幂等返回，属于另一账号报冲突，不按邮箱、昵称或本地 UID 自动合并。解绑时也须在事务中保证账号至少保留一种恢复方式。停用账号先提交状态变化，再撤销该账号在当前进程中的所有会话和房间权限；并发签发与停用需要账号级串行化或版本栅栏，避免停用后又产生有效 token。
+
+外部证明消费和账号事务无法与外部平台组成一个原子事务。若验证码已消费、随后账号库故障，用户重新请求验证码；已经消费的码不能恢复可用。账号库提交成功而会话签发失败时，新账号可以存在，但下次凭相同外部身份登录必须解析到它。无效证明返回认证失败、已有其他账号绑定返回冲突、限流和基础设施故障各有明确错误；当前把所有 provider 异常压成 401 的处理不应延续。账号登录失败绝不悄悄变为游客登录。
+
+## 两条路径与恢复
+
+1. **游客**：本地 UID 加服务器临时会话。默认自托管服务无需数据库。两个客户端即使报告相同 UID，也获得不同的 guest principal、token 和 seat。没有备份、没有账号、也没有其他控制权证明时，丢失本地资料无法安全地由服务器找回。
+2. **账号**：服务端验证提供商证明，解析或新建本服账号，再签发当前进程的会话与席位。服务器重启会解散房间，但持久账号和外部身份仍在；玩家重新认证后取得**新**席位，不继承旧房间。
+3. **游客升级**：必须由玩家明确发起，并同时拥有当前会话和新的提供商证明。登录账号不自动把正在对战的席位转移给新会话；首版可要求结束或退出房间后切换。公开 UID 不能用来认领既有服务器资产。
+4. **绑定第二个提供商**：要求已认证的账号会话和新提供商的新鲜证明。`(serverId, provider, issuer, subject)` 只能属于一个账号；同邮箱、同昵称不自动合并。若已属于别的账号，拒绝并走单独的冲突处理。
+5. **跨设备恢复**：提供商登录可恢复该服务器确实保存的账号资料。若产品要帮助用户找回本地 UID，可在用户明确启用备份时把 UID/昵称作为账号下的资料副本；这只是该账号保存过的资料，不是全球 UID 归属证明。宠物/队伍目前仍为本地数据，需文件备份或将来的独立云同步才能恢复。
+
+对外展示应区分“自报 UID”和“本服务器已验证账号”，避免盗用公开 UID 造成社交冒认。默认不允许解绑最后一个可恢复身份，也不自动合并账号。停用账号时应立即阻止新登录，并撤销本进程中该账号已有的会话；这要求会话注册表能按 `accountId` 查找或检查账号状态。
+
+## 仅在启用账号时持久化
+
+- `accounts`：`serverId`、内部 `accountId`、状态和创建时间。
+- `external_identities`：`serverId`、`providerId`、由服务端确定的 `issuer`、稳定 `subject`、`accountId`、验证时间；唯一约束防止双重绑定。
+- 可选的提供商挑战记录。单实例可以内存保存；若持久化，邮箱验证码只存带服务器密钥的摘要、用途、过期时间、尝试次数和一次性消费状态，并原子消费；同时限制目标地址和来源的发送/验证次数。
+- 若需要跨重启免重复登录，可另存经哈希和轮换的设备凭据或使用提供商自身的续期能力。它不能充当房间 token。
+- 用户选择启用的账号资料备份，以及将来确实需要归属的内容引用；不能从 UID 自动推导归属。
+
+游客会话、席位、房间、对战运行状态、断线宽限和快照仍不落库。若坚持无数据库又要稳定账号，可以由单个已验证外部身份和服务器持久密钥派生 ID，但这种模式不能可靠支持多提供商绑定、撤销、账号合并或资料备份，不应宣传为完整账号系统。
+
+## 旧数据处置与实施顺序
+
+旧数据库资产先保持只读、备份并盘点。旧未注册 `players.id` 没有可靠所有权证明，不能按 UID 自动迁移。已绑定邮箱的旧记录，也必须在**重新验证邮箱**且审查重复/异常记录后，才考虑以一次性迁移别名关联新 `accountId`；旧玩家 ID 不直接充当新账号 ID。旧 RLS 的生产实际状态需要单独核查。排位、ELO、旧战报不进入本轮新账号数据库，也不在本设计中删除历史数据。
+
+建议按以下顺序实现：
+
+1. 定义提供商验证结果、账号目录和显式绑定/冲突语义；默认部署继续 guest-only。
+2. 选择一个真正可用的首个提供商。旧流程可参考“邮箱一次性证明”，但验证码、频率限制和原子消费必须重写；OIDC 或其他平台证明也通过同一账号目录进入。
+3. 建立服务器账号持久化、停用/撤销和客户端登录流程，验证重启后账号仍可登录而房间不可恢复。
+4. 单独审计生产旧库后，决定是否提供已验证邮箱用户的有限迁移。未做数据盘点前不运行旧 SQL 或自动迁移。
+
+G3 首版先完成**本服账号身份恢复**，不把本地 UID、宠物、队伍或设置自动上传到账号库。玩家仍需另外备份这些本地资料；现有仓库导出功能不能被当作已验证的完整账号资料备份。以后若增加可选 UID/昵称备份，应明确标为“该账号保存的资料副本”，不能宣称全球 UID 归属，也不能承诺恢复从未上传的内容。同一账号能否在同一房间占多个席位仍待产品确认；它影响房间规则，不能从旧代码推断。

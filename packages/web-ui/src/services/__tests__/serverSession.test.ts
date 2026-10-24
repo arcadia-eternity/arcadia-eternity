@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ServerSessionClient, type SessionStorage, normalizeServerUrl } from '../serverSession'
+import { ServerSessionClient, consumeOidcCallback, type SessionStorage, normalizeServerUrl } from '../serverSession'
 import type { ServerInfo, ServerSession } from '@arcadia-eternity/protocol'
 
 const profile = { id: 'shared-public-local-id', name: 'Player' }
-const info: ServerInfo = { serverId: 'server-a', bootId: 'boot-1', authModes: ['guest', 'account'], protocolVersion: 1 }
+const info: ServerInfo = {
+  serverId: 'server-a',
+  bootId: 'boot-1',
+  authModes: ['guest', 'account'],
+  accountProviders: ['email', 'oidc'],
+  protocolVersion: 1,
+}
 const makeSession = (seatId: string, changes: Partial<ServerSession> = {}): ServerSession => ({
   ...info,
   sessionId: `session-${seatId}`,
@@ -30,6 +36,28 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const requester = () => vi.fn<typeof fetch>()
 
 describe('server session identity boundaries', () => {
+  it('clears OIDC code and state from the visible URL before another operation can run', () => {
+    let visibleUrl = 'https://game.example/account?code=one-time-code&state=state-1&tab=account#profile'
+    const replaceState = vi.fn((_state: unknown, _unused: string, url: string | URL | null | undefined) => {
+      visibleUrl = `https://game.example${url}`
+    })
+    const callback = consumeOidcCallback({ href: visibleUrl }, { state: { route: 'account' }, replaceState })
+    expect(callback).toEqual({ code: 'one-time-code', state: 'state-1', error: null })
+    expect(visibleUrl).toBe('https://game.example/account#profile')
+    expect(replaceState).toHaveBeenCalledOnce()
+  })
+
+  it('also removes provider error details and opaque callback fields from browser history', () => {
+    let visibleUrl =
+      'https://game.example/account?error=access_denied&error_description=private-detail&iss=https%3A%2F%2Fissuer.example&session_state=opaque&tab=account'
+    const replaceState = vi.fn((_state: unknown, _unused: string, url: string | URL | null | undefined) => {
+      visibleUrl = `https://game.example${url}`
+    })
+    const callback = consumeOidcCallback({ href: visibleUrl }, { state: null, replaceState })
+    expect(callback).toEqual({ code: null, state: null, error: 'access_denied' })
+    expect(visibleUrl).toBe('https://game.example/account')
+  })
+
   it('normalizes origins and strips query credentials without collapsing server base paths', () => {
     expect(normalizeServerUrl('wss://EXAMPLE.com:443/game/api/v1/?token=unsafe#id')).toBe(
       'https://example.com/game/api/v1',
@@ -165,5 +193,163 @@ describe('server session identity boundaries', () => {
     release(json(makeSession('old')))
     await expect(pending).rejects.toThrow('会话操作已取消')
     expect(client.session).toBeNull()
+  })
+
+  it('discovers account-only servers without silently creating a guest', async () => {
+    const request = requester().mockResolvedValueOnce(json({ ...info, authModes: ['account'] }))
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+    expect((await client.refresh()).session).toBeNull()
+    expect(request).toHaveBeenCalledTimes(1)
+    expect(client.info?.accountProviders).toEqual(['email', 'oidc'])
+  })
+
+  it('does not expose unavailable account providers on a guest-only server', async () => {
+    const request = requester().mockResolvedValueOnce(
+      json({ ...info, authModes: ['guest'], accountProviders: undefined }),
+    )
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+    await client.refresh()
+    await expect(client.requestEmailCode('player@example.com', 'login')).rejects.toThrow('未启用邮箱登录')
+    await expect(client.startOidc('login')).rejects.toThrow('未启用 OpenID Connect 登录')
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+
+  it('logs in with a verified email code and revokes the former guest seat', async () => {
+    const request = requester()
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(makeSession('guest')))
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+    await client.ensure(profile)
+    request.mockResolvedValueOnce(json({ challengeId: 'challenge-1', expiresAt: Date.now() + 60_000 }))
+    await client.requestEmailCode('player@example.com', 'login')
+    expect(JSON.parse(request.mock.calls[2][1]?.body as string)).toEqual({
+      email: 'player@example.com',
+      intent: 'login',
+    })
+    expect(request.mock.calls[2][1]?.headers).not.toHaveProperty('Authorization')
+
+    const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
+    request.mockResolvedValueOnce(json({ session: account })).mockResolvedValueOnce(new Response(null, { status: 204 }))
+    const result = await client.completeEmailCode('challenge-1', '123456', 'login', profile)
+    expect(result).toEqual(account)
+    expect(client.session?.seatId).toBe('account')
+    expect(client.session?.profile.id).toBe(profile.id)
+    expect(JSON.parse(request.mock.calls[3][1]?.body as string)).toEqual({
+      challengeId: 'challenge-1',
+      code: '123456',
+      intent: 'login',
+      profile,
+    })
+    expect(request.mock.calls[4][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-guest' })
+  })
+
+  it('links a second verified identity only to the authenticated account', async () => {
+    const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
+    const request = requester().mockResolvedValueOnce(json(info)).mockResolvedValueOnce(json(account))
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+    await client.ensure(profile)
+    request.mockResolvedValueOnce(json({ challengeId: 'link-1', expiresAt: Date.now() + 60_000 }))
+    await client.requestEmailCode('second@example.com', 'link')
+    expect(request.mock.calls[2][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+    const identities = [{ providerId: 'email', issuer: 'email', subject: 'second@example.com' }]
+    request.mockResolvedValueOnce(json({ identities }))
+    expect(await client.completeEmailCode('link-1', '654321', 'link', profile)).toEqual(identities)
+    expect(JSON.parse(request.mock.calls[3][1]?.body as string)).toEqual({
+      challengeId: 'link-1',
+      code: '654321',
+      intent: 'link',
+    })
+    expect(request.mock.calls[3][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+    expect(client.session).toEqual(account)
+  })
+
+  it('keeps OIDC state and browser secret in the initiating tab and rejects an unsolicited callback', async () => {
+    const store = storage()
+    const request = requester().mockResolvedValueOnce(json(info))
+    const client = new ServerSessionClient('https://game.example/api/v1', store, request)
+    await client.refresh()
+    const authorizationUrl = 'https://identity.example/authorize?state=state-1'
+    request.mockResolvedValueOnce(
+      json({ authorizationUrl, state: 'state-1', browserSecret: 'browser-only', expiresAt: Date.now() + 60_000 }),
+    )
+    expect(await client.startOidc('login')).toBe(authorizationUrl)
+    expect(request.mock.calls[1][1]?.headers).not.toHaveProperty('Authorization')
+    await expect(client.completeOidc('attacker-state', 'code', profile)).rejects.toThrow('已失效')
+    expect(request).toHaveBeenCalledTimes(2)
+
+    const account = makeSession('oidc', { principal: { kind: 'account', accountId: 'account-2' } })
+    request.mockResolvedValueOnce(json({ session: account }))
+    expect(await client.completeOidc('state-1', 'authorization-code', profile)).toEqual(account)
+    expect(JSON.parse(request.mock.calls[2][1]?.body as string)).toEqual({
+      state: 'state-1',
+      code: 'authorization-code',
+      browserSecret: 'browser-only',
+      intent: 'login',
+      profile,
+    })
+    expect(authorizationUrl).not.toContain('browser-only')
+    expect(store.getItem('server-oidc:https%3A%2F%2Fgame.example%2Fapi%2Fv1:server-a')).toBeNull()
+  })
+
+  it('binds OIDC only with the current account session and never sends the local UID for linking', async () => {
+    const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
+    const request = requester().mockResolvedValueOnce(json(info)).mockResolvedValueOnce(json(account))
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+    await client.ensure(profile)
+    request.mockResolvedValueOnce(
+      json({
+        authorizationUrl: 'https://identity.example/authorize?state=link-state',
+        state: 'link-state',
+        browserSecret: 'tab-only',
+        expiresAt: Date.now() + 60_000,
+      }),
+    )
+    await client.startOidc('link')
+    expect(request.mock.calls[2][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+    const identities = [{ providerId: 'oidc', issuer: 'https://identity.example', subject: 'subject-2' }]
+    request.mockResolvedValueOnce(json({ identities }))
+    expect(await client.completeOidc('link-state', 'code-2', profile)).toEqual(identities)
+    expect(request.mock.calls[3][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+    expect(JSON.parse(request.mock.calls[3][1]?.body as string)).toEqual({
+      state: 'link-state',
+      code: 'code-2',
+      browserSecret: 'tab-only',
+      intent: 'link',
+    })
+    expect(client.session).toEqual(account)
+  })
+
+  it('keeps the last recovery path and session when unlink is refused, then revokes it on deactivation', async () => {
+    const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
+    const request = requester().mockResolvedValueOnce(json(info)).mockResolvedValueOnce(json(account))
+    const invalidated = vi.fn()
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request, invalidated)
+    await client.ensure(profile)
+    request.mockResolvedValueOnce(json({ code: 'LAST_RECOVERY_PATH' }, 409))
+    await expect(
+      client.unlinkIdentity({ providerId: 'email', issuer: 'email', subject: 'player@example.com' }),
+    ).rejects.toMatchObject({ status: 409, code: 'LAST_RECOVERY_PATH' })
+    expect(client.session).toEqual(account)
+    request.mockResolvedValueOnce(new Response(null, { status: 204 }))
+    await client.deactivateAccount()
+    expect(client.session).toBeNull()
+    expect(invalidated).toHaveBeenCalledWith(expect.stringContaining('账号已停用'))
+    expect(request.mock.calls[3][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
+  })
+
+  it('does not adopt a new account if the former seat could not be revoked', async () => {
+    const request = requester()
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(makeSession('guest')))
+    const client = new ServerSessionClient('https://game.example/api/v1', storage(), request)
+    await client.ensure(profile)
+    const account = makeSession('account', { principal: { kind: 'account', accountId: 'account-1' } })
+    request
+      .mockResolvedValueOnce(json({ session: account }))
+      .mockRejectedValueOnce(new TypeError('offline'))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    await expect(client.completeEmailCode('challenge', '123456', 'login', profile)).rejects.toThrow('offline')
+    expect(client.session?.seatId).toBe('guest')
+    expect(request.mock.calls[4][1]?.headers).toMatchObject({ Authorization: 'Bearer secret-account' })
   })
 })

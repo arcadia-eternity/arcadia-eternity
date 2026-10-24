@@ -1,4 +1,14 @@
-import type { LocalProfile, ServerInfo, ServerSession } from '@arcadia-eternity/protocol'
+import type {
+  AccountChallengeResponse,
+  AccountIdentity,
+  AccountIdentityListResponse,
+  AccountIntent,
+  AccountSessionResponse,
+  LocalProfile,
+  OidcAuthorizationResponse,
+  ServerInfo,
+  ServerSession,
+} from '@arcadia-eternity/protocol'
 
 export interface SessionStorage {
   getItem(key: string): string | null
@@ -20,9 +30,35 @@ export class SessionRequestError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly code?: string,
   ) {
     super(message)
   }
+}
+
+interface PendingOidcAuthorization {
+  state: string
+  browserSecret: string
+  intent: AccountIntent
+  expiresAt: number
+}
+
+/** Remove one-time authorization values synchronously before any network call or telemetry. */
+export function consumeOidcCallback(
+  location: Pick<Location, 'href'>,
+  history: Pick<History, 'state' | 'replaceState'>,
+) {
+  const url = new URL(location.href)
+  const code = url.searchParams.get('code')
+  const state = url.searchParams.get('state')
+  const error = url.searchParams.get('error')
+  if (code !== null || state !== null || error !== null) {
+    // Providers may append error_description, iss, session_state or custom values.
+    // The account route does not need query parameters after consuming a callback.
+    url.search = ''
+    history.replaceState(history.state, '', `${url.pathname}${url.hash}`)
+  }
+  return { code, state, error }
 }
 
 /** Credentials are scoped to the exact API endpoint and server ID, and stored per tab. */
@@ -45,6 +81,10 @@ export class ServerSessionClient {
     return `server-session:${encodeURIComponent(this.baseUrl)}:${encodeURIComponent(serverId)}`
   }
 
+  private oidcKey(serverId: string): string {
+    return `server-oidc:${encodeURIComponent(this.baseUrl)}:${encodeURIComponent(serverId)}`
+  }
+
   private async call<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await this.request.call(globalThis, `${this.baseUrl}${path}`, {
       ...init,
@@ -52,7 +92,16 @@ export class ServerSessionClient {
       signal: init?.signal ?? AbortSignal.timeout(15_000),
       headers: { 'Content-Type': 'application/json', ...init?.headers },
     })
-    if (!response.ok) throw new SessionRequestError(response.status, `服务器会话请求失败 (${response.status})`)
+    if (!response.ok) {
+      const body: unknown = await response.json().catch(() => null)
+      const code =
+        body && typeof body === 'object' && 'code' in body && typeof body.code === 'string' ? body.code : undefined
+      throw new SessionRequestError(
+        response.status,
+        `服务器账号请求失败 (${response.status}${code ? `: ${code}` : ''})`,
+        code,
+      )
+    }
     if (response.status === 204) return undefined as T
     return response.json() as Promise<T>
   }
@@ -86,7 +135,14 @@ export class ServerSessionClient {
     return this.pending
   }
 
-  private async resumeOrCreate(profile: LocalProfile, epoch: number): Promise<ServerSession> {
+  /** Fetch capabilities and restore an existing credential without creating a guest seat. */
+  async refresh(): Promise<{ info: ServerInfo; session: ServerSession | null }> {
+    const epoch = this.identityEpoch
+    const session = await this.resumeIfPresent(epoch)
+    return { info: this.info!, session }
+  }
+
+  private async resumeIfPresent(epoch: number): Promise<ServerSession | null> {
     const assertCurrent = () => {
       if (epoch !== this.identityEpoch) throw new Error('会话操作已取消')
     }
@@ -120,22 +176,158 @@ export class ServerSessionClient {
         this.invalidate('原会话已失效，无法继续原席位，请重新创建或加入房间')
       }
     }
+    return null
+  }
+
+  private async resumeOrCreate(profile: LocalProfile, epoch: number): Promise<ServerSession> {
+    const resumed = await this.resumeIfPresent(epoch)
+    if (resumed) return resumed
+    const info = this.info!
     if (!info.authModes.includes('guest')) throw new Error('此服务器需要登录账号')
     const created = await this.call<ServerSession>('/sessions', { method: 'POST', body: JSON.stringify({ profile }) })
-    assertCurrent()
+    if (epoch !== this.identityEpoch) throw new Error('会话操作已取消')
     return this.save(created)
   }
 
+  private accountHeaders(): HeadersInit {
+    if (this.session?.principal.kind !== 'account') throw new Error('请先登录服务器账号')
+    return { Authorization: `Bearer ${this.session.token}` }
+  }
+
+  private async adoptAccountSession(next: ServerSession): Promise<ServerSession> {
+    if (next.principal.kind !== 'account') throw new Error('服务器未返回账号会话')
+    if (!this.info || next.serverId !== this.info.serverId || next.bootId !== this.info.bootId) {
+      throw new Error('服务器返回了不匹配的账号会话')
+    }
+    this.identityEpoch += 1
+    const previous = this.session
+    if (previous) {
+      try {
+        await this.call<void>('/session', {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${previous.token}` },
+        })
+      } catch (error) {
+        if (!(error instanceof SessionRequestError) || ![401, 403, 410].includes(error.status)) {
+          // Do not silently leave a new credential behind when the old seat cannot be revoked.
+          await this.call<void>('/session', {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${next.token}` },
+          }).catch(() => {})
+          throw error
+        }
+      }
+      this.invalidate('已切换服务器身份，原房间席位已撤销')
+    }
+    return this.save(next)
+  }
+
   async login(profile: LocalProfile, accountProof: unknown): Promise<ServerSession> {
-    this.info = await this.call<ServerInfo>('/server-info')
-    if (!this.info.authModes.includes('account')) throw new Error('此服务器未启用账号登录')
+    const { info } = await this.refresh()
+    if (!info.authModes.includes('account')) throw new Error('此服务器未启用账号登录')
     const session = await this.call<ServerSession>('/sessions', {
       method: 'POST',
       body: JSON.stringify({ profile, accountProof }),
     })
-    // Switching identity never inherits the old seat. Provider UI must explicitly initiate this operation.
-    await this.logout()
-    return this.save(session)
+    return this.adoptAccountSession(session)
+  }
+
+  async requestEmailCode(email: string, intent: AccountIntent): Promise<AccountChallengeResponse> {
+    if (!this.info) await this.refresh()
+    if (!this.info!.accountProviders?.includes('email')) throw new Error('此服务器未启用邮箱登录')
+    return this.call<AccountChallengeResponse>('/auth/email/challenges', {
+      method: 'POST',
+      headers: intent === 'link' ? this.accountHeaders() : undefined,
+      body: JSON.stringify({ email, intent }),
+    })
+  }
+
+  async completeEmailCode(
+    challengeId: string,
+    code: string,
+    intent: AccountIntent,
+    profile: LocalProfile,
+  ): Promise<AccountIdentity[] | ServerSession> {
+    const result = await this.call<AccountIdentityListResponse | AccountSessionResponse>('/auth/email/complete', {
+      method: 'POST',
+      headers: intent === 'link' ? this.accountHeaders() : undefined,
+      body: JSON.stringify(intent === 'login' ? { challengeId, code, intent, profile } : { challengeId, code, intent }),
+    })
+    if (intent === 'link') return (result as AccountIdentityListResponse).identities
+    return this.adoptAccountSession((result as AccountSessionResponse).session)
+  }
+
+  async startOidc(intent: AccountIntent): Promise<string> {
+    if (!this.info) await this.refresh()
+    if (!this.info!.accountProviders?.includes('oidc')) throw new Error('此服务器未启用 OpenID Connect 登录')
+    const result = await this.call<OidcAuthorizationResponse>('/auth/oidc/authorizations', {
+      method: 'POST',
+      headers: intent === 'link' ? this.accountHeaders() : undefined,
+      body: JSON.stringify({ intent }),
+    })
+    const pending: PendingOidcAuthorization = {
+      state: result.state,
+      browserSecret: result.browserSecret,
+      intent,
+      expiresAt: result.expiresAt,
+    }
+    this.storage.setItem(this.oidcKey(this.info!.serverId), JSON.stringify(pending))
+    return result.authorizationUrl
+  }
+
+  async completeOidc(state: string, code: string, profile: LocalProfile): Promise<AccountIdentity[] | ServerSession> {
+    if (!this.info) await this.refresh()
+    const key = this.oidcKey(this.info!.serverId)
+    let pending: PendingOidcAuthorization | null = null
+    try {
+      pending = JSON.parse(this.storage.getItem(key) || 'null') as PendingOidcAuthorization | null
+    } catch {
+      this.storage.removeItem(key)
+    }
+    if (!pending || pending.state !== state || !pending.browserSecret || pending.expiresAt <= Date.now()) {
+      throw new Error('登录请求已失效，请从本页重新发起')
+    }
+    const { intent, browserSecret } = pending
+    let result: AccountIdentityListResponse | AccountSessionResponse
+    try {
+      result = await this.call<AccountIdentityListResponse | AccountSessionResponse>('/auth/oidc/complete', {
+        method: 'POST',
+        headers: intent === 'link' ? this.accountHeaders() : undefined,
+        body: JSON.stringify(
+          intent === 'login' ? { state, code, browserSecret, intent, profile } : { state, code, browserSecret, intent },
+        ),
+      })
+    } catch (error) {
+      // A rejected or consumed authorization is not reusable. Preserve only transient retries.
+      if (error instanceof SessionRequestError && error.status >= 400 && error.status < 500 && error.status !== 429) {
+        this.storage.removeItem(key)
+      }
+      throw error
+    }
+    this.storage.removeItem(key)
+    if (intent === 'link') return (result as AccountIdentityListResponse).identities
+    return this.adoptAccountSession((result as AccountSessionResponse).session)
+  }
+
+  async listIdentities(): Promise<AccountIdentity[]> {
+    const response = await this.call<AccountIdentityListResponse>('/account/identities', {
+      headers: this.accountHeaders(),
+    })
+    return response.identities
+  }
+
+  async unlinkIdentity(identity: AccountIdentity): Promise<void> {
+    await this.call<void>('/account/identities', {
+      method: 'DELETE',
+      headers: this.accountHeaders(),
+      body: JSON.stringify({ providerId: identity.providerId, issuer: identity.issuer, subject: identity.subject }),
+    })
+  }
+
+  async deactivateAccount(): Promise<void> {
+    await this.call<void>('/account', { method: 'DELETE', headers: this.accountHeaders() })
+    this.identityEpoch += 1
+    this.invalidate('账号已停用，所有服务器会话和房间席位已撤销')
   }
 
   async logout(): Promise<void> {
