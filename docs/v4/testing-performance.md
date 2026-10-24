@@ -1,0 +1,99 @@
+# V4 战斗测试的执行与触发范围
+
+`pnpm test:battle-v4` 使用独立进程并行运行测试文件，默认工作进程数为 `min(2, availableParallelism())`。每个文件保持隔离，单个文件内部顺序执行，避免共享的配置仓库、日志和模拟计时器互相影响。可以按机器负载覆盖并发数：
+
+```sh
+pnpm test:battle-v4 --maxWorkers=4
+pnpm test:battle-v4 test/v4/port.test.ts
+```
+
+公共包入口指向 `dist`，修改运行时代码后仍需先构建相关依赖。不要直接以 `--changed` 推断源文件与测试的关系：运行时导入的是构建产物，测试还会读取 YAML 和 JSON 文件。
+
+## 本次修改
+
+原配置把全部测试限制在两个工作进程：
+
+```js
+test: { environment: 'node', include: ['test/v4/**/*.test.ts'], maxWorkers: 2 }
+```
+
+现在显式保持进程池、文件隔离和文件并行。测量后保留两个进程的默认上限，并在单核机器上限制为一个；主要通过拆分大文件和减少重复准备来提速：
+
+```js
+test: {
+  environment: 'node',
+  include: ['test/v4/**/*.test.ts'],
+  pool: 'forks',
+  isolate: true,
+  fileParallelism: true,
+  maxWorkers: Math.min(2, availableParallelism()),
+}
+```
+
+`skill-power.test.ts` 和 `compound-actions.test.ts` 原先在每个候选中重新读取、解析整份 YAML：
+
+```ts
+records.map(r => parse(readFileSync(source(r), 'utf8'), { merge: true })[index(r)])
+```
+
+现在按源文件缓存原始数据，并为每个候选深拷贝定义，保持原来的独立可变对象：
+
+```ts
+if (!definitionSources.has(r.sourceFile))
+  definitionSources.set(r.sourceFile, parse(readFileSync(source(r), 'utf8'), { merge: true }))
+return structuredClone(definitionSources.get(r.sourceFile)[index(r)])
+```
+
+两处原有的 oracle 解析、配置注册、来源哈希校验和断言均保留。
+
+原 `mark-applications.test.ts` 的 5,211 个用例现在由四个文件调用共享套件注册，每个用例只运行一次。四片分别有 1,447、1,168、1,280、1,316 个用例，原始与拆分后的测试标题集合及重复次数完全一致。聚合断言仍读取完整的 282 条候选；专用场景归入第一片。
+
+原来每场战斗都会复制全部 271 个 legacy oracle 注册的全局配置。现在按候选分片只解析本片的 73、67、63、68 个 oracle，总数仍为 271。这样既能调度原来同一个文件里的工作，也减少每场战斗复制的无关参数；不并发执行共享单例的同文件用例。
+
+## CI 的选择规则
+
+工作流始终创建原有检查，通过轻量 `changes` job 按改动范围决定是否运行。这样无关改动会跳过测试，原检查名称仍存在，不使用会让必需检查一直等待的工作流级 `paths` 过滤。
+
+| 改动                                              | 运行范围              |
+| ------------------------------------------------- | --------------------- |
+| 普通文档、其他工作流、监控配置                    | 跳过四个战斗 job      |
+| server                                            | 服务端检查            |
+| console、packages/cli、bin                        | 服务端和离线 CLI 检查 |
+| 根 rolldown.config.js                             | 离线 CLI 检查         |
+| web-ui、resource                                  | 浏览器检查            |
+| client、database、p2p-transport 等两端共用依赖    | 服务端和浏览器检查    |
+| battle、基础内容包、pack-loader、公共运行时依赖   | 全部战斗检查          |
+| V4 回归 JSON、示例、V1 来源清单、等待快照验证脚本 | 核心战斗检查          |
+| 锁文件、共享根配置、运行时构建脚本或本工作流      | 全部战斗检查          |
+
+`headless-battle`、`native-server-entry`、`native-browser-entry`、`offline-cli` 四个 job 分别使用 `headless`、`server`、`browser`、`cli` 输出。服务端 job 的根 CLI 类型检查包含 `packages/cli` 源码，所以该包和 console 的改动会覆盖服务端与离线 CLI；server 本身不属于离线 CLI 依赖，不会触发离线测试。离线测试会构建根 CLI bundle，所以 `bin` 和根 `rolldown.config.js` 也纳入其范围。
+
+包的传递依赖从 workspace manifests 递归推导，修改相关包内部任意文件时保守运行该包对应的检查。手动执行、缺失 Git 历史、无法确定改动范围时全部运行。PR 使用合并基点，push 使用前后提交，重命名同时考虑新旧路径。同一 PR 或分支的新提交会取消旧的未完成运行。
+
+现有全仓 `pnpm lint` 仍在核心战斗 job 内，会与该 job 一起跳过；本次没有新增独立的全仓 lint 门禁。
+
+## 性能记录
+
+2026-10-24，本地 Node 24.19.0、Vitest 4.1.11、8 个可用逻辑核。以下是各执行一次的墙钟时间，测试准备测量使用不匹配任何用例的 `--testNamePattern`，只收集、不执行断言。
+
+| 测量                                          | 修改前   | 修改后   |
+| --------------------------------------------- | -------- | -------- |
+| 技能威力和组合动作两文件的准备，固定 2 个进程 | 11.26 秒 | 2.61 秒  |
+| 同一组 5,211 个印记用例，固定 2 个进程上限    | 67.09 秒 | 38.94 秒 |
+
+印记测试耗时减少约 42%，两个大型测试文件的准备耗时减少约 77%。原始印记文件和拆分后的四个文件在独立运行时都通过全部 5,211 个用例；原文件只有一个可调度单元，拆分后默认两个进程可同时工作。
+
+固定六文件、1,697 个用例的并行方式实验：2 个进程 18.05 秒，4 个进程 19.40 秒，4 个线程 35.13 秒，均通过。四进程完整运行中，两个回合用例超过原有的 5 秒限制。因此默认保留两个进程，并解决大文件内部无法调度的瓶颈；不提高测试时限。
+
+拆分后的 5,211 个印记用例全部通过：两个进程 38.94 秒，四个进程 29.19 秒。单独运行这组用例时可按机器余量尝试四个进程，混合完整回归仍使用默认上限。
+
+六文件样本为 `heal-modifiers`、`mark-removals`、`mark-consumption`、`multihit`、`port`、`random-stat-actions`。完整正确性回归与局部性能测量分别记录，不以旧缓存的耗时作为本次基线。
+
+## 验证结果
+
+- 四进程实验完整执行原来的 153 个文件，共 27,496 个用例：27,494 通过，`skill-outcome-sequences` 的两个 `turn` 用例超过 5 秒；没有修改断言或延长时限。
+- 恢复默认两进程上限后，该文件单独完整复测 409/409 通过（107.83 秒）；拆分后的印记回归分别在两进程、四进程下均为 5,211/5,211 通过。
+- 两个 YAML 缓存文件在上述完整回归中分别通过 2,747 和 585 个用例。
+- 最初的 CI 范围判定 29/29 场景通过，V4 类型检查、变更测试的 ESLint、格式和 diff 检查通过。接入包含离线 CLI 与等待快照验证的 V4 主线后，扩展的 CI 范围判定 36/36 场景通过，工作流 YAML、原有验证步骤保留和格式检查通过。
+
+本次没有再次运行最终两进程配置下的整套混合回归，也没有在 GitHub 执行新工作流；不据此给出整套 CI 的提速比例。

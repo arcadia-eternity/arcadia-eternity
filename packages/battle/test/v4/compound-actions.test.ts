@@ -77,12 +77,16 @@ function normalize(v: unknown): unknown {
         )
       : v
 }
+const definitionSources = new Map<string, ReturnType<typeof parse>>()
 const definitions = new Map(
   ids.map(id => {
     const r = ledger.records.find((r: { id: string }) => r.id === id)
-    const d = parse(readFileSync(new URL(`../../../../${r.sourceFile}`, import.meta.url), 'utf8'), { merge: true })[
-      Number(r.sourcePath.slice(1))
-    ]
+    if (!definitionSources.has(r.sourceFile))
+      definitionSources.set(
+        r.sourceFile,
+        parse(readFileSync(new URL(`../../../../${r.sourceFile}`, import.meta.url), 'utf8'), { merge: true }),
+      )
+    const d = structuredClone(definitionSources.get(r.sourceFile)[Number(r.sourcePath.slice(1))])
     expect(r.definitionSha256).toBe(
       createHash('sha256')
         .update(JSON.stringify(normalize(d)))
