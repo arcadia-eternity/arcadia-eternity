@@ -1,4 +1,5 @@
-import { Type, type Static, type TSchema } from '@sinclair/typebox'
+import { Type, type Static, type TObject, type TSchema } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 import type { EffectTrigger } from '@arcadia-eternity/const'
 import type { Effect } from '../effect'
 import type { BaseMark } from '../mark'
@@ -111,7 +112,41 @@ function diagnostic(error: unknown, contentId: string, field: string, useId?: st
   if (error instanceof BehaviorCompilationError) return error
   const message = error instanceof Error ? error.message : 'Invalid behavior data'
   const code = message.startsWith('LIMIT_EXCEEDED:') ? 'LIMIT_EXCEEDED' : 'INVALID_PARAMETERS'
-  return new BehaviorCompilationError(freezeContent([{ code, contentId, field, useId, message }]))
+  return new BehaviorCompilationError(freezeContent([{ code, contentId, field, ...(useId ? { useId } : {}), message }]))
+}
+/** JSON pointer paths stay unambiguous for parameter names containing dots or slashes. */
+function forbiddenKeyPath(input: unknown, path = ''): string | undefined {
+  if (!input || typeof input !== 'object') return undefined
+  for (const [key, value] of Object.entries(input)) {
+    const child = `${path}/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`
+    if (key === '__proto__') return child
+    const nested = forbiddenKeyPath(value, child)
+    if (nested) return nested
+  }
+  return undefined
+}
+function normalizeAt<S extends TObject>(
+  schema: S,
+  input: unknown,
+  contentId: string,
+  field: string,
+  useId?: string,
+): Readonly<Static<S>> {
+  try {
+    return normalizeParams(schema, input)
+  } catch (error) {
+    // normalizeParams has already checked finite plain JSON before applying defaults.
+    // Do not clone/default a rejected prototype-bearing input merely to diagnose it.
+    const candidate =
+      error instanceof Error && error.message === 'Invalid content parameters'
+        ? Value.Default(schema, Value.Clone(input))
+        : input
+    const path =
+      error instanceof Error && error.message === 'Invalid parameter name'
+        ? forbiddenKeyPath(input)
+        : Value.Errors(schema, candidate).First()?.path
+    throw diagnostic(error, contentId, `${field}${path ?? ''}`, useId)
+  }
 }
 function schemasFor(parameters: Readonly<Record<string, BehaviorParameter>>): Readonly<Record<string, TSchema>> {
   const result: Record<string, TSchema> = Object.create(null)
@@ -138,11 +173,17 @@ function schemasFor(parameters: Readonly<Record<string, BehaviorParameter>>): Re
   }
   return result
 }
-function normalizeValues(parameters: Readonly<Record<string, BehaviorParameter>>, input: unknown) {
-  const schemas = schemasFor(parameters)
-  return normalizeParams(Type.Object({ ...schemas }, { additionalProperties: false }), input) as Readonly<
-    Record<string, string | number | boolean>
-  >
+function normalizeValues(
+  parameters: Readonly<Record<string, BehaviorParameter>>,
+  input: unknown,
+  location?: { readonly contentId: string; readonly field: string; readonly useId?: string },
+) {
+  const schema = Type.Object({ ...schemasFor(parameters) }, { additionalProperties: false })
+  return (
+    location
+      ? normalizeAt(schema, input, location.contentId, location.field, location.useId)
+      : normalizeParams(schema, input)
+  ) as Readonly<Record<string, string | number | boolean>>
 }
 function normalizeDefinition(input: unknown): BehaviorDefinition {
   checkSize(input)
@@ -181,10 +222,13 @@ export function normalizeBehaviorUses(input: unknown, owner: BehaviorOwner): rea
     if (!Array.isArray(input) || input.length > 64) throw new Error('Expected at most 64 behavior uses')
     const seen = new Set<string>()
     return freezeContent(
-      input.map(raw => {
-        const use = normalizeParams(behaviorUseSchema, raw)
+      input.map((raw, index) => {
+        const rawId: unknown =
+          raw && typeof raw === 'object' && Object.hasOwn(raw, 'useId') ? Reflect.get(raw, 'useId') : undefined
+        const useId = typeof rawId === 'string' && Value.Check(id, rawId) ? rawId : undefined
+        const use = normalizeAt(behaviorUseSchema, raw, owner.id, `/behaviors/${index}`, useId)
         if (seen.has(use.useId))
-          fail('DUPLICATE_ID', owner.id, 'useId', `duplicate behavior use ${use.useId}`, use.useId)
+          fail('DUPLICATE_ID', owner.id, `/behaviors/${index}/useId`, `duplicate behavior use ${use.useId}`, use.useId)
         seen.add(use.useId)
         return use
       }),
@@ -294,7 +338,11 @@ export function validateBehaviorUse(
     )
       fail('CAPABILITY_MISMATCH', options.owner.id, field, 'behavior owner/source mismatch', use.useId)
     field = 'params'
-    const params = normalizeValues(definition.parameters, use.params)
+    const params = normalizeValues(definition.parameters, use.params, {
+      contentId: options.owner.id,
+      field: '/params',
+      useId: use.useId,
+    })
     const schemas = schemasFor(definition.parameters)
     let native: NativeBehaviorExport | undefined
     if (definition.implementation.kind === 'native') {

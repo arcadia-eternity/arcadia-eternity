@@ -6,7 +6,7 @@
 
 ## 数据与装配
 
-`createContentCatalog` 的 `ContentPrototypeData.behaviors` 保存定义数组；技能和印记元数据中的 `behaviors` 保存使用数组。原有 `effect: string[]` 继续引用静态效果。执行时先使用原有 `effect` 顺序，再使用 `behaviors` 顺序；行为使用不能再次通过 `effect` 引用，也不能挂到另一拥有者上。
+`createContentCatalog` 的 `ContentPrototypeData.behaviors` 保存定义数组；技能和印记元数据中的 `behaviors` 保存使用数组。原有 `effect: string[]` 继续引用静态效果。目录列表按 `effect`、`behaviors` 的顺序装配，实际执行仍遵循既有优先级，同优先级保持列表顺序。行为使用不能再次通过 `effect` 引用，也不能挂到另一拥有者上。
 
 ```ts
 const definition = {

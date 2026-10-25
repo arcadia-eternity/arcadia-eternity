@@ -1275,7 +1275,7 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
 ) {
   const definition = defineEffect(input)
   const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {}, options)
-  const source = options.source
+  const source = options.source ? Object.freeze({ ...options.source }) : undefined
   const acceptsSource = (context: EffectContext<EffectTrigger>): boolean =>
     !source ||
     (source.kind === 'skill'

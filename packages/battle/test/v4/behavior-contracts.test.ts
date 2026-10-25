@@ -176,6 +176,26 @@ it('does not execute a native use when attached to another skill definition', ()
   expect(fixture.a.activePet.currentHp).toBe(1)
 })
 
+it('retains its compiled skill source when the caller changes the source options', () => {
+  const fixture = makeScenario(248)
+  battles.push(fixture.battle)
+  const skill = fixture.a.activePet.skills[0]
+  const source = { kind: 'skill' as const, id: skill.baseId as string }
+  const effect = compileEffect(
+    defineEffect({
+      id: 'trusted/fixed-source',
+      on: 'OnHit',
+      execute: targets.ownerPet.apply(ops.heal(10)),
+    }),
+    { source },
+  )
+  source.id = 'ugc/another-skill'
+  skill.effects.splice(0, skill.effects.length, effect)
+  fixture.a.activePet.currentHp = 1
+  apply(fixture)
+  expect(fixture.a.activePet.currentHp).toBe(11)
+})
+
 it('validates native candidates before invoking their trusted builder', () => {
   let builds = 0
   const native = defineNativeBehavior({
@@ -305,11 +325,11 @@ it('keeps a native string selection within its published enum and length contrac
 })
 
 it.each([
-  ['negative', { amount: -1 }],
-  ['over maximum', { amount: 101 }],
-  ['wrong type', { amount: 'ten' }],
-  ['unpublished parameter', { hidden: 10 }],
-] as const)('rejects %s with the owner and use location before activation', (_name, params) => {
+  ['negative', { amount: -1 }, '/params/amount'],
+  ['over maximum', { amount: 101 }, '/params/amount'],
+  ['wrong type', { amount: 'ten' }, '/params/amount'],
+  ['unpublished parameter', { hidden: 10 }, '/params/hidden'],
+] as const)('rejects %s with the owner and use location before activation', (_name, params, field) => {
   const result = compileBehaviorUse(
     recovery(),
     { useId: 'invalid', definitionId: 'ugc/recovery', params },
@@ -317,9 +337,53 @@ it.each([
   )
   expect(result).toMatchObject({
     ok: false,
-    diagnostics: [{ code: 'INVALID_PARAMETERS', contentId: 'fixture/setup', useId: 'invalid', field: 'params' }],
+    diagnostics: [{ code: 'INVALID_PARAMETERS', contentId: 'fixture/setup', useId: 'invalid', field }],
   })
   expect(result).not.toHaveProperty('effect')
+})
+
+it.each([
+  [
+    'nested scalar value',
+    { useId: 'bad', definitionId: 'ugc/recovery', params: { amount: { value: 10 } } },
+    '/behaviors/1/params/amount',
+  ],
+  ['unknown use field', { useId: 'bad', definitionId: 'ugc/recovery', unknown: true }, '/behaviors/1/unknown'],
+  [
+    'prototype field',
+    JSON.parse('{"useId":"bad","definitionId":"ugc/recovery","params":{"__proto__":{"polluted":true}}}'),
+    '/behaviors/1/params/__proto__',
+  ],
+] as const)('locates a malformed %s in its containing use array', (_name, invalid, field) => {
+  const valid = { useId: 'good', definitionId: 'ugc/recovery', params: { amount: 10 } }
+  let caught: unknown
+  try {
+    normalizeBehaviorUses([valid, invalid], owner)
+  } catch (error) {
+    caught = error
+  }
+  expect(caught).toBeInstanceOf(BehaviorCompilationError)
+  expect(caught).toMatchObject({
+    diagnostics: [{ code: 'INVALID_PARAMETERS', contentId: owner.id, useId: 'bad', field }],
+  })
+  expect(Object.prototype).not.toHaveProperty('polluted')
+})
+
+it.each([
+  { definitionId: 'ugc/recovery', params: { amount: 10 } },
+  { useId: '', definitionId: 'ugc/recovery', params: { amount: 10 } },
+] as const)('locates a missing or invalid use identity without inventing one: %j', invalid => {
+  let caught: unknown
+  try {
+    normalizeBehaviorUses([{ useId: 'good', definitionId: 'ugc/recovery' }, invalid], owner)
+  } catch (error) {
+    caught = error
+  }
+  expect(caught).toBeInstanceOf(BehaviorCompilationError)
+  expect(caught).toMatchObject({
+    diagnostics: [{ code: 'INVALID_PARAMETERS', contentId: owner.id, field: '/behaviors/1/useId' }],
+  })
+  if (caught instanceof BehaviorCompilationError) expect(caught.diagnostics[0]).not.toHaveProperty('useId')
 })
 
 it('rejects unknown definitions, mismatched sources and unregistered native implementations', () => {
@@ -431,7 +495,7 @@ it('keeps shared rule parameters connected while copying uses and expanding an i
   expect(restoredFixture.a.activePet.currentHp).toBe(15)
   expect(
     compileBehaviorUse(saved.definition, { ...saved.use, params: { amount: 101 } }, { owner, registry }),
-  ).toMatchObject({ ok: false, diagnostics: [{ code: 'INVALID_PARAMETERS', field: 'params' }] })
+  ).toMatchObject({ ok: false, diagnostics: [{ code: 'INVALID_PARAMETERS', field: '/params/amount' }] })
   expect(() => copyBehaviorUse(use, 'first')).toThrow(BehaviorCompilationError)
   expect(() => copyBehaviorDefinition(definition, definition.id)).toThrow(BehaviorCompilationError)
 })

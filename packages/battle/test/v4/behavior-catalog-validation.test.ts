@@ -62,7 +62,12 @@ it('rejects duplicate definition and owner-local use identities', () => {
     { useId: 'same', definitionId: 'ugc/heal' },
     { useId: 'same', definitionId: 'ugc/heal' },
   ])
-  expectDiagnostic(() => createContentCatalog(duplicateUse, 'invalid'), 'DUPLICATE_ID', 'ugc/skill', 'useId')
+  expectDiagnostic(
+    () => createContentCatalog(duplicateUse, 'invalid'),
+    'DUPLICATE_ID',
+    'ugc/skill',
+    '/behaviors/1/useId',
+  )
 })
 
 it('rejects unknown definitions and wrong source ownership before activation', () => {
@@ -128,7 +133,7 @@ it.each(['parameters', 'capability'] as const)('rejects invalid %s before callin
     () => createContentCatalog(input, 'invalid', legacy, [], { nativeExports: [native] }),
     invalid === 'parameters' ? 'INVALID_PARAMETERS' : 'UNKNOWN_CAPABILITY',
     'ugc/second',
-    invalid === 'parameters' ? 'params' : 'actions',
+    invalid === 'parameters' ? '/params/amount' : 'actions',
   )
   expect(build).not.toHaveBeenCalled()
   expect(legacy).not.toHaveBeenCalled()
