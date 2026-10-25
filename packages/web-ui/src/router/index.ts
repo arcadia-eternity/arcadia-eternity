@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import LobbyView from '../pages/lobbyPage.vue'
 // import BattleView from '../pages/battlePage.vue'
 const BattleView = () => import('../pages/battlePage.vue')
@@ -11,7 +11,7 @@ import { battleGuard } from './guards'
 import TeamBuilder from '@/pages/teamBuilder.vue'
 import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
-import { isDesktop } from '@/utils/env'
+import { isDesktop, isStaticMode } from '@/utils/env'
 
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
@@ -25,6 +25,7 @@ const routes: RouteRecordRaw[] = [
     component: LobbyView,
     meta: {
       title: '好友大厅',
+      requiresServer: true,
     },
     props: route => ({
       // 将查询参数转换为props
@@ -53,6 +54,7 @@ const routes: RouteRecordRaw[] = [
     props: true,
     meta: {
       title: '私人房间',
+      requiresServer: true,
       requiresAuth: false, // 私人房间不需要强制认证
     },
   },
@@ -86,6 +88,7 @@ const routes: RouteRecordRaw[] = [
     component: AccountPage,
     meta: {
       title: '账户管理',
+      serverOnly: true,
     },
   },
 
@@ -137,6 +140,7 @@ const routes: RouteRecordRaw[] = [
     component: BattleRecordList,
     meta: {
       title: '战报记录',
+      serverOnly: true,
     },
   },
   {
@@ -145,6 +149,7 @@ const routes: RouteRecordRaw[] = [
     component: BattleRecordDetail,
     meta: {
       title: '战报详情',
+      serverOnly: true,
     },
   },
   {
@@ -157,6 +162,7 @@ const routes: RouteRecordRaw[] = [
     }),
     meta: {
       title: '战报预览',
+      serverOnly: true,
     },
   },
   {
@@ -165,6 +171,7 @@ const routes: RouteRecordRaw[] = [
     component: PlayerBattleRecords,
     meta: {
       title: '玩家战报',
+      serverOnly: true,
     },
   },
   // 本地战报相关路由
@@ -225,8 +232,13 @@ if (!isDesktop) {
 }
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
+  history: isStaticMode ? createWebHashHistory() : createWebHistory(import.meta.env.BASE_URL),
+  routes: isStaticMode
+    ? [
+        { path: '/', redirect: '/local-battle' },
+        ...routes.filter(route => !route.meta?.requiresServer && !route.meta?.serverOnly),
+      ]
+    : routes,
   scrollBehavior(_to, _from, savedPosition) {
     return savedPosition || { top: 0 }
   },

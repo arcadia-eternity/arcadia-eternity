@@ -1,8 +1,10 @@
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
+import unknownPet from '@/assets/images/unknown-pet.svg'
 import type { MarkSchemaType, SkillSchemaType, SpeciesSchemaType } from '@arcadia-eternity/schema'
 
-const MARK_ICON_FALLBACK = 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png'
-const SKILL_SFX_FALLBACK = 'https://seer2-resource.yuuinih.com/sound/skill/01_1_003.mp3'
-const PET_IMAGE_FALLBACK = 'https://seer2-resource.yuuinih.com/png/pet/unknown.png'
+const MARK_ICON_FALLBACK = officialAssetUrl('https://seer2-resource.yuuinih.com/png/traitMark/inc.png')
+const SKILL_SFX_FALLBACK = officialAssetUrl('https://seer2-resource.yuuinih.com/sound/skill/01_1_003.mp3')
+const PET_IMAGE_FALLBACK = unknownPet
 
 function isHttpUrl(value: string): boolean {
   return value.startsWith('http://') || value.startsWith('https://')
@@ -26,7 +28,7 @@ export function resolveMarkIconUrl(
 ): string {
   if (!mark) return MARK_ICON_FALLBACK
   if (mark.iconRef) {
-    if (isHttpUrl(mark.iconRef) || isProtocolUrl(mark.iconRef)) return mark.iconRef
+    if (isHttpUrl(mark.iconRef) || isProtocolUrl(mark.iconRef)) return officialAssetUrl(mark.iconRef)
     const mapped = getMarkImage(mark.iconRef)
     if (mapped) return mapped
     return resolveRuntimeAssetUrl(mark.iconRef)
@@ -37,10 +39,10 @@ export function resolveMarkIconUrl(
     if (byId) return byId
   }
   if (mark.tags?.includes('ability')) {
-    return 'https://seer2-resource.yuuinih.com/png/markImage/ability.png'
+    return officialAssetUrl('https://seer2-resource.yuuinih.com/png/markImage/ability.png')
   }
   if (mark.tags?.includes('emblem')) {
-    return 'https://seer2-resource.yuuinih.com/png/markImage/emblem.png'
+    return officialAssetUrl('https://seer2-resource.yuuinih.com/png/markImage/emblem.png')
   }
   return MARK_ICON_FALLBACK
 }
@@ -51,7 +53,7 @@ export function resolveSkillSfxUrl(
 ): string {
   if (!skill) return SKILL_SFX_FALLBACK
   if (skill.sfxRef) {
-    if (isHttpUrl(skill.sfxRef) || isProtocolUrl(skill.sfxRef)) return skill.sfxRef
+    if (isHttpUrl(skill.sfxRef) || isProtocolUrl(skill.sfxRef)) return officialAssetUrl(skill.sfxRef)
     const mapped = getSkillSound(skill.sfxRef)
     if (mapped) return mapped
     return resolveRuntimeAssetUrl(skill.sfxRef)
@@ -72,9 +74,9 @@ export function resolveSpeciesSpriteAsset(
     if (isProtocolUrl(species.assetRef)) {
       const lower = species.assetRef.toLowerCase()
       if (lower.endsWith('.swf')) {
-        return { swfNum: species.num ?? 0, customSwfUrl: species.assetRef }
+        return { swfNum: species.num ?? 0, customSwfUrl: officialAssetUrl(species.assetRef) }
       }
-      return { swfNum: species.num ?? 0, customImageUrl: species.assetRef }
+      return { swfNum: species.num ?? 0, customImageUrl: officialAssetUrl(species.assetRef) }
     }
     if (getPetSwf) {
       const mapped = getPetSwf(species.assetRef)
@@ -93,10 +95,10 @@ export function resolveSpeciesSpriteAsset(
 
 export function resolveSpeciesPortraitUrl(species: SpeciesSchemaType | undefined): string {
   if (!species) return PET_IMAGE_FALLBACK
-  if (species.assetRef && isHttpUrl(species.assetRef)) return species.assetRef
+  if (species.assetRef && isHttpUrl(species.assetRef)) return officialAssetUrl(species.assetRef)
   if (species.assetRef && !isProtocolUrl(species.assetRef)) return resolveRuntimeAssetUrl(species.assetRef)
   if (typeof species.num === 'number' && species.num > 0) {
-    return `https://seer2-resource.yuuinih.com/png/pet/${species.num}.png`
+    return officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${species.num}.png`)
   }
   return PET_IMAGE_FALLBACK
 }

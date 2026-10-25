@@ -34,3 +34,4 @@ test-results
 *storybook.log
 
 .eslintrc-auto-import.json
+.static-assets-cache/

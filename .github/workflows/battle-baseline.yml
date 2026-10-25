@@ -142,7 +142,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.browser == 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -173,6 +173,24 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup
         run: pnpm test:web-native:e2e
+      - uses: actions/cache@v4
+        with:
+          path: packages/web-ui/.static-assets-cache
+          key: static-assets-${{ hashFiles('resource/static-assets.lock.json') }}
+      - name: Verify offline startup and locked official assets
+        run: |
+          node --test scripts/prepare-static-assets.test.mjs
+          pnpm --filter @arcadia-eternity/web-ui exec vitest run src/stores/__tests__/playerIdentity.test.ts src/stores/__tests__/offlineStorage.test.ts src/app/__tests__/bootstrap.test.ts src/utils/__tests__/officialAssetUrl.test.ts --maxWorkers=1
+      - name: Build self-contained static application
+        run: pnpm --filter @arcadia-eternity/web-ui run build:static-only
+      - name: Verify production battles, offline reload and storage failures
+        run: pnpm --filter @arcadia-eternity/web-ui run test:e2e:static
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static-web-evidence
+          path: packages/web-ui/test-results/
+          if-no-files-found: ignore
 
   offline-cli:
     needs: changes

@@ -63,7 +63,12 @@ test('root offline bundle configuration runs offline CLI checks', () => {
   assert.deepEqual(affectedBattleJobs(['rolldown.config.js'], packages), { ...none, cli: true })
 })
 
-for (const path of ['packages/web-ui/src/pages/localBattlePage.vue', 'resource/background.yaml']) {
+for (const path of [
+  'packages/web-ui/src/pages/localBattlePage.vue',
+  'resource/background.yaml',
+  'scripts/prepare-static-assets.mjs',
+  'scripts/prepare-static-assets.test.mjs',
+]) {
   test(`browser change runs only its job: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, browser: true })
   })

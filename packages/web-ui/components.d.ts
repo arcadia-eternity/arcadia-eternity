@@ -80,6 +80,7 @@ declare module 'vue' {
     MarkDetail: typeof import('./src/components/dex/MarkDetail.vue')['default']
     MarkIcon: typeof import('./src/components/MarkIcon.vue')['default']
     ModifiedValue: typeof import('./src/components/battle/ModifiedValue.vue')['default']
+    OfflineResources: typeof import('./src/components/OfflineResources.vue')['default']
     OptionalFieldEditor: typeof import('./src/components/OptionalFieldEditor.vue')['default']
     Pet: typeof import('./src/components/battle/Pet.vue')['default']
     PetButton: typeof import('./src/components/battle/PetButton.vue')['default']

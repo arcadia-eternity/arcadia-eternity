@@ -32,7 +32,10 @@
     "electron:dev": "wait-on http://localhost:5173 && cross-env ARCADIA_ELECTRON_DEV_SERVER_URL=http://localhost:5173 electron ./electron/main.mjs --remote-debugging-port=9222",
     "build:desktop": "run-s build electron:pack",
     "electron:pack": "electron-builder",
-    "electron:pack:publish": "electron-builder --publish always"
+    "electron:pack:publish": "electron-builder --publish always",
+    "build:static": "run-s build:deps build:static-only",
+    "build:static-only": "cross-env VITE_STATIC_MODE=1 vite build && node ../../scripts/prepare-static-assets.mjs && node scripts/build-offline.mjs",
+    "test:e2e:static": "playwright test --config playwright.static.config.ts"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

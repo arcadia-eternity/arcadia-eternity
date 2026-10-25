@@ -33,6 +33,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
 import { resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { logMessagesKey } from '@/symbol/battlelog'
 import {
   BattleMessageType,
@@ -133,6 +134,9 @@ const emitter = mitt<AnimationEvents>()
 
 const route = useRoute()
 const router = useRouter()
+const isLocalBattle = computed(
+  () => !props.replayMode && props.enableDeveloperMode && route.query.privateRoom !== 'true',
+)
 const store = useBattleStore()
 const battleReportStore = useBattleReportStore()
 const gameDataStore = useGameDataStore()
@@ -416,7 +420,7 @@ const background = computed(() => {
   }
   return (
     resourceStore.getBackGround(gameSettingStore.background) ??
-    'https://seer2-resource.yuuinih.com/png/battleBackground/grass.png'
+    officialAssetUrl('https://seer2-resource.yuuinih.com/png/battleBackground/grass.png')
   )
 })
 
@@ -1077,14 +1081,14 @@ const navigateToLobbyWithMatching = async () => {
   if (isFullscreen.value) {
     await exitFullscreen()
   }
-  router.push({ name: 'Lobby', query: { startMatching: 'true' } })
+  router.push(isLocalBattle.value ? '/local-battle' : { name: 'Lobby', query: { startMatching: 'true' } })
 }
 
 const navigateToHome = async () => {
   if (isFullscreen.value) {
     await exitFullscreen()
   }
-  router.push('/')
+  router.push(isLocalBattle.value ? '/local-battle' : '/')
 }
 
 const nextTurn = () => {
@@ -2747,13 +2751,13 @@ watch(
                   class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
                   @click="navigateToLobbyWithMatching"
                 >
-                  重新匹配
+                  {{ isLocalBattle ? '再来一局' : '重新匹配' }}
                 </button>
                 <button
                   class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sky-400 font-bold transition-colors"
                   @click="navigateToHome"
                 >
-                  返回大厅
+                  {{ isLocalBattle ? '返回人机对战' : '返回大厅' }}
                 </button>
               </div>
             </div>

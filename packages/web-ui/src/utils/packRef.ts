@@ -10,6 +10,9 @@ function normalizeBase(base: string): string {
 }
 
 function defaultPackRef(): string {
+  if (import.meta.env.VITE_STATIC_MODE === '1') {
+    return new URL(`${import.meta.env.BASE_URL}pack.json`, window.location.href).href
+  }
   const base = normalizeBase(import.meta.env.VITE_API_BASE || '')
   return `${base}/pack.json`
 }

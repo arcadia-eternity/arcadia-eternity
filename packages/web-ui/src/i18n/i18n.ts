@@ -19,7 +19,7 @@ export async function initI18n(debug = false): Promise<void> {
       backends: [httpBackend],
       backendOptions: [
         {
-          loadPath: '/locales/{{lng}}/{{ns}}.json',
+          loadPath: `${import.meta.env.BASE_URL}locales/{{lng}}/{{ns}}.json`,
         },
       ],
     },

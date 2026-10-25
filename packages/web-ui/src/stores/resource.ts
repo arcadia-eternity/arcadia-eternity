@@ -1,3 +1,4 @@
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 // src/stores/Resource.ts
 import { defineStore } from 'pinia'
 import { GameDataLoader } from '@/utils/gameLoader'
@@ -467,9 +468,9 @@ export const useResourceStore = defineStore('Resource', {
       return layer
     },
 
-    normalizeRecordData<T>(item: Record<string, T>) {
+    normalizeRecordData(item: Record<string, string>) {
       return {
-        byId: item,
+        byId: Object.fromEntries(Object.entries(item).map(([id, url]) => [id, officialAssetUrl(url)])),
         allIds: Object.keys(item),
       }
     },

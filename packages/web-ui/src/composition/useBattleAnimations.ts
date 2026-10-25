@@ -1,3 +1,4 @@
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { computed, h, render, type Ref, type ComputedRef } from 'vue'
 import gsap from 'gsap'
 import i18next from 'i18next'
@@ -247,7 +248,7 @@ export function useBattleAnimations(
       side,
       'miss',
       h('img', {
-        src: 'https://seer2-resource.yuuinih.com/png/damage/miss.png',
+        src: officialAssetUrl('https://seer2-resource.yuuinih.com/png/damage/miss.png'),
         style: { height: '80px', width: 'auto' },
         alt: '未命中',
       }),
@@ -258,7 +259,7 @@ export function useBattleAnimations(
       side,
       'absorb',
       h('img', {
-        src: 'https://seer2-resource.yuuinih.com/png/damage/absorb.png',
+        src: officialAssetUrl('https://seer2-resource.yuuinih.com/png/damage/absorb.png'),
         style: { height: '80px', width: 'auto' },
         alt: '吸收',
       }),

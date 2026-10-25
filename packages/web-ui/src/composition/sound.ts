@@ -1,3 +1,4 @@
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { Howl } from 'howler'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
@@ -47,13 +48,15 @@ export function useSound(
     }
   }
 
-  const victorySoundSrc = `https://seer2-resource.yuuinih.com/sound/battle/ko.mp3`
+  const victorySoundSrc = officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/battle/ko.mp3`)
   ensureHowlInstance(victorySoundSrc)
 
   const registerPetSounds = (spriteNums: number[] | undefined) => {
     if (spriteNums) {
       for (const num of spriteNums) {
-        const src = resourceStore.getPetSoundByNum(num) ?? `https://seer2-resource.yuuinih.com/sound/pet/${num}.mp3`
+        const src =
+          resourceStore.getPetSoundByNum(num) ??
+          officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/pet/${num}.mp3`)
         ensureHowlInstance(src)
       }
     }
@@ -93,7 +96,8 @@ export function useSound(
 
   const playPetSound = (petSpriteNum: number) => {
     const src =
-      resourceStore.getPetSoundByNum(petSpriteNum) ?? `https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`
+      resourceStore.getPetSoundByNum(petSpriteNum) ??
+      officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`)
     const howler = ensureHowlInstance(src)
     howler.play()
   }
