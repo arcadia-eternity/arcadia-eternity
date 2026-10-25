@@ -5,6 +5,7 @@ export {
   selectFrom,
   numberParam,
   booleanParam,
+  stringParam,
   targets,
   contexts,
   conditions,

@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid'
+import type { TSchema } from '@sinclair/typebox'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
@@ -599,7 +600,11 @@ export const booleanParam: typeof C.booleanParam = options => {
   if (typeof options.default !== 'boolean') throw new Error('Expected boolean parameter default')
   return parameter<boolean>(options)
 }
-function parameter<T extends number | boolean>(options: {
+export const stringParam: typeof C.stringParam = options => {
+  if (typeof options.default !== 'string') throw new Error('Expected string parameter default')
+  return parameter<string>(options)
+}
+function parameter<T extends number | boolean | string>(options: {
   default: T
   tags?: readonly string[]
   legacyAliases?: readonly string[]
@@ -1259,9 +1264,23 @@ function bindAttributeOperator<T extends Pet | SkillInstance>(
 /** Explicit opt-in adapter; does not register examples or change the production catalog. */
 export function compileEffect<T extends C.Trigger, P extends Readonly<Record<string, C.Parameter<unknown>>>>(
   input: C.EffectDefinition<T, P>,
+  options: {
+    readonly source?:
+      | { readonly kind: 'skill'; readonly id: string }
+      | { readonly kind: 'petMark'; readonly id: string; readonly mark: BaseMark }
+    readonly parameterSchemas?: Readonly<Record<string, TSchema>>
+    readonly rejectLegacyAliases?: boolean
+    readonly parameterValues?: Readonly<Record<string, string | number | boolean>>
+  } = {},
 ) {
   const definition = defineEffect(input)
-  const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {})
+  const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {}, options)
+  const source = options.source
+  const acceptsSource = (context: EffectContext<EffectTrigger>): boolean =>
+    !source ||
+    (source.kind === 'skill'
+      ? context.source instanceof SkillInstance && context.source.baseId === source.id
+      : context.source instanceof MarkInstanceImpl && context.source.base === source.mark)
   const bindings = compileBindings(
     definition.id,
     [
@@ -1295,8 +1314,14 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
     priority: definition.priority,
     consumesStacks: definition.consumesStacks,
     tags: definition.tags,
-    when: definition.when ? ctx => definition.when!(frame(ctx), parameters) : undefined,
-    apply: ctx => definition.execute(frame(ctx), parameters),
+    when:
+      source || definition.when
+        ? ctx => acceptsSource(ctx) && (!definition.when || definition.when(frame(ctx), parameters))
+        : undefined,
+    apply: ctx => {
+      if (!acceptsSource(ctx)) throw new Error('Mismatched authored behavior source')
+      definition.execute(frame(ctx), parameters)
+    },
   })
   effectBindings.set(effect, [...bindings.values()])
   compiledParameters.set(effect, parameterSet)

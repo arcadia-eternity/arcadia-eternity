@@ -122,6 +122,8 @@ export function compileRule(
     readonly contentId: string
     readonly sourceKind: EffectSourceKind
     readonly sourceMark?: BaseMark
+    /** A reusable behavior may narrow exposed parameters, without widening capability slots. */
+    readonly parameterSchemas?: Readonly<Record<string, TSchema>>
   },
 ): RuleCompileResult {
   let ruleId: string | undefined, nodeId: string | undefined, field: string | undefined
@@ -231,7 +233,10 @@ export function compileRule(
       const kindSchema =
         parameter.kind === 'number' ? Type.Number() : parameter.kind === 'boolean' ? Type.Boolean() : Type.String()
       const usage = links.get(id)
-      const schemas = usage?.schemas ?? []
+      const schemas = [
+        ...(usage?.schemas ?? []),
+        ...(options.parameterSchemas?.[id] ? [options.parameterSchemas[id]] : []),
+      ]
       const slots = usage?.slots ?? []
       const operations = (slots[0]?.operations ?? []).filter(operation =>
         slots.every(slot => slot.operations.includes(operation)),
@@ -240,8 +245,14 @@ export function compileRule(
         address: parameterAddress(rule.id, parameter.nodeId, id),
         schema: schemas.length ? Type.Intersect([kindSchema, ...schemas]) : kindSchema,
         effectiveSchema: slots.length
-          ? Type.Intersect([kindSchema, ...slots.map(slot => slot.effectiveSchema)])
-          : kindSchema,
+          ? Type.Intersect([
+              kindSchema,
+              ...slots.map(slot => slot.effectiveSchema),
+              ...(options.parameterSchemas?.[id] ? [options.parameterSchemas[id]] : []),
+            ])
+          : options.parameterSchemas?.[id]
+            ? Type.Intersect([kindSchema, options.parameterSchemas[id]])
+            : kindSchema,
         value: parameter.value,
         operations,
         tags: [...new Set(slots.flatMap(slot => slot.tags ?? []))],

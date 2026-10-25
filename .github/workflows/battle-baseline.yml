@@ -79,6 +79,8 @@ jobs:
         run: pnpm verify:battle-v4-hosts
       - name: Verify waiting checkpoints in Node and Chrome
         run: pnpm verify:battle-v4-waiting-snapshots
+      - name: Verify independent behavior uses in Node and Chrome
+        run: pnpm verify:battle-v4-behaviors
       - uses: actions/upload-artifact@v4
         if: always()
         with:

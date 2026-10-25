@@ -48,3 +48,5 @@ export {
   type ContentEnvironmentManifest,
   type ContentEnvironment,
 } from './environment'
+
+export * from './behaviors'

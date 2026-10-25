@@ -31,6 +31,7 @@ const jobFiles = {
     /^eslint\.config\.(?:baseline|v4)\.js$/,
     /^scripts\/verify-v1-(?:port|hosts)\.mjs$/,
     /^scripts\/verify-waiting-snapshots\.mjs$/,
+    /^scripts\/verify-behavior-uses\.mjs$/,
     /^docs\/v4\/v1-(?:port-provenance|import-graph|extra-source-map)\.json$/,
     /^docs\/v4\/(?:examples|validation)\//,
   ],

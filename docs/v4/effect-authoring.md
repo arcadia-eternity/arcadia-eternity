@@ -28,13 +28,15 @@
 
 ## 参数
 
-`numberParam` / `booleanParam` 声明配置值，编译后使用 `parameterAddress(effectId, 'parameters', name)`。`effectParameters(effect)` 返回现有 `ParameterCatalog`，新对战在派发前安装；读取使用当前来源作用域。恢复注册相同定义与工厂，保留保存的参数值。
+`numberParam` / `booleanParam` / `stringParam` 声明配置值，编译后使用 `parameterAddress(effectId, 'parameters', name)`。`effectParameters(effect)` 返回现有 `ParameterCatalog`，新对战在派发前安装；读取使用当前来源作用域。恢复注册相同定义与工厂，保留保存的参数值。
 
 参数读取可 capture/follow。未安装或未声明的参数明确失败；别名解析到规范地址，同一 token 不能在一个效果内使用两个名字。命名/标签修饰复用 ConfigSystem 的排序、作用域和来源清理。已知的对手作用域限制见[兼容约定](compatibility.md#仍需单独处理的语义)。
 
 实例印记参数在 OnMarkCreated 之前注入。叠层合并时校验参数兼容性，冲突在副作用前拒绝；快照注册同一参数合同。
 
 ## 有限 UGC 与执行预算
+
+同一行为的多次独立使用、原生导出及规则预设的封装／展开，见[可复用行为与独立使用](behavior-uses.md)。
 
 UGC 使用 `defineAction`、CapabilityRegistry、`compileRule`、`compileContentPack` 和 `lockContentEnvironment`，输入为有边界的数据，执行使用可信能力实现。编译先完整验证 ID、schema、上下文保证及引用，再发布不可变结果；每个动作在执行前解析自己的上下文。例子保存在 [examples](examples/ugc-recovery-pack.json)。
 
