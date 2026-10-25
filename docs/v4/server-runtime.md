@@ -1,12 +1,14 @@
 # 单进程房间与身份
 
-本轮落实 #200 的服务端基础重构。服务端分支 `codex/single-process-server` 须达到 G3 并通过 #220 的验收后才能合并；UGC 不在本轮范围内。
+本轮落实 #200 的服务端基础重构。[#235](https://github.com/arcadia-eternity/arcadia-eternity/pull/235) 已合并 G3 基础实现，Better Auth 验证层接入由 [#237](https://github.com/arcadia-eternity/arcadia-eternity/issues/237) 跟进；UGC 不在本轮范围内。
 
 ## 合并与上线门槛
 
 - **分支合并：G3。** 启用账号时必须有邮箱验证码和 GitHub App 用户授权两条可实际登录、跨重启恢复本服账号的路径；GitHub 是唯一第三方登录提供商。还要能显式绑定多个经验证的身份、处理冲突、拒绝解绑最后一种恢复方式，以及停用账号并撤销会话和房间权限。默认社区部署仍可只提供游客身份，不要求数据库。
 - **官方维护服务器对外上线：G4。** 服务端权威战绩、积分及榜单见 [#233](https://github.com/arcadia-eternity/arcadia-eternity/issues/233)，持久在线录像见 [#234](https://github.com/arcadia-eternity/arcadia-eternity/issues/234)。这两项在后期实施，不阻塞 G3 分支合并；合并也不代表官方服达到上线门槛。
 - 现存旧玩家 UID、旧邮箱记录不自动认领新账号。G3 的恢复只恢复本服务器真正保存的账号身份，不等于恢复浏览器中的宠物、队伍和设置。
+
+真实 SMTP 和 GitHub 登录尚未验收。维护者于 2026-10-24 免除了这两项对 #235 合并的阻塞；它们仍属于官方上线前的验证工作，不能视为已经通过。本轮不执行部署。
 
 ## 启动
 
@@ -43,6 +45,8 @@ pnpm web:dev
 相同 UID 可以建立不同游客会话，双方在同一场战斗也会有不同的 Player.id。客户端提交的 UID、playerId 或 sessionId 都不能覆盖服务器分配的席位。登录、退出及网络失败不修改本地 UID。
 
 游客不写数据库。G3 启用后，邮箱一次性验证码和 GitHub App 适配器只验证外部身份，PostgreSQL 账号目录负责本服 accountId 与外部身份的唯一映射，本进程会话注册表签发临时 token 和席位；详见[账号提供商设计](account-provider-design.md)。旧 `AccountProvider.verify(proof)` 仅作兼容接口，不是默认入口的 G3 登录方式。公开 UID 不能用于认领账号。
+
+Better Auth 1.7.12 在验证层运行：真实 `emailOTP` 插件负责验证码生成、尝试数及一次性核销，并调用自定义摘要钩子，以进程随机密钥计算 HMAC 后保存；GitHub 公共 provider/OAuth API 负责授权请求及授权码交换的通用步骤。邮箱插件为每个挑战创建仅存内存的验证专用身份；不挂载 Better Auth 公共路由，不签发其 session/cookie，也不新增持久账号库。显式绑定多个邮箱、冲突处理和停用仍由 `PgAccountDirectory` 决定，`SessionRegistry` 仍签发游戏 token 和席位。此次接入无需增加部署密钥、数据库 schema 或迁移，也不更改 GitHub App 权限和 `/account` 回调。
 
 默认服务端不创建数据库记录。启用 G3 时，只持久保存服务器范围内的账号、状态和经验证的外部身份绑定；邮箱验证码及 GitHub 授权挑战留在内存，进程重启后需重新发起验证。游客凭证、席位、房间、运行中的战斗和断线宽限也留在内存，不落库。停用账号保留已绑定的身份键，阻止用同一身份重新注册；恢复或删除停用账号需要单独的管理员流程。UGC 内容及发布记录属于后续独立能力。
 
@@ -98,7 +102,7 @@ pnpm lint:server-standalone
 pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverSession.test.ts
 ```
 
-账号目录的 PostgreSQL 并发与持久化测试在提供 `TEST_DATABASE_URL` 时运行；CI 的 `native-server-entry` 已配置测试数据库。邮箱测试使用捕获式邮件发送器，GitHub App 测试替代本地 HTTP 上游验证授权码交换和 `/user.id`；正式上线前还需在实际 SMTP 和 GitHub App 配置下完成预生产验证。客户端/网页及真实浏览器验收见相应测试目录。`server-native` 命令保留为新验证入口的别名。
+账号目录的 PostgreSQL 并发与持久化测试在提供 `TEST_DATABASE_URL` 时运行；CI 的 `native-server-entry` 已配置测试数据库。邮箱测试运行真实 Better Auth OTP 插件并使用捕获式邮件发送器；GitHub App 测试运行真实 Better Auth 授权/OAuth API，以替代 HTTP 上游验证授权码交换和 `/user.id`。这些测试不能替代实际 SMTP 投递和 GitHub App 回调的预生产验证。客户端/网页及真实浏览器验收见相应测试目录。`server-native` 命令保留为新验证入口的别名。
 
 ## 生产配置
 

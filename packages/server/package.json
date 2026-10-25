@@ -34,6 +34,7 @@
     "@arcadia-eternity/pack-loader": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
+    "better-auth": "1.7.12",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "nanoid": "catalog:",

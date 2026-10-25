@@ -1,6 +1,6 @@
-# 可选账号提供商设计草案
+# 可选账号提供商设计
 
-状态：G3 设计及实施依据。2026-10-24 确定本分支合并门槛为 G3，首批两条登录／恢复路径为**邮箱一次性验证码 + GitHub App 用户授权**；GitHub 是唯一第三方登录提供商，原通用 OIDC 不在本轮运行配置中。实际完成状态以 [#220](https://github.com/arcadia-eternity/arcadia-eternity/issues/220) 的验收为准。本文基于提交 `c09d044d` 的旧账号实现和当前单进程服务端源码；只读核对了现有 Supabase 项目的表清单，没有读取玩家记录，也没有执行迁移或部署。G4 排位及战绩、在线录像分别留在 [#233](https://github.com/arcadia-eternity/arcadia-eternity/issues/233) 和 [#234](https://github.com/arcadia-eternity/arcadia-eternity/issues/234) 后期实施；UGC 不在本轮范围内。
+状态：G3 设计及实施依据。两条登录／恢复路径为**邮箱一次性验证码 + GitHub App 用户授权**；GitHub 是唯一第三方登录提供商，原通用 OIDC 不在运行配置中。[#235](https://github.com/arcadia-eternity/arcadia-eternity/pull/235) 已合并 G3 基础实现，本轮按 [#237](https://github.com/arcadia-eternity/arcadia-eternity/issues/237) 接入 Better Auth 1.7.12 验证层。真实 SMTP 和 GitHub 登录仍未验收；维护者于 2026-10-24 免除了它们对 #235 合并的阻塞，并非验证通过。本文保留提交 `c09d044d` 的旧账号实现调查；只读核对过现有 Supabase 项目的表清单，没有读取玩家记录、执行迁移或部署。G4 排位及战绩、在线录像分别留在 [#233](https://github.com/arcadia-eternity/arcadia-eternity/issues/233) 和 [#234](https://github.com/arcadia-eternity/arcadia-eternity/issues/234) 后期实施；UGC 不在本轮范围内。
 
 ## 旧系统实际提供了什么
 
@@ -89,13 +89,21 @@ interface AccountDirectory {
 
 验证**可能写状态**，但只能写其自身的短期挑战记录：验证码尝试数与消费状态、GitHub `state`/PKCE verifier 等。它不能写 `accounts`、`external_identities`，也不能返回自己指定的 `accountId`。认证服务负责把验证结果交给账号目录；验证失败或账号库不可用均不得自动降级为游客。
 
-### Better Auth 隔离评估
+### Better Auth 验证层接入（1.7.12）
 
-`design/better-auth-github` 是针对现成认证库的**隔离 spike**，不代表 Better Auth 已接入 G3 运行时，更不改变生产数据库或部署。评估应验证邮箱 OTP、GitHub App 用户授权、显式绑定、冲突和解绑最后一条恢复路径、停用撤权、跨重启恢复，以及浏览器和 Electron 的会话衔接。Better Auth 有[邮箱 OTP 插件](https://www.better-auth.com/docs/plugins/email-otp)和[账号绑定设置](https://www.better-auth.com/docs/concepts/users-accounts)；其默认同邮箱隐式绑定与本项目规则不同，试验中须启用 `account.accountLinking.disableImplicitLinking` 并以真实回调验证行为。
+Better Auth 已作为运行时依赖承担外部身份验证中的通用步骤，账号归属和对战权限仍由 Arcadia 管理：
 
-现成库的 GitHub 入口也不能直接宣称可用于本轮 GitHub App：[Better Auth 内置 GitHub provider](https://www.better-auth.com/docs/authentication/github)文档要求 `user:email` scope，而 GitHub App 的[授权参数](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)不接受这种 OAuth App scope。若试验需要读取邮箱，GitHub App 应申请 **Email addresses: Read-only** 权限并确认所用适配器调用 `/user/emails`；或者改用不依赖邮箱的 GitHub App 自定义流程。不能为迁就库的默认行为而按同邮箱合并 Arcadia 账号。
+| 层                 | 实现与职责                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 邮箱证明           | [`betterAuthEmail.ts`](../../packages/server/src/standalone/providers/betterAuthEmail.ts) 在服务端内部调用真实 `emailOTP` 插件的 `createVerificationOTP`、`verifyEmailOTP`；Better Auth 负责生成、尝试次数及一次性核销，并通过自定义存储摘要钩子使用进程随机密钥计算 HMAC。每个挑战使用仅存内存的验证专用身份，不是玩家账号。                               |
+| 验证用途和邮件投递 | [`email.ts`](../../packages/server/src/standalone/providers/email.ts) 维护真实收件人与挑战的映射、邮箱规范化、登录／绑定用途、限流、清理及同一挑战的串行核销。                                                                                                                                                                                              |
+| GitHub 证明        | [`github.ts`](../../packages/server/src/standalone/providers/github.ts) 使用 `better-auth/social-providers` 的 `github().createAuthorizationURL()` 生成 S256 授权请求，并使用 `better-auth/oauth2` 的 `authorizationCodeRequest`、`getOAuth2Tokens` 构造和解析授权码交换。Arcadia 保留超时、拒绝重定向、上游限流退避、仅读取 `/user.id` 和短期 token 撤销。 |
+| 持久账号           | [`PgAccountDirectory`](../../packages/server/src/standalone/accounts/directory.ts) 是唯一账号目录，在 `serverId` 范围内处理外部身份唯一归属、多个邮箱的显式绑定、冲突、最后一种恢复方式保护和停用。                                                                                                                                                         |
+| 游戏会话           | [`SessionRegistry`](../../packages/server/src/standalone/session.ts) 签发当前 `bootId` 下的 token 和席位；重启后全部失效。                                                                                                                                                                                                                                  |
 
-即使将来使用 Better Auth，Arcadia 的 `accountId`、外部身份唯一映射、显式绑定和房间会话仍是产品边界。Better Auth 的用户／会话表与[PostgreSQL adapter](https://www.better-auth.com/docs/adapters/postgresql)会带来新的迁移和令牌交换；只有完成数据映射、威胁模型和端到端验证后，才能决定由它替换哪一层。对战席位始终由当前服务器进程签发，绝不直接信任第三方登录 cookie 或浏览器自报 UID。
+不挂载 Better Auth 的完整社交登录、邮箱登录或 `/api/auth/*` 路由，不签发其 session/cookie，也不建立第二套持久用户表。邮箱证明使用验证接口，不使用会创建用户会话的 `signInEmailOTP`。因此 GitHub 展示的邮箱不会成为隐式恢复入口，多个邮箱也不受 Better Auth 单个 `user.email` 的限制。浏览器仍通过既有 `/api/v1/auth/*` 流程取得 Arcadia 会话。
+
+此次接入不要求新的部署密钥、schema、数据库迁移、GitHub App 权限或回调变更；官方回调仍为 `https://battle.yuuinih.com/account`。内置 GitHub 完整用户流程涉及邮箱读取和注册语义，因此这里只复用其授权与 OAuth 公共 API，继续不申请 `user:email` 或 Email addresses 权限。源码依据及原配置草稿的替代说明见[接入记录](../../design/better-auth-github/README.md)。真实 SMTP、GitHub 回调联调和官方部署仍待后续验收。
 
 ## 落库操作及一致性
 

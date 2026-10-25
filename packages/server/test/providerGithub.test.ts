@@ -34,11 +34,12 @@ describe('GitHub App user authorization', () => {
       expect(init?.signal).toBeInstanceOf(AbortSignal)
       if (url === 'https://github.com/login/oauth/access_token') {
         expect(init?.method).toBe('POST')
-        expect(init?.headers).toMatchObject({ Accept: 'application/json' })
+        expect(new Headers(init?.headers).get('accept')).toBe('application/json')
         expect(init?.body).toBeInstanceOf(URLSearchParams)
         const form = init?.body as URLSearchParams
         expect(form.get('client_id')).toBe(clientId)
         expect(form.get('client_secret')).toBe(clientSecret)
+        expect(form.get('grant_type')).toBe('authorization_code')
         expect(form.get('code')).toBe('one-time-code')
         expect(form.get('redirect_uri')).toBe(redirectUri)
         const verifier = form.get('code_verifier')!
@@ -66,6 +67,7 @@ describe('GitHub App user authorization', () => {
     expect(url.origin).toBe('https://github.com')
     expect(url.pathname).toBe('/login/oauth/authorize')
     expect(url.searchParams.get('client_id')).toBe(clientId)
+    expect(url.searchParams.get('response_type')).toBe('code')
     expect(url.searchParams.get('redirect_uri')).toBe(redirectUri)
     expect(url.searchParams.get('state')).toBe(started.state)
     expect(url.searchParams.get('code_challenge_method')).toBe('S256')
