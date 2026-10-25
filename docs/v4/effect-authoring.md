@@ -38,6 +38,8 @@
 
 同一行为的多次独立使用、原生导出及规则预设的封装／展开，见[可复用行为与独立使用](behavior-uses.md)。
 
+可保存规则的目标、数字取值、捕获／跟随和属性贡献，见[受控目标、取值与持续绑定](controlled-capabilities.md)。
+
 UGC 使用 `defineAction`、CapabilityRegistry、`compileRule`、`compileContentPack` 和 `lockContentEnvironment`，输入为有边界的数据，执行使用可信能力实现。编译先完整验证 ID、schema、上下文保证及引用，再发布不可变结果；每个动作在执行前解析自己的上下文。例子保存在 [examples](examples/ugc-recovery-pack.json)。
 
 公开 Config 参数与内容常量分开：内容 schema 验证声明，effective schema 验证配置读取。稳定节点/参数 ID 保持引用；复制规则需重映射本地身份。不可变环境以可信构建身份、策略和编译后内容计算摘要，transport 摘要另标识原始文本；顺序有语义，默认值与空白归一化按编译结果处理。

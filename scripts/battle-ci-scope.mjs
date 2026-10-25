@@ -32,6 +32,7 @@ const jobFiles = {
     /^scripts\/verify-v1-(?:port|hosts)\.mjs$/,
     /^scripts\/verify-waiting-snapshots\.mjs$/,
     /^scripts\/verify-behavior-uses\.mjs$/,
+    /^scripts\/build-environment\.test\.mjs$/,
     /^docs\/v4\/v1-(?:port-provenance|import-graph|extra-source-map)\.json$/,
     /^docs\/v4\/(?:examples|validation)\//,
   ],

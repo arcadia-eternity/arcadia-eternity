@@ -69,6 +69,8 @@ jobs:
         run: pnpm test:battle-baseline
       - name: Verify complete V1 source provenance and import boundary
         run: pnpm verify:battle-v4-source
+      - name: Verify trusted capability build identities
+        run: node --test scripts/build-environment.test.mjs
       - name: Typecheck and lint original V1 port tests and adapters
         run: |
           pnpm typecheck:battle-v4
@@ -81,6 +83,8 @@ jobs:
         run: pnpm verify:battle-v4-waiting-snapshots
       - name: Verify independent behavior uses in Node and Chrome
         run: pnpm verify:battle-v4-behaviors
+      - name: Verify controlled capabilities across hosts
+        run: pnpm verify:battle-v4-capabilities
       - uses: actions/upload-artifact@v4
         if: always()
         with:

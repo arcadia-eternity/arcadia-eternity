@@ -43,6 +43,8 @@ const uses = [
 
 宿主通过 `defineNativeBehavior` 注册导出，并在 `createContentCatalog(data, revision, legacyFactory, packs, { nativeExports })` 中提供。普通数据定义使用 `{ kind: 'native', exportId }` 引用它，且公开参数合同必须与注册导出一致。默认受控规则注册表可以通过同一选项中的 `registry` 替换。
 
+需要引用本次装配的印记时，第五个参数也可传入可信注册工厂 `({ marks }) => ({ registry, nativeExports })`。它在印记分配后运行，规则能力与原生导出因此使用同一份正式 `BaseMark`；工厂不能由导入数据指定。目录仍先校验所有行为使用和规则，再执行原生行为的 `build`。
+
 ```ts
 const native = defineNativeBehavior({
   id: 'trusted/heal',

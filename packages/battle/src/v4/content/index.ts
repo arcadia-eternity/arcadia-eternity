@@ -50,3 +50,15 @@ export {
 } from './environment'
 
 export * from './behaviors'
+
+export {
+  defineRuleValue,
+  defineRuleOperation,
+  type RegisteredRuleValue,
+  type RegisteredRuleOperation,
+  type RuleValueTypes,
+  type RuleValueCategory,
+  type RuleCapabilityMetadata,
+  type RuleValueNode,
+} from './rule-values'
+export { ruleGraphLimits } from './rule-graph'

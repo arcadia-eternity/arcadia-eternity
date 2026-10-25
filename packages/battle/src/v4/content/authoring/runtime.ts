@@ -1327,3 +1327,47 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
   compiledParameters.set(effect, parameterSet)
   return effect
 }
+
+/** Internal data-compiler seam: only stable battle/source identity survives into native binding plans. */
+export function scopedRuleValue<T>(
+  readScope: (state: { readonly battle: Battle; readonly source: EffectContext<EffectTrigger>['source'] }) => T,
+): C.Value<T> {
+  return value(ctx => readScope(scope(ctx)))
+}
+/** Preserve native binding discovery while charging each saved action through the shared budget. */
+export function meterRuleAction(action: C.Action): C.Action {
+  const wrapped: C.Action = ctx => {
+    const context = engine(ctx)
+    context.battle.executionBudget.action(context.battle.currentTurn, () => action(ctx))
+  }
+  actionBindings.set(wrapped, actionBindings.get(action) ?? [])
+  return wrapped
+}
+export function adaptRuleAction(run: (context: EffectContext<EffectTrigger>) => void): C.Action {
+  return ctx => run(engine(ctx))
+}
+/** The rule compiler supplies already-validated callbacks and native authoring actions. */
+export function compileRuleActions(options: {
+  readonly id: string
+  readonly trigger: NativeEffectTrigger
+  readonly priority: number
+  readonly consumesStacks?: number
+  readonly when: (context: EffectContext<EffectTrigger>) => boolean
+  readonly actions: readonly C.Action[]
+  readonly acceptsSource: (source: unknown) => boolean
+}): Effect<EffectTrigger> {
+  const sequence = actions.sequence(...options.actions)
+  const execute: C.Action = ctx => {
+    if (!options.acceptsSource(engine(ctx).source)) throw new Error('Mismatched rule source mark')
+    sequence(ctx)
+  }
+  actionBindings.set(execute, actionBindings.get(sequence) ?? [])
+  return compileEffect({
+    id: options.id,
+    on: options.trigger,
+    priority: options.priority,
+    consumesStacks: options.consumesStacks,
+    when: ctx => options.when(engine(ctx)),
+    execute,
+  })
+}

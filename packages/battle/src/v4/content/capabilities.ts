@@ -1,3 +1,9 @@
+import {
+  isRegisteredRuleValue,
+  isRegisteredRuleOperation,
+  type RegisteredRuleValue,
+  type RegisteredRuleOperation,
+} from './rule-values'
 import { Value } from '@sinclair/typebox/value'
 import type { Static, TObject } from '@sinclair/typebox'
 import { EffectTrigger } from '@arcadia-eternity/const'
@@ -219,10 +225,29 @@ export class CapabilityRegistry {
   private readonly actions = new Map<string, RegisteredAction>()
   private readonly triggers = new Map<string, RegisteredTrigger>()
   private readonly predicates = new Map<string, RegisteredPredicate>()
+  private readonly values = new Map<string, RegisteredRuleValue>()
+  private readonly operations = new Map<string, RegisteredRuleOperation>()
   constructor(
     actions: readonly RegisteredAction[],
-    options: { triggers?: readonly RegisteredTrigger[]; predicates?: readonly RegisteredPredicate[] } = {},
+    options: {
+      triggers?: readonly RegisteredTrigger[]
+      predicates?: readonly RegisteredPredicate[]
+      values?: readonly RegisteredRuleValue[]
+      operations?: readonly RegisteredRuleOperation[]
+    } = {},
   ) {
+    for (const value of options.values ?? []) {
+      if (!isRegisteredRuleValue(value)) throw new Error('Rule value must be created by defineRuleValue')
+      if (this.values.has(value.id)) throw new Error(`Duplicate value capability: ${value.id}`)
+      this.values.set(value.id, value)
+    }
+    for (const operation of options.operations ?? []) {
+      if (!isRegisteredRuleOperation(operation))
+        throw new Error('Rule operation must be created by defineRuleOperation')
+      if (this.operations.has(operation.id) || actions.some(action => action.id === operation.id))
+        throw new Error(`Duplicate operation capability: ${operation.id}`)
+      this.operations.set(operation.id, operation)
+    }
     for (const trigger of options.triggers ?? []) {
       if (!isRegisteredTrigger(trigger)) throw new Error('Trigger must be created by defineTrigger')
       if (this.triggers.has(trigger.id)) throw new Error(`Duplicate trigger capability: ${trigger.id}`)
@@ -248,6 +273,22 @@ export class CapabilityRegistry {
         }),
       )
     }
+  }
+  getRuleValue(id: string): RegisteredRuleValue {
+    const value = this.values.get(id)
+    if (!value) throw new Error(`UNKNOWN_CAPABILITY: ${id}`)
+    return value
+  }
+  getRuleOperation(id: string): RegisteredRuleOperation | undefined {
+    const operation = this.operations.get(id)
+    if (!operation && !this.actions.has(id)) throw new Error(`UNKNOWN_CAPABILITY: ${id}`)
+    return operation
+  }
+  describeValues(): readonly Omit<RegisteredRuleValue, 'build'>[] {
+    return Object.freeze([...this.values.values()].map(({ build: _build, ...contract }) => Object.freeze(contract)))
+  }
+  describeOperations(): readonly Omit<RegisteredRuleOperation, 'build'>[] {
+    return Object.freeze([...this.operations.values()].map(({ build: _build, ...contract }) => Object.freeze(contract)))
   }
   compileTrigger(id: string, input: unknown, sourceKind: EffectSourceKind): CompiledTrigger {
     const trigger = this.triggers.get(id)

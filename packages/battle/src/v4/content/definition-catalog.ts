@@ -42,10 +42,14 @@ export interface ContentPrototypeData {
   readonly behaviors?: readonly unknown[]
 }
 /** Executable exports and rule capabilities are supplied by the trusted host, never metadata. */
-export interface BehaviorCatalogOptions {
+export interface BehaviorCatalogRegistrations {
   readonly registry?: CapabilityRegistry
   readonly nativeExports?: readonly NativeBehaviorExport[]
 }
+/** Trusted registration may reference the canonical marks allocated from saved metadata. */
+export type BehaviorCatalogOptions =
+  | BehaviorCatalogRegistrations
+  | ((content: { readonly marks: ReadonlyMap<string, BaseMark> }) => BehaviorCatalogRegistrations)
 export interface TrustedEffectCatalog {
   readonly effects: ReadonlyMap<string, Effect<EffectTrigger>>
   readonly parameters: ReadonlyMap<string, ParameterCatalog>
@@ -65,7 +69,7 @@ export function createContentCatalog(
   revision: string,
   createEffects: TrustedEffectFactory = emptyFactory,
   packs: readonly CompiledContentPack[] = [],
-  behaviorOptions: BehaviorCatalogOptions = {},
+  behaviorRegistrations: BehaviorCatalogOptions = {},
 ) {
   const catalog = new SnapshotCatalog(revision)
   for (const kind of ['marks', 'skills', 'species'] as const)
@@ -121,6 +125,10 @@ export function createContentCatalog(
     packIds.add(pack.data.id)
     for (const mark of pack.marks) add(marks, 'mark', mark)
   }
+  const behaviorOptions =
+    typeof behaviorRegistrations === 'function'
+      ? behaviorRegistrations(Object.freeze({ marks: new Map(marks) }))
+      : behaviorRegistrations
   const registry = behaviorOptions.registry ?? createCoreCapabilityRegistry()
   const behaviorPlans = [...markEntries, ...skillEntries].flatMap(entry =>
     entry.uses.map(use => ({

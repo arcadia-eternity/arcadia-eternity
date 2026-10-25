@@ -90,6 +90,7 @@ for (const path of [
   'scripts/verify-v1-hosts.mjs',
   'scripts/verify-waiting-snapshots.mjs',
   'scripts/verify-behavior-uses.mjs',
+  'scripts/build-environment.test.mjs',
 ]) {
   test(`headless test input runs headless checks: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, headless: true })

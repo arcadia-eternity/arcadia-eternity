@@ -133,8 +133,19 @@ it.each(['parameters', 'capability'] as const)('rejects invalid %s before callin
     () => createContentCatalog(input, 'invalid', legacy, [], { nativeExports: [native] }),
     invalid === 'parameters' ? 'INVALID_PARAMETERS' : 'UNKNOWN_CAPABILITY',
     'ugc/second',
-    invalid === 'parameters' ? '/params/amount' : 'actions',
+    invalid === 'parameters' ? '/params/amount' : '/actions/0/id',
   )
   expect(build).not.toHaveBeenCalled()
   expect(legacy).not.toHaveBeenCalled()
+})
+
+it('keeps definition identity and field when a bulk catalog contains a malformed rule', () => {
+  const input = data()
+  input.behaviors[0].implementation.rule.actions = []
+  expectDiagnostic(
+    () => createContentCatalog(input, 'invalid'),
+    'INVALID_PARAMETERS',
+    'ugc/heal',
+    '/implementation/rule/actions',
+  )
 })

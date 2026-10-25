@@ -1,3 +1,4 @@
+import { hasAuthoredParameters, registerEffect } from './authoring/runtime'
 import { BattlePhase, BattleStatus } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { SnapshotCatalog, snapshotBattle, restoreBattle } from '../snapshot'
@@ -122,7 +123,10 @@ export async function lockContentEnvironment(
   )
   const catalog = new SnapshotCatalog(environmentDigest)
   for (const pack of packs) {
-    for (const rule of pack.rules) catalog.registerEffect(rule.effect.id, rule.effect)
+    for (const rule of pack.rules) {
+      if (hasAuthoredParameters(rule.effect)) registerEffect(catalog, rule.effect)
+      else catalog.registerEffect(rule.effect.id, rule.effect)
+    }
     for (const mark of pack.marks) catalog.registerContent(mark.id, mark)
   }
   catalog.seal()

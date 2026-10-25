@@ -1,3 +1,4 @@
+import { coreRuleValues, coreRuleOperations } from './core-rule-values'
 import { Type } from '@sinclair/typebox'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import { SkillInstance } from '../skill'
@@ -79,6 +80,8 @@ export const coreCapabilities = Object.freeze({
   triggers: Object.freeze([selfSkillHit, selfSkillHitTarget, markOwnerTurnEnd, markCreated]),
   actions: Object.freeze([healOwner, healOwnerByMaxHp]),
   predicates: Object.freeze([ownerHpBelowRatio]),
+  values: coreRuleValues,
+  operations: coreRuleOperations,
 })
 export function createCoreCapabilityRegistry(): CapabilityRegistry {
   return new CapabilityRegistry(coreCapabilities.actions, coreCapabilities)

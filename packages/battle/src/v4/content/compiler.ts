@@ -1,3 +1,7 @@
+import { Value as SchemaValue } from '@sinclair/typebox/value'
+import { compileRuleGraph } from './rule-graph'
+import { ruleValueNodeSchema, ruleInputsSchema, RuleSlotError } from './rule-values'
+import { scopedRuleValue, adaptRuleAction, compileRuleActions } from './authoring/runtime'
 import { BaseMark, MarkInstanceImpl } from '../mark'
 import { markParameterContract } from './mark-parameters'
 import { Type, type Static, type TSchema } from '@sinclair/typebox'
@@ -57,12 +61,14 @@ export const ruleSchema = Type.Object(
         { additionalProperties: false },
       ),
     ),
+    values: Type.Optional(Type.Array(ruleValueNodeSchema, { maxItems: 128 })),
     actions: Type.Array(
       Type.Object(
         {
           stepId: Type.String({ minLength: 1 }),
           id: Type.String({ minLength: 1 }),
           params: Type.Unknown({ default: {} }),
+          inputs: Type.Optional(ruleInputsSchema),
         },
         { additionalProperties: false },
       ),
@@ -92,26 +98,111 @@ export type RuleCompileResult =
     }
   | { readonly ok: false; readonly diagnostics: readonly CompileDiagnostic[] }
 
-/** Structural admission only; nested battle execution budgets are a separate runtime gate. */
-function checkSize(input: unknown): void {
+/** A malformed rule still retains every valid identity and its exact input location. */
+export class RuleStructureError extends Error {
+  constructor(
+    readonly ruleId: string | undefined,
+    readonly nodeId: string | undefined,
+    readonly field: string,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+function rawIdentity(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+function identityAtField(input: unknown, field: string): string | undefined {
+  const parts = field
+    .split('/')
+    .slice(1)
+    .map(part => part.replaceAll('~1', '/').replaceAll('~0', '~'))
+  const property = (value: unknown, key: string | undefined): unknown =>
+    key !== undefined && value && typeof value === 'object' && Object.hasOwn(value, key)
+      ? Reflect.get(value, key)
+      : undefined
+  const identify = (value: unknown, key = 'nodeId') => rawIdentity(property(value, key))
+  // Identity belongs to structural rule nodes. Params and input payloads cannot supply another node ID.
+  switch (parts[0]) {
+    case 'actions':
+    case 'values': {
+      const items = property(input, parts[0])
+      return Array.isArray(items) && /^\d+$/.test(parts[1] ?? '')
+        ? identify(property(items, parts[1]), parts[0] === 'actions' ? 'stepId' : 'nodeId')
+        : undefined
+    }
+    case 'parameters':
+      return identify(property(property(input, 'parameters'), parts[1]))
+    case 'trigger':
+    case 'roll':
+      return identify(property(input, parts[0]))
+    case 'when': {
+      let node = property(input, 'when'),
+        nodeId = identify(node),
+        index = 1
+      while (index < parts.length) {
+        if (parts[index] === 'condition' && property(node, 'kind') === 'not') {
+          node = property(node, 'condition')
+          index++
+        } else if (parts[index] === 'conditions' && ['all', 'any'].includes(property(node, 'kind') as string)) {
+          const children = property(node, 'conditions')
+          if (!Array.isArray(children) || !/^\d+$/.test(parts[index + 1] ?? '')) break
+          node = property(children, parts[index + 1])
+          index += 2
+        } else break
+        nodeId = identify(node) ?? nodeId
+      }
+      return nodeId
+    }
+    default:
+      return undefined
+  }
+}
+/** Structural admission only; nested battle execution budgets remain a separate runtime gate. */
+export function normalizeRuleData(input: unknown): CompiledRuleData {
+  const ruleId = input && typeof input === 'object' ? rawIdentity(Reflect.get(input, 'id')) : undefined
+  const fail = (field: string, message: string): never => {
+    throw new RuleStructureError(ruleId, identityAtField(input, field), field, message)
+  }
   let nodes = 0,
     characters = 0
   const ancestors = new Set<object>()
-  const walk = (value: unknown, depth: number) => {
-    if (++nodes > 2048 || depth > 32) throw new Error('LIMIT_EXCEEDED: rule size or depth')
+  const walk = (value: unknown, depth: number, field: string): void => {
+    if (++nodes > 2048 || depth > 32) fail(field, 'LIMIT_EXCEEDED: rule size or depth')
     if (typeof value === 'string') characters += value.length
-    if (characters > 65536) throw new Error('LIMIT_EXCEEDED: rule text size')
-    if (value && typeof value === 'object') {
-      if (ancestors.has(value)) throw new Error('Invalid cyclic rule data')
-      ancestors.add(value)
-      for (const [key, child] of Object.entries(value)) {
-        characters += key.length
-        walk(child, depth + 1)
-      }
-      ancestors.delete(value)
+    if (characters > 65536) fail(field, 'LIMIT_EXCEEDED: rule text size')
+    if (
+      value === null ||
+      typeof value === 'string' ||
+      typeof value === 'boolean' ||
+      (typeof value === 'number' && Number.isFinite(value))
+    )
+      return
+    if (!value || typeof value !== 'object') return fail(field, 'INVALID_PARAMETERS: expected finite JSON data')
+    if (ancestors.has(value)) fail(field, 'INVALID_PARAMETERS: cyclic rule data')
+    if (
+      !Array.isArray(value) &&
+      Object.getPrototypeOf(value) !== Object.prototype &&
+      Object.getPrototypeOf(value) !== null
+    )
+      fail(field, 'INVALID_PARAMETERS: expected plain JSON data')
+    ancestors.add(value)
+    for (const [key, child] of Object.entries(value)) {
+      const path = `${field}/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`
+      if (key === '__proto__') fail(path, 'INVALID_PARAMETERS: forbidden property')
+      characters += key.length
+      walk(child, depth + 1, path)
     }
+    ancestors.delete(value)
   }
-  walk(input, 0)
+  walk(input, 0, '')
+  try {
+    return normalizeParams(ruleSchema, input)
+  } catch (error) {
+    const candidate = SchemaValue.Default(ruleSchema, SchemaValue.Clone(input))
+    const issue = SchemaValue.Errors(ruleSchema, candidate).First()
+    return fail(issue?.path ?? '', error instanceof Error ? error.message : 'Invalid rule structure')
+  }
 }
 
 /** Compile a validated candidate without creating a Battle, running actions or drawing RNG. */
@@ -128,8 +219,7 @@ export function compileRule(
 ): RuleCompileResult {
   let ruleId: string | undefined, nodeId: string | undefined, field: string | undefined
   try {
-    checkSize(input)
-    const rule = normalizeParams(ruleSchema, input)
+    const rule = normalizeRuleData(input)
     ruleId = rule.id
     const sourceMark = options.sourceMark
     field = 'sourceMarkId'
@@ -220,9 +310,40 @@ export function compileRule(
           linker,
         )
       : undefined
-    const actions = rule.actions.map(action => {
+    const graph = compileRuleGraph({
+      nodes: rule.values ?? [],
+      registry,
+      sourceKind: options.sourceKind,
+      available: trigger.available,
+      claim,
+      numberReference(reference, schema) {
+        const kind = 'parameter' in reference ? 'parameter' : 'instanceParameter'
+        const id = 'parameter' in reference ? reference.parameter : reference.instanceParameter
+        const slot = { effectiveSchema: schema, operations: [ConfigModifierType.delta, ConfigModifierType.override] }
+        linker(id, schema, slot, kind)
+        return scopedRuleValue(({ battle, source }) => {
+          let result: unknown
+          if (kind === 'instanceParameter') {
+            if (!sourceMark || !(source instanceof MarkInstanceImpl) || source.base !== sourceMark)
+              throw new Error('Mismatched instance parameter source')
+            result = markParameterContract(sourceMark)!.read(battle.configSystem, source, id)
+          } else {
+            result = parameters.read(
+              battle.configSystem,
+              parameterAddress(rule.id, rule.parameters[id].nodeId, id),
+              source,
+            )
+          }
+          if (!SchemaValue.Check(schema, result)) throw new Error(`Invalid effective numeric rule parameter: ${id}`)
+          return result as number
+        })
+      },
+    })
+    const actions = rule.actions.map((action, index) => {
       nodeId = action.stepId
-      field = 'actions'
+      field = `/actions/${index}`
+      const authored = graph.compileOperation(action, index)
+      if (authored) return { authored: authored.action, contentParams: authored.params }
       return registry.compileAction(action.id, action.params, trigger.available, linker)
     })
     const parameterDefinitions = Object.entries(rule.parameters).map(([id, parameter]) => {
@@ -259,32 +380,47 @@ export function compileRule(
       })
     })
     const parameters = new ParameterCatalog(parameterDefinitions)
-    const effect = defineNativeEffect({
-      id: rule.id as effectId,
-      triggers: [trigger.trigger],
-      priority: rule.priority,
-      consumesStacks: rule.consumesStacks,
-      when: context => {
-        if (
-          !acceptsSource(context.source) ||
-          !trigger.matches(context) ||
-          (predicate && !predicate.test(() => trigger.runtime(context)))
-        )
-          return false
-        if (!roll) return true
-        const percent = roll.read({ effect: context, capabilities: {} }).percent as number
-        return context.battle.random() * 100 < percent
-      },
-      apply: context => {
-        if (!acceptsSource(context.source)) throw new Error('Mismatched rule source mark')
-        for (const action of actions) action.run(trigger.runtime(context))
-      },
-    })
+    const when = (context: Parameters<typeof trigger.matches>[0]) => {
+      if (
+        !acceptsSource(context.source) ||
+        !trigger.matches(context) ||
+        (predicate && !predicate.test(() => trigger.runtime(context)))
+      )
+        return false
+      if (!roll) return true
+      const percent = roll.read({ effect: context, capabilities: {} }).percent as number
+      return context.battle.random() * 100 < percent
+    }
+    const hasGraph = rule.values !== undefined || actions.some(action => 'authored' in action)
+    const effect = hasGraph
+      ? compileRuleActions({
+          id: rule.id,
+          trigger: trigger.trigger,
+          priority: rule.priority,
+          consumesStacks: rule.consumesStacks,
+          when,
+          acceptsSource,
+          actions: actions.map(action =>
+            'authored' in action ? action.authored : adaptRuleAction(context => action.run(trigger.runtime(context))),
+          ),
+        })
+      : defineNativeEffect({
+          id: rule.id as effectId,
+          triggers: [trigger.trigger],
+          priority: rule.priority,
+          consumesStacks: rule.consumesStacks,
+          when,
+          apply: context => {
+            if (!acceptsSource(context.source)) throw new Error('Mismatched rule source mark')
+            for (const action of actions) if ('run' in action) action.run(trigger.runtime(context))
+          },
+        })
     registerSingleAdmission(effect)
     const normalized = freezeContent({
       ...rule,
       ...(sourceMark ? { sourceMarkId: sourceMark.id } : {}),
       trigger: { ...rule.trigger, params: trigger.params },
+      ...(rule.values !== undefined ? { values: graph.nodes } : {}),
       ...(rule.roll && roll ? { roll: { ...rule.roll, ...roll.content } } : {}),
       ...(rule.when && predicate ? { when: predicate.data } : {}),
       actions: rule.actions.map((action, index) => ({ ...action, params: actions[index].contentParams })),
@@ -297,6 +433,11 @@ export function compileRule(
       parameterDefinitions: Object.freeze(parameterDefinitions),
     })
   } catch (error) {
+    if (error instanceof RuleStructureError) ruleId = error.ruleId
+    if (error instanceof RuleSlotError || error instanceof RuleStructureError) {
+      nodeId = error.nodeId
+      field = error.field
+    }
     const message = error instanceof Error ? error.message : 'Unexpected content compilation failure'
     const code =
       ['LIMIT_EXCEEDED', 'DUPLICATE_ID', 'UNKNOWN_CAPABILITY', 'CAPABILITY_MISMATCH', 'MISSING_REFERENCE'].find(code =>

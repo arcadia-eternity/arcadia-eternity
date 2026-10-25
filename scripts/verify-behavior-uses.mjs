@@ -9,6 +9,20 @@ import { rolldown } from 'rolldown'
 
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-behavior-uses-'))
 const browserEnabled = process.argv.includes('--browser')
+const controlled = process.argv.includes('--controlled')
+const suite = controlled
+  ? {
+      entry: 'controlled-capabilities-host.ts',
+      create: 'createControlledCapabilityProbes',
+      resume: 'resumeControlledCapabilityProbes',
+      report: 'controlledCapabilities',
+    }
+  : {
+      entry: 'behavior-use-host.ts',
+      create: 'createBehaviorUseProbes',
+      resume: 'resumeBehaviorUseProbes',
+      report: 'behaviorUses',
+    }
 const jsonRoundTrip = value => JSON.parse(JSON.stringify(value))
 let server, browser, browserExit, browserTimeout, browserResult, report
 const ownsProcessGroup = process.platform !== 'win32'
@@ -37,7 +51,7 @@ async function waitForBrowserExit(milliseconds) {
 try {
   for (const platform of ['node', 'browser']) {
     const bundle = await rolldown({
-      input: resolve('packages/battle/test/v4/behavior-use-host.ts'),
+      input: resolve('packages/battle/test/v4', suite.entry),
       platform,
       plugins: [
         {
@@ -69,21 +83,21 @@ try {
     }
   }
   const node = await import(pathToFileURL(join(directory, 'node.mjs')).href)
-  const probes = await node.createBehaviorUseProbes()
-  const expected = await node.resumeBehaviorUseProbes(jsonRoundTrip(probes))
+  const probes = await node[suite.create]()
+  const expected = await node[suite.resume](jsonRoundTrip(probes))
   const minified = await import(pathToFileURL(join(directory, 'browser.mjs')).href)
-  assert.deepEqual(await minified.resumeBehaviorUseProbes(jsonRoundTrip(probes)), expected)
+  assert.deepEqual(await minified[suite.resume](jsonRoundTrip(probes)), expected)
 
   if (browserEnabled) {
     const browserCode = await readFile(join(directory, 'browser.mjs'))
     let completeBrowser, failBrowser
     const html = `<!doctype html><meta charset="utf-8"><pre id="result">Running</pre><script type="module">
 try {
-  const { createBehaviorUseProbes, resumeBehaviorUseProbes } = await import('./browser.mjs');
+  const { ${suite.create}: createProbes, ${suite.resume}: resumeProbes } = await import('./browser.mjs');
   const nodeProbes = await (await fetch('./probes.json')).json();
-  const resumedNode = await resumeBehaviorUseProbes(nodeProbes);
-  const probes = await createBehaviorUseProbes();
-  const resumedBrowser = await resumeBehaviorUseProbes(JSON.parse(JSON.stringify(probes)));
+  const resumedNode = await resumeProbes(nodeProbes);
+  const probes = await createProbes();
+  const resumedBrowser = await resumeProbes(JSON.parse(JSON.stringify(probes)));
   const sent = await fetch('./browser-result', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -185,7 +199,7 @@ try {
     assert.deepEqual(browserResult.resumedNode, expected, 'Chrome must restore Node probes identically')
     assert.deepEqual(browserResult.resumedBrowser, expected, 'Chrome must compile and restore fresh probes identically')
     assert.deepEqual(
-      await node.resumeBehaviorUseProbes(jsonRoundTrip(browserResult.probes)),
+      await node[suite.resume](jsonRoundTrip(browserResult.probes)),
       expected,
       'Node must restore Chrome probes identically',
     )
@@ -195,7 +209,7 @@ try {
     browser: browserEnabled,
     minified: true,
     bidirectionalJsonRestore: Boolean(browserResult),
-    behaviorUses: expected,
+    [suite.report]: expected,
   }
 } finally {
   clearTimeout(browserTimeout)

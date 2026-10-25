@@ -6,6 +6,8 @@ import type { BaseMark } from '../mark'
 import type { CapabilityRegistry } from './capabilities'
 import {
   compileRule,
+  normalizeRuleData,
+  RuleStructureError,
   ruleSchema,
   type CompiledRuleData,
   type CompileDiagnostic,
@@ -88,28 +90,53 @@ function fail(code: string, contentId: string, field: string, message: string, u
     freezeContent([{ code, contentId, field, message: `${code}: ${message}`, ...(useId ? { useId } : {}) }]),
   )
 }
-/** Bound traversals before schema normalization, including inputs from programmatic hosts. */
-function checkSize(input: unknown): void {
+class BehaviorInputError extends Error {
+  constructor(
+    readonly field: string,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+/** Bound traversal and precise finite-JSON admission before schema defaults or cloning. */
+function checkSize(input: unknown, root = ''): void {
   let nodes = 0,
     characters = 0
   const ancestors = new Set<object>()
-  const visit = (value: unknown, depth: number): void => {
-    if (++nodes > 65536 || depth > 40) throw new Error('LIMIT_EXCEEDED: behavior size or depth')
+  const visit = (value: unknown, depth: number, path: string): void => {
+    if (++nodes > 65536 || depth > 40) throw new BehaviorInputError(path, 'LIMIT_EXCEEDED: behavior size or depth')
     if (typeof value === 'string') characters += value.length
-    if (characters > 1048576) throw new Error('LIMIT_EXCEEDED: behavior text size')
-    if (!value || typeof value !== 'object') return
-    if (ancestors.has(value)) throw new Error('INVALID_PARAMETERS: cyclic behavior data')
+    if (characters > 1048576) throw new BehaviorInputError(path, 'LIMIT_EXCEEDED: behavior text size')
+    if (
+      value === null ||
+      typeof value === 'string' ||
+      typeof value === 'boolean' ||
+      (typeof value === 'number' && Number.isFinite(value))
+    )
+      return
+    if (!value || typeof value !== 'object')
+      throw new BehaviorInputError(path, 'INVALID_PARAMETERS: expected finite JSON data')
+    if (ancestors.has(value)) throw new BehaviorInputError(path, 'INVALID_PARAMETERS: cyclic behavior data')
+    if (
+      !Array.isArray(value) &&
+      Object.getPrototypeOf(value) !== Object.prototype &&
+      Object.getPrototypeOf(value) !== null
+    )
+      throw new BehaviorInputError(path, 'INVALID_PARAMETERS: expected plain JSON data')
     ancestors.add(value)
     for (const [key, child] of Object.entries(value)) {
+      const childPath = `${path}/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`
+      if (key === '__proto__') throw new BehaviorInputError(childPath, 'INVALID_PARAMETERS: forbidden property')
       characters += key.length
-      visit(child, depth + 1)
+      visit(child, depth + 1, childPath)
     }
     ancestors.delete(value)
   }
-  visit(input, 0)
+  visit(input, 0, root)
 }
 function diagnostic(error: unknown, contentId: string, field: string, useId?: string): BehaviorCompilationError {
   if (error instanceof BehaviorCompilationError) return error
+  if (error instanceof BehaviorInputError) field = error.field
   const message = error instanceof Error ? error.message : 'Invalid behavior data'
   const code = message.startsWith('LIMIT_EXCEEDED:') ? 'LIMIT_EXCEEDED' : 'INVALID_PARAMETERS'
   return new BehaviorCompilationError(freezeContent([{ code, contentId, field, ...(useId ? { useId } : {}), message }]))
@@ -187,7 +214,31 @@ function normalizeValues(
 }
 function normalizeDefinition(input: unknown): BehaviorDefinition {
   checkSize(input)
-  const definition = normalizeParams(behaviorDefinitionSchema, input)
+  const rawId: unknown =
+    input && typeof input === 'object' && Object.hasOwn(input, 'id') ? Reflect.get(input, 'id') : undefined
+  const contentId = typeof rawId === 'string' && Value.Check(id, rawId) ? rawId : '<behavior>'
+  // Validate the selected rule branch directly so a union error cannot hide its exact field.
+  if (input && typeof input === 'object') {
+    const implementation = Reflect.get(input, 'implementation')
+    if (implementation && typeof implementation === 'object' && Reflect.get(implementation, 'kind') === 'rule') {
+      try {
+        normalizeRuleData(Reflect.get(implementation, 'rule'))
+      } catch (error) {
+        if (!(error instanceof RuleStructureError)) throw error
+        throw new BehaviorCompilationError([
+          {
+            code: error.message.startsWith('LIMIT_EXCEEDED:') ? 'LIMIT_EXCEEDED' : 'INVALID_PARAMETERS',
+            contentId,
+            ruleId: error.ruleId,
+            nodeId: error.nodeId,
+            field: `/implementation/rule${error.field}`,
+            message: error.message,
+          },
+        ])
+      }
+    }
+  }
+  const definition = normalizeAt(behaviorDefinitionSchema, input, contentId, '')
   normalizeValues(definition.parameters, {})
   if (definition.implementation.kind === 'rule') {
     const rule = definition.implementation.rule
@@ -213,12 +264,39 @@ export function normalizeBehaviorDefinitions(input: unknown): readonly BehaviorD
       }),
     )
   } catch (error) {
+    // Aggregate admission keeps its original bounds; enrich only the exact rejected rule field.
+    const match =
+      error instanceof BehaviorInputError ? /^\/(\d+)\/implementation\/rule(\/.*|)$/.exec(error.field) : undefined
+    if (match && Array.isArray(input)) {
+      const definition = input[Number(match[1])]
+      const implementation =
+        definition && typeof definition === 'object' ? Reflect.get(definition, 'implementation') : undefined
+      if (implementation && typeof implementation === 'object' && Reflect.get(implementation, 'kind') === 'rule') {
+        let structure: RuleStructureError | undefined
+        try {
+          normalizeRuleData(Reflect.get(implementation, 'rule'))
+        } catch (candidate) {
+          if (candidate instanceof RuleStructureError) structure = candidate
+        }
+        if (structure?.field === match[2]) {
+          const rawId: unknown = Reflect.get(definition, 'id')
+          const contentId = typeof rawId === 'string' && Value.Check(id, rawId) ? rawId : '<behaviors>'
+          throw new BehaviorCompilationError(
+            diagnostic(error, contentId, 'behaviors').diagnostics.map(entry => ({
+              ...entry,
+              ruleId: structure!.ruleId,
+              nodeId: structure!.nodeId,
+            })),
+          )
+        }
+      }
+    }
     throw diagnostic(error, '<behaviors>', 'behaviors')
   }
 }
 export function normalizeBehaviorUses(input: unknown, owner: BehaviorOwner): readonly BehaviorUse[] {
   try {
-    checkSize(input)
+    checkSize(input, '/behaviors')
     if (!Array.isArray(input) || input.length > 64) throw new Error('Expected at most 64 behavior uses')
     const seen = new Set<string>()
     return freezeContent(
@@ -234,7 +312,12 @@ export function normalizeBehaviorUses(input: unknown, owner: BehaviorOwner): rea
       }),
     )
   } catch (error) {
-    throw diagnostic(error, owner.id, 'behaviors')
+    const match = error instanceof BehaviorInputError ? /^\/behaviors\/(\d+)(?:\/|$)/.exec(error.field) : undefined
+    const raw = match && Array.isArray(input) ? input[Number(match[1])] : undefined
+    const rawId: unknown =
+      raw && typeof raw === 'object' && Object.hasOwn(raw, 'useId') ? Reflect.get(raw, 'useId') : undefined
+    const useId = typeof rawId === 'string' && Value.Check(id, rawId) ? rawId : undefined
+    throw diagnostic(error, owner.id, 'behaviors', useId)
   }
 }
 export function behaviorEffectId(owner: BehaviorOwner, useId: string): string {
@@ -476,10 +559,25 @@ export function compileBehaviorUse(
   use: unknown,
   options: BehaviorCompileOptions,
 ): BehaviorCompileResult {
+  let normalizedUse: BehaviorUse | undefined
   try {
-    return compilePreparedBehaviorUse(validateBehaviorUse(normalizeBehaviorDefinitions([definition]), use, options))
+    normalizedUse = normalizeBehaviorUses([use], options.owner)[0]
+    return compilePreparedBehaviorUse(
+      validateBehaviorUse(normalizeBehaviorDefinitions([definition]), normalizedUse, options),
+    )
   } catch (error) {
-    return { ok: false, diagnostics: diagnostic(error, options.owner.id, 'behaviors').diagnostics }
+    const entries = diagnostic(error, options.owner.id, 'behaviors', normalizedUse?.useId).diagnostics
+    return {
+      ok: false,
+      diagnostics: freezeContent(
+        entries.map(entry => ({
+          ...entry,
+          contentId: options.owner.id,
+          ...(entry.field?.startsWith('/0/') ? { field: entry.field.slice(2) } : {}),
+          ...(normalizedUse ? { useId: normalizedUse.useId } : {}),
+        })),
+      ),
+    }
   }
 }
 export function copyBehaviorUse(input: unknown, newUseId: string): BehaviorUse {
