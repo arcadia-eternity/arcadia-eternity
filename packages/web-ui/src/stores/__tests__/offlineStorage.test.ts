@@ -1,14 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, disposePinia, setActivePinia } from 'pinia'
+import { createApp } from 'vue'
+import { createPersistedState } from 'pinia-plugin-persistedstate'
 import { usePlayerStore } from '../player'
 import { usePetStorageStore } from '../petStorage'
 import { useGameSettingStore } from '../gameSetting'
-import { localStorageUnavailable, writeLocalData } from '@/services/localStorage'
+import { localDataStorage, localStorageUnavailable, writeLocalData } from '@/services/localStorage'
 
 let pinia: ReturnType<typeof createPinia>
 
 beforeEach(() => {
   pinia = createPinia()
+  pinia.use(createPersistedState({ storage: localDataStorage }))
+  createApp({}).use(pinia)
   setActivePinia(pinia)
   localStorage.clear()
   localStorageUnavailable.value = false
@@ -23,6 +27,33 @@ afterEach(() => {
 })
 
 describe('local play when browser storage cannot persist', () => {
+  it('creates a persisted player store when the browser denies the storage getter itself', async () => {
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('Storage is disabled', 'SecurityError')
+    })
+
+    const player = usePlayerStore()
+    await player.initializePlayer()
+    await player.setName('Memory profile')
+    player.$persist()
+
+    expect(player.isInitialized).toBe(true)
+    expect(player.id).not.toBe('')
+    expect(player.name).toBe('Memory profile')
+    expect(localStorageUnavailable.value).toBe(true)
+  })
+
+  it('hydrates and persists the existing player-data profile through the real plugin', async () => {
+    localStorage.setItem('player-data', JSON.stringify({ id: 'saved-profile', name: 'Saved' }))
+    const player = usePlayerStore()
+    await player.initializePlayer()
+    await player.setName('Updated')
+
+    expect(player.id).toBe('saved-profile')
+    expect(JSON.parse(localStorage.getItem('player-data')!)).toEqual({ id: 'saved-profile', name: 'Updated' })
+    expect(localStorageUnavailable.value).toBe(false)
+  })
+
   it('keeps an in-memory profile, default team and settings when access is denied', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('Storage is disabled', 'SecurityError')

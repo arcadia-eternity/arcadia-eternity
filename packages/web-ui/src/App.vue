@@ -406,6 +406,7 @@ import VersionInfo from '@/components/VersionInfo.vue'
 import ConnectionStatus from '@/components/ConnectionStatus.vue'
 import { autoCheckForUpdates } from '@/utils/version'
 import { createAppBootstrap } from '@/app/bootstrap'
+import { connectAndResumeOnlineRoom } from '@/app/onlineSession'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
 import { isStaticMode } from '@/utils/env'
@@ -570,20 +571,14 @@ const needsOnlineConnection = computed(() => {
 let onlineConnection: Promise<void> | null = null
 
 async function connectOnlineRoute() {
-  if (
-    !localInitializationComplete.value ||
-    !needsOnlineConnection.value ||
-    onlineConnection ||
-    battleClientStore.isConnected
-  )
-    return
-  onlineConnection = (async () => {
-    await battleClientStore.connect()
-    // A slow connection must not replace a local battle opened while waiting.
-    if (!needsOnlineConnection.value) return
-    const currentRoom = await privateRoomStore.checkCurrentRoom()
-    if (currentRoom && needsOnlineConnection.value) await privateRoomStore.resumeActiveBattle()
-  })()
+  if (!localInitializationComplete.value || !needsOnlineConnection.value || onlineConnection) return
+  onlineConnection = connectAndResumeOnlineRoom({
+    isConnected: () => battleClientStore.isConnected,
+    isOnlineRoute: () => needsOnlineConnection.value,
+    connect: () => battleClientStore.connect(),
+    checkCurrentRoom: () => privateRoomStore.checkCurrentRoom(),
+    resumeActiveBattle: () => privateRoomStore.resumeActiveBattle(),
+  })
   try {
     await onlineConnection
   } catch (error) {

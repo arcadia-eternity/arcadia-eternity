@@ -1,31 +1,36 @@
 import { createHash } from 'node:crypto'
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-const dist = resolve(import.meta.dirname, '../dist')
 async function inventory(directory, prefix = '') {
   const files = []
   for (const name of (await readdir(directory)).sort()) {
     const path = resolve(directory, name)
     const relative = `${prefix}${name}`
     if ((await stat(path)).isDirectory()) files.push(...(await inventory(path, `${relative}/`)))
-    else if (!relative.startsWith('offline-') && !relative.endsWith('.map')) {
+    else if (
+      !['_headers', '_redirects'].includes(relative) &&
+      !relative.startsWith('offline-') &&
+      !relative.endsWith('.map')
+    ) {
       const data = await readFile(path)
       files.push({ path: relative, size: data.byteLength, sha256: createHash('sha256').update(data).digest('hex') })
     }
   }
   return files
 }
-const files = await inventory(dist)
-const version = createHash('sha256').update(JSON.stringify(files)).digest('hex').slice(0, 20)
-const worker = `offline-worker-${version}.js`
-const manifest = { version, worker, bytes: files.reduce((sum, file) => sum + file.size, 0), files }
-await writeFile(resolve(dist, 'offline-manifest.json'), JSON.stringify(manifest))
-// A versioned worker URL is installed only after the entire matching build is saved.
-// API requests, third-party content and user data are never part of this cache.
-await writeFile(
-  resolve(dist, worker),
-  `
+export async function buildOffline(dist = resolve(import.meta.dirname, '../dist')) {
+  const files = await inventory(dist)
+  const version = createHash('sha256').update(JSON.stringify(files)).digest('hex').slice(0, 20)
+  const worker = `offline-worker-${version}.js`
+  const manifest = { version, worker, bytes: files.reduce((sum, file) => sum + file.size, 0), files }
+  await writeFile(resolve(dist, 'offline-manifest.json'), JSON.stringify(manifest))
+  // A versioned worker URL is installed only after the entire matching build is saved.
+  // API requests, third-party content and user data are never part of this cache.
+  await writeFile(
+    resolve(dist, worker),
+    `
 const VERSION = ${JSON.stringify(version)};
 const PATHS = new Set(${JSON.stringify(files.map(file => file.path))});
 const ROOT = new URL(self.registration.scope);
@@ -63,5 +68,10 @@ self.addEventListener('fetch', event => {
   })());
 });
 `,
-)
-console.log(`Offline manifest: ${files.length} files, ${(manifest.bytes / 1048576).toFixed(1)} MiB, ${version}`)
+  )
+  console.log(`Offline manifest: ${files.length} files, ${(manifest.bytes / 1048576).toFixed(1)} MiB, ${version}`)
+
+  return manifest
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await buildOffline()

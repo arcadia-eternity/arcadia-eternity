@@ -82,7 +82,9 @@ test('a new player completes a production AI match and starts another without an
   await configureSinglePetBattle(page)
   await enterBattle(page)
   const turns = await attackUntilResult(page)
-  await testInfo.attach('static-natural-result', { body: await page.screenshot(), contentType: 'image/png' })
+  const screenshot = testInfo.outputPath('natural-result.png')
+  await page.screenshot({ path: screenshot })
+  await testInfo.attach('static-natural-result', { path: screenshot, contentType: 'image/png' })
   await page
     .getByRole('button', { name: /再来一局|重新对战|重新开始|返回本地对战/ })
     .first()
@@ -137,28 +139,32 @@ test('a cache quota failure is visible and does not block a local battle', async
   expect(observed.errors).toEqual([])
 })
 
-test('blocked browser storage keeps the default team playable and warns that changes are not saved', async ({
-  page,
-  context,
-  baseURL,
-}) => {
-  const observed = await observeStaticOnly(context, page, baseURL!)
-  await page.addInitScript(() => {
-    Storage.prototype.getItem = () => {
-      throw new DOMException('Test storage access denied', 'SecurityError')
-    }
-    Storage.prototype.setItem = () => {
-      throw new DOMException('Test storage access denied', 'SecurityError')
-    }
+for (const blockedAccess of ['methods', 'object'] as const) {
+  test(`blocked browser storage ${blockedAccess} keeps the default team playable and warns that changes are not saved`, async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const observed = await observeStaticOnly(context, page, baseURL!)
+    await page.addInitScript(access => {
+      const denied = () => {
+        throw new DOMException('Test storage access denied', 'SecurityError')
+      }
+      if (access === 'object') Object.defineProperty(window, 'localStorage', { configurable: true, get: denied })
+      else {
+        Storage.prototype.getItem = denied
+        Storage.prototype.setItem = denied
+      }
+    }, blockedAccess)
+    await page.goto(localPage)
+    await expect(page.getByText(/浏览器存储不可用或空间不足/)).toBeVisible()
+    await configureSinglePetBattle(page)
+    await enterBattle(page)
+    await expect(page.locator('[data-skill-base-id="skill_fenlitupo"]')).toBeEnabled()
+    expect(observed.forbiddenRequests).toEqual([])
+    expect(observed.errors).toEqual([])
   })
-  await page.goto(localPage)
-  await expect(page.getByText(/浏览器存储不可用或空间不足/)).toBeVisible()
-  await configureSinglePetBattle(page)
-  await enterBattle(page)
-  await expect(page.locator('[data-skill-base-id="skill_fenlitupo"]')).toBeEnabled()
-  expect(observed.forbiddenRequests).toEqual([])
-  expect(observed.errors).toEqual([])
-})
+}
 
 test('a missing bundled runtime shows a recoverable startup error without using a remote fallback', async ({
   page,

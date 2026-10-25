@@ -36,6 +36,11 @@ createServer(async (request, response) => {
       return
     }
     const relative = pathname.slice(prefix.length) || 'index.html'
+    // Static hosts consume these deployment settings rather than serving them.
+    if (['_headers', '_redirects'].includes(relative)) {
+      response.writeHead(404).end()
+      return
+    }
     const file = resolve(root, relative)
     if (!file.startsWith(resolve(root) + sep) || !(await stat(file)).isFile()) {
       response.writeHead(404).end()

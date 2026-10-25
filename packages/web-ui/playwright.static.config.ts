@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   retries: 0,
-  reporter: [['line']],
+  reporter: [['line'], ['json', { outputFile: 'test-results/static-results.json' }]],
   use: {
     baseURL,
     trace: 'retain-on-failure',

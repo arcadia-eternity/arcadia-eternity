@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import { createPersistedState } from 'pinia-plugin-persistedstate'
 import I18NextVue from 'i18next-vue'
 import Particles from '@tsparticles/vue3'
 import { loadFull } from 'tsparticles'
@@ -15,6 +15,7 @@ import { usePrivateRoomStore } from './stores/privateRoom'
 import { ensureRuffleRuntime } from './bootstrap/ruffle'
 import { captureOAuthCallbackAtBoot } from './services/serverSession'
 import { isStaticMode } from './utils/env'
+import { localDataStorage } from './services/localStorage'
 
 // The account redirect must leave the address bar before Ruffle or game data can delay mounting.
 if (!isStaticMode) captureOAuthCallbackAtBoot(window.location, window.history)
@@ -30,7 +31,7 @@ async function bootstrap() {
   const app = createApp(App)
   const pinia = createPinia()
   initI18n()
-  pinia.use(piniaPluginPersistedstate)
+  pinia.use(createPersistedState({ storage: localDataStorage }))
 
   app.use(pinia)
   app.use(router)
