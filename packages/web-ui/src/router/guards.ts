@@ -2,8 +2,10 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { isStaticMode } from '@/utils/env'
 
 export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
+  if (isStaticMode && to.query.privateRoom === 'true') return '/local-battle'
   const store = useBattleStore()
   const battleClientStore = useBattleClientStore()
 

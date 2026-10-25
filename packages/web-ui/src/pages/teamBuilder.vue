@@ -1155,6 +1155,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useMobile } from '@/composition/useMobile'
+import { readLocalData, writeLocalData } from '@/services/localStorage'
 
 const { i18next } = useTranslation()
 
@@ -1179,8 +1180,8 @@ const { isMobile } = useMobile()
 
 // 响应式状态
 const selectedPetId = ref<string | null>(null)
-const showGuide = ref(localStorage.getItem('teamBuilderGuideHidden') !== 'true') // 控制指引显示
-const showDragTip = ref(localStorage.getItem('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
+const showGuide = ref(readLocalData('teamBuilderGuideHidden') !== 'true') // 控制指引显示
+const showDragTip = ref(readLocalData('teamBuilderDragTipHidden') !== 'true') // 控制拖拽提示显示
 const showValidationDetails = ref(false) // 控制验证详情显示
 const showHelp = ref(false) // 控制帮助对话框显示
 
@@ -1249,13 +1250,13 @@ const onGameModeChange = async (ruleSetId: string) => {
 // 关闭指引
 const hideGuide = () => {
   showGuide.value = false
-  localStorage.setItem('teamBuilderGuideHidden', 'true')
+  writeLocalData('teamBuilderGuideHidden', 'true')
 }
 
 // 关闭拖拽提示
 const hideDragTip = () => {
   showDragTip.value = false
-  localStorage.setItem('teamBuilderDragTipHidden', 'true')
+  writeLocalData('teamBuilderDragTipHidden', 'true')
 }
 
 const onStart = () => {

@@ -13,7 +13,12 @@ export class GameDataLoader {
 
   async load<T>(dataType: string): Promise<T> {
     try {
-      const basePath = import.meta.env.DEV ? this.config.devBasePath : this.config.prodBaseUrl
+      const basePath =
+        import.meta.env.VITE_STATIC_MODE === '1'
+          ? `${import.meta.env.BASE_URL}${this.config.devBasePath.replace(/^\//, '')}`
+          : import.meta.env.DEV
+            ? this.config.devBasePath
+            : this.config.prodBaseUrl
 
       // 构建 JSON 文件路径
       const targetUrl = `${basePath}/${dataType}.json`

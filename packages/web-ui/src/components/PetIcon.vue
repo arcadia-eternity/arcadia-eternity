@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { ref, computed, watch, onMounted } from 'vue'
 
 const props = withDefaults(
@@ -16,7 +17,7 @@ const props = withDefaults(
 
 const imageFailed = ref(false)
 
-const petIconUrl = computed(() => `https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`)
+const petIconUrl = computed(() => officialAssetUrl(`https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`))
 
 const effectiveUrl = ref(petIconUrl.value)
 

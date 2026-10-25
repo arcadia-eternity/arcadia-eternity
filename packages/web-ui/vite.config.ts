@@ -21,6 +21,7 @@ const elementPlusStyles = readdirSync(elementPlusComponents, { withFileTypes: tr
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.VITE_STATIC_MODE === '1' ? './' : '/',
   define: {
     // 注入构建时间和commit hash
     'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),

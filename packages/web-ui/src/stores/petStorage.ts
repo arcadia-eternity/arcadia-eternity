@@ -5,6 +5,7 @@ import { PetSchema, PetSetSchema, parseWithErrors } from '@arcadia-eternity/sche
 import { Gender, Nature } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 import { Type, type Static } from '@sinclair/typebox'
+import { readLocalData, writeLocalData } from '@/services/localStorage'
 
 interface Team {
   name: string
@@ -162,7 +163,7 @@ export const usePetStorageStore = defineStore('petStorage', {
 
   actions: {
     loadFromLocal() {
-      const saved = localStorage.getItem('petStorage')
+      const saved = readLocalData('petStorage')
       if (saved) {
         try {
           const parsedData = JSON.parse(saved)
@@ -258,8 +259,7 @@ export const usePetStorageStore = defineStore('petStorage', {
       const validation = validatePetStorageData(currentState)
 
       if (validation.valid) {
-        this.saveToLocal()
-        return true
+        return this.saveToLocal()
       } else {
         // 校验失败，只显示错误提示，不自动重置数据
         const errorMessage = validation.errors?.join('; ') || '数据格式错误'
@@ -276,7 +276,7 @@ export const usePetStorageStore = defineStore('petStorage', {
         currentTeamIndex: this.currentTeamIndex,
         lastMatchingConfig: this.lastMatchingConfig,
       })
-      localStorage.setItem('petStorage', JSON.stringify(snapshot))
+      return writeLocalData('petStorage', JSON.stringify(snapshot))
     },
 
     clearStorage() {

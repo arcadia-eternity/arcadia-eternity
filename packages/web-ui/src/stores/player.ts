@@ -3,6 +3,7 @@ import { toRaw } from 'vue'
 import { type PlayerSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { usePetStorageStore } from './petStorage'
+import { readLocalData, writeLocalData } from '@/services/localStorage'
 
 /** Device-local game data. A profile ID is never a server credential. */
 export const usePlayerStore = defineStore('player', {
@@ -10,11 +11,11 @@ export const usePlayerStore = defineStore('player', {
   persist: { key: 'player-data', pick: ['id', 'name'] },
   actions: {
     saveToLocal() {
-      localStorage.setItem('player', JSON.stringify({ id: this.id, name: this.name }))
+      writeLocalData('player', JSON.stringify({ id: this.id, name: this.name }))
     },
     loadFromLocal() {
       try {
-        const saved = JSON.parse(localStorage.getItem('player') || 'null')
+        const saved = JSON.parse(readLocalData('player') || 'null')
         if (saved && typeof saved.id === 'string' && saved.id && typeof saved.name === 'string') {
           this.id = saved.id
           this.name = saved.name

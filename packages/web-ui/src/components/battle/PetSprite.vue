@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import 'seer2-pet-animator'
 import { ActionState, type PetRendererEvent } from 'seer2-pet-animator'
 import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue'
@@ -40,7 +41,9 @@ const resolvedSwfUrl = asyncComputed(
       : props.swfUrl || (props.num ? petResourceCache.getPetSwfUrl(props.num) : ''),
   '',
 )
-const portrait = computed(() => props.imageUrl || `https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`)
+const portrait = computed(
+  () => props.imageUrl || officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`),
+)
 let generation = 0
 let resolveReady: (() => void) | undefined
 let rejectReady: ((error: Error) => void) | undefined

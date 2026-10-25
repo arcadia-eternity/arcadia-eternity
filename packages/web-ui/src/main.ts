@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import { createPersistedState } from 'pinia-plugin-persistedstate'
 import I18NextVue from 'i18next-vue'
 import Particles from '@tsparticles/vue3'
 import { loadFull } from 'tsparticles'
@@ -14,19 +14,24 @@ import { useAuthStore } from './stores/auth'
 import { usePrivateRoomStore } from './stores/privateRoom'
 import { ensureRuffleRuntime } from './bootstrap/ruffle'
 import { captureOAuthCallbackAtBoot } from './services/serverSession'
+import { isStaticMode } from './utils/env'
+import { localDataStorage } from './services/localStorage'
 
 // The account redirect must leave the address bar before Ruffle or game data can delay mounting.
-captureOAuthCallbackAtBoot(window.location, window.history)
+if (!isStaticMode) captureOAuthCallbackAtBoot(window.location, window.history)
 
 async function bootstrap() {
   await ensureRuffleRuntime().catch(error => {
+    if (isStaticMode) {
+      throw new Error('本地动画资源未完整加载，请重新联网后刷新重试。', { cause: error })
+    }
     console.warn('Ruffle runtime preload failed, fallback loader may be used:', error)
   })
 
   const app = createApp(App)
   const pinia = createPinia()
   initI18n()
-  pinia.use(piniaPluginPersistedstate)
+  pinia.use(createPersistedState({ storage: localDataStorage }))
 
   app.use(pinia)
   app.use(router)
@@ -39,10 +44,6 @@ async function bootstrap() {
   for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
   }
-
-  // 初始化 auth store
-  const authStore = useAuthStore()
-  authStore.initialize()
 
   if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
     ;(
@@ -77,4 +78,22 @@ async function bootstrap() {
 
 void bootstrap().catch(error => {
   console.error('Failed to bootstrap web-ui:', error)
+  if (isStaticMode) {
+    const container = document.getElementById('app')
+    if (!container) return
+    const alert = document.createElement('main')
+    alert.setAttribute('role', 'alert')
+    alert.style.cssText = 'max-width:40rem;margin:12vh auto;padding:2rem;font:1rem/1.6 system-ui'
+    const title = document.createElement('h1')
+    title.textContent = '无法启动本地对战'
+    const message = document.createElement('p')
+    message.textContent = '本地游戏资源未完整加载。请重新联网后刷新重试；如果仍然失败，请检查静态文件是否完整。'
+    const retry = document.createElement('button')
+    retry.type = 'button'
+    retry.textContent = '刷新重试'
+    retry.style.cssText = 'padding:.6rem 1.2rem;cursor:pointer'
+    retry.addEventListener('click', () => window.location.reload())
+    alert.append(title, message, retry)
+    container.replaceChildren(alert)
+  }
 })
