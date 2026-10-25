@@ -1,4 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { github } from 'better-auth/social-providers'
+import { authorizationCodeRequest, getOAuth2Tokens } from 'better-auth/oauth2'
 import { ProviderError, sameIntent, validIntent, type AuthIntent, type VerifiedIdentity } from './types.js'
 
 export interface GithubAppVerifierOptions {
@@ -24,7 +26,6 @@ interface PendingAuthorization {
 }
 
 const ISSUER = 'https://github.com'
-const AUTHORIZE_URL = `${ISSUER}/login/oauth/authorize`
 const TOKEN_URL = `${ISSUER}/login/oauth/access_token`
 const USER_URL = 'https://api.github.com/user'
 const MAX_REDIRECT_URIS = 10
@@ -35,7 +36,7 @@ const REVOKE_TIMEOUT_MS = 2_000
 const DEFAULT_RATE_LIMIT_MS = 60_000
 const MAX_RATE_LIMIT_MS = 60 * 60 * 1_000
 
-/** GitHub App web flow: an ephemeral user token proves a stable GitHub user ID. */
+/** Better Auth OAuth protocol with Arcadia's purpose-bound proof and bounded HTTP transport. */
 export class GithubAppVerifier {
   readonly providerId = 'github'
   readonly issuer = ISSUER
@@ -46,6 +47,7 @@ export class GithubAppVerifier {
   private readonly challengeTtlMs: number
   private readonly now: () => number
   private readonly http: typeof fetch
+  private readonly provider: ReturnType<typeof github>
   private readonly pending = new Map<string, PendingAuthorization>()
   private rateLimitedUntil = 0
 
@@ -73,6 +75,12 @@ export class GithubAppVerifier {
     this.challengeTtlMs = options.challengeTtlMs ?? 10 * 60 * 1000
     this.now = options.now ?? Date.now
     this.http = options.fetch ?? globalThis.fetch
+    this.provider = github({
+      clientId: this.clientId,
+      clientSecret: this.clientSecret,
+      // GitHub Apps use registered permissions, not OAuth App scopes.
+      disableDefaultScope: true,
+    })
     if (!Number.isSafeInteger(this.challengeTtlMs) || this.challengeTtlMs <= 0)
       throw new Error('Invalid GitHub App challenge TTL')
   }
@@ -100,7 +108,6 @@ export class GithubAppVerifier {
     const state = randomBytes(32).toString('base64url')
     const codeVerifier = randomBytes(32).toString('base64url')
     const browserSecret = randomBytes(32).toString('base64url')
-    const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url')
     const expiresAt = now + this.challengeTtlMs
     this.pending.set(state, {
       intent: structuredClone(intent),
@@ -110,13 +117,11 @@ export class GithubAppVerifier {
       expiresAt,
       attempts: 0,
     })
-    const url = new URL(AUTHORIZE_URL)
-    url.searchParams.set('client_id', this.clientId)
-    url.searchParams.set('redirect_uri', selectedRedirectUri)
-    url.searchParams.set('state', state)
-    url.searchParams.set('code_challenge', codeChallenge)
-    url.searchParams.set('code_challenge_method', 'S256')
-    // GitHub Apps have app permissions, not OAuth scopes. In particular, never request user:email.
+    const url = await this.provider.createAuthorizationURL({
+      state,
+      codeVerifier,
+      redirectURI: selectedRedirectUri,
+    })
     return { authorizationUrl: url.href, state, browserSecret, expiresAt }
   }
 
@@ -165,16 +170,20 @@ export class GithubAppVerifier {
   }
 
   private async exchangeCode(code: string, codeVerifier: string, redirectUri: string): Promise<string> {
+    // The stock GitHub provider has no per-instance HTTP seam. Keep redirect
+    // rejection, deadlines, rate-limit backoff and redacted errors here while
+    // Better Auth constructs the authorization-code grant and parses tokens.
+    const request = await authorizationCodeRequest({
+      code,
+      codeVerifier,
+      redirectURI: redirectUri,
+      options: this.provider.options,
+      tokenEndpoint: TOKEN_URL,
+    })
     const response = await this.http(TOKEN_URL, {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        code,
-        redirect_uri: redirectUri,
-        code_verifier: codeVerifier,
-      }),
+      headers: request.headers,
+      body: request.body,
       redirect: 'error',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
@@ -188,10 +197,12 @@ export class GithubAppVerifier {
       token.token_type !== 'bearer'
     )
       throw new ProviderError('AUTH_PROOF_INVALID', 401)
-    return token.access_token
+    return getOAuth2Tokens(token as Parameters<typeof getOAuth2Tokens>[0]).accessToken!
   }
 
   private async readUserId(token: string): Promise<string> {
+    // A GitHub App numeric subject needs no email permission. Deliberately do
+    // not run Better Auth's email-based signup/linking or request /user/emails.
     const response = await this.http(USER_URL, {
       method: 'GET',
       headers: {

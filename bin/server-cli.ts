@@ -139,6 +139,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         email,
         github,
         ready: async () => {
+          await email.ready()
           await ensureAccountSchema(pool)
           await smtp.verify()
         },

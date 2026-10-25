@@ -1,5 +1,6 @@
-import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { ProviderError, sameIntent, validIntent, type AuthIntent, type VerifiedIdentity } from './types.js'
+import { BetterAuthEmailProofs, betterAuthEmailError } from './betterAuthEmail.js'
 
 export interface EmailCodeVerifierOptions {
   /** Only this callback handles delivery. The code is never returned to the caller of begin(). */
@@ -13,16 +14,14 @@ export interface EmailCodeVerifierOptions {
 interface EmailChallenge {
   email: string
   intent: AuthIntent
-  digest: Buffer
   expiresAt: number
-  attempts: number
+  /** Serializes verification and disposal with the initial delivery. */
+  pending: Promise<void>
 }
 
 const EMAIL_PART = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/
 const DOMAIN_PART =
   /^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/
-const CODE_LENGTH = 8
-const MAX_ATTEMPTS = 5
 const RATE_WINDOW_MS = 60 * 60 * 1000
 const MAX_ADDRESS_CHALLENGES = 3
 const MAX_SOURCE_CHALLENGES = 120
@@ -50,7 +49,7 @@ export class EmailCodeVerifier {
   private readonly sendCode: EmailCodeVerifierOptions['sendCode']
   private readonly challengeTtlMs: number
   private readonly now: () => number
-  private readonly digestKey = randomBytes(32)
+  private readonly proofs: BetterAuthEmailProofs
   private readonly challenges = new Map<string, EmailChallenge>()
   private readonly addressBegins = new Map<string, number[]>()
   private readonly sourceBegins = new Map<string, number[]>()
@@ -66,6 +65,11 @@ export class EmailCodeVerifier {
     this.now = options.now ?? Date.now
     if (!this.providerId || !this.issuer || !Number.isSafeInteger(this.challengeTtlMs) || this.challengeTtlMs <= 0)
       throw new Error('Invalid email provider configuration')
+    this.proofs = new BetterAuthEmailProofs(this.challengeTtlMs)
+  }
+
+  async ready(): Promise<void> {
+    await this.proofs.ready()
   }
 
   async begin({ email: value, source, intent }: { email: string; source: string; intent: AuthIntent }): Promise<{
@@ -83,24 +87,38 @@ export class EmailCodeVerifier {
     this.addressBegins.set(email, [...addressTimes, now])
 
     const challengeId = randomBytes(24).toString('base64url')
-    const code = randomInt(10 ** CODE_LENGTH)
-      .toString()
-      .padStart(CODE_LENGTH, '0')
     const expiresAt = now + this.challengeTtlMs
-    this.challenges.set(challengeId, {
+    let release!: () => void
+    const challenge: EmailChallenge = {
       email,
       intent: structuredClone(intent),
-      digest: this.digest(challengeId, code),
       expiresAt,
-      attempts: 0,
-    })
-    try {
-      await this.sendCode(email, code)
-    } catch {
-      this.challenges.delete(challengeId)
-      throw new ProviderError('EMAIL_DELIVERY_FAILED', 503)
+      pending: new Promise<void>(resolve => {
+        release = resolve
+      }),
     }
-    return { challengeId, expiresAt }
+    this.challenges.set(challengeId, challenge)
+    try {
+      let code: string
+      try {
+        code = await this.proofs.create(challengeId)
+      } catch {
+        throw new ProviderError('PROVIDER_UNAVAILABLE', 503)
+      }
+      this.assertLive(challengeId, challenge)
+      try {
+        await this.sendCode(email, code)
+      } catch {
+        throw new ProviderError('EMAIL_DELIVERY_FAILED', 503)
+      }
+      this.assertLive(challengeId, challenge)
+      return { challengeId, expiresAt }
+    } catch (error) {
+      this.remove(challengeId, challenge)
+      throw error
+    } finally {
+      release()
+    }
   }
 
   async verify(
@@ -120,22 +138,47 @@ export class EmailCodeVerifier {
     this.recordRate(this.sourceVerifications, source, MAX_SOURCE_VERIFICATIONS, now)
     const challenge = this.challenges.get(challengeId)
     if (!challenge || challenge.expiresAt <= now) {
-      this.challenges.delete(challengeId)
+      if (challenge) this.remove(challengeId, challenge)
       throw new ProviderError('AUTH_PROOF_EXPIRED', 401)
     }
     if (!sameIntent(challenge.intent, intent)) throw new ProviderError('AUTH_PROOF_MISMATCH', 401)
-    challenge.attempts++
-    const matches = timingSafeEqual(this.digest(challengeId, code), challenge.digest)
-    if (!matches) {
-      if (challenge.attempts >= MAX_ATTEMPTS) this.challenges.delete(challengeId)
-      throw new ProviderError('AUTH_PROOF_INVALID', 401)
+    const previous = challenge.pending
+    let release!: () => void
+    challenge.pending = new Promise<void>(resolve => {
+      release = resolve
+    })
+    await previous
+    try {
+      this.assertLive(challengeId, challenge)
+      try {
+        await this.proofs.verify(challengeId, code)
+      } catch (error) {
+        this.assertLive(challengeId, challenge)
+        const result = betterAuthEmailError(error)
+        if (result === 'invalid') throw new ProviderError('AUTH_PROOF_INVALID', 401)
+        this.remove(challengeId, challenge)
+        if (result === 'expired') throw new ProviderError('AUTH_PROOF_EXPIRED', 401)
+        throw new ProviderError('PROVIDER_UNAVAILABLE', 503)
+      }
+      this.assertLive(challengeId, challenge)
+      this.remove(challengeId, challenge)
+      return { issuer: this.issuer, subject: challenge.email, verifiedAt: this.now() }
+    } finally {
+      release()
     }
-    this.challenges.delete(challengeId)
-    return { issuer: this.issuer, subject: challenge.email, verifiedAt: now }
   }
 
-  private digest(challengeId: string, code: string): Buffer {
-    return createHmac('sha256', this.digestKey).update(challengeId).update(':').update(code).digest()
+  private assertLive(challengeId: string, challenge: EmailChallenge): void {
+    if (this.challenges.get(challengeId) === challenge && challenge.expiresAt > this.now()) return
+    this.remove(challengeId, challenge)
+    throw new ProviderError('AUTH_PROOF_EXPIRED', 401)
+  }
+
+  private remove(challengeId: string, challenge: EmailChallenge): void {
+    if (this.challenges.get(challengeId) === challenge) this.challenges.delete(challengeId)
+    // A wrong-code attempt may recreate the OTP record. Dispose only once all
+    // queued attempts/creation finish so no orphan record can be recreated.
+    void challenge.pending.then(() => this.proofs.discard(challengeId))
   }
 
   private recordRate(map: Map<string, number[]>, key: string, limit: number, now: number): void {
@@ -153,7 +196,7 @@ export class EmailCodeVerifier {
 
   private cleanup(now: number): void {
     for (const [id, challenge] of this.challenges) {
-      if (challenge.expiresAt <= now) this.challenges.delete(id)
+      if (challenge.expiresAt <= now) this.remove(id, challenge)
     }
     for (const map of [this.addressBegins, this.sourceBegins, this.sourceVerifications]) {
       for (const [key, times] of map) {

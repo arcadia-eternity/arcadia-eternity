@@ -22,6 +22,7 @@ type RoomReply<T> = { status: 'SUCCESS'; data: T } | { status: 'ERROR'; code: st
 describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAuth', () => {
   const authorizations = new Map<string, Authorization>()
   const accessTokens = new Map<string, number>()
+  const githubEmails = new Map<number, string>()
   const pools: Pool[] = []
   const apps: Host[] = []
   const sockets: Socket[] = []
@@ -68,7 +69,7 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
         json(response, 401, { message: 'Bad credentials' })
         return
       }
-      json(response, 200, { id: subject, login: `user-${subject}` })
+      json(response, 200, { id: subject, login: `user-${subject}`, email: githubEmails.get(subject) ?? null })
       return
     }
     if (path === `/applications/${clientId}/token` && request.method === 'DELETE') {
@@ -120,6 +121,9 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
   afterEach(async () => {
     for (const socket of sockets.splice(0)) socket.disconnect()
     await Promise.all(apps.splice(0).map(({ app }) => app.stop()))
+    authorizations.clear()
+    accessTokens.clear()
+    githubEmails.clear()
   })
 
   afterAll(async () => {
@@ -196,7 +200,33 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
       profile,
     })
     expect(completed.status).toBe(201)
+    expect(completed.headers.get('set-cookie')).toBeNull()
     return ((await completed.json()) as { session: ServerSession }).session
+  }
+
+  async function identities(host: Host, session: ServerSession): Promise<AccountIdentity[]> {
+    const response = await request(host, '/account/identities', 'GET', undefined, session.token)
+    expect(response.status).toBe(200)
+    return ((await response.json()) as { identities: AccountIdentity[] }).identities
+  }
+
+  async function emailLink(host: Host, codes: Map<string, string>, address: string, session: ServerSession) {
+    const begun = await request(
+      host,
+      '/auth/email/challenges',
+      'POST',
+      { email: address, intent: 'link' },
+      session.token,
+    )
+    expect(begun.status).toBe(201)
+    const { challengeId } = (await begun.json()) as { challengeId: string }
+    return request(
+      host,
+      '/auth/email/complete',
+      'POST',
+      { intent: 'link', challengeId, code: codes.get(address) },
+      session.token,
+    )
   }
 
   async function connect(host: Host, session: ServerSession): Promise<Socket> {
@@ -298,6 +328,149 @@ describe.skipIf(!databaseUrl)('G3 full stack with PostgreSQL and GitHub App OAut
       code: 'ROOM_NOT_FOUND',
     })
   }, 20_000)
+
+  it('does not recover or merge a GitHub account through its unbound profile email', async () => {
+    const serverId = `full-stack-${randomUUID()}`
+    serverIds.add(serverId)
+    const codes = new Map<string, string>()
+    const host = await boot(serverId, codes)
+    const address = 'github-profile@example.test'
+    githubEmails.set(2001, address)
+
+    const signedIn = await githubComplete(host, 'login', 2001)
+    expect(signedIn.status).toBe(201)
+    expect(signedIn.headers.get('set-cookie')).toBeNull()
+    const githubSession = ((await signedIn.json()) as { session: ServerSession }).session
+    expect(await identities(host, githubSession)).toMatchObject([{ providerId: 'github', issuer, subject: '2001' }])
+
+    const emailSession = await emailLogin(host, codes, address)
+    expect(emailSession.principal.kind).toBe('account')
+    expect(emailSession.principal).not.toEqual(githubSession.principal)
+    expect(await identities(host, emailSession)).toMatchObject([
+      { providerId: 'email', issuer: 'mailto', subject: address },
+    ])
+    const conflict = await emailLink(host, codes, address, githubSession)
+    expect(conflict.status).toBe(409)
+    expect(await conflict.json()).toEqual({ code: 'IDENTITY_CONFLICT' })
+    expect(await identities(host, githubSession)).toHaveLength(1)
+
+    const recovered = await githubComplete(host, 'login', 2001)
+    expect(recovered.status).toBe(201)
+    expect(((await recovered.json()) as { session: ServerSession }).session.principal).toEqual(githubSession.principal)
+  })
+
+  it('requires a fresh proof to bind each email and recovers the same account through multiple emails after restart', async () => {
+    const serverId = `full-stack-${randomUUID()}`
+    serverIds.add(serverId)
+    const codes = new Map<string, string>()
+    const first = await boot(serverId, codes)
+    const primary = 'explicit-primary@example.test'
+    const secondary = 'explicit-secondary@example.test'
+    githubEmails.set(2002, primary)
+    const signedIn = await githubComplete(first, 'login', 2002)
+    expect(signedIn.status).toBe(201)
+    const original = ((await signedIn.json()) as { session: ServerSession }).session
+
+    const begun = await request(
+      first,
+      '/auth/email/challenges',
+      'POST',
+      { email: primary, intent: 'link' },
+      original.token,
+    )
+    expect(begun.status).toBe(201)
+    const { challengeId } = (await begun.json()) as { challengeId: string }
+    const code = codes.get(primary)!
+    expect(code).toMatch(/^\d{8}$/)
+    expect(await identities(first, original)).toHaveLength(1)
+
+    const wrongCode = `${code[0] === '0' ? '1' : '0'}${code.slice(1)}`
+    const invalid = await request(
+      first,
+      '/auth/email/complete',
+      'POST',
+      { intent: 'link', challengeId, code: wrongCode },
+      original.token,
+    )
+    expect(invalid.status).toBe(401)
+    expect(await identities(first, original)).toHaveLength(1)
+
+    const linked = await request(
+      first,
+      '/auth/email/complete',
+      'POST',
+      { intent: 'link', challengeId, code },
+      original.token,
+    )
+    expect(linked.status).toBe(200)
+    expect(linked.headers.get('set-cookie')).toBeNull()
+    const replayed = await request(
+      first,
+      '/auth/email/complete',
+      'POST',
+      { intent: 'link', challengeId, code },
+      original.token,
+    )
+    expect(replayed.status).toBe(401)
+    expect(await identities(first, original)).toHaveLength(2)
+    expect((await emailLink(first, codes, secondary, original)).status).toBe(200)
+    expect(await identities(first, original)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ providerId: 'github', issuer, subject: '2002' }),
+        expect.objectContaining({ providerId: 'email', issuer: 'mailto', subject: primary }),
+        expect.objectContaining({ providerId: 'email', issuer: 'mailto', subject: secondary }),
+      ]),
+    )
+    expect(await identities(first, original)).toHaveLength(3)
+    expect((await emailLogin(first, codes, primary)).principal).toEqual(original.principal)
+    expect((await emailLogin(first, codes, secondary)).principal).toEqual(original.principal)
+
+    await first.app.stop()
+    const second = await boot(serverId, codes)
+    expect((await request(second, '/session', 'GET', undefined, original.token)).status).toBe(401)
+    for (const address of [primary, secondary]) {
+      const recovered = await emailLogin(second, codes, address)
+      expect(recovered.principal).toEqual(original.principal)
+      expect(recovered.bootId).not.toBe(original.bootId)
+      expect(recovered.seatId).not.toBe(original.seatId)
+    }
+  })
+
+  it('keeps Better Auth verification private and accepts no cookie in place of a game session token', async () => {
+    const serverId = `full-stack-${randomUUID()}`
+    serverIds.add(serverId)
+    const host = await boot(serverId, new Map())
+    for (const [method, path] of [
+      ['POST', '/api/auth/sign-in/email-otp'],
+      ['POST', '/api/auth/email-otp/verify-email'],
+      ['GET', '/api/auth/get-session'],
+    ]) {
+      const response = await fetch(`${host.url}${path}`, {
+        method,
+        headers: { Cookie: 'better-auth.session_token=untrusted' },
+      })
+      expect(response.status).toBe(404)
+      expect(response.headers.get('set-cookie')).toBeNull()
+    }
+    const protectedResponse = await fetch(`${host.url}/api/v1/account/identities`, {
+      headers: { Cookie: 'better-auth.session_token=untrusted' },
+    })
+    expect(protectedResponse.status).toBe(401)
+    expect(await protectedResponse.json()).toEqual({ code: 'INVALID_SESSION' })
+    for (const path of ['/auth/email/challenges', '/auth/github/authorizations']) {
+      const response = await fetch(`${host.url}/api/v1${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: callbackOrigin,
+          Cookie: 'better-auth.session_token=untrusted',
+        },
+        body: JSON.stringify({ intent: 'link', email: 'cookie@example.test' }),
+      })
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ code: 'INVALID_SESSION' })
+    }
+  })
 
   it('keeps one account across process restart while replacing seats and revoking deactivated access', async () => {
     const serverId = `full-stack-${randomUUID()}`
