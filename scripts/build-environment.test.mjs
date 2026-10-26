@@ -7,8 +7,8 @@ import { identifyBaseEnvironmentArtifact } from './build-base-environment.mjs'
 
 /** Compile a real registered capability; the identifier stays fixed while semantics change. */
 async function capabilityArtifact({ amountMaximum = 100, multiplier = 1 } = {}) {
-  const registry = fileURLToPath(new URL('../packages/battle/src/v4/content/capabilities.ts', import.meta.url))
-  const core = fileURLToPath(new URL('../packages/battle/src/v4/content/core-capabilities.ts', import.meta.url))
+  const behavior = fileURLToPath(new URL('../packages/battle/src/v4/content/behaviors.ts', import.meta.url))
+  const authoring = fileURLToPath(new URL('../packages/battle/src/v4/content/authoring/index.ts', import.meta.url))
   const entry = '\0trusted-capability-identity-test'
   const bundle = await rolldown({
     input: entry,
@@ -19,16 +19,17 @@ async function capabilityArtifact({ amountMaximum = 100, multiplier = 1 } = {}) 
         resolveId: id => (id === entry ? entry : undefined),
         load: id =>
           id === entry
-            ? `import { CapabilityRegistry, defineAction } from ${JSON.stringify(registry)};
-               import { coreCapabilities } from ${JSON.stringify(core)};
-               const original = coreCapabilities.actions[0];
-               const params = { ...original.params, properties: {
-                 amount: { ...original.params.properties.amount, maximum: ${amountMaximum} }
-               } };
-               export const registry = new CapabilityRegistry([defineAction({
-                 id: 'host.controlled-heal', needs: ['ownerPet'], params,
-                 execute(context, args) { context.ops.heal(context.ownerPet, args.amount * ${multiplier}); }
-               })]);`
+            ? `import { defineNativeBehavior } from ${JSON.stringify(behavior)};
+               import { defineEffect, numberParam, ops, targets } from ${JSON.stringify(authoring)};
+               export const behavior = defineNativeBehavior({
+                 id: 'host.native-heal', sourceKind: 'skill',
+                 parameters: { amount: { kind: 'number', default: 10, minimum: 0, maximum: ${amountMaximum} } },
+                 build({ effectId, params }) {
+                   const amount = numberParam({ default: params.amount });
+                   return defineEffect({ id: effectId, on: 'OnHit', parameters: { amount },
+                     execute: targets.ownerPet.apply(ops.heal(amount.map(value => value * ${multiplier}))) });
+                 }
+               });`
             : undefined,
       },
     ],

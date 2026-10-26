@@ -40,11 +40,11 @@
 
 目标选择、数值计算、捕获／跟随与属性贡献由本文的原生作者 API 提供。模板固定事件、来源与执行流程，只公开有设计意义的有限参数；不要求将 TS 实现转换为可展开规则。
 
-核心尚存 CapabilityRegistry、`compileRule`、`compileContentPack`、`lockContentEnvironment` 及旧规则示例。[受控能力文档](controlled-capabilities.md)和 [examples](examples/ugc-recovery-pack.json)描述这部分历史接口，不是当前普通作品格式；相关公共 API 的收敛由 #242 跟踪，不能误称已全部移除。
+旧数据规则编译器、能力注册表、Rule Graph、规则包环境与相关 JSON 示例已移除。原生作者直接使用 `defineEffect`、`compileEffect`、目标选择和操作 API；复用行为通过 `defineNativeBehavior` 导出，不经过第二套规则语言。
 
 作品通过 `NativePackLoader.fromWorks`／共同环境准备流程解析精确依赖、校验可信导出与参数，冻结运行目录。当前 Release 摘要基于规范化源载荷，并非旧规则展开结果或全部有效默认值归一化后的语义；该合同的剩余工作见 #243。归档传输摘要、Release 摘要和环境摘要分别表达不同身份。
 
-执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/v4/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
+执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。派发深度与受计费的持续计算继续受限；规则动作计费适配器已删除，原生动作并不因此自动按每步计费。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/v4/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
 
 creator 与 CLI 已接入作品运行；完整宿主体验、Mod 安装准入、服务端环境策略及资源预算矩阵仍有独立验收。能力允许列表和有限参数不能代替对可信 TS 实现的审查。
 

@@ -35,7 +35,7 @@ const host = {
   base: { marks: [], skills: [], species: [] },
   templates: officialTemplateDefinitions,
   createContent: (data: Parameters<typeof createContentCatalog>[0], revision: string) =>
-    createContentCatalog(withOfficialTemplates(data), revision, undefined, [], createOfficialTemplateRegistrations),
+    createContentCatalog(withOfficialTemplates(data), revision, undefined, createOfficialTemplateRegistrations),
 }
 const skill = (id: string) => ({ id, element: 'Normal', category: 'Physical', power: 40, rage: 0, accuracy: 100 })
 

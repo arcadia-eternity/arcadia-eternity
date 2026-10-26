@@ -51,7 +51,6 @@
     "verify:battle-v4-waiting-snapshots": "node scripts/verify-waiting-snapshots.mjs --browser",
     "verify:battle-v4-behaviors": "node scripts/verify-behavior-uses.mjs --browser",
     "verify:battle-v4-templates": "node scripts/verify-behavior-uses.mjs --templates --browser",
-    "verify:battle-v4-capabilities": "node scripts/verify-behavior-uses.mjs --controlled --browser",
     "verify:battle-v4-hosts": "node scripts/verify-v1-hosts.mjs --browser",
     "lint:battle-v4": "pnpm exec eslint --config eslint.config.v4.js packages/battle/test/v4/*.ts packages/battle/v4.ts packages/battle/v4-host.ts packages/battle/src/v4-host/*.ts packages/battle/v4-legacy.ts packages/battle/src/v4/api.ts packages/battle/src/v4/reactiveValue.ts packages/battle/src/v4/rng.ts packages/battle/src/v4/timer/*.ts packages/battle/src/v4/phase/selection.ts packages/battle/src/v4/phase/battleSwitch.ts packages/battle/src/v4/snapshot.ts packages/battle/src/v4/snapshotBindings.ts packages/battle/src/v4/values/*.ts packages/battle/src/v4/content/*.ts packages/battle/src/v4/content/authoring/*.ts packages/battle/src/v4/execution/*.ts packs/base/src/**/*.ts packs/base/native.ts packages/battle/v4-authoring.ts",
     "battle:v4-demo": "tsx scripts/run-v1-battle.ts",

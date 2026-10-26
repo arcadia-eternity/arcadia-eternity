@@ -22,7 +22,6 @@ export {
   type ContentPrototypeData,
   type TrustedEffectFactory,
   type TrustedEffectCatalog,
-  type CompiledContentPack,
   type ContentCatalog,
   type BehaviorCatalogOptions,
   type BehaviorCatalogRegistrations,

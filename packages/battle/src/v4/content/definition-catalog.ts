@@ -12,9 +12,6 @@ import { hasAuthoredParameters, registerEffect } from './authoring/runtime'
 import { freezeContent } from './immutable'
 import type { PrototypeLookup } from './prototype-lookup'
 import type { ParameterCatalog } from './parameters'
-import type { ContentPackResult } from './content-pack'
-import type { CapabilityRegistry } from './capabilities'
-import { createCoreCapabilityRegistry } from './core-capabilities'
 import {
   BehaviorCompilationError,
   behaviorEffectId,
@@ -41,9 +38,8 @@ export interface ContentPrototypeData {
   readonly species: readonly unknown[]
   readonly behaviors?: readonly unknown[]
 }
-/** Executable exports and rule capabilities are supplied by the trusted host, never metadata. */
+/** Executable exports are supplied by the trusted host, never metadata. */
 export interface BehaviorCatalogRegistrations {
-  readonly registry?: CapabilityRegistry
   readonly nativeExports?: readonly NativeBehaviorExport[]
 }
 /** Trusted registration may reference the canonical marks allocated from saved metadata. */
@@ -59,19 +55,17 @@ export interface TrustedEffectCatalog {
 }
 /** Only a host may supply executable factories. Received content documents cannot select one. */
 export type TrustedEffectFactory = (marks: ReadonlyMap<string, BaseMark>) => TrustedEffectCatalog
-export type CompiledContentPack = Extract<ContentPackResult, { ok: true }>
 const installed = new WeakMap<Battle, object>()
 const emptyFactory: TrustedEffectFactory = () => ({ effects: new Map(), parameters: new Map() })
 
-/** Assemble metadata, trusted effects and compiled rules into one immutable set of prototypes.
- * The host's revision must identify every input, including trusted code and compiled pack data.
+/** Assemble metadata and trusted effects into one immutable set of prototypes.
+ * The host's revision must identify every input, including trusted code and content data.
  * Marks are allocated before effects, so ordinary content-reference cycles remain valid.
  */
 export function createContentCatalog(
   data: ContentPrototypeData,
   revision: string,
   createEffects: TrustedEffectFactory = emptyFactory,
-  packs: readonly CompiledContentPack[] = [],
   behaviorRegistrations: BehaviorCatalogOptions = {},
 ) {
   const catalog = new SnapshotCatalog(revision)
@@ -125,25 +119,16 @@ export function createContentCatalog(
     if (skillIds.has(definition.id)) throw new Error(`Duplicate content skill: ${definition.id}`)
     skillIds.add(definition.id)
   }
-  const packIds = new Set<string>()
-  const ruleSources = new Map<string, { kind: 'skill' | 'petMark'; markId?: string }>()
-  for (const pack of packs) {
-    if (packIds.has(pack.data.id)) throw new Error(`Duplicate content pack: ${pack.data.id}`)
-    packIds.add(pack.data.id)
-    for (const mark of pack.marks) add(marks, 'mark', mark)
-  }
   const behaviorOptions =
     typeof behaviorRegistrations === 'function'
       ? behaviorRegistrations(Object.freeze({ marks: new Map(marks), skillIds: new Set(skillIds) }))
       : behaviorRegistrations
-  const registry = behaviorOptions.registry ?? createCoreCapabilityRegistry()
   const behaviorPlans = [...markEntries, ...skillEntries].flatMap(entry =>
     entry.uses.map(use => ({
       owner: entry.owner,
       prepared: validateBehaviorUse(behaviorDefinitions, use, {
         owner: entry.owner,
         sourceMark: entry.owner.kind === 'petMark' ? required(marks, 'mark', entry.owner.id) : undefined,
-        registry,
         nativeExports: behaviorOptions.nativeExports,
         references: { marks: new Set(marks.keys()), skills: skillIds },
       }),
@@ -163,15 +148,13 @@ export function createContentCatalog(
           },
         ])
     }
-  // Validate and compile every data rule before invoking host-provided code builders.
+  // All behavior definitions and uses are validated before invoking trusted code builders.
   const compiledBehaviors = new Map<string, Extract<ReturnType<typeof compilePreparedBehaviorUse>, { ok: true }>>()
-  for (const kind of ['rule', 'native'] as const)
-    for (const { prepared } of behaviorPlans) {
-      if (prepared.definition.implementation.kind !== kind) continue
-      const compiled = compilePreparedBehaviorUse(prepared)
-      if (!compiled.ok) throw new BehaviorCompilationError(compiled.diagnostics)
-      compiledBehaviors.set(prepared.effectId, compiled)
-    }
+  for (const { prepared } of behaviorPlans) {
+    const compiled = compilePreparedBehaviorUse(prepared)
+    if (!compiled.ok) throw new BehaviorCompilationError(compiled.diagnostics)
+    compiledBehaviors.set(prepared.effectId, compiled)
+  }
   const native = createEffects(marks)
   for (const [id, effect] of native.effects) {
     if (!(effect instanceof Effect) || effect.id !== id) throw new Error(`Invalid content effect: ${id}`)
@@ -181,15 +164,6 @@ export function createContentCatalog(
     required(effects, 'effect', id)
     effectParameters.set(id, parameter)
     parameters.add(parameter)
-  }
-  for (const pack of packs) {
-    for (const rule of pack.rules) {
-      add(effects, 'effect', rule.effect)
-      effectParameters.set(rule.effect.id, rule.parameters)
-    }
-    for (const entry of pack.data.rules)
-      ruleSources.set(entry.rule.id, { kind: entry.sourceKind, markId: entry.rule.sourceMarkId })
-    parameters.add(pack.parameters)
   }
   for (const { prepared } of behaviorPlans) {
     const compiled = required(compiledBehaviors, 'behavior use', prepared.effectId)
@@ -208,9 +182,6 @@ export function createContentCatalog(
           message: `Content behavior source mismatch: ${effect} on ${ownerId}`,
         },
       ])
-    const source = ruleSources.get(effect)
-    if (source && (source.kind !== kind || (kind === 'petMark' && source.markId !== ownerId)))
-      throw new Error(`Content effect source mismatch: ${effect} on ${ownerId}`)
   }
   for (const { definition, owner, uses } of markEntries) {
     const mark = required(marks, 'mark', definition.id)

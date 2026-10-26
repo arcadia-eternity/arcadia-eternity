@@ -3,16 +3,6 @@ import { Value } from '@sinclair/typebox/value'
 import type { EffectTrigger } from '@arcadia-eternity/const'
 import type { Effect } from '../effect'
 import type { BaseMark } from '../mark'
-import type { CapabilityRegistry } from './capabilities'
-import {
-  compileRule,
-  normalizeRuleData,
-  RuleStructureError,
-  ruleSchema,
-  type CompiledRuleData,
-  type CompileDiagnostic,
-  type RuleCompileResult,
-} from './compiler'
 import { normalizeParams, parameterAddress, type ParameterCatalog } from './parameters'
 import { freezeContent } from './immutable'
 import { compileEffect, effectParameters } from './authoring/runtime'
@@ -58,10 +48,7 @@ const behaviorDefinitionSchema = Type.Object(
     id,
     sourceKind,
     parameters: parameterMapSchema,
-    implementation: Type.Union([
-      Type.Object({ kind: Type.Literal('rule'), rule: ruleSchema }, { additionalProperties: false }),
-      Type.Object({ kind: Type.Literal('native'), exportId: id }, { additionalProperties: false }),
-    ]),
+    implementation: Type.Object({ kind: Type.Literal('native'), exportId: id }, { additionalProperties: false }),
   },
   { additionalProperties: false },
 )
@@ -81,7 +68,11 @@ export interface BehaviorOwner {
   readonly kind: 'skill' | 'petMark'
   readonly id: string
 }
-export interface BehaviorDiagnostic extends CompileDiagnostic {
+export interface BehaviorDiagnostic {
+  readonly code: string
+  readonly contentId: string
+  readonly field?: string
+  readonly message: string
   readonly useId?: string
 }
 export class BehaviorCompilationError extends Error {
@@ -223,37 +214,8 @@ function normalizeDefinition(input: unknown): BehaviorDefinition {
   const rawId: unknown =
     input && typeof input === 'object' && Object.hasOwn(input, 'id') ? Reflect.get(input, 'id') : undefined
   const contentId = typeof rawId === 'string' && Value.Check(id, rawId) ? rawId : '<behavior>'
-  // Validate the selected rule branch directly so a union error cannot hide its exact field.
-  if (input && typeof input === 'object') {
-    const implementation = Reflect.get(input, 'implementation')
-    if (implementation && typeof implementation === 'object' && Reflect.get(implementation, 'kind') === 'rule') {
-      try {
-        normalizeRuleData(Reflect.get(implementation, 'rule'))
-      } catch (error) {
-        if (!(error instanceof RuleStructureError)) throw error
-        throw new BehaviorCompilationError([
-          {
-            code: error.message.startsWith('LIMIT_EXCEEDED:') ? 'LIMIT_EXCEEDED' : 'INVALID_PARAMETERS',
-            contentId,
-            ruleId: error.ruleId,
-            nodeId: error.nodeId,
-            field: `/implementation/rule${error.field}`,
-            message: error.message,
-          },
-        ])
-      }
-    }
-  }
   const definition = normalizeAt(behaviorDefinitionSchema, input, contentId, '')
   normalizeValues(definition.parameters, {})
-  if (definition.implementation.kind === 'rule') {
-    const rule = definition.implementation.rule
-    if (rule.sourceMarkId !== undefined) throw new Error('A reusable rule cannot bind a source mark before use')
-    for (const [name, parameter] of Object.entries(definition.parameters)) {
-      if (!Object.hasOwn(rule.parameters, name)) throw new Error(`Unknown public rule parameter: ${name}`)
-      if (rule.parameters[name].kind !== parameter.kind) throw new Error(`Public rule parameter kind mismatch: ${name}`)
-    }
-  }
   return definition
 }
 export function normalizeBehaviorDefinitions(input: unknown): readonly BehaviorDefinition[] {
@@ -270,33 +232,6 @@ export function normalizeBehaviorDefinitions(input: unknown): readonly BehaviorD
       }),
     )
   } catch (error) {
-    // Aggregate admission keeps its original bounds; enrich only the exact rejected rule field.
-    const match =
-      error instanceof BehaviorInputError ? /^\/(\d+)\/implementation\/rule(\/.*|)$/.exec(error.field) : undefined
-    if (match && Array.isArray(input)) {
-      const definition = input[Number(match[1])]
-      const implementation =
-        definition && typeof definition === 'object' ? Reflect.get(definition, 'implementation') : undefined
-      if (implementation && typeof implementation === 'object' && Reflect.get(implementation, 'kind') === 'rule') {
-        let structure: RuleStructureError | undefined
-        try {
-          normalizeRuleData(Reflect.get(implementation, 'rule'))
-        } catch (candidate) {
-          if (candidate instanceof RuleStructureError) structure = candidate
-        }
-        if (structure?.field === match[2]) {
-          const rawId: unknown = Reflect.get(definition, 'id')
-          const contentId = typeof rawId === 'string' && Value.Check(id, rawId) ? rawId : '<behaviors>'
-          throw new BehaviorCompilationError(
-            diagnostic(error, contentId, 'behaviors').diagnostics.map(entry => ({
-              ...entry,
-              ruleId: structure!.ruleId,
-              nodeId: structure!.nodeId,
-            })),
-          )
-        }
-      }
-    }
     throw diagnostic(error, '<behaviors>', 'behaviors')
   }
 }
@@ -389,7 +324,6 @@ export function defineNativeBehavior<T extends Trigger, P extends Readonly<Recor
 export interface BehaviorCompileOptions {
   readonly owner: BehaviorOwner
   readonly sourceMark?: BaseMark
-  readonly registry: CapabilityRegistry
   readonly nativeExports?: readonly NativeBehaviorExport[]
   /** Host-owned identities of the content being assembled, never supplied by an imported behavior. */
   readonly references?: {
@@ -405,8 +339,7 @@ export interface PreparedBehaviorUse {
 interface Preparation {
   options: BehaviorCompileOptions
   schemas: Readonly<Record<string, TSchema>>
-  native?: NativeBehaviorExport
-  rule?: Extract<RuleCompileResult, { ok: true }>
+  native: NativeBehaviorExport
 }
 const preparations = new WeakMap<PreparedBehaviorUse, Preparation>()
 /** Validate all candidates before a host invokes any trusted builder. */
@@ -454,65 +387,47 @@ export function validateBehaviorUse(
       // References and structural selections are resolved at build time. Runtime config cannot silently retarget them.
       if (parameter.static || (parameter.kind === 'string' && parameter.reference)) schemas[name] = Type.Literal(value)
     }
-    let native: NativeBehaviorExport | undefined
-    if (definition.implementation.kind === 'native') {
-      field = 'implementation.exportId'
-      const exports = new Map<string, NativeBehaviorExport>()
-      for (const entry of options.nativeExports ?? []) {
-        if (exports.has(entry.id))
-          fail('DUPLICATE_ID', options.owner.id, field, `duplicate native export ${entry.id}`, use.useId)
-        exports.set(entry.id, entry)
-      }
-      native = exports.get(definition.implementation.exportId)
-      if (!native || !nativeBuilders.has(native))
-        fail(
-          'MISSING_REFERENCE',
-          options.owner.id,
-          field,
-          `unregistered native export ${definition.implementation.exportId}`,
-          use.useId,
-        )
-      if (native.sourceKind !== definition.sourceKind)
-        fail('CAPABILITY_MISMATCH', options.owner.id, 'sourceKind', 'native export source mismatch', use.useId)
-      // The export owns its public contract. A document cannot widen it or hide required fields.
-      const canonical = (value: Readonly<Record<string, BehaviorParameter>>) =>
-        JSON.stringify(
-          Object.entries(value)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([name, parameter]) => [name, Object.entries(parameter).sort(([a], [b]) => a.localeCompare(b))]),
-        )
-      if (canonical(native.parameters) !== canonical(definition.parameters))
-        fail(
-          'INVALID_PARAMETERS',
-          options.owner.id,
-          'parameters',
-          'native public contract does not match its registered export',
-          use.useId,
-        )
-      normalizeValues(native.parameters, params)
+    field = 'implementation.exportId'
+    const exports = new Map<string, NativeBehaviorExport>()
+    for (const entry of options.nativeExports ?? []) {
+      if (exports.has(entry.id))
+        fail('DUPLICATE_ID', options.owner.id, field, `duplicate native export ${entry.id}`, use.useId)
+      exports.set(entry.id, entry)
     }
+    const native = exports.get(definition.implementation.exportId)
+    if (!native || !nativeBuilders.has(native))
+      fail(
+        'MISSING_REFERENCE',
+        options.owner.id,
+        field,
+        `unregistered native export ${definition.implementation.exportId}`,
+        use.useId,
+      )
+    if (native.sourceKind !== definition.sourceKind)
+      fail('CAPABILITY_MISMATCH', options.owner.id, 'sourceKind', 'native export source mismatch', use.useId)
+    // The export owns its public contract. A document cannot widen it or hide required fields.
+    const canonical = (value: Readonly<Record<string, BehaviorParameter>>) =>
+      JSON.stringify(
+        Object.entries(value)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, parameter]) => [name, Object.entries(parameter).sort(([a], [b]) => a.localeCompare(b))]),
+      )
+    if (canonical(native.parameters) !== canonical(definition.parameters))
+      fail(
+        'INVALID_PARAMETERS',
+        options.owner.id,
+        'parameters',
+        'native public contract does not match its registered export',
+        use.useId,
+      )
+    normalizeValues(native.parameters, params)
     const effectId = behaviorEffectId(options.owner, use.useId)
-    let rule: Extract<RuleCompileResult, { ok: true }> | undefined
-    if (definition.implementation.kind === 'rule') {
-      const candidate = structuredClone(definition.implementation.rule)
-      candidate.id = effectId
-      for (const [name, value] of Object.entries(params)) candidate.parameters[name].value = value
-      const compiled = compileRule(candidate, options.registry, {
-        contentId: options.owner.id,
-        sourceKind: options.owner.kind,
-        sourceMark: options.sourceMark,
-        parameterSchemas: schemas,
-      })
-      if (!compiled.ok)
-        throw new BehaviorCompilationError(compiled.diagnostics.map(entry => ({ ...entry, useId: use!.useId })))
-      rule = compiled
-    }
     const prepared = freezeContent({
       definition,
       use: { ...use, params },
       effectId,
     })
-    preparations.set(prepared, { options: { ...options, owner: { ...options.owner } }, schemas, native, rule })
+    preparations.set(prepared, { options: { ...options, owner: { ...options.owner } }, schemas, native })
     return prepared
   } catch (error) {
     throw diagnostic(error, options.owner.id, field, use?.useId)
@@ -525,7 +440,6 @@ export type BehaviorCompileResult =
       readonly use: BehaviorUse
       readonly effect: Effect<EffectTrigger>
       readonly parameters: ParameterCatalog
-      readonly rule?: CompiledRuleData
       readonly parameterAddresses: Readonly<Record<string, string>>
     }
   | { readonly ok: false; readonly diagnostics: readonly BehaviorDiagnostic[] }
@@ -547,34 +461,23 @@ export function compilePreparedBehaviorUse(prepared: PreparedBehaviorUse): Behav
   const { options, schemas, native } = plan
   const { definition, use, effectId } = prepared
   try {
-    let effect: Effect<EffectTrigger>, parameters: ParameterCatalog, rule: CompiledRuleData | undefined
+    const effect = nativeBuilders.get(native)!({
+      effectId,
+      params: use.params,
+      sourceMark: options.sourceMark,
+      owner: options.owner,
+      parameterSchemas: schemas,
+    })
+    const parameters = effectParameters(effect)
     const addresses: Record<string, string> = Object.create(null)
-    if (definition.implementation.kind === 'rule') {
-      const compiled = plan.rule!
-      effect = compiled.effect
-      parameters = compiled.parameters
-      rule = compiled.rule
-      for (const name of Object.keys(definition.parameters))
-        addresses[name] = parameterAddress(effectId, rule.parameters[name].nodeId, name)
-    } else {
-      effect = nativeBuilders.get(native!)!({
-        effectId,
-        params: use.params,
-        sourceMark: options.sourceMark,
-        owner: options.owner,
-        parameterSchemas: schemas,
-      })
-      parameters = effectParameters(effect)
-      for (const name of Object.keys(definition.parameters))
-        addresses[name] = parameterAddress(effectId, 'parameters', name)
-    }
+    for (const name of Object.keys(definition.parameters))
+      addresses[name] = parameterAddress(effectId, 'parameters', name)
     return Object.freeze({
       ok: true,
       definition,
       use,
       effect,
       parameters,
-      ...(rule ? { rule } : {}),
       parameterAddresses: freezeContent(addresses),
     })
   } catch (error) {
@@ -616,77 +519,4 @@ export function copyBehaviorDefinition(input: unknown, newId: string): BehaviorD
   const definition = normalizeBehaviorDefinitions([input])[0]
   if (definition.id === newId) fail('DUPLICATE_ID', newId, 'id', 'a copy requires a new definition identity')
   return normalizeBehaviorDefinitions([{ ...definition, id: newId }])[0]
-}
-export function encapsulateRule(
-  input: unknown,
-  options: {
-    readonly id: string
-    readonly sourceKind: BehaviorOwner['kind']
-    readonly parameters: Readonly<Record<string, BehaviorParameter>>
-  },
-): BehaviorDefinition {
-  return normalizeBehaviorDefinitions([
-    { formatVersion: 1, ...options, implementation: { kind: 'rule', rule: input } },
-  ])[0]
-}
-export type BehaviorExpansionResult =
-  | Extract<RuleCompileResult, { ok: false }>
-  | (Extract<RuleCompileResult, { ok: true }> & {
-      readonly expandedDefinition: BehaviorDefinition
-      readonly expandedUse: BehaviorUse
-    })
-/** Persist expandedDefinition and expandedUse together: they retain the public parameter contract.
- * The compiled rule is an execution artifact, just as in ordinary behavior compilation.
- * Expansion replaces this use in place; copyBehaviorUse gives a second use an independent identity.
- */
-export function expandBehaviorUse(
-  definition: unknown,
-  use: unknown,
-  newRuleId: string,
-  options: BehaviorCompileOptions,
-): BehaviorExpansionResult {
-  try {
-    const prepared = validateBehaviorUse(normalizeBehaviorDefinitions([definition]), use, options)
-    if (prepared.definition.implementation.kind !== 'rule')
-      fail(
-        'CAPABILITY_MISMATCH',
-        options.owner.id,
-        'implementation',
-        'native behavior cannot be expanded',
-        prepared.use.useId,
-      )
-    if (
-      !newRuleId ||
-      newRuleId === prepared.effectId ||
-      newRuleId === prepared.definition.id ||
-      newRuleId === prepared.definition.implementation.rule.id
-    )
-      fail('DUPLICATE_ID', options.owner.id, 'id', 'expansion requires a new rule identity', prepared.use.useId)
-    const candidate = structuredClone(prepared.definition.implementation.rule)
-    candidate.id = newRuleId
-    for (const [name, value] of Object.entries(prepared.use.params)) candidate.parameters[name].value = value
-    const compiled = compileRule(candidate, options.registry, {
-      contentId: options.owner.id,
-      sourceKind: options.owner.kind,
-      sourceMark: options.sourceMark,
-      parameterSchemas: schemasFor(prepared.definition.parameters),
-    })
-    if (!compiled.ok) return compiled
-    const parameters = Object.fromEntries(
-      Object.entries(prepared.definition.parameters).map(([name, parameter]) => [
-        name,
-        { ...parameter, default: prepared.use.params[name] },
-      ]),
-    )
-    const expandedDefinition = normalizeDefinition({
-      ...prepared.definition,
-      id: newRuleId,
-      parameters,
-      implementation: { kind: 'rule', rule: candidate },
-    })
-    const expandedUse = freezeContent({ ...prepared.use, definitionId: newRuleId })
-    return Object.freeze({ ...compiled, expandedDefinition, expandedUse })
-  } catch (error) {
-    return { ok: false, diagnostics: diagnostic(error, options.owner.id, 'expansion').diagnostics }
-  }
 }

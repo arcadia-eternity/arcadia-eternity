@@ -20,7 +20,7 @@ import { createContentCatalog, type ContentCatalog } from '../../src/v4/content/
 import { behaviorEffectId, defineNativeBehavior } from '../../src/v4/content/behaviors'
 import { actions, conditions, defineEffect, numberParam, ops, targets } from '../../src/v4/content/authoring'
 
-type Mode = 'rule' | 'native'
+type Mode = 'native'
 const skillOwner = { kind: 'skill', id: 'demo/heal' } as const
 const healParameters = { amount: { kind: 'number', default: 10, minimum: 0, maximum: 100 } } as const
 const bindingParameters = { amount: { kind: 'number', default: -3, minimum: -100, maximum: 0 } } as const
@@ -30,24 +30,6 @@ function require(value: unknown, message: string): asserts value {
 }
 function same(actual: unknown, expected: unknown, message: string) {
   require(JSON.stringify(actual) === JSON.stringify(expected), `${message}: ${JSON.stringify(actual)}`)
-}
-function rule(id: string, sourceKind: 'skill' | 'petMark') {
-  return {
-    formatVersion: 1,
-    id,
-    sourceKind,
-    parameters: healParameters,
-    implementation: {
-      kind: 'rule',
-      rule: {
-        formatVersion: 1,
-        id: `${id}/rule`,
-        parameters: { amount: { nodeId: 'amount-node', kind: 'number', value: 10 } },
-        trigger: { nodeId: 'trigger', id: sourceKind === 'skill' ? 'core.selfSkillHit' : 'core.markOwnerTurnEnd' },
-        actions: [{ stepId: 'heal', id: 'core.healOwner', params: { amount: { parameter: 'amount' } } }],
-      },
-    },
-  }
 }
 function nativeExports() {
   return [
@@ -104,35 +86,30 @@ function nativeExports() {
     }),
   ]
 }
-export function behaviorMetadata(mode: Mode) {
-  const behaviors =
-    mode === 'rule'
-      ? [rule('demo/heal-behavior', 'skill'), rule('demo/mark-behavior', 'petMark')]
-      : [
-          {
-            formatVersion: 1,
-            id: 'demo/heal-behavior',
-            sourceKind: 'skill',
-            parameters: healParameters,
-            implementation: { kind: 'native', exportId: 'trusted/heal' },
-          },
-          {
-            formatVersion: 1,
-            id: 'demo/mark-behavior',
-            sourceKind: 'petMark',
-            parameters: bindingParameters,
-            implementation: { kind: 'native', exportId: 'trusted/binding' },
-          },
-        ]
+export function behaviorMetadata() {
+  const behaviors = [
+    {
+      formatVersion: 1,
+      id: 'demo/heal-behavior',
+      sourceKind: 'skill',
+      parameters: healParameters,
+      implementation: { kind: 'native', exportId: 'trusted/heal' },
+    },
+    {
+      formatVersion: 1,
+      id: 'demo/mark-behavior',
+      sourceKind: 'petMark',
+      parameters: bindingParameters,
+      implementation: { kind: 'native', exportId: 'trusted/binding' },
+    },
+  ]
   return {
     behaviors,
     marks: [3, 7].map((amount, index) => ({
       id: `demo/mark-${index}`,
       effect: [],
       config: { stackable: true, maxStacks: 5, stackStrategy: StackStrategy.stack, persistent: true, duration: -1 },
-      behaviors: [
-        { useId: 'shared', definitionId: 'demo/mark-behavior', params: { amount: mode === 'rule' ? amount : -amount } },
-      ],
+      behaviors: [{ useId: 'shared', definitionId: 'demo/mark-behavior', params: { amount: -amount } }],
     })),
     skills: [
       {
@@ -168,15 +145,9 @@ export function behaviorMetadata(mode: Mode) {
 }
 export function behaviorCatalog(mode: Mode) {
   // Every load crosses the saved-data boundary and rebuilds trusted factories.
-  return createContentCatalog(
-    JSON.parse(JSON.stringify(behaviorMetadata(mode))),
-    `behavior-demo/v1/${mode}`,
-    undefined,
-    [],
-    {
-      nativeExports: nativeExports(),
-    },
-  )
+  return createContentCatalog(JSON.parse(JSON.stringify(behaviorMetadata())), `behavior-demo/v1/${mode}`, undefined, {
+    nativeExports: nativeExports(),
+  })
 }
 function createBattle(directory: ContentCatalog) {
   const players = directory.parsePlayers(
@@ -215,7 +186,6 @@ function useSkill(battle: Battle) {
 function setAmount(
   directory: ContentCatalog,
   battle: Battle,
-  mode: Mode,
   kind: 'skill' | 'petMark',
   index: number,
   amount: number,
@@ -224,35 +194,21 @@ function setAmount(
   const effectId = behaviorEffectId(owner, kind === 'skill' ? `heal-${index}` : 'shared')
   const catalog = directory.parametersFor(effectId)
   require(catalog, 'Missing behavior parameter catalog')
-  catalog.set(
-    battle.configSystem,
-    parameterAddress(effectId, mode === 'rule' ? 'amount-node' : 'parameters', 'amount'),
-    amount,
-  )
+  catalog.set(battle.configSystem, parameterAddress(effectId, 'parameters', 'amount'), amount)
 }
-function setupMarks(directory: ContentCatalog, battle: Battle, mode: Mode) {
+function setupMarks(directory: ContentCatalog, battle: Battle) {
   const pet = battle.playerA.activePet
   pet.attributeSystem.updateBaseValue('spe', 300)
   const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, pet.skills[0])
   for (const index of [0, 1])
     battle.addMark(new AddMarkContext(context, pet, directory.getMark(`demo/mark-${index}` as baseMarkId), 1))
-  if (mode === 'rule') {
-    pet.currentHp = 1
-    battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd)
-    same(pet.currentHp, 11, 'Two marks heal independently')
-    setAmount(directory, battle, mode, 'petMark', 0, 5)
-    pet.currentHp = 1
-    battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd)
-    same(pet.currentHp, 13, 'Changing one mark leaves the other at seven')
-  } else {
-    same(pet.stat.spe, 286, 'Two native marks each install their own parameter and stack bindings')
-    setAmount(directory, battle, mode, 'petMark', 0, -5)
-    same(pet.stat.spe, 284, 'Only the first native mark follows the changed parameter')
-  }
+  same(pet.stat.spe, 286, 'Two native marks each install their own parameter and stack bindings')
+  setAmount(directory, battle, 'petMark', 0, -5)
+  same(pet.stat.spe, 284, 'Only the first native mark follows the changed parameter')
   const first = pet.marks.find(mark => mark.baseId === 'demo/mark-0')!
   first.stack = 2
   same(pet.marks.find(mark => mark.baseId === 'demo/mark-1')!.stack, 1, 'Independent mark stack')
-  if (mode === 'native') same(pet.stat.spe, 282, 'Only first binding follows its source stack')
+  same(pet.stat.spe, 282, 'Only first binding follows its source stack')
 }
 function continueProbe(directory: ContentCatalog, battle: Battle, mode: Mode, marks: boolean) {
   const heals: number[] = [],
@@ -263,11 +219,11 @@ function continueProbe(directory: ContentCatalog, battle: Battle, mode: Mode, ma
       errors.push(message.type)
   })
   const pet = battle.playerA.activePet
-  if (marks && mode === 'native') same(pet.stat.spe, 282, 'Restored bindings were installed exactly once')
+  if (marks) same(pet.stat.spe, 282, 'Restored bindings were installed exactly once')
   pet.currentHp = 1
   useSkill(battle)
   same(pet.currentHp, 33, 'Saved first-use parameter survives fresh compilation')
-  setAmount(directory, battle, mode, 'skill', 0, 14)
+  setAmount(directory, battle, 'skill', 0, 14)
   pet.currentHp = 1
   useSkill(battle)
   same(pet.currentHp, 35, 'Restored first-use parameter remains independent')
@@ -277,15 +233,9 @@ function continueProbe(directory: ContentCatalog, battle: Battle, mode: Mode, ma
     first.consumeStack(new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, pet.skills[0]), first.stack)
     require(!pet.marks.some(mark => mark.baseId === 'demo/mark-0'), 'First mark removed')
     require(pet.marks.some(mark => mark.baseId === 'demo/mark-1'), 'Second mark retained')
-    if (mode === 'rule') {
-      pet.currentHp = 1
-      battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd)
-      same(pet.currentHp, 8, 'Only the remaining mark heals')
-    } else {
-      same(pet.stat.spe, 291, 'Removing one mark removes only its contributions')
-      setAmount(directory, battle, mode, 'petMark', 1, -9)
-      same(pet.stat.spe, 289, 'Remaining restored binding stays live')
-    }
+    same(pet.stat.spe, 291, 'Removing one mark removes only its contributions')
+    setAmount(directory, battle, 'petMark', 1, -9)
+    same(pet.stat.spe, 289, 'Remaining restored binding stays live')
   }
   same(errors, [], 'No swallowed execution errors')
   return {
@@ -307,7 +257,7 @@ interface Probe {
 export async function createBehaviorUseProbes(): Promise<Probe[]> {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
   const probes: Probe[] = []
-  for (const mode of ['rule', 'native'] as const) {
+  for (const mode of ['native'] as const) {
     for (const marks of [false, true]) {
       const directory = behaviorCatalog(mode)
       const battle = createBattle(directory),
@@ -320,7 +270,7 @@ export async function createBehaviorUseProbes(): Promise<Probe[]> {
           useSkill(current)
           same(current.playerA.activePet.currentHp, 31, 'The saved 10/20 uses both execute')
         }
-        setAmount(directory, battle, mode, 'skill', 0, 12)
+        setAmount(directory, battle, 'skill', 0, 12)
         other.playerA.activePet.currentHp = 1
         useSkill(other)
         same(other.playerA.activePet.currentHp, 31, 'Second battle retains original defaults')
@@ -334,7 +284,7 @@ export async function createBehaviorUseProbes(): Promise<Probe[]> {
             if (!(error instanceof Error) || error.message !== 'Battle cancelled') throw error
           })
           await ready
-          setupMarks(directory, battle, mode)
+          setupMarks(directory, battle)
           same(other.playerA.activePet.marks.length, 0, 'Mark state does not leak between battles')
         }
         const snapshot = JSON.parse(JSON.stringify(directory.snapshot(battle))) as BattleSnapshot

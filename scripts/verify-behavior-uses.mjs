@@ -9,7 +9,6 @@ import { rolldown } from 'rolldown'
 
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-behavior-uses-'))
 const browserEnabled = process.argv.includes('--browser')
-const controlled = process.argv.includes('--controlled')
 const suite = process.argv.includes('--templates')
   ? {
       entry: 'official-template-host.ts',
@@ -17,19 +16,12 @@ const suite = process.argv.includes('--templates')
       resume: 'resumeOfficialTemplateProbes',
       report: 'officialTemplates',
     }
-  : controlled
-    ? {
-        entry: 'controlled-capabilities-host.ts',
-        create: 'createControlledCapabilityProbes',
-        resume: 'resumeControlledCapabilityProbes',
-        report: 'controlledCapabilities',
-      }
-    : {
-        entry: 'behavior-use-host.ts',
-        create: 'createBehaviorUseProbes',
-        resume: 'resumeBehaviorUseProbes',
-        report: 'behaviorUses',
-      }
+  : {
+      entry: 'behavior-use-host.ts',
+      create: 'createBehaviorUseProbes',
+      resume: 'resumeBehaviorUseProbes',
+      report: 'behaviorUses',
+    }
 const jsonRoundTrip = value => JSON.parse(JSON.stringify(value))
 let server, browser, browserExit, browserTimeout, browserResult, report
 const ownsProcessGroup = process.platform !== 'win32'

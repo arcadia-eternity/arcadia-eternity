@@ -1,11 +1,6 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
-import { Type } from '@sinclair/typebox'
 import {
-  CapabilityRegistry,
-  defineAction,
   defineNativeEffect,
-  defineTrigger,
-  compileRule,
   BattleMessageType,
   EffectTrigger,
   TurnContext,
@@ -59,59 +54,6 @@ it('stops recursive triggers at the shared depth limit and permanently faults on
   const other = setup()
   expect(() => other.battle.applyEffects(new TurnContext(other.battle), EffectTrigger.TurnEnd)).not.toThrow()
 })
-
-it('counts registered action invocations across nested contexts and stops before the over-limit write', () => {
-  const { battle, source } = setup()
-  let writes = 0
-  const empty = Type.Object({}, { additionalProperties: false })
-  const registry = new CapabilityRegistry(
-    [
-      defineAction({
-        id: 'write',
-        needs: [],
-        params: empty,
-        execute() {
-          writes++
-        },
-      }),
-    ],
-    {
-      triggers: [
-        defineTrigger({
-          id: 'turn',
-          trigger: EffectTrigger.TurnEnd,
-          params: empty,
-          provides: { skill: [] },
-          resolve() {
-            return {}
-          },
-        }),
-      ],
-    },
-  )
-  const result = compileRule(
-    {
-      formatVersion: 1,
-      id: 'writes',
-      trigger: { nodeId: 'trigger', id: 'turn' },
-      actions: Array.from({ length: 64 }, (_, index) => ({ stepId: `write-${index}`, id: 'write' })),
-    },
-    registry,
-    { contentId: 'budget', sourceKind: 'skill' },
-  )
-  if (!result.ok) throw new Error(JSON.stringify(result.diagnostics))
-  source.effects.push(result.effect)
-  expect(() =>
-    battle.executionBudget.run(battle.currentTurn, () => {
-      // Exercise the real action boundary across multiple effect contexts without 4097 phase setups.
-      for (let i = 0; i <= Math.floor(executionBudgetPolicy.actions / 64); i++) {
-        battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)
-      }
-    }),
-  ).toThrow(ExecutionBudgetExceeded)
-  expect(writes).toBe(executionBudgetPolicy.actions)
-  expect(battle.executionBudget.fault?.dimension).toBe('actions')
-}, 15000)
 
 it('shares the per-turn limit across roots and does not allow swallowed faults to resume', () => {
   const { battle } = setup()

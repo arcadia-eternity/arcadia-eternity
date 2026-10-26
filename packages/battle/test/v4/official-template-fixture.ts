@@ -72,7 +72,6 @@ export function templateCatalog(data: ContentPrototypeData = templateData(), rev
     withOfficialTemplates(JSON.parse(JSON.stringify(data))),
     revision,
     undefined,
-    [],
     createOfficialTemplateRegistrations,
   )
 }
