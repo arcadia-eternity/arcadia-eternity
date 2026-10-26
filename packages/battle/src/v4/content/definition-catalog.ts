@@ -13,11 +13,24 @@ import { freezeContent } from './immutable'
 import type { PrototypeLookup } from './prototype-lookup'
 import type { ParameterCatalog } from './parameters'
 import type { ContentPackResult } from './content-pack'
+import type { CapabilityRegistry } from './capabilities'
+import { createCoreCapabilityRegistry } from './core-capabilities'
+import {
+  BehaviorCompilationError,
+  behaviorEffectId,
+  normalizeBehaviorDefinitions,
+  normalizeBehaviorUses,
+  validateBehaviorUse,
+  compilePreparedBehaviorUse,
+  type BehaviorOwner,
+  type NativeBehaviorExport,
+} from './behaviors'
 import { MarkParser } from '../legacy/parser/mark'
 import { SkillParser } from '../legacy/parser/skill'
 import { SpeciesParser } from '../legacy/parser/species'
 import { PlayerParser } from '../legacy/parser/player'
 import { MarkSchema } from '../legacy/schema/mark'
+import { SkillSchema } from '../legacy/schema/skill'
 import { PlayerSchema } from '../legacy/schema/player'
 import { SpeciesSchema } from '../legacy/schema/species'
 
@@ -26,7 +39,20 @@ export interface ContentPrototypeData {
   readonly marks: readonly unknown[]
   readonly skills: readonly unknown[]
   readonly species: readonly unknown[]
+  readonly behaviors?: readonly unknown[]
 }
+/** Executable exports and rule capabilities are supplied by the trusted host, never metadata. */
+export interface BehaviorCatalogRegistrations {
+  readonly registry?: CapabilityRegistry
+  readonly nativeExports?: readonly NativeBehaviorExport[]
+}
+/** Trusted registration may reference the canonical marks allocated from saved metadata. */
+export type BehaviorCatalogOptions =
+  | BehaviorCatalogRegistrations
+  | ((content: {
+      readonly marks: ReadonlyMap<string, BaseMark>
+      readonly skillIds: ReadonlySet<string>
+    }) => BehaviorCatalogRegistrations)
 export interface TrustedEffectCatalog {
   readonly effects: ReadonlyMap<string, Effect<EffectTrigger>>
   readonly parameters: ReadonlyMap<string, ParameterCatalog>
@@ -46,11 +72,32 @@ export function createContentCatalog(
   revision: string,
   createEffects: TrustedEffectFactory = emptyFactory,
   packs: readonly CompiledContentPack[] = [],
+  behaviorRegistrations: BehaviorCatalogOptions = {},
 ) {
   const catalog = new SnapshotCatalog(revision)
-  const input = structuredClone(data)
   for (const kind of ['marks', 'skills', 'species'] as const)
-    if (!Array.isArray(input[kind])) throw new Error(`Content ${kind} must be an array`)
+    if (!Array.isArray(data[kind])) throw new Error(`Content ${kind} must be an array`)
+  const behaviorDefinitions = normalizeBehaviorDefinitions(data.behaviors === undefined ? [] : data.behaviors)
+  const readUses = (raw: unknown, owner: BehaviorOwner) => {
+    const value = raw && typeof raw === 'object' ? Reflect.get(raw, 'behaviors') : undefined
+    return normalizeBehaviorUses(value === undefined ? [] : value, owner)
+  }
+  // Normalize behavior fields first so their errors retain content/use locations.
+  const markEntries = data.marks.map(raw => {
+    const id = raw && typeof raw === 'object' ? Reflect.get(raw, 'id') : undefined
+    const uses = readUses(raw, { kind: 'petMark', id: typeof id === 'string' ? id : '<mark>' })
+    const definition = MarkSchema.parse(raw)
+    const owner = { kind: 'petMark' as const, id: definition.id }
+    return { definition: structuredClone(definition), owner, uses }
+  })
+  const skillEntries = data.skills.map(raw => {
+    const id = raw && typeof raw === 'object' ? Reflect.get(raw, 'id') : undefined
+    const uses = readUses(raw, { kind: 'skill', id: typeof id === 'string' ? id : '<skill>' })
+    const definition = SkillSchema.parse(raw)
+    const owner = { kind: 'skill' as const, id: definition.id }
+    return { definition: structuredClone(definition), owner, uses }
+  })
+  const inputSpecies = structuredClone(data.species)
   const marks = new Map<string, BaseMark>(),
     skills = new Map<string, BaseSkill>(),
     species = new Map<string, Species>(),
@@ -72,8 +119,12 @@ export function createContentCatalog(
     getSkill: id => required(skills, 'skill', id),
     getSpecies: id => required(species, 'species', id),
   }
-  const markDefinitions = input.marks.map(raw => MarkSchema.parse(raw))
-  for (const definition of markDefinitions) add(marks, 'mark', MarkParser.parse({ ...definition, effect: [] }, lookup))
+  for (const { definition } of markEntries) add(marks, 'mark', MarkParser.parse({ ...definition, effect: [] }, lookup))
+  const skillIds = new Set<string>()
+  for (const { definition } of skillEntries) {
+    if (skillIds.has(definition.id)) throw new Error(`Duplicate content skill: ${definition.id}`)
+    skillIds.add(definition.id)
+  }
   const packIds = new Set<string>()
   const ruleSources = new Map<string, { kind: 'skill' | 'petMark'; markId?: string }>()
   for (const pack of packs) {
@@ -81,6 +132,46 @@ export function createContentCatalog(
     packIds.add(pack.data.id)
     for (const mark of pack.marks) add(marks, 'mark', mark)
   }
+  const behaviorOptions =
+    typeof behaviorRegistrations === 'function'
+      ? behaviorRegistrations(Object.freeze({ marks: new Map(marks), skillIds: new Set(skillIds) }))
+      : behaviorRegistrations
+  const registry = behaviorOptions.registry ?? createCoreCapabilityRegistry()
+  const behaviorPlans = [...markEntries, ...skillEntries].flatMap(entry =>
+    entry.uses.map(use => ({
+      owner: entry.owner,
+      prepared: validateBehaviorUse(behaviorDefinitions, use, {
+        owner: entry.owner,
+        sourceMark: entry.owner.kind === 'petMark' ? required(marks, 'mark', entry.owner.id) : undefined,
+        registry,
+        nativeExports: behaviorOptions.nativeExports,
+        references: { marks: new Set(marks.keys()), skills: skillIds },
+      }),
+    })),
+  )
+  const behaviorSources = new Map(behaviorPlans.map(({ owner, prepared }) => [prepared.effectId, owner]))
+  for (const { definition, owner } of [...markEntries, ...skillEntries])
+    for (const id of definition.effect ?? []) {
+      const source = behaviorSources.get(id)
+      if (source)
+        throw new BehaviorCompilationError([
+          {
+            code: source.kind === owner.kind && source.id === owner.id ? 'DUPLICATE_ID' : 'CAPABILITY_MISMATCH',
+            contentId: owner.id,
+            field: 'effect',
+            message: `Behavior use ${id} must be referenced through its owning behavior entry`,
+          },
+        ])
+    }
+  // Validate and compile every data rule before invoking host-provided code builders.
+  const compiledBehaviors = new Map<string, Extract<ReturnType<typeof compilePreparedBehaviorUse>, { ok: true }>>()
+  for (const kind of ['rule', 'native'] as const)
+    for (const { prepared } of behaviorPlans) {
+      if (prepared.definition.implementation.kind !== kind) continue
+      const compiled = compilePreparedBehaviorUse(prepared)
+      if (!compiled.ok) throw new BehaviorCompilationError(compiled.diagnostics)
+      compiledBehaviors.set(prepared.effectId, compiled)
+    }
   const native = createEffects(marks)
   for (const [id, effect] of native.effects) {
     if (!(effect instanceof Effect) || effect.id !== id) throw new Error(`Invalid content effect: ${id}`)
@@ -100,24 +191,43 @@ export function createContentCatalog(
       ruleSources.set(entry.rule.id, { kind: entry.sourceKind, markId: entry.rule.sourceMarkId })
     parameters.add(pack.parameters)
   }
+  for (const { prepared } of behaviorPlans) {
+    const compiled = required(compiledBehaviors, 'behavior use', prepared.effectId)
+    add(effects, 'effect', compiled.effect)
+    effectParameters.set(compiled.effect.id, compiled.parameters)
+    parameters.add(compiled.parameters)
+  }
   const validateSource = (effect: string, kind: 'skill' | 'petMark', ownerId: string) => {
+    const behaviorOwner = behaviorSources.get(effect)
+    if (behaviorOwner && (behaviorOwner.kind !== kind || behaviorOwner.id !== ownerId))
+      throw new BehaviorCompilationError([
+        {
+          code: 'CAPABILITY_MISMATCH',
+          contentId: ownerId,
+          field: 'effect',
+          message: `Content behavior source mismatch: ${effect} on ${ownerId}`,
+        },
+      ])
     const source = ruleSources.get(effect)
     if (source && (source.kind !== kind || (kind === 'petMark' && source.markId !== ownerId)))
       throw new Error(`Content effect source mismatch: ${effect} on ${ownerId}`)
   }
-  for (const definition of markDefinitions) {
+  for (const { definition, owner, uses } of markEntries) {
     const mark = required(marks, 'mark', definition.id)
-    for (const id of definition.effect ?? []) {
+    for (const id of [...(definition.effect ?? []), ...uses.map(use => behaviorEffectId(owner, use.useId))]) {
       validateSource(id, 'petMark', definition.id)
       mark.effects.push(lookup.getEffect(id as effectId))
     }
   }
-  for (const raw of input.skills) {
-    const skill = SkillParser.parse(raw, lookup)
+  for (const { definition, owner, uses } of skillEntries) {
+    const skill = SkillParser.parse(
+      { ...definition, effect: [...(definition.effect ?? []), ...uses.map(use => behaviorEffectId(owner, use.useId))] },
+      lookup,
+    )
     for (const effect of skill.effects) validateSource(effect.id, 'skill', skill.id)
     add(skills, 'skill', skill)
   }
-  for (const raw of input.species) {
+  for (const raw of inputSpecies) {
     const definition = SpeciesSchema.parse(raw)
     for (const entry of definition.learnable_skills) required(skills, 'skill', entry.skill_id)
     add(species, 'species', SpeciesParser.parse(definition, lookup))

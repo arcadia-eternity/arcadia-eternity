@@ -2,7 +2,9 @@ import {
   type EnvironmentBuildIdentity,
   type ContentCatalog,
   type ContentPrototypeData,
+  type BehaviorDefinition,
 } from '@arcadia-eternity/battle/v4'
+import { prepareWorkEnvironment, type WorkRelease } from './works'
 import type { PackManifest } from '@arcadia-eternity/schema'
 import YAML from 'yaml'
 import { PackTransport, type AssetLoadRecord } from './transport'
@@ -25,7 +27,14 @@ export interface NativeContentResult {
 export interface NativePackMetadataResult extends Omit<PackLoadResult, 'repository'> {
   data: ContentPrototypeData
 }
-export interface NativePackLoadResult extends NativePackMetadataResult, NativeContentResult {}
+export interface NativeWorkSelection {
+  base: ContentPrototypeData
+  selected: readonly WorkRelease[]
+  installed: readonly WorkRelease[]
+}
+export interface NativePackLoadResult extends NativePackMetadataResult, NativeContentResult {
+  works?: NativeWorkSelection
+}
 interface MetadataPack {
   manifest: PackManifest
   source: string
@@ -41,6 +50,10 @@ export class NativePackLoader extends PackTransport {
   constructor(
     build: EnvironmentBuildIdentity,
     private readonly contentFactory: NativeContentFactory,
+    private readonly workOptions: {
+      readonly templates: readonly BehaviorDefinition[]
+      readonly allowedExports?: readonly string[]
+    } = { templates: [] },
   ) {
     super()
     if (
@@ -63,6 +76,25 @@ export class NativePackLoader extends PackTransport {
     options: { packs?: { id: string; version: string }[]; expectedRevision?: string } = {},
   ): Promise<NativeContentResult> {
     return this.createContent(data, options.packs ?? [], options.expectedRevision)
+  }
+
+  /** Selected immutable works share one resolver and environment identity across all hosts. */
+  async fromWorks(
+    base: ContentPrototypeData,
+    selected: readonly WorkRelease[],
+    installed: readonly WorkRelease[] = [],
+  ) {
+    return prepareWorkEnvironment(
+      {
+        build: this.build,
+        base,
+        templates: this.workOptions.templates,
+        allowedExports: this.workOptions.allowedExports,
+        createContent: this.contentFactory,
+      },
+      selected,
+      installed,
+    )
   }
 
   private async createContent(

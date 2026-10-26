@@ -1,4 +1,5 @@
 import { ConsumeStackPhase } from './phase/consumeStack'
+import { getCleanupBinding } from './snapshotBindings'
 import { initializeOwnerRelations } from './values/relations'
 import { normalizeMarkInstanceParams, markParameterContract, type MarkInstanceParams } from './content/mark-parameters'
 import {
@@ -109,6 +110,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   clearTemporaryEffects(phaseId: string): void
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[]
   cleanupAttributeModifiers(): void
+  cleanupOwnerContributions(): void
   addAttributeModifierCleanup(cleanup: () => void): void
   transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
   toMessage(): MarkMessage
@@ -309,6 +311,17 @@ export class MarkInstanceImpl implements MarkInstance {
     if (this.owner instanceof Pet) {
       this.owner.attributeSystem.removeModifiersFromSource(this.id)
     }
+  }
+
+  /** Only explicitly owner-bound contributions move; legacy target-bound effects keep their existing semantics. */
+  public cleanupOwnerContributions() {
+    this.attributeModifierCleanups = this.attributeModifierCleanups.filter(cleanup => {
+      const binding = getCleanupBinding(cleanup)
+      const modifier = binding && Reflect.get(binding, 'modifier')
+      if (!(modifier instanceof Modifier) || !modifier.followsMarkOwner) return true
+      cleanup()
+      return false
+    })
   }
 
   public transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {

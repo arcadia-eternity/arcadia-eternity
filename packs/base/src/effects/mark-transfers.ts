@@ -1,5 +1,7 @@
 import { actions, compileEffect, conditions, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
 
+import { statusTransferOnHit } from './shared-plans'
+
 /** Targets and source lists are queried anew for each action, using the existing transfer lifecycle. */
 export function createMarkTransfers() {
   return Object.freeze({
@@ -17,12 +19,7 @@ export function createMarkTransfers() {
     effect_skill_transfer_status_marks_to_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_transfer_status_marks_to_opponent',
-        on: 'OnHit',
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(
-          ops.transferMarks(targets.ownerMarks.where(mark => mark.tags.includes('status')).all()),
-        ),
+        ...statusTransferOnHit('status'),
       }),
     ),
     effect_mark_transfer_to_opponent_on_hit: compileEffect(

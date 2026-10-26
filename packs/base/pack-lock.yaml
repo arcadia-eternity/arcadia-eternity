@@ -1,5 +1,5 @@
 lockfileVersion: 1
-generatedAt: 2026-10-23T08:45:53.793Z
+generatedAt: 2026-10-26T10:34:12.289Z
 importers:
   .:
     specifiers:
@@ -20,7 +20,7 @@ packages:
     provenance: workspace
     resolution:
       integrity: sha512-Xnenq/2x+x5YzBsMxjKtD+m2rcATIdgK8PDGvALYQCY6lZw2nBlj+2MbBT1l5+CgSX14iFCMys/MFlsPdARVRg==
-      path: /Users/yuuinih/GitHub/test_battle/packs/base/pack.json
+      path: /Users/yuuinih/.codex/worktrees/ugc-behavior-241/test_battle/packs/base/pack.json
     dependencies:
       arcadia-eternity.base-assets: /arcadia-eternity.base-assets@1.0.0
   /arcadia-eternity.base-assets@1.0.0:
@@ -33,5 +33,5 @@ packages:
     provenance: workspace
     resolution:
       integrity: sha512-kwM42BXHjJdaTjevE10YHHePGzWfd+zEnH7yfejC+BmSZQGRWVZPSNtvKBFYqBw/jIt9mnGF/7dtpMucvTPScg==
-      path: /Users/yuuinih/GitHub/test_battle/packs/base/assets/assets.json
+      path: /Users/yuuinih/.codex/worktrees/ugc-behavior-241/test_battle/packs/base/assets/assets.json
     dependencies: {}

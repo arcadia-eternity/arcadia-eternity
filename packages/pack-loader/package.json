@@ -16,7 +16,7 @@
       "default": "./dist/index.js"
     },
     "./native": {
-      "types": "./dist/src/native-loader.d.ts",
+      "types": "./dist/native.d.ts",
       "import": "./dist/native.js",
       "default": "./dist/native.js"
     },

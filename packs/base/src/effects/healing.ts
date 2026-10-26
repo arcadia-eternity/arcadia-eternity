@@ -1,11 +1,6 @@
-import {
-  compileEffect,
-  defineEffect,
-  conditions,
-  targets,
-  ops,
-  type Value,
-} from '@arcadia-eternity/battle/v4/authoring'
+import { compileEffect, defineEffect, targets, type Value } from '@arcadia-eternity/battle/v4/authoring'
+
+import { healingOnHit } from './shared-plans'
 
 const owner = targets.ownerPet
 const maxHp = owner.first().attribute('maxHp')
@@ -13,9 +8,7 @@ function healing(id: string, amount: number | Value<number, 'optional'>) {
   return compileEffect(
     defineEffect({
       id,
-      on: 'OnHit',
-      when: conditions.selfUsesSkill,
-      execute: owner.apply(ops.heal(amount)),
+      ...healingOnHit(amount),
     }),
   )
 }

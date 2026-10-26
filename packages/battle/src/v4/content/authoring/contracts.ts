@@ -116,6 +116,12 @@ export declare function booleanParam(options: {
   legacyAliases?: readonly string[]
 }): Parameter<boolean>
 
+export declare function stringParam(options: {
+  default: string
+  tags?: readonly string[]
+  legacyAliases?: readonly string[]
+}): Parameter<string>
+
 type Parameters = Readonly<Record<string, Parameter<unknown>>>
 export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly id: string
@@ -123,6 +129,8 @@ export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly priority?: number
   /** Engine-owned consumption runs before the action, only for mark sources. */
   readonly consumesStacks?: number
+  /** Contribution-only OnMarkCreated initializer: rebuild for the new owner on transfer, without replaying creation events. */
+  readonly rebindOnOwnerTransfer?: boolean
   readonly tags?: readonly string[]
   readonly parameters?: P
   /** Declare plans used inside custom execute callbacks; composed actions are discovered automatically. */
@@ -366,6 +374,8 @@ export declare const ops: {
   /** Set living targets to defeated and emit PetDefeated; skill completion owns OnDefeat and killer attribution. */
   readonly executeKill: () => Operator<Pet>
   readonly addRage: (amount: NumericInput) => Operator<Pet | Player>
+  /** Subtract through the normal rage-loss phase, including loss hooks. */
+  readonly reduceRage: (amount: NumericInput) => Operator<Pet | Player>
   /** Remove through the mark lifecycle in selection order; already inactive marks are no-ops. */
   readonly removeMark: () => Operator<MarkInstance>
   /** Add directly, capped by current maxStacks; no mark creation or stacking phase. */

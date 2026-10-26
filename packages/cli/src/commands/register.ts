@@ -15,6 +15,7 @@ function battleOptions(command: Command) {
     .requiredOption('-1, --player1 <path>', 'First team YAML/JSON')
     .requiredOption('-2, --player2 <path>', 'Second team YAML/JSON')
     .option('--pack-ref <ref>', 'Content manifest or built-in pack', 'builtin:workspace')
+    .option('--works <path>', 'Selected immutable works from an .arcadia archive')
     .option('--seed <seed>', 'Root deterministic seed', '0')
     .option('--max-turns <count>', 'Deterministic turn limit', positive, 300)
     .option('--max-actions <count>', 'Accepted input limit', positive, 10000)
@@ -50,7 +51,7 @@ export function registerCommands(program: Command, context: CommandContext) {
         import('../application/prepare'),
         import('../application/simulate'),
       ])
-      const loaded = await prepareContent(options.packRef, context.cwd)
+      const loaded = await prepareContent(options.packRef, context.cwd, options.works)
       const spec = await prepareRun(options, context.cwd, loaded.content)
       const run = await simulate(loaded, spec, options.runs, {
         signal: context.signal,
@@ -78,6 +79,7 @@ export function registerCommands(program: Command, context: CommandContext) {
     maxActions: number
     teamSelection: boolean
     packRef: string
+    works?: string
     ai?: string
     debug?: boolean
   }) {
@@ -88,7 +90,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       import('../application/run'),
       import('@arcadia-eternity/console'),
     ])
-    const loaded = await prepareContent(options.packRef, context.cwd)
+    const loaded = await prepareContent(options.packRef, context.cwd, options.works)
     const spec = await prepareRun(options, context.cwd, loaded.content)
     const run = await runBattle(loaded.content, spec, {
       signal: context.signal,
@@ -109,11 +111,11 @@ export function registerCommands(program: Command, context: CommandContext) {
   }
   localOptions(battle.command('local')).action(local)
   localOptions(program.command('local').description('Alias for battle local')).action(local)
-  async function validate(options: { packRef: string; format: string; json?: boolean; out?: string }) {
+  async function validate(options: { packRef: string; works?: string; format: string; json?: boolean; out?: string }) {
     checkFormat(options)
     await reserveOutputs(options.out ? [resolve(context.cwd, options.out)] : [])
     const { prepareContent } = await import('../application/prepare')
-    const loaded = await prepareContent(options.packRef, context.cwd)
+    const loaded = await prepareContent(options.packRef, context.cwd, options.works)
     const counts = {
       effect: loaded.content.effects.length,
       mark: loaded.content.marks.length,
@@ -139,6 +141,7 @@ export function registerCommands(program: Command, context: CommandContext) {
     return outputOptions(
       c
         .option('--pack-ref <ref>', 'Content manifest', 'builtin:workspace')
+        .option('--works <path>', 'Selected immutable works from an .arcadia archive')
         .option('--strict', 'Strict validation (always enabled)')
         .option('--validate-data', 'Data validation (always enabled)'),
     )

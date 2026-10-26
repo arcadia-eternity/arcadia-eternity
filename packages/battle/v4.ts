@@ -24,4 +24,6 @@ export {
   type TrustedEffectCatalog,
   type CompiledContentPack,
   type ContentCatalog,
+  type BehaviorCatalogOptions,
+  type BehaviorCatalogRegistrations,
 } from './src/v4/content/definition-catalog'

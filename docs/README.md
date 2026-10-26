@@ -6,12 +6,16 @@ V4 的入口、内容维护和恢复约定从 [V4 指南](v4/direct-v1-port.md) 
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 内容文件、系列归属与批量整理    | [内容结构](v4/content-structure.md)                                                                                          |
 | TypeScript 效果、参数与持续取值 | [效果编写](v4/effect-authoring.md)                                                                                           |
+| 行为定义、独立使用与预设        | [行为使用](v4/behavior-uses.md)                                                                                              |
+| 组合型 UGC 与官方效果模板       | [官方效果模板目录](v4/ugc-effect-catalog.md)                                                                                 |
+| 数据规则、受控目标与捕获／跟随  | [受控能力](v4/controlled-capabilities.md)                                                                                    |
 | Node、浏览器、CLI 与服务端接入  | [宿主接入](v4/native-hosts.md)                                                                                               |
 | 快照边界、内容身份与恢复        | [快照](v4/v1-snapshots.md)                                                                                                   |
 | V1 参考与显式行为修正           | [兼容约定](v4/compatibility.md)                                                                                              |
 | V2 golden 的维护                | [回归基线](v4/battle-baseline.md)                                                                                            |
 | 历史 DSL 示例                   | [Config 修饰](ConfigModifierDSLExamples.md)、[阶段修饰](PhaseAwareDSLExamples.md)、[标签配置](TaggedConfigSystemExamples.md) |
 | Modifier 界面                   | [使用示例](MODIFIER_UI_USAGE_EXAMPLE.md)                                                                                     |
+| 本机创作、作品身份与分享        | [UGC 作品与命名空间](v4/ugc-works.md)                                                                                        |
 | 通用内容包格式                  | [Pack Spec](pack-spec.md)、[lockfile](pack-lockfile-v2.md)                                                                   |
 | 当前服务端运行与部署            | [单进程房间与身份](v4/server-runtime.md)                                                                                     |
 | 服务端账号与持久化              | [账号提供商设计](v4/account-provider-design.md)                                                                              |

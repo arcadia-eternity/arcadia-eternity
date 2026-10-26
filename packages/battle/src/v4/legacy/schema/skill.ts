@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { BehaviorUseSchema } from './behaviorUse'
 import { ElementSchema } from './element'
 import { Category, IgnoreStageStrategy } from '@arcadia-eternity/const'
 import { AttackTargetOpinion } from '@arcadia-eternity/const'
@@ -32,6 +33,7 @@ export const SkillSchema = z.object({
   ignoreOpponentStageStrategy: ignoreStageStrategySchema.default(IgnoreStageStrategy.none),
   tags: z.array(z.string()).default([]),
   effect: z.array(z.string()).optional(),
+  behaviors: z.array(BehaviorUseSchema).optional(),
 })
 
 export type SkillSchemaType = z.infer<typeof SkillSchema>

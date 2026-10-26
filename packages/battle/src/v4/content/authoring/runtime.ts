@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid'
+import type { TSchema } from '@sinclair/typebox'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
@@ -37,6 +38,7 @@ import { Evaluation, ValuePlan, defineValue, values as planValues } from '../../
 import { BindingInputUnavailable, bindValue, installValueModifier } from '../../values/binding'
 import type * as C from './contracts'
 import { AuthoringParameters, declareParameter } from './parameters'
+import { isOwnerContribution, registerOwnerContribution } from '../owner-contributions'
 
 type Frame = C.EffectFrame
 type Reader = (ctx: Frame) => unknown
@@ -599,7 +601,11 @@ export const booleanParam: typeof C.booleanParam = options => {
   if (typeof options.default !== 'boolean') throw new Error('Expected boolean parameter default')
   return parameter<boolean>(options)
 }
-function parameter<T extends number | boolean>(options: {
+export const stringParam: typeof C.stringParam = options => {
+  if (typeof options.default !== 'string') throw new Error('Expected string parameter default')
+  return parameter<string>(options)
+}
+function parameter<T extends number | boolean | string>(options: {
   default: T
   tags?: readonly string[]
   legacyAliases?: readonly string[]
@@ -794,6 +800,7 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
             : undefined,
       )
       const cleanup = target.attributeSystem.addModifier(attribute, modifier)
+      modifier.followsMarkOwner = isOwnerContribution(engine(ctx).effect)
       if (source instanceof MarkInstanceImpl) source.addAttributeModifierCleanup(cleanup)
     }
   }
@@ -1028,6 +1035,11 @@ export const ops: typeof C.ops = {
       const source = engine(ctx)
       target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'add', n))
     }),
+  reduceRage: amount =>
+    numeric(amount, (ctx, target, n) => {
+      const source = engine(ctx)
+      target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'reduce', n))
+    }),
   removeMark: () => (ctx, selected) => {
     for (const mark of selected) if (mark.isActive) assertMarkLifecycleTarget(ctx, mark)
     for (const mark of selected) {
@@ -1251,6 +1263,7 @@ function bindAttributeOperator<T extends Pet | SkillInstance>(
         operation: options.operation,
         allowInitialMissing: true,
         stacking: options.stacking,
+        followsMarkOwner: isOwnerContribution(source.effect),
       })
   }
   actionBindings.set(operator, [{ key: options.key, value: options.value }])
@@ -1259,9 +1272,28 @@ function bindAttributeOperator<T extends Pet | SkillInstance>(
 /** Explicit opt-in adapter; does not register examples or change the production catalog. */
 export function compileEffect<T extends C.Trigger, P extends Readonly<Record<string, C.Parameter<unknown>>>>(
   input: C.EffectDefinition<T, P>,
+  options: {
+    readonly source?:
+      | { readonly kind: 'skill'; readonly id: string }
+      | { readonly kind: 'petMark'; readonly id: string; readonly mark: BaseMark }
+    readonly parameterSchemas?: Readonly<Record<string, TSchema>>
+    readonly rejectLegacyAliases?: boolean
+    readonly parameterValues?: Readonly<Record<string, string | number | boolean>>
+  } = {},
 ) {
   const definition = defineEffect(input)
-  const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {})
+  if (
+    definition.rebindOnOwnerTransfer &&
+    (definition.on !== 'OnMarkCreated' || definition.when || definition.consumesStacks)
+  )
+    throw new Error('Owner contributions require an unconditional OnMarkCreated initializer without consumption')
+  const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {}, options)
+  const source = options.source ? Object.freeze({ ...options.source }) : undefined
+  const acceptsSource = (context: EffectContext<EffectTrigger>): boolean =>
+    !source ||
+    (source.kind === 'skill'
+      ? context.source instanceof SkillInstance && context.source.baseId === source.id
+      : context.source instanceof MarkInstanceImpl && context.source.base === source.mark)
   const bindings = compileBindings(
     definition.id,
     [
@@ -1295,10 +1327,61 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
     priority: definition.priority,
     consumesStacks: definition.consumesStacks,
     tags: definition.tags,
-    when: definition.when ? ctx => definition.when!(frame(ctx), parameters) : undefined,
-    apply: ctx => definition.execute(frame(ctx), parameters),
+    when:
+      source || definition.when
+        ? ctx => acceptsSource(ctx) && (!definition.when || definition.when(frame(ctx), parameters))
+        : undefined,
+    apply: ctx => {
+      if (!acceptsSource(ctx)) throw new Error('Mismatched authored behavior source')
+      definition.execute(frame(ctx), parameters)
+    },
   })
   effectBindings.set(effect, [...bindings.values()])
+  if (definition.rebindOnOwnerTransfer) registerOwnerContribution(effect)
   compiledParameters.set(effect, parameterSet)
   return effect
+}
+
+/** Internal data-compiler seam: only stable battle/source identity survives into native binding plans. */
+export function scopedRuleValue<T>(
+  readScope: (state: { readonly battle: Battle; readonly source: EffectContext<EffectTrigger>['source'] }) => T,
+): C.Value<T> {
+  return value(ctx => readScope(scope(ctx)))
+}
+/** Preserve native binding discovery while charging each saved action through the shared budget. */
+export function meterRuleAction(action: C.Action): C.Action {
+  const wrapped: C.Action = ctx => {
+    const context = engine(ctx)
+    context.battle.executionBudget.action(context.battle.currentTurn, () => action(ctx))
+  }
+  actionBindings.set(wrapped, actionBindings.get(action) ?? [])
+  return wrapped
+}
+export function adaptRuleAction(run: (context: EffectContext<EffectTrigger>) => void): C.Action {
+  return ctx => run(engine(ctx))
+}
+/** The rule compiler supplies already-validated callbacks and native authoring actions. */
+export function compileRuleActions(options: {
+  readonly id: string
+  readonly trigger: NativeEffectTrigger
+  readonly priority: number
+  readonly consumesStacks?: number
+  readonly when: (context: EffectContext<EffectTrigger>) => boolean
+  readonly actions: readonly C.Action[]
+  readonly acceptsSource: (source: unknown) => boolean
+}): Effect<EffectTrigger> {
+  const sequence = actions.sequence(...options.actions)
+  const execute: C.Action = ctx => {
+    if (!options.acceptsSource(engine(ctx).source)) throw new Error('Mismatched rule source mark')
+    sequence(ctx)
+  }
+  actionBindings.set(execute, actionBindings.get(sequence) ?? [])
+  return compileEffect({
+    id: options.id,
+    on: options.trigger,
+    priority: options.priority,
+    consumesStacks: options.consumesStacks,
+    when: ctx => options.when(engine(ctx)),
+    execute,
+  })
 }

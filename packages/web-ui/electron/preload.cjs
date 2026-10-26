@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  readWorkWorkspace: () => ipcRenderer.invoke('desktop:read-work-workspace'),
+  compareAndSwapWorkWorkspace: input => ipcRenderer.invoke('desktop:write-work-workspace', input),
   getLocalServerPort: () => ipcRenderer.invoke('desktop:get-local-server-port'),
   downloadPetSwf: (petNum, remoteUrl) => ipcRenderer.invoke('desktop:download-pet-swf', { petNum, remoteUrl }),
   listCachedPets: () => ipcRenderer.invoke('desktop:list-cached-pets'),

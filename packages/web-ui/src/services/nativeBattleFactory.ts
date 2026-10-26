@@ -1,11 +1,11 @@
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { LocalBattleSystemV4, type NativeBattleHostOptions } from '@arcadia-eternity/battle/v4/host'
 import { GameRng, type BattleOptions } from '@arcadia-eternity/battle/v4'
-import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
+import { NativePackLoader, cloneJson, type NativeWorkSelection } from '@arcadia-eternity/pack-loader/native'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 import { toRaw } from 'vue'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
 
 export interface NativeGameDataStoreLike {
   marks: { allIds: string[]; byId: Record<string, unknown> }
@@ -22,6 +22,7 @@ export type NativeWebBattleConfig = Pick<
   'rngSeed' | 'allowFaintSwitch' | 'showHidden' | 'timerConfig'
 > &
   NativeBattleHostOptions & {
+    works?: NativeWorkSelection
     ai?: { enabled?: boolean; players?: readonly ('playerA' | 'playerB')[] }
   }
 
@@ -39,15 +40,21 @@ export async function createNativeWebBattleSystem(
     team: player.team.map(pet => ({ ...copy(pet), id: nanoid() })),
   }))
   if (teams[0].id === teams[1].id) throw new Error('Battle players must have distinct identities')
-  const options = structuredClone(toRaw(config))
+  const { works, ...battleConfig } = toRaw(config)
+  const options = { ...structuredClone(battleConfig), ...(works ? { works: cloneJson(works) } : {}) }
   if (options.rngSeed !== undefined) new GameRng(options.rngSeed)
   const records = (kind: keyof NativeGameDataStoreLike) =>
       dataStore[kind].allIds.map(id => copy(dataStore[kind].byId[id])),
-    loaded = await new NativePackLoader(nativeBuildIdentity, createOfficialContent).fromMetadata({
-      marks: records('marks'),
-      skills: records('skills'),
-      species: records('species'),
+    loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent, {
+      templates: officialTemplateDefinitions,
     }),
+    loaded = options.works
+      ? await loader.fromWorks(options.works.base, options.works.selected, options.works.installed)
+      : await loader.fromMetadata({
+          marks: records('marks'),
+          skills: records('skills'),
+          species: records('species'),
+        }),
     aiSlots = new Set(options.ai?.enabled ? (options.ai.players ?? ['playerB']) : []),
     [a, b] = loaded.content.parsePlayers(teams, {
       aiPlayerIds: teams

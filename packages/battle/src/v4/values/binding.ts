@@ -209,6 +209,7 @@ export interface InstallValueModifier<A> {
   stacking?: 'replace' | 'append'
   /** Keep an initially unavailable plan subscribed so structural follow can recover. */
   allowInitialMissing?: boolean
+  followsMarkOwner?: boolean
 }
 /** A contribution owns its subscription; disposing an old handle cannot remove a replacement. */
 export interface ValueModifierBinding {
@@ -283,6 +284,7 @@ export function installValueModifier<A>(options: InstallValueModifier<A>): Value
     options.source,
   )
   const dispose = () => modifier.value.complete()
+  modifier.followsMarkOwner = options.followsMarkOwner ?? false
   describeCleanup(dispose, { type: 'bound-value', modifier })
   modifier.addCleanup(dispose)
   try {

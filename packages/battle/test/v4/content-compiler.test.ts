@@ -120,7 +120,7 @@ it('reports invalid candidates without publishing partial effects', () => {
   unknown.actions[1].id = 'missing'
   expect(compileRule(unknown, registry, { contentId: 'test', sourceKind: 'skill' })).toMatchObject({
     ok: false,
-    diagnostics: [{ code: 'UNKNOWN_CAPABILITY', nodeId: 'second', field: 'actions' }],
+    diagnostics: [{ code: 'UNKNOWN_CAPABILITY', nodeId: 'second', field: '/actions/1/id' }],
   })
   const invalid = rule()
   invalid.actions[1].params!.amount = -1
@@ -212,4 +212,54 @@ it('checks when only during collection and resolves each ordered action after th
   expect(events).toEqual(['resolve:a', 'when', 'before', 'resolve:a', 'first', 'resolve:b', 'second'])
   expect(a.activePet.currentHp).toBe(11)
   expect(b.activePet.currentHp).toBe(2)
+})
+
+it('locates structural input errors before direct rule normalization discards node context', () => {
+  const candidate = { ...rule(), actions: [{ stepId: 'damage', id: 'core.dealDamage', inputs: { amount: 1 } }] }
+  const result = compileRule(candidate, registry, { contentId: 'test/skill', sourceKind: 'skill' })
+  expect(result).toMatchObject({
+    ok: false,
+    diagnostics: [
+      {
+        code: 'INVALID_PARAMETERS',
+        contentId: 'test/skill',
+        ruleId: 'test/skill/rule',
+        nodeId: 'damage',
+        field: '/actions/0/inputs/amount',
+      },
+    ],
+  })
+})
+
+it('does not invent a rule identity when the direct input identity is malformed', () => {
+  const result = compileRule({ ...rule(), id: 42 }, registry, { contentId: 'test/skill', sourceKind: 'skill' })
+  expect(result.ok).toBe(false)
+  if (result.ok) throw new Error('Malformed rule admitted')
+  expect(result.diagnostics[0]).toMatchObject({ contentId: 'test/skill', field: '/id' })
+  expect(result.diagnostics[0].ruleId).toBeUndefined()
+  expect(result.diagnostics[0].nodeId).toBeUndefined()
+})
+
+it('does not accept a node identity supplied inside rejected parameter data', () => {
+  const candidate = {
+    ...rule(),
+    actions: [
+      {
+        stepId: 'legitimate-action',
+        id: heal.id,
+        params: { extra: { nodeId: 'spoof', execute: () => 1 } },
+      },
+    ],
+  }
+  const result = compileRule(candidate, registry, { contentId: 'test/skill', sourceKind: 'skill' })
+  expect(result).toMatchObject({
+    ok: false,
+    diagnostics: [
+      {
+        ruleId: 'test/skill/rule',
+        nodeId: 'legitimate-action',
+        field: '/actions/0/params/extra/execute',
+      },
+    ],
+  })
 })

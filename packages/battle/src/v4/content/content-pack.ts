@@ -4,8 +4,16 @@ import { StackStrategy, type baseMarkId } from '@arcadia-eternity/const'
 import { BaseMark } from '../mark'
 import { ConfigModifierType } from '../config'
 import { CapabilityRegistry, type RegisteredAction, type RegisteredPredicate } from './capabilities'
+import type { RegisteredRuleValue, RegisteredRuleOperation } from './rule-values'
 import type { RegisteredTrigger } from './triggers'
-import { compileRule, ruleSchema, type CompileDiagnostic, type RuleCompileResult } from './compiler'
+import {
+  compileRule,
+  normalizeRuleData,
+  RuleStructureError,
+  ruleSchema,
+  type CompileDiagnostic,
+  type RuleCompileResult,
+} from './compiler'
 import { defineMarkInstanceParams } from './mark-parameters'
 import { defineAddMarkAction } from './mark-actions'
 import { normalizeParams, ParameterCatalog, type ParameterDefinition } from './parameters'
@@ -142,6 +150,8 @@ export function compileContentPack(
     readonly actions?: readonly RegisteredAction[]
     readonly triggers?: readonly RegisteredTrigger[]
     readonly predicates?: readonly RegisteredPredicate[]
+    readonly values?: readonly RegisteredRuleValue[]
+    readonly operations?: readonly RegisteredRuleOperation[]
     readonly parameterPresets?: readonly InstanceParameterPreset[]
   } = {},
 ): ContentPackResult {
@@ -149,6 +159,31 @@ export function compileContentPack(
     field: string | undefined
   try {
     checkPackSize(input)
+    // Validate embedded rule structures before the enclosing pack schema can hide their location.
+    const rawRules = input && typeof input === 'object' ? Reflect.get(input, 'rules') : undefined
+    if (Array.isArray(rawRules)) {
+      for (const [index, entry] of rawRules.entries()) {
+        if (!entry || typeof entry !== 'object' || !Object.hasOwn(entry, 'rule')) continue
+        try {
+          normalizeRuleData(Reflect.get(entry, 'rule'))
+        } catch (error) {
+          if (!(error instanceof RuleStructureError)) throw error
+          return {
+            ok: false,
+            diagnostics: [
+              {
+                code: error.message.startsWith('LIMIT_EXCEEDED:') ? 'LIMIT_EXCEEDED' : 'INVALID_PARAMETERS',
+                contentId: error.ruleId ?? contentId,
+                ruleId: error.ruleId,
+                nodeId: error.nodeId,
+                field: `/rules/${index}/rule${error.field}`,
+                message: error.message,
+              },
+            ],
+          }
+        }
+      }
+    }
     const data = normalizeParams(packSchema, input)
     contentId = data.id
     const claim = (seen: Set<string>, value: string): void => {
@@ -215,6 +250,8 @@ export function compileContentPack(
     const registry = new CapabilityRegistry([...coreCapabilities.actions, ...(trusted.actions ?? []), ...actions], {
       triggers: [...coreCapabilities.triggers, ...(trusted.triggers ?? [])],
       predicates: [...coreCapabilities.predicates, ...(trusted.predicates ?? [])],
+      values: [...coreCapabilities.values, ...(trusted.values ?? [])],
+      operations: [...coreCapabilities.operations, ...(trusted.operations ?? [])],
     })
     field = 'rules'
     const ruleIds = new Set<string>()

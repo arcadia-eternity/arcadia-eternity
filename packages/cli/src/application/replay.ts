@@ -55,10 +55,17 @@ export async function replay(value: unknown, signal: AbortSignal) {
     validate(value)
     if (!isDeepStrictEqual(value.environment.build, nativeBuildIdentity))
       throw new CliError('REPLAY_BUILD', 'Replay requires a different trusted build', 3)
-    const loaded = await createLoader().fromMetadata(value.environment.data, {
-      packs: value.environment.packs,
-      expectedRevision: value.environment.revision,
-    })
+    const works = value.environment.works
+    const loaded = works
+      ? await createLoader().fromWorks(works.base, works.selected, works.installed)
+      : await createLoader().fromMetadata(value.environment.data, {
+          packs: value.environment.packs,
+          expectedRevision: value.environment.revision,
+        })
+    if (loaded.revision !== value.environment.revision)
+      throw new CliError('REPLAY_ENVIRONMENT', 'Replay environment revision mismatch', 3)
+    if (works && (!('data' in loaded) || !isDeepStrictEqual(loaded.data, value.environment.data)))
+      throw new CliError('REPLAY_ENVIRONMENT', 'Replay compiled data mismatch', 3)
     const run = await runBattle(loaded.content, value.spec, {
       signal,
       replay: { initial: value.initial, inputs: value.inputs },

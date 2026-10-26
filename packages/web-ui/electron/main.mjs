@@ -27,6 +27,13 @@ let localServerPort = null
 let petsDir = null
 let packsDir = null
 let workspacePackStatePath = null
+let creatorWorkStorage
+async function getCreatorWorkStorage() {
+  creatorWorkStorage ??= import('@arcadia-eternity/pack-loader/node').then(
+    ({ NodeWorkStorage }) => new NodeWorkStorage(path.join(app.getPath('userData'), 'creator-works')),
+  )
+  return creatorWorkStorage
+}
 
 function buildContextMenuTemplate(window, params) {
   const template = []
@@ -1559,6 +1566,12 @@ async function downloadAndInstallUpdate() {
 }
 
 function setupIpcHandlers() {
+  ipcMain.handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
+  ipcMain.handle('desktop:write-work-workspace', async (_event, input) => {
+    if (!Number.isSafeInteger(input?.expected) || input.expected < 0) throw new Error('Invalid workspace revision')
+    return (await getCreatorWorkStorage()).compareAndSwap(input.expected, input.workspace)
+  })
+
   ipcMain.handle('desktop:get-local-server-port', () => localServerPort)
 
   ipcMain.handle('desktop:download-pet-swf', async (_event, payload) => {

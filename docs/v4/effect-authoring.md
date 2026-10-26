@@ -28,22 +28,34 @@
 
 ## 参数
 
-`numberParam` / `booleanParam` 声明配置值，编译后使用 `parameterAddress(effectId, 'parameters', name)`。`effectParameters(effect)` 返回现有 `ParameterCatalog`，新对战在派发前安装；读取使用当前来源作用域。恢复注册相同定义与工厂，保留保存的参数值。
+`numberParam` / `booleanParam` / `stringParam` 声明配置值，编译后使用 `parameterAddress(effectId, 'parameters', name)`。`effectParameters(effect)` 返回现有 `ParameterCatalog`，新对战在派发前安装；读取使用当前来源作用域。恢复注册相同定义与工厂，保留保存的参数值。
 
 参数读取可 capture/follow。未安装或未声明的参数明确失败；别名解析到规范地址，同一 token 不能在一个效果内使用两个名字。命名/标签修饰复用 ConfigSystem 的排序、作用域和来源清理。已知的对手作用域限制见[兼容约定](compatibility.md#仍需单独处理的语义)。
 
 实例印记参数在 OnMarkCreated 之前注入。叠层合并时校验参数兼容性，冲突在副作用前拒绝；快照注册同一参数合同。
 
-## 有限 UGC 与执行预算
+## 可信模板、作品与执行预算
 
-UGC 使用 `defineAction`、CapabilityRegistry、`compileRule`、`compileContentPack` 和 `lockContentEnvironment`，输入为有边界的数据，执行使用可信能力实现。编译先完整验证 ID、schema、上下文保证及引用，再发布不可变结果；每个动作在执行前解析自己的上下文。例子保存在 [examples](examples/ugc-recovery-pack.json)。
+普通 UGC 选择、配置和组合已安装且获准的原生模板。定义、独立使用、公开参数及结构化引用见[可复用行为与独立使用](behavior-uses.md)，作品草稿、固定版本与环境准备见[UGC 作品](ugc-works.md)。新的执行逻辑在 TypeScript 中开发，普通作品不能携带脚本、任意计算表达式或 Rule Graph。
 
-公开 Config 参数与内容常量分开：内容 schema 验证声明，effective schema 验证配置读取。稳定节点/参数 ID 保持引用；复制规则需重映射本地身份。不可变环境以可信构建身份、策略和编译后内容计算摘要，transport 摘要另标识原始文本；顺序有语义，默认值与空白归一化按编译结果处理。
+目标选择、数值计算、捕获／跟随与属性贡献由本文的原生作者 API 提供。模板固定事件、来源与执行流程，只公开有设计意义的有限参数；不要求将 TS 实现转换为可展开规则。
+
+核心尚存 CapabilityRegistry、`compileRule`、`compileContentPack`、`lockContentEnvironment` 及旧规则示例。[受控能力文档](controlled-capabilities.md)和 [examples](examples/ugc-recovery-pack.json)描述这部分历史接口，不是当前普通作品格式；相关公共 API 的收敛由 #242 跟踪，不能误称已全部移除。
+
+作品通过 `NativePackLoader.fromWorks`／共同环境准备流程解析精确依赖、校验可信导出与参数，冻结运行目录。当前 Release 摘要基于规范化源载荷，并非旧规则展开结果或全部有效默认值归一化后的语义；该合同的剩余工作见 #243。归档传输摘要、Release 摘要和环境摘要分别表达不同身份。
 
 执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/v4/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
 
-完整 UGC 编辑流程、跨包引用/预设、全部结构预算与逐效果行为验收仍有独立工作，使用现有编译器时按其实际能力与拒绝条件处理。
+creator 与 CLI 已接入作品运行；完整宿主体验、Mod 安装准入、服务端环境策略及资源预算矩阵仍有独立验收。能力允许列表和有限参数不能代替对可信 TS 实现的审查。
 
 ## 维护与检查
 
 修改行为直接编辑 TS，调整相应机制或完整战斗回归；历史 YAML 与 candidate JSON 只作比较输入。类型负向测试、持续值、参数、领域关系和 JSON 恢复的回归入口分别位于作者设计目录与 `packages/battle/test/v4/`。常用命令统一见 [V4 验证](direct-v1-port.md#验证)。
+
+## 模板的持有者贡献与转移
+
+原生作者可以在纯属性初始化效果上声明 `rebindOnOwnerTransfer: true`。它只接受无条件、无层数消费的 `OnMarkCreated` 定义：用于安装持有者的属性或技能属性贡献，不应包含治疗、附加印记等一次性游戏动作。该标记只由可信 TypeScript 声明，普通内容数据不能开启它。
+
+对应的静态与绑定贡献会在转移前从旧目标解除，转移后重新对新持有者初始化，重新读取配置并选择当前技能；合并进目标已有印记时不重复初始化。重挂载不会派发全局创建事件，抑制状态仍有效。原有未选择此合同的目标绑定保留既有语义。贡献迁移标记随快照保存，初始化函数从本次加载的可信内容重新注册。
+
+怒气增加使用 `ops.addRage`，减少使用 `ops.reduceRage`，两者分别经过怒气获得与损失事件。
