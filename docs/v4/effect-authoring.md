@@ -34,19 +34,19 @@
 
 实例印记参数在 OnMarkCreated 之前注入。叠层合并时校验参数兼容性，冲突在副作用前拒绝；快照注册同一参数合同。
 
-## 有限 UGC 与执行预算
+## 可信模板、作品与执行预算
 
-同一行为的多次独立使用、原生导出及规则预设的封装／展开，见[可复用行为与独立使用](behavior-uses.md)。
+普通 UGC 选择、配置和组合已安装且获准的原生模板。定义、独立使用、公开参数及结构化引用见[可复用行为与独立使用](behavior-uses.md)，作品草稿、固定版本与环境准备见[UGC 作品](ugc-works.md)。新的执行逻辑在 TypeScript 中开发，普通作品不能携带脚本、任意计算表达式或 Rule Graph。
 
-可保存规则的目标、数字取值、捕获／跟随和属性贡献，见[受控目标、取值与持续绑定](controlled-capabilities.md)。
+目标选择、数值计算、捕获／跟随与属性贡献由本文的原生作者 API 提供。模板固定事件、来源与执行流程，只公开有设计意义的有限参数；不要求将 TS 实现转换为可展开规则。
 
-UGC 使用 `defineAction`、CapabilityRegistry、`compileRule`、`compileContentPack` 和 `lockContentEnvironment`，输入为有边界的数据，执行使用可信能力实现。编译先完整验证 ID、schema、上下文保证及引用，再发布不可变结果；每个动作在执行前解析自己的上下文。例子保存在 [examples](examples/ugc-recovery-pack.json)。
+核心尚存 CapabilityRegistry、`compileRule`、`compileContentPack`、`lockContentEnvironment` 及旧规则示例。[受控能力文档](controlled-capabilities.md)和 [examples](examples/ugc-recovery-pack.json)描述这部分历史接口，不是当前普通作品格式；相关公共 API 的收敛由 #242 跟踪，不能误称已全部移除。
 
-公开 Config 参数与内容常量分开：内容 schema 验证声明，effective schema 验证配置读取。稳定节点/参数 ID 保持引用；复制规则需重映射本地身份。不可变环境以可信构建身份、策略和编译后内容计算摘要，transport 摘要另标识原始文本；顺序有语义，默认值与空白归一化按编译结果处理。
+作品通过 `NativePackLoader.fromWorks`／共同环境准备流程解析精确依赖、校验可信导出与参数，冻结运行目录。当前 Release 摘要基于规范化源载荷，并非旧规则展开结果或全部有效默认值归一化后的语义；该合同的剩余工作见 #243。归档传输摘要、Release 摘要和环境摘要分别表达不同身份。
 
 执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/v4/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
 
-完整 UGC 编辑流程、跨包引用/预设、全部结构预算与逐效果行为验收仍有独立工作，使用现有编译器时按其实际能力与拒绝条件处理。
+creator 与 CLI 已接入作品运行；完整宿主体验、Mod 安装准入、服务端环境策略及资源预算矩阵仍有独立验收。能力允许列表和有限参数不能代替对可信 TS 实现的审查。
 
 ## 维护与检查
 
