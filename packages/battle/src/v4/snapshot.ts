@@ -333,7 +333,7 @@ const ledger = {
   BaseStatLevelMark: { ctor: BaseStatLevelMark, fields: 'id effects config tags statType initialLevel', runtime: '' },
   Modifier: {
     ctor: Modifier,
-    fields: 'durationType id type priority source phaseTypeSpec value minBound maxBound extraCleanups',
+    fields: 'durationType id type priority source phaseTypeSpec value minBound maxBound extraCleanups followsMarkOwner',
     runtime: '',
   },
   ConfigModifier: {

@@ -7,7 +7,7 @@
       "destination": "packages/battle/src/v4/attributeSystem.ts",
       "sourceBlob": "116166a6d13c38f7041595ab5b4dbc6ff926a3a0",
       "sourceSha256": "adeb377ba9f00c67fc4b26d4b5e4737de18213d4e6cee844b89e1f29096bd2a2",
-      "portedSha256": "ed341e4675a74b02f63bde4eff9f328a34c18d148afb0aa9952988fb20aec038",
+      "portedSha256": "f3e962b96c1ac6d34682788131fae0b20d796f2b76a3b890b07961bd22e7155d",
       "changed": true
     },
     {
@@ -71,7 +71,7 @@
       "destination": "packages/battle/src/v4/mark.ts",
       "sourceBlob": "e87faf945537770f069ce9e9859f52036533c7ee",
       "sourceSha256": "4a5bcfd9ec774d352f04bd2fdc39333e0825641710b7ae63b919d42f0de597a1",
-      "portedSha256": "e29c67cd9ae3ad8761fb0d8a891aa00beaa4c6856f97142ba9272375a8849211",
+      "portedSha256": "06ab65b6f98d53237e8032ebbba987e007fc82e5ce8dc3ad2e5656fdabd4783a",
       "changed": true
     },
     {
@@ -119,7 +119,7 @@
       "destination": "packages/battle/src/v4/phase/MarkTransferPhase.ts",
       "sourceBlob": "f701919b5ae5c276a91dfa0ae263413546f65194",
       "sourceSha256": "295d2236fab200b7ddfd5549d7e330944bda7937a17b21f4c2063b16c345e73d",
-      "portedSha256": "3c8c3631d0ae38f54ca42e924a81ef07a7c9030a5be0658948598608954f1a49",
+      "portedSha256": "247ea69cbeedc4d7e40578798f0239541419ef366a00c6864608af5c00022569",
       "changed": true
     },
     {
@@ -455,8 +455,8 @@
       "destination": "packages/battle/src/v4/legacy/schema/mark.ts",
       "sourceBlob": "87f334311f0cf246aa1e993d7d36e161ab2655ae",
       "sourceSha256": "e262672b775dc94791d6bca35f7b022355d6e1774e80fcf56b7505341b82ee90",
-      "portedSha256": "e262672b775dc94791d6bca35f7b022355d6e1774e80fcf56b7505341b82ee90",
-      "changed": false
+      "portedSha256": "90764e30f4cdd9260ab54b94163e4faba39d307fd6f57cf159e1d8b09868aa92",
+      "changed": true
     },
     {
       "original": "packages/parser/src/effect.ts",
@@ -599,8 +599,8 @@
       "destination": "packages/battle/src/v4/legacy/schema/skill.ts",
       "sourceBlob": "f8f5c97b96162d6a600764e7eea8e1f672d85baf",
       "sourceSha256": "1d884f7297e629ca3d4bebe6fe76c7f4de87a968d90be560252a286ad2477490",
-      "portedSha256": "1d884f7297e629ca3d4bebe6fe76c7f4de87a968d90be560252a286ad2477490",
-      "changed": false
+      "portedSha256": "7813b86da38c2a5b686a2750c181f51eddb21b4272c6e87e97e04a0d26416fc6",
+      "changed": true
     },
     {
       "original": "packages/schema/src/species.ts",

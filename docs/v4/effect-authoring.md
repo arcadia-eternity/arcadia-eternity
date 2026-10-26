@@ -51,3 +51,11 @@ UGC 使用 `defineAction`、CapabilityRegistry、`compileRule`、`compileContent
 ## 维护与检查
 
 修改行为直接编辑 TS，调整相应机制或完整战斗回归；历史 YAML 与 candidate JSON 只作比较输入。类型负向测试、持续值、参数、领域关系和 JSON 恢复的回归入口分别位于作者设计目录与 `packages/battle/test/v4/`。常用命令统一见 [V4 验证](direct-v1-port.md#验证)。
+
+## 模板的持有者贡献与转移
+
+原生作者可以在纯属性初始化效果上声明 `rebindOnOwnerTransfer: true`。它只接受无条件、无层数消费的 `OnMarkCreated` 定义：用于安装持有者的属性或技能属性贡献，不应包含治疗、附加印记等一次性游戏动作。该标记只由可信 TypeScript 声明，普通内容数据不能开启它。
+
+对应的静态与绑定贡献会在转移前从旧目标解除，转移后重新对新持有者初始化，重新读取配置并选择当前技能；合并进目标已有印记时不重复初始化。重挂载不会派发全局创建事件，抑制状态仍有效。原有未选择此合同的目标绑定保留既有语义。贡献迁移标记随快照保存，初始化函数从本次加载的可信内容重新注册。
+
+怒气增加使用 `ops.addRage`，减少使用 `ops.reduceRage`，两者分别经过怒气获得与损失事件。

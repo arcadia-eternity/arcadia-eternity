@@ -115,3 +115,11 @@ export {
 } from './src/effects/authored/weakness-speed'
 
 export { officialEffectMarkRelations, type EffectMarkRelation } from './src/effect-mark-relations'
+export {
+  officialEffectTemplates,
+  officialTemplateDefinitions,
+  createOfficialTemplateRegistrations,
+  withOfficialTemplates,
+  type EffectTemplate,
+  type TemplateField,
+} from './src/templates'

@@ -8,6 +8,9 @@
   },
   "include": [
     "env.d.ts",
+    "src/features/creator/**/*.ts",
+    "src/features/creator/**/*.vue",
+    "src/services/workStorage.ts",
     "auto-imports.d.ts",
     "src/services/nativeBattleFactory.ts",
     "src/services/__tests__/nativeBattleFactory.test.ts",

@@ -49,7 +49,10 @@ export interface BehaviorCatalogRegistrations {
 /** Trusted registration may reference the canonical marks allocated from saved metadata. */
 export type BehaviorCatalogOptions =
   | BehaviorCatalogRegistrations
-  | ((content: { readonly marks: ReadonlyMap<string, BaseMark> }) => BehaviorCatalogRegistrations)
+  | ((content: {
+      readonly marks: ReadonlyMap<string, BaseMark>
+      readonly skillIds: ReadonlySet<string>
+    }) => BehaviorCatalogRegistrations)
 export interface TrustedEffectCatalog {
   readonly effects: ReadonlyMap<string, Effect<EffectTrigger>>
   readonly parameters: ReadonlyMap<string, ParameterCatalog>
@@ -79,16 +82,20 @@ export function createContentCatalog(
     const value = raw && typeof raw === 'object' ? Reflect.get(raw, 'behaviors') : undefined
     return normalizeBehaviorUses(value === undefined ? [] : value, owner)
   }
-  // Read behavior fields before the legacy metadata schemas strip unknown properties.
+  // Normalize behavior fields first so their errors retain content/use locations.
   const markEntries = data.marks.map(raw => {
+    const id = raw && typeof raw === 'object' ? Reflect.get(raw, 'id') : undefined
+    const uses = readUses(raw, { kind: 'petMark', id: typeof id === 'string' ? id : '<mark>' })
     const definition = MarkSchema.parse(raw)
     const owner = { kind: 'petMark' as const, id: definition.id }
-    return { definition: structuredClone(definition), owner, uses: readUses(raw, owner) }
+    return { definition: structuredClone(definition), owner, uses }
   })
   const skillEntries = data.skills.map(raw => {
+    const id = raw && typeof raw === 'object' ? Reflect.get(raw, 'id') : undefined
+    const uses = readUses(raw, { kind: 'skill', id: typeof id === 'string' ? id : '<skill>' })
     const definition = SkillSchema.parse(raw)
     const owner = { kind: 'skill' as const, id: definition.id }
-    return { definition: structuredClone(definition), owner, uses: readUses(raw, owner) }
+    return { definition: structuredClone(definition), owner, uses }
   })
   const inputSpecies = structuredClone(data.species)
   const marks = new Map<string, BaseMark>(),
@@ -127,7 +134,7 @@ export function createContentCatalog(
   }
   const behaviorOptions =
     typeof behaviorRegistrations === 'function'
-      ? behaviorRegistrations(Object.freeze({ marks: new Map(marks) }))
+      ? behaviorRegistrations(Object.freeze({ marks: new Map(marks), skillIds: new Set(skillIds) }))
       : behaviorRegistrations
   const registry = behaviorOptions.registry ?? createCoreCapabilityRegistry()
   const behaviorPlans = [...markEntries, ...skillEntries].flatMap(entry =>
@@ -138,6 +145,7 @@ export function createContentCatalog(
         sourceMark: entry.owner.kind === 'petMark' ? required(marks, 'mark', entry.owner.id) : undefined,
         registry,
         nativeExports: behaviorOptions.nativeExports,
+        references: { marks: new Set(marks.keys()), skills: skillIds },
       }),
     })),
   )

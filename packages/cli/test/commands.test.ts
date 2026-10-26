@@ -359,3 +359,53 @@ it('cancels a running batch with SIGINT, writes partial JSON and exits 130', asy
   expect(result.counts.cancelled).toBe(1)
   expect(JSON.parse(await readFile(report, 'utf8'))).toEqual(result)
 }, 15000)
+
+it('loads a namespaced work archive offline and verifies its replay in another process', async () => {
+  const { createDraft, compileRelease, exportArchive } = await import('@arcadia-eternity/pack-loader/native')
+  const { prepareContent } = await import('../src/application/prepare')
+  const { nativeBuildIdentity } = await import('@arcadia-eternity/data-pack-base/build')
+  const { officialTemplateDefinitions, createOfficialContent } = await import('@arcadia-eternity/data-pack-base/native')
+  const base = await prepareContent('builtin:base', root)
+  const draft = createDraft('command-work', '命令行作品', 'cli_pack')
+  draft.data.skills.push({ id: 'strike', element: 'Normal', category: 'Physical', power: 80, rage: 0, accuracy: 100 })
+  const release = await compileRelease(draft, '1.0.0', {
+    base: base.data,
+    build: nativeBuildIdentity,
+    templates: officialTemplateDefinitions,
+    createContent: createOfficialContent,
+  })
+  const archiveFile = output('work'),
+    replayFile = output('work-replay')
+  await writeFile(archiveFile, await exportArchive({ selected: [release] }))
+  const customTeams = await Promise.all(
+    teams.map(async (file, index) => {
+      const team = JSON.parse(await readFile(file, 'utf8'))
+      for (const pet of team.team) pet.skills = ['cli_pack:strike']
+      const path = output(`work-team-${index}`)
+      await writeFile(path, JSON.stringify(team))
+      return path
+    }),
+  )
+  const result = (
+    await invoke([
+      'battle',
+      'simulate',
+      '-1',
+      customTeams[0],
+      '-2',
+      customTeams[1],
+      '--works',
+      archiveFile,
+      '--json',
+      '--replay-out',
+      replayFile,
+    ])
+  ).json()
+  expect(result.revision).toMatch(/^arcadia.work-environment\/1:/)
+  expect((await invoke(['battle', 'replay', replayFile, '--json'])).json().verified).toBe(true)
+  const replay = JSON.parse(await readFile(replayFile, 'utf8'))
+  replay.environment.works.selected[0].data.skills[0].power = 999
+  const tampered = output('work-tampered')
+  await writeFile(tampered, JSON.stringify(replay))
+  await invoke(['battle', 'replay', tampered, '--json'], 3)
+})

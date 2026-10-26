@@ -38,6 +38,7 @@ import { Evaluation, ValuePlan, defineValue, values as planValues } from '../../
 import { BindingInputUnavailable, bindValue, installValueModifier } from '../../values/binding'
 import type * as C from './contracts'
 import { AuthoringParameters, declareParameter } from './parameters'
+import { isOwnerContribution, registerOwnerContribution } from '../owner-contributions'
 
 type Frame = C.EffectFrame
 type Reader = (ctx: Frame) => unknown
@@ -799,6 +800,7 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
             : undefined,
       )
       const cleanup = target.attributeSystem.addModifier(attribute, modifier)
+      modifier.followsMarkOwner = isOwnerContribution(engine(ctx).effect)
       if (source instanceof MarkInstanceImpl) source.addAttributeModifierCleanup(cleanup)
     }
   }
@@ -1033,6 +1035,11 @@ export const ops: typeof C.ops = {
       const source = engine(ctx)
       target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'add', n))
     }),
+  reduceRage: amount =>
+    numeric(amount, (ctx, target, n) => {
+      const source = engine(ctx)
+      target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'reduce', n))
+    }),
   removeMark: () => (ctx, selected) => {
     for (const mark of selected) if (mark.isActive) assertMarkLifecycleTarget(ctx, mark)
     for (const mark of selected) {
@@ -1256,6 +1263,7 @@ function bindAttributeOperator<T extends Pet | SkillInstance>(
         operation: options.operation,
         allowInitialMissing: true,
         stacking: options.stacking,
+        followsMarkOwner: isOwnerContribution(source.effect),
       })
   }
   actionBindings.set(operator, [{ key: options.key, value: options.value }])
@@ -1274,6 +1282,11 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
   } = {},
 ) {
   const definition = defineEffect(input)
+  if (
+    definition.rebindOnOwnerTransfer &&
+    (definition.on !== 'OnMarkCreated' || definition.when || definition.consumesStacks)
+  )
+    throw new Error('Owner contributions require an unconditional OnMarkCreated initializer without consumption')
   const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {}, options)
   const source = options.source ? Object.freeze({ ...options.source }) : undefined
   const acceptsSource = (context: EffectContext<EffectTrigger>): boolean =>
@@ -1324,6 +1337,7 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
     },
   })
   effectBindings.set(effect, [...bindings.values()])
+  if (definition.rebindOnOwnerTransfer) registerOwnerContribution(effect)
   compiledParameters.set(effect, parameterSet)
   return effect
 }

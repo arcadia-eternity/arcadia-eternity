@@ -29,10 +29,14 @@ const publicParameterSchema = Type.Union([
       minimum: Type.Optional(Type.Number()),
       maximum: Type.Optional(Type.Number()),
       integer: Type.Optional(Type.Boolean()),
+      static: Type.Optional(Type.Boolean()),
     },
     { additionalProperties: false },
   ),
-  Type.Object({ kind: Type.Literal('boolean'), default: Type.Boolean() }, { additionalProperties: false }),
+  Type.Object(
+    { kind: Type.Literal('boolean'), default: Type.Boolean(), static: Type.Optional(Type.Boolean()) },
+    { additionalProperties: false },
+  ),
   Type.Object(
     {
       kind: Type.Literal('string'),
@@ -41,6 +45,8 @@ const publicParameterSchema = Type.Union([
         Type.Array(Type.String({ maxLength: 4096 }), { minItems: 1, maxItems: 64, uniqueItems: true }),
       ),
       maxLength: Type.Optional(Type.Integer({ minimum: 0, maximum: 4096 })),
+      static: Type.Optional(Type.Boolean()),
+      reference: Type.Optional(Type.Union([Type.Literal('mark'), Type.Literal('skill')])),
     },
     { additionalProperties: false },
   ),
@@ -385,6 +391,11 @@ export interface BehaviorCompileOptions {
   readonly sourceMark?: BaseMark
   readonly registry: CapabilityRegistry
   readonly nativeExports?: readonly NativeBehaviorExport[]
+  /** Host-owned identities of the content being assembled, never supplied by an imported behavior. */
+  readonly references?: {
+    readonly marks: ReadonlySet<string>
+    readonly skills: ReadonlySet<string>
+  }
 }
 export interface PreparedBehaviorUse {
   readonly definition: BehaviorDefinition
@@ -426,7 +437,23 @@ export function validateBehaviorUse(
       field: '/params',
       useId: use.useId,
     })
-    const schemas = schemasFor(definition.parameters)
+    const schemas: Record<string, TSchema> = { ...schemasFor(definition.parameters) }
+    for (const [name, parameter] of Object.entries(definition.parameters)) {
+      const value = params[name]
+      if (parameter.kind === 'string' && parameter.reference) {
+        const candidates = parameter.reference === 'mark' ? options.references?.marks : options.references?.skills
+        if (typeof value !== 'string' || !value || !candidates?.has(value))
+          fail(
+            'MISSING_REFERENCE',
+            options.owner.id,
+            `/params/${name.replaceAll('~', '~0').replaceAll('/', '~1')}`,
+            `unknown ${parameter.reference} ${String(value)}`,
+            use.useId,
+          )
+      }
+      // References and structural selections are resolved at build time. Runtime config cannot silently retarget them.
+      if (parameter.static || (parameter.kind === 'string' && parameter.reference)) schemas[name] = Type.Literal(value)
+    }
     let native: NativeBehaviorExport | undefined
     if (definition.implementation.kind === 'native') {
       field = 'implementation.exportId'

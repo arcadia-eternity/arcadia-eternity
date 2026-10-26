@@ -19,6 +19,7 @@ export async function simulate(loaded: NativePackLoadResult, spec: RunSpec, runs
           revision: loaded.revision,
           packs: loaded.packs,
           data: structuredClone(loaded.data),
+          ...(loaded.works ? { works: structuredClone(loaded.works) } : {}),
         },
         spec: effective,
         initial: run.initial,

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { BehaviorUseSchema } from './behaviorUse'
 import { StackStrategy } from '@arcadia-eternity/const'
 
 export const StackStrategySchema = z.nativeEnum(StackStrategy)
@@ -24,6 +25,7 @@ export const MarkSchema = z.object({
   config: MarkConfigSchema.optional(),
   tags: z.array(z.string()).optional(),
   effect: z.array(z.string()).optional(),
+  behaviors: z.array(BehaviorUseSchema).optional(),
 })
 
 export type MarkSchemaType = z.infer<typeof MarkSchema>

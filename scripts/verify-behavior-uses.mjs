@@ -10,19 +10,26 @@ import { rolldown } from 'rolldown'
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-behavior-uses-'))
 const browserEnabled = process.argv.includes('--browser')
 const controlled = process.argv.includes('--controlled')
-const suite = controlled
+const suite = process.argv.includes('--templates')
   ? {
-      entry: 'controlled-capabilities-host.ts',
-      create: 'createControlledCapabilityProbes',
-      resume: 'resumeControlledCapabilityProbes',
-      report: 'controlledCapabilities',
+      entry: 'official-template-host.ts',
+      create: 'createOfficialTemplateProbes',
+      resume: 'resumeOfficialTemplateProbes',
+      report: 'officialTemplates',
     }
-  : {
-      entry: 'behavior-use-host.ts',
-      create: 'createBehaviorUseProbes',
-      resume: 'resumeBehaviorUseProbes',
-      report: 'behaviorUses',
-    }
+  : controlled
+    ? {
+        entry: 'controlled-capabilities-host.ts',
+        create: 'createControlledCapabilityProbes',
+        resume: 'resumeControlledCapabilityProbes',
+        report: 'controlledCapabilities',
+      }
+    : {
+        entry: 'behavior-use-host.ts',
+        create: 'createBehaviorUseProbes',
+        resume: 'resumeBehaviorUseProbes',
+        report: 'behaviorUses',
+      }
 const jsonRoundTrip = value => JSON.parse(JSON.stringify(value))
 let server, browser, browserExit, browserTimeout, browserResult, report
 const ownsProcessGroup = process.platform !== 'win32'
@@ -57,6 +64,7 @@ try {
         {
           name: 'behavior-use-boundary',
           resolveId(id) {
+            if (id === '@arcadia-eternity/data-pack-base/native') return resolve('packs/base/native.ts')
             if (id === '@arcadia-eternity/battle/v4') return resolve('packages/battle/v4.ts')
             if (id === '@arcadia-eternity/battle/v4/authoring') return resolve('packages/battle/v4-authoring.ts')
             if (id === '@arcadia-eternity/battle/v4/host') return resolve('packages/battle/v4-host.ts')

@@ -68,6 +68,7 @@
             人机对战
           </el-button>
           <el-button type="info" icon="Document" @click="router.push('/local-battle-reports')">本地战报</el-button>
+          <el-button @click="router.push('/creator')">创作工坊</el-button>
           <!-- 房间状态显示 -->
           <el-button
             v-if="!isStaticMode && privateRoomStore.currentRoom"
@@ -143,6 +144,12 @@
             <el-icon><MagicStick /></el-icon>
             <span>人机对战</span>
           </router-link>
+          <router-link
+            to="/creator"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >创作工坊</router-link
+          >
           <router-link
             to="/storage"
             @click="showMobileMenu = false"

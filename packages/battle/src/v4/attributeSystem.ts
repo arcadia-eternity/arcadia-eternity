@@ -32,6 +32,7 @@ export enum DurationType {
 }
 
 export class Modifier<T extends number | boolean | string = any> {
+  public followsMarkOwner = false
   public value: ReactiveValue<T>
   private minBound = new Signal<number | undefined>(undefined)
   private maxBound = new Signal<number | undefined>(undefined)

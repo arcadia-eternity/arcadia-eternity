@@ -46,6 +46,7 @@ export interface Replay {
     revision: string
     packs: NativePackLoadResult['packs']
     data: NativePackLoadResult['data']
+    works?: NativePackLoadResult['works']
   }
   spec: RunSpec
   initial: BattleRuntimeSnapshot

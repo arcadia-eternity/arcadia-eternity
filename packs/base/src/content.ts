@@ -5,6 +5,7 @@ import {
   type CompiledContentPack,
 } from '@arcadia-eternity/battle/v4'
 import { createOfficialEffectCandidates } from './effects/candidate-catalog'
+import { withOfficialTemplates, createOfficialTemplateRegistrations } from './templates'
 
 export type OfficialPrototypeData = ContentPrototypeData
 export type OfficialContent = ContentCatalog
@@ -15,5 +16,11 @@ export function createOfficialContent(
   revision: string,
   packs: readonly CompiledContentPack[] = [],
 ): OfficialContent {
-  return createContentCatalog(data, revision, createOfficialEffectCandidates, packs)
+  return createContentCatalog(
+    withOfficialTemplates(data),
+    revision,
+    createOfficialEffectCandidates,
+    packs,
+    createOfficialTemplateRegistrations,
+  )
 }

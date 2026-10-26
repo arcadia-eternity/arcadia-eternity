@@ -5,6 +5,7 @@ import type { MarkInstance } from '../mark'
 import type { Pet } from '../pet'
 import { SynchronousPhase } from './base'
 import { MarkStackPhase } from './MarkStackPhase'
+import { isOwnerContribution } from '../content/owner-contributions'
 
 /**
  * MarkTransferPhase handles mark transfer operations
@@ -46,6 +47,7 @@ export function executeMarkTransferOperation(
   battle: Battle,
 ): void {
   marks.forEach(mark => {
+    mark.cleanupOwnerContributions()
     mark.detach()
     const existingMark = target.marks.find(m => m.base.id === mark.base.id)
     if (existingMark) {
@@ -83,6 +85,15 @@ export function executeMarkTransferOperation(
     } else {
       // Transfer mark directly
       mark.transfer(context, target)
+      // Rebuild only trusted owner-bound contributions. No OnMarkCreated/OnAnyMarkAdded event is replayed.
+      const sourceContext =
+        context instanceof EffectContext ? context : new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark)
+      const creation = new AddMarkContext(sourceContext, target, mark.base, mark.stack, mark.duration, mark.config)
+      for (const effect of mark.effects.filter(isOwnerContribution)) {
+        const frame = new EffectContext(creation, EffectTrigger.OnMarkCreated, mark, effect)
+        const actions = Array.isArray(effect.apply) ? effect.apply : [effect.apply]
+        for (const apply of actions) battle.executionBudget.action(battle.currentTurn, () => apply.call(effect, frame))
+      }
     }
   })
 }

@@ -4,6 +4,8 @@
 
 这是 [#241](https://github.com/arcadia-eternity/arcadia-eternity/issues/241) 的底层接口。完整作品版本、依赖锁定和跨宿主环境身份分别由 #243、#244 实现；编辑器、持久存储和房间协议消费这些接口。
 
+普通 UGC 使用基础包的 [官方效果模板目录](ugc-effect-catalog.md)，只选择、配置和组合已安装的原生能力。`createOfficialContent` 已拒绝普通数据规则；下文的规则示例是底层兼容接口，不是玩家编辑器方案。
+
 ## 数据与装配
 
 `createContentCatalog` 的 `ContentPrototypeData.behaviors` 保存定义数组；技能和印记元数据中的 `behaviors` 保存使用数组。原有 `effect: string[]` 继续引用静态效果。目录列表按 `effect`、`behaviors` 的顺序装配，实际执行仍遵循既有优先级，同优先级保持列表顺序。行为使用不能再次通过 `effect` 引用，也不能挂到另一拥有者上。
@@ -43,7 +45,7 @@ const uses = [
 
 宿主通过 `defineNativeBehavior` 注册导出，并在 `createContentCatalog(data, revision, legacyFactory, packs, { nativeExports })` 中提供。普通数据定义使用 `{ kind: 'native', exportId }` 引用它，且公开参数合同必须与注册导出一致。默认受控规则注册表可以通过同一选项中的 `registry` 替换。
 
-需要引用本次装配的印记时，第五个参数也可传入可信注册工厂 `({ marks }) => ({ registry, nativeExports })`。它在印记分配后运行，规则能力与原生导出因此使用同一份正式 `BaseMark`；工厂不能由导入数据指定。目录仍先校验所有行为使用和规则，再执行原生行为的 `build`。
+需要引用本次装配的印记时，第五个参数也可传入可信注册工厂 `({ marks, skillIds }) => ({ registry, nativeExports })`。它在印记分配后运行，规则能力与原生导出因此使用同一份正式 `BaseMark`；工厂不能由导入数据指定。目录仍先校验所有行为使用和规则，再执行原生行为的 `build`。
 
 ```ts
 const native = defineNativeBehavior({
@@ -66,6 +68,8 @@ const native = defineNativeBehavior({
 `build` 每次创建新的作者定义和参数／绑定计划，使用传入的 `effectId`。统一编译层绑定来源、重建参数地址和快照注册；返回已经编译的静态 Effect 会被拒绝。新行为使用拒绝 `legacyAliases`，参数通过使用身份和参数名定位；原有官方效果的别名行为保持。
 
 `compileBehaviorUse` 可用于单次编译，返回效果、参数目录及公开参数地址。批量候选可先 `normalizeBehaviorDefinitions`、`normalizeBehaviorUses`、`validateBehaviorUse`，再调用 `compilePreparedBehaviorUse`。可信构建函数由宿主维护和准入，数据不能携带函数或伪造注册导出。
+
+字符串参数可声明 `reference: "mark" | "skill"`；目录先检查它属于对应内容集合，再执行构建器。单独调用 `compileBehaviorUse` 时必须提供 `references`。`static: true` 参数以及所有内容引用在编译后成为单值合同，运行时不能改变结构选择；修改这些值需重新装配内容。
 
 ## 封装、展开与复制
 

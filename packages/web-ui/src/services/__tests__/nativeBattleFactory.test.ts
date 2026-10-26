@@ -17,7 +17,11 @@ import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import { InMemoryPeerTransport } from '@/p2p/inMemoryPeerTransport'
 import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
-import { createNativeWebBattleSystem, type NativeGameDataStoreLike } from '../nativeBattleFactory'
+import {
+  createNativeWebBattleSystem,
+  type NativeGameDataStoreLike,
+  type NativeWebBattleConfig,
+} from '../nativeBattleFactory'
 import input from '../../../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'
 
 const root = new URL('../../../../../packs/base/', import.meta.url)
@@ -266,3 +270,42 @@ for (const invalid of ['schema', 'reference', 'same-player', 'team-config', 'rng
       ),
     ).rejects.toThrow()
   })
+
+it('loads namespaced immutable works without mutating official metadata or caller selections', async () => {
+  const { createDraft, compileRelease, prepareWorkEnvironment } = await import('@arcadia-eternity/pack-loader/native')
+  const { nativeBuildIdentity } = await import('@arcadia-eternity/data-pack-base/build')
+  const { createOfficialContent, officialTemplateDefinitions } = await import('@arcadia-eternity/data-pack-base/native')
+  const { data, players } = fixture()
+  const base = {
+    marks: data.marks.allIds.map(id => data.marks.byId[id]),
+    skills: data.skills.allIds.map(id => data.skills.byId[id]),
+    species: data.species.allIds.map(id => data.species.byId[id]),
+  }
+  const draft = createDraft('host-test', '宿主测试', 'frost')
+  draft.data.skills.push({ id: 'strike', element: 'Normal', category: 'Physical', power: 40, rage: 0, accuracy: 100 })
+  const host = {
+    base: JSON.parse(JSON.stringify(base)),
+    build: nativeBuildIdentity,
+    templates: officialTemplateDefinitions,
+    createContent: createOfficialContent,
+  }
+  const release = await compileRelease(draft, '1.0.0', host)
+  const expected = await prepareWorkEnvironment(host, [release])
+  players[0].team[0].skills = ['frost:strike' as never]
+  const first = await createNativeWebBattleSystem(
+    players[0],
+    players[1],
+    data,
+    reactive<object>({
+      works: { base: host.base, selected: [release], installed: [release] },
+      timerConfig: { enabled: false },
+    }) as NativeWebBattleConfig,
+  )
+  systems.push(first)
+  const snapshot = await first.createRuntimeSnapshot()
+  expect(JSON.stringify(snapshot)).toContain(expected.revision)
+  expect((await first.getState(undefined, true)).players[0].team?.[0].skills?.[0].baseId).toBe('frost:strike')
+  expect(data.skills.byId['frost:strike']).toBeUndefined()
+  draft.data.skills[0].power = 999
+  expect((await first.getState(undefined, true)).players[0].team?.[0].skills?.[0].power).toBe(40)
+})

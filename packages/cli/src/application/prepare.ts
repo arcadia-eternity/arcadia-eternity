@@ -1,17 +1,37 @@
+import { readFile, stat } from 'node:fs/promises'
+import { parseArchive, limits } from '@arcadia-eternity/pack-loader/native'
 import { resolve } from 'node:path'
 import { NativeNodePackLoader } from '@arcadia-eternity/pack-loader/node'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
-import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
+import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
 import type { ContentCatalog } from '@arcadia-eternity/battle/v4'
 import { CliError, message } from '../reporting/errors'
 import { readTeam } from '../io/files'
 import type { RunSpec } from './types'
 
-export const createLoader = () => new NativeNodePackLoader(nativeBuildIdentity, createOfficialContent)
-export async function prepareContent(packRef: string, cwd: string) {
+export const createLoader = () =>
+  new NativeNodePackLoader(nativeBuildIdentity, createOfficialContent, { templates: officialTemplateDefinitions })
+export async function prepareContent(packRef: string, cwd: string, workFile?: string) {
   const ref = /^(builtin:|npm:)/.test(packRef) ? packRef : resolve(cwd, packRef)
   try {
-    return await createLoader().load(ref, { source: 'node-fs', enforceLockfile: true })
+    const loader = createLoader()
+    const loaded = await loader.load(ref, { source: 'node-fs', enforceLockfile: true })
+    if (!workFile) return loaded
+    const file = resolve(cwd, workFile)
+    if ((await stat(file)).size > limits.bytes) throw new Error('作品文件超过大小限制')
+    const archive = await parseArchive(await readFile(file, 'utf8'))
+    if (!archive.selected.length) throw new Error('作品文件没有选定的发布版本；草稿须先发布')
+    const selected = archive.selected.map(
+      lock =>
+        archive.releases.find(
+          release =>
+            release.project.id === lock.projectId &&
+            release.releaseVersion === lock.version &&
+            release.digest === lock.digest,
+        )!,
+    )
+    const prepared = await loader.fromWorks(loaded.data, selected, archive.releases)
+    return { ...loaded, ...prepared, works: { base: loaded.data, selected, installed: prepared.releases } }
   } catch (error) {
     throw new CliError('CONTENT_INVALID', message(error), 2, ref)
   }

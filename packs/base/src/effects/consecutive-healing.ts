@@ -8,6 +8,8 @@ import {
   values,
 } from '@arcadia-eternity/battle/v4/authoring'
 
+import { healingOnHit, consecutiveHealingAmount } from './shared-plans'
+
 const repeated = targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.lastSkillUsedTimes > 1))
 
 function fixedHealing(id: string, yes: number, no: number) {
@@ -18,10 +20,8 @@ function fixedHealing(id: string, yes: number, no: number) {
   return compileEffect(
     defineEffect({
       id,
-      on: 'OnHit',
-      when: conditions.selfUsesSkill,
       parameters,
-      execute: targets.ownerPet.apply(ops.heal(values.choose(repeated, parameters.trueValue, parameters.falseValue))),
+      ...healingOnHit(consecutiveHealingAmount(parameters.falseValue, parameters.trueValue)),
     }),
   )
 }
