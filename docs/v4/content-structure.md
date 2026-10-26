@@ -4,15 +4,15 @@
 
 ## 目录与依赖
 
-| 位置                                                   | 职责                                                                   |
-| ------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `packages/battle/src/v4/content/definition-catalog.ts` | 分配原型、解析引用、组合原生效果与已编译规则、冻结目录、创建与恢复对战 |
-| `packs/base/src/effects/`                              | 原有官方 TS 行为；按实现机制保留共享工厂、参数目录和闭包               |
-| `packs/base/src/content.ts`                            | 基础包的装配入口                                                       |
-| `packs/base/data/groups/<group>/`                      | 按已确认系列组织的种族 YAML                                            |
-| `packs/base/data/skill.yaml`、`mark*.yaml`             | 技能与印记的权威编辑数据；归属未确认时保留原位置                       |
-| `packs/base/content-groups.yaml`                       | 稳定系列 ID、种族成员、关系和可选显式维护归属                          |
-| `packages/pack-loader`                                 | 文件或 HTTP 传输、manifest、完整性与内容修订计算                       |
+| 位置                                                   | 职责                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `packages/battle/src/v4/content/definition-catalog.ts` | 分配原型、解析引用、组合原生效果与独立行为使用、冻结目录、创建与恢复对战 |
+| `packs/base/src/effects/`                              | 原有官方 TS 行为；按实现机制保留共享工厂、参数目录和闭包                 |
+| `packs/base/src/content.ts`                            | 基础包的装配入口                                                         |
+| `packs/base/data/groups/<group>/`                      | 按已确认系列组织的种族 YAML                                              |
+| `packs/base/data/skill.yaml`、`mark*.yaml`             | 技能与印记的权威编辑数据；归属未确认时保留原位置                         |
+| `packs/base/content-groups.yaml`                       | 稳定系列 ID、种族成员、关系和可选显式维护归属                            |
+| `packages/pack-loader`                                 | 文件或 HTTP 传输、manifest、完整性与内容修订计算                         |
 
 依赖方向为基础内容包依赖战斗引擎，宿主依赖所选择的内容包与加载器。加载器通过构造参数接收可信内容工厂，不自行选择官方实现。引擎不导入基础包。
 
@@ -25,9 +25,9 @@ const loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
 const { content } = await loader.load('builtin:base')
 ```
 
-`createContentCatalog(data, revision, trustedFactory, compiledPacks)` 是通用装配入口。它先分配所有 Mark，再调用可信工厂，随后连接 Effect、Skill、Species。已通过 `compileContentPack` 编译的规则和印记可以加入同一目录，Skill 数据通过稳定 ID 引用规则。重复 ID、缺失引用和规则来源不匹配会在发布目录前失败。
+`createContentCatalog(data, revision, trustedFactory, behaviorRegistrations)` 是通用装配入口。它先分配所有 Mark，再调用可信工厂，随后连接 Effect、Skill、Species。技能与印记通过 BehaviorUse 引用宿主注册的可信原生行为；所有参数、来源与引用先通过校验，再执行行为构建器。重复 ID、缺失引用和使用来源不匹配会在发布目录前失败。规则包与规则 registry 接口已移除。
 
-每场对战有独立的运行状态和参数配置。内容引用允许环；动作顺序、参数地址、捕获与跟随语义沿用已有实现。宿主提供的 revision 必须覆盖全部内容输入，包括额外规则包。基础包的构建身份覆盖核心和原生实现，编辑数据由加载器计入内容修订。
+每场对战有独立的运行状态和参数配置。内容引用允许环；动作顺序、参数地址、捕获与跟随语义沿用已有实现。宿主提供的 revision 必须覆盖全部内容输入，包括作品版本、行为参数和可信构建。基础包的构建身份覆盖核心和原生实现，编辑数据由加载器计入内容修订。
 
 ## 编辑与归属
 

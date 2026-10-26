@@ -117,7 +117,6 @@ it('validates every reference before invoking any native builder', () => {
       },
       'test',
       undefined,
-      [],
       { nativeExports: [native] },
     ),
   ).toThrow(BehaviorCompilationError)

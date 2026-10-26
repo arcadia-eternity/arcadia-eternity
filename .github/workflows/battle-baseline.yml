@@ -83,8 +83,8 @@ jobs:
         run: pnpm verify:battle-v4-waiting-snapshots
       - name: Verify independent behavior uses in Node and Chrome
         run: pnpm verify:battle-v4-behaviors
-      - name: Verify controlled capabilities across hosts
-        run: pnpm verify:battle-v4-capabilities
+      - name: Verify native templates across hosts
+        run: pnpm verify:battle-v4-templates
       - uses: actions/upload-artifact@v4
         if: always()
         with:

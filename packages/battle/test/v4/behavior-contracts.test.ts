@@ -7,10 +7,7 @@ import {
   compileBehaviorUse,
   copyBehaviorDefinition,
   copyBehaviorUse,
-  createCoreCapabilityRegistry,
   defineNativeBehavior,
-  encapsulateRule,
-  expandBehaviorUse,
   normalizeBehaviorDefinitions,
   normalizeBehaviorUses,
   validateBehaviorUse,
@@ -36,7 +33,6 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
-const registry = createCoreCapabilityRegistry()
 const owner = { kind: 'skill' as const, id: 'fixture/setup' }
 
 function recovery() {
@@ -45,16 +41,7 @@ function recovery() {
     id: 'ugc/recovery',
     sourceKind: 'skill',
     parameters: { amount: { kind: 'number', default: 5, minimum: 0, maximum: 100 } },
-    implementation: {
-      kind: 'rule',
-      rule: {
-        formatVersion: 1,
-        id: 'ugc/recovery-rule',
-        parameters: { amount: { nodeId: 'amount-value', kind: 'number', value: 5 } },
-        trigger: { nodeId: 'hit', id: 'core.selfSkillHit' },
-        actions: [{ stepId: 'heal', id: 'core.healOwner', params: { amount: { parameter: 'amount' } } }],
-      },
-    },
+    implementation: { kind: 'native', exportId: 'trusted/recovery' },
   } as const
 }
 
@@ -73,17 +60,17 @@ function apply(fixture: ReturnType<typeof makeScenario>) {
   )
 }
 
-it('runs two saved uses of one rule with independent parameters and independent battle state', () => {
+it('runs two saved uses of one native definition with independent parameters and independent battle state', () => {
   const definition = JSON.parse(JSON.stringify(recovery()))
   const first = compileBehaviorUse(
     definition,
     { useId: 'small', definitionId: definition.id, params: { amount: 10 } },
-    { owner, registry },
+    { owner, nativeExports: [nativeRecovery()] },
   )
   const second = compileBehaviorUse(
     definition,
     { useId: 'large', definitionId: definition.id, params: { amount: 20 } },
-    { owner, registry },
+    { owner, nativeExports: [nativeRecovery()] },
   )
   if (!first.ok || !second.ok) throw new Error('Expected both behavior uses to compile')
   expect(first.effect.id).not.toBe(second.effect.id)
@@ -135,12 +122,12 @@ it('rebuilds native parameter readers independently for each saved use', () => {
   const first = compileBehaviorUse(
     nativeDefinition(),
     { useId: 'small', definitionId: 'ugc/recovery', params: { amount: 10 } },
-    { owner, registry, nativeExports },
+    { owner, nativeExports },
   )
   const second = compileBehaviorUse(
     nativeDefinition(),
     { useId: 'large', definitionId: 'ugc/recovery', params: { amount: 20 } },
-    { owner, registry, nativeExports },
+    { owner, nativeExports },
   )
   if (!first.ok || !second.ok) throw new Error('Expected native uses to compile')
   const fixture = makeScenario(242)
@@ -163,7 +150,7 @@ it('does not execute a native use when attached to another skill definition', ()
   const compiled = compileBehaviorUse(
     nativeDefinition(),
     { useId: 'foreign', definitionId: 'ugc/recovery', params: { amount: 10 } },
-    { owner: { kind: 'skill', id: 'ugc/other-skill' }, registry, nativeExports: [nativeRecovery()] },
+    { owner: { kind: 'skill', id: 'ugc/other-skill' }, nativeExports: [nativeRecovery()] },
   )
   if (!compiled.ok) throw new Error('Expected a use bound to the declared owner')
   const fixture = makeScenario(245)
@@ -217,7 +204,7 @@ it('validates native candidates before invoking their trusted builder', () => {
   const prepared = validateBehaviorUse(
     definitions,
     { useId: 'small', definitionId: 'ugc/recovery', params: { amount: 10 } },
-    { owner, registry, nativeExports: [native] },
+    { owner, nativeExports: [native] },
   )
   expect(builds).toBe(0)
   expect(compilePreparedBehaviorUse(prepared).ok).toBe(true)
@@ -226,7 +213,7 @@ it('validates native candidates before invoking their trusted builder', () => {
     validateBehaviorUse(
       definitions,
       { useId: 'invalid', definitionId: 'ugc/recovery', params: { amount: -1 } },
-      { owner, registry, nativeExports: [native] },
+      { owner, nativeExports: [native] },
     ),
   ).toThrow(BehaviorCompilationError)
   expect(builds).toBe(1)
@@ -262,7 +249,7 @@ it('captures the trusted builder at registration instead of following later conf
   const compiled = compileBehaviorUse(
     nativeDefinition(),
     { useId: 'stable-builder', definitionId: 'ugc/recovery', params: { amount: 10 } },
-    { owner, registry, nativeExports: [native] },
+    { owner, nativeExports: [native] },
   )
   if (!compiled.ok) throw new Error('Expected registered native export to compile')
   expect(compiled.effect.priority).toBe(3)
@@ -302,7 +289,7 @@ it('keeps a native string selection within its published enum and length contrac
     implementation: { kind: 'native', exportId: 'trusted/mode' },
   }
   const use = { useId: 'mode', definitionId: 'ugc/mode' }
-  const options = { owner, registry, nativeExports: [native] }
+  const options = { owner, nativeExports: [native] }
   const compiled = compileBehaviorUse(definition, use, options)
   if (!compiled.ok) throw new Error('Expected native enum parameter to compile')
   const fixture = makeScenario(244)
@@ -330,11 +317,7 @@ it.each([
   ['wrong type', { amount: 'ten' }, '/params/amount'],
   ['unpublished parameter', { hidden: 10 }, '/params/hidden'],
 ] as const)('rejects %s with the owner and use location before activation', (_name, params, field) => {
-  const result = compileBehaviorUse(
-    recovery(),
-    { useId: 'invalid', definitionId: 'ugc/recovery', params },
-    { owner, registry },
-  )
+  const result = compileBehaviorUse(recovery(), { useId: 'invalid', definitionId: 'ugc/recovery', params }, { owner })
   expect(result).toMatchObject({
     ok: false,
     diagnostics: [{ code: 'INVALID_PARAMETERS', contentId: 'fixture/setup', useId: 'invalid', field }],
@@ -388,15 +371,15 @@ it.each([
 
 it('rejects unknown definitions, mismatched sources and unregistered native implementations', () => {
   const use = { useId: 'checked', definitionId: 'ugc/recovery' }
-  expect(compileBehaviorUse(recovery(), { ...use, definitionId: 'missing' }, { owner, registry })).toMatchObject({
+  expect(compileBehaviorUse(recovery(), { ...use, definitionId: 'missing' }, { owner })).toMatchObject({
     ok: false,
     diagnostics: [{ code: 'MISSING_REFERENCE', useId: 'checked', field: 'definitionId' }],
   })
-  expect(compileBehaviorUse(recovery(), use, { owner: { kind: 'petMark', id: 'ugc/mark' }, registry })).toMatchObject({
+  expect(compileBehaviorUse(recovery(), use, { owner: { kind: 'petMark', id: 'ugc/mark' } })).toMatchObject({
     ok: false,
     diagnostics: [{ code: 'CAPABILITY_MISMATCH', field: 'sourceKind' }],
   })
-  expect(compileBehaviorUse(nativeDefinition(), use, { owner, registry })).toMatchObject({
+  expect(compileBehaviorUse(nativeDefinition(), use, { owner })).toMatchObject({
     ok: false,
     diagnostics: [{ code: 'MISSING_REFERENCE', field: 'implementation.exportId' }],
   })
@@ -409,7 +392,6 @@ it('rejects native legacy aliases and attempts to widen the registered public co
   expect(
     compileBehaviorUse(nativeDefinition(), use, {
       owner,
-      registry,
       nativeExports: [nativeRecovery(['legacy.amount'])],
     }),
   ).toMatchObject({ ok: false, diagnostics: [{ code: 'INVALID_PARAMETERS' }] })
@@ -417,7 +399,7 @@ it('rejects native legacy aliases and attempts to widen the registered public co
     ...nativeDefinition(),
     parameters: { amount: { kind: 'number', default: 5, minimum: 0, maximum: 1000 } },
   }
-  expect(compileBehaviorUse(widened, use, { owner, registry, nativeExports: [nativeRecovery()] })).toMatchObject({
+  expect(compileBehaviorUse(widened, use, { owner, nativeExports: [nativeRecovery()] })).toMatchObject({
     ok: false,
     diagnostics: [{ code: 'INVALID_PARAMETERS', field: 'parameters' }],
   })
@@ -431,96 +413,26 @@ it('rejects native legacy aliases and attempts to widen the registered public co
       ) as never,
   })
   expect(
-    compileBehaviorUse(nativeDefinition(), use, { owner, registry, nativeExports: [compiledInsteadOfDefinition] }),
+    compileBehaviorUse(nativeDefinition(), use, { owner, nativeExports: [compiledInsteadOfDefinition] }),
   ).toMatchObject({ ok: false, diagnostics: [{ code: 'INVALID_PARAMETERS', field: 'implementation' }] })
 })
 
-it('keeps shared rule parameters connected while copying uses and expanding an independent rule', () => {
-  const original = recovery()
-  const rule = {
-    ...original.implementation.rule,
-    actions: [
-      ...original.implementation.rule.actions,
-      { ...original.implementation.rule.actions[0], stepId: 'second-heal' },
-    ],
-  }
-  const definition = encapsulateRule(rule, {
-    id: 'ugc/composite',
-    sourceKind: 'skill',
-    parameters: original.parameters,
-  })
-  const copiedDefinition = copyBehaviorDefinition(definition, 'ugc/copied-composite')
+it('copies native uses and definitions with independent identities and preserves saved parameters', () => {
+  const definition = nativeDefinition()
+  const copiedDefinition = copyBehaviorDefinition(definition, 'ugc/copied')
   const use = { useId: 'first', definitionId: definition.id, params: { amount: 10 } }
-  const copiedUse = copyBehaviorUse({ ...use, params: { amount: 20 } }, 'second')
-  const first = compileBehaviorUse(definition, use, { owner, registry })
-  const second = compileBehaviorUse(
-    copiedDefinition,
-    { ...copiedUse, definitionId: copiedDefinition.id },
-    { owner, registry },
-  )
-  const expanded = expandBehaviorUse(definition, { ...use, params: { amount: 7 } }, 'ugc/expanded', { owner, registry })
-  if (!first.ok || !second.ok || !expanded.ok) throw new Error('Expected independent compiled rules')
-  const fixture = makeScenario(243)
-  battles.push(fixture.battle)
-  for (const compiled of [first, second, expanded]) compiled.parameters.install(fixture.battle.configSystem)
-  const skill = fixture.a.activePet.skills[0]
-  skill.effects.splice(0, skill.effects.length, first.effect, second.effect, expanded.effect)
-  fixture.a.activePet.currentHp = 1
-  apply(fixture)
-  expect(fixture.a.activePet.currentHp).toBe(75) // 10 + 10 + 20 + 20 + 7 + 7
-  first.parameters.set(fixture.battle.configSystem, first.parameterAddresses.amount, 15)
-  fixture.a.activePet.currentHp = 1
-  apply(fixture)
-  expect(fixture.a.activePet.currentHp).toBe(85)
-  expect(expanded.rule.actions.map(action => action.stepId)).toEqual(['heal', 'second-heal'])
-  expect(expanded.rule.actions.map(action => action.params)).toEqual([
-    { amount: { parameter: 'amount' } },
-    { amount: { parameter: 'amount' } },
-  ])
-  const saved = JSON.parse(JSON.stringify({ definition: expanded.expandedDefinition, use: expanded.expandedUse }))
-  const recompiled = compileBehaviorUse(saved.definition, saved.use, { owner, registry })
-  if (!recompiled.ok) throw new Error('Expected saved expansion to compile')
-  expect(recompiled.use.params.amount).toBe(7)
-  expect(definition.parameters.amount.default).toBe(5)
-  expect(expanded.expandedDefinition.parameters.amount.default).toBe(7)
-  expect(expanded.expandedUse.useId).toBe(use.useId)
-  expect(expanded.expandedDefinition.id).toBe('ugc/expanded')
-  const restoredFixture = makeScenario(246)
-  battles.push(restoredFixture.battle)
-  recompiled.parameters.install(restoredFixture.battle.configSystem)
-  const restoredSkill = restoredFixture.a.activePet.skills[0]
-  restoredSkill.effects.splice(0, restoredSkill.effects.length, recompiled.effect)
-  restoredFixture.a.activePet.currentHp = 1
-  apply(restoredFixture)
-  expect(restoredFixture.a.activePet.currentHp).toBe(15)
-  expect(
-    compileBehaviorUse(saved.definition, { ...saved.use, params: { amount: 101 } }, { owner, registry }),
-  ).toMatchObject({ ok: false, diagnostics: [{ code: 'INVALID_PARAMETERS', field: '/params/amount' }] })
-  expect(() => copyBehaviorUse(use, 'first')).toThrow(BehaviorCompilationError)
+  const copiedUse = copyBehaviorUse({ ...use, definitionId: copiedDefinition.id, params: { amount: 20 } }, 'second')
+  const options = { owner, nativeExports: [nativeRecovery()] }
+  const first = compileBehaviorUse(definition, use, options)
+  const second = compileBehaviorUse(copiedDefinition, copiedUse, options)
+  const saved = JSON.parse(JSON.stringify({ definition: copiedDefinition, use: copiedUse }))
+  const restored = compileBehaviorUse(saved.definition, saved.use, options)
+  if (!first.ok || !second.ok || !restored.ok) throw new Error('Expected native uses to compile')
+  expect(first.effect.id).not.toBe(second.effect.id)
+  expect(restored.effect.id).toBe(second.effect.id)
+  expect(restored.parameterAddresses).toEqual(second.parameterAddresses)
+  expect(restored.use.params.amount).toBe(20)
+  expect(use.params.amount).toBe(10)
+  expect(() => copyBehaviorUse(use, use.useId)).toThrow(BehaviorCompilationError)
   expect(() => copyBehaviorDefinition(definition, definition.id)).toThrow(BehaviorCompilationError)
-})
-
-it('preserves use identities through serialization and action reordering, and refuses native expansion', () => {
-  const definition = recovery()
-  const use = { useId: 'stable', definitionId: definition.id, params: { amount: 10 } }
-  const before = compileBehaviorUse(definition, use, { owner, registry })
-  const saved = JSON.parse(JSON.stringify(definition))
-  saved.implementation.rule.actions.push({ ...saved.implementation.rule.actions[0], stepId: 'second-heal' })
-  saved.implementation.rule.actions.reverse()
-  const after = compileBehaviorUse(saved, JSON.parse(JSON.stringify(use)), { owner, registry })
-  if (!before.ok || !after.ok) throw new Error('Expected stable compilation')
-  expect(after.effect.id).toBe(before.effect.id)
-  expect(after.parameterAddresses).toEqual(before.parameterAddresses)
-  expect(after.rule?.actions.map(action => action.stepId)).toEqual(['second-heal', 'heal'])
-  expect(expandBehaviorUse(definition, use, definition.id, { owner, registry })).toMatchObject({
-    ok: false,
-    diagnostics: [{ code: 'DUPLICATE_ID' }],
-  })
-  expect(
-    expandBehaviorUse(nativeDefinition(), use, 'ugc/no-native-expansion', {
-      owner,
-      registry,
-      nativeExports: [nativeRecovery()],
-    }),
-  ).toMatchObject({ ok: false, diagnostics: [{ code: 'CAPABILITY_MISMATCH' }] })
 })

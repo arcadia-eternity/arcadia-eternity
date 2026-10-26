@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { Category, Element, type baseSkillId } from '@arcadia-eternity/const'
-import { createContentCatalog } from '../../src/v4/content/definition-catalog'
+import { createContentCatalog as assembleCatalog } from '../../src/v4/content/definition-catalog'
 import { BehaviorCompilationError, behaviorEffectId, defineNativeBehavior } from '../../src/v4/content/behaviors'
 import { defineEffect, numberParam, ops, targets } from '../../src/v4/content/authoring'
 
@@ -10,17 +10,27 @@ function definition() {
     id: 'ugc/heal',
     sourceKind: 'skill',
     parameters: { amount: { kind: 'number', default: 10, minimum: 0, maximum: 100 } },
-    implementation: {
-      kind: 'rule',
-      rule: {
-        formatVersion: 1,
-        id: 'ugc/heal-rule',
-        parameters: { amount: { nodeId: 'amount', kind: 'number', value: 10 } },
-        trigger: { nodeId: 'hit', id: 'core.selfSkillHit' },
-        actions: [{ stepId: 'heal', id: 'core.healOwner', params: { amount: { parameter: 'amount' } } }],
-      },
-    },
+    implementation: { kind: 'native', exportId: 'trusted/heal' },
   }
+}
+function createContentCatalog(...args: Parameters<typeof assembleCatalog>) {
+  const native = defineNativeBehavior({
+    id: 'trusted/heal',
+    sourceKind: 'skill',
+    parameters: {
+      amount: { kind: 'number', default: 10, minimum: 0, maximum: 100 },
+    },
+    build({ effectId, params }) {
+      const amount = numberParam({ default: params.amount as number })
+      return defineEffect({
+        id: effectId,
+        on: 'OnHit',
+        parameters: { amount },
+        execute: targets.ownerPet.apply(ops.heal(amount)),
+      })
+    },
+  })
+  return assembleCatalog(args[0], args[1], args[2], args[3] ?? { nativeExports: [native] })
 }
 function skill(id = 'ugc/skill', behaviors: unknown = [{ useId: 'first', definitionId: 'ugc/heal', params: {} }]) {
   return { id, element: Element.Normal, category: Category.Status, power: 0, rage: 0, accuracy: 100, behaviors }
@@ -125,27 +135,26 @@ it.each(['parameters', 'capability'] as const)('rejects invalid %s before callin
   }
   if (invalid === 'capability') {
     input.skills[1] = skill('ugc/second', [{ useId: 'bad', definitionId: 'ugc/heal', params: { amount: 10 } }])
-    const rule = input.behaviors[1].implementation
-    if (rule.kind === 'rule' && 'rule' in rule) rule.rule.actions[0].id = 'unknown/action'
+    input.behaviors[1].implementation.exportId = 'unknown/export'
   }
   const legacy = vi.fn(() => ({ effects: new Map(), parameters: new Map() }))
   expectDiagnostic(
-    () => createContentCatalog(input, 'invalid', legacy, [], { nativeExports: [native] }),
-    invalid === 'parameters' ? 'INVALID_PARAMETERS' : 'UNKNOWN_CAPABILITY',
+    () => createContentCatalog(input, 'invalid', legacy, { nativeExports: [native] }),
+    invalid === 'parameters' ? 'INVALID_PARAMETERS' : 'MISSING_REFERENCE',
     'ugc/second',
-    invalid === 'parameters' ? '/params/amount' : '/actions/0/id',
+    invalid === 'parameters' ? '/params/amount' : 'implementation.exportId',
   )
   expect(build).not.toHaveBeenCalled()
   expect(legacy).not.toHaveBeenCalled()
 })
 
-it('keeps definition identity and field when a bulk catalog contains a malformed rule', () => {
+it('keeps definition identity and field when a bulk catalog contains a malformed native definition', () => {
   const input = data()
-  input.behaviors[0].implementation.rule.actions = []
+  input.behaviors[0].implementation.exportId = ''
   expectDiagnostic(
     () => createContentCatalog(input, 'invalid'),
     'INVALID_PARAMETERS',
     'ugc/heal',
-    '/implementation/rule/actions',
+    '/implementation/exportId',
   )
 })

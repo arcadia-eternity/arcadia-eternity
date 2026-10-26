@@ -5,7 +5,6 @@ import type { Battle } from '../battle'
 import { Effect, type EffectContainer } from '../effect'
 
 import { createChildLogger } from '../logger'
-import { usesSingleAdmission } from '../content/admission'
 
 /**
  * EffectExecutionPhase handles effect execution operations
@@ -132,7 +131,6 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
     context: EffectContext<EffectTrigger>
   }> = []
 
-  const admissions = new Map<EffectContainer, Set<string>>()
   const addedEffects = new Set<string>()
 
   effectContainers.forEach(container => {
@@ -144,12 +142,6 @@ export function collectEffectsFromContainers<T extends EffectTrigger>(
       containerEffects
         .filter(effect => effect.triggers.includes(trigger))
         .forEach(effect => {
-          if (usesSingleAdmission(effect)) {
-            const admitted = admissions.get(container) ?? new Set<string>()
-            if (admitted.has(effect.id)) return
-            admitted.add(effect.id)
-            admissions.set(container, admitted)
-          }
           const effectContext = new EffectContext(parentContext, trigger, container as any, effect)
 
           try {

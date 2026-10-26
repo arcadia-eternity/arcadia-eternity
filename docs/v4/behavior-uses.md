@@ -70,7 +70,7 @@
 
 ## 可信 TS 导出
 
-宿主通过 `defineNativeBehavior` 注册可信实现，并向 `createContentCatalog(data, revision, legacyFactory, packs, { nativeExports })` 提供导出。以下是开发者侧的治疗示例片段，相关 API 由 V4 内核及 authoring 入口提供；它不是作品文件中可上传执行的代码：
+宿主通过 `defineNativeBehavior` 注册可信实现，并向 `createContentCatalog(data, revision, legacyFactory, { nativeExports })` 提供导出。以下是开发者侧的治疗示例片段，相关 API 由 V4 内核及 authoring 入口提供；它不是作品文件中可上传执行的代码：
 
 ```ts
 const native = defineNativeBehavior({
@@ -92,24 +92,24 @@ const native = defineNativeBehavior({
 
 对应的数据定义使用 `implementation: { kind: 'native', exportId: 'trusted/heal' }`，声明与导出相同的 sourceKind 和 parameters。只有宿主已经安装并允许该导出时才能使用；写出 exportId 不会下载、安装或授权代码。
 
-需要引用本次装配的印记时，目录第五个参数可以使用可信注册工厂 `({ marks, skillIds }) => ({ nativeExports })`。它在印记分配后运行，以便构建器引用同一份正式 BaseMark；导入数据不能指定这个工厂。
+需要引用本次装配的印记时，目录第四个参数可以使用可信注册工厂 `({ marks, skillIds }) => ({ nativeExports })`。它在印记分配后运行，以便构建器引用同一份正式 BaseMark；导入数据不能指定这个工厂。
 
 `build` 每次创建新的作者定义和参数／绑定计划，使用传入的 effectId。统一编译层绑定来源、建立参数地址与快照注册；返回已经编译的静态 Effect 会被拒绝。新行为使用拒绝 `legacyAliases`，参数通过使用身份和参数名定位；原有官方效果的别名行为保持。
 
 `compileBehaviorUse` 可用于单次底层编译，返回效果、参数目录及公开参数地址。批量路径可先使用 `normalizeBehaviorDefinitions`、`normalizeBehaviorUses`、`validateBehaviorUse`，再调用 `compilePreparedBehaviorUse`。产品应通过作品编译及环境准备入口完成依赖、能力准入和身份校验，而不是仅凭一次底层编译成功就宣布可运行或可进入房间。
 
-## 复制与尚存的旧 API
+## 复制与原生能力边界
 
 `copyBehaviorUse` 为一次使用生成新 useId；`copyBehaviorDefinition` 复制静态定义，不会复制或生成原生实现。作品 Fork 则由作品层生成新 projectId 和 namespace，改写显式内部引用、保留外部依赖。可信 TS 闭包中的硬编码引用无法自动改写，含自定义原生导出的作品不能宣称自动 Fork 成功。
 
-核心当前仍保留 `implementation.kind: 'rule'`、`encapsulateRule`、`expandBehaviorUse` 及相关测试。这是尚待 [#242](https://github.com/arcadia-eternity/arcadia-eternity/issues/242) 审计和收敛的旧接口，不是普通作品的创作合同，也不表示已完成移除。普通基础包入口拒绝数据规则和替换官方模板；作品编译只允许已安装且获准的原生导出。
+行为定义仅接受原生导出。旧 Rule Graph、规则编译／封装／展开、能力注册表和独立规则包环境已移除；目录不再接受 compiledPacks 或规则 registry 参数。作品编译只允许已安装且获准的原生导出，普通基础包入口仍禁止替换官方模板。
 
 目标选择、数值计算、捕获／跟随与持续绑定继续由可信 TS Authoring API 提供。普通玩家不需要通过展开模板来编辑这些实现细节。
 
 ## 验证与接入边界
 
 - [模板合同测试](../../packages/battle/test/v4/official-template-contracts.test.ts)与[模板战斗测试](../../packages/battle/test/v4/official-template-behavior.test.ts)覆盖公开参数、实际印记引用、多个独立使用及贡献生命周期。
-- [行为目录校验](../../packages/battle/test/v4/behavior-catalog-validation.test.ts)覆盖正式目录拒绝非法输入；[行为使用测试](../../packages/battle/test/v4/behavior-uses.test.ts)覆盖实例隔离与已有等待点恢复，其中仍含旧规则接口场景。
-- `pnpm verify:battle-v4-templates` 用 Node、压缩构建与真实 Chrome 验证原生模板及双向 JSON 恢复；`pnpm verify:battle-v4-behaviors` 保留较早的行为接口探针，不能用旧规则场景通过代替当前作者产品验收。
+- [行为目录校验](../../packages/battle/test/v4/behavior-catalog-validation.test.ts)覆盖正式目录拒绝非法输入；[行为使用测试](../../packages/battle/test/v4/behavior-uses.test.ts)覆盖实例隔离与已有等待点恢复，使用可信原生行为。
+- `pnpm verify:battle-v4-templates` 用 Node、压缩构建与真实 Chrome 验证原生模板及双向 JSON 恢复；`pnpm verify:battle-v4-behaviors` 验证原生行为的独立参数、印记绑定及初始／行动等待点恢复。宿主探针不代替完整作者产品验收。
 
 作品编译、creator 试玩和 CLI 加载／replay 已接入。普通组队与本地对战入口、Electron 安装版、服务端批准环境目录及真实房间匹配仍见 #243/#244/#209/#224。完整 Mod 安装准入由 #218 跟踪。房间只校验事先具备的环境，不下载或同步作品。

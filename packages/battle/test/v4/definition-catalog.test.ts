@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { Type } from '@sinclair/typebox'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   AttackTargetOpinion,
@@ -8,9 +8,20 @@ import {
   Element,
   type baseMarkId,
   type baseSkillId,
+  type effectId,
 } from '@arcadia-eternity/const'
-import { AttributeSystem, TurnContext, UseSkillContext, setGlobalLogger, type Battle } from '../../src/v4/index'
-import { compileContentPack } from '../../src/v4/content/content-pack'
+import {
+  AttributeSystem,
+  TurnContext,
+  UseSkillContext,
+  HealContext,
+  Pet,
+  MarkInstanceImpl,
+  ConfigModifierType,
+  setGlobalLogger,
+  type Battle,
+} from '../../src/v4/index'
+import { defineMarkInstanceParams, defineNativeEffect } from '../../src/v4/content'
 import { createContentCatalog, type TrustedEffectFactory } from '../../src/v4/content/definition-catalog'
 import {
   compileEffect,
@@ -28,17 +39,12 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
-function pack() {
-  const data = JSON.parse(
-    readFileSync(new URL('../../../../docs/v4/examples/ugc-recovery-pack.json', import.meta.url), 'utf8'),
-  )
-  const compiled = compileContentPack(data)
-  if (!compiled.ok) throw new Error(JSON.stringify(compiled.diagnostics))
-  return compiled
-}
 function metadata() {
   return {
-    marks: [{ id: 'native/ability', effect: [] as string[] }],
+    marks: [
+      { id: 'native/ability', effect: [] as string[] },
+      { id: 'ugc/recovery', effect: ['native/recovery-tick'] },
+    ],
     skills: [
       {
         id: 'custom/skill',
@@ -47,7 +53,7 @@ function metadata() {
         power: 0,
         rage: 0,
         accuracy: 100,
-        effect: ['native/heal', 'ugc/recovery/apply-rule'],
+        effect: ['native/heal', 'native/apply-recovery'],
       },
     ],
     species: [
@@ -79,10 +85,47 @@ const native: TrustedEffectFactory = marks => {
       execute: targets.ownerPet.apply(ops.heal(amount)),
     }),
   )
-  return { effects: new Map([[effect.id, effect]]), parameters: new Map([[effect.id, effectParameters(effect)]]) }
+  const recovery = marks.get('ugc/recovery')!
+  const ratio = Type.Number({ default: 0.2, minimum: 0, maximum: 1 })
+  const contract = defineMarkInstanceParams(recovery, Type.Object({ ratio }, { additionalProperties: false }), {
+    ratio: { effectiveSchema: ratio, operations: [ConfigModifierType.override] },
+  })
+  const tick = defineNativeEffect({
+    id: 'native/recovery-tick' as effectId,
+    triggers: [EffectTrigger.TurnEnd],
+    when: ctx =>
+      ctx.source instanceof MarkInstanceImpl && ctx.source.base === recovery && ctx.source.owner instanceof Pet,
+    apply(ctx) {
+      const source = ctx.source as MarkInstanceImpl
+      const owner = source.owner as Pet
+      owner.heal(
+        new HealContext(
+          ctx,
+          source,
+          owner,
+          Math.floor(owner.stat.maxHp * contract.read(ctx.battle.configSystem, source, 'ratio')),
+        ),
+      )
+    },
+  })
+  const apply = compileEffect(
+    defineEffect({
+      id: 'native/apply-recovery',
+      on: 'OnHit',
+      when: conditions.selfUsesSkill,
+      execute: targets.ownerPet.apply(ops.addMark(recovery)),
+    }),
+  )
+  return {
+    effects: new Map([effect, tick, apply].map(item => [item.id, item])),
+    parameters: new Map([
+      [effect.id, effectParameters(effect)],
+      [tick.id, contract.parameters],
+    ]),
+  }
 }
 function content() {
-  return createContentCatalog(metadata(), 'mixed-content/test-1', native, [pack()])
+  return createContentCatalog(metadata(), 'mixed-content/test-1', native)
 }
 function players(directory: ReturnType<typeof content>) {
   return directory.parsePlayers(
@@ -116,10 +159,10 @@ function apply(battle: Battle) {
   )
 }
 
-it('assembles native and data-authored effects with canonical marks, skills and namespaced species', () => {
+it('assembles trusted native effects with canonical marks, skills and namespaced species', () => {
   const directory = content()
   const skill = directory.getSkill('custom/skill' as baseSkillId)
-  expect(skill.effects.map(effect => effect.id)).toEqual(['native/heal', 'ugc/recovery/apply-rule'])
+  expect(skill.effects.map(effect => effect.id)).toEqual(['native/heal', 'native/apply-recovery'])
   for (const effect of skill.effects) expect(directory.getEffect(effect.id)).toBe(effect)
   expect(directory.species[0].ability?.[0]).toBe(directory.getMark('native/ability' as baseMarkId))
   expect(Object.isFrozen(directory.species[0].baseStats)).toBe(true)
@@ -143,7 +186,7 @@ it('assembles native and data-authored effects with canonical marks, skills and 
   expect(first.playerA.activePet.currentHp).toBe(12)
 })
 
-it('restores mixed definitions against a freshly compiled catalog and retains scoped parameter values', async () => {
+it('restores native definitions against a freshly compiled catalog and retains scoped parameter values', async () => {
   const first = content()
   const original = battle(first)
   first.parametersFor('native/heal')!.set(original.configSystem, 'native.heal.amount', 13)
@@ -178,38 +221,24 @@ it('restores mixed definitions against a freshly compiled catalog and retains sc
   expect(() => first.snapshot(restored)).toThrow('different content directory')
 })
 
-it.each(['pack', 'mark', 'effect', 'skill', 'species', 'missing-learnset', 'wrong-source'] as const)(
+it.each(['mark', 'effect', 'skill', 'species', 'missing-learnset'] as const)(
   'rejects a mixed catalog with %s conflicts before any player is allocated',
   kind => {
     const data = metadata()
-    const compiled = pack()
     const baseline = AttributeSystem.getGlobalMemoryStats().totalInstances
     if (kind === 'mark') data.marks.push({ id: 'ugc/recovery', effect: [] })
     if (kind === 'skill') data.skills.push(data.skills[0])
     if (kind === 'species') data.species.push(data.species[0])
     if (kind === 'missing-learnset') data.species[0].learnable_skills[0].skill_id = 'missing/skill'
-    if (kind === 'wrong-source') data.skills[0].effect = ['ugc/recovery/tick']
     const factory: TrustedEffectFactory = marks => {
       const result = native(marks)
       if (kind !== 'effect') return result
       return {
         ...result,
-        effects: new Map([...result.effects, [compiled.rules[0].effect.id, compiled.rules[0].effect]]),
+        effects: new Map([...result.effects, ['wrong/identity', result.effects.get('native/heal')!]]),
       }
     }
-    expect(() =>
-      createContentCatalog(data, 'invalid', factory, kind === 'pack' ? [compiled, compiled] : [compiled]),
-    ).toThrow()
+    expect(() => createContentCatalog(data, 'invalid', factory)).toThrow()
     expect(AttributeSystem.getGlobalMemoryStats().totalInstances).toBe(baseline)
   },
 )
-
-it('admits data-only content without a trusted effect factory', () => {
-  const data = metadata()
-  data.skills[0].effect = ['ugc/recovery/apply-rule']
-  const directory = createContentCatalog(data, 'rules-only', undefined, [pack()])
-  expect(directory.effects).toHaveLength(2)
-  const first = battle(directory)
-  apply(first)
-  expect(first.playerA.activePet.marks.some(mark => mark.baseId === 'ugc/recovery')).toBe(true)
-})
