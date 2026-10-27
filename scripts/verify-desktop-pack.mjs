@@ -3,15 +3,20 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { verifyDesktopRuntime } from './stage-desktop-runtime.mjs'
 
-// The normal Builder configuration always uses these strict hooks.
+// Local packaging permits incomplete notices but still checks staged identity.
 export async function beforePack() {
   const staged = fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url))
-  await verifyDesktopRuntime(staged)
+  await verifyDesktopRuntime(staged, { allowIncompleteNotices: true })
 }
 
 export async function afterPack(context) {
   const resources = context.packager.getResourcesDir(context.appOutDir)
-  await verifyDesktopRuntime(join(resources, 'arcadia-server'))
+  await verifyDesktopRuntime(join(resources, 'arcadia-server'), { allowIncompleteNotices: true })
+}
+
+// Use this before publication when the complete notices are available.
+export async function requireCompleteNotices(root) {
+  return verifyDesktopRuntime(root)
 }
 
 // Preview builds explicitly use separate hooks; integrity and copied resources
@@ -42,8 +47,14 @@ export function previewBuilderConfiguration() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  if (process.argv.length !== 3 || process.argv[2] !== '--preview') {
-    console.error('Usage: node scripts/verify-desktop-pack.mjs --preview')
+  if (process.argv.length === 3 && process.argv[2] === '--require-complete-notices') {
+    const staged = fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url))
+    requireCompleteNotices(staged).catch(error => {
+      console.error(error)
+      process.exitCode = 1
+    })
+  } else if (process.argv.length !== 3 || process.argv[2] !== '--preview') {
+    console.error('Usage: node scripts/verify-desktop-pack.mjs --preview | --require-complete-notices')
     process.exitCode = 1
   } else {
     const require = createRequire(new URL('../packages/web-ui/package.json', import.meta.url))

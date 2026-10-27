@@ -89,7 +89,7 @@ test('after-pack gate rejects missing or changed copied runtime files', async ()
   }
 })
 
-test('preview hook allows incomplete notices but verifies the actual copied runtime identity', async () => {
+test('local and preview hooks allow incomplete notices but verify copied identity', async () => {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-preview-pack-test-'))
   try {
     const runtime = join(root, 'arcadia-server')
@@ -107,15 +107,18 @@ test('preview hook allows incomplete notices but verifies the actual copied runt
         runtimeDigest: await desktopRuntimeDigest(runtime),
       }),
     )
-    const { afterPack, afterPreviewPack, previewBuilderConfiguration } = await import('./verify-desktop-pack.mjs')
+    const { afterPack, afterPreviewPack, previewBuilderConfiguration, requireCompleteNotices } =
+      await import('./verify-desktop-pack.mjs')
     const context = { appOutDir: root, packager: { getResourcesDir: () => root } }
     const config = previewBuilderConfiguration()
     assert.match(config.productName, /Preview/)
     assert.equal(config.afterPack, afterPreviewPack)
     assert.equal(config.publish, null)
-    await assert.rejects(afterPack(context), /cannot be released/)
+    await assert.rejects(requireCompleteNotices(runtime), /cannot be released/)
+    await afterPack(context)
     await afterPreviewPack(context)
     await writeFile(join(runtime, 'cli.js'), 'changed')
+    await assert.rejects(afterPack(context), /differ/)
     await assert.rejects(afterPreviewPack(context), /differ/)
   } finally {
     await rm(root, { recursive: true, force: true })
