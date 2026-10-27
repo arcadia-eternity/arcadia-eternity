@@ -20,6 +20,12 @@ const LocalBattleReports = () => import('@/components/battleReport/LocalBattleRe
 const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
 const routes: RouteRecordRaw[] = [
   {
+    path: '/creator/development',
+    name: 'DevelopmentWorkspace',
+    component: () => import('@/features/development/DevelopmentWorkspacePage.vue'),
+    meta: { title: '开发服务工作区' },
+  },
+  {
     path: '/creator',
     name: 'Creator',
     component: () => import('@/features/creator/CreatorPage.vue'),

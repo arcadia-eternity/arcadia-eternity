@@ -177,6 +177,8 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverSession.test.ts --maxWorkers=1
       - name: Verify server content environments in the browser client
         run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverEnvironment.test.ts src/stores/__tests__/privateRoomEnvironment.test.ts src/stores/__tests__/authServerSwitch.test.ts src/stores/__tests__/battleClientSwitch.test.ts src/stores/__tests__/gameData.native.test.ts src/pages/__tests__/lobbyEnvironment.test.ts --maxWorkers=1
+      - name: Verify local development workspace editing
+        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/developmentWorkspace.test.ts src/features/development/__tests__/DevelopmentWorkspacePage.test.ts --maxWorkers=1
       - name: Verify desktop local host lifecycle
         run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
       - name: Install browser

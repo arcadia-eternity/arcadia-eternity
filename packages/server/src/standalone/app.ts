@@ -6,6 +6,7 @@ import { Server } from 'socket.io'
 import { SessionRegistry, SessionError, readProfile, type AccountProvider } from './session'
 import { RoomRegistry, RoomError, object, type RoomOptions } from './rooms'
 import { ServerEnvironmentRegistry, EnvironmentError } from './environments'
+import { DevelopmentWorkspace, DevelopmentError } from './dev-workspace'
 import { AccountDirectoryError, type AccountDirectory, type VerifiedIdentity } from './accounts/directory'
 import { ProviderError, type AuthIntent, type EmailCodeVerifier, type GithubAppVerifier } from './providers'
 
@@ -18,6 +19,8 @@ export interface G3AccountServices {
 }
 
 export interface SingleProcessAppOptions extends RoomOptions {
+  /** Explicit administrator-only source editing; this must never be enabled on a public listener. */
+  development?: { directory: string; token: string }
   port?: number
   host?: string
   serverId?: string
@@ -42,6 +45,13 @@ export interface SingleProcessApp {
 
 /** A deliberately ephemeral Node host: restarts invalidate every room and session. */
 export function createSingleProcessApp(options: SingleProcessAppOptions = {}): SingleProcessApp {
+  if (
+    options.development &&
+    (options.host !== '127.0.0.1' || !options.corsOrigins?.length || options.corsOrigins.includes('*'))
+  )
+    throw new Error('Development workspace requires loopback and explicitly allowed browser origins')
+  const development =
+    options.development && new DevelopmentWorkspace(options.development.directory, options.development.token)
   if (options.accounts && (!options.serverId || options.accountProvider))
     throw new Error('G3 accounts require an explicit stable serverId and cannot use the legacy accountProvider')
   if (
@@ -75,8 +85,13 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     callback(null, !value || allowed.includes('*') || allowed.includes(value))
   }
   app.use(
-    cors({ origin, allowedHeaders: ['Authorization', 'Content-Type'], methods: ['GET', 'POST', 'DELETE', 'OPTIONS'] }),
+    cors({
+      origin,
+      allowedHeaders: ['Authorization', 'Content-Type'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    }),
   )
+  if (development) app.use('/api/v1/development', express.json({ limit: '2mb', strict: true }))
   app.use(express.json({ limit: '32kb', strict: true }))
   app.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store')
@@ -99,6 +114,26 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   const token = (req: Request) => {
     const header = req.headers.authorization
     return typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7) : undefined
+  }
+  if (development) {
+    const requireDeveloper = (req: Request) => {
+      if (req.socket.remoteAddress !== '127.0.0.1' && req.socket.remoteAddress !== '::ffff:127.0.0.1')
+        throw new DevelopmentError('DEVELOPMENT_UNAUTHORIZED', 401)
+      if (!/^(?:127\.0\.0\.1|localhost)(?::[0-9]{1,5})?$/i.test(req.headers.host ?? ''))
+        throw new DevelopmentError('DEVELOPMENT_UNAUTHORIZED', 401)
+      const originHeader = req.headers.origin
+      if (originHeader && !allowed.includes(originHeader)) throw new DevelopmentError('DEVELOPMENT_UNAUTHORIZED', 401)
+      development.authorize(token(req))
+    }
+    app.get('/api/v1/development/content', async (req, res) => {
+      requireDeveloper(req)
+      res.json(await development.read())
+    })
+    app.put('/api/v1/development/content', async (req, res) => {
+      requireDeveloper(req)
+      const input = object(req.body)
+      res.json(await development.write(input.revision, input.content))
+    })
   }
   app.get('/health', (_req, res) => {
     res.status(stopped ? 503 : 200).json({ status: stopped ? 'stopped' : 'ok' })
@@ -385,6 +420,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     })
   }
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    if (error instanceof DevelopmentError) {
+      res.status(error.status).json({ code: error.code })
+      return
+    }
     if (error instanceof EnvironmentError) {
       res.status(error.code === 'SERVER_STOPPED' ? 503 : 404).json({ code: error.code })
       return

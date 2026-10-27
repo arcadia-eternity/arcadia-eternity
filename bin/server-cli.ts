@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { Command, CommanderError, InvalidArgumentError } from 'commander'
 import pg from 'pg'
 import nodemailer from 'nodemailer'
+import { resolve } from 'node:path'
 import {
   createSingleProcessApp,
   EmailCodeVerifier,
@@ -29,6 +30,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     .option('--host <address>', 'Listen address', process.env.HOST || '0.0.0.0')
     .option('--server-id <id>', 'Stable identity of this server', process.env.SERVER_ID || 'arcadia-local')
     .option('--npm-project <directories...>', 'Prepare approved npm installations for room selection')
+    .option('--development-project <directory>', 'Enable local authoring of one configured project')
     .option(
       '--cors-origin <origins>',
       'Allowed browser origins, separated by commas',
@@ -42,11 +44,18 @@ export async function runServerCli(args: string[]): Promise<number> {
       serverId: string
       corsOrigin: string
       npmProject?: string[]
+      developmentProject?: string
     }>()
     const corsOrigins = options.corsOrigin
       .split(',')
       .map(value => value.trim())
       .filter(Boolean)
+    const developmentToken = options.developmentProject ? process.env.ARCADIA_DEVELOPMENT_TOKEN : undefined
+    if (
+      options.developmentProject &&
+      (!developmentToken || developmentToken.length < 32 || developmentToken.length > 256)
+    )
+      throw new Error('ARCADIA_DEVELOPMENT_TOKEN must contain 32–256 characters for the local development service')
     const accountMode = process.env.ACCOUNT_MODE
     if (accountMode && accountMode !== 'guest' && accountMode !== 'g3')
       throw new Error('ACCOUNT_MODE must be guest or g3')
@@ -159,6 +168,9 @@ export async function runServerCli(args: string[]): Promise<number> {
       serverId: options.serverId,
       corsOrigins,
       accounts,
+      ...(options.developmentProject
+        ? { development: { directory: resolve(options.developmentProject), token: developmentToken! } }
+        : {}),
     })
     for (const directory of options.npmProject ?? []) await server.environments.prepareNpm(directory)
     await server.start()
