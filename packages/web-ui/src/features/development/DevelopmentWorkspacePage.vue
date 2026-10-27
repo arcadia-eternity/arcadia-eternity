@@ -9,10 +9,13 @@ import {
   type DevelopmentWorkspaceSnapshot,
 } from '@/services/developmentWorkspace'
 import { defaultRecord } from '@/features/creator/content'
+import { environmentServerUrl } from '@/services/serverEnvironment'
 
 type Kind = 'species' | 'skill' | 'mark'
 type ContentRecord = Record<string, Json> & { id: string }
 type Project = { projectId: string; namespace: string; exports: { id: string; sourceKind: 'skill' | 'petMark' }[] }
+type ReferenceOption = { projectId: string; id: string; label: string }
+type ReferenceEnvironment = { id: string; packages: { projectId: string; namespace: string }[] }
 const kinds = { species: 'species', skill: 'skills', mark: 'marks' } as const
 const labels: Record<Kind, string> = { species: '精灵', skill: '技能', mark: '印记' }
 const battle = useBattleClientStore()
@@ -35,8 +38,16 @@ const dirty = ref(false)
 const conflict = ref(false)
 const notice = ref('')
 const error = ref('')
+const referenceError = ref('')
+const referenceBusy = ref(false)
+const environments = ref<ReferenceEnvironment[]>([])
+const referenceEnvironment = ref('')
+const externalSkills = ref<ReferenceOption[]>([])
+const externalMarks = ref<ReferenceOption[]>([])
 let generation = 0
 let pending: AbortController | undefined
+let referenceGeneration = 0
+let referencePending: AbortController | undefined
 const sameServer = computed(() => !!document.value && openedServer.value === server.value)
 const isObject = (value: unknown): value is Record<string, Json> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
@@ -69,6 +80,17 @@ const recordProblem = computed(() => {
 })
 const skills = computed(() => entries('skill'))
 const marks = computed(() => entries('mark'))
+const keyFor = (item: Pick<ReferenceOption, 'projectId' | 'id'>) => JSON.stringify([item.projectId, item.id])
+const optionsFor = (local: ContentRecord[], external: ReferenceOption[]): ReferenceOption[] => [
+  ...local.map(item => ({
+    projectId: project.value!.projectId,
+    id: item.id,
+    label: `${string(item.name) || item.id} · 本包`,
+  })),
+  ...external.filter(item => item.projectId !== project.value?.projectId),
+]
+const skillOptions = computed(() => (project.value ? optionsFor(skills.value, externalSkills.value) : []))
+const markOptions = computed(() => (project.value ? optionsFor(marks.value, externalMarks.value) : []))
 const effects = computed(
   () => project.value?.exports.filter(item => item.sourceKind === (kind.value === 'skill' ? 'skill' : 'petMark')) ?? [],
 )
@@ -84,6 +106,8 @@ const refLabel = (input: unknown) => {
   if (isObject(input) && isObject(input.$ref)) return `${string(input.$ref.projectId)}:${string(input.$ref.id)}`
   return JSON.stringify(input)
 }
+const sameReference = (input: unknown, option: ReferenceOption) =>
+  (option.projectId === 'base' && input === option.id) || refLabel(input) === `${option.projectId}:${option.id}`
 function ensureData(): Record<string, Json> {
   if (!document.value || dataProblem.value) throw new Error('内容结构无效，不能编辑')
   if (!isObject(document.value.data)) document.value.data = { species: [], skills: [], marks: [], behaviors: [] }
@@ -93,6 +117,10 @@ function change(key: string, next: Json) {
   if (!selected.value) return
   selected.value[key] = next
   dirty.value = true
+}
+function selectKind(next: Kind) {
+  kind.value = next
+  activeId.value = ''
 }
 function changeNested(key: string, child: string, next: Json) {
   change(key, { ...nested(selected.value, key), [child]: next })
@@ -124,19 +152,102 @@ function addRecord() {
 }
 function addSkill() {
   if (!selected.value || !project.value || !skillId.value) return
-  const reference = workRef(project.value.projectId, 'skill', skillId.value)
+  const option = skillOptions.value.find(item => keyFor(item) === skillId.value)
+  if (!option) return
+  const reference = workRef(option.projectId, 'skill', option.id)
   const existing = list(selected.value, 'learnable_skills')
-  if (existing.some(item => isObject(item) && refLabel(item.skill_id) === refLabel(reference))) return
+  if (existing.some(item => isObject(item) && sameReference(item.skill_id, option))) return
   change('learnable_skills', [...existing, { skill_id: reference, level: 1, hidden: false }])
   skillId.value = ''
 }
 function addMark() {
   if (!selected.value || !project.value || !markId.value) return
-  const reference = workRef(project.value.projectId, 'mark', markId.value)
+  const option = markOptions.value.find(item => keyFor(item) === markId.value)
+  if (!option) return
+  const reference = workRef(option.projectId, 'mark', option.id)
   const existing = list(selected.value, markSlot.value)
-  if (existing.some(item => refLabel(item) === refLabel(reference))) return
+  if (existing.some(item => sameReference(item, option))) return
   change(markSlot.value, [...existing, reference])
   markId.value = ''
+}
+function clearReferenceContent() {
+  externalSkills.value = []
+  externalMarks.value = []
+  skillId.value = ''
+  markId.value = ''
+}
+async function loadReferences(mode: 'catalog' | 'content') {
+  referencePending?.abort()
+  const controller = new AbortController()
+  referencePending = controller
+  const epoch = ++referenceGeneration
+  const requestedServer = server.value
+  const environmentId = referenceEnvironment.value
+  clearReferenceContent()
+  referenceError.value = ''
+  referenceBusy.value = true
+  try {
+    if (mode === 'content' && !environmentId) return
+    const base = environmentServerUrl(requestedServer)
+    const descriptor = environments.value.find(item => item.id === environmentId)
+    if (mode === 'content' && (!descriptor || !/^[a-f0-9]{64}$/.test(environmentId)))
+      throw new Error('请选择有效的服务器环境')
+    const path = mode === 'catalog' ? '/api/v1/environments' : `/api/v1/environments/${environmentId}/content`
+    const response = await globalThis.fetch(`${base}${path}`, {
+      cache: 'no-store',
+      credentials: 'omit',
+      signal: controller.signal,
+    })
+    if (!response.ok) throw new Error(`读取公开环境失败（${response.status}）`)
+    const result: unknown = await response.json()
+    if (epoch !== referenceGeneration || server.value !== requestedServer) return
+    if (!isObject(result)) throw new Error('服务器环境内容格式不正确')
+    if (mode === 'catalog') {
+      if (result.protocolVersion !== 1 || !Array.isArray(result.environments)) throw new Error('服务器环境协议不兼容')
+      environments.value = result.environments.flatMap(item => {
+        if (
+          !isObject(item) ||
+          typeof item.id !== 'string' ||
+          !/^[a-f0-9]{64}$/.test(item.id) ||
+          item.protocolVersion !== 1 ||
+          !Array.isArray(item.packages)
+        )
+          return []
+        const packages = item.packages.flatMap(pkg =>
+          isObject(pkg) && typeof pkg.projectId === 'string' && typeof pkg.namespace === 'string'
+            ? [{ projectId: pkg.projectId, namespace: pkg.namespace }]
+            : [],
+        )
+        if (packages.length !== item.packages.length) return []
+        return [{ id: item.id, packages }]
+      })
+      referenceEnvironment.value = ''
+    } else {
+      if (!Array.isArray(result.skills) || !Array.isArray(result.marks)) throw new Error('服务器环境内容格式不正确')
+      const packages = descriptor!.packages
+      const convert = (rows: Json[]): ReferenceOption[] =>
+        rows.flatMap(row => {
+          if (!isObject(row) || typeof row.id !== 'string') return []
+          const runtimeId = row.id
+          const colon = runtimeId.indexOf(':')
+          const id = colon < 0 ? runtimeId : runtimeId.slice(colon + 1)
+          const owners = colon < 0 ? [] : packages.filter(pkg => pkg.namespace === runtimeId.slice(0, colon))
+          if (!id || (colon >= 0 && (owners.length !== 1 || typeof owners[0].projectId !== 'string'))) return []
+          const projectId = colon < 0 ? 'base' : owners[0].projectId
+          return [{ projectId, id, label: `${string(row.name) || id} · ${projectId}` }]
+        })
+      externalSkills.value = convert(result.skills)
+      externalMarks.value = convert(result.marks)
+    }
+  } catch (value) {
+    if (epoch === referenceGeneration)
+      referenceError.value = value instanceof Error ? value.message : '读取公开环境失败'
+  } finally {
+    if (epoch === referenceGeneration) {
+      referenceBusy.value = false
+      referencePending = undefined
+    }
+  }
 }
 function updateLearning(index: number, key: 'level' | 'hidden', next: Json) {
   const existing = list(selected.value, 'learnable_skills')
@@ -225,6 +336,13 @@ watch(server, () => {
   generation++
   pending?.abort()
   pending = undefined
+  referenceGeneration++
+  referencePending?.abort()
+  referencePending = undefined
+  referenceBusy.value = false
+  environments.value = []
+  referenceEnvironment.value = ''
+  clearReferenceContent()
   token.value = ''
   busy.value = false
   if (document.value) error.value = '连接的服务器已变化。旧输入仍在页面中，但不能保存到新服务器。'
@@ -232,6 +350,8 @@ watch(server, () => {
 onBeforeUnmount(() => {
   generation++
   pending?.abort()
+  referenceGeneration++
+  referencePending?.abort()
   token.value = ''
 })
 </script>
@@ -273,15 +393,39 @@ onBeforeUnmount(() => {
           ><span v-if="dirty"> · 有未保存修改</span>
         </p>
         <p v-if="dataProblem" class="error" role="alert">{{ dataProblem }}</p>
+        <div>
+          <button
+            :disabled="referenceBusy"
+            data-testid="development-reference-catalog"
+            @click="loadReferences('catalog')"
+          >
+            读取服务器公开环境
+          </button>
+          <label v-if="environments.length">
+            用于选择引用的环境
+            <select
+              v-model="referenceEnvironment"
+              data-testid="development-reference-environment"
+              @change="loadReferences('content')"
+            >
+              <option value="">请选择</option>
+              <option v-for="env in environments" :key="env.id" :value="env.id">
+                {{ env.id.slice(0, 12) }} · {{ env.packages.map(item => item.projectId).join('、') || '官方内容' }}
+              </option>
+            </select>
+          </label>
+          <p>
+            跨包内容来自所选服务器环境。此处无法确认源码项目的 npm
+            依赖：请先声明对应依赖，重新构建并验证引用；官方内容无需额外依赖。
+          </p>
+          <p v-if="referenceError" class="error" role="alert">{{ referenceError }}</p>
+        </div>
         <div class="tabs">
           <button
             v-for="tab in ['species', 'skill', 'mark'] as const"
             :key="tab"
             :aria-pressed="kind === tab"
-            @click="
-              kind = tab
-              activeId = ''
-            "
+            @click="selectKind(tab)"
           >
             {{ labels[tab] }}（{{ entries(tab).length }}）
           </button>
@@ -405,10 +549,10 @@ onBeforeUnmount(() => {
               <button @click="removeListItem('learnable_skills', index)">移除</button>
             </div>
             <label
-              >添加包内技能<select v-model="skillId">
+              >添加技能<select v-model="skillId" data-testid="development-skill-reference">
                 <option value="">请选择</option>
-                <option v-for="item in skills" :key="item.id" :value="item.id">
-                  {{ string(item.name) || item.id }}
+                <option v-for="item in skillOptions" :key="keyFor(item)" :value="keyFor(item)">
+                  {{ item.label }} · {{ item.id }}
                 </option>
               </select></label
             ><button :disabled="!skillId" @click="addSkill">添加技能引用</button>
@@ -427,10 +571,10 @@ onBeforeUnmount(() => {
                   <option value="emblem">纹章</option>
                 </select></label
               ><label
-                >包内印记<select v-model="markId">
+                >印记<select v-model="markId" data-testid="development-mark-reference">
                   <option value="">请选择</option>
-                  <option v-for="item in marks" :key="item.id" :value="item.id">
-                    {{ string(item.name) || item.id }}
+                  <option v-for="item in markOptions" :key="keyFor(item)" :value="keyFor(item)">
+                    {{ item.label }} · {{ item.id }}
                   </option>
                 </select></label
               ><button :disabled="!markId" @click="addMark">添加印记引用</button>

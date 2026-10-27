@@ -135,6 +135,105 @@ describe('development workspace page', () => {
     wrapper.unmount()
   })
 
+  it('adds local, official and cross-package references from a selected public environment without sending its token', async () => {
+    const id = 'b'.repeat(64)
+    const descriptor = { id, protocolVersion: 1, packages: [{ projectId: 'other', namespace: 'other-ns' }] }
+    const publicContent = {
+      skills: [
+        { id: 'other-ns:strike', name: 'Strike' },
+        { id: 'skill_base', name: 'Base' },
+      ],
+      marks: [{ id: 'other-ns:guard' }],
+    }
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(response(snapshot()))
+      .mockResolvedValueOnce(response({ protocolVersion: 1, environments: [descriptor] }))
+      .mockResolvedValueOnce(response(publicContent))
+      .mockResolvedValueOnce(response(snapshot()))
+    vi.stubGlobal('fetch', fetch)
+    const wrapper = mountPage()
+    await load(wrapper)
+    await wrapper.get('[data-testid="development-reference-catalog"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="development-reference-environment"]').setValue(id)
+    await flushPromises()
+    await wrapper.get('[data-testid="development-record"]').setValue('pet')
+    const add = async (selector: string, projectId: string, id: string, label: string) => {
+      await wrapper.get(selector).setValue(JSON.stringify([projectId, id]))
+      await wrapper
+        .findAll('button')
+        .find(button => button.text() === label)!
+        .trigger('click')
+    }
+    await add('[data-testid="development-skill-reference"]', 'demo', 'attack', '添加技能引用')
+    await add('[data-testid="development-skill-reference"]', 'other', 'strike', '添加技能引用')
+    await add('[data-testid="development-skill-reference"]', 'base', 'skill_base', '添加技能引用')
+    await add('[data-testid="development-mark-reference"]', 'other', 'guard', '添加印记引用')
+    await wrapper.get('[data-testid="development-save"]').trigger('click')
+    await flushPromises()
+    const body = JSON.parse(fetch.mock.calls[3][1].body)
+    expect(body.content.data.species[0].learnable_skills).toEqual([
+      content.data.species[0].learnable_skills[0],
+      ...[
+        ['demo', 'attack'],
+        ['other', 'strike'],
+        ['base', 'skill_base'],
+      ].map(([projectId, id]) => ({
+        skill_id: { $ref: { projectId, kind: 'skill', id } },
+        level: 1,
+        hidden: false,
+      })),
+    ])
+    expect(body.content.data.species[0].ability).toEqual([{ $ref: { projectId: 'other', kind: 'mark', id: 'guard' } }])
+    expect(fetch.mock.calls[1][1].credentials).toBe('omit')
+    expect(fetch.mock.calls[2][1].credentials).toBe('omit')
+    expect(fetch.mock.calls[1][1].headers).toBeUndefined()
+    expect(fetch.mock.calls[2][1].headers).toBeUndefined()
+    expect(wrapper.text()).toContain('无法确认源码项目的 npm 依赖')
+    wrapper.unmount()
+  })
+
+  it('discards a public content response from an environment that is no longer selected', async () => {
+    const first = 'b'.repeat(64),
+      second = 'c'.repeat(64)
+    let finishFirst!: (value: Response) => void
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(response(snapshot()))
+      .mockResolvedValueOnce(
+        response({
+          protocolVersion: 1,
+          environments: [first, second].map(id => ({
+            id,
+            protocolVersion: 1,
+            packages: [{ projectId: 'other', namespace: 'other' }],
+          })),
+        }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>(resolve => {
+            finishFirst = resolve
+          }),
+      )
+      .mockResolvedValueOnce(response({ skills: [{ id: 'other:new' }], marks: [] }))
+    vi.stubGlobal('fetch', fetch)
+    const wrapper = mountPage()
+    await load(wrapper)
+    await wrapper.get('[data-testid="development-reference-catalog"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="development-reference-environment"]').setValue(first)
+    await wrapper.get('[data-testid="development-reference-environment"]').setValue(second)
+    await flushPromises()
+    finishFirst(response({ skills: [{ id: 'other:old' }], marks: [] }))
+    await flushPromises()
+    await wrapper.get('[data-testid="development-record"]').setValue('pet')
+    expect(wrapper.get('[data-testid="development-skill-reference"]').text()).toContain('new')
+    expect(wrapper.get('[data-testid="development-skill-reference"]').text()).not.toContain('old')
+    wrapper.unmount()
+  })
+
   it('retains a draft and clears the token when the selected server changes', async () => {
     const fetch = vi.fn().mockResolvedValue(response(snapshot()))
     vi.stubGlobal('fetch', fetch)
