@@ -25,11 +25,14 @@
     </div>
     <div v-else class="text-center py-8 text-gray-600">
       <p>还没有队伍，请先创建一支队伍。</p>
-      <router-link to="/team-builder" class="inline-block mt-3 text-blue-600">前往队伍编辑器</router-link>
+      <router-link :to="editorRoute" class="inline-block mt-3 text-blue-600">前往队伍编辑器</router-link>
     </div>
     <ul v-if="validationErrors.length" class="text-sm text-orange-600 space-y-1" role="alert">
       <li v-for="error in validationErrors" :key="error">{{ error }}</li>
     </ul>
+    <router-link v-if="teams.length" :to="editorRoute" class="inline-block mt-3 text-blue-600"
+      >编辑或创建队伍</router-link
+    >
   </div>
 </template>
 
@@ -41,7 +44,7 @@ import { useGameDataStore } from '@/stores/gameData'
 import { validateBasicTeam } from '@/utils/basicTeamValidation'
 
 type SelectedTeam = { name: string; pets: unknown[]; ruleSetId?: string }
-const props = defineProps<{ modelValue: SelectedTeam | null }>()
+const props = defineProps<{ modelValue: SelectedTeam | null; roomCode?: string }>()
 const emit = defineEmits<{
   'update:modelValue': [team: SelectedTeam | null]
   'update:isValid': [isValid: boolean]
@@ -50,6 +53,10 @@ const emit = defineEmits<{
 const petStorageStore = usePetStorageStore()
 const gameDataStore = useGameDataStore()
 const teams = computed(() => petStorageStore.teams)
+const editorRoute = computed(() => ({
+  path: '/team-builder',
+  query: props.roomCode ? { roomCode: props.roomCode } : {},
+}))
 const isInitialized = computed(() => gameDataStore.loaded && petStorageStore.initialized)
 const selectedTeamIndex = computed(() =>
   props.modelValue

@@ -37,6 +37,21 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('native game metadata', () => {
+  it('uses server-only metadata for a room and restores the prior local data when leaving', async () => {
+    const store = useGameDataStore()
+    await store.initialize()
+    const originalSpecies = store.species.allIds.length
+    const originalEffects = store.nativeEffectIds.length
+    const species = { ...data.species[0], id: 'ugc:pet', learnable_skills: [], ability: [], emblem: [] }
+    store.applyServerEnvironment({ species: [species], skills: [], marks: [] })
+    expect(store.species.allIds).toEqual(['ugc:pet'])
+    expect(store.nativeEffectIds).toEqual([])
+    store.applyServerEnvironment({ species: [{ ...species, id: 'ugc:other' }], skills: [], marks: [] })
+    store.clearServerEnvironment()
+    expect(store.species.allIds).toHaveLength(originalSpecies)
+    expect(store.nativeEffectIds).toHaveLength(originalEffects)
+    expect(store.getSpecies('ugc:pet')).toBeUndefined()
+  })
   it('initializes all base metadata without requesting legacy effect definitions', async () => {
     const fetch = vi.fn(() => {
       throw new Error('Unexpected legacy data request')

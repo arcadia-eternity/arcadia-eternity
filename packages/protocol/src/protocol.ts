@@ -8,6 +8,7 @@ import type {
   AssetLock,
 } from '@arcadia-eternity/schema'
 import type { NativeRuntimeIdentity } from './session'
+import type { ServerEnvironmentAcceptance, ServerEnvironmentDescriptor } from './environment'
 
 // 重新导出常用类型
 export type { PetSchemaType, PlayerSchemaType, PlayerSelectionSchemaType }
@@ -154,6 +155,7 @@ export interface ClientToServerEvents {
 
 // 私人房间相关类型定义
 export interface CreatePrivateRoomRequest {
+  environmentId?: string
   expectedRuntime?: NativeRuntimeIdentity
   config: {
     ruleSetId?: string
@@ -186,6 +188,7 @@ export interface JoinPrivateRoomSpectatorRequest {
 }
 
 export interface TogglePrivateRoomReadyRequest {
+  environment?: ServerEnvironmentAcceptance
   team?: PetSchemaType[]
 }
 
@@ -207,6 +210,7 @@ export interface UpdatePrivateRoomConfigRequest {
 }
 
 export interface StartPrivateRoomBattleRequest {
+  environment?: ServerEnvironmentAcceptance
   hostTeam: PetSchemaType[]
 }
 
@@ -266,6 +270,7 @@ export interface PrivateRoomSpectator {
 }
 
 export interface PrivateRoomInfo {
+  environment?: ServerEnvironmentDescriptor
   id: string
   config: {
     roomCode: string

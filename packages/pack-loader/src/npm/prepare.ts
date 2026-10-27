@@ -11,7 +11,7 @@ import type {
 } from '@arcadia-eternity/battle/v4'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
 import { cloneJson, digestJson, fail, runtimeId, type Json, type WorkHost, type WorkRelease } from '../works/model'
-import { inspectNpmProject, packageFile, type InstalledNpmPackage } from './inspect'
+import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProjectInspection } from './inspect'
 import { captureNpmProject } from './capture'
 
 export interface NpmEffectModuleContext {
@@ -30,6 +30,11 @@ export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
     additional: BehaviorCatalogOptions,
   ) => ContentCatalog
 }
+export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnvironment>> & {
+  readonly installation: NpmProjectInspection
+  readAsset(hash: string): Uint8Array | undefined
+  dispose(): Promise<void>
+}
 
 /** Host-only activation. The approval identifies the complete inspected installation, including ordinary JS dependencies.
  * Each environment captures its package files. The caller disposes it after all its battles finish.
@@ -39,7 +44,7 @@ export async function prepareNpmProject(
   directory: string,
   host: NpmContentHost,
   approval: { installationDigest: string; policy: Readonly<Record<string, Json>> },
-) {
+): Promise<Readonly<PreparedNpmEnvironment>> {
   const source = await realpath(directory)
   const installation = await inspectNpmProject(source)
   if (approval.installationDigest !== installation.digest)
@@ -65,7 +70,7 @@ export async function prepareNpmProject(
 async function compileInstallation(
   root: string,
   host: NpmContentHost,
-  installation: Awaited<ReturnType<typeof inspectNpmProject>>,
+  installation: NpmProjectInspection,
   policyInput: Readonly<Record<string, Json>>,
 ) {
   const policy = cloneJson(policyInput)
@@ -138,6 +143,7 @@ async function compileInstallation(
   const byLocation = new Map(installation.packages.map(pkg => [pkg.location, pkg]))
   const releases = new Map<string, WorkRelease>(),
     visiting = new Set<string>()
+  const assetBytes = new Map<string, Uint8Array>()
   // npm resolves ordinary library versions. Only content registrations participate in the game dependency graph.
   function contentDependencies(pkg: InstalledNpmPackage): InstalledNpmPackage[] {
     const found = new Map<string, InstalledNpmPackage>(),
@@ -181,8 +187,10 @@ async function compileInstallation(
       digest: dep.digest,
     }))
     const blobs: Record<string, Uint8Array> = {}
-    for (const [hash, file] of Object.entries(manifest.assets))
+    for (const [hash, file] of Object.entries(manifest.assets)) {
       blobs[hash] = await readFile(packageFile(resolve(root, pkg.location), file))
+      assetBytes.set(hash, blobs[hash])
+    }
     const release = await compileRelease(draft, pkg.version, combinedHost, [...releases.values()], blobs)
     visiting.delete(pkg.location)
     releases.set(pkg.location, release)
@@ -195,5 +203,5 @@ async function compileInstallation(
   })
   if ((await inspectNpmProject(root)).digest !== installation.digest)
     fail('NPM_CHANGED', 'node_modules', 'Installation changed while compiling its effects')
-  return Object.freeze({ ...prepared, installation })
+  return Object.freeze({ ...prepared, installation, readAsset: (hash: string) => assetBytes.get(hash)?.slice() })
 }

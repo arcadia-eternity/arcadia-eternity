@@ -39,6 +39,19 @@ const host = {
 }
 const skill = (id: string) => ({ id, element: 'Normal', category: 'Physical', power: 40, rage: 0, accuracy: 100 })
 
+it('preserves exact SemVer build metadata in releases and dependency locks', async () => {
+  const dependency = createDraft('semver-dependency', 'Dependency')
+  dependency.data.skills.push(skill('strike'))
+  const release = await compileRelease(dependency, '1.0.0-beta.1+build.3', host)
+  const draft = createDraft('semver-consumer', 'Consumer')
+  draft.dependencies.push({ projectId: release.project.id, version: release.releaseVersion, digest: release.digest })
+  const consumer = await compileRelease(draft, '1.0.0+build.4', host, [release])
+  const prepared = await prepareWorkEnvironment(host, [consumer], [release])
+  expect(prepared.releases.map(item => item.releaseVersion)).toEqual(['1.0.0-beta.1+build.3', '1.0.0+build.4'])
+  for (const version of ['v1.0.0', '01.0.0', '^1.0.0', '1.0.0-01'])
+    await expect(compileRelease(draft, version, host, [release])).rejects.toThrow()
+})
+
 it('publishes independent namespaced works and freezes the running version while the draft changes', async () => {
   const a = createDraft('author-a', '作品 A')
   a.data.marks.push({
@@ -293,7 +306,7 @@ it('hashes actual asset bytes and rejects tampered archives before any workspace
 it('decodes normal-sized binary assets without recursive regular-expression overflow', async () => {
   const { encodeBytes, decodeBytes } = await import('../src/works')
   const bytes = new Uint8Array(2 * 1024 * 1024).fill(173)
-  expect(decodeBytes(encodeBytes(bytes))).toEqual(bytes)
+  expect(Buffer.from(decodeBytes(encodeBytes(bytes))).equals(Buffer.from(bytes))).toBe(true)
   for (const text of ['a', '=aaa', 'a===', 'AAAA AAAA']) expect(() => decodeBytes(text)).toThrow()
 })
 

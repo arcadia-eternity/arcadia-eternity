@@ -1,7 +1,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import { parseArchive, limits, WorkError, type NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
 import { resolve } from 'node:path'
-import { NativeNodePackLoader, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { NativeNodePackLoader, prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
 import type { ContentCatalog } from '@arcadia-eternity/battle/v4'
@@ -11,12 +11,15 @@ import type { RunSpec } from './types'
 
 export const createLoader = () =>
   new NativeNodePackLoader(nativeBuildIdentity, createOfficialContent, { templates: officialTemplateDefinitions })
+export interface ContentSelectionOptions {
+  works?: string
+  npmProject?: string
+  approval?: string
+}
 export async function prepareContent(
   packRef: string,
   cwd: string,
-  workFile?: string,
-  npmProject?: string,
-  approvalFile?: string,
+  { works: workFile, npmProject, approval: approvalFile }: ContentSelectionOptions = {},
 ): Promise<NativePackLoadResult> {
   const ref = /^(builtin:|npm:)/.test(packRef) ? packRef : resolve(cwd, packRef)
   try {
@@ -25,18 +28,9 @@ export async function prepareContent(
     if (npmProject) {
       if (workFile) throw new CliError('CONTENT_OPTIONS', '--works and --npm-project cannot be combined')
       const directory = resolve(cwd, npmProject)
-      const approval = JSON.parse(
-        await readFile(
-          approvalFile ? resolve(cwd, approvalFile) : resolve(directory, 'arcadia-admission.json'),
-          'utf8',
-        ),
+      const approval = await readNpmAdmission(
+        approvalFile ? resolve(cwd, approvalFile) : resolve(directory, 'arcadia-admission.json'),
       )
-      if (
-        approval?.format !== 'arcadia.npm-admission' ||
-        approval.version !== 1 ||
-        !['local-development', 'self-hosted', 'official'].includes(approval.profile)
-      )
-        throw new CliError('NPM_ADMISSION', 'Expected an explicit npm installation approval')
       const prepared = await prepareNpmProject(
         directory,
         {
@@ -45,7 +39,7 @@ export async function prepareContent(
           templates: officialTemplateDefinitions,
           createContent: createOfficialContent,
         },
-        { installationDigest: approval.installationDigest, policy: { profile: approval.profile } },
+        approval,
       )
       return { ...loaded, ...prepared, npm: { installationDigest: prepared.installation.digest } }
     }

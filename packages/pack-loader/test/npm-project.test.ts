@@ -353,6 +353,42 @@ it('rejects uninspected packages and lockfile drift before importing code', asyn
   }
 })
 
+it('accepts npm-omitted optional dependencies and peers, but rejects a missing required dependency', async () => {
+  const optional = await pack(
+    'optional-platform',
+    {
+      name: 'arcadia-test-optional',
+      version: '1.0.0',
+      os: ['impossible-os'],
+    },
+    {},
+  )
+  const library = await pack(
+    'optional-consumer',
+    {
+      name: 'arcadia-test-optional-consumer',
+      version: '1.0.0',
+      optionalDependencies: { 'arcadia-test-optional': `file:${optional}` },
+      peerDependencies: { 'arcadia-test-optional-peer': '*' },
+      peerDependenciesMeta: { 'arcadia-test-optional-peer': { optional: true } },
+    },
+    {},
+  )
+  const dir = join(root, 'optional-installation')
+  await mkdir(dir)
+  const manifest = JSON.parse(await readFile(join(environment, 'package.json'), 'utf8'))
+  manifest.dependencies['arcadia-test-optional-consumer'] = `file:${library}`
+  manifest.optionalDependencies = { 'arcadia-test-optional': `file:${optional}` }
+  await writeFile(join(dir, 'package.json'), JSON.stringify(manifest))
+  await exec('npm', ['install', '--ignore-scripts', '--omit=dev', '--offline', '--no-audit', '--no-fund'], { cwd: dir })
+  const inspection = await inspectNpmProject(dir)
+  expect(inspection.packages.some(pkg => pkg.name === 'arcadia-test-optional')).toBe(false)
+  expect(inspection.packages.find(pkg => pkg.name === 'arcadia-test-optional-consumer')?.dependencies).toEqual({})
+  expect((await prepare(dir)).content.getSkill('slow:strike' as never).power).toBe(30)
+  await rm(join(dir, 'node_modules/arcadia-test-library'), { recursive: true })
+  await expect(inspectNpmProject(dir)).rejects.toThrow('npm rejected')
+})
+
 it('allows nested versions of ordinary libraries but rejects duplicate content identities', async () => {
   const library = await pack(
     'library-v2',

@@ -1,5 +1,5 @@
 import type { BehaviorDefinition, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
-import { valid as validVersion } from 'semver'
+import { parse as parseVersion } from 'semver'
 import {
   WorkError,
   canonical,
@@ -23,7 +23,11 @@ import {
 } from './model'
 
 const hashPattern = /^[a-f0-9]{64}$/
-const versionPattern = { test: (value: unknown) => typeof value === 'string' && validVersion(value) === value }
+function isExactVersion(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const parsed = parseVersion(value)
+  return !!parsed && `${parsed.version}${parsed.build.length ? `+${parsed.build.join('.')}` : ''}` === value
+}
 function checkAssets(assets: readonly WorkAsset[]): void {
   const seen = new Set<string>()
   let total = 0
@@ -63,7 +67,7 @@ function checkDependencies(dependencies: readonly WorkDependency[], projectId: s
     identifier(dep.projectId, 'dependencies.projectId')
     if (dep.projectId === 'base' || dep.projectId === projectId || seen.has(dep.projectId))
       fail('DEPENDENCY_CONFLICT', 'dependencies', '依赖不能重复、引用自身或替换官方基础内容', projectId)
-    if (!versionPattern.test(dep.version) || !hashPattern.test(dep.digest))
+    if (!isExactVersion(dep.version) || !hashPattern.test(dep.digest))
       fail('UNRESOLVED_DEPENDENCY', 'dependencies', '发布前必须选择依赖的精确版本和摘要', projectId)
     seen.add(dep.projectId)
   }
@@ -82,12 +86,7 @@ function releaseDraft(release: WorkRelease): WorkDraft {
 }
 export async function verifyRelease(input: unknown): Promise<WorkRelease> {
   const value = cloneJson(input) as WorkRelease
-  if (
-    !value ||
-    value.format !== 'arcadia.work-release' ||
-    value.version !== 1 ||
-    !versionPattern.test(value.releaseVersion)
-  )
+  if (!value || value.format !== 'arcadia.work-release' || value.version !== 1 || !isExactVersion(value.releaseVersion))
     fail('UNSUPPORTED_FORMAT', 'format', '不支持的作品版本格式')
   const keys = [
     'format',
@@ -311,7 +310,7 @@ export async function compileRelease(
   const draft = parseDraft(input)
   installed = cloneJson(installed)
   host = captureHost(host)
-  if (!versionPattern.test(releaseVersion)) fail('INVALID_VERSION', 'releaseVersion', '版本应为 1.0.0 形式')
+  if (!isExactVersion(releaseVersion)) fail('INVALID_VERSION', 'releaseVersion', '版本应为精确的 SemVer 版本')
   checkDependencies(draft.dependencies, draft.project.id)
   await verifyAssets(draft.assets, blobs)
   const dependencies = draft.dependencies.map(dep => {

@@ -1,10 +1,13 @@
-import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain, dialog } from 'electron'
 import { createRequire } from 'node:module'
 import http from 'node:http'
 import net from 'node:net'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
+import { LocalBattleHost } from './local-battle-host.mjs'
+import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
+import { stopForQuit } from './shutdown.mjs'
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')
@@ -16,6 +19,15 @@ const projectRoot = path.resolve(__dirname, '..')
 const rendererDistDir = path.join(projectRoot, 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.ARCADIA_ELECTRON_DEV_SERVER_URL
+const rendererUrl = devServerUrl ?? pathToFileURL(path.join(rendererDistDir, 'index.html')).href
+const localBattleHost = new LocalBattleHost({
+  executable: process.execPath,
+  cli: app.isPackaged
+    ? path.join(process.resourcesPath, 'arcadia-server', 'cli.js')
+    : path.resolve(projectRoot, '../../dist/cli.js'),
+  rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : 'null',
+  ...(app.isPackaged ? { npmBinDirectory: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'bin') } : {}),
+})
 
 const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
 const BASE_PACK_ID = 'arcadia-eternity.base'
@@ -1566,6 +1578,36 @@ async function downloadAndInstallUpdate() {
 }
 
 function setupIpcHandlers() {
+  function requireLocalBattleCaller(event) {
+    if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl))
+      throw new Error('Unauthorized desktop frame')
+  }
+  ipcMain.handle('desktop:select-and-start-local-battle', async event => {
+    requireLocalBattleCaller(event)
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '选择已安装并准入的服务器项目',
+      properties: ['openDirectory'],
+    })
+    requireLocalBattleCaller(event)
+    if (selected.canceled || !selected.filePaths[0]) return { status: 'cancelled' }
+    try {
+      return await localBattleHost.start(selected.filePaths[0])
+    } catch (error) {
+      return {
+        status: 'failed',
+        code: error?.code ?? 'SERVER_START_FAILED',
+        message: error?.message ?? '本机服务启动失败',
+      }
+    }
+  })
+  ipcMain.handle('desktop:get-local-battle-status', event => {
+    requireLocalBattleCaller(event)
+    return localBattleHost.status()
+  })
+  ipcMain.handle('desktop:stop-local-battle', event => {
+    requireLocalBattleCaller(event)
+    return localBattleHost.stop()
+  })
   ipcMain.handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
   ipcMain.handle('desktop:write-work-workspace', async (_event, input) => {
     if (!Number.isSafeInteger(input?.expected) || input.expected < 0) throw new Error('Invalid workspace revision')
@@ -1673,7 +1715,9 @@ function setupIpcHandlers() {
     shell.showItemInFolder(dirPath)
   })
 
-  ipcMain.handle('desktop:relaunch', () => {
+  ipcMain.handle('desktop:relaunch', async () => {
+    await localBattleHost.stop()
+    await stopLocalServer()
     app.relaunch()
     app.exit(0)
   })
@@ -1722,8 +1766,17 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
-  void stopLocalServer()
+let stoppingForQuit
+let stoppedForQuit = false
+app.on('before-quit', event => {
+  if (stoppedForQuit) return
+  event.preventDefault()
+  stoppingForQuit ??= stopForQuit([() => localBattleHost.stop(), () => stopLocalServer()], {
+    forceStop: () => localBattleHost.forceStop(),
+  }).finally(() => {
+    stoppedForQuit = true
+    app.quit()
+  })
 })
 
 app.on('activate', () => {

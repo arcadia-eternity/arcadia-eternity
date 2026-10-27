@@ -11,8 +11,9 @@ import {
 import type { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { PlayerSelectionSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { PrivateRoomInfo, PrivateRoomEvent, ServerSession } from '@arcadia-eternity/protocol'
-import { createStandaloneBattle, getStandaloneRuntimeIdentity, validateStandaloneTeam } from './native'
+import { createStandaloneBattle, validateStandaloneTeam } from './native'
 import type { SessionRegistry } from './session'
+import { ServerEnvironmentRegistry, EnvironmentError, type EnvironmentLease } from './environments'
 
 export class RoomError extends Error {
   constructor(public readonly code: string) {
@@ -43,6 +44,7 @@ const timerEvents: (keyof Events)[] = [
 ]
 type Member = PrivateRoomInfo['players'][number] & { connectionStatus: 'online' | 'offline' }
 type Room = {
+  environment: EnvironmentLease
   info: PrivateRoomInfo
   password?: string
   members: Map<string, Member>
@@ -77,6 +79,7 @@ export class RoomRegistry {
     private readonly io: Server,
     private readonly sessions: SessionRegistry,
     options: RoomOptions = {},
+    private readonly environments: ServerEnvironmentRegistry,
   ) {
     this.limits = {
       maxRooms: options.maxRooms ?? 1000,
@@ -170,11 +173,11 @@ export class RoomRegistry {
       b = Buffer.from(typeof password === 'string' ? password : '')
     if (a.length !== b.length || !timingSafeEqual(a, b)) fail('INVALID_PASSWORD')
   }
-  private async checkRuntime(input: Record<string, unknown>) {
+  private checkRuntime(input: Record<string, unknown>, environment: EnvironmentLease) {
     if (input.clientPackLock !== undefined || input.clientAssetLock !== undefined) fail('CUSTOM_CONTENT_UNSUPPORTED')
     if (input.expectedRuntime === undefined) return
     const expected = object(input.expectedRuntime)
-    const actual = await getStandaloneRuntimeIdentity()
+    const actual = environment.runtime.identity
     if (
       expected.kind !== actual.kind ||
       expected.contentRevision !== actual.contentRevision ||
@@ -182,6 +185,23 @@ export class RoomRegistry {
       expected.registryBuildId !== actual.registryBuildId
     )
       fail('RUNTIME_MISMATCH')
+  }
+  private checkClientEnvironment(room: Room, raw: unknown) {
+    if (!room.environment.isNpm && raw === undefined) return
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('CLIENT_ENVIRONMENT_REQUIRED')
+    const accepted = raw as Record<string, unknown>
+    const descriptor = room.environment.descriptor
+    if (accepted.protocolVersion !== descriptor.protocolVersion) fail('CLIENT_PROTOCOL_MISMATCH')
+    if (accepted.environmentId !== descriptor.id) fail('CLIENT_ENVIRONMENT_MISMATCH')
+    if (accepted.resourceRevision !== descriptor.resourceRevision || accepted.resourcesReady !== true)
+      fail('CLIENT_RESOURCES_NOT_READY')
+  }
+  private async validateTeam(room: Room, team: unknown) {
+    try {
+      return await validateStandaloneTeam(team, room.environment.runtime)
+    } catch {
+      return fail('INVALID_TEAM')
+    }
   }
   private config(raw: unknown, previous?: PrivateRoomInfo['config']) {
     const input = object(raw)
@@ -235,7 +255,7 @@ export class RoomRegistry {
   }
   private async create(session: ServerSession, data: unknown) {
     const input = object(data)
-    await this.checkRuntime(input)
+    await this.environments.ready()
     if (!this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
     if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
     if (this.rooms.size >= this.limits.maxRooms) fail('ROOM_CAPACITY')
@@ -248,8 +268,20 @@ export class RoomRegistry {
     config.hostPlayerId = session.seatId
     const password = config.isPrivate ? text(object(input.config).password) : undefined
     const member = this.member(session)
+    const environment = this.environments.acquire(
+      input.environmentId === undefined ? undefined : text(input.environmentId),
+    )
+    try {
+      this.checkRuntime(input, environment)
+      if (environment.isNpm && config.battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')
+    } catch (error) {
+      await environment.release()
+      throw error
+    }
     const room: Room = {
+      environment,
       info: {
+        environment: environment.descriptor,
         id: nanoid(),
         config,
         players: [member],
@@ -275,9 +307,9 @@ export class RoomRegistry {
   }
   private async join(session: ServerSession, data: unknown, spectator: boolean) {
     const input = object(data)
-    await this.checkRuntime(input)
     const room = this.rooms.get(text(input.roomCode, 6).toUpperCase())
     if (!room) return fail('ROOM_NOT_FOUND')
+    this.checkRuntime(input, room.environment)
     return this.enqueue(room, () => {
       if (!this.sessions.authenticate(session.token)) fail('INVALID_SESSION')
       if (this.seats.has(session.seatId)) fail('ALREADY_IN_ROOM')
@@ -319,7 +351,11 @@ export class RoomRegistry {
       for (const seat of room.members.keys()) this.emitSeat(seat, 'roomClosed', { roomId: room.info.battleRoomId })
     for (const seat of room.members.keys()) this.seats.delete(seat)
     room.members.clear()
-    await this.disposeBattle(room)
+    try {
+      await this.disposeBattle(room)
+    } finally {
+      await room.environment.release()
+    }
   }
   private async remove(room: Room, seat: string) {
     const isPlayer = room.info.players.some(p => p.playerId === seat)
@@ -386,9 +422,10 @@ export class RoomRegistry {
     this.waiting(room)
     if (room.info.players.length !== 2) fail('PLAYERS_NOT_READY')
     if (room.info.players.some(p => !this.sockets.get(p.playerId)?.size)) fail('PLAYER_OFFLINE')
+    this.checkClientEnvironment(room, object(input).environment)
     const requested = object(input).hostTeam
     if (requested !== undefined)
-      room.info.players.find(p => p.playerId === session.seatId)!.team = await validateStandaloneTeam(requested)
+      room.info.players.find(p => p.playerId === session.seatId)!.team = await this.validateTeam(room, requested)
     if (room.info.players.some(p => !p.team || (p.playerId !== session.seatId && !p.isReady))) fail('PLAYERS_NOT_READY')
     await this.disposeBattle(room)
     const [a, b] = room.info.players
@@ -402,6 +439,7 @@ export class RoomRegistry {
           timerConfig: room.info.config.timerConfig,
           rngSeed: nanoid(),
         },
+        room.environment.runtime,
       )
     }
     // A shutdown can happen while official content is loading.
@@ -483,7 +521,10 @@ export class RoomRegistry {
           const data = await operation(noPayload ? undefined : args[0])
           reply({ status: 'SUCCESS', data })
         })().catch(error =>
-          reply({ status: 'ERROR', code: error instanceof RoomError ? error.code : 'INVALID_REQUEST' }),
+          reply({
+            status: 'ERROR',
+            code: error instanceof RoomError || error instanceof EnvironmentError ? error.code : 'INVALID_REQUEST',
+          }),
         )
       })
     }
@@ -538,7 +579,8 @@ export class RoomRegistry {
         const player = room.info.players.find(p => p.playerId === session.seatId)!
         if (player.isReady) player.isReady = false
         else {
-          player.team = await validateStandaloneTeam(object(data).team)
+          this.checkClientEnvironment(room, object(data).environment)
+          player.team = await this.validateTeam(room, object(data).team)
           player.isReady = true
         }
         this.update(room)
@@ -563,6 +605,9 @@ export class RoomRegistry {
             : text(input.password)
           : undefined
         if (config.isPrivate && !password) fail('INVALID_CONFIG')
+        if (room.environment.isNpm && config.battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')
+        if (input.environmentId !== undefined && input.environmentId !== room.environment.descriptor.id)
+          fail('ENVIRONMENT_FIXED')
         room.info.config = config
         room.password = password
         for (const player of room.info.players) player.isReady = false
@@ -623,7 +668,7 @@ export class RoomRegistry {
         if (!room.info.spectators.some(p => p.playerId === session.seatId)) fail('SPECTATOR_NOT_FOUND')
         if (room.info.players.length >= 2) fail('ROOM_FULL')
         const member = room.members.get(session.seatId)!
-        member.team = await validateStandaloneTeam(object(data).team)
+        member.team = await this.validateTeam(room, object(data).team)
         room.info.spectators = room.info.spectators.filter(p => p.playerId !== session.seatId)
         room.info.players.push(member)
         this.update(room)

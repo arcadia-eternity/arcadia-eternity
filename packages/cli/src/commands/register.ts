@@ -54,13 +54,7 @@ export function registerCommands(program: Command, context: CommandContext) {
         import('../application/prepare'),
         import('../application/simulate'),
       ])
-      const loaded = await prepareContent(
-        options.packRef,
-        context.cwd,
-        options.works,
-        options.npmProject,
-        options.approval,
-      )
+      const loaded = await prepareContent(options.packRef, context.cwd, options)
       const spec = await prepareRun(options, context.cwd, loaded.content)
       const run = await simulate(loaded, spec, options.runs, {
         signal: context.signal,
@@ -81,9 +75,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       if (options.approval && !options.npmProject)
         throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
       const loaded = options.npmProject
-        ? await (
-            await import('../application/prepare')
-          ).prepareContent('builtin:workspace', context.cwd, undefined, options.npmProject, options.approval)
+        ? await (await import('../application/prepare')).prepareContent('builtin:workspace', context.cwd, options)
         : undefined
       const result = await replay(await readDocument(resolve(context.cwd, file)), context.signal, loaded)
       await emit(result.report, options, result.report.verified ? 'Replay verified' : 'Replay cancelled')
@@ -110,13 +102,7 @@ export function registerCommands(program: Command, context: CommandContext) {
       import('../application/run'),
       import('@arcadia-eternity/console'),
     ])
-    const loaded = await prepareContent(
-      options.packRef,
-      context.cwd,
-      options.works,
-      options.npmProject,
-      options.approval,
-    )
+    const loaded = await prepareContent(options.packRef, context.cwd, options)
     const spec = await prepareRun(options, context.cwd, loaded.content)
     const run = await runBattle(loaded.content, spec, {
       signal: context.signal,
@@ -149,13 +135,7 @@ export function registerCommands(program: Command, context: CommandContext) {
     checkFormat(options)
     await reserveOutputs(options.out ? [resolve(context.cwd, options.out)] : [])
     const { prepareContent } = await import('../application/prepare')
-    const loaded = await prepareContent(
-      options.packRef,
-      context.cwd,
-      options.works,
-      options.npmProject,
-      options.approval,
-    )
+    const loaded = await prepareContent(options.packRef, context.cwd, options)
     const counts = {
       effect: loaded.content.effects.length,
       mark: loaded.content.marks.length,

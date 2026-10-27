@@ -43,6 +43,21 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const requester = () => vi.fn<typeof fetch>()
 
 describe('server session identity boundaries', () => {
+  it('clears retired in-memory credentials even when storage removal fails', async () => {
+    const data = storage()
+    const request = requester()
+      .mockResolvedValueOnce(json(info))
+      .mockResolvedValueOnce(json(makeSession('old')))
+    const client = new ServerSessionClient('https://game.example/api/v1', data, request)
+    await client.ensure(profile)
+    data.removeItem = () => {
+      throw new Error('storage unavailable')
+    }
+    expect(() => client.dispose()).toThrow('storage unavailable')
+    expect(client.session).toBeNull()
+    expect(client.info).toBeNull()
+    await expect(client.ensure(profile)).rejects.toThrow('会话操作已取消')
+  })
   it('clears GitHub authorization code and state from the visible URL before another operation can run', () => {
     let visibleUrl = 'https://game.example/account?code=one-time-code&state=state-1&tab=account#profile'
     const replaceState = vi.fn((_state: unknown, _unused: string, url: string | URL | null | undefined) => {

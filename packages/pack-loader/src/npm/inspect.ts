@@ -217,6 +217,9 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
   }
   const nodes = new Map<string, NpmTree>()
   function visit(node: NpmTree) {
+    // npm represents omitted optional dependencies and optional peers as {}.
+    // Required missing dependencies already make the npm ls command fail.
+    if (!Object.keys(node).length) return
     if (!node.path) fail('NPM_TREE', '', 'npm did not provide an installed package path')
     const location = relative(root, node.path).split(sep).join('/')
     if (!location.startsWith('node_modules/') || location.split('/').includes('..'))
@@ -250,6 +253,7 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
         fail('NPM_LOCK', location, 'Installed dependency declarations differ from the npm lockfile')
     const dependencies: Record<string, string> = {}
     for (const [name, child] of Object.entries(node.dependencies ?? {})) {
+      if (!Object.keys(child).length) continue
       if (!child.path) fail('NPM_TREE', name, 'Missing installed dependency')
       dependencies[name] = relative(root, child.path).split(sep).join('/')
     }

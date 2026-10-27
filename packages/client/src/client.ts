@@ -21,6 +21,7 @@ import {
   type CreatePrivateRoomRequest,
   type JoinPrivateRoomRequest,
   type JoinPrivateRoomSpectatorRequest,
+  type ServerEnvironmentAcceptance,
 } from '@arcadia-eternity/protocol'
 import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
 import { io, type ManagerOptions, type Socket } from 'socket.io-client'
@@ -63,9 +64,25 @@ type ClientState = {
   opponent?: { id: string; name: string }
 }
 
+// These events are dispatched by the client's permanent socket listeners. Other
+// events are subscribed directly, with one removable socket callback per subscription.
+const dispatchedEvents = new Set<string>([
+  'updateState',
+  'battleEvent',
+  'roomClosed',
+  'opponentDisconnected',
+  'opponentReconnected',
+  'battleReconnect',
+  'reconnectTest',
+  'privateRoomEvent',
+  'privateRoomPeerSignal',
+  'battleTerminated',
+])
+
 export class BattleClient {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents>
   private eventHandlers = new Map<string, Set<(...args: unknown[]) => void>>()
+  private subscriptions = new Map<string, Map<(...args: unknown[]) => void, Set<(...args: unknown[]) => void>>>()
   private timerEventHandlers = new Map<string, Set<(data: unknown) => void>>()
   private state: ClientState = {
     status: 'disconnected',
@@ -90,6 +107,11 @@ export class BattleClient {
   private connecting = false
   private connectionEpoch = 0
   private cancelConnection?: (error: Error) => void
+
+  /** Endpoint of this connection, used to scope its server-owned content catalog. */
+  get serverUrl(): string {
+    return this.options.serverUrl
+  }
 
   constructor(options: BattleClientOptions) {
     this.options = {
@@ -664,7 +686,7 @@ export class BattleClient {
     })
   }
 
-  async togglePrivateRoomReady(team?: PetSchemaType[]): Promise<void> {
+  async togglePrivateRoomReady(team?: PetSchemaType[], environment?: ServerEnvironmentAcceptance): Promise<void> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -672,7 +694,7 @@ export class BattleClient {
         reject(new Error('Toggle ready timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('togglePrivateRoomReady', { team }, response => {
+      this.socket.emit('togglePrivateRoomReady', { team, ...(environment && { environment }) }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve()
@@ -683,7 +705,10 @@ export class BattleClient {
     })
   }
 
-  async startPrivateRoomBattle(hostTeam: PetSchemaType[]): Promise<PrivateRoomBattleStartInfo> {
+  async startPrivateRoomBattle(
+    hostTeam: PetSchemaType[],
+    environment?: ServerEnvironmentAcceptance,
+  ): Promise<PrivateRoomBattleStartInfo> {
     this.verifyConnection()
 
     return new Promise((resolve, reject) => {
@@ -691,7 +716,7 @@ export class BattleClient {
         reject(new Error('Start battle timeout'))
       }, this.options.actionTimeout)
 
-      this.socket.emit('startPrivateRoomBattle', { hostTeam }, response => {
+      this.socket.emit('startPrivateRoomBattle', { hostTeam, ...(environment && { environment }) }, response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
           resolve(response.data)
@@ -974,46 +999,71 @@ export class BattleClient {
     this.lastSnapshotUpdate = 0
   }
 
-  /**
-   * 清理事件处理器（但保留socket监听器）
-   */
+  /** Remove external subscriptions while preserving the client's own socket listeners. */
   private clearEventHandlers(): void {
-    console.log('🧹 Clearing event handlers, current handlers:', Array.from(this.eventHandlers.keys()))
-    console.log('🧹 Stack trace:', new Error().stack)
+    for (const [event, handlers] of this.eventHandlers) {
+      if (!dispatchedEvents.has(event))
+        for (const handler of handlers) this.socket.off(event as keyof ServerToClientEvents, handler as never)
+    }
+    for (const subscriptions of this.subscriptions.values())
+      for (const wrappers of subscriptions.values()) wrappers.clear()
     this.eventHandlers.clear()
+    this.subscriptions.clear()
     this.timerEventHandlers.clear()
     this.stateChangeListeners.clear()
   }
 
   once<T extends keyof ServerToClientEvents>(event: T, listener: ServerToClientEvents[T]): this {
-    this.socket.once(event, listener as never)
+    this.subscribe(event, listener, true)
     return this
   }
 
   on<T extends keyof ServerToClientEvents>(event: T, handler: ServerToClientEvents[T]): () => void {
-    const wrapper: (...args: unknown[]) => void = (...args) => (handler as (...args: unknown[]) => void)(...args)
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, new Set())
-      const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
-      if (!preRegisteredEvents.includes(event)) {
-        this.socket.on(event, handler as never)
-      }
-    }
-    this.eventHandlers.get(event)!.add(wrapper)
-    return () => this.off(event, handler)
+    return this.subscribe(event, handler, false)
   }
 
-  off<T extends keyof ServerToClientEvents>(event: T, _handler: ServerToClientEvents[T]): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.forEach(h => {
-        const preRegisteredEvents = ['battleEvent', 'battleEventBatch', 'privateRoomEvent', 'privateRoomPeerSignal']
-        if (!preRegisteredEvents.includes(event)) {
-          this.socket.off(event, h as never)
-        }
-        handlers.delete(h)
-      })
+  private subscribe<T extends keyof ServerToClientEvents>(
+    event: T,
+    handler: ServerToClientEvents[T],
+    once: boolean,
+  ): () => void {
+    const original = handler as (...args: unknown[]) => void
+    const handlers = this.eventHandlers.get(event) ?? new Set()
+    const subscriptions = this.subscriptions.get(event) ?? new Map()
+    const wrappers = subscriptions.get(original) ?? new Set()
+    const wrapper = (...args: unknown[]) => {
+      if (once) unsubscribe()
+      original(...args)
     }
+    const unsubscribe = () => {
+      if (!wrappers.delete(wrapper)) return
+      handlers.delete(wrapper)
+      if (!dispatchedEvents.has(event)) this.socket.off(event, wrapper as never)
+      if (!wrappers.size) subscriptions.delete(original)
+      if (!handlers.size) this.eventHandlers.delete(event)
+      if (!subscriptions.size) this.subscriptions.delete(event)
+    }
+    handlers.add(wrapper)
+    wrappers.add(wrapper)
+    subscriptions.set(original, wrappers)
+    this.eventHandlers.set(event, handlers)
+    this.subscriptions.set(event, subscriptions)
+    if (!dispatchedEvents.has(event)) this.socket.on(event, wrapper as never)
+    return unsubscribe
+  }
+
+  off<T extends keyof ServerToClientEvents>(event: T, handler: ServerToClientEvents[T]): void {
+    const original = handler as (...args: unknown[]) => void
+    const wrappers = this.subscriptions.get(event)?.get(original)
+    if (!wrappers) return
+    for (const wrapper of wrappers) {
+      this.eventHandlers.get(event)?.delete(wrapper)
+      if (!dispatchedEvents.has(event)) this.socket.off(event, wrapper as never)
+    }
+    this.subscriptions.get(event)?.delete(original)
+    if (!this.eventHandlers.get(event)?.size) this.eventHandlers.delete(event)
+    if (!this.subscriptions.get(event)?.size) this.subscriptions.delete(event)
+    wrappers.clear()
   }
 
   // 状态变化监听器管理

@@ -5,7 +5,7 @@ import cors from 'cors'
 import { Server } from 'socket.io'
 import { SessionRegistry, SessionError, readProfile, type AccountProvider } from './session'
 import { RoomRegistry, RoomError, object, type RoomOptions } from './rooms'
-import { getStandaloneRuntimeIdentity } from './native'
+import { ServerEnvironmentRegistry, EnvironmentError } from './environments'
 import { AccountDirectoryError, type AccountDirectory, type VerifiedIdentity } from './accounts/directory'
 import { ProviderError, type AuthIntent, type EmailCodeVerifier, type GithubAppVerifier } from './providers'
 
@@ -34,6 +34,7 @@ export interface SingleProcessApp {
   io: Server
   sessions: SessionRegistry
   rooms: RoomRegistry
+  environments: ServerEnvironmentRegistry
   readonly address: AddressInfo | null
   start(): Promise<void>
   stop(): Promise<void>
@@ -90,7 +91,8 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     allowRequest: (req, callback) =>
       origin(req.headers.origin, (error, accepted) => callback(error?.message ?? null, accepted ?? false)),
   })
-  const rooms = new RoomRegistry(io, sessions, options)
+  const environments = new ServerEnvironmentRegistry()
+  const rooms = new RoomRegistry(io, sessions, options, environments)
   let stopped = false,
     started = false
   let stopping: Promise<void> | undefined
@@ -102,11 +104,32 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     res.status(stopped ? 503 : 200).json({ status: stopped ? 'stopped' : 'ok' })
   })
   app.get('/api/v1/server-info', async (_req, res) => {
+    await environments.ready()
     res.json({
       ...sessions.getServerInfo(),
       ...(options.accounts ? { accountProviders: ['email', 'github'] as const } : {}),
-      runtime: await getStandaloneRuntimeIdentity(),
+      runtime: environments.descriptor().runtime,
     })
+  })
+  app.get('/api/v1/environments', async (_req, res) => {
+    await environments.ready()
+    res.json({ protocolVersion: 1, environments: environments.list() })
+  })
+  app.get('/api/v1/environments/:id', (req, res) => {
+    const descriptor = environments.descriptor(req.params.id)
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.json(descriptor)
+  })
+  app.get('/api/v1/environments/:id/content', (req, res) => {
+    const content = environments.content(req.params.id)
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.json(content)
+  })
+  app.get('/api/v1/environments/:id/assets/:hash', (req, res) => {
+    const asset = environments.asset(req.params.id, req.params.hash)
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.type(asset.mime).send(Buffer.from(asset.bytes))
   })
   const admissions = new Map<string, { count: number; until: number }>()
   let pendingAdmissions = 0
@@ -362,6 +385,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     })
   }
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    if (error instanceof EnvironmentError) {
+      res.status(error.code === 'SERVER_STOPPED' ? 503 : 404).json({ code: error.code })
+      return
+    }
     if (error instanceof ProviderError) {
       res.status(error.statusCode).json({ code: error.code })
       return
@@ -412,6 +439,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     io,
     sessions,
     rooms,
+    environments,
     get address(): AddressInfo | null {
       return httpServer.address() as AddressInfo | null
     },
@@ -419,7 +447,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       if (stopped) throw new Error('Stopped apps cannot restart; create a new instance')
       if (started) return
       if (options.accounts?.ready) await options.accounts.ready()
-      await getStandaloneRuntimeIdentity()
+      await environments.ready()
       await new Promise<void>((resolve, reject) => {
         const onError = (error: Error) => {
           httpServer.off('listening', onListen)
@@ -441,6 +469,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       sessions.clear()
       stopping = (async () => {
         await rooms.stop()
+        await environments.stop()
         await new Promise<void>(resolve => io.close(() => resolve()))
         if (httpServer.listening)
           await new Promise<void>((resolve, reject) => httpServer.close(error => (error ? reject(error) : resolve())))

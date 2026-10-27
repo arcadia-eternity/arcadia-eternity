@@ -21,12 +21,14 @@ function portNumber(value: string): number {
 export async function runServerCli(args: string[]): Promise<number> {
   let accountPool: pg.Pool | undefined
   let mailer: ReturnType<typeof nodemailer.createTransport> | undefined
+  let server: ReturnType<typeof createSingleProcessApp> | undefined
   const program = new Command('arcadia server')
     .description('Single-process battle server. Rooms and sessions expire when this process stops.')
     .exitOverride()
     .option('-p, --port <number>', 'HTTP and Socket.IO port', portNumber, portNumber(process.env.PORT || '8102'))
     .option('--host <address>', 'Listen address', process.env.HOST || '0.0.0.0')
     .option('--server-id <id>', 'Stable identity of this server', process.env.SERVER_ID || 'arcadia-local')
+    .option('--npm-project <directories...>', 'Prepare approved npm installations for room selection')
     .option(
       '--cors-origin <origins>',
       'Allowed browser origins, separated by commas',
@@ -34,7 +36,13 @@ export async function runServerCli(args: string[]): Promise<number> {
     )
   try {
     await program.parseAsync(args, { from: 'user' })
-    const options = program.opts<{ port: number; host: string; serverId: string; corsOrigin: string }>()
+    const options = program.opts<{
+      port: number
+      host: string
+      serverId: string
+      corsOrigin: string
+      npmProject?: string[]
+    }>()
     const corsOrigins = options.corsOrigin
       .split(',')
       .map(value => value.trim())
@@ -145,20 +153,22 @@ export async function runServerCli(args: string[]): Promise<number> {
         },
       }
     }
-    const server = createSingleProcessApp({
+    server = createSingleProcessApp({
       port: options.port,
       host: options.host,
       serverId: options.serverId,
       corsOrigins,
       accounts,
     })
+    for (const directory of options.npmProject ?? []) await server.environments.prepareNpm(directory)
     await server.start()
+    const runningServer = server
     let closing = false
     const stop = () => {
       if (closing) return
       closing = true
       console.log('Stopping server; all rooms and sessions are being discarded.')
-      void server
+      void runningServer
         .stop()
         .catch(error => {
           console.error(error instanceof Error ? error.message : error)
@@ -180,6 +190,7 @@ export async function runServerCli(args: string[]): Promise<number> {
     console.log('Rooms and sessions are held in memory. Restarting abandons all rooms.')
     return 0
   } catch (error) {
+    await server?.stop()
     mailer?.close()
     await accountPool?.end()
     if (error instanceof CommanderError && error.exitCode === 0) return 0

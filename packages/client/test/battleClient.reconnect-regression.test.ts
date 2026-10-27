@@ -465,4 +465,107 @@ describe('BattleClient command ordering', () => {
     expect(spectator).toHaveBeenCalledWith({ roomCode: 'secret-room', password: 'room-password' }, expect.any(Function))
     expect(finish).toHaveBeenCalledWith({ winner: 'seat-a', reason: 'all-pets-defeated' }, expect.any(Function))
   })
+
+  it('sends the selected server environment and resource readiness while preserving legacy room calls', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    const create = vi.fn((_data, ack) => ack({ status: 'SUCCESS', data: { roomCode: 'UGC123' } }))
+    const ready = vi.fn((_data, ack) => ack({ status: 'SUCCESS', data: { status: 'READY_TOGGLED' } }))
+    const start = vi.fn((_data, ack) => ack({ status: 'SUCCESS', data: { battleRoomId: 'battle-1' } }))
+    socket.setResponder('createPrivateRoom', create)
+    socket.setResponder('togglePrivateRoomReady', ready)
+    socket.setResponder('startPrivateRoomBattle', start)
+    const environment = {
+      environmentId: 'a'.repeat(64),
+      protocolVersion: 1 as const,
+      resourceRevision: 'b'.repeat(64),
+      resourcesReady: true,
+    }
+    await expect(
+      client.createPrivateRoom({ environmentId: environment.environmentId, config: { battleMode: 'server' } }),
+    ).resolves.toBe('UGC123')
+    await client.togglePrivateRoomReady([], environment)
+    await client.startPrivateRoomBattle([], environment)
+    expect(create).toHaveBeenCalledWith(
+      { environmentId: environment.environmentId, config: { battleMode: 'server' } },
+      expect.any(Function),
+    )
+    expect(ready).toHaveBeenCalledWith({ team: [], environment }, expect.any(Function))
+    expect(start).toHaveBeenCalledWith({ hostTeam: [], environment }, expect.any(Function))
+
+    await client.togglePrivateRoomReady()
+    await client.startPrivateRoomBattle([])
+    expect(ready).toHaveBeenLastCalledWith({ team: undefined }, expect.any(Function))
+    expect(start).toHaveBeenLastCalledWith({ hostTeam: [] }, expect.any(Function))
+  })
+
+  it('removes only the selected subscription and dispatches internal and direct events once', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    const first = vi.fn(),
+      second = vi.fn()
+    const disposeFirst = client.on('roomClosed', first)
+    client.on('roomClosed', second)
+    socket.trigger('roomClosed', { roomId: 'room-1' })
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).toHaveBeenCalledTimes(1)
+    disposeFirst()
+    socket.trigger('roomClosed', { roomId: 'room-1' })
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).toHaveBeenCalledTimes(2)
+    client.off('roomClosed', second)
+    socket.trigger('roomClosed', { roomId: 'room-1' })
+    expect(second).toHaveBeenCalledTimes(2)
+
+    const directA = vi.fn(),
+      directB = vi.fn()
+    const disposeA = client.on('matchmakingError', directA)
+    client.on('matchmakingError', directB)
+    socket.trigger('matchmakingError', { status: 'ERROR', code: 'ONE' })
+    disposeA()
+    socket.trigger('matchmakingError', { status: 'ERROR', code: 'TWO' })
+    expect(directA).toHaveBeenCalledTimes(1)
+    expect(directB).toHaveBeenCalledTimes(2)
+
+    const duplicate = vi.fn()
+    const disposeOne = client.on('reconnectTest', duplicate)
+    client.on('reconnectTest', duplicate)
+    disposeOne()
+    socket.trigger('reconnectTest', { message: 'one', timestamp: 1 })
+    expect(duplicate).toHaveBeenCalledTimes(1)
+    client.off('reconnectTest', duplicate)
+    socket.trigger('reconnectTest', { message: 'two', timestamp: 2 })
+    expect(duplicate).toHaveBeenCalledTimes(1)
+  })
+
+  it('cleans direct and one-shot callbacks on disconnect while preserving internal listeners after reconnect', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    const old = vi.fn(),
+      once = vi.fn()
+    const disposeOld = client.on('matchmakingError', old)
+    client.once('matchmakingError', once)
+    client.disconnect()
+    socket.trigger('matchmakingError', { status: 'ERROR', code: 'OFFLINE' })
+    expect(old).not.toHaveBeenCalled()
+    expect(once).not.toHaveBeenCalled()
+
+    await client.connect()
+    const current = vi.fn()
+    client.on('matchmakingError', current)
+    disposeOld() // An old unsubscribe must not remove a new subscription.
+    socket.trigger('matchmakingError', { status: 'ERROR', code: 'ONLINE' })
+    expect(current).toHaveBeenCalledTimes(1)
+    socket.trigger('matchSuccess', {
+      status: 'SUCCESS',
+      data: { roomId: 'after-reconnect', opponent: { id: 'x', name: 'X' } },
+    })
+    expect(client.currentState.roomId).toBe('after-reconnect')
+    client.disconnect()
+    await client.connect()
+    socket.trigger('matchmakingError', { status: 'ERROR', code: 'AFTER-SECOND-RECONNECT' })
+    expect(current).toHaveBeenCalledTimes(1)
+    const newOnce = vi.fn()
+    client.once('reconnectTest', newOnce)
+    socket.trigger('reconnectTest', { message: 'first', timestamp: 1 })
+    socket.trigger('reconnectTest', { message: 'second', timestamp: 2 })
+    expect(newOnce).toHaveBeenCalledTimes(1)
+  })
 })

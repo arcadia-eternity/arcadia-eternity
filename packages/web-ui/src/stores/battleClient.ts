@@ -12,12 +12,13 @@ import type {
   PrivateRoomBattleStartInfo,
   PrivateRoomInfo,
   UpdatePrivateRoomConfigRequest,
+  ServerEnvironmentAcceptance,
 } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
-const serverUrl =
+const defaultServerUrl =
   import.meta.env.VITE_WS_URL ||
   import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '') ||
   'http://localhost:8102'
@@ -29,8 +30,15 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   type ServerWarmupState = 'idle' | 'waking' | 'ready' | 'failed'
 
   // 状态
-  const _instance = ref<BattleClient | null>(null)
+  const _instance = shallowRef<BattleClient | null>(null)
+  const selectedServerUrl = ref(authStore.hasSelectedServer ? authStore.serverUrl : defaultServerUrl)
+  const serverUrl = computed(() => _instance.value?.serverUrl ?? selectedServerUrl.value)
   const _pendingEventHandlers = ref(new Map<string, Set<(...args: unknown[]) => void>>())
+  let connectionGeneration = 0
+  let handlersAttached = false
+  let attachmentGeneration = 0
+  const attachedHandlers = new Map<string, Map<(...args: unknown[]) => void, () => void>>()
+  const warmupControllers = new Set<AbortController>()
   const isInitialized = ref(false)
   const serverWarmupState = ref<ServerWarmupState>('idle')
   const serverWarmupError = ref<string | null>(null)
@@ -82,18 +90,19 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return wsUrl.toString()
   }
 
-  const waitForServerReady = async (maxWaitMs = 10000): Promise<void> => {
-    if (!_instance.value) {
-      throw new Error('BattleClient not initialized')
+  const waitForServerReady = async (instance: BattleClient, generation: number, maxWaitMs = 10000): Promise<void> => {
+    const assertCurrent = () => {
+      if (_instance.value !== instance || connectionGeneration !== generation) throw new Error('连接已取消')
     }
-
-    const readyUrl = resolveReadyUrl(serverUrl)
+    const readyUrl = resolveReadyUrl(instance.serverUrl)
     const startedAt = Date.now()
     serverWarmupState.value = 'waking'
     serverWarmupError.value = null
 
     while (Date.now() - startedAt < maxWaitMs) {
+      assertCurrent()
       const controller = new AbortController()
+      warmupControllers.add(controller)
       const timeout = setTimeout(() => controller.abort(), 3000)
       let response: Response | null = null
 
@@ -107,7 +116,9 @@ export const useBattleClientStore = defineStore('battleClient', () => {
         // ignore network errors while server is warming up
       } finally {
         clearTimeout(timeout)
+        warmupControllers.delete(controller)
       }
+      assertCurrent()
 
       if (!response) {
         await delay(1000)
@@ -127,6 +138,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
       } catch {
         // ignore invalid json
       }
+      assertCurrent()
 
       if (state === 'draining') {
         serverWarmupState.value = 'failed'
@@ -137,6 +149,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
       await delay(1000)
     }
 
+    assertCurrent()
     serverWarmupState.value = 'failed'
     serverWarmupError.value = '服务器唤醒超时（超过 10 秒）'
     throw new Error(serverWarmupError.value)
@@ -146,17 +159,21 @@ export const useBattleClientStore = defineStore('battleClient', () => {
   const createBattleClient = (): BattleClient => {
     const playerStore = usePlayerStore()
     const authStore = useAuthStore()
+    const authGeneration = authStore.serverGeneration
+    const isCurrentAuth = () => authStore.serverGeneration === authGeneration
 
     return new BattleClient({
-      serverUrl,
+      serverUrl: serverUrl.value,
       socketPath: import.meta.env.VITE_SOCKET_IO_PATH || '/socket.io',
       actionTimeout: 10000,
       auth: {
-        getToken: () => authStore.getAccessToken(),
-        getPlayerId: () => authStore.session?.seatId ?? '',
-        getSessionId: () => authStore.session?.sessionId ?? null,
+        getToken: () => (isCurrentAuth() ? authStore.getAccessToken() : null),
+        getPlayerId: () => (isCurrentAuth() ? (authStore.session?.seatId ?? '') : ''),
+        getSessionId: () => (isCurrentAuth() ? (authStore.session?.sessionId ?? null) : null),
         refreshAuth: async () => {
+          if (!isCurrentAuth()) throw new Error('连接已取消')
           await authStore.ensureSession({ id: playerStore.id, name: playerStore.name })
+          if (!isCurrentAuth()) throw new Error('连接已取消')
         },
       },
     })
@@ -177,46 +194,9 @@ export const useBattleClientStore = defineStore('battleClient', () => {
       return
     }
 
-    _instance.value = createBattleClient()
+    const instance = createBattleClient()
+    _instance.value = instance
     isInitialized.value = true
-
-    // 设置状态变化监听器 - 当底层client状态变化时触发Vue响应式更新
-    const stateUpdateHandler = (state: {
-      status: string
-      matchmaking: string
-      battle: string
-      roomId?: string
-      opponent?: { id: string; name: string }
-    }) => {
-      _stateUpdateTrigger.value++
-    }
-
-    // 使用专门的状态变化监听器
-    _instance.value.onStateChange(stateUpdateHandler)
-
-    // 设置战斗重连监听器（用于页面刷新后自动跳转）
-    // 确保只注册一次
-    if (!_battleReconnectHandler) {
-      _battleReconnectHandler = async (data: BattleReconnectData) => {
-        if (data.shouldRedirect) {
-          // 如果服务器提供了完整的战斗状态，说明战斗确实还在进行中
-          if (data.fullBattleState) {
-            // 更新战斗状态
-            // 触发全局事件，让 App.vue 处理路由跳转
-            // 传递完整的战斗状态数据，避免额外的 getState 调用
-            window.dispatchEvent(new CustomEvent('battleReconnect', { detail: data }))
-          } else {
-            // 如果服务器没有提供战斗状态，说明可能出现了问题
-            console.warn('🔄 Server did not provide battle state, battle may have ended')
-            // 不触发跳转事件
-          }
-        }
-      }
-      ;(_instance.value.on as (event: string, handler: (data: BattleReconnectData) => void) => void)(
-        'battleReconnect',
-        _battleReconnectHandler,
-      )
-    }
 
     // 注册之前缓存的事件监听器
     registerPendingHandlers()
@@ -226,21 +206,44 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
-    if (_instance.value.currentState.status === 'connected') {
+    const instance = _instance.value
+    const generation = connectionGeneration
+    const authGeneration = authStore.serverGeneration
+    const assertCurrent = () => {
+      if (
+        _instance.value !== instance ||
+        connectionGeneration !== generation ||
+        authStore.serverGeneration !== authGeneration
+      )
+        throw new Error('连接已取消')
+    }
+    if (instance.currentState.status === 'connected') {
       serverWarmupState.value = 'ready'
       serverWarmupError.value = null
       return
     }
-    await waitForServerReady()
+    await waitForServerReady(instance, generation)
+    assertCurrent()
     const profile = usePlayerStore()
     await authStore.ensureSession({ id: profile.id, name: profile.name })
-    return _instance.value.connect()
+    assertCurrent()
+    if (!handlersAttached) registerPendingHandlers()
+    await instance.connect()
+    assertCurrent()
   }
 
   const disconnect = () => {
+    connectionGeneration++
+    for (const controller of warmupControllers) controller.abort()
+    warmupControllers.clear()
+    for (const handlers of attachedHandlers.values()) for (const unsubscribe of handlers.values()) unsubscribe()
     if (_instance.value) {
       _instance.value.disconnect()
     }
+    handlersAttached = false
+    attachmentGeneration++
+    attachedHandlers.clear()
+    _stateUpdateTrigger.value++
     serverWarmupState.value = 'idle'
     serverWarmupError.value = null
   }
@@ -261,13 +264,23 @@ export const useBattleClientStore = defineStore('battleClient', () => {
         )
         _battleReconnectHandler = null
       }
-      _instance.value.disconnect()
+      disconnect()
       _instance.value = null
     }
     _pendingEventHandlers.value.clear()
     isInitialized.value = false
     serverWarmupState.value = 'idle'
     serverWarmupError.value = null
+  }
+
+  /** Replace the socket after the old room and auth scope have been released. */
+  const replaceServer = (url: string) => {
+    disconnect()
+    _instance.value = null
+    isInitialized.value = false
+    selectedServerUrl.value = url
+    _stateUpdateTrigger.value++
+    initialize()
   }
 
   const markInitComplete = () => {
@@ -295,57 +308,58 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return _instance.value.sendplayerSelection(selection)
   }
 
+  const bindHandler = (instance: BattleClient, event: string, handler: (...args: unknown[]) => void) => {
+    let bound = attachedHandlers.get(event)
+    if (!bound) attachedHandlers.set(event, (bound = new Map()))
+    if (bound.has(handler)) return
+    const generation = attachmentGeneration
+    const unsubscribe = (instance.on as (event: string, handler: (...args: unknown[]) => void) => () => void)(
+      event,
+      (...args) => {
+        if (
+          _instance.value === instance &&
+          generation === attachmentGeneration &&
+          _pendingEventHandlers.value.get(event)?.has(handler)
+        )
+          handler(...args)
+      },
+    )
+    bound.set(handler, unsubscribe)
+  }
+
   const on = (event: string, handler: unknown): (() => void) => {
     const fn = handler as (...args: unknown[]) => void
-    if (_instance.value) {
-      return (_instance.value.on as (event: string, handler: (...args: unknown[]) => void) => () => void)(event, fn)
-    } else {
-      if (!_pendingEventHandlers.value.has(event)) {
-        _pendingEventHandlers.value.set(event, new Set())
-      }
-      _pendingEventHandlers.value.get(event)!.add(fn)
-      return () => {
-        const handlers = _pendingEventHandlers.value.get(event)
-        if (handlers) {
-          handlers.delete(fn)
-          if (handlers.size === 0) {
-            _pendingEventHandlers.value.delete(event)
-          }
-        }
-      }
-    }
+    if (!_pendingEventHandlers.value.has(event)) _pendingEventHandlers.value.set(event, new Set())
+    _pendingEventHandlers.value.get(event)!.add(fn)
+    if (_instance.value && handlersAttached) bindHandler(_instance.value, event, fn)
+    return () => off(event, fn)
   }
 
   const off = (event: string, handler?: unknown) => {
-    const fn = handler as ((...args: unknown[]) => void) | undefined
-    if (_instance.value) {
-      return (_instance.value.off as (event: string, handler?: (...args: unknown[]) => void) => void)(event, fn)
+    const handlers = _pendingEventHandlers.value.get(event)
+    if (!handlers) return
+    const bound = attachedHandlers.get(event)
+    if (handler) {
+      const fn = handler as (...args: unknown[]) => void
+      handlers.delete(fn)
+      bound?.get(fn)?.()
+      bound?.delete(fn)
     } else {
-      if (fn) {
-        const handlers = _pendingEventHandlers.value.get(event)
-        if (handlers) {
-          handlers.delete(fn)
-          if (handlers.size === 0) {
-            _pendingEventHandlers.value.delete(event)
-          }
-        }
-      } else {
-        _pendingEventHandlers.value.delete(event)
-      }
+      handlers.clear()
+      for (const unsubscribe of bound?.values() ?? []) unsubscribe()
+      bound?.clear()
     }
+    if (!bound?.size) attachedHandlers.delete(event)
+    if (!handlers.size) _pendingEventHandlers.value.delete(event)
   }
 
   const once = (event: string, handler: unknown) => {
     const fn = handler as (...args: unknown[]) => void
-    if (_instance.value) {
-      return (_instance.value.once as (event: string, handler: (...args: unknown[]) => void) => void)(event, fn)
-    } else {
-      const wrappedHandler = (...args: unknown[]) => {
-        off(event, wrappedHandler)
-        fn(...args)
-      }
-      return on(event, wrappedHandler)
+    const wrapped = (...args: unknown[]) => {
+      off(event, wrapped)
+      fn(...args)
     }
+    return on(event, wrapped)
   }
 
   // 私人房间相关方法
@@ -381,20 +395,23 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.joinPrivateRoomAsSpectator(data)
   }
 
-  const toggleRoomReady = async (team?: PetSchemaType[]): Promise<void> => {
+  const toggleRoomReady = async (team?: PetSchemaType[], environment?: ServerEnvironmentAcceptance): Promise<void> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
-    return await _instance.value.togglePrivateRoomReady(team)
+    return await _instance.value.togglePrivateRoomReady(team, environment)
   }
 
-  const startRoomBattle = async (hostTeam: PetSchemaType[]): Promise<PrivateRoomBattleStartInfo> => {
+  const startRoomBattle = async (
+    hostTeam: PetSchemaType[],
+    environment?: ServerEnvironmentAcceptance,
+  ): Promise<PrivateRoomBattleStartInfo> => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }
 
-    return await _instance.value.startPrivateRoomBattle(hostTeam)
+    return await _instance.value.startPrivateRoomBattle(hostTeam, environment)
   }
 
   const sendPrivateRoomPeerSignal = async (data: SendPrivateRoomPeerSignalData): Promise<void> => {
@@ -483,19 +500,26 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     return await _instance.value.leaveSpectateBattle()
   }
 
-  // 内部方法：注册缓存的事件监听器到实际实例
+  // Keep subscriptions across socket replacement; wrappers ignore events from detached sockets.
   const registerPendingHandlers = () => {
-    if (!_instance.value || _pendingEventHandlers.value.size === 0) {
-      return
-    }
-
     const instance = _instance.value
-    for (const [event, handlers] of _pendingEventHandlers.value.entries()) {
-      for (const handler of handlers) {
-        ;(instance.on as (event: string, handler: (...args: unknown[]) => void) => void)(event, handler)
-      }
+    if (!instance || handlersAttached) return
+    const generation = attachmentGeneration
+    instance.onStateChange(() => {
+      if (_instance.value === instance && generation === attachmentGeneration) _stateUpdateTrigger.value++
+    })
+    _battleReconnectHandler = data => {
+      if (_instance.value !== instance || generation !== attachmentGeneration || !data.shouldRedirect) return
+      if (data.fullBattleState) window.dispatchEvent(new CustomEvent('battleReconnect', { detail: data }))
+      else console.warn('Server did not provide battle state; the battle may have ended')
     }
-    _pendingEventHandlers.value.clear()
+    ;(instance.on as (event: string, handler: (data: BattleReconnectData) => void) => void)(
+      'battleReconnect',
+      _battleReconnectHandler,
+    )
+    handlersAttached = true
+    for (const [event, handlers] of _pendingEventHandlers.value.entries())
+      for (const handler of handlers) bindHandler(instance, event, handler)
   }
 
   return {
@@ -509,12 +533,14 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     serverWarmupState,
     serverWarmupHint,
     _instance, // 暴露内部实例供特殊情况使用
+    serverUrl,
 
     // Actions
     initialize,
     connect,
     disconnect,
     reset,
+    replaceServer,
     resetState,
     markInitComplete,
     joinMatchmaking,

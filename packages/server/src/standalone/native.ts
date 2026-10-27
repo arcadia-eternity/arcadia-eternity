@@ -2,7 +2,7 @@ import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import type { BattleOptions, ContentCatalog } from '@arcadia-eternity/battle/v4'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
-import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
+import { NativePackLoader, type NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
 import type { NativeRuntimeIdentity } from '@arcadia-eternity/protocol'
 import {
   PlayerSchema,
@@ -14,32 +14,48 @@ import {
 } from '@arcadia-eternity/schema'
 import { nanoid } from 'nanoid'
 
-interface OfficialContent {
+export interface StandaloneRuntime {
   content: ContentCatalog
-  species: Map<string, SpeciesSchemaType>
+  species: ReadonlyMap<string, SpeciesSchemaType>
   identity: NativeRuntimeIdentity
 }
 
-let officialContent: Promise<OfficialContent> | undefined
+let officialContent: Promise<StandaloneRuntime> | undefined
+let officialPack: Promise<NativePackLoadResult> | undefined
 
-function loadOfficialContent(): Promise<OfficialContent> {
-  officialContent ??= new NativePackLoader(nativeBuildIdentity, createOfficialContent)
+export function loadStandaloneBase(): Promise<NativePackLoadResult> {
+  officialPack ??= new NativePackLoader(nativeBuildIdentity, createOfficialContent)
     .load('builtin:workspace')
-    .then(loaded => ({
-      content: loaded.content,
-      species: new Map(
-        loaded.data.species.map(raw => {
-          const species = parseWithErrors(SpeciesSchema, raw)
-          return [species.id, species]
-        }),
-      ),
-      identity: {
-        kind: 'native-v4' as const,
-        contentRevision: loaded.revision,
-        coreBuildId: loaded.build.coreBuildId,
-        registryBuildId: loaded.build.registryBuildId,
-      },
-    }))
+    .catch(error => {
+      officialPack = undefined
+      throw error
+    })
+  return officialPack
+}
+
+export function createStandaloneRuntime(
+  loaded: Pick<NativePackLoadResult, 'content' | 'data' | 'revision' | 'build'>,
+): StandaloneRuntime {
+  return {
+    content: loaded.content,
+    species: new Map(
+      loaded.data.species.map(raw => {
+        const species = parseWithErrors(SpeciesSchema, raw)
+        return [species.id, species]
+      }),
+    ),
+    identity: {
+      kind: 'native-v4' as const,
+      contentRevision: loaded.revision,
+      coreBuildId: loaded.build.coreBuildId,
+      registryBuildId: loaded.build.registryBuildId,
+    },
+  }
+}
+
+function loadOfficialContent(): Promise<StandaloneRuntime> {
+  officialContent ??= loadStandaloneBase()
+    .then(createStandaloneRuntime)
     .catch(error => {
       officialContent = undefined
       throw error
@@ -52,7 +68,7 @@ export async function getStandaloneRuntimeIdentity(): Promise<NativeRuntimeIdent
 }
 
 /** Check drafts without allocating players, pets, timers or attribute systems. */
-export async function validateStandaloneTeam(team: unknown): Promise<PetSchemaType[]> {
+export async function validateStandaloneTeam(team: unknown, runtime?: StandaloneRuntime): Promise<PetSchemaType[]> {
   // The offline runtime deliberately permits fixture HP overrides. Online rooms
   // always derive HP from official species/stats and start each pet at full health.
   // Inspect before schema cleaning, which otherwise silently drops hp/currentHp.
@@ -62,7 +78,7 @@ export async function validateStandaloneTeam(team: unknown): Promise<PetSchemaTy
         for (const field of ['maxHp', 'currentHp', 'hp'])
           if (field in pet && pet[field] !== undefined) throw new Error(`Online teams cannot override ${field}`)
   const parsed = parseWithErrors(PlayerSchema, { id: nanoid(), name: 'team', team }).team
-  const { content, species } = await loadOfficialContent()
+  const { content, species } = runtime ?? (await loadOfficialContent())
   for (const pet of parsed) {
     // Keep admission aligned with the native runtime's bounds, which are stricter
     // than the shared draft schema.
@@ -90,11 +106,13 @@ export async function createStandaloneBattle(
   playerA: PlayerSchemaType,
   playerB: PlayerSchemaType,
   options: BattleOptions,
+  runtime?: StandaloneRuntime,
 ): Promise<LocalBattleSystemV4> {
   if (playerA.id === playerB.id) throw new Error('Battle players must have distinct identities')
-  const { content } = await loadOfficialContent()
+  runtime ??= await loadOfficialContent()
+  const { content } = runtime
   const players = await Promise.all(
-    [playerA, playerB].map(async player => ({ ...player, team: await validateStandaloneTeam(player.team) })),
+    [playerA, playerB].map(async player => ({ ...player, team: await validateStandaloneTeam(player.team, runtime) })),
   )
   const teams = players.map(player => ({
     ...structuredClone(player),

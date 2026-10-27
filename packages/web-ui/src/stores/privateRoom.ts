@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from './battleClient'
 import { useAuthStore } from './auth'
@@ -14,6 +14,8 @@ import type {
   UpdatePrivateRoomConfigRequest,
   PrivateRoomPeerSignalEvent,
   PrivateRoomPeerSignalPayload,
+  ServerEnvironmentAcceptance,
+  ServerEnvironmentDescriptor,
 } from '@arcadia-eternity/protocol'
 import type { PetSchemaType } from '@arcadia-eternity/schema'
 
@@ -38,6 +40,8 @@ import { ServerRelayPeerTransport } from '@/p2p/relayPeerTransport'
 import type { PeerTransport } from '@arcadia-eternity/p2p-transport'
 import { createP2PHostBattleSystem, P2PPeerBattleSystem } from '@/p2p/p2pBattleSystem'
 import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
+import { listServerEnvironments, prepareServerEnvironment } from '@/services/serverEnvironment'
+import { useServerStateStore } from '@/stores/serverState'
 
 type P2PTransportMode = 'auto' | 'webrtc' | 'relay'
 
@@ -60,6 +64,41 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   // 状态
   const currentRoom = ref<PrivateRoomInfo | null>(null)
+  const environments = ref<ServerEnvironmentDescriptor[]>([])
+  const isSwitchingServer = ref(false)
+  let serverSwitchGeneration = 0
+  let leaveInFlight: Promise<void> | undefined
+  const roomAdmissions = new Set<Promise<unknown>>()
+  const admitRoom = <T>(operation: () => Promise<T>): Promise<T> => {
+    if (isSwitchingServer.value) return Promise.reject(new Error('正在切换服务器'))
+    const pending = operation()
+    roomAdmissions.add(pending)
+    void pending.then(
+      () => roomAdmissions.delete(pending),
+      () => roomAdmissions.delete(pending),
+    )
+    return pending
+  }
+  const serverScope = () => `${battleClientStore.serverUrl}|${authStore.serverGeneration}`
+  const assertServerScope = (scope: string) => {
+    if (scope !== serverScope()) throw new Error('服务器连接已变化，请重试')
+  }
+  let preparedEnvironment: { key: string; task: ReturnType<typeof prepareServerEnvironment> } | null = null
+  let environmentCatalogGeneration = 0
+  watch(
+    () => [
+      battleClientStore.serverUrl,
+      authStore.serverGeneration,
+      authStore.serverInfo?.serverId,
+      authStore.serverInfo?.bootId,
+    ],
+    () => {
+      environmentCatalogGeneration++
+      environments.value = []
+      preparedEnvironment = null
+      gameDataStore.clearServerEnvironment()
+    },
+  )
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const selectedTeam = ref<PetSchemaType[]>([]) // 当前选择的队伍
@@ -133,94 +172,218 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     return runtime
   }
 
-  const createRoom = async (config: CreatePrivateRoomRequest['config']): Promise<string> => {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const roomCode = await battleClientStore.createPrivateRoom({
-        config,
-        expectedRuntime: expectedRuntime(),
-      })
-
-      // 获取房间信息
-      await getRoomInfo(roomCode)
-      startRoomPolling()
-      return roomCode
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      error.value = errorMessage
-      throw err
-    } finally {
-      isLoading.value = false
-    }
+  const refreshEnvironments = async (): Promise<void> => {
+    const generation = ++environmentCatalogGeneration
+    const scope = serverScope()
+    environments.value = []
+    preparedEnvironment = null
+    const items = await listServerEnvironments(battleClientStore.serverUrl)
+    if (generation === environmentCatalogGeneration && scope === serverScope()) environments.value = items
   }
 
-  const joinRoom = async (roomCode: string, password?: string): Promise<void> => {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      await battleClientStore.joinPrivateRoom({
-        roomCode,
-        password,
-        expectedRuntime: expectedRuntime(),
-      })
-
-      // 获取房间信息
-      await getRoomInfo(roomCode)
-      startRoomPolling()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      error.value = errorMessage
-      throw err
-    } finally {
-      isLoading.value = false
+  const roomEnvironment = async (): Promise<ServerEnvironmentAcceptance | undefined> => {
+    const room = currentRoom.value
+    const descriptor = room?.environment
+    if (!room || room.config.battleMode !== 'server' || !descriptor?.packages.length) {
+      gameDataStore.clearServerEnvironment()
+      return undefined
     }
+    const key = `${serverScope()}|${authStore.serverInfo?.bootId ?? ''}|${descriptor.id}|${descriptor.resourceRevision}`
+    if (!preparedEnvironment || preparedEnvironment.key !== key)
+      preparedEnvironment = { key, task: prepareServerEnvironment(battleClientStore.serverUrl, descriptor) }
+    const entry = preparedEnvironment
+    let prepared: Awaited<typeof entry.task>
+    try {
+      prepared = await entry.task
+    } catch (error) {
+      if (preparedEnvironment === entry) preparedEnvironment = null
+      throw error
+    }
+    const active = currentRoom.value?.environment
+    const activeKey =
+      active && `${serverScope()}|${authStore.serverInfo?.bootId ?? ''}|${active.id}|${active.resourceRevision}`
+    if (activeKey !== key || preparedEnvironment !== entry) throw new Error('房间环境已变化，请重新准备')
+    gameDataStore.applyServerEnvironment(prepared.content)
+    return prepared.acceptance
   }
+
+  const createRoom = (config: CreatePrivateRoomRequest['config'], environmentId?: string): Promise<string> =>
+    admitRoom(async () => {
+      const scope = serverScope()
+      isLoading.value = true
+      error.value = null
+
+      let createdRoomCode: string | undefined
+      try {
+        const roomCode = await battleClientStore.createPrivateRoom({
+          config,
+          ...(environmentId && config.battleMode !== 'p2p' ? { environmentId } : {}),
+          ...(config.battleMode === 'p2p' ? { expectedRuntime: expectedRuntime() } : {}),
+        })
+        createdRoomCode = roomCode
+        assertServerScope(scope)
+
+        // 获取房间信息
+        await getRoomInfo(roomCode)
+        assertServerScope(scope)
+        startRoomPolling()
+        return roomCode
+      } catch (err) {
+        if (createdRoomCode && scope === serverScope()) {
+          await battleClientStore.leavePrivateRoom().catch(() => undefined)
+          cleanup()
+        }
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        if (scope === serverScope()) error.value = errorMessage
+        throw err
+      } finally {
+        if (scope === serverScope()) isLoading.value = false
+      }
+    })
+
+  const joinRoom = (roomCode: string, password?: string): Promise<void> =>
+    admitRoom(async () => {
+      const scope = serverScope()
+      isLoading.value = true
+      error.value = null
+
+      let joined = false
+      try {
+        await battleClientStore.joinPrivateRoom({
+          roomCode,
+          password,
+        })
+        joined = true
+        assertServerScope(scope)
+
+        // 获取房间信息
+        await getRoomInfo(roomCode)
+        assertServerScope(scope)
+        if (currentRoom.value?.config.battleMode === 'p2p') expectedRuntime()
+        startRoomPolling()
+      } catch (err) {
+        if (joined && scope === serverScope()) {
+          await battleClientStore.leavePrivateRoom().catch(() => undefined)
+          cleanup()
+        }
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        if (scope === serverScope()) error.value = errorMessage
+        throw err
+      } finally {
+        if (scope === serverScope()) isLoading.value = false
+      }
+    })
 
   const joinAsSpectator = async (
     roomCode: string,
     preferredView?: 'player1' | 'player2' | 'god',
     password?: string,
-  ): Promise<void> => {
+  ): Promise<void> =>
+    admitRoom(async () => {
+      const scope = serverScope()
+      isLoading.value = true
+      error.value = null
+
+      let joined = false
+      try {
+        await battleClientStore.joinPrivateRoomAsSpectator({
+          roomCode,
+          password,
+        })
+        joined = true
+        assertServerScope(scope)
+
+        // 获取房间信息
+        await getRoomInfo(roomCode)
+        assertServerScope(scope)
+        if (currentRoom.value?.config.battleMode === 'p2p') expectedRuntime()
+        startRoomPolling()
+      } catch (err) {
+        if (joined && scope === serverScope()) {
+          await battleClientStore.leavePrivateRoom().catch(() => undefined)
+          cleanup()
+        }
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        if (scope === serverScope()) error.value = errorMessage
+        throw err
+      } finally {
+        if (scope === serverScope()) isLoading.value = false
+      }
+    })
+
+  const leaveRoom = (): Promise<void> => {
+    if (leaveInFlight) return leaveInFlight
+    if (!currentRoom.value) return Promise.resolve()
+    const scope = serverScope()
     isLoading.value = true
     error.value = null
-
-    try {
-      await battleClientStore.joinPrivateRoomAsSpectator({
-        roomCode,
-        password,
-        expectedRuntime: expectedRuntime(),
-      })
-
-      // 获取房间信息
-      await getRoomInfo(roomCode)
-      startRoomPolling()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      error.value = errorMessage
-      throw err
-    } finally {
-      isLoading.value = false
-    }
+    const task = (async () => {
+      try {
+        await battleClientStore.leavePrivateRoom()
+        assertServerScope(scope)
+        cleanup()
+      } catch (err) {
+        if (scope === serverScope()) error.value = err instanceof Error ? err.message : 'Unknown error'
+        throw err
+      } finally {
+        if (scope === serverScope()) isLoading.value = false
+      }
+    })()
+    leaveInFlight = task
+    void task.then(
+      () => {
+        if (leaveInFlight === task) leaveInFlight = undefined
+      },
+      () => {
+        if (leaveInFlight === task) leaveInFlight = undefined
+      },
+    )
+    return task
   }
 
-  const leaveRoom = async (): Promise<void> => {
-    if (!currentRoom.value) return
-
-    isLoading.value = true
-    error.value = null
-
+  /** Leave the old room before retiring its credentials and connecting to another authority. */
+  const switchServer = async (address: string): Promise<void> => {
+    const target = authStore.checkServerUrl(address)
+    const generation = ++serverSwitchGeneration
+    isSwitchingServer.value = true
     try {
-      await battleClientStore.leavePrivateRoom()
+      await Promise.allSettled([...roomAdmissions])
+      if (generation !== serverSwitchGeneration) return
+      const hadBattle = currentRoom.value?.status === 'started'
+      if (currentRoom.value) await leaveRoom()
+      if (generation !== serverSwitchGeneration) return
+      if (hadBattle) await useBattleStore().resetBattleWithoutSurrender()
+      if (generation !== serverSwitchGeneration) return
       cleanup()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      error.value = errorMessage
-      throw err
+      const oldSocket = battleClientStore.serverUrl
+      const oldAuthGeneration = authStore.serverGeneration
+      battleClientStore.disconnect()
+      try {
+        authStore.setServerUrl(target)
+      } catch (error) {
+        if (authStore.serverGeneration === oldAuthGeneration) {
+          battleClientStore.replaceServer(oldSocket)
+          await battleClientStore.connect().catch(() => undefined)
+        } else {
+          battleClientStore.replaceServer(authStore.serverUrl)
+        }
+        throw error
+      }
+      battleClientStore.replaceServer(target)
+      useServerStateStore().updateServerState({ onlinePlayers: 0, matchmakingQueue: 0, rooms: 0, playersInRooms: 0 })
+      try {
+        await battleClientStore.connect()
+      } catch (error) {
+        throw new Error(
+          `旧服务器连接已终止，无法连接新服务器：${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        )
+      }
+      if (generation !== serverSwitchGeneration) return
+    } catch (error) {
+      if (generation === serverSwitchGeneration) throw error
     } finally {
-      isLoading.value = false
+      if (generation === serverSwitchGeneration) isSwitchingServer.value = false
     }
   }
 
@@ -231,9 +394,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     error.value = null
 
     try {
+      const scope = serverScope()
       // 如果要准备，使用当前选择的队伍；如果取消准备，不传队伍
       const teamToSubmit = myReadyStatus.value ? undefined : selectedTeam.value
-      await battleClientStore.toggleRoomReady(teamToSubmit)
+      const acceptance = myReadyStatus.value ? undefined : await roomEnvironment()
+      assertServerScope(scope)
+      await battleClientStore.toggleRoomReady(teamToSubmit, acceptance)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       error.value = errorMessage
@@ -255,10 +421,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     error.value = null
 
     try {
+      const scope = serverScope()
       // 发送开始战斗请求
       // 如果房主是玩家，传递房主队伍；如果房主是观战者，传递空数组或undefined
       const hostTeam = isPlayer.value ? selectedTeam.value : []
-      await battleClientStore.startRoomBattle(hostTeam)
+      const acceptance = await roomEnvironment()
+      assertServerScope(scope)
+      await battleClientStore.startRoomBattle(hostTeam, acceptance)
 
       // 注意：不在这里跳转页面，而是等待 battleStarted 事件
       // 事件处理在 handleRoomEvent 中的 'battleStarted' case
@@ -459,9 +628,13 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   }
 
   const getRoomInfo = async (roomCode: string): Promise<void> => {
+    const scope = serverScope()
     try {
       const response = await battleClientStore.getPrivateRoomInfo(roomCode)
+      assertServerScope(scope)
       currentRoom.value = response
+      if (response) await roomEnvironment()
+      assertServerScope(scope)
     } catch (err) {
       throw err
     }
@@ -953,7 +1126,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       }
 
       try {
+        const scope = serverScope()
         const latestRoom = await battleClientStore.getPrivateRoomInfo(roomCode)
+        assertServerScope(scope)
         if (currentRoom.value?.config.roomCode !== roomCode) return
         if (!latestRoom) {
           stopRoomPolling()
@@ -1131,10 +1306,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   // 全局状态检查方法
   const checkCurrentRoom = async (): Promise<PrivateRoomInfo | null> => {
+    const scope = serverScope()
     try {
       const roomInfo = await battleClientStore.getCurrentPrivateRoom()
+      assertServerScope(scope)
       if (roomInfo) {
         currentRoom.value = roomInfo
+        await roomEnvironment()
+        assertServerScope(scope)
         startRoomPolling()
         initializeSelectedTeam()
       }
@@ -1162,6 +1341,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     stopRoomPolling()
     void teardownPeerTransport()
     currentRoom.value = null
+    preparedEnvironment = null
+    environmentCatalogGeneration++
+    environments.value = []
+    gameDataStore.clearServerEnvironment()
     selectedTeam.value = []
     peerSignals.value = []
     peerSession.value = closePrivateRoomPeerSession()
@@ -1182,10 +1365,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   return {
     // 状态
     currentRoom,
+    environments,
     selectedTeam,
     peerSignals,
     peerSession,
     isLoading,
+    isSwitchingServer,
     error,
     roomConfigForm,
 
@@ -1202,9 +1387,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     // 方法
     createRoom,
+    refreshEnvironments,
     joinRoom,
     joinAsSpectator,
     leaveRoom,
+    switchServer,
     toggleReady,
     startBattle,
     updateRuleSet,

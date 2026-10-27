@@ -1,10 +1,16 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import { io, type Socket } from 'socket.io-client'
 import { AttributeSystem, setGlobalLogger } from '@arcadia-eternity/battle/v4'
-import type { ServerSession, PrivateRoomInfo } from '@arcadia-eternity/protocol'
+import type {
+  ServerSession,
+  PrivateRoomInfo,
+  ServerEnvironmentDescriptor,
+  ServerEnvironmentContent,
+} from '@arcadia-eternity/protocol'
 import type { BattleState, PlayerSelection } from '@arcadia-eternity/const'
 import { createSingleProcessApp } from '../src/standalone/app'
 import input from '../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import { createNpmFixture } from './fixtures/npm'
 
 const legalTeam = input.teams[1].team.map(pet => {
   const { maxHp: _maxHp, ...draft } = pet
@@ -47,7 +53,7 @@ async function connect(url: string, session: ServerSession) {
   await connected
   return socket
 }
-async function setup() {
+async function setup(prepare?: (app: ReturnType<typeof createSingleProcessApp>) => Promise<void>) {
   const app = createSingleProcessApp({
     port: 0,
     host: '127.0.0.1',
@@ -56,6 +62,7 @@ async function setup() {
     reconnectGraceMs: 2000,
   })
   apps.push(app)
+  await prepare?.(app)
   await app.start()
   const url = `http://127.0.0.1:${app.address!.port}`
   const users = await Promise.all(
@@ -72,6 +79,116 @@ async function setup() {
   )
   return { app, url, users }
 }
+
+it('serves approved npm environments to code-free clients and pins rooms across updates and retirement', async () => {
+  const fixture = await createNpmFixture()
+  try {
+    let first!: import('@arcadia-eternity/protocol').ServerEnvironmentDescriptor
+    const {
+      app,
+      url,
+      users: [a, b, spectator],
+    } = await setup(async app => {
+      first = await app.environments.prepareNpm(fixture.directory)
+    })
+    const acceptance = (descriptor = first) => ({
+      environmentId: descriptor.id,
+      protocolVersion: 1,
+      resourceRevision: descriptor.resourceRevision,
+      resourcesReady: true,
+    })
+    const list = (await (await fetch(`${url}/api/v1/environments`)).json()) as {
+      environments: ServerEnvironmentDescriptor[]
+    }
+    expect(list.environments).toHaveLength(2)
+    const display = (await (
+      await fetch(`${url}/api/v1/environments/${first.id}/content`)
+    ).json()) as ServerEnvironmentContent
+    expect(display.skills.find(skill => skill.id === 'example-slow:strike')?.power).toBe(40)
+    const publicJson = JSON.stringify({ list, display })
+    for (const privateValue of ['createEffects', 'behaviors', 'arcadia-admission', fixture.directory, 'filesDigest'])
+      expect(publicJson).not.toContain(privateValue)
+    const resource = await fetch(`${url}${first.resources[0].url}`)
+    expect(resource.headers.get('cache-control')).toContain('immutable')
+    expect(Buffer.from(await resource.arrayBuffer())).toEqual(fixture.asset)
+    expect(await ack(a.socket, 'createPrivateRoom', { environmentId: 'forged', config: {} })).toMatchObject({
+      code: 'ENVIRONMENT_NOT_FOUND',
+    })
+    expect(
+      await ack(a.socket, 'createPrivateRoom', { environmentId: first.id, config: { battleMode: 'p2p' } }),
+    ).toMatchObject({ code: 'ENVIRONMENT_REQUIRES_SERVER' })
+    const { roomCode } = await success<{ roomCode: string }>(a.socket, 'createPrivateRoom', {
+      environmentId: first.id,
+      config: { battleMode: 'server', timerConfig: { enabled: false } },
+    })
+    await success(b.socket, 'joinPrivateRoom', { roomCode })
+    await success(spectator.socket, 'joinPrivateRoomAsSpectator', { roomCode })
+    const team = [
+      {
+        ...legalTeam[0],
+        species: 'example-slow:pet',
+        skills: ['example-slow:strike'],
+        ability: undefined,
+        emblem: undefined,
+      },
+    ]
+    expect(await ack(b.socket, 'togglePrivateRoomReady', { team })).toMatchObject({
+      code: 'CLIENT_ENVIRONMENT_REQUIRED',
+    })
+    expect(
+      await ack(b.socket, 'togglePrivateRoomReady', { team, environment: { ...acceptance(), protocolVersion: 99 } }),
+    ).toMatchObject({ code: 'CLIENT_PROTOCOL_MISMATCH' })
+    expect(
+      await ack(b.socket, 'togglePrivateRoomReady', { team, environment: { ...acceptance(), resourcesReady: false } }),
+    ).toMatchObject({ code: 'CLIENT_RESOURCES_NOT_READY' })
+    expect(
+      await ack(b.socket, 'togglePrivateRoomReady', {
+        team: [{ ...team[0], skills: ['skill_paida'] }],
+        environment: acceptance(),
+      }),
+    ).toMatchObject({ code: 'INVALID_TEAM' })
+    await success(b.socket, 'togglePrivateRoomReady', { team, environment: acceptance() })
+    const info = await success<PrivateRoomInfo>(a.socket, 'getCurrentPrivateRoom')
+    expect(info.environment?.id).toBe(first.id)
+    expect(info.players[1].team).toBeUndefined()
+    await fixture.changePower(70)
+    await expect(app.environments.prepareNpm(fixture.directory)).rejects.toThrow('approved')
+    expect(app.environments.list().map(item => item.id)).toContain(first.id)
+    await fixture.approve()
+    const second = await app.environments.prepareNpm(fixture.directory)
+    expect(second.id).not.toBe(first.id)
+    await success(spectator.socket, 'leavePrivateRoom')
+    await success(spectator.socket, 'createPrivateRoom', { environmentId: second.id, config: { battleMode: 'server' } })
+    expect((await success<PrivateRoomInfo>(spectator.socket, 'getCurrentPrivateRoom')).environment?.id).toBe(second.id)
+    await app.environments.retire(first.id)
+    expect(app.environments.list().map(item => item.id)).not.toContain(first.id)
+    expect(app.environments.descriptor(first.id).id).toBe(first.id)
+    expect(
+      await ack(a.socket, 'startPrivateRoomBattle', { hostTeam: team, environment: acceptance(second) }),
+    ).toMatchObject({ code: 'CLIENT_ENVIRONMENT_MISMATCH' })
+    await success(a.socket, 'startPrivateRoomBattle', { hostTeam: team, environment: acceptance() })
+    await success(a.socket, 'ready')
+    await success(b.socket, 'ready')
+    const state = await success<BattleState>(a.socket, 'getState')
+    expect(state.players[0].team?.[0].speciesID).toBe('example-slow:pet')
+    expect(app.environments.content(first.id).skills.find(skill => skill.id === 'example-slow:strike')?.power).toBe(40)
+    expect(app.environments.content(second.id).skills.find(skill => skill.id === 'example-slow:strike')?.power).toBe(70)
+    const actions = await success<PlayerSelection[]>(a.socket, 'getAvailableSelection')
+    const action = actions.find(selection => selection.type === 'use-skill')!
+    expect(action).toBeDefined()
+    await success(a.socket, 'submitPlayerSelection', { ...action, requestId: 'ugc-a', expectedTurn: state.currentTurn })
+    const other = (await success<PlayerSelection[]>(b.socket, 'getAvailableSelection')).find(
+      selection => selection.type === 'use-skill',
+    )!
+    await success(b.socket, 'submitPlayerSelection', { ...other, requestId: 'ugc-b', expectedTurn: state.currentTurn })
+    expect((await success<BattleState>(a.socket, 'getState')).currentTurn).toBeGreaterThan(state.currentTurn)
+    await success(a.socket, 'leavePrivateRoom')
+    expect(() => app.environments.descriptor(first.id)).toThrow('ENVIRONMENT_NOT_FOUND')
+    expect((await success<PrivateRoomInfo>(spectator.socket, 'getCurrentPrivateRoom')).environment?.id).toBe(second.id)
+  } finally {
+    await fixture.dispose()
+  }
+}, 60000)
 async function start() {
   const env = await setup(),
     [a, b, spectator] = env.users

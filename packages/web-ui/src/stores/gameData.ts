@@ -5,6 +5,7 @@ import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
+import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import YAML from 'yaml'
 import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
@@ -52,6 +53,18 @@ interface GameDataState {
   gameDataLoaded: boolean
   error: string | null
   workspaceRuntime: WorkspaceRuntimeState
+  serverFallback: Pick<
+    GameDataState,
+    | 'species'
+    | 'skills'
+    | 'marks'
+    | 'effects'
+    | 'nativeEffectIds'
+    | 'workspaceRuntime'
+    | 'loaded'
+    | 'gameDataLoaded'
+    | 'error'
+  > | null
 }
 
 function emptyWorkspaceRuntime(): WorkspaceRuntimeState {
@@ -98,6 +111,7 @@ export const useGameDataStore = defineStore('gameData', {
     nativeEffectIds: [],
     gameDataLoaded: false,
     workspaceRuntime: emptyWorkspaceRuntime(),
+    serverFallback: null,
   }),
 
   getters: {
@@ -134,6 +148,50 @@ export const useGameDataStore = defineStore('gameData', {
       this.effects = { byId: {}, allIds: [] }
       this.nativeEffectIds = []
       this.workspaceRuntime = emptyWorkspaceRuntime()
+      this.serverFallback = null
+    },
+
+    /** Server room data is display-only; no native effect factory is loaded in the browser. */
+    applyServerEnvironment(content: ServerEnvironmentContent) {
+      const species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
+      const skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
+      const marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
+      const previous = this.serverFallback ?? {
+        species: this.species,
+        skills: this.skills,
+        marks: this.marks,
+        effects: this.effects,
+        nativeEffectIds: this.nativeEffectIds,
+        workspaceRuntime: this.workspaceRuntime,
+        loaded: this.loaded,
+        gameDataLoaded: this.gameDataLoaded,
+        error: this.error,
+      }
+      this.species = species
+      this.skills = skills
+      this.marks = marks
+      this.effects = { byId: {}, allIds: [] }
+      this.nativeEffectIds = []
+      this.workspaceRuntime = emptyWorkspaceRuntime()
+      this.loaded = true
+      this.gameDataLoaded = true
+      this.error = null
+      this.serverFallback = previous
+    },
+
+    clearServerEnvironment() {
+      const previous = this.serverFallback
+      if (!previous) return
+      this.species = previous.species
+      this.skills = previous.skills
+      this.marks = previous.marks
+      this.effects = previous.effects
+      this.nativeEffectIds = previous.nativeEffectIds
+      this.workspaceRuntime = previous.workspaceRuntime
+      this.loaded = previous.loaded
+      this.gameDataLoaded = previous.gameDataLoaded
+      this.error = previous.error
+      this.serverFallback = null
     },
 
     async initialize(options?: { forceReload?: boolean }) {

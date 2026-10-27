@@ -362,9 +362,12 @@ const completeEmailCode = async () => {
 
 const startGitHub = async () => {
   accountBusy.value = true
+  const generation = authStore.serverGeneration
   try {
     await ensureLocalProfile()
+    if (generation !== authStore.serverGeneration) throw new Error('服务器已切换，请重试')
     const authorizationUrl = await authStore.startGitHub(authStore.isAccount ? 'link' : 'login')
+    if (generation !== authStore.serverGeneration) throw new Error('服务器已切换，请重试')
     window.location.assign(authorizationUrl)
   } catch (error) {
     ElMessage.error(accountError(error))

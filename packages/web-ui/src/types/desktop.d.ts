@@ -128,9 +128,21 @@ export interface DesktopUpdateCheckResult {
   version?: string
 }
 
+export type LocalBattleHostStatus =
+  | { status: 'idle' | 'starting' | 'stopping' }
+  | { status: 'cancelled' }
+  | { status: 'running'; url: string; serverId: string; projectName: string }
+  | { status: 'failed'; code: string; message: string }
+
 export interface ArcadiaDesktopApi {
+  selectAndStartLocalBattle?: () => Promise<LocalBattleHostStatus>
+  getLocalBattleStatus?: () => Promise<LocalBattleHostStatus>
+  stopLocalBattle?: () => Promise<LocalBattleHostStatus>
   readWorkWorkspace?: () => Promise<import('@arcadia-eternity/pack-loader/native').WorkSnapshot>
-  compareAndSwapWorkWorkspace?: (input: { expected: number; workspace: import('@arcadia-eternity/pack-loader/native').WorkWorkspace }) => Promise<boolean>
+  compareAndSwapWorkWorkspace?: (input: {
+    expected: number
+    workspace: import('@arcadia-eternity/pack-loader/native').WorkWorkspace
+  }) => Promise<boolean>
   getLocalServerPort: () => Promise<number | null>
   downloadPetSwf: (petNum: number, remoteUrl: string) => Promise<string>
   listCachedPets: () => Promise<number[]>
@@ -163,5 +175,3 @@ declare global {
     arcadiaDesktop?: ArcadiaDesktopApi
   }
 }
-
-

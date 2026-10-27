@@ -1,4 +1,5 @@
 export { createSingleProcessApp } from './standalone/app'
+export { ServerEnvironmentRegistry, EnvironmentError } from './standalone/environments'
 export { SessionRegistry, SessionError } from './standalone/session'
 export type { AccountProvider, VerifiedAccount, SessionRegistryOptions } from './standalone/session'
 export { PgAccountDirectory, AccountDirectoryError } from './standalone/accounts/directory'

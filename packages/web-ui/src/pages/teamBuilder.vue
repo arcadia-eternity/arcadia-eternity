@@ -29,6 +29,9 @@
             </div>
           </div>
           <div class="flex items-center space-x-3">
+            <router-link v-if="roomCode" :to="`/room/${encodeURIComponent(roomCode)}`" class="text-sm text-blue-700"
+              >返回房间</router-link
+            >
             <button
               @click="clearAllData"
               class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -344,7 +347,7 @@
                           <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         </div>
                         <p class="text-xs text-gray-500 truncate">
-                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          {{ contentName(pet.species, 'species') }}
                         </p>
                         <div class="flex items-center space-x-1 mt-0.5">
                           <span
@@ -1122,6 +1125,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, watchEffect, markRaw } from 'vue'
+import { useRoute } from 'vue-router'
 import { nanoid } from 'nanoid'
 import { useDebounceFn } from '@vueuse/core'
 import { usePlayerStore } from '@/stores/player'
@@ -1189,6 +1193,8 @@ const showHelp = ref(false) // 控制帮助对话框显示
 const sortLocked = ref(isMobile.value)
 
 type StatKey = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
+const route = useRoute()
+const roomCode = computed(() => (typeof route.query.roomCode === 'string' ? route.query.roomCode : ''))
 
 const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
 
@@ -1694,11 +1700,15 @@ const displayedClimaxSkill = computed({
   },
 })
 
+// Namespaced server content may not include a browser translation catalog.
+const contentName = (id: string, ns: string | string[]) =>
+  i18next.t(`${id}.name`, { ns, nsSeparator: false, defaultValue: id })
+
 // 新的下拉框选项计算属性
 const speciesOptions = computed(() => {
   const options = gameDataStore.speciesList.map(species => ({
     value: species.id,
-    label: i18next.t(`${species.id}.name`, { ns: 'species' }),
+    label: contentName(species.id, 'species'),
     num: species.num,
     element: species.element,
   }))
@@ -1759,9 +1769,7 @@ const abilitySelectOptions = computed(() => {
     .filter(ability => !!ability)
     .map(ability => ({
       value: ability.id,
-      label: i18next.t(`${ability.id}.name`, {
-        ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
-      }),
+      label: contentName(ability.id, ['mark', 'mark_ability', 'mark_emblem', 'mark_global']),
       description: i18next.t(`${ability.id}.description`, {
         ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
       }),
@@ -1776,7 +1784,7 @@ const emblemSelectOptions = computed(() => {
     .filter(elblem => !!elblem)
     .map(elblem => ({
       value: elblem.id,
-      label: i18next.t(`${elblem.id}.name`, { ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'] }),
+      label: contentName(elblem.id, ['mark', 'mark_ability', 'mark_emblem', 'mark_global']),
       description: i18next.t(`${elblem.id}.description`, {
         ns: ['mark', 'mark_ability', 'mark_emblem', 'mark_global'],
       }),
@@ -1801,7 +1809,7 @@ const normalSkillSelectOptions = computed(() => {
     .filter((skill): skill is NonNullable<typeof skill> => !!skill && skill.category !== 'Climax')
     .map(skill => ({
       value: skill.id,
-      label: i18next.t(`${skill.id}.name`, { ns: 'skill' }),
+      label: contentName(skill.id, 'skill'),
       description: i18next.t(`${skill.id}.description`, { ns: 'skill' }),
       element: skill.element,
       power: skill.power,
@@ -1820,7 +1828,7 @@ const climaxSkillSelectOptions = computed(() => {
     .filter((skill): skill is NonNullable<typeof skill> => !!skill && skill.category === 'Climax')
     .map(skill => ({
       value: skill.id,
-      label: i18next.t(`${skill.id}.name`, { ns: 'skill' }),
+      label: contentName(skill.id, 'skill'),
       description: i18next.t(`${skill.id}.description`, { ns: 'skill' }),
       element: skill.element,
       power: skill.power,
@@ -2107,9 +2115,7 @@ const handleSpeciesChange = (newSpeciesId: string) => {
         pet.skills.push(climaxSkills[0].skill_id)
       }
       // 如果没有必杀技能，不添加任何技能到必杀技能槽
-      pet.name = i18next.t(`${species.id}.name`, {
-        ns: 'species',
-      })
+      pet.name = contentName(species.id, 'species')
       pet.evs = {
         hp: 0,
         atk: 0,

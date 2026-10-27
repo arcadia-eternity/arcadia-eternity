@@ -54,6 +54,8 @@ export function useSound(
   const registerPetSounds = (spriteNums: number[] | undefined) => {
     if (spriteNums) {
       for (const num of spriteNums) {
+        // Unknown/hidden pets have no official numeric sound resource.
+        if (!Number.isFinite(num) || num <= 0) continue
         const src =
           resourceStore.getPetSoundByNum(num) ??
           officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/pet/${num}.mp3`)
@@ -95,6 +97,7 @@ export function useSound(
   }
 
   const playPetSound = (petSpriteNum: number) => {
+    if (!Number.isFinite(petSpriteNum) || petSpriteNum <= 0) return
     const src =
       resourceStore.getPetSoundByNum(petSpriteNum) ??
       officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`)

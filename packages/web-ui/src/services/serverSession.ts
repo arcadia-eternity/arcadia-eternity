@@ -14,6 +14,8 @@ export interface SessionStorage {
   getItem(key: string): string | null
   setItem(key: string, value: string): void
   removeItem(key: string): void
+  readonly length?: number
+  key?(index: number): string | null
 }
 
 export function normalizeServerUrl(value: string): string {
@@ -24,6 +26,41 @@ export function normalizeServerUrl(value: string): string {
   url.hash = ''
   url.pathname = url.pathname.replace(/\/+$/, '')
   return url.toString().replace(/\/$/, '')
+}
+
+/** A user-selected server is a bare HTTP(S) origin; the app supplies the API and socket paths. */
+export function normalizeSelectedServer(value: string): string {
+  let url: URL
+  try {
+    url = new URL(value.trim())
+  } catch {
+    throw new Error('请输入完整的服务器地址')
+  }
+  if (url.protocol === 'ws:') url.protocol = 'http:'
+  if (url.protocol === 'wss:') url.protocol = 'https:'
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash
+  )
+    throw new Error('服务器地址必须是 HTTP 或 HTTPS 的主机地址')
+  return url.origin
+}
+
+/** Credentials and pending authorization are scoped to one exact API endpoint. */
+export function clearServerCredentials(storage: SessionStorage, apiBaseUrl: string): void {
+  if (typeof storage.length !== 'number' || typeof storage.key !== 'function') return
+  const encoded = encodeURIComponent(normalizeServerUrl(apiBaseUrl))
+  const prefixes = [`server-session:${encoded}:`, `server-github:${encoded}:`]
+  const keys: string[] = []
+  for (let index = 0; index < storage.length; index++) {
+    const key = storage.key(index)
+    if (key && prefixes.some(prefix => key.startsWith(prefix))) keys.push(key)
+  }
+  for (const key of keys) storage.removeItem(key)
 }
 
 export class SessionRequestError extends Error {
@@ -88,6 +125,8 @@ export class ServerSessionClient {
   session: ServerSession | null = null
   private pending: Promise<ServerSession> | null = null
   private identityEpoch = 0
+  private disposed = false
+  private readonly aborter = new AbortController()
   constructor(
     baseUrl: string,
     private readonly storage: SessionStorage,
@@ -106,27 +145,67 @@ export class ServerSessionClient {
   }
 
   private async call<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await this.request.call(globalThis, `${this.baseUrl}${path}`, {
-      ...init,
-      cache: 'no-store',
-      signal: init?.signal ?? AbortSignal.timeout(15_000),
-      headers: { 'Content-Type': 'application/json', ...init?.headers },
-    })
-    if (!response.ok) {
-      const body: unknown = await response.json().catch(() => null)
-      const code =
-        body && typeof body === 'object' && 'code' in body && typeof body.code === 'string' ? body.code : undefined
-      throw new SessionRequestError(
-        response.status,
-        `服务器账号请求失败 (${response.status}${code ? `: ${code}` : ''})`,
-        code,
-      )
+    if (this.disposed) throw new Error('会话操作已取消')
+    const signals = [this.aborter.signal, AbortSignal.timeout(15_000)]
+    if (init?.signal) signals.push(init.signal)
+    const controller = new AbortController()
+    const abort = () => controller.abort()
+    for (const signal of signals) {
+      if (signal.aborted) abort()
+      else signal.addEventListener('abort', abort, { once: true })
     }
-    if (response.status === 204) return undefined as T
-    return response.json() as Promise<T>
+    try {
+      const response = await this.request.call(globalThis, `${this.baseUrl}${path}`, {
+        ...init,
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', ...init?.headers },
+      })
+      this.assertOpen()
+      if (!response.ok) {
+        const body: unknown = await response.json().catch(() => null)
+        this.assertOpen()
+        const code =
+          body && typeof body === 'object' && 'code' in body && typeof body.code === 'string' ? body.code : undefined
+        throw new SessionRequestError(
+          response.status,
+          `服务器账号请求失败 (${response.status}${code ? `: ${code}` : ''})`,
+          code,
+        )
+      }
+      if (response.status === 204) return undefined as T
+      const value = (await response.json()) as T
+      this.assertOpen()
+      return value
+    } finally {
+      for (const signal of signals) signal.removeEventListener('abort', abort)
+    }
+  }
+
+  /** Retire this endpoint when switching servers, including any in-flight work. */
+  dispose(options: { preserveCredentials?: boolean } = {}): void {
+    if (this.disposed) return
+    this.disposed = true
+    this.identityEpoch++
+    try {
+      this.aborter.abort()
+      if (!options.preserveCredentials) {
+        if (this.session) this.storage.removeItem(this.key(this.session.serverId))
+        if (this.info) this.storage.removeItem(this.githubKey(this.info.serverId))
+        clearServerCredentials(this.storage, this.baseUrl)
+      }
+    } finally {
+      this.session = null
+      this.info = null
+    }
+  }
+
+  private assertOpen(): void {
+    if (this.disposed) throw new Error('会话操作已取消')
   }
 
   private save(session: ServerSession): ServerSession {
+    this.assertOpen()
     if (
       !this.info ||
       session.serverId !== this.info.serverId ||
@@ -142,6 +221,7 @@ export class ServerSessionClient {
   }
 
   private invalidate(reason: string): void {
+    this.assertOpen()
     if (this.session) this.storage.removeItem(this.key(this.session.serverId))
     this.session = null
     this.onInvalidated(reason)
@@ -293,6 +373,7 @@ export class ServerSessionClient {
 
   async startGitHub(intent: AccountIntent): Promise<string> {
     if (!this.info) await this.refresh()
+    this.assertOpen()
     if (!this.info!.accountProviders?.includes('github')) throw new Error('此服务器未启用 GitHub 登录')
     const result = await this.call<OAuthAuthorizationResponse>('/auth/github/authorizations', {
       method: 'POST',
@@ -305,12 +386,14 @@ export class ServerSessionClient {
       intent,
       expiresAt: result.expiresAt,
     }
+    this.assertOpen()
     this.storage.setItem(this.githubKey(this.info!.serverId), JSON.stringify(pending))
     return result.authorizationUrl
   }
 
   async completeGitHub(state: string, code: string, profile: LocalProfile): Promise<AccountIdentity[] | ServerSession> {
     if (!this.info) await this.refresh()
+    this.assertOpen()
     const key = this.githubKey(this.info!.serverId)
     let pending: PendingGitHubAuthorization | null = null
     try {
@@ -332,12 +415,14 @@ export class ServerSessionClient {
         ),
       })
     } catch (error) {
+      this.assertOpen()
       // A rejected or consumed authorization is not reusable. Preserve only transient retries.
       if (error instanceof SessionRequestError && error.status >= 400 && error.status < 500 && error.status !== 429) {
         this.storage.removeItem(key)
       }
       throw error
     }
+    this.assertOpen()
     this.storage.removeItem(key)
     if (intent === 'link') return (result as AccountIdentityListResponse).identities
     return this.adoptAccountSession((result as AccountSessionResponse).session)

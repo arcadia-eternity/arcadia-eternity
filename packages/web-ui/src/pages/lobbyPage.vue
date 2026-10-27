@@ -4,6 +4,40 @@
   >
     <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-gray-800">对战大厅</h1>
 
+    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left" aria-label="对战服务器">
+      <h2 class="text-lg font-medium text-gray-800">对战服务器</h2>
+      <p class="text-sm text-gray-600 mt-1">
+        当前地址：<span data-testid="current-server-address">{{ battleClientStore.serverUrl }}</span>
+      </p>
+      <div class="flex flex-col sm:flex-row gap-2 mt-3">
+        <el-input
+          v-model="serverAddress"
+          :disabled="switchingServer"
+          placeholder="例如 http://localhost:8102"
+          aria-label="服务器地址"
+          data-testid="server-address-input"
+          @keyup.enter="connectServer"
+        />
+        <el-button
+          type="primary"
+          :disabled="switchingServer || !serverAddress.trim()"
+          :loading="switchingServer"
+          data-testid="connect-server-button"
+          @click="connectServer"
+          >连接</el-button
+        >
+        <el-button
+          v-if="canStartLocalServer"
+          :disabled="switchingServer"
+          data-testid="start-local-server-button"
+          @click="startLocalServer"
+          >启动本机对战服务</el-button
+        >
+      </div>
+      <p class="text-xs text-gray-500 mt-2">切换服务器会离开当前房间；如果对局正在进行，还会终止对局。</p>
+      <p v-if="serverSwitchError" role="alert" class="text-sm text-red-700 mt-2">{{ serverSwitchError }}</p>
+    </section>
+
     <!-- 导航菜单 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 my-6 md:my-8 mx-auto max-w-6xl">
       <router-link
@@ -96,8 +130,8 @@
               <h4 class="text-sm font-medium text-gray-700">创建房间</h4>
               <el-button
                 type="success"
-                :disabled="battleClientStore.currentState.status !== 'connected'"
-                @click="showCreateRoomDialog = true"
+                :disabled="switchingServer || battleClientStore.currentState.status !== 'connected'"
+                @click="openCreateRoomDialog"
                 class="w-full"
                 data-testid="create-private-room-button"
               >
@@ -119,7 +153,7 @@
                 />
                 <el-button
                   type="primary"
-                  :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
+                  :disabled="switchingServer || !joinRoomCode || battleClientStore.currentState.status !== 'connected'"
                   @click="joinRoom"
                   data-testid="join-private-room-button"
                 >
@@ -127,7 +161,7 @@
                 </el-button>
                 <el-button
                   type="info"
-                  :disabled="!joinRoomCode || battleClientStore.currentState.status !== 'connected'"
+                  :disabled="switchingServer || !joinRoomCode || battleClientStore.currentState.status !== 'connected'"
                   @click="joinAsSpectator"
                 >
                   观战
@@ -160,6 +194,32 @@
           <el-input v-model="roomConfig.password" placeholder="留空为公开房间" show-password />
         </el-form-item>
         <RoomBattleOptions v-model="battleOptions" />
+        <el-form-item v-if="battleOptions.battleMode === 'server'" label="对战内容">
+          <div class="w-full">
+            <el-select
+              v-model="selectedEnvironmentId"
+              :loading="environmentsLoading"
+              class="w-full"
+              aria-label="选择对战内容"
+              data-testid="room-environment-select"
+            >
+              <el-option label="官方内容" value="" />
+              <el-option
+                v-for="environment in customEnvironments"
+                :key="environment.id"
+                :label="environmentLabel(environment)"
+                :value="environment.id"
+              />
+            </el-select>
+            <p v-if="environmentsError" class="text-xs text-amber-700 mt-2" role="status">
+              内容列表暂不可用，可以使用官方内容。
+              <el-button link type="primary" @click="loadEnvironments">重试</el-button>
+            </p>
+            <p v-else-if="selectedEnvironmentId" class="text-xs text-gray-500 mt-2">
+              房间创建后使用选定的内容；对战由服务器运行。
+            </p>
+          </div>
+        </el-form-item>
         <el-form-item v-if="battleOptions.battleMode === 'p2p'" label="P2P 传输">
           <el-radio-group v-model="roomConfig.p2pTransport">
             <el-radio value="auto">自动</el-radio>
@@ -172,23 +232,30 @@
 
       <template #footer>
         <el-button @click="showCreateRoomDialog = false">取消</el-button>
-        <el-button type="primary" data-testid="confirm-create-private-room-button" @click="createRoom">创建</el-button>
+        <el-button
+          type="primary"
+          data-testid="confirm-create-private-room-button"
+          :disabled="environmentsLoading || switchingServer"
+          @click="createRoom"
+          >创建</el-button
+        >
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useAuthStore } from '@/stores/auth'
 import { User, Monitor, Setting, FolderOpened, Collection, Download, Files } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
 import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
+import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 
 const router = useRouter()
 const battleClientStore = useBattleClientStore()
@@ -199,6 +266,97 @@ const joinRoomCode = ref('')
 const joinRoomPassword = ref('')
 const battleOptions = ref(createDefaultRoomBattleOptions())
 const roomConfig = ref({ password: '', p2pTransport: 'auto' as 'auto' | 'webrtc' | 'relay' })
+const serverAddress = ref(battleClientStore.serverUrl)
+const serverSwitchError = ref('')
+const serverSwitchPending = ref(false)
+const switchingServer = computed(() => serverSwitchPending.value || privateRoomStore.isSwitchingServer)
+const canStartLocalServer = !!window.arcadiaDesktop?.selectAndStartLocalBattle
+watch(
+  () => battleClientStore.serverUrl,
+  address => {
+    serverAddress.value = address
+  },
+)
+
+async function confirmServerSwitch(): Promise<boolean> {
+  const room = privateRoomStore.currentRoom
+  if (!room) return true
+  const message =
+    room.status === 'started'
+      ? '切换服务器会离开当前房间并终止正在进行的对局。确定继续吗？'
+      : '切换服务器会离开当前房间。确定继续吗？'
+  try {
+    await ElMessageBox.confirm(message, '切换服务器', {
+      confirmButtonText: '切换服务器',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function connectServer() {
+  const address = serverAddress.value.trim()
+  if (!address || switchingServer.value) return
+  serverSwitchPending.value = true
+  serverSwitchError.value = ''
+  try {
+    if (await confirmServerSwitch()) await privateRoomStore.switchServer(address)
+  } catch (error) {
+    serverSwitchError.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    serverSwitchPending.value = false
+  }
+}
+
+async function startLocalServer() {
+  if (switchingServer.value || !window.arcadiaDesktop?.selectAndStartLocalBattle) return
+  serverSwitchPending.value = true
+  serverSwitchError.value = ''
+  try {
+    if (!(await confirmServerSwitch())) return
+    const result = await window.arcadiaDesktop.selectAndStartLocalBattle()
+    if (result.status === 'failed') throw new Error(result.message)
+    if (result.status === 'running') await privateRoomStore.switchServer(result.url)
+  } catch (error) {
+    serverSwitchError.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    serverSwitchPending.value = false
+  }
+}
+const selectedEnvironmentId = ref('')
+const environmentsLoading = ref(false)
+const environmentsError = ref(false)
+const customEnvironments = computed(() =>
+  privateRoomStore.environments.filter(environment => environment.packages.length),
+)
+
+function environmentLabel(environment: ServerEnvironmentDescriptor): string {
+  return environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
+}
+
+async function loadEnvironments() {
+  environmentsLoading.value = true
+  environmentsError.value = false
+  try {
+    await privateRoomStore.refreshEnvironments()
+    if (!customEnvironments.value.some(environment => environment.id === selectedEnvironmentId.value))
+      selectedEnvironmentId.value = ''
+  } catch {
+    selectedEnvironmentId.value = ''
+    environmentsError.value = true
+  } finally {
+    environmentsLoading.value = false
+  }
+}
+
+function openCreateRoomDialog() {
+  selectedEnvironmentId.value = ''
+  showCreateRoomDialog.value = true
+  void loadEnvironments()
+}
 
 const goToCurrentRoom = () => {
   if (privateRoomStore.currentRoom) {
@@ -209,12 +367,15 @@ const goToCurrentRoom = () => {
 const createRoom = async () => {
   authStore.invalidationReason = null
   try {
-    const roomCode = await privateRoomStore.createRoom({
-      ...battleOptions.value,
-      isPrivate: !!roomConfig.value.password,
-      password: roomConfig.value.password || undefined,
-      p2pTransport: roomConfig.value.p2pTransport,
-    })
+    const roomCode = await privateRoomStore.createRoom(
+      {
+        ...battleOptions.value,
+        isPrivate: !!roomConfig.value.password,
+        password: roomConfig.value.password || undefined,
+        p2pTransport: roomConfig.value.p2pTransport,
+      },
+      battleOptions.value.battleMode === 'server' ? selectedEnvironmentId.value || undefined : undefined,
+    )
     showCreateRoomDialog.value = false
     roomConfig.value = { password: '', p2pTransport: 'auto' }
     ElMessage.success(`房间创建成功！房间码: ${roomCode}`)

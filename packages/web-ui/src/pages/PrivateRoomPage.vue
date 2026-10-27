@@ -44,6 +44,15 @@
             privateRoomStore.currentRoom.config.battleMode === 'p2p' ? '房主运行对战' : '服务器对战'
           }}</el-tag>
           <el-tag type="info">房主: {{ getHostPlayerName() }}</el-tag>
+          <el-tag
+            v-if="privateRoomStore.currentRoom.environment?.packages.length"
+            type="info"
+            data-testid="room-environment"
+          >
+            内容：{{
+              privateRoomStore.currentRoom.environment.packages.map(pack => `${pack.name} ${pack.version}`).join('、')
+            }}
+          </el-tag>
           <el-button type="primary" size="small" @click="copyRoomCode"> 复制房间码 </el-button>
           <el-button type="primary" size="small" @click="copyRoomLink"> 复制链接 </el-button>
           <!-- 房主配置按钮 -->
@@ -176,6 +185,7 @@
       >
         <TeamSelector
           v-model="selectedTeam"
+          :room-code="roomCode"
           data-testid="room-team-selector"
           @update:is-valid="isTeamValid = $event"
           @update:validation-errors="teamValidationErrors = $event"
@@ -277,7 +287,10 @@
     <!-- 房间配置对话框 -->
     <el-dialog v-model="showRoomConfigDialog" title="房间设置" width="min(500px, 92vw)">
       <el-form :model="privateRoomStore.roomConfigForm" label-width="120px">
-        <RoomBattleOptions v-model="battleOptions" />
+        <RoomBattleOptions
+          v-model="battleOptions"
+          :server-only="!!privateRoomStore.currentRoom?.environment?.packages.length"
+        />
 
         <!-- 房间隐私设置 -->
         <el-form-item label="房间类型">
