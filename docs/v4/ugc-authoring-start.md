@@ -23,6 +23,23 @@ npm test
 
 ## 独立项目和服务器
 
-在本仓库下创建项目时，依赖可由上级工作区提供；生成包的 `devDependencies` 只记录目标版本，并不表示 SDK 已经公开发布。将项目移到独立目录时，需要先从可信的 SDK 发行来源取得与宿主匹配的依赖，再运行测试。
+在本仓库下创建项目时，依赖可由上级工作区提供；生成包的 `devDependencies` 只记录目标版本，并不表示 SDK 已经公开发布。
+
+如果要在本机仓库外开发，可以先构建仓库依赖，再在仓库根目录生成一份仅供本地开发的 SDK 物料：
+
+```sh
+node scripts/stage-author-sdk.mjs /path/to/new-sdk-directory
+node examples/ugc/create-content-pack.mjs /path/to/new-project \
+  --name @your-scope/my-first-pack \
+  --project-id my-first-pack \
+  --namespace my-first-pack
+cd /path/to/new-project
+npm install --no-save --no-package-lock --ignore-scripts /path/to/new-sdk-directory/*.tgz
+npm test
+```
+
+目标 SDK 目录必须不存在。脚本打包现有构建产物及其工作区运行依赖，不会构建、安装或发布；生成清单记录各包的版本和摘要。请确保先从与目标宿主相同的可信源码构建依赖，版本号本身不能证明宿主兼容。安装会更改项目的 `node_modules`，但不修改项目声明或锁文件；第三方依赖、TypeScript 和 Node 类型仍需从配置的 npm 源获取，或事先放入 npm 缓存。`--offline` 只适用于所需依赖均已缓存的情况。目前 Windows 的 SDK 物料生成尚未验证。
+
+这些包仅用于本地开发，尚未整理完整的发行许可证和 notices，不是正式 SDK 发布物。自有包声明 MIT，暂未填写版权署名；不会将根目录 MPL 许可证冒充为这些包的 MIT 许可证。
 
 修改源码后需要重新构建、打包并检查实际安装产物。服务器管理员单独决定是否准入；创建项目、通过测试或安装均不自动授权代码执行。仓库当前 CLI 的安装、检查、准入、战斗和回放步骤见 [npm 内容包](npm-content.md)。预览入口和开发服务器的完整作者体验仍由 #223／#244 跟踪。
