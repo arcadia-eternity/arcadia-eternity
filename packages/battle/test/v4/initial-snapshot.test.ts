@@ -10,7 +10,7 @@ import {
   type BattleMessage,
 } from '@arcadia-eternity/battle/v4'
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
-import input from '../../src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../fixtures/official-switch.input.json'
 import { makeScenario } from './scenario'
 import { catalogFor } from './snapshot-host'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/native'

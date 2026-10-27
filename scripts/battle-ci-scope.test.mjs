@@ -25,7 +25,6 @@ for (const path of [
   'packages/battle/src/v4/battle.ts',
   'packs/base/data/species.yaml',
   'packages/const/src/index.ts',
-  'packages/engine-plugins/damage/src/index.ts',
   'packages/pack-loader/src/native-loader.ts',
   'pnpm-lock.yaml',
   'scripts/build-base-environment.mjs',

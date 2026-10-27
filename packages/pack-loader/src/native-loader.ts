@@ -8,7 +8,7 @@ import { prepareWorkEnvironment, type WorkRelease } from './works'
 import type { PackManifest } from '@arcadia-eternity/schema'
 import YAML from 'yaml'
 import { PackTransport, type AssetLoadRecord } from './transport'
-import type { PackLoadResult, PackLoaderOptions, PackSource, LocaleBundles } from './types'
+import type { PackMetadataResult, PackLoaderOptions, PackSource, LocaleBundles } from './types'
 
 export type NativeContentFactory = (data: ContentPrototypeData, revision: string) => ContentCatalog
 
@@ -24,7 +24,7 @@ export interface NativeContentResult {
   packs: { id: string; version: string }[]
   build: EnvironmentBuildIdentity
 }
-export interface NativePackMetadataResult extends Omit<PackLoadResult, 'repository'> {
+export interface NativePackMetadataResult extends PackMetadataResult {
   data: ContentPrototypeData
 }
 export interface NativeWorkSelection {

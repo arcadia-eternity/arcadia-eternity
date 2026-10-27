@@ -32,7 +32,7 @@ import {
   ops,
   targets,
 } from '../../src/v4/content/authoring'
-import input from '../../src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../fixtures/official-switch.input.json'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))

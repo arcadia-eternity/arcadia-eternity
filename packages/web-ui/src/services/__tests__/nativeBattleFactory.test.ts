@@ -22,7 +22,7 @@ import {
   type NativeGameDataStoreLike,
   type NativeWebBattleConfig,
 } from '../nativeBattleFactory'
-import input from '../../../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../../../../battle/test/fixtures/official-switch.input.json'
 
 const root = new URL('../../../../../packs/base/', import.meta.url)
 const manifest = JSON.parse(readFileSync(new URL('pack.json', root), 'utf8')) as {

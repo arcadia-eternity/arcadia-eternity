@@ -15,11 +15,6 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./node": {
-      "types": "./dist/types/node.d.ts",
-      "import": "./dist/node.js",
-      "default": "./dist/node.js"
-    },
     "./pack": {
       "types": "./dist/types/pack.d.ts",
       "import": "./dist/pack.js",
@@ -67,11 +62,7 @@
   "license": "MIT",
   "dependencies": {
     "@arcadia-eternity/const": "workspace:*",
-    "@arcadia-eternity/engine": "workspace:*",
     "@arcadia-eternity/interface": "workspace:^",
-    "@arcadia-eternity/plugin-damage": "workspace:*",
-    "@arcadia-eternity/plugin-element": "workspace:*",
-    "@arcadia-eternity/plugin-transformation": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "jsondiffpatch": "catalog:",
     "mitt": "^3.0.1",

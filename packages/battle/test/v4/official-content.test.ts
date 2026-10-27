@@ -13,7 +13,7 @@ import {
   type baseMarkId,
   type baseSkillId,
 } from '@arcadia-eternity/battle/v4'
-import input from '../../src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../fixtures/official-switch.input.json'
 import { createOfficialContent, type OfficialPrototypeData } from '@arcadia-eternity/data-pack-base/native'
 import { loadBasePrototypeData } from './base-metadata'
 

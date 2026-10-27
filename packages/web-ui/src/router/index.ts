@@ -4,7 +4,6 @@ import LobbyView from '../pages/lobbyPage.vue'
 const BattleView = () => import('../pages/battlePage.vue')
 // import LocalBattlePage from '../pages/localBattlePage.vue'
 const LocalBattlePage = () => import('../pages/localBattlePage.vue')
-const DataEditorPage = () => import('@/features/data-editor/DataEditorPage.vue')
 
 // 路由守卫
 import { battleGuard } from './guards'
@@ -205,14 +204,6 @@ const routes: RouteRecordRaw[] = [
     }),
     meta: {
       title: '本地战报回放',
-    },
-  },
-  {
-    path: '/pack-editor',
-    name: 'DataEditor',
-    component: DataEditorPage,
-    meta: {
-      title: '数据编辑器',
     },
   },
 

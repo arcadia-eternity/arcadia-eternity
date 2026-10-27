@@ -56,9 +56,7 @@ try {
   const identity = identifyEnvironmentArtifact(code)
   const output = join(directory, 'browser.mjs')
   await writeFile(output, code)
-  const input = JSON.parse(
-    await readFile('packages/battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json', 'utf8'),
-  )
+  const input = JSON.parse(await readFile('packages/battle/test/fixtures/official-switch.input.json', 'utf8'))
   const html = `<!doctype html><meta charset="utf-8"><pre id="result">Running</pre><script type="module">
 import { verifyNativePackHost } from './browser.mjs';
 try {

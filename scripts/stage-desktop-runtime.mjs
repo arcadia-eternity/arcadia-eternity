@@ -90,7 +90,7 @@ export async function verifyDesktopRuntime(root, { allowIncompleteNotices = fals
 }
 async function workspaces() {
   const result = new Map()
-  for (const base of ['packages', 'packages/engine-plugins', 'packs']) {
+  for (const base of ['packages', 'packs']) {
     for (const entry of await readdir(join(repo, base), { withFileTypes: true })) {
       if (!entry.isDirectory()) continue
       const directory = join(repo, base, entry.name)

@@ -14,7 +14,7 @@ const sections = ['dependencies', 'optionalDependencies', 'peerDependencies']
 
 async function workspacePackages() {
   const found = new Map()
-  // These are the package roots used by the SDK. Recurse into grouped packages such as engine-plugins.
+  // Discover the workspace packages used by the SDK.
   async function visit(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       if (!entry.isDirectory() || ['node_modules', 'dist', 'test', 'src'].includes(entry.name)) continue

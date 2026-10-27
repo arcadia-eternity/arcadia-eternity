@@ -54,7 +54,6 @@
     "@arcadia-eternity/p2p-transport": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
     "@arcadia-eternity/protocol": "workspace:^",
-    "@arcadia-eternity/rules": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
     "@comfyorg/litegraph": "^0.17.2",
     "@element-plus/icons-vue": "^2.3.2",

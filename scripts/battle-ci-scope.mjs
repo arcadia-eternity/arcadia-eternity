@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { appendFileSync, readFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -60,7 +60,7 @@ function git(args, cwd) {
 export function workspacePackages(cwd = process.cwd()) {
   const manifests = git(['ls-files', '-z', '--', 'packages/**/package.json', 'packs/**/package.json'], cwd)
     .split('\0')
-    .filter(Boolean)
+    .filter(file => file && existsSync(resolve(cwd, file)))
   return new Map(
     manifests.map(file => {
       const manifest = JSON.parse(readFileSync(resolve(cwd, file), 'utf8'))

@@ -14,6 +14,8 @@
 | `packs/base/content-groups.yaml`                       | 稳定系列 ID、种族成员、关系和可选显式维护归属                            |
 | `packages/pack-loader`                                 | 文件或 HTTP 传输、manifest、完整性与内容修订计算                         |
 
+V2 `PackLoader`、战斗引擎和 `@arcadia-eternity/battle/node` 入口已移除；V4 宿主使用下方原生加载器。V4 测试仍使用的历史对战输入保留在 `packages/battle/test/fixtures`，旧用户内容需要保留原始数据并按后续迁移流程处理。
+
 依赖方向为基础内容包依赖战斗引擎，宿主依赖所选择的内容包与加载器。加载器通过构造参数接收可信内容工厂，不自行选择官方实现。引擎不导入基础包。
 
 ```ts

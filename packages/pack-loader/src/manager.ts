@@ -1,4 +1,4 @@
-import type { PackLoadResult, PackLockfile } from './types'
+import type { PackMetadataResult, PackLockfile } from './types'
 
 export type InstallSource = 'builtin' | 'workspace' | 'file' | 'git' | 'npm' | 'http'
 
@@ -33,7 +33,7 @@ export interface PackInstallRequest {
   integrity?: string
 }
 
-export interface PackManager<LoadResult = PackLoadResult> {
+export interface PackManager<LoadResult = PackMetadataResult> {
   listInstalled(): Promise<InstalledPack[]>
   has(packageKey: string): Promise<boolean>
   verify(lockfile: PackLockfile): Promise<PackResolveResult>

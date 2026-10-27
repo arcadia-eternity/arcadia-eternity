@@ -12,7 +12,7 @@ V4 从 V1 的 Battle、Player、Pet、Skill、Mark 和 Phase 领域模型直接�
 | 保存、恢复及续战             | [快照](v1-snapshots.md)                                     | `packages/battle/src/v4/snapshot.ts`        |
 | 维护历史行为比较             | [兼容约定](compatibility.md)、[V2 基线](battle-baseline.md) | `packages/battle/test/v4/`                  |
 
-公共内核入口为 `@arcadia-eternity/battle/v4`，宿主接口为 `/v4/host`，作者 API 为 `/v4/authoring`。默认 battle 包入口仍提供 V2；服务端新对战、浏览器本地/P2P 构造和 CLI 本地对战使用原生入口，具体选择与恢复规则见宿主指南。
+公共内核入口为 `@arcadia-eternity/battle/v4`，宿主接口为 `/v4/host`，作者 API 为 `/v4/authoring`。默认 battle 包入口也导出 V4；旧 V2 引擎、旧编辑器及专属回归已移除。服务端新对战、浏览器本地/P2P 构造和 CLI 本地对战使用原生入口，具体选择与恢复规则见宿主指南。
 
 官方行为直接维护 `packs/base/src/effects/` 中的 TypeScript，Species、Skill、Mark 元数据按 manifest 读取 YAML。旧 DSL 保留在 `/v4/legacy` 及测试夹具中，用于历史比较；离线转换生成器已移除。
 

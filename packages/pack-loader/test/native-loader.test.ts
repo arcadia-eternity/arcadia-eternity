@@ -39,6 +39,39 @@ function serveBase(change?: (path: string, raw: string) => string, extra: Record
 }
 
 describe('NativePackLoader', () => {
+  it('rejects an HTTP lockfile that does not match the loaded pack', async () => {
+    serveBase(undefined, {
+      'pack.json': JSON.stringify({
+        id: 'fixture.lock',
+        version: '1.0.0',
+        engine: 'seer2-v2',
+        data: { effects: [], marks: [], skills: [], species: [] },
+      }),
+      'pack-lock.yaml': `lockfileVersion: 1
+generatedAt: '2026-03-10T12:00:00.000Z'
+importers:
+  .:
+    dependencies:
+      fixture.lock:
+        specifier: https://example.test/native/pack.json
+        version: 9.9.9
+        packageKey: /fixture.lock@9.9.9
+packages:
+  /fixture.lock@9.9.9:
+    name: fixture.lock
+    version: 9.9.9
+    kind: data
+    engine: seer2-v2
+    source: https://example.test/native/pack.json
+    entry: pack.json
+    provenance: http
+`,
+    })
+    await expect(
+      new NativePackLoader(build, createContentCatalog).loadMetadata(origin, { source: 'http', enforceLockfile: true }),
+    ).rejects.toThrow(/Pack lockfile validation failed/)
+  })
+
   for (const yamlResponse of ['html', 'missing'] as const)
     it(`loads converted JSON locales when the YAML URL returns ${yamlResponse}`, async () => {
       const locale = { fight: 'Fight', category: { Physical: 'Physical' } }

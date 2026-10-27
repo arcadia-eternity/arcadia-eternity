@@ -66,7 +66,7 @@ beforeAll(async () => {
     `import net from 'node:net'; import http from 'node:http'; import https from 'node:https'; const fail = () => {throw new Error('NETWORK_FORBIDDEN')}; net.Socket.prototype.connect = fail; http.request = fail; https.request = fail; globalThis.fetch = fail;`,
   )
   const fixture = JSON.parse(
-    await readFile(join(root, 'packages/battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'), 'utf8'),
+    await readFile(join(root, 'packages/battle/test/fixtures/official-switch.input.json'), 'utf8'),
   )
   teams = fixture.teams.map((_: unknown, i: number) => join(temporary, `team-${i}.json`))
   for (const [i, team] of fixture.teams.entries()) {

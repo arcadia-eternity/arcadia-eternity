@@ -9,10 +9,7 @@ beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }
 async function fixture() {
   const loaded = await prepareContent('builtin:base', process.cwd())
   const replay = JSON.parse(
-    await readFile(
-      new URL('../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json', import.meta.url),
-      'utf8',
-    ),
+    await readFile(new URL('../../battle/test/fixtures/official-switch.input.json', import.meta.url), 'utf8'),
   )
   for (const team of replay.teams)
     for (const pet of team.team) {

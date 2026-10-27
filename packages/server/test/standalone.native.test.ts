@@ -3,7 +3,7 @@ import { AttributeSystem, BattleStatus, setGlobalLogger } from '@arcadia-eternit
 import { LocalBattleSystemV4 } from '@arcadia-eternity/battle/v4/host'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createStandaloneBattle, getStandaloneRuntimeIdentity, validateStandaloneTeam } from '../src/standalone/native'
-import input from '../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../../battle/test/fixtures/official-switch.input.json'
 
 const systems: LocalBattleSystemV4[] = []
 let baseline = 0

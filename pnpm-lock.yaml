@@ -267,21 +267,9 @@ importers:
       '@arcadia-eternity/const':
         specifier: workspace:*
         version: link:../const
-      '@arcadia-eternity/engine':
-        specifier: workspace:*
-        version: link:../engine
       '@arcadia-eternity/interface':
         specifier: workspace:^
         version: link:../interface
-      '@arcadia-eternity/plugin-damage':
-        specifier: workspace:*
-        version: link:../engine-plugins/damage
-      '@arcadia-eternity/plugin-element':
-        specifier: workspace:*
-        version: link:../engine-plugins/element
-      '@arcadia-eternity/plugin-transformation':
-        specifier: workspace:*
-        version: link:../engine-plugins/transformation
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -446,33 +434,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  packages/engine:
-    dependencies:
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
-      nanoid:
-        specifier: 'catalog:'
-        version: 5.1.16
-
-  packages/engine-plugins/damage:
-    dependencies:
-      '@arcadia-eternity/engine':
-        specifier: workspace:*
-        version: link:../../engine
-
-  packages/engine-plugins/element:
-    dependencies:
-      '@arcadia-eternity/engine':
-        specifier: workspace:*
-        version: link:../../engine
-
-  packages/engine-plugins/transformation:
-    dependencies:
-      '@arcadia-eternity/engine':
-        specifier: workspace:*
-        version: link:../../engine
-
   packages/interface:
     dependencies:
       '@arcadia-eternity/const':
@@ -534,34 +495,6 @@ importers:
       '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema
-
-  packages/rules:
-    dependencies:
-      '@arcadia-eternity/battle':
-        specifier: workspace:*
-        version: link:../battle
-      '@arcadia-eternity/const':
-        specifier: workspace:*
-        version: link:../const
-      '@arcadia-eternity/schema':
-        specifier: workspace:*
-        version: link:../schema
-      nanoid:
-        specifier: 'catalog:'
-        version: 5.1.16
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
-    devDependencies:
-      npm-run-all:
-        specifier: ^4.1.5
-        version: 4.1.5
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.11)(jsdom@25.0.1(supports-color@7.2.0))(vite@8.3.3(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.8.4))
 
   packages/schema:
     dependencies:
@@ -681,9 +614,6 @@ importers:
       '@arcadia-eternity/protocol':
         specifier: workspace:^
         version: link:../protocol
-      '@arcadia-eternity/rules':
-        specifier: workspace:^
-        version: link:../rules
       '@arcadia-eternity/schema':
         specifier: workspace:^
         version: link:../schema

@@ -3,7 +3,7 @@ import { io, type Socket } from 'socket.io-client'
 import type { PrivateRoomEvent, PrivateRoomInfo, ServerSession } from '@arcadia-eternity/protocol'
 import { PlayerSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createSingleProcessApp, type SingleProcessAppOptions } from '../src/standalone/app'
-import input from '../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../../battle/test/fixtures/official-switch.input.json'
 
 const apps: ReturnType<typeof createSingleProcessApp>[] = []
 const sockets: Socket[] = []

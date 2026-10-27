@@ -60,13 +60,7 @@ jobs:
       - name: Build battle dependency graph
         run: pnpm --filter @arcadia-eternity/battle... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/pack-loader... run build
       - name: Lint
-        run: |
-          pnpm lint
-          pnpm lint:battle-baseline
-      - name: Typecheck baseline tests and imported battle source
-        run: pnpm typecheck:battle-baseline
-      - name: Run all V2 battle regressions (no services)
-        run: pnpm test:battle-baseline
+        run: pnpm lint
       - name: Verify complete V1 source provenance and import boundary
         run: pnpm verify:battle-v4-source
       - name: Verify trusted capability build identities

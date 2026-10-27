@@ -10,10 +10,7 @@ import { PlayerSchema, parseWithErrors, type PlayerSchemaType } from '@arcadia-e
 import { createNativeLocalBattle } from '../native-local-battle'
 
 const input: { teams: Record<string, unknown>[] } = JSON.parse(
-  readFileSync(
-    new URL('../../packages/battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json', import.meta.url),
-    'utf8',
-  ),
+  readFileSync(new URL('../../packages/battle/test/fixtures/official-switch.input.json', import.meta.url), 'utf8'),
 )
 
 const systems: Awaited<ReturnType<typeof createNativeLocalBattle>>['system'][] = []

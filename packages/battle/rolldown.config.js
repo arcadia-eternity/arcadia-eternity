@@ -3,7 +3,6 @@ import { buildEnvironmentArtifact } from '../../scripts/build-battle-environment
 export default defineConfig({
   input: {
     index: 'index.ts',
-    node: 'node.ts',
     pack: 'pack.ts',
     v4: 'v4.ts',
     'v4-authoring': 'v4-authoring.ts',

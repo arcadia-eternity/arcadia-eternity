@@ -1,7 +1,6 @@
 packages:
-  - 'packages/**/*'
-  - 'packs/**/*'
-  - '!packages/web-ui/dist/ruffle'
+  - 'packages/*'
+  - 'packs/*'
 allowBuilds:
   '@scarf/scarf': true
   '@swc/core': true

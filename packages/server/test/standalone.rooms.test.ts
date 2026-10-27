@@ -9,7 +9,7 @@ import type {
 } from '@arcadia-eternity/protocol'
 import type { BattleState, PlayerSelection } from '@arcadia-eternity/const'
 import { createSingleProcessApp } from '../src/standalone/app'
-import input from '../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../../battle/test/fixtures/official-switch.input.json'
 import { createNpmFixture } from './fixtures/npm'
 
 const legalTeam = input.teams[1].team.map(pet => {

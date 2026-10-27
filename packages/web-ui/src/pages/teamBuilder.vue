@@ -111,7 +111,7 @@
           </div>
           <div class="flex-1">
             <h3 class="text-sm font-medium text-blue-800">正在验证队伍</h3>
-            <p class="text-sm text-blue-700">正在检查队伍是否符合规则要求...</p>
+            <p class="text-sm text-blue-700">正在检查队伍...</p>
           </div>
         </div>
       </div>
@@ -124,7 +124,7 @@
           </div>
           <div class="flex-1">
             <h3 class="text-sm font-medium text-green-800">队伍验证通过</h3>
-            <p class="text-sm text-green-700">当前队伍符合所选游戏模式的所有规则要求</p>
+            <p class="text-sm text-green-700">当前队伍通过基本检查</p>
           </div>
         </div>
         <!-- 显示警告信息（如果有） -->
@@ -146,16 +146,8 @@
           </div>
           <div class="flex-1">
             <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-medium text-red-800">队伍不符合规则要求</h3>
+              <h3 class="text-sm font-medium text-red-800">队伍未通过基本检查</h3>
               <div class="flex items-center space-x-2">
-                <button
-                  v-if="canAutoFix"
-                  @click="handleAutoFix"
-                  class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                >
-                  <el-icon class="mr-1" :size="12"><Tools /></el-icon>
-                  自动修复
-                </button>
                 <button
                   @click="showValidationDetails = !showValidationDetails"
                   class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
@@ -212,29 +204,6 @@
         <div class="lg:col-span-3">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-3 border-b border-gray-200">
-              <!-- 游戏模式选择器 -->
-              <div class="mb-3">
-                <label class="block text-xs font-medium text-gray-700 mb-1">游戏模式</label>
-                <el-select
-                  v-model="selectedGameMode"
-                  @change="onGameModeChange"
-                  size="small"
-                  class="w-full"
-                  placeholder="选择游戏模式"
-                >
-                  <el-option v-for="mode in availableGameModes" :key="mode.id" :label="mode.name" :value="mode.id">
-                    <div>
-                      <div class="font-medium">{{ mode.name }}</div>
-                      <div class="text-xs text-gray-500">{{ mode.description }}</div>
-                      <div class="text-xs text-gray-400 flex items-center mt-1">
-                        {{ mode.ruleCount }} 条规则
-                        <RuleSetTooltip :rule-set-id="mode.id" />
-                      </div>
-                    </div>
-                  </el-option>
-                </el-select>
-              </div>
-
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-base font-medium text-gray-900">当前队伍</h2>
@@ -1140,7 +1109,6 @@ import { Nature } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
-import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 import MarkdownIt from 'markdown-it'
 import { renderContentDescription } from '@/i18n/serverContent'
 import {
@@ -1152,7 +1120,6 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowRight,
-  Tools,
   Loading,
   StarFilled,
 } from '@element-plus/icons-vue'
@@ -1201,58 +1168,9 @@ const statList: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
 
 const drag = ref(false)
 
-// 游戏模式相关 - 使用 validation store
-const availableGameModes = computed(() => validationStore.availableRuleSets)
-
-// 初始化规则集
-onMounted(async () => {
-  // 初始化验证系统
-  await validationStore.initialize()
-
-  // 初始化时同步当前队伍的规则集
-  const currentRuleSetId = petStorage.getCurrentTeamRuleSetId()
-  validationStore.setSelectedRuleSet(currentRuleSetId)
+onMounted(() => {
+  void validationStore.initialize()
 })
-
-// 监听队伍切换，同步规则集
-watch(
-  () => petStorage.currentTeamIndex,
-  newIndex => {
-    // 当切换队伍时，同步该队伍的规则集
-    const ruleSetId = petStorage.getTeamRuleSetId(newIndex)
-    validationStore.setSelectedRuleSet(ruleSetId)
-    console.log(`切换到队伍 ${newIndex + 1}，规则集: ${ruleSetId}`)
-  },
-)
-
-// 当前队伍的规则集（与队伍绑定）
-const selectedGameMode = computed({
-  get: () => petStorage.getCurrentTeamRuleSetId(),
-  set: (newRuleSetId: string) => {
-    petStorage.updateTeamRuleSetId(petStorage.currentTeamIndex, newRuleSetId)
-    validationStore.setSelectedRuleSet(newRuleSetId)
-  },
-})
-
-// 规则集变更处理
-const onGameModeChange = async (ruleSetId: string) => {
-  try {
-    // 通过computed属性的setter更新规则集，这会自动保存到队伍数据中
-    selectedGameMode.value = ruleSetId
-
-    console.log(`规则集已切换为: ${ruleSetId}`)
-
-    // 重新验证当前队伍
-    const error = await validateTeam()
-    if (error) {
-      const ruleSetName = ruleSetId === 'competitive_ruleset' ? '竞技规则' : '休闲规则'
-      ElMessage.warning(`切换到${ruleSetName}后，当前队伍不符合规则: ${error}`)
-    }
-  } catch (error) {
-    console.error('切换规则集失败:', error)
-    ElMessage.error('切换规则集失败')
-  }
-}
 
 // 关闭指引
 const hideGuide = () => {
@@ -1361,11 +1279,11 @@ const loadingMessage = computed(() => {
   }
 
   if (validationStore.isLoading) {
-    return '正在初始化规则系统...'
+    return '正在初始化验证...'
   }
 
   if (!validationStore.isInitialized) {
-    return '正在初始化规则系统...'
+    return '正在初始化验证...'
   }
 
   return '初始化完成'
@@ -1415,10 +1333,9 @@ const debouncedValidate = useDebounceFn(async () => {
   try {
     isValidating.value = true
 
-    const ruleSetId = selectedGameMode.value
     const team = currentTeam.value
 
-    console.log(`验证队伍 - 规则集: ${ruleSetId}, 队伍大小: ${team.length}`)
+    console.log(`验证队伍大小: ${team.length}`)
 
     // 检查数据是否已加载完成
     if (!gameDataStore.loaded) {
@@ -1533,16 +1450,6 @@ const debouncedValidatePet = useDebounceFn(async () => {
     }
   }
 }, 200)
-
-// 检查是否可以自动修复
-const canAutoFix = computed(() => {
-  if (teamValidationResult.value.isValid) return false
-
-  // 检查错误类型，某些错误可以自动修复
-  return teamValidationResult.value.errors.some((error: ValidationError) =>
-    ['TEAM_TOO_LARGE', 'LEVEL_TOO_HIGH', 'LEVEL_TOO_LOW', 'EV_TOTAL_TOO_HIGH'].includes(getErrorCode(error)),
-  )
-})
 
 const selectedPet = computed<PetSchemaType | null>(() => {
   return currentTeam.value.find(p => p.id === selectedPetId.value) || null
@@ -2029,54 +1936,6 @@ const handleErrorClick = (error: ValidationError) => {
     if (pet) {
       selectedPetId.value = pet.id
       ElMessage.info(`已选中精灵: ${pet.name}`)
-    }
-  }
-}
-
-const handleAutoFix = async () => {
-  try {
-    const result = await validationStore.autoFixTeam(currentTeam.value)
-
-    if (result.changes.length === 0) {
-      ElMessage.info('没有需要修复的问题')
-      return
-    }
-
-    // 显示修复预览
-    const changeMessages = result.changes
-      .map((change: { type: string; petName?: string; description: string }) => {
-        switch (change.type) {
-          case 'removed':
-            return `• 移除精灵: ${change.petName} (${change.description})`
-          case 'modified':
-            return `• 修改精灵: ${change.petName} - ${change.description}`
-          default:
-            return `• ${change.description}`
-        }
-      })
-      .join('\n')
-
-    await ElMessageBox.confirm(`将进行以下修复操作：\n\n${changeMessages}\n\n确定要应用这些修复吗？`, '自动修复预览', {
-      confirmButtonText: '应用修复',
-      cancelButtonText: '取消',
-      type: 'warning',
-      customStyle: { zIndex: '10000' },
-    })
-
-    // 应用修复
-    petStorage.updateTeamOrder(petStorage.currentTeamIndex, result.fixedTeam)
-    petStorage.saveToLocal()
-
-    ElMessage.success(`已应用 ${result.changes.length} 项修复`)
-
-    // 如果还有剩余问题，提示用户
-    if (result.remainingIssues && !result.remainingIssues.isValid) {
-      ElMessage.warning(`还有 ${result.remainingIssues.errors.length} 个问题需要手动处理`)
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('自动修复失败:', error)
-      ElMessage.error('自动修复失败，请手动调整队伍')
     }
   }
 }

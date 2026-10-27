@@ -44,7 +44,7 @@ it('saves actual historical YAML effects and resumes without replaying the first
     await import('@arcadia-eternity/battle/v4')
   const { DataRepository } = await import('@arcadia-eternity/battle/v4/legacy')
   const { createHistoricalOfficialBattle } = await import('./official')
-  const { default: input } = await import('../../src/v2/__tests__/fixtures/baseline/official-switch.input.json')
+  const { default: input } = await import('../fixtures/official-switch.input.json')
   const { battle } = await createHistoricalOfficialBattle()
   const repo = DataRepository.getInstance(),
     catalog = new SnapshotCatalog('historical/c0862898')

@@ -17,7 +17,7 @@ import {
   SpeciesParser,
   PlayerParser,
 } from '@arcadia-eternity/battle/v4/legacy'
-import input from '../../src/v2/__tests__/fixtures/baseline/official-switch.input.json'
+import input from '../fixtures/official-switch.input.json'
 import { loadBaseMetadata } from './base-metadata'
 
 /** All content uses the original V1 schemas, parsers and DSL. No effect reimplementation. */

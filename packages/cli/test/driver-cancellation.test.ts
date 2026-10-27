@@ -57,10 +57,7 @@ it('returns a cancelled replay and cleans up when interrupted with recorded inpu
   driver.abort = () => controller.abort()
   driver.cleanup.mockClear()
   const fixture = JSON.parse(
-    readFileSync(
-      new URL('../../battle/src/v2/__tests__/fixtures/baseline/official-switch.input.json', import.meta.url),
-      'utf8',
-    ),
+    readFileSync(new URL('../../battle/test/fixtures/official-switch.input.json', import.meta.url), 'utf8'),
   )
   const spec: RunSpec = { teams: fixture.teams, seed: 'cancel', maxTurns: 10, maxActions: 20, teamSelection: false }
   const state = {

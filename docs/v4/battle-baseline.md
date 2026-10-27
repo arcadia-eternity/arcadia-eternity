@@ -1,5 +1,7 @@
 # V2 → V1 战斗回归基线
 
+此文是历史记录。V2 实现和专属测试已从 V4 移除；V4 仍用到的对战输入位于 `packages/battle/test/fixtures/official-switch.input.json`。原始测试及 golden 可在历史提交 `989d10f1` 中查阅。
+
 V1 行为是验收规范。V2 golden 保存现有实现的可复现观测；与 V1 冲突的部分按缺陷处理，不能通过刷新 golden 改写规范。
 
 ## 运行与更新
@@ -22,7 +24,7 @@ pnpm --filter @arcadia-eternity/battle run test:run v2-golden-battle.test.ts v2-
 
 ## 测试合同
 
-[V2 测试目录](../../packages/battle/src/v2/__tests__/)中的 `fixtures/baseline/official-switch.input.json` 固定种子、队伍及两侧显式动作，`official-switch.golden.json` 保存动作、有序事件、触发器顺序、阶段检查点与最终状态。`helpers/golden-battle.ts` 构造真实战斗并拒绝无效动作、脚本耗尽、残余动作和失败阶段；每次测试创建两个独立 world，先验证重复运行一致，再比较 golden。
+历史 V2 测试的 `official-switch.input.json` 固定种子、队伍及两侧显式动作，`official-switch.golden.json` 保存动作、有序事件、触发器顺序、阶段检查点与最终状态。原测试构造真实战斗并拒绝无效动作、脚本耗尽、残余动作和失败阶段；每次测试创建两个独立 world，先验证重复运行一致，再比较 golden。
 
 归一化只替换随机实例 ID 并去掉事件时间戳；保留顺序、payload、精确伤害及所有队员状态。检查点覆盖主动/强制换宠、印记生命周期、怒气、能力等级与胜负。队伍中的 HP 覆盖用于机制验收。golden 记录引擎事件；UI 消息和 stateDelta 由宿主测试维护。
 
