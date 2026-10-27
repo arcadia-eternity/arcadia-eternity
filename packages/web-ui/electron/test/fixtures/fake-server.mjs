@@ -22,6 +22,14 @@ if (project === 'unapproved') {
   if (project === 'slow') await new Promise(resolve => setTimeout(resolve, 5000))
   const serverId = option('--server-id')
   await writeFile(join(option('--npm-project'), 'cache-marker'), process.env.ARCADIA_DESKTOP_TEMP)
+  if (project === 'runtime-paths')
+    await writeFile(
+      join(option('--npm-project'), 'runtime-paths.json'),
+      JSON.stringify({
+        npmCliPath: process.env.ARCADIA_NPM_CLI,
+        packsDirectory: process.env.ARCADIA_PACKS_DIR,
+      }),
+    )
   process.once('exit', () => writeFileSync(join(option('--npm-project'), 'clean-exit'), 'yes'))
   const server = createServer((_req, res) => {
     res.setHeader('Content-Type', 'application/json')

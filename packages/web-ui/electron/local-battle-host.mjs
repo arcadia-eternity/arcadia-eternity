@@ -19,18 +19,17 @@ export class LocalBattleHostError extends Error {
 const problem = (code, message) => new LocalBattleHostError(code, message)
 
 /** Don't forward the desktop process's account tokens or arbitrary Node options. */
-function workerEnvironment(cache, npmBinDirectory) {
+function workerEnvironment(cache, npmCliPath, packsDirectory) {
   const result = {}
   for (const key of ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LANG']) {
     if (process.env[key]) result[key] = process.env[key]
   }
   const pathKey = process.platform === 'win32' ? 'Path' : 'PATH'
   result[pathKey] = process.env[pathKey] ?? process.env.PATH ?? ''
-  if (npmBinDirectory) {
-    result[pathKey] = `${npmBinDirectory}${process.platform === 'win32' ? ';' : ':'}${result[pathKey]}`
-  }
   return {
     ...result,
+    ...(npmCliPath ? { ARCADIA_NPM_CLI: npmCliPath } : {}),
+    ...(packsDirectory ? { ARCADIA_PACKS_DIR: packsDirectory } : {}),
     TMPDIR: cache,
     TMP: cache,
     TEMP: cache,
@@ -105,14 +104,16 @@ export class LocalBattleHost {
     executable,
     cli,
     rendererOrigin,
-    npmBinDirectory,
+    npmCliPath,
+    packsDirectory,
     startupTimeoutMs = 60000,
     shutdownTimeoutMs = 5000,
   }) {
     this.executable = executable
     this.cli = cli
     this.rendererOrigin = rendererOrigin
-    this.npmBinDirectory = npmBinDirectory
+    this.npmCliPath = npmCliPath
+    this.packsDirectory = packsDirectory
     this.startupTimeoutMs = startupTimeoutMs
     this.shutdownTimeoutMs = shutdownTimeoutMs
   }
@@ -141,11 +142,21 @@ export class LocalBattleHost {
       } catch {
         throw problem('SERVER_RUNTIME_MISSING', '未找到打包的本机对战服务运行文件')
       }
-      if (this.npmBinDirectory) {
+      if (this.npmCliPath !== undefined) {
         try {
-          await access(join(this.npmBinDirectory, process.platform === 'win32' ? 'npm.cmd' : 'npm'), constants.X_OK)
+          if (!isAbsolute(this.npmCliPath) || !(await stat(this.npmCliPath)).isFile()) throw new Error()
+          await access(this.npmCliPath, constants.R_OK)
         } catch {
           throw problem('NPM_RUNTIME_MISSING', '未找到打包的 npm 检查运行工具')
+        }
+      }
+      if (this.packsDirectory !== undefined) {
+        try {
+          if (!isAbsolute(this.packsDirectory) || !(await stat(this.packsDirectory)).isDirectory()) throw new Error()
+          if (!(await stat(join(this.packsDirectory, 'base', 'pack.json'))).isFile()) throw new Error()
+          await access(join(this.packsDirectory, 'base', 'pack.json'), constants.R_OK)
+        } catch {
+          throw problem('BASE_PACK_MISSING', '未找到打包的官方基础内容')
         }
       }
       await verifyProject(directory)
@@ -171,7 +182,7 @@ export class LocalBattleHost {
         ],
         {
           cwd: cache,
-          env: workerEnvironment(cache, this.npmBinDirectory),
+          env: workerEnvironment(cache, this.npmCliPath, this.packsDirectory),
           stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
           windowsHide: true,
         },

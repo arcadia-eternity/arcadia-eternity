@@ -26,7 +26,12 @@ const localBattleHost = new LocalBattleHost({
     ? path.join(process.resourcesPath, 'arcadia-server', 'cli.js')
     : path.resolve(projectRoot, '../../dist/cli.js'),
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : 'null',
-  ...(app.isPackaged ? { npmBinDirectory: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'bin') } : {}),
+  ...(app.isPackaged
+    ? {
+        npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
+        packsDirectory: path.join(process.resourcesPath, 'arcadia-server', 'packs'),
+      }
+    : {}),
 })
 
 const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
@@ -41,7 +46,20 @@ let packsDir = null
 let workspacePackStatePath = null
 let creatorWorkStorage
 async function getCreatorWorkStorage() {
-  creatorWorkStorage ??= import('@arcadia-eternity/pack-loader/node').then(
+  const loader = app.isPackaged
+    ? pathToFileURL(
+        path.join(
+          process.resourcesPath,
+          'arcadia-server',
+          'node_modules',
+          '@arcadia-eternity',
+          'pack-loader',
+          'dist',
+          'node.js',
+        ),
+      ).href
+    : '@arcadia-eternity/pack-loader/node'
+  creatorWorkStorage ??= import(loader).then(
     ({ NodeWorkStorage }) => new NodeWorkStorage(path.join(app.getPath('userData'), 'creator-works')),
   )
   return creatorWorkStorage

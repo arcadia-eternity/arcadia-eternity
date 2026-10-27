@@ -1,6 +1,7 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
   "version": "1.0.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "Arcadia Eternity base content and trusted native effects",

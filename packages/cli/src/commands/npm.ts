@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { lstat } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { inspectNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import type { CommandContext } from '../context'
 import { CliError } from '../reporting/errors'
 import { writeJson } from '../io/files'
@@ -29,16 +29,21 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
       }
       // npm ci performs standard dependency/peer resolution and integrity verification. No root or dependency scripts run.
-      await exec(
-        'npm',
-        ['ci', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund', ...(options.offline ? ['--offline'] : [])],
-        {
-          cwd,
-          signal: context.signal,
-          maxBuffer: 8 * 1024 * 1024,
-          env: { ...process.env, npm_config_engine_strict: 'true' },
-        },
-      )
+      const invocation = await resolveNpmInvocation([
+        'ci',
+        '--ignore-scripts',
+        '--omit=dev',
+        '--no-audit',
+        '--no-fund',
+        ...(options.offline ? ['--offline'] : []),
+      ])
+      await exec(invocation.file, invocation.args, {
+        cwd,
+        signal: context.signal,
+        maxBuffer: 8 * 1024 * 1024,
+        env: { ...process.env, npm_config_engine_strict: 'true' },
+        windowsHide: true,
+      })
       const result = await inspectNpmProject(cwd)
       await report(
         result,

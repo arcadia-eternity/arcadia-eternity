@@ -37,7 +37,12 @@ const jobFiles = {
     /^docs\/v4\/(?:examples|validation)\//,
   ],
   server: [/^bin\//, /^eslint\.config\.server-standalone\.js$/, /^scripts\/verify-native-pack\.mjs$/],
-  browser: [/^resource\//, /^scripts\/prepare-static-assets(?:\.test)?\.mjs$/],
+  browser: [
+    /^resource\//,
+    /^scripts\/prepare-static-assets(?:\.test)?\.mjs$/,
+    /^scripts\/(?:stage-desktop-runtime|desktop-runtime-licenses|verify-desktop-pack)(?:\.test)?\.mjs$/,
+    /^scripts\/desktop-license-reference\//,
+  ],
   // The offline bundle includes the root entry and lazy legacy command module.
   cli: [/^bin\//, /^rolldown\.config\.js$/, /^examples\/ugc\//],
 }

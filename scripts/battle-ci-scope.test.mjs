@@ -72,6 +72,10 @@ for (const path of [
   'resource/background.yaml',
   'scripts/prepare-static-assets.mjs',
   'scripts/prepare-static-assets.test.mjs',
+  'scripts/stage-desktop-runtime.mjs',
+  'scripts/desktop-runtime-licenses.test.mjs',
+  'scripts/verify-desktop-pack.mjs',
+  'scripts/desktop-license-reference/MIT-0.txt',
 ]) {
   test(`browser change runs only its job: ${path}`, () => {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, browser: true })

@@ -50,12 +50,45 @@ describe('local authority host', () => {
     const directory = await project('checks')
     await assert.rejects(host({ executable: '/missing/node' }).start(directory), { code: 'SERVER_RUNTIME_MISSING' })
     await assert.rejects(host({ cli: '/missing/cli.js' }).start(directory), { code: 'SERVER_RUNTIME_MISSING' })
-    await assert.rejects(host({ npmBinDirectory: join(root, 'missing-npm') }).start(directory), {
+    await assert.rejects(host({ npmCliPath: join(root, 'missing-npm') }).start(directory), {
       code: 'NPM_RUNTIME_MISSING',
     })
+    await assert.rejects(host({ npmCliPath: root }).start(directory), { code: 'NPM_RUNTIME_MISSING' })
+    await assert.rejects(host({ npmCliPath: 'npm-cli.js' }).start(directory), { code: 'NPM_RUNTIME_MISSING' })
+    await assert.rejects(host({ packsDirectory: join(root, 'missing-packs') }).start(directory), {
+      code: 'BASE_PACK_MISSING',
+    })
+    await assert.rejects(host({ packsDirectory: root }).start(directory), { code: 'BASE_PACK_MISSING' })
     const instance = host()
     await assert.rejects(instance.start(root), { code: 'PROJECT_NOT_READY' })
     assert.equal(instance.status().status, 'failed')
+  })
+  it('passes only the trusted bundled npm CLI and official packs paths to the child', async () => {
+    const directory = await project('runtime-paths')
+    const npmCliPath = join(root, 'runtime', 'npm', 'bin', 'npm-cli.js')
+    const packsDirectory = join(root, 'bundled-packs')
+    await mkdir(join(root, 'runtime', 'npm', 'bin'), { recursive: true })
+    await mkdir(join(packsDirectory, 'base'), { recursive: true })
+    await writeFile(npmCliPath, '// bundled npm entry')
+    await writeFile(join(packsDirectory, 'base', 'pack.json'), '{}')
+    const oldCli = process.env.ARCADIA_NPM_CLI,
+      oldPacks = process.env.ARCADIA_PACKS_DIR
+    process.env.ARCADIA_NPM_CLI = '/untrusted/npm.js'
+    process.env.ARCADIA_PACKS_DIR = '/untrusted/packs'
+    const instance = host({ npmCliPath, packsDirectory })
+    try {
+      await instance.start(directory)
+      assert.deepEqual(JSON.parse(await readFile(join(directory, 'runtime-paths.json'), 'utf8')), {
+        npmCliPath,
+        packsDirectory,
+      })
+    } finally {
+      await instance.stop()
+      if (oldCli === undefined) delete process.env.ARCADIA_NPM_CLI
+      else process.env.ARCADIA_NPM_CLI = oldCli
+      if (oldPacks === undefined) delete process.env.ARCADIA_PACKS_DIR
+      else process.env.ARCADIA_PACKS_DIR = oldPacks
+    }
   })
   it('starts only on loopback with a random port, excludes private environment values and stops cleanly', async () => {
     const directory = await project('success')

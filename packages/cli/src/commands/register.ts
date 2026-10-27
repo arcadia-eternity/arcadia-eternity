@@ -4,6 +4,7 @@ import type { CommandContext } from '../context'
 import { CliError } from '../reporting/errors'
 import { reserveOutputs, writeJson } from '../io/files'
 import { registerNpmCommands } from './npm'
+import { registerProjectCommands } from './project'
 
 function positive(value: string) {
   const n = Number(value)
@@ -171,6 +172,7 @@ export function registerCommands(program: Command, context: CommandContext) {
   const content = program.command('content')
   validationOptions(content.command('validate')).action(validate)
   registerNpmCommands(content, context)
+  registerProjectCommands(content, context)
   validationOptions(program.command('validate').description('Alias for content validate')).action(validate)
   return () => exitCode
 }

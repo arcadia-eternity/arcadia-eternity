@@ -17,6 +17,7 @@ import {
 } from '../works/model'
 import { verifyAssets } from '../works/compiler'
 import { effectSdkApiVersion } from '@arcadia-eternity/battle/v4/authoring'
+import { resolveNpmInvocation } from './runner'
 
 const exec = promisify(execFile)
 const packageName = /^(?:@[a-z0-9._-]+\/)?[a-z0-9][a-z0-9._-]*$/
@@ -205,11 +206,13 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
     if (canonical(rootPackage[field] ?? {}) !== canonical(lockedRoot[field] ?? {}))
       fail('NPM_LOCK', field, 'Server project dependencies differ from its npm lockfile')
   let tree: NpmTree
+  const npm = await resolveNpmInvocation(['ls', '--all', '--long', '--json', '--omit=dev', '--ignore-scripts'])
   try {
-    const result = await exec('npm', ['ls', '--all', '--long', '--json', '--omit=dev', '--ignore-scripts'], {
+    const result = await exec(npm.file, npm.args, {
       cwd: root,
       maxBuffer: 32 * 1024 * 1024,
       timeout: 60000,
+      windowsHide: true,
     })
     tree = JSON.parse(result.stdout) as NpmTree
   } catch (error) {

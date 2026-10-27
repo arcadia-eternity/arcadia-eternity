@@ -118,6 +118,18 @@ node dist/cli.js server --npm-project /path/to/approved-project
 
 服务器的程序接口 `app.environments.prepareNpm(...)` 用于准备候选环境，`retire(id)` 停止其被新房间选择；候选准备失败不替换已发布环境。当前单进程服务重启会丢弃房间，持久检查点引用、跨进程恢复和桌面安装包尚未接入。服务器不能根据客户端提交的环境 ID 自动下载或授权包。
 
+## 导出可移植项目
+
+管理员可以导出当前已准入的服务器内容项目：
+
+```sh
+node dist/cli.js content project export /path/to/server-project /path/to/new-export
+```
+
+默认仅接受可匿名访问的公共 npm registry 固定来源。若要包含源项目内部的本地 `.tgz`，须显式添加 `--include-local-artifacts`，并由执行者确认有权再分发包内内容。导出前工具在隔离目录使用无凭据、无生命周期脚本的 npm 安装重建项目，并核对完整安装摘要；无法重建时不会发布完成的项目。目标目录必须不存在；如果写入过程被中断，未完成目录需要人工检查并删除或另选位置。
+
+在另一台受支持的主机中，按导出目录的 README 安装依赖、检查并重新准入，然后运行 `content project verify <directory>` 验证原环境。当前验证保守要求相同 Node 版本、操作系统和架构以及 npm 9 或以上。项目不包含准入文件、账号、服务器身份、私人队伍或战斗存档；公开 registry 依赖仍需网络或已有缓存，因此它不是完整离线备份。
+
 profile 是管理员对该环境的策略记录，支持 `local-development`、`self-hosted` 和 `official`；填写 `official` 不授予官方服务器资格或工坊凭证。准入不是发布、工坊收录或用户登录。回放只保存环境身份和战斗所需数据，不保存本机路径、准入文件或可执行 npm 包；执行回放仍需管理员提供原安装环境。
 
 ## 环境生命周期

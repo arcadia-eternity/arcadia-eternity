@@ -1,5 +1,6 @@
 {
   "name": "@arcadia-eternity/web-ui",
+  "license": "MIT",
   "version": "3.4.2",
   "private": true,
   "type": "module",
@@ -30,18 +31,20 @@
     "dev:desktop": "run-p dev:desktop:web electron:dev",
     "dev:desktop:web": "vite --host localhost --port 5173 --strictPort",
     "electron:dev": "wait-on http://localhost:5173 && cross-env ARCADIA_ELECTRON_DEV_SERVER_URL=http://localhost:5173 electron ./electron/main.mjs --remote-debugging-port=9222",
-    "build:desktop": "run-s build electron:pack",
+    "build:desktop": "run-s build build:desktop:runtime:deps stage:desktop-runtime electron:pack",
     "electron:pack": "electron-builder",
     "electron:pack:publish": "electron-builder --publish always",
     "build:static": "run-s build:deps build:static-only",
     "build:static-only": "cross-env VITE_STATIC_MODE=1 vite build && node ../../scripts/prepare-static-assets.mjs && node scripts/build-offline.mjs",
-    "test:e2e:static": "playwright test --config playwright.static.config.ts"
+    "test:e2e:static": "playwright test --config playwright.static.config.ts",
+    "stage:desktop-runtime": "node ../../scripts/stage-desktop-runtime.mjs --output dist/arcadia-server",
+    "build:desktop:runtime:deps": "pnpm --filter @arcadia-eternity/server... run build"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
-    "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/data-repository": "workspace:^",
     "@arcadia-eternity/database": "workspace:^",
     "@arcadia-eternity/interface": "workspace:^",
@@ -112,6 +115,7 @@
     "eslint-plugin-oxlint": "^1.55.0",
     "eslint-plugin-vue": "^10.8.0",
     "jiti": "^2.6.1",
+    "npm": "11.17.0",
     "npm-run-all2": "^8.0.4",
     "oxlint": "^1.55.0",
     "playwright": "^1.58.2",
@@ -134,6 +138,7 @@
     "asar": true,
     "files": [
       "dist/**/*",
+      "!dist/arcadia-server/**/*",
       "electron/**/*",
       "package.json"
     ],
@@ -160,6 +165,21 @@
         "zip"
       ],
       "artifactName": "${productName}-${version}-${arch}.${ext}"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "dist/arcadia-server",
+        "to": "arcadia-server"
+      },
+      {
+        "from": "dist/arcadia-server/node_modules",
+        "to": "arcadia-server/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "beforePack": "../../scripts/verify-desktop-pack.mjs",
+    "afterPack": "../../scripts/verify-desktop-pack.mjs"
   }
 }
