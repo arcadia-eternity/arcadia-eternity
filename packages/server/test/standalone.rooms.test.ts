@@ -181,6 +181,14 @@ it('serves approved npm environments to code-free clients and pins rooms across 
     const state = await success<BattleState>(a.socket, 'getState')
     expect(state.players[0].team?.[0].speciesID).toBe('example-slow:pet')
     expect(app.environments.content(first.id).skills.find(skill => skill.id === 'example-slow:strike')?.power).toBe(40)
+    const authoredContent = app.environments.content(first.id)
+    for (const kind of ['species', 'skills', 'marks'] as const) {
+      const authored = authoredContent[kind].filter(item => item.id.startsWith('example-slow:'))
+      expect(authored.length).toBeGreaterThan(0)
+      for (const item of authored)
+        expect(item).toMatchObject({ name: `${kind} name`, description: `${kind} description` })
+    }
+
     expect(app.environments.content(second.id).skills.find(skill => skill.id === 'example-slow:strike')?.power).toBe(70)
     const actions = await success<PlayerSelection[]>(a.socket, 'getAvailableSelection')
     const action = actions.find(selection => selection.type === 'use-skill')!

@@ -69,15 +69,23 @@ export class ServerEnvironmentRegistry {
     runtime: StandaloneRuntime,
     data: Parameters<typeof createStandaloneRuntime>[0]['data'],
   ): ServerEnvironmentContent {
+    const text = (raw: unknown) => {
+      const record = raw as Record<string, unknown>
+      return {
+        ...(typeof record.name === 'string' ? { name: record.name } : {}),
+        ...(typeof record.description === 'string' ? { description: record.description } : {}),
+      }
+    }
+    const speciesText = new Map(data.species.map(raw => [(raw as { id: string }).id, text(raw)]))
     return {
-      species: [...runtime.species.values()].map(item => structuredClone(item)),
+      species: [...runtime.species.values()].map(item => ({ ...structuredClone(item), ...speciesText.get(item.id) })),
       skills: data.skills.map(raw => {
         const { effect: _effect, ...display } = parseWithErrors(SkillSchema, raw)
-        return display
+        return { ...display, ...text(raw) }
       }),
       marks: data.marks.map(raw => {
         const mark = parseWithErrors(MarkSchema, raw)
-        return { id: mark.id, ...(mark.iconRef ? { iconRef: mark.iconRef } : {}), tags: mark.tags ?? [] }
+        return { id: mark.id, ...(mark.iconRef ? { iconRef: mark.iconRef } : {}), tags: mark.tags ?? [], ...text(raw) }
       }),
     }
   }

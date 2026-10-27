@@ -10,6 +10,7 @@ import { useBattleStore } from '@/stores/battle'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 import MarkdownIt from 'markdown-it'
+import { renderContentDescription } from '@/i18n/serverContent'
 import { getCurrentSkillEffectiveness } from '@/utils/typeEffectiveness'
 
 const gameDataStore = useGameDataStore()
@@ -137,7 +138,7 @@ const processedSkills = computed(() => {
           }) ||
           i18next.t('unknown_skill', { ns: 'webui' }) ||
           '未知技能'
-        skillDescription = md.render(rawDescription)
+        skillDescription = renderContentDescription(md, rawDescription, 'skill', skill.baseId)
       } catch {
         skillDescription = i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能'
       }

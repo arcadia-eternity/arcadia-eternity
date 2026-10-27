@@ -4,7 +4,9 @@ import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import { isAbsolute, join, resolve } from 'node:path'
 
 const MAX_BYTES = 2 * 1024 * 1024
-const digest = (data: Uint8Array) => createHash('sha256').update(data).digest('hex')
+// Editor revisions cover the content and the metadata used to construct references.
+const digest = (data: Uint8Array, project: unknown) =>
+  createHash('sha256').update(JSON.stringify(project)).update('\0').update(data).digest('hex')
 export class DevelopmentError extends Error {
   constructor(
     readonly code: string,
@@ -121,16 +123,14 @@ export class DevelopmentWorkspace {
       return fail('DEVELOPMENT_CONTENT', 400)
     }
     if (!record(content)) fail('DEVELOPMENT_CONTENT', 400)
-    return {
-      revision: digest(bytes),
-      content,
-      project: {
-        projectId: arcadia.projectId,
-        namespace: arcadia.namespace,
-        exports: exports.map(item => ({ id: item.id as string, sourceKind: item.sourceKind as 'skill' | 'petMark' })),
-      },
+    const project = {
+      projectId: arcadia.projectId,
+      namespace: arcadia.namespace,
+      exports: exports.map(item => ({ id: item.id as string, sourceKind: item.sourceKind as 'skill' | 'petMark' })),
     }
+    return { revision: digest(bytes, project), content, project }
   }
+
   async write(revision: unknown, content: unknown) {
     if (typeof revision !== 'string' || !/^[a-f0-9]{64}$/.test(revision) || !record(content))
       fail('DEVELOPMENT_REQUEST', 400)
@@ -163,7 +163,7 @@ export class DevelopmentWorkspace {
       if (latest.revision !== revision || JSON.stringify(latest.project) !== JSON.stringify(current.project))
         fail('REVISION_CONFLICT', 409)
       await rename(temp, join(this.root, 'content.json'))
-      return { revision: digest(bytes), content, project: current.project }
+      return { revision: digest(bytes, current.project), content, project: current.project }
     } finally {
       await unlink(temp).catch(() => undefined)
       await lock.close()

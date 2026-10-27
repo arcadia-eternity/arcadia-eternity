@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parse } from 'yaml'
+import i18next from 'i18next'
+import { computed } from 'vue'
+import MarkdownIt from 'markdown-it'
+import { serverContentText, renderContentDescription } from '@/i18n/serverContent'
 import { useGameDataStore } from '../gameData'
 import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
@@ -113,4 +117,43 @@ describe('native game metadata', () => {
     expect(requests.some(ref => /effect_.*\.yaml/.test(ref))).toBe(false)
     expect(() => store.validateDataIntegrity()).not.toThrow()
   })
+})
+
+it('displays active server names and descriptions without modifying official locales', async () => {
+  const i18n = i18next.createInstance().use(serverContentText)
+  await i18n.init({
+    lng: 'zh-CN',
+    resources: { 'zh-CN': { species: { 'ugc:pet': { name: 'official' } } } },
+    postProcess: ['serverContentText'],
+  })
+  const store = useGameDataStore()
+  const species = { ...data.species[0], id: 'ugc:pet', learnable_skills: [], ability: [], emblem: [] }
+  const name = computed(() => i18n.t('ugc:pet.name', { ns: 'species', nsSeparator: false }))
+  store.applyServerEnvironment({
+    species: [{ ...species, name: '作者名称', description: '<b>plain</b> {{value}}' }],
+    skills: [{ ...data.skills[0], id: 'ugc:skill', name: '技能名称' }],
+    marks: [{ id: 'ugc:mark', description: '印记说明' }],
+  })
+  expect(name.value).toBe('作者名称')
+  const html = renderContentDescription(
+    new MarkdownIt({ html: true }),
+    '<img src=x onerror=alert(1)> **safe** [bad](javascript:alert(1))',
+    'species',
+    'ugc:pet',
+  )
+  expect(html).not.toContain('<img')
+  expect(html).not.toContain('<a')
+  expect(html).toContain('<strong>safe</strong>')
+  expect(i18n.t('ugc:pet.description', { ns: 'species' })).toBe('<b>plain</b> {{value}}')
+  expect(i18n.t('ugc:skill.name', { ns: 'skill' })).toBe('技能名称')
+  expect(i18n.t('ugc:mark.description', { ns: ['mark', 'mark_ability'] })).toBe('印记说明')
+  store.applyServerEnvironment({ species: [{ ...species, name: '另一个服务器' }], skills: [], marks: [] })
+  expect(name.value).toBe('另一个服务器')
+  expect(i18n.t('ugc:mark.description', { ns: 'mark', defaultValue: 'missing' })).toBe('missing')
+  store.clearServerEnvironment()
+  expect(name.value).toBe('official')
+  expect(i18n.getResource('zh-CN', 'species', 'ugc:pet.name')).toBe('official')
+  store.applyServerEnvironment({ species: [{ ...species, name: 'temporary' }], skills: [], marks: [] })
+  store.reset()
+  expect(name.value).toBe('official')
 })

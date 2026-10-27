@@ -27,6 +27,12 @@ export async function createNpmFixture() {
     manifest.arcadia.assets = { [sha256]: 'icon.png' }
     await writeFile(join(source, 'package.json'), JSON.stringify(manifest))
     const content = JSON.parse(await readFile(join(source, 'content.json'), 'utf8'))
+    for (const kind of ['species', 'skills', 'marks']) {
+      for (const item of content.data[kind]) {
+        item.name = `${kind} name`
+        item.description = `${kind} description`
+      }
+    }
     content.assets = [{ id: 'icon', variant: 'default', mime: 'image/png', bytes: asset.length, sha256 }]
     await writeFile(join(source, 'content.json'), JSON.stringify(content))
     const packed = await exec('npm', ['pack', '--ignore-scripts', '--json'], { cwd: source })

@@ -7,6 +7,7 @@ import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadi
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import YAML from 'yaml'
+import { setServerContentText } from '@/i18n/serverContent'
 import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -139,6 +140,7 @@ export const useGameDataStore = defineStore('gameData', {
 
   actions: {
     reset() {
+      setServerContentText(null)
       this.loaded = false
       this.gameDataLoaded = false
       this.error = null
@@ -177,9 +179,11 @@ export const useGameDataStore = defineStore('gameData', {
       this.gameDataLoaded = true
       this.error = null
       this.serverFallback = previous
+      setServerContentText(content)
     },
 
     clearServerEnvironment() {
+      setServerContentText(null)
       const previous = this.serverFallback
       if (!previous) return
       this.species = previous.species

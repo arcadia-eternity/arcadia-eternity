@@ -131,6 +131,7 @@ import ElementIcon from '@/components/battle/ElementIcon.vue'
 import { ShieldCheckIcon } from '@heroicons/vue/24/outline'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
 import MarkdownIt from 'markdown-it'
+import { renderContentDescription } from '@/i18n/serverContent'
 
 const { i18next } = useTranslation()
 const resourceStore = useResourceStore()
@@ -208,7 +209,7 @@ function getSkillDescription(): string {
 function getRenderedSkillDescription(): string {
   const description = getSkillDescription()
   if (!description) return ''
-  return md.render(description)
+  return renderContentDescription(md, description, props.type === 'skills' ? 'skill' : 'mark', props.item.id)
 }
 
 function getMarkDescription(): string {
@@ -227,7 +228,7 @@ function getMarkDescription(): string {
 function getRenderedMarkDescription(): string {
   const description = getMarkDescription()
   if (!description) return ''
-  return md.render(description)
+  return renderContentDescription(md, description, props.type === 'skills' ? 'skill' : 'mark', props.item.id)
 }
 
 function onImageError() {

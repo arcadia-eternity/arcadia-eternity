@@ -811,7 +811,7 @@
                             <!-- 技能描述 -->
                             <div
                               class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
-                              v-html="md.render(item.description)"
+                              v-html="renderContentDescription(md, item.description, 'skill', item.value)"
                             ></div>
                           </div>
                         </template>
@@ -876,7 +876,7 @@
                           <!-- 技能描述 -->
                           <div
                             class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
-                            v-html="md.render(item.description)"
+                            v-html="renderContentDescription(md, item.description, 'skill', item.value)"
                           ></div>
                         </div>
                       </template>
@@ -1142,6 +1142,7 @@ import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import RuleSetTooltip from '@/components/RuleSetTooltip.vue'
 import MarkdownIt from 'markdown-it'
+import { renderContentDescription } from '@/i18n/serverContent'
 import {
   InfoFilled,
   FolderOpened,

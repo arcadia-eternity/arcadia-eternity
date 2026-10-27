@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
+import { renderContentDescription } from '@/i18n/serverContent'
 import Tooltip from './Tooltip.vue'
 import type { MarkMessage } from '@arcadia-eternity/const'
 import { useResourceStore } from '@/stores/resource'
@@ -76,7 +77,7 @@ const duration = computed(() => props.mark.duration ?? -1)
       <h3 class="text-lg font-bold mb-2">{{ name }}</h3>
       <div
         class="text-sm text-gray-200 leading-relaxed mb-3 prose prose-invert max-w-none"
-        v-html="md.render(description)"
+        v-html="renderContentDescription(md, description, 'mark', mark.baseId)"
       ></div>
       <div class="text-xs text-gray-400 mt-2" v-if="!mark.config.persistent">剩余回合: {{ duration }}</div>
     </Tooltip>

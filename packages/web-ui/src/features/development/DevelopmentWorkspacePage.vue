@@ -9,7 +9,7 @@ import {
   type DevelopmentWorkspaceSnapshot,
 } from '@/services/developmentWorkspace'
 import { defaultRecord } from '@/features/creator/content'
-import { environmentServerUrl } from '@/services/serverEnvironment'
+import { listServerEnvironments, readServerEnvironmentContent } from '@/services/serverEnvironment'
 
 type Kind = 'species' | 'skill' | 'mark'
 type ContentRecord = Record<string, Json> & { id: string }
@@ -188,44 +188,18 @@ async function loadReferences(mode: 'catalog' | 'content') {
   referenceBusy.value = true
   try {
     if (mode === 'content' && !environmentId) return
-    const base = environmentServerUrl(requestedServer)
     const descriptor = environments.value.find(item => item.id === environmentId)
-    if (mode === 'content' && (!descriptor || !/^[a-f0-9]{64}$/.test(environmentId)))
-      throw new Error('请选择有效的服务器环境')
-    const path = mode === 'catalog' ? '/api/v1/environments' : `/api/v1/environments/${environmentId}/content`
-    const response = await globalThis.fetch(`${base}${path}`, {
-      cache: 'no-store',
-      credentials: 'omit',
-      signal: controller.signal,
-    })
-    if (!response.ok) throw new Error(`读取公开环境失败（${response.status}）`)
-    const result: unknown = await response.json()
-    if (epoch !== referenceGeneration || server.value !== requestedServer) return
-    if (!isObject(result)) throw new Error('服务器环境内容格式不正确')
+    if (mode === 'content' && !descriptor) throw new Error('请选择有效的服务器环境')
     if (mode === 'catalog') {
-      if (result.protocolVersion !== 1 || !Array.isArray(result.environments)) throw new Error('服务器环境协议不兼容')
-      environments.value = result.environments.flatMap(item => {
-        if (
-          !isObject(item) ||
-          typeof item.id !== 'string' ||
-          !/^[a-f0-9]{64}$/.test(item.id) ||
-          item.protocolVersion !== 1 ||
-          !Array.isArray(item.packages)
-        )
-          return []
-        const packages = item.packages.flatMap(pkg =>
-          isObject(pkg) && typeof pkg.projectId === 'string' && typeof pkg.namespace === 'string'
-            ? [{ projectId: pkg.projectId, namespace: pkg.namespace }]
-            : [],
-        )
-        if (packages.length !== item.packages.length) return []
-        return [{ id: item.id, packages }]
-      })
+      const result = await listServerEnvironments(requestedServer, fetch, controller.signal)
+      if (epoch !== referenceGeneration || server.value !== requestedServer) return
+      environments.value = result
       referenceEnvironment.value = ''
     } else {
-      if (!Array.isArray(result.skills) || !Array.isArray(result.marks)) throw new Error('服务器环境内容格式不正确')
+      const result = await readServerEnvironmentContent(requestedServer, environmentId, fetch, controller.signal)
+      if (epoch !== referenceGeneration || server.value !== requestedServer) return
       const packages = descriptor!.packages
-      const convert = (rows: Json[]): ReferenceOption[] =>
+      const convert = (rows: unknown[]): ReferenceOption[] =>
         rows.flatMap(row => {
           if (!isObject(row) || typeof row.id !== 'string') return []
           const runtimeId = row.id

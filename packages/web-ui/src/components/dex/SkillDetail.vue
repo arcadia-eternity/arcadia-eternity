@@ -174,6 +174,7 @@ import ElementIcon from '@/components/battle/ElementIcon.vue'
 import RelatedMarks from './RelatedMarks.vue'
 import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
 import MarkdownIt from 'markdown-it'
+import { renderContentDescription } from '@/i18n/serverContent'
 
 const { i18next } = useTranslation()
 const route = useRoute()
@@ -220,7 +221,7 @@ function getSkillDescription(): string {
 function getRenderedSkillDescription(): string {
   const description = getSkillDescription()
   if (!description) return ''
-  return md.render(description)
+  return renderContentDescription(md, description, 'skill', skill.value!.id)
 }
 
 function getElementName(): string {

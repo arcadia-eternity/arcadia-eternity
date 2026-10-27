@@ -19,10 +19,16 @@ export interface ServerEnvironmentDescriptor {
   }[]
 }
 
+/** Optional author-provided names and Markdown descriptions for the active room environment. */
+export interface ContentDisplayText {
+  name?: string
+  description?: string
+}
+
 export interface ServerEnvironmentContent {
-  species: SpeciesSchemaType[]
-  skills: Omit<SkillSchemaType, 'effect'>[]
-  marks: Pick<MarkSchemaType, 'id' | 'iconRef' | 'tags'>[]
+  species: (SpeciesSchemaType & ContentDisplayText)[]
+  skills: (Omit<SkillSchemaType, 'effect'> & ContentDisplayText)[]
+  marks: (Pick<MarkSchemaType, 'id' | 'iconRef' | 'tags'> & ContentDisplayText)[]
 }
 
 /** Client assertion of protocol/display readiness, never a code-admission credential. */

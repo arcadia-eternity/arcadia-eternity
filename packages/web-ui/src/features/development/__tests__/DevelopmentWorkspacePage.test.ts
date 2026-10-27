@@ -139,6 +139,7 @@ describe('development workspace page', () => {
     const id = 'b'.repeat(64)
     const descriptor = { id, protocolVersion: 1, packages: [{ projectId: 'other', namespace: 'other-ns' }] }
     const publicContent = {
+      species: [],
       skills: [
         { id: 'other-ns:strike', name: 'Strike' },
         { id: 'skill_base', name: 'Base' },
@@ -217,7 +218,7 @@ describe('development workspace page', () => {
             finishFirst = resolve
           }),
       )
-      .mockResolvedValueOnce(response({ skills: [{ id: 'other:new' }], marks: [] }))
+      .mockResolvedValueOnce(response({ species: [], skills: [{ id: 'other:new' }], marks: [] }))
     vi.stubGlobal('fetch', fetch)
     const wrapper = mountPage()
     await load(wrapper)
@@ -226,7 +227,7 @@ describe('development workspace page', () => {
     await wrapper.get('[data-testid="development-reference-environment"]').setValue(first)
     await wrapper.get('[data-testid="development-reference-environment"]').setValue(second)
     await flushPromises()
-    finishFirst(response({ skills: [{ id: 'other:old' }], marks: [] }))
+    finishFirst(response({ species: [], skills: [{ id: 'other:old' }], marks: [] }))
     await flushPromises()
     await wrapper.get('[data-testid="development-record"]').setValue('pet')
     expect(wrapper.get('[data-testid="development-skill-reference"]').text()).toContain('new')

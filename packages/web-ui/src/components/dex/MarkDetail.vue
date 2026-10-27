@@ -213,6 +213,7 @@ import { useResourceStore } from '@/stores/resource'
 import { useTranslation } from 'i18next-vue'
 import { ArrowLeftIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline'
 import MarkdownIt from 'markdown-it'
+import { renderContentDescription } from '@/i18n/serverContent'
 
 const { i18next } = useTranslation()
 const route = useRoute()
@@ -276,7 +277,7 @@ function getMarkDescription(): string {
 function getRenderedMarkDescription(): string {
   const description = getMarkDescription()
   if (!description) return ''
-  return md.render(description)
+  return renderContentDescription(md, description, 'mark', mark.value!.id)
 }
 
 function onImageError() {

@@ -16,8 +16,8 @@ export function environmentServerUrl(value: string): string {
   return url.toString().replace(/\/$/, '')
 }
 
-async function json<T>(url: string, request: typeof fetch): Promise<T> {
-  const response = await request(url, { cache: 'no-store' })
+async function json<T>(url: string, request: typeof fetch, signal?: AbortSignal): Promise<T> {
+  const response = await request.call(globalThis, url, { cache: 'no-store', credentials: 'omit', signal })
   if (!response.ok) throw new Error(`服务器环境请求失败（${response.status}）`)
   return response.json() as Promise<T>
 }
@@ -25,13 +25,42 @@ async function json<T>(url: string, request: typeof fetch): Promise<T> {
 export async function listServerEnvironments(
   server: string,
   request: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<ServerEnvironmentDescriptor[]> {
   const catalog = await json<{ protocolVersion: number; environments: ServerEnvironmentDescriptor[] }>(
     `${environmentServerUrl(server)}/api/v1/environments`,
     request,
+    signal,
   )
-  if (catalog.protocolVersion !== 1 || !Array.isArray(catalog.environments)) throw new Error('服务器环境协议不兼容')
-  return catalog.environments
+  if (!catalog || catalog.protocolVersion !== 1 || !Array.isArray(catalog.environments))
+    throw new Error('服务器环境协议不兼容')
+  return catalog.environments.filter(
+    item =>
+      item &&
+      typeof item.id === 'string' &&
+      /^[a-f0-9]{64}$/.test(item.id) &&
+      item.protocolVersion === 1 &&
+      Array.isArray(item.packages) &&
+      item.packages.every(pkg => pkg && typeof pkg.projectId === 'string' && typeof pkg.namespace === 'string'),
+  )
+}
+
+/** Read public metadata only; no development credential or executable code is sent. */
+export async function readServerEnvironmentContent(
+  server: string,
+  id: string,
+  request: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<ServerEnvironmentContent> {
+  if (!/^[a-f0-9]{64}$/.test(id)) throw new Error('服务器环境标识无效')
+  const content = await json<ServerEnvironmentContent>(
+    `${environmentServerUrl(server)}/api/v1/environments/${id}/content`,
+    request,
+    signal,
+  )
+  if (!content || !Array.isArray(content.species) || !Array.isArray(content.skills) || !Array.isArray(content.marks))
+    throw new Error('服务器环境内容格式不正确')
+  return content
 }
 
 /** Validate displayed bytes before acknowledging resource readiness. No effect code is fetched or executed. */
@@ -44,9 +73,7 @@ export async function prepareServerEnvironment(
   const base = environmentServerUrl(server)
   if (!/^[a-f0-9]{64}$/.test(descriptor.id) || descriptor.protocolVersion !== 1 || !Array.isArray(descriptor.resources))
     throw new Error('服务器环境协议不兼容')
-  const content = await json<ServerEnvironmentContent>(`${base}/api/v1/environments/${descriptor.id}/content`, request)
-  if (!Array.isArray(content.species) || !Array.isArray(content.skills) || !Array.isArray(content.marks))
-    throw new Error('服务器环境内容格式不正确')
+  const content = await readServerEnvironmentContent(server, descriptor.id, request)
   if (descriptor.resources.length && !subtle) throw new Error('校验展示资源需要安全连接（HTTPS 或本机地址）')
   for (const resource of descriptor.resources) {
     if (
@@ -58,7 +85,7 @@ export async function prepareServerEnvironment(
       throw new Error('服务器展示资源描述无效')
     const expected = `/api/v1/environments/${descriptor.id}/assets/${resource.sha256}`
     if (resource.url !== expected) throw new Error('服务器展示资源地址无效')
-    const response = await request(`${base}${expected}`)
+    const response = await request.call(globalThis, `${base}${expected}`, { credentials: 'omit', cache: 'no-store' })
     if (!response.ok) throw new Error(`展示资源未就绪（${response.status}）`)
     const bytes = await response.arrayBuffer()
     const digest = Array.from(new Uint8Array(await subtle!.digest('SHA-256', bytes)), byte =>

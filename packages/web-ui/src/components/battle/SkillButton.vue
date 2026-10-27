@@ -8,6 +8,7 @@ import ModifiedValue from './ModifiedValue.vue'
 import BattleMarkInfo from './BattleMarkInfo.vue'
 import { Z_INDEX } from '@/constants/zIndex'
 import MarkdownIt from 'markdown-it'
+import { renderContentDescription } from '@/i18n/serverContent'
 import i18next from 'i18next'
 import { computed, ref } from 'vue'
 import { useBattleStore } from '@/stores/battle'
@@ -221,7 +222,7 @@ const skillMarkRelations = computed(() => {
             </span>
           </div>
         </div>
-        <div v-html="md.render(description)" />
+        <div v-html="renderContentDescription(md, description, 'skill', skill.baseId)" />
 
         <!-- 技能属性详情 -->
         <div class="mt-4 border-t border-gray-600 pt-3">

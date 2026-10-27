@@ -3,7 +3,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { reactive, nextTick } from 'vue'
 
 const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  battle: { initBattle: vi.fn(), resetBattleWithoutSurrender: vi.fn() },
   client: {
+    _instance: {},
     playerId: 'host',
     serverUrl: 'https://server-a.test',
     on: vi.fn(),
@@ -34,13 +37,14 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
 }))
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ currentRoute: { value: { path: '/', query: {} } }, push: vi.fn() }),
+  useRouter: () => ({ currentRoute: { value: { path: '/', query: {} } }, push: mocks.push }),
 }))
 vi.mock('@/stores/battleClient', async () => {
   const { reactive } = await import('vue')
   return { useBattleClientStore: () => reactive(mocks.client) }
 })
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => mocks.auth }))
+vi.mock('@/stores/battle', () => ({ useBattleStore: () => mocks.battle }))
 vi.mock('@/stores/player', () => ({ usePlayerStore: () => ({}) }))
 vi.mock('@/stores/petStorage', () => ({ usePetStorageStore: () => ({ getCurrentTeam: () => [] }) }))
 vi.mock('@/stores/gameData', () => ({ useGameDataStore: () => mocks.gameData }))
@@ -283,4 +287,85 @@ it('does not apply a response from an old server even when both servers use the 
   await expect(joining).rejects.toThrow('房间环境已变化')
   expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalled()
   expect(mocks.client.leavePrivateRoom).not.toHaveBeenCalled()
+})
+
+for (const fails of [false, true]) {
+  it(`ignores an old battle initialization after switching servers (${fails ? 'failure' : 'success'})`, async () => {
+    let finish!: () => void
+    mocks.battle.initBattle.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          finish = () => (fails ? reject(new Error('old connection failed')) : resolve())
+        }),
+    )
+    const store = usePrivateRoomStore()
+    store.currentRoom = {
+      config: { roomCode: 'AAAAAA', battleMode: 'server', hostPlayerId: 'host' },
+      status: 'started',
+      players: [{ playerId: 'host' }],
+      spectators: [],
+      battleRoomId: 'battle-a',
+    } as typeof store.currentRoom
+    const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
+    const old = handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'battle-a' } })
+    expect(mocks.battle.initBattle).toHaveBeenCalledOnce()
+    const isCurrent = mocks.battle.initBattle.mock.calls[0][2]
+    expect(isCurrent()).toBe(true)
+    await store.switchServer('https://server-b.test')
+    expect(isCurrent()).toBe(false)
+    finish()
+    await old
+    expect(mocks.push).not.toHaveBeenCalled()
+    expect(store.error).toBeNull()
+    expect(store.currentRoom).toBeNull()
+  })
+}
+
+it('does not initialize a P2P battle after its room lookup finishes on a different server', async () => {
+  let finish!: (room: unknown) => void
+  mocks.client.getPrivateRoomInfo.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const store = usePrivateRoomStore()
+  const room = {
+    config: { roomCode: 'AAAAAA', battleMode: 'p2p', hostPlayerId: 'host' },
+    status: 'started',
+    players: [{ playerId: 'host' }],
+    spectators: [],
+    battleRoomId: 'battle-a',
+  }
+  store.currentRoom = room as typeof store.currentRoom
+  const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
+  const old = handler({ type: 'battleStarted', data: { battleMode: 'p2p', battleRoomId: 'battle-a' } })
+  await store.switchServer('https://server-b.test')
+  finish(room)
+  await old
+  expect(store.currentRoom).toBeNull()
+  expect(mocks.battle.initBattle).not.toHaveBeenCalled()
+  expect(mocks.push).not.toHaveBeenCalled()
+})
+
+it('keeps a running battle active if leaving the old server fails', async () => {
+  const store = usePrivateRoomStore()
+  store.currentRoom = {
+    config: { roomCode: 'AAAAAA', battleMode: 'server', hostPlayerId: 'host' },
+    status: 'started',
+    players: [{ playerId: 'host' }],
+    spectators: [],
+    battleRoomId: 'battle-a',
+  } as typeof store.currentRoom
+  mocks.battle.initBattle.mockResolvedValueOnce(undefined)
+  const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
+  await handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'battle-a' } })
+  const isCurrent = mocks.battle.initBattle.mock.calls[0][2]
+  mocks.client.leavePrivateRoom.mockImplementationOnce(async () => {
+    expect(isCurrent()).toBe(true)
+    throw new Error('leave failed')
+  })
+  await expect(store.switchServer('https://server-b.test')).rejects.toThrow('leave failed')
+  expect(isCurrent()).toBe(true)
+  expect(store.currentRoom?.battleRoomId).toBe('battle-a')
 })

@@ -182,3 +182,27 @@ it('exposes editing only on an explicitly enabled loopback server with an indepe
     (await fetch(`http://127.0.0.1:${disabled.address!.port}/api/v1/development/content`, { headers })).status,
   ).toBe(404)
 }, 30000)
+
+for (const change of [
+  { projectId: 'renamed' },
+  { namespace: 'renamed' },
+  { exports: [{ id: 'other', sourceKind: 'skill' }] },
+]) {
+  it(`rejects a save after package metadata changes: ${Object.keys(change)[0]}`, async () => {
+    const root = await fixture()
+    const workspace = new DevelopmentWorkspace(root, token)
+    const initial = await workspace.read()
+    const original = await readFile(join(root, 'content.json'), 'utf8')
+    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+    Object.assign(manifest.arcadia, change)
+    await writeFile(join(root, 'package.json'), JSON.stringify(manifest))
+    await expect(workspace.write(initial.revision, { stale: true })).rejects.toMatchObject({
+      code: 'REVISION_CONFLICT',
+      status: 409,
+    })
+    expect(await readFile(join(root, 'content.json'), 'utf8')).toBe(original)
+    const refreshed = await workspace.read()
+    const saved = await workspace.write(refreshed.revision, refreshed.content)
+    expect(saved.revision).toBe((await workspace.read()).revision)
+  })
+}
