@@ -5,6 +5,7 @@ import { CliError } from '../reporting/errors'
 import { reserveOutputs, writeJson } from '../io/files'
 import { registerNpmCommands } from './npm'
 import { registerProjectCommands } from './project'
+import { registerDevPreviewCommands } from './dev-preview'
 
 function positive(value: string) {
   const n = Number(value)
@@ -173,6 +174,7 @@ export function registerCommands(program: Command, context: CommandContext) {
   validationOptions(content.command('validate')).action(validate)
   registerNpmCommands(content, context)
   registerProjectCommands(content, context)
+  registerDevPreviewCommands(content, context)
   validationOptions(program.command('validate').description('Alias for content validate')).action(validate)
   return () => exitCode
 }
