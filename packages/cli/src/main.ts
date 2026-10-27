@@ -4,6 +4,7 @@ import { CliError, diagnostic } from './reporting/errors'
 import { registerCommands } from './commands/register'
 import type { CommandContext } from './context'
 import { setGlobalLogger } from '@arcadia-eternity/battle/v4'
+import { WorkError } from '@arcadia-eternity/pack-loader/native'
 
 function write(stream: NodeJS.WriteStream, text: string): Promise<void> {
   return new Promise((resolve, reject) => stream.write(text, error => (error ? reject(error) : resolve())))
@@ -59,9 +60,14 @@ export async function runCli(args: string[], legacy?: () => Promise<void>): Prom
     return exitCode()
   } catch (error) {
     if (error instanceof CommanderError && error.exitCode === 0) return 0
-    const code = error instanceof CliError ? error.exitCode : error instanceof CommanderError ? 2 : 1
+    const code =
+      error instanceof CliError ? error.exitCode : error instanceof CommanderError || error instanceof WorkError ? 2 : 1
     const cause = error instanceof CommanderError ? new CliError('ARGUMENT_INVALID', error.message) : error
-    const report = { format: 'arcadia.cli.error', version: 1, diagnostics: [diagnostic(cause)] }
+    const report = {
+      format: 'arcadia.cli.error',
+      version: 1,
+      diagnostics: cause instanceof WorkError ? cause.diagnostics : [diagnostic(cause)],
+    }
     await context.stdout(
       args.includes('--json') ||
         args.some((arg, i) => arg === '--format=json' || (arg === '--format' && args[i + 1] === 'json'))

@@ -2,6 +2,8 @@
 
 官方效果维护在 `packs/base/src/effects/`。作者 API 通过 `@arcadia-eternity/battle/v4/authoring` 或内核的 `effectAuthoring` 命名空间使用，示例见[作者 API 示例](../../packages/battle/design/effect-authoring/README.md)。
 
+新的 npm 代码包使用 `defineCodeEffect` 和宿主注入的 SDK，见 [npm 内容包](npm-content.md)。运行时参数继续支持其他效果修改；取消的是强制的效果参数表单，不是参数声明、验证、作用域或生命周期。
+
 ## 一次执行
 
 `defineEffect` 的 `on` 推导事件类型，`compileEffect` 适配为现有 Effect。直接事件与 `contexts.nearestSkillUse` 等祖先查询分别使用；嵌套伤害/效果不能凭直接父级推断施放者。
@@ -34,11 +36,11 @@
 
 实例印记参数在 OnMarkCreated 之前注入。叠层合并时校验参数兼容性，冲突在副作用前拒绝；快照注册同一参数合同。
 
-## 可信模板、作品与执行预算
+## 内容包、兼容模板与执行预算
 
-普通 UGC 选择、配置和组合已安装且获准的原生模板。定义、独立使用、公开参数及结构化引用见[可复用行为与独立使用](behavior-uses.md)，作品草稿、固定版本与环境准备见[UGC 作品](ugc-works.md)。新的执行逻辑在 TypeScript 中开发，普通作品不能携带脚本、任意计算表达式或 Rule Graph。
+UGC 新效果直接以 TypeScript 编写，经 npm 产物安装和宿主准入执行。已有模板载荷继续兼容；定义、独立使用、参数及结构化引用见[可复用行为与独立使用](behavior-uses.md)。旧草稿／固定版本合同见[UGC 作品](ugc-works.md)。浏览器使用服务器内容与状态，服务器目录和客户端接入的剩余验收见 #244／#224。
 
-目标选择、数值计算、捕获／跟随与属性贡献由本文的原生作者 API 提供。模板固定事件、来源与执行流程，只公开有设计意义的有限参数；不要求将 TS 实现转换为可展开规则。
+目标选择、数值计算、捕获／跟随与属性贡献由本文的原生作者 API 提供。复用通过普通 TS 函数和类型化配置完成；不继续建设通用模板目录、效果表单或可展开规则。
 
 旧数据规则编译器、能力注册表、Rule Graph、规则包环境与相关 JSON 示例已移除。原生作者直接使用 `defineEffect`、`compileEffect`、目标选择和操作 API；复用行为通过 `defineNativeBehavior` 导出，不经过第二套规则语言。
 

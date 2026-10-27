@@ -63,6 +63,10 @@ test('root offline bundle configuration runs offline CLI checks', () => {
   assert.deepEqual(affectedBattleJobs(['rolldown.config.js'], packages), { ...none, cli: true })
 })
 
+test('npm authoring examples run their compilation and actual package acceptance in CLI CI', () => {
+  assert.deepEqual(affectedBattleJobs(['examples/ugc/slow/src/effects.ts'], packages), { ...none, cli: true })
+})
+
 for (const path of [
   'packages/web-ui/src/pages/localBattlePage.vue',
   'resource/background.yaml',

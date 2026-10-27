@@ -224,3 +224,5 @@ jobs:
         run: pnpm typecheck:cli
       - name: Run relocated offline CLI and lifecycle regressions
         run: pnpm test:cli
+      - name: Verify standard npm artifacts, admission and content environments
+        run: pnpm --filter @arcadia-eternity/pack-loader test:run

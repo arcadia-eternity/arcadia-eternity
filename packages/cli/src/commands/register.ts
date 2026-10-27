@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import type { CommandContext } from '../context'
 import { CliError } from '../reporting/errors'
 import { reserveOutputs, writeJson } from '../io/files'
+import { registerNpmCommands } from './npm'
 
 function positive(value: string) {
   const n = Number(value)
@@ -16,6 +17,8 @@ function battleOptions(command: Command) {
     .requiredOption('-2, --player2 <path>', 'Second team YAML/JSON')
     .option('--pack-ref <ref>', 'Content manifest or built-in pack', 'builtin:workspace')
     .option('--works <path>', 'Selected immutable works from an .arcadia archive')
+    .option('--npm-project <path>', 'Installed npm environment (code requires explicit approval)')
+    .option('--approval <path>', 'Approval file; defaults to the npm project admission file')
     .option('--seed <seed>', 'Root deterministic seed', '0')
     .option('--max-turns <count>', 'Deterministic turn limit', positive, 300)
     .option('--max-actions <count>', 'Accepted input limit', positive, 10000)
@@ -51,7 +54,13 @@ export function registerCommands(program: Command, context: CommandContext) {
         import('../application/prepare'),
         import('../application/simulate'),
       ])
-      const loaded = await prepareContent(options.packRef, context.cwd, options.works)
+      const loaded = await prepareContent(
+        options.packRef,
+        context.cwd,
+        options.works,
+        options.npmProject,
+        options.approval,
+      )
       const spec = await prepareRun(options, context.cwd, loaded.content)
       const run = await simulate(loaded, spec, options.runs, {
         signal: context.signal,
@@ -63,11 +72,20 @@ export function registerCommands(program: Command, context: CommandContext) {
     })
   outputOptions(battle.command('replay').argument('<file>', 'Replay JSON'))
     .option('--verify', 'Verify recorded inputs and result (always enabled)')
+    .option('--npm-project <path>', 'Original installed npm environment')
+    .option('--approval <path>', 'Explicit npm approval file')
     .action(async (file, options) => {
       checkFormat(options)
       await reserveOutputs(options.out ? [resolve(context.cwd, options.out)] : [])
       const [{ readDocument }, { replay }] = await Promise.all([import('../io/files'), import('../application/replay')])
-      const result = await replay(await readDocument(resolve(context.cwd, file)), context.signal)
+      if (options.approval && !options.npmProject)
+        throw new CliError('CONTENT_OPTIONS', '--approval requires --npm-project')
+      const loaded = options.npmProject
+        ? await (
+            await import('../application/prepare')
+          ).prepareContent('builtin:workspace', context.cwd, undefined, options.npmProject, options.approval)
+        : undefined
+      const result = await replay(await readDocument(resolve(context.cwd, file)), context.signal, loaded)
       await emit(result.report, options, result.report.verified ? 'Replay verified' : 'Replay cancelled')
       exitCode = result.exitCode
     })
@@ -80,6 +98,8 @@ export function registerCommands(program: Command, context: CommandContext) {
     teamSelection: boolean
     packRef: string
     works?: string
+    npmProject?: string
+    approval?: string
     ai?: string
     debug?: boolean
   }) {
@@ -90,7 +110,13 @@ export function registerCommands(program: Command, context: CommandContext) {
       import('../application/run'),
       import('@arcadia-eternity/console'),
     ])
-    const loaded = await prepareContent(options.packRef, context.cwd, options.works)
+    const loaded = await prepareContent(
+      options.packRef,
+      context.cwd,
+      options.works,
+      options.npmProject,
+      options.approval,
+    )
     const spec = await prepareRun(options, context.cwd, loaded.content)
     const run = await runBattle(loaded.content, spec, {
       signal: context.signal,
@@ -111,11 +137,25 @@ export function registerCommands(program: Command, context: CommandContext) {
   }
   localOptions(battle.command('local')).action(local)
   localOptions(program.command('local').description('Alias for battle local')).action(local)
-  async function validate(options: { packRef: string; works?: string; format: string; json?: boolean; out?: string }) {
+  async function validate(options: {
+    packRef: string
+    works?: string
+    npmProject?: string
+    approval?: string
+    format: string
+    json?: boolean
+    out?: string
+  }) {
     checkFormat(options)
     await reserveOutputs(options.out ? [resolve(context.cwd, options.out)] : [])
     const { prepareContent } = await import('../application/prepare')
-    const loaded = await prepareContent(options.packRef, context.cwd, options.works)
+    const loaded = await prepareContent(
+      options.packRef,
+      context.cwd,
+      options.works,
+      options.npmProject,
+      options.approval,
+    )
     const counts = {
       effect: loaded.content.effects.length,
       mark: loaded.content.marks.length,
@@ -142,11 +182,15 @@ export function registerCommands(program: Command, context: CommandContext) {
       c
         .option('--pack-ref <ref>', 'Content manifest', 'builtin:workspace')
         .option('--works <path>', 'Selected immutable works from an .arcadia archive')
+        .option('--npm-project <path>', 'Installed and explicitly approved npm environment')
+        .option('--approval <path>', 'Explicit npm approval file')
         .option('--strict', 'Strict validation (always enabled)')
         .option('--validate-data', 'Data validation (always enabled)'),
     )
   }
-  validationOptions(program.command('content').command('validate')).action(validate)
+  const content = program.command('content')
+  validationOptions(content.command('validate')).action(validate)
+  registerNpmCommands(content, context)
   validationOptions(program.command('validate').description('Alias for content validate')).action(validate)
   return () => exitCode
 }

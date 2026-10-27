@@ -34,6 +34,7 @@ export interface NativeWorkSelection {
 }
 export interface NativePackLoadResult extends NativePackMetadataResult, NativeContentResult {
   works?: NativeWorkSelection
+  npm?: { installationDigest: string }
 }
 interface MetadataPack {
   manifest: PackManifest

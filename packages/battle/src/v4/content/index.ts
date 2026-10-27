@@ -16,3 +16,4 @@ export type { PublicParameterSlot, PublicParameterBindings, ParameterBindingsFor
 export { defineMarkInstanceParams, type MarkInstanceParams } from './mark-parameters'
 export type { EnvironmentBuildIdentity } from './environment'
 export * from './behaviors'
+export * from './code-effects'

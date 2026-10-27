@@ -1,0 +1,39 @@
+{
+  "name": "@arcadia-example/slow",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "files": [
+    "content.json",
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@arcadia-eternity/battle": "1.0.0",
+    "@arcadia-eternity/pack-loader": "1.0.0",
+    "@types/node": "25.6.0",
+    "typescript": "6.0.3"
+  },
+  "arcadia": {
+    "formatVersion": 1,
+    "projectId": "example-slow",
+    "namespace": "example-slow",
+    "content": "content.json",
+    "effects": "dist/effects.js",
+    "sdkApi": 1,
+    "exports": [
+      {
+        "id": "apply-slow",
+        "sourceKind": "skill"
+      },
+      {
+        "id": "speed-penalty",
+        "sourceKind": "petMark"
+      }
+    ]
+  }
+}

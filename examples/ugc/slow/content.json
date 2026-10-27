@@ -1,0 +1,61 @@
+{
+  "data": {
+    "species": [
+      {
+        "id": "pet",
+        "num": 1,
+        "element": "Normal",
+        "baseStats": { "hp": 100, "atk": 100, "def": 100, "spa": 100, "spd": 100, "spe": 100 },
+        "genderRatio": null,
+        "heightRange": [1, 2],
+        "weightRange": [1, 2],
+        "ability": [],
+        "emblem": [],
+        "learnable_skills": [
+          {
+            "skill_id": { "$ref": { "projectId": "example-slow", "kind": "skill", "id": "strike" } },
+            "level": 1,
+            "hidden": false
+          }
+        ]
+      }
+    ],
+    "skills": [
+      {
+        "id": "strike",
+        "element": "Normal",
+        "category": "Physical",
+        "power": 40,
+        "rage": 0,
+        "accuracy": 100,
+        "behaviors": [
+          {
+            "useId": "slow",
+            "definitionId": { "$ref": { "projectId": "example-slow", "kind": "behavior", "id": "apply-slow" } }
+          }
+        ]
+      }
+    ],
+    "marks": [
+      {
+        "id": "slow",
+        "tags": ["status"],
+        "config": {
+          "duration": 2,
+          "persistent": false,
+          "maxStacks": 1,
+          "stackable": true,
+          "stackStrategy": "refresh",
+          "keepOnSwitchOut": true
+        },
+        "behaviors": [
+          {
+            "useId": "speed",
+            "definitionId": { "$ref": { "projectId": "example-slow", "kind": "behavior", "id": "speed-penalty" } }
+          }
+        ]
+      }
+    ],
+    "behaviors": []
+  }
+}

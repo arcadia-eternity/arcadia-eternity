@@ -1,4 +1,5 @@
 import type { BehaviorDefinition, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
+import { valid as validVersion } from 'semver'
 import {
   WorkError,
   canonical,
@@ -22,7 +23,7 @@ import {
 } from './model'
 
 const hashPattern = /^[a-f0-9]{64}$/
-const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[a-zA-Z0-9.-]+)?$/
+const versionPattern = { test: (value: unknown) => typeof value === 'string' && validVersion(value) === value }
 function checkAssets(assets: readonly WorkAsset[]): void {
   const seen = new Set<string>()
   let total = 0

@@ -44,9 +44,11 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/schema": "workspace:^",
+    "semver": "7.7.3",
     "yaml": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "@types/semver": "7.7.1"
   }
 }

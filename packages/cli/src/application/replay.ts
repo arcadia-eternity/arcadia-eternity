@@ -5,6 +5,7 @@ import { createLoader } from './prepare'
 import { runBattle } from './run'
 import { CliError, message } from '../reporting/errors'
 import type { Replay } from './types'
+import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
 
 function validate(value: unknown): asserts value is Replay {
   const r = value as Replay | null
@@ -50,21 +51,31 @@ function firstDifference(actual: unknown, expected: unknown, path = 'result'): s
   }
   return path
 }
-export async function replay(value: unknown, signal: AbortSignal) {
+export async function replay(value: unknown, signal: AbortSignal, npmEnvironment?: NativePackLoadResult) {
   try {
     validate(value)
-    if (!isDeepStrictEqual(value.environment.build, nativeBuildIdentity))
+    if (value.environment.npm && (!npmEnvironment || !isDeepStrictEqual(value.environment.npm, npmEnvironment.npm)))
+      throw new CliError(
+        'REPLAY_NPM',
+        'Replay requires the original separately installed and approved npm environment',
+        3,
+      )
+    if (!value.environment.npm && npmEnvironment)
+      throw new CliError('REPLAY_NPM', 'This replay does not use an npm environment', 3)
+    if (!isDeepStrictEqual(value.environment.build, npmEnvironment?.build ?? nativeBuildIdentity))
       throw new CliError('REPLAY_BUILD', 'Replay requires a different trusted build', 3)
     const works = value.environment.works
-    const loaded = works
-      ? await createLoader().fromWorks(works.base, works.selected, works.installed)
-      : await createLoader().fromMetadata(value.environment.data, {
-          packs: value.environment.packs,
-          expectedRevision: value.environment.revision,
-        })
+    const loaded =
+      npmEnvironment ??
+      (works
+        ? await createLoader().fromWorks(works.base, works.selected, works.installed)
+        : await createLoader().fromMetadata(value.environment.data, {
+            packs: value.environment.packs,
+            expectedRevision: value.environment.revision,
+          }))
     if (loaded.revision !== value.environment.revision)
       throw new CliError('REPLAY_ENVIRONMENT', 'Replay environment revision mismatch', 3)
-    if (works && (!('data' in loaded) || !isDeepStrictEqual(loaded.data, value.environment.data)))
+    if ((works || npmEnvironment) && (!('data' in loaded) || !isDeepStrictEqual(loaded.data, value.environment.data)))
       throw new CliError('REPLAY_ENVIRONMENT', 'Replay compiled data mismatch', 3)
     const run = await runBattle(loaded.content, value.spec, {
       signal,
