@@ -35,3 +35,4 @@ test-results
 
 .eslintrc-auto-import.json
 .static-assets-cache/
+/release-preview/

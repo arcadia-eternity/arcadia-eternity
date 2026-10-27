@@ -22,4 +22,12 @@ node scripts/stage-desktop-runtime.mjs --output packages/web-ui/dist/arcadia-ser
 
 Electron Builder 的正式配置会在打包前检查 staging 清单，并在打包后重新核对复制结果；运行 `pnpm --filter @arcadia-eternity/web-ui build:desktop` 会先构建、准备运行时再打包。默认 staging 和发行构建在许可证资料不完整时失败。`--allow-incomplete-notices` 仅用于生成本机测试目录，其清单标为 `releaseReady: false`；这不是发行许可。当前自有包的 MIT 许可署名仍待补充，部分第三方包的许可证文本或声明也待核对。不要把测试目录用于发布。
 
+本机功能验证可以使用独立预览构建：
+
+```sh
+pnpm --filter @arcadia-eternity/web-ui build:desktop:preview
+```
+
+此命令生成名称为 `Arcadia Eternity Preview` 的未发布应用目录，输出到 `packages/web-ui/release-preview/`；它允许许可证清单待补，但仍在打包前后校验运行时摘要及实际复制的资源。清单保留待核对项和真实的 `releaseReady` 值。预览命令不会推送或发布；正式构建仍使用原来的完整许可证检查。
+
 当前 Renderer 的启动、状态和连接界面需与桌面桥一同使用；在真实安装包上断网运行、版本升级保留数据、导出/恢复服务器项目和动态切换远程服务器仍未验收。`local-battle-host.test.mjs` 使用真实本机回环端口及模拟 CLI，检查启动、错误、身份、退出和父进程异常；设置 `ARCADIA_DESKTOP_REAL_HOST=1` 后运行 `local-battle-real.test.mjs`，可通过本机 Node 子进程离线安装并启动真实示例、检查 CORS 和未准入拒绝。macOS ARM64 的本机测试目录已用打包内 Electron、npm、CLI 和 Base 运行真实 UGC 测试，验证批准内容启动及批准记录变化后的拒绝；该测试目录的许可证资料不完整，不可发行。这些测试不代替签名安装包验收。
