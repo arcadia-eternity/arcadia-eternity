@@ -23,6 +23,34 @@ const references = Object.fromEntries(
   }),
 )
 
+// These complete, package-supplied notices contain legitimate attribution or
+// named BSD endorsements that the generic matcher cannot safely infer. The
+// allowance applies only to the exact package version and exact original bytes.
+// See desktop-license-reference/README.md for the preserved source texts.
+const verifiedPackageTexts = new Map(
+  [
+    ['balanced-match', '4.0.4', 'd408f38ffa3355c5faec517153295338892eb0f1ea43f57874bb23c6075979b5', 'MIT'],
+    ['pngjs', '7.0.0', 'be75ef59c5cf59715588a17a82dff7dd3e83c4dba3c458676bb9311e05fbedc5', 'MIT'],
+    ['diff', '8.0.4', 'eda81a415869e67809f6a9f3fd6056062cb83a462118e07eec5e92b2e0c40ce9', 'BSD-3-Clause'],
+    ['esquery', '1.7.0', 'ac68116ae73740de4190892f334992e449a124600924ec761e64319d3aac9e6e', 'BSD-3-Clause'],
+    [
+      'istanbul-lib-coverage',
+      '3.2.2',
+      'e09f9b52c6ce5c17ba8103cd0cbf446c33b5448b0c1d01d711b36a1f15a501ba',
+      'BSD-3-Clause',
+    ],
+    [
+      'istanbul-lib-report',
+      '3.0.1',
+      'e09f9b52c6ce5c17ba8103cd0cbf446c33b5448b0c1d01d711b36a1f15a501ba',
+      'BSD-3-Clause',
+    ],
+    ['istanbul-reports', '3.2.0', 'e09f9b52c6ce5c17ba8103cd0cbf446c33b5448b0c1d01d711b36a1f15a501ba', 'BSD-3-Clause'],
+    ['source-map-js', '1.2.2', '6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd', 'BSD-3-Clause'],
+    ['tough-cookie', '5.1.2', '22ec6791c91ba42c0516a05f4cbdde019aae4687f8a38c5ca7e8a69ee68f851d', 'BSD-3-Clause'],
+  ].map(([name, version, digest, license]) => [JSON.stringify([name, version, digest]), license]),
+)
+
 function normalizedTerms(text) {
   return text
     .normalize('NFKC')
@@ -278,6 +306,11 @@ export async function collectDesktopLicenses(runtimeRoot, { repositoryLicense, e
       const isLicense = LICENSE_NAME.test(entry.name) && !isNotice
       const content = await regularFile(file)
       const recognized = recognizedLicenseTexts(content.toString('utf8'))
+      if (isLicense) {
+        const digest = createHash('sha256').update(content).digest('hex')
+        const verified = verifiedPackageTexts.get(JSON.stringify([metadata.name, metadata.version, digest]))
+        if (verified && !recognized.includes(verified)) recognized.push(verified)
+      }
       if (README_NAME.test(entry.name) && !recognized.length) continue
       files.push({
         ...(await preserve(file, relative(root, file).split(sep).join('/'))),

@@ -74,6 +74,9 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
       LICENSE: mit,
     })
     await f.pkg('node_modules/@arcadia-eternity/mismatch', '@arcadia-eternity/mismatch', 'MIT')
+    await f.pkg('node_modules/@arcadia-eternity/mpl-mismatch', '@arcadia-eternity/mpl-mismatch', 'MIT', {
+      LICENSE: await readFile(f.options.repositoryLicense),
+    })
     await f.pkg('node_modules/@arcadia-eternity/base', '@arcadia-eternity/base', undefined)
     await f.pkg('node_modules/@arcadia-eternity/mpl', '@arcadia-eternity/mpl', 'MPL-2.0')
     await f.pkg('node_modules/.pnpm/mismatch/node_modules/mismatch', 'mismatch', 'MIT', { LICENSE: bsd })
@@ -89,6 +92,7 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
       [
         '@arcadia-eternity/base',
         '@arcadia-eternity/mismatch',
+        '@arcadia-eternity/mpl-mismatch',
         'combined',
         'd',
         'e',
@@ -97,7 +101,7 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
         'unattributed',
       ],
     )
-    assert.equal(result.packages.length, 15)
+    assert.equal(result.packages.length, 16)
     assert.equal(result.electron.length, 2)
     const a = result.packages.find(record => record.name === 'a')
     const b = result.packages.find(record => record.name === 'b')
@@ -116,6 +120,10 @@ test('inventories physical dependencies and bundled npm licenses, deduplicates b
     )
     assert.equal(
       result.missing.find(record => record.name === 'mismatch').reason,
+      'unmatched-or-unsupported-declaration',
+    )
+    assert.equal(
+      result.missing.find(record => record.name === '@arcadia-eternity/mpl-mismatch').reason,
       'unmatched-or-unsupported-declaration',
     )
   } finally {
@@ -200,6 +208,96 @@ test('matches the complete pinned SPDX terms, while preserving conflicts and cha
         packages.find(item => item[0] === name)[2],
       )
     }
+  } finally {
+    await rm(f.root, { recursive: true, force: true })
+  }
+})
+
+test('recognizes exact reviewed package notices without accepting changed bytes or different package identities', async () => {
+  const f = await fixture()
+  try {
+    const fixtures = [
+      ['balanced-match', '4.0.4', 'MIT', 'balanced-match-4.0.4.txt'],
+      ['pngjs', '7.0.0', 'MIT', 'pngjs-7.0.0.txt'],
+      ['diff', '8.0.4', 'BSD-3-Clause', 'diff-8.0.4.txt'],
+      ['esquery', '1.7.0', 'BSD-3-Clause', 'esquery-1.7.0.txt'],
+      ['istanbul-lib-coverage', '3.2.2', 'BSD-3-Clause', 'istanbul-licenses.txt'],
+      ['istanbul-lib-report', '3.0.1', 'BSD-3-Clause', 'istanbul-licenses.txt'],
+      ['istanbul-reports', '3.2.0', 'BSD-3-Clause', 'istanbul-licenses.txt'],
+      ['source-map-js', '1.2.2', 'BSD-3-Clause', 'source-map-js-1.2.2.txt'],
+      ['tough-cookie', '5.1.2', 'BSD-3-Clause', 'tough-cookie-5.1.2.txt'],
+    ]
+    for (const [name, version, license, file] of fixtures) {
+      const contents = await readFile(new URL(`./desktop-license-reference/packages/${file}`, import.meta.url))
+      await f.pkg(`node_modules/.pnpm/${name}/node_modules/${name}`, name, license, { LICENSE: contents }, { version })
+    }
+    const balanced = await readFile(
+      new URL('./desktop-license-reference/packages/balanced-match-4.0.4.txt', import.meta.url),
+    )
+    await f.pkg(
+      'node_modules/.pnpm/other/node_modules/other',
+      'other',
+      'MIT',
+      { LICENSE: balanced },
+      { version: '4.0.4' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/newer/node_modules/newer',
+      'balanced-match',
+      'MIT',
+      { LICENSE: balanced },
+      { version: '4.0.5' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/changed/node_modules/changed',
+      'balanced-match',
+      'MIT',
+      {
+        LICENSE: Buffer.concat([balanced, Buffer.from('\nAdditional restrictions apply.\n')]),
+      },
+      { version: '4.0.4' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/wrong/node_modules/wrong',
+      'balanced-match',
+      'BSD-3-Clause',
+      { LICENSE: balanced },
+      { version: '4.0.4' },
+    )
+    await f.pkg(
+      'node_modules/.pnpm/notice/node_modules/notice',
+      'balanced-match',
+      'MIT',
+      { NOTICE: balanced },
+      { version: '4.0.4' },
+    )
+    await f.pkg('runtime/npm', 'npm', 'MIT', { LICENSE: mit })
+    const result = await collectDesktopLicenses(f.runtime, f.options)
+    for (const [name, version, license] of fixtures) {
+      const record = result.packages.find(
+        item => item.packagePath === `node_modules/.pnpm/${name}/node_modules/${name}`,
+      )
+      assert.equal(record.version, version)
+      assert.deepEqual(record.recognizedLicenses, [license])
+      assert.deepEqual(
+        await readFile(join(f.runtime, record.files[0].path)),
+        await readFile(
+          new URL(
+            `./desktop-license-reference/packages/${fixtures.find(item => item[0] === name)[3]}`,
+            import.meta.url,
+          ),
+        ),
+      )
+      assert.equal(
+        result.missing.some(item => item.packagePath === record.packagePath),
+        false,
+      )
+    }
+    for (const name of ['other', 'newer', 'changed', 'wrong', 'notice'])
+      assert.equal(
+        result.missing.some(item => item.packagePath === `node_modules/.pnpm/${name}/node_modules/${name}`),
+        true,
+      )
   } finally {
     await rm(f.root, { recursive: true, force: true })
   }
