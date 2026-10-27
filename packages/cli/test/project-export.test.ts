@@ -133,14 +133,14 @@ it('requires a source admission record and leaves no output when it is absent', 
   expect(await exists(output)).toBe(false)
 })
 
-it('rejects changed, unapproved effect code without executing it or creating output', async () => {
+it('reports errors in locally edited code without revoking project approval or creating output', async () => {
   const dir = await copySource('changed-unapproved-source')
   await writeFile(
     join(dir, 'node_modules/@arcadia-example/slow/dist/effects.js'),
-    "throw new Error('UNAPPROVED_CODE_EXECUTED')\n",
+    "throw new Error('LOCAL_CODE_EXECUTED')\n",
   )
   const output = join(temporary, 'changed-unapproved-output')
-  await expect(exportProject(dir, output, true)).rejects.toMatchObject({ code: 'NPM_NOT_APPROVED' })
+  await expect(exportProject(dir, output, true)).rejects.toThrow('LOCAL_CODE_EXECUTED')
   expect(await exists(output)).toBe(false)
 })
 
@@ -246,14 +246,13 @@ it('rejects tampered tarball bytes before creating output', async () => {
   expect(await exists(output)).toBe(false)
 })
 
-it('does not export an approved installation whose files cannot be reconstructed from the retained tarball', async () => {
+it('exports the retained artifact without policing local code file edits', async () => {
   const dir = await copySource('locally-modified-installation')
   const compiled = join(dir, 'node_modules/@arcadia-example/slow/dist/effects.js')
   await writeFile(compiled, (await readFile(compiled, 'utf8')) + '\n// approved local modification\n')
-  await approval(dir, (await inspectNpmProject(dir)).digest)
   const output = join(temporary, 'modified-installation-output')
-  await expect(exportProject(dir, output, true)).rejects.toMatchObject({ code: 'PROJECT_MISMATCH' })
-  expect(await exists(output)).toBe(false)
+  expect((await exportProject(dir, output, true)).installationDigest).toBe(installedDigest)
+  expect(await exists(join(output, 'arcadia-deployment.json'))).toBe(true)
 })
 
 it.each([

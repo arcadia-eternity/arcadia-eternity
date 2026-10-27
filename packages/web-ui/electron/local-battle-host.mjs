@@ -232,8 +232,8 @@ export class LocalBattleHost {
         )
         child.once('error', () => finish(problem('SERVER_START_FAILED', '无法启动本机对战服务')))
         child.once('close', () => {
-          if (stderr.includes('explicitly approved installation'))
-            finish(problem('NPM_NOT_APPROVED', '安装内容与批准记录不一致，请重新检查并准入'))
+          if (stderr.includes('Expected an explicit npm project approval'))
+            finish(problem('NPM_NOT_APPROVED', '项目缺少有效的代码准入记录'))
           else if (/spawn npm ENOENT/.test(stderr))
             finish(problem('NPM_RUNTIME_MISSING', '未找到可运行的 npm 检查工具'))
           else if (stderr.includes('npm rejected the installed dependency tree'))

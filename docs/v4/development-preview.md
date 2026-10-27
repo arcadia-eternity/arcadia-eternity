@@ -10,13 +10,13 @@ node dist/cli.js content dev prepare /path/to/source /path/to/new-candidate --ru
 
 `--run-build` 是管理员对该项目 `npm run build` 的显式授权，构建脚本可执行任意本机代码。命令不会运行 prebuild、postbuild、打包或安装生命周期脚本，也不会运行测试。要执行作者测试，管理员须在项目中另行手动执行其测试命令。不加 `--run-build` 时仅打包已有输出；输出可能与当前源码不一致，不能将此时的源码指纹当作构建证明。需要只使用已缓存的依赖时加 `--offline`。
 
-输出和候选中的 `arcadia-preview.json` 记录源码指纹、包摘要、完整安装摘要和是否执行了构建。源码指纹覆盖源码目录中的普通文件（包括内容、代码和配置），排除 `.git`、`node_modules`、`dist`；不支持其他符号链接。它不记录构建依赖或构建工具的身份，不能证明构建可复现。构建、打包及准备期间检测到源码变化会失败；构建输出应写入 `dist`。包摘要代表实际打包文件，并非环境身份。候选安装失败不会改变已有环境或房间。
+输出和候选中的 `arcadia-preview.json` 记录源码指纹、包摘要、依赖与内容元数据摘要和是否执行了构建。源码指纹覆盖源码目录中的普通文件（包括内容、代码和配置），排除 `.git`、`node_modules`、`dist`；不支持其他符号链接。它不记录构建依赖或构建工具的身份，不能证明构建可复现。构建、打包及准备期间检测到源码变化会失败；构建输出应写入 `dist`。包摘要代表实际打包文件，并非环境身份。候选安装失败不会改变已有环境或房间。
 
-准备完成不会准入或运行内容代码。先检查安装内容，再由管理员使用上一步的实际安装摘要单独准入：
+准备完成不会准入或运行内容代码。先检查安装内容，再由管理员单独准入该项目；后续本地改动不要求重新批准：
 
 ```sh
 node dist/cli.js content npm inspect /path/to/new-candidate --json
-node dist/cli.js content npm approve /path/to/new-candidate --digest <installation-digest> --profile local-development
+node dist/cli.js content npm approve /path/to/new-candidate --profile local-development
 node dist/cli.js content validate --npm-project /path/to/new-candidate --json
 ```
 

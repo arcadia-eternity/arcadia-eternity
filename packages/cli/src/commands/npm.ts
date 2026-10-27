@@ -48,7 +48,7 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
       await report(
         result,
         !!options.json,
-        `Installed ${result.packages.length} packages. Review and approve ${result.digest} before execution.`,
+        `Installed ${result.packages.length} packages. Review and approve the project before execution.`,
       )
     })
   npm
@@ -67,21 +67,18 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
   npm
     .command('approve')
     .argument('<directory>')
-    .requiredOption('--digest <sha256>', 'Exact inspected installation digest to authorize')
+    .option('--digest <sha256>', 'Legacy option; ignored because approval is not bound to local file contents')
     .requiredOption('--profile <profile>', 'local-development, self-hosted or official (administrator decision)')
     .option('--out <path>', 'New approval file; defaults to arcadia-admission.json in the environment')
     .option('--json', 'JSON output')
-    .action(async (directory: string, options: { digest: string; profile: string; out?: string; json?: boolean }) => {
+    .action(async (directory: string, options: { profile: string; out?: string; json?: boolean }) => {
       if (!['local-development', 'self-hosted', 'official'].includes(options.profile))
         throw new CliError('NPM_PROFILE', 'Expected local-development, self-hosted or official')
-      const cwd = resolve(context.cwd, directory),
-        installation = await inspectNpmProject(cwd)
-      if (installation.digest !== options.digest)
-        throw new CliError('NPM_CHANGED', 'Inspection digest changed; inspect the complete dependency tree again')
+      const cwd = resolve(context.cwd, directory)
+      await inspectNpmProject(cwd)
       const approval = {
         format: 'arcadia.npm-admission',
-        version: 1,
-        installationDigest: installation.digest,
+        version: 2,
         profile: options.profile,
       }
       const file = options.out ? resolve(context.cwd, options.out) : resolve(cwd, 'arcadia-admission.json')
@@ -89,7 +86,7 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
       await report(
         approval,
         !!options.json,
-        `Approved installed code and dependencies: ${installation.digest}\n${file}`,
+        `Approved npm project (${options.profile}). Local edits do not require renewed approval.\n${file}`,
       )
     })
 }

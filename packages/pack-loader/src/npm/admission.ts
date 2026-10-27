@@ -6,11 +6,9 @@ export async function readNpmAdmission(file: string) {
   const record = JSON.parse(await readFile(file, 'utf8'))
   if (
     record?.format !== 'arcadia.npm-admission' ||
-    record.version !== 1 ||
-    !['local-development', 'self-hosted', 'official'].includes(record.profile) ||
-    typeof record.installationDigest !== 'string' ||
-    !/^[a-f0-9]{64}$/.test(record.installationDigest)
+    ![1, 2].includes(record.version) ||
+    !['local-development', 'self-hosted', 'official'].includes(record.profile)
   )
-    fail('NPM_ADMISSION', file, 'Expected an explicit npm installation approval')
-  return { installationDigest: record.installationDigest as string, policy: { profile: record.profile as string } }
+    fail('NPM_ADMISSION', file, 'Expected an explicit npm project approval')
+  return { policy: { profile: record.profile as string } }
 }

@@ -13,7 +13,7 @@ const exec = promisify(execFile)
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
 
 test(
-  'desktop child runs the actual approved npm environment and rejects changed approval',
+  'desktop child accepts local edits and rejects an invalid project approval',
   {
     timeout: 90000,
     skip: process.env.ARCADIA_DESKTOP_REAL_HOST !== '1',
@@ -83,6 +83,11 @@ test(
         join(directory, 'arcadia-admission.json'),
         JSON.stringify({ ...admission, installationDigest: '0'.repeat(64) }),
       )
+      const effects = join(directory, 'node_modules/@arcadia-example/slow/dist/effects.js')
+      await writeFile(effects, (await readFile(effects, 'utf8')) + '\n// local changes are allowed\n')
+      assert.equal((await host.start(directory)).status, 'running')
+      await host.stop()
+      await writeFile(join(directory, 'arcadia-admission.json'), JSON.stringify({ ...admission, profile: 'invalid' }))
       await assert.rejects(host.start(directory), { code: 'NPM_NOT_APPROVED' })
     } finally {
       await host.stop()

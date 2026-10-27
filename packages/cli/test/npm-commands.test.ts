@@ -84,20 +84,15 @@ it('installs, inspects and requires separate explicit approval before executing 
   expect(digest).toMatch(/^[a-f0-9]{64}$/)
   expect((await invoke(['content', 'npm', 'inspect', environment])).digest).toBe(digest)
   expect((await invoke(['content', 'validate', '--npm-project', environment], 2)).diagnostics).toHaveLength(1)
-  await invoke(['content', 'npm', 'approve', environment, '--digest', 'wrong', '--profile', 'local-development'], 2)
-  const approved = await invoke([
-    'content',
-    'npm',
-    'approve',
-    environment,
-    '--digest',
-    digest,
-    '--profile',
-    'local-development',
-  ])
-  expect(approved.installationDigest).toBe(digest)
+  const approved = await invoke(['content', 'npm', 'approve', environment, '--profile', 'local-development'])
+  expect(approved).toEqual({ format: 'arcadia.npm-admission', version: 2, profile: 'local-development' })
   const validated = await invoke(['content', 'validate', '--npm-project', environment])
   expect(validated.valid).toBe(true)
+  const admission = await readFile(join(environment, 'arcadia-admission.json'), 'utf8')
+  const effects = join(environment, 'node_modules/@arcadia-example/slow/dist/effects.js')
+  await writeFile(effects, (await readFile(effects, 'utf8')) + '\n// Local edit, no renewed approval required.\n')
+  expect((await invoke(['content', 'validate', '--npm-project', environment])).valid).toBe(true)
+  expect(await readFile(join(environment, 'arcadia-admission.json'), 'utf8')).toBe(admission)
   await invoke(['content', 'npm', 'install', environment, '--offline'], 2)
 }, 60000)
 

@@ -36,7 +36,6 @@ export interface InstalledNpmPackage {
   location: string
   name: string
   version: string
-  filesDigest: string
   integrity?: string
   dependencies: Record<string, string>
   manifest?: NpmContentManifest
@@ -45,7 +44,7 @@ export interface InstalledNpmPackage {
 export interface NpmProjectInspection {
   format: 'arcadia.npm-installation'
   version: 1
-  /** Actual installed bytes and dependency edges, independent of the absolute installation directory. */
+  /** Content metadata and dependency graph, not a fingerprint of locally editable code files. */
   digest: string
   /** Audit identity of npm's source/solver record, not a replacement for tarball integrity. */
   lockfileDigest: string
@@ -80,40 +79,6 @@ async function jsonFile(file: string): Promise<Record<string, Json>> {
   if (!info.isFile() || info.size > 32 * 1024 * 1024) fail('NPM_FILE', file, 'Expected a bounded regular JSON file')
   const value: unknown = JSON.parse(await readFile(file, 'utf8'))
   return record(cloneJson(value), file)
-}
-
-async function packageDigest(dir: string): Promise<string> {
-  const files: [string, string][] = []
-  let bytes = 0,
-    nodes = 0
-  async function visit(directory: string, prefix: string, depth = 0) {
-    if (depth > 64) fail('NPM_LIMIT', prefix, 'Installed package directory nesting exceeds inspection limits')
-    for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
-      a.name < b.name ? -1 : 1,
-    )) {
-      if (++nodes > 50000) fail('NPM_LIMIT', prefix, 'Installed package exceeds inspection limits')
-      if (entry.name === 'node_modules') continue
-      const file = resolve(directory, entry.name),
-        name = `${prefix}${entry.name}`
-      if (entry.isSymbolicLink()) fail('NPM_LINK', name, 'Installed packages must not contain symlinks')
-      if (entry.isDirectory()) {
-        await visit(file, `${name}/`, depth + 1)
-        continue
-      }
-      if (!entry.isFile()) fail('NPM_FILE', name, 'Unsupported installed file')
-      bytes += (await lstat(file)).size
-      if (bytes > 512 * 1024 * 1024 || files.length >= 50000)
-        fail('NPM_LIMIT', name, 'Installed package exceeds inspection limits')
-      files.push([
-        name,
-        createHash('sha256')
-          .update(await readFile(file))
-          .digest('hex'),
-      ])
-    }
-  }
-  await visit(dir, '')
-  return digestJson(files)
 }
 
 /** Refuse uninspected development/extraneous packages that Node could otherwise resolve at runtime. */
@@ -265,7 +230,6 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       name: pkg.name,
       version: pkg.version,
       dependencies,
-      filesDigest: await packageDigest(dir),
       ...(typeof locked.integrity === 'string' ? { integrity: locked.integrity } : {}),
     }
     if (pkg.arcadia !== undefined) {

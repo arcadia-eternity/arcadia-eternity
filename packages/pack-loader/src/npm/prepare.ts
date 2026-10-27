@@ -36,27 +36,19 @@ export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnviro
   dispose(): Promise<void>
 }
 
-/** Host-only activation. The approval identifies the complete inspected installation, including ordinary JS dependencies.
+/** Host-only activation. The administrator admits the project; local file edits do not revoke that decision.
  * Each environment captures its package files. The caller disposes it after all its battles finish.
  * This API admits trusted code; it is not an arbitrary JavaScript sandbox.
  */
 export async function prepareNpmProject(
   directory: string,
   host: NpmContentHost,
-  approval: { installationDigest: string; policy: Readonly<Record<string, Json>> },
+  approval: { policy: Readonly<Record<string, Json>>; /** Ignored for legacy callers. */ installationDigest?: string },
 ): Promise<Readonly<PreparedNpmEnvironment>> {
   const source = await realpath(directory)
-  const installation = await inspectNpmProject(source)
-  if (approval.installationDigest !== installation.digest)
-    fail(
-      'NPM_NOT_APPROVED',
-      'installationDigest',
-      'Installed code/dependencies differ from the explicitly approved installation',
-    )
   const captured = await captureNpmProject(source)
   try {
-    if ((await inspectNpmProject(captured.root)).digest !== installation.digest)
-      fail('NPM_CHANGED', 'node_modules', 'Installation changed while capturing its files')
+    const installation = await inspectNpmProject(captured.root)
     return Object.freeze({
       ...(await compileInstallation(captured.root, host, installation, approval.policy)),
       dispose: captured.dispose,
@@ -92,9 +84,6 @@ async function compileInstallation(
       fail('NPM_EXPORT', pkg.location, 'Effect module must export createEffects(context)')
     modules.set(pkg.location, module as NpmEffectModule)
   }
-  // Reject modifications performed while loading a module before publishing an environment.
-  if ((await inspectNpmProject(root)).digest !== installation.digest)
-    fail('NPM_CHANGED', 'node_modules', 'Installation changed while loading its code')
   const combinedHost: WorkHost = {
     ...host,
     build,
@@ -201,7 +190,5 @@ async function compileInstallation(
     ...policy,
     npmInstallation: installation.digest,
   })
-  if ((await inspectNpmProject(root)).digest !== installation.digest)
-    fail('NPM_CHANGED', 'node_modules', 'Installation changed while compiling its effects')
   return Object.freeze({ ...prepared, installation, readAsset: (hash: string) => assetBytes.get(hash)?.slice() })
 }

@@ -16,7 +16,7 @@ if (project === 'refuse') {
   process.exit(8)
 }
 if (project === 'unapproved') {
-  console.error('private path: code differs from the explicitly approved installation')
+  console.error('private path: Expected an explicit npm project approval')
   process.exitCode = 8
 } else {
   if (project === 'slow') await new Promise(resolve => setTimeout(resolve, 5000))

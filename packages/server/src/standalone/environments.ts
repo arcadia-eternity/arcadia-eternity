@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import { prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
 import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
@@ -105,13 +105,9 @@ export class ServerEnvironmentRegistry {
     )
     try {
       const runtime = createStandaloneRuntime(prepared)
-      const id = digest(runtime.identity)
-      const existing = this.entries.get(id)
-      if (existing) {
-        if (existing.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
-        await prepared.dispose()
-        return structuredClone(existing.descriptor)
-      }
+      // Local code edits do not change the metadata identity. Every preparation is
+      // a fresh room-selectable instance, so it cannot silently reuse an older runtime.
+      const id = digest({ runtime: runtime.identity, instance: randomUUID() })
       const resources = prepared.releases.flatMap(release =>
         release.assets.map(asset => ({
           ...asset,

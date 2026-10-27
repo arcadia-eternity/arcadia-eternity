@@ -16,7 +16,7 @@
 
 每次使用的参数地址为 `parameterAddress(effectId, 'parameters', name)`。技能／印记的 `useId` 区分同一代码导出的多次使用；来源实例和对局持有各自的状态。文件移动和 npm 名称变化不改变 `projectId`、namespace、局部 ID 或 useId；修改 namespace 会改变运行 ID。
 
-SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `1`。API 版本表示兼容合同；实际核心、SDK 实现、包代码和传递依赖仍进入构建摘要，不能仅凭 API 版本或相同导出名复用快照。
+SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `1`。API 版本表示兼容合同；核心、SDK、内容元数据和依赖图仍参与环境身份，但不再逐文件摘要用户安装的代码。用户自行管理本地改动；相同环境元数据不能证明代码文件未变，恢复和回放仍需用户提供匹配的代码。
 
 随机数使用 `sdk.values.randomInt`、`conditions.chance` 或本局 RNG。生命周期、捕获／跟随、操作和预算合同见[效果编写](effect-authoring.md)。快照范围仍为现有等待点，见[快照](v1-snapshots.md)。
 
@@ -47,7 +47,7 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `1`。API 版本表�
 
 数据包可以省略 `effects`、`sdkApi` 和 `exports`。代码包必须声明 SDK API 版本，并返回与 `exports` 完全一致的导出。所有包都有 `content`，代码包可提供空内容集合。元数据检查不会导入效果模块。
 
-资源通过 `arcadia.assets` 提供 `sha256 → 包内相对文件` 映射，与草稿 `assets` 声明对应。即使在无界面运行时也检查声明的资源字节。完整包文件，包括源码、构建产物和 source map，都进入安装文件摘要；这不等于对任意作者构建过程作了可复现构建认证。
+资源通过 `arcadia.assets` 提供 `sha256 → 包内相对文件` 映射，与草稿 `assets` 声明对应。即使在无界面运行时也检查声明的资源字节，以确保客户端取得对应展示资源。源码、构建产物和 source map 不做安装文件摘要或本地防篡改检查。
 
 ## 标准依赖与固定安装
 
@@ -62,13 +62,12 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `1`。API 版本表�
 | 字段             | 含义                                                       |
 | ---------------- | ---------------------------------------------------------- |
 | npm `integrity`  | npm 下载／安装产物的来源完整性记录                         |
-| `filesDigest`    | 当前安装包内实际文件字节                                   |
-| 安装 `digest`    | 已检查依赖图、包内容和实际文件；不含绝对安装位置           |
+| 安装 `digest`    | 已检查依赖图和内容元数据；不含本地代码文件或绝对安装位置   |
 | `lockfileDigest` | 标准 npm 锁文件审计记录，包含其来源信息                    |
 | Release `digest` | 规范化源载荷和运行要求；未声称按有效默认值合并语义等价写法 |
-| 环境 `revision`  | 核心、实际代码闭包、Base、内容版本和策略的固定身份         |
+| 环境 `revision`  | 核心、Base、内容元数据、依赖图和策略的身份                 |
 
-省略默认值与显式填写默认值当前可以产生不同摘要。改变代码、依赖或构建产物必须重新检查和准入；不能沿用 npm tarball integrity 声称改后的产物仍是原始包。
+省略默认值与显式填写默认值当前可以产生不同摘要。项目准入不再绑定摘要；本地修改代码或内容无需重新批准。npm tarball integrity 仍由 npm 用于下载／安装校验，不用来检查安装后的用户改动。
 
 ## CLI 流程
 
@@ -89,20 +88,20 @@ npm pack ./examples/ugc/slow --ignore-scripts
 npm install --package-lock-only --ignore-scripts --omit=dev /absolute/path/arcadia-example-slow-1.0.0.tgz
 ```
 
-然后从仓库运行以下命令。每个命令均支持 `--json`，示例中的摘要取自实际检查结果：
+然后从仓库运行以下命令。每个命令均支持 `--json`：
 
 ```sh
 node dist/cli.js content npm install /path/to/server-project
 node dist/cli.js content npm inspect /path/to/server-project --json
 node dist/cli.js content npm approve /path/to/server-project \
-  --digest <installation-digest> --profile local-development
+  --profile local-development
 node dist/cli.js content validate --npm-project /path/to/server-project --json
 node dist/cli.js battle simulate --npm-project /path/to/server-project \
   -1 /path/to/team-a.json -2 /path/to/team-b.json --seed example --replay-out replay.json
 node dist/cli.js battle replay replay.json --npm-project /path/to/server-project --json
 ```
 
-默认准入文件是项目根目录的 `arcadia-admission.json`；`--approval` 可指定另一个文件。准入命令绑定完整安装摘要，默认不会覆盖已有批准。安装命令拒绝覆盖已有 `node_modules`，升级应准备新的项目目录。`--offline` 仅使用 npm 已有缓存和本地产物，缺失依赖会失败。
+默认准入文件是项目根目录的 `arcadia-admission.json`；`--approval` 可指定另一个文件。新准入记录为版本 2，只记录管理员选择的 profile；旧版记录仍可读取，其中的 installationDigest 不再检查，旧 `--digest` 参数兼容接受但不参与准入。准入命令默认不会覆盖已有批准。安装命令拒绝覆盖已有 `node_modules`，升级应准备新的项目目录。`--offline` 仅使用 npm 已有缓存和本地产物，缺失依赖会失败。
 
 ## 权威服务器与房间
 
@@ -116,7 +115,7 @@ node dist/cli.js server --npm-project /path/to/approved-project
 
 房间只能选择服务器预先准备的环境；UGC 房间由服务器执行，不支持浏览器 P2P 宿主。Ready／Start 提交所选环境、协议版本和展示资源准备状态，服务器分别检查协议、资源声明与队伍合法性。这是客户端对展示准备的确认，不是代码准入证明。活动房间持有原环境；管理员准备新版本后可供新房间使用，退役的旧环境会等所有房间和显式保留引用释放后回收。
 
-服务器的程序接口 `app.environments.prepareNpm(...)` 用于准备候选环境，`retire(id)` 停止其被新房间选择；候选准备失败不替换已发布环境。当前单进程服务重启会丢弃房间，持久检查点引用、跨进程恢复和桌面安装包尚未接入。服务器不能根据客户端提交的环境 ID 自动下载或授权包。
+服务器的程序接口 `app.environments.prepareNpm(...)` 用于准备候选环境，`retire(id)` 停止其被新房间选择；候选准备失败不替换已发布环境。每次准备得到独立的服务器环境 ID，即使元数据未变也会加载当前代码，不按文件摘要复用旧候选。当前单进程服务重启会丢弃房间，持久检查点引用和跨进程恢复尚未接入。服务器不能根据客户端提交的环境 ID 自动下载或授权包。
 
 ## 导出可移植项目
 
@@ -126,7 +125,7 @@ node dist/cli.js server --npm-project /path/to/approved-project
 node dist/cli.js content project export /path/to/server-project /path/to/new-export
 ```
 
-默认仅接受可匿名访问的公共 npm registry 固定来源。若要包含源项目内部的本地 `.tgz`，须显式添加 `--include-local-artifacts`，并由执行者确认有权再分发包内内容。导出前工具在隔离目录使用无凭据、无生命周期脚本的 npm 安装重建项目，并核对完整安装摘要；无法重建时不会发布完成的项目。目标目录必须不存在；如果写入过程被中断，未完成目录需要人工检查并删除或另选位置。
+默认仅接受可匿名访问的公共 npm registry 固定来源。若要包含源项目内部的本地 `.tgz`，须显式添加 `--include-local-artifacts`，并由执行者确认有权再分发包内内容。导出前工具在隔离目录使用无凭据、无生命周期脚本的 npm 安装重建项目，并核对依赖图和内容元数据；无法重建时不会发布完成的项目。导出使用锁定产物，不收集或校验 node_modules 中自行修改的代码；要分享这些修改，应先重新打包。目标目录必须不存在；如果写入过程被中断，未完成目录需要人工检查并删除或另选位置。
 
 在另一台受支持的主机中，按导出目录的 README 安装依赖、检查并重新准入，然后运行 `content project verify <directory>` 验证原环境。当前验证保守要求相同 Node 版本、操作系统和架构以及 npm 9 或以上。项目不包含准入文件、账号、服务器身份、私人队伍或战斗存档；公开 registry 依赖仍需网络或已有缓存，因此它不是完整离线备份。
 
@@ -134,7 +133,7 @@ profile 是管理员对该环境的策略记录，支持 `local-development`、`
 
 ## 环境生命周期
 
-`prepareNpmProject(directory, host, approval)` 在调用任何包代码前验证摘要，将依赖输入复制到该环境私有的临时目录，并再次验证复制结果。模块从该副本导入；源码目录或安装目录后续修改不会使已有环境的延迟加载读到新版文件。新版本通过新副本准备，不使用全局 clear/reload。
+`prepareNpmProject(directory, host, approval)` 将依赖输入复制到该环境私有的临时目录，再检查 npm 依赖树和内容合同，不比较安装代码文件摘要。模块从该副本导入；源码目录或安装目录后续修改不会使已有环境的延迟加载读到新版文件。新版本通过新副本准备，不使用全局 clear/reload；用户应在本地修改完成后准备环境。
 
 返回对象持有冻结内容目录和 `dispose()`。宿主应在该环境的所有活动对局及保留恢复引用释放后调用 dispose；当前 CLI 每次执行运行在独立进程中，退出时清理临时副本。Node 模块本身不能从缓存卸载，长期预览服务应结合独立进程回收模块内存。
 

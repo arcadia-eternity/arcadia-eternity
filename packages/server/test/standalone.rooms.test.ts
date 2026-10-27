@@ -151,10 +151,19 @@ it('serves approved npm environments to code-free clients and pins rooms across 
     const info = await success<PrivateRoomInfo>(a.socket, 'getCurrentPrivateRoom')
     expect(info.environment?.id).toBe(first.id)
     expect(info.players[1].team).toBeUndefined()
-    await fixture.changePower(70)
-    await expect(app.environments.prepareNpm(fixture.directory)).rejects.toThrow('approved')
+    let effects = ''
+    await fixture.editEffects(code => {
+      effects = code
+      return 'export const invalid = true'
+    })
+    await expect(app.environments.prepareNpm(fixture.directory)).rejects.toThrow('createEffects')
     expect(app.environments.list().map(item => item.id)).toContain(first.id)
-    await fixture.approve()
+    await fixture.editEffects(() => effects + '\n// local edit without a version bump\n')
+    const codeOnly = await app.environments.prepareNpm(fixture.directory)
+    expect(codeOnly.id).not.toBe(first.id)
+    expect(codeOnly.runtime).toEqual(first.runtime)
+    await app.environments.retire(codeOnly.id)
+    await fixture.changePower(70)
     const second = await app.environments.prepareNpm(fixture.directory)
     expect(second.id).not.toBe(first.id)
     await success(spectator.socket, 'leavePrivateRoom')

@@ -213,9 +213,7 @@ it('installs standard tarballs without lifecycle execution and inspects without 
   expect(installation.packages.every(pkg => pkg.integrity?.startsWith('sha512-'))).toBe(true)
   expect(process.env.ARCADIA_NPM_TEST_LOADED).toBeUndefined()
   await expect(readFile(join(environment, 'node_modules/@arcadia-test/slow/lifecycle-ran'))).rejects.toThrow()
-  await expect(prepareNpmProject(environment, host, { installationDigest: 'wrong', policy: {} })).rejects.toThrow(
-    'explicitly approved',
-  )
+  expect(installation.packages.every(pkg => !('filesDigest' in pkg))).toBe(true)
   expect(process.env.ARCADIA_NPM_TEST_LOADED).toBeUndefined()
 })
 it('executes code effects in the real engine with refresh, removal, and independent battles', async () => {
@@ -250,16 +248,19 @@ it('reproduces the same environment after npm ci in a different absolute directo
   expect(b.revision).toBe(a.revision)
   expect(b.installation.digest).toBe(a.installation.digest)
 }, 30000)
-it('invalidates approval when a transitive JS library changes, preserving the existing catalog', async () => {
+it('allows local code edits without renewed approval while preserving the existing catalog', async () => {
   const before = await prepare(),
     file = join(environment, 'node_modules/arcadia-test-library/index.js')
   const old = await readFile(file, 'utf8')
   try {
     await writeFile(file, 'export const penalty = -90')
-    await expect(
-      prepareNpmProject(environment, host, { installationDigest: before.installation.digest, policy: {} }),
-    ).rejects.toThrow('explicitly approved')
-    const changed = fixture((await prepare()).content),
+    const next = await prepareNpmProject(environment, host, {
+      installationDigest: 'old-file-digest-is-ignored',
+      policy: { trust: 'local-development' },
+    })
+    environments.push(next)
+    expect(next.installation.digest).toBe(before.installation.digest)
+    const changed = fixture(next.content),
       changedSpeed = changed.b.activePet.stat.spe
     changed.battle.applyEffects(changed.event(), EffectTrigger.OnHit)
     expect(changed.b.activePet.stat.spe).toBe(changedSpeed - 90)

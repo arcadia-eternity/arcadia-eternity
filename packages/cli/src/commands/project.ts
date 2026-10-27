@@ -328,7 +328,7 @@ async function npmVersion(): Promise<string> {
     throw new CliError('PROJECT_RUNTIME', 'Deployment projects require npm 9 or later')
   return version
 }
-const doc = `# Arcadia deployment project\n\nThis is a portable project, not a server backup. It includes only explicitly shared local tarballs; registry dependencies must remain publicly available or be present in the npm cache. No admission, accounts, saved games or server identity are included.\n\nOn a compatible host, use the source Node version, platform and architecture with npm 9 or later (lockfile v3), and a matching Arcadia runtime. Run:\n\n  arcadia content npm install .\n  arcadia content npm inspect . --json\n  arcadia content npm approve . --digest <inspected-digest> --profile <profile>\n  arcadia content project verify .\n  arcadia server --npm-project .\n\nInstallation never runs lifecycle scripts. Review all dependencies and code before approving. Verification requires the original policy profile and exact installation/build/environment identity; it does not authorize code. Availability, platform compatibility and authenticity are not guaranteed by this project. A server must establish its own identity and credentials.\n`
+const doc = `# Arcadia deployment project\n\nThis is a portable project, not a server backup. It includes only explicitly shared local tarballs; registry dependencies must remain publicly available or be present in the npm cache. No admission, accounts, saved games or server identity are included.\n\nOn a compatible host, use the source Node version, platform and architecture with npm 9 or later (lockfile v3), and a matching Arcadia runtime. Run:\n\n  arcadia content npm install .\n  arcadia content npm inspect . --json\n  arcadia content npm approve . --profile <profile>\n  arcadia content project verify .\n  arcadia server --npm-project .\n\nInstallation never runs lifecycle scripts. Review all dependencies and code before approving. Verification checks the policy, content metadata and dependency graph; local code files are not fingerprinted. Edits inside node_modules are not included in this export. It does not authorize code. Availability, platform compatibility and authenticity are not guaranteed by this project. A server must establish its own identity and credentials.\n`
 
 /** Construct a deliberately filtered npm project. Registry URLs are independently probed without credentials. */
 export async function exportProject(
@@ -353,8 +353,6 @@ export async function exportProject(
   const npm = await npmVersion()
   const installed = await inspectNpmProject(root)
   const admission = await readNpmAdmission(resolve(root, 'arcadia-admission.json'))
-  if (admission.installationDigest !== installed.digest)
-    throw new CliError('NPM_NOT_APPROVED', 'Installed code differs from explicit approval')
   const manifest = await readJson(resolve(root, 'package.json'), 1024 * 1024)
   if (manifest.overrides || manifest.workspaces || manifest.bundleDependencies || manifest.bundledDependencies)
     throw new CliError(
@@ -497,8 +495,8 @@ export async function exportProject(
   }
   const manifestText = json(outputManifest),
     lockText = json(outputLock)
-  // SRI only authenticates a tarball against the lock; it does not prove it produced the approved installed bytes.
-  // Rebuild privately with no scripts or credentials and compare the complete tree before publishing.
+  // Export locked artifacts, not edits inside node_modules. Check that their metadata and graph rebuild.
+  // Local code files are not fingerprinted or compared with the retained tarball.
   const scratch = await mkdtemp(resolve(tmpdir(), 'arcadia-export-check-'))
   try {
     if (local.size) await mkdir(resolve(scratch, 'artifacts'))

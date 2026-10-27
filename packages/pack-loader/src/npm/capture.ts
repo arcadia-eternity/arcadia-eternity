@@ -39,7 +39,8 @@ export async function captureNpmProject(source: string) {
     }
     await cp(resolve(source, 'node_modules'), resolve(root, 'node_modules'), {
       recursive: true,
-      verbatimSymlinks: true,
+      // Copy linked file contents too, so existing rooms do not follow later local edits.
+      dereference: true,
     })
     return { root, dispose }
   } catch (error) {

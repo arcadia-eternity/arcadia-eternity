@@ -60,6 +60,10 @@ export async function createNpmFixture() {
       directory,
       asset,
       approve,
+      async editEffects(edit: (code: string) => string) {
+        const file = join(directory, 'node_modules', manifest.name, 'dist/effects.js')
+        await writeFile(file, edit(await readFile(file, 'utf8')))
+      },
       async changePower(power: number) {
         const file = join(directory, 'node_modules', manifest.name, 'content.json')
         const content = JSON.parse(await readFile(file, 'utf8'))
