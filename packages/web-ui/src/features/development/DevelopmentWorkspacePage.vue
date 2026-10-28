@@ -13,7 +13,6 @@ import { listServerEnvironments, readServerEnvironmentContent } from '@/services
 
 type Kind = 'species' | 'skill' | 'mark'
 type ContentRecord = Record<string, Json> & { id: string }
-type Project = { projectId: string; namespace: string; exports: { id: string; sourceKind: 'skill' | 'petMark' }[] }
 type ReferenceOption = { projectId: string; id: string; label: string }
 type ReferenceEnvironment = { id: string; packages: { projectId: string; namespace: string }[] }
 const kinds = { species: 'species', skill: 'skills', mark: 'marks' } as const
@@ -22,7 +21,7 @@ const battle = useBattleClientStore()
 const server = computed(() => battle.serverUrl)
 const token = ref('')
 const document = ref<Record<string, Json> | null>(null)
-const project = ref<Project | null>(null)
+const project = ref<DevelopmentWorkspaceSnapshot['project'] | null>(null)
 const revision = ref('')
 const openedServer = ref('')
 const kind = ref<Kind>('species')
