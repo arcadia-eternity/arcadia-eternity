@@ -6,6 +6,7 @@ import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue
 import { asyncComputed } from '@vueuse/core'
 import { useUncachedResource } from '@/composition/useUncachedResource'
 import { petResourceCache } from '@/services/petResourceCache'
+import { ensureRuffleRuntime } from '@/bootstrap/ruffle'
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
 type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
@@ -35,6 +36,7 @@ const emit = defineEmits<{ hit: [detail: HitEventDetail]; animateComplete: [deta
 const petRenderRef = useTemplateRef('pet-render')
 const loadedStates = ref<ActionState[]>([])
 const inited = ref(false)
+const runtimeReady = ref(false)
 const imageFailed = ref(false)
 const availableState = ref<ActionState[]>([])
 const ready = ref<Promise<void>>(Promise.resolve())
@@ -99,10 +101,15 @@ watch(
     const current = generation
     const finish = resolveReady
     const fail = rejectReady
-    await nextTick()
-    const renderer = petRenderRef.value
-    if (!renderer || url !== resolvedSwfUrl.value || current !== generation) return
+    let renderer: typeof petRenderRef.value = null
     try {
+      // The app can now mount before Ruffle; never connect pet-render to a config-only placeholder.
+      await ensureRuffleRuntime()
+      if (url !== resolvedSwfUrl.value || current !== generation) return
+      runtimeReady.value = true
+      await nextTick()
+      renderer = petRenderRef.value
+      if (!renderer || url !== resolvedSwfUrl.value || current !== generation) return
       await renderer.updateComplete
       let states: ActionState[] = []
       for (let retry = 0; retry < 40 && current === generation; retry++) {
@@ -115,7 +122,7 @@ watch(
       loadedStates.value = states
       finish?.()
     } catch (error) {
-      if (current === generation && renderer === petRenderRef.value) {
+      if (current === generation && (!renderer || renderer === petRenderRef.value)) {
         if (props.fallbackImageUrl) {
           fallbackActive.value = true
           if (portraitLoaded.value) finish?.()
@@ -195,7 +202,7 @@ defineExpose({ setState, getState, availableState, ready })
       </svg>
     </div>
     <pet-render
-      v-if="resolvedSwfUrl && !imageOnly"
+      v-if="runtimeReady && resolvedSwfUrl && !imageOnly"
       :key="resolvedSwfUrl"
       class="overflow-visible pet-render"
       :style="{ opacity: inited ? 1 : 0 }"

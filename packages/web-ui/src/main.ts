@@ -13,20 +13,18 @@ import i18next from 'i18next'
 import { useAuthStore } from './stores/auth'
 import { usePrivateRoomStore } from './stores/privateRoom'
 import { ensureRuffleRuntime } from './bootstrap/ruffle'
-import { captureOAuthCallbackAtBoot } from './services/serverSession'
 import { isStaticMode } from './utils/env'
 import { localDataStorage } from './services/localStorage'
 
-// The account redirect must leave the address bar before Ruffle or game data can delay mounting.
-if (!isStaticMode) captureOAuthCallbackAtBoot(window.location, window.history)
-
 async function bootstrap() {
-  await ensureRuffleRuntime().catch(error => {
+  const animationRuntime = ensureRuffleRuntime().catch(error => {
     if (isStaticMode) {
       throw new Error('本地动画资源未完整加载，请重新联网后刷新重试。', { cause: error })
     }
     console.warn('Ruffle runtime preload failed, fallback loader may be used:', error)
   })
+  // Editing teams and other web pages can mount while the optional animation runtime loads.
+  if (isStaticMode) await animationRuntime
 
   const app = createApp(App)
   const pinia = createPinia()

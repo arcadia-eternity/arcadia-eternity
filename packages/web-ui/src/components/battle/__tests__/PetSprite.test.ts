@@ -2,7 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionState } from 'seer2-pet-animator'
 import PetSprite from '../PetSprite.vue'
+import { ensureRuffleRuntime } from '@/bootstrap/ruffle'
 
+vi.mock('@/bootstrap/ruffle', () => ({ ensureRuffleRuntime: vi.fn(async () => {}) }))
 vi.mock('seer2-pet-animator', () => ({ ActionState: { IDLE: 'idle' } }))
 vi.mock('@/services/petResourceCache', () => ({
   petResourceCache: { getPetSwfUrl: vi.fn(async () => '/pet.swf'), getRemotePetUrl: vi.fn(() => '/remote.swf') },
@@ -30,6 +32,29 @@ afterEach(() => {
 })
 
 describe('PetSprite readiness', () => {
+  it('waits for the animation runtime before connecting a renderer', async () => {
+    let finishRuntime!: () => void
+    vi.mocked(ensureRuffleRuntime).mockReturnValueOnce(
+      new Promise(resolve => {
+        finishRuntime = resolve
+      }),
+    )
+    const sprite = mount(PetSprite, { props: { num: 1 } })
+    try {
+      await flushPromises()
+      expect(sprite.find('pet-render').exists()).toBe(false)
+      finishRuntime()
+      await flushPromises()
+      const renderer = sprite.get('pet-render').element as DelayedPetRenderer
+      renderer.finish()
+      await sprite.vm.ready
+      await flushPromises()
+      expect(sprite.vm.availableState).toEqual([ActionState.IDLE])
+    } finally {
+      sprite.unmount()
+    }
+  })
+
   it('keeps readiness pending until the renderer callbacks finish, even on a slow load', async () => {
     vi.useFakeTimers()
     const sprite = mount(PetSprite, { props: { num: 1 } })
@@ -69,10 +94,12 @@ describe('PetSprite readiness', () => {
   it('uses only the portrait in image mode and never requests a SWF', async () => {
     const { petResourceCache } = await import('@/services/petResourceCache')
     vi.mocked(petResourceCache.getPetSwfUrl).mockClear()
+    vi.mocked(ensureRuffleRuntime).mockClear()
     const sprite = mount(PetSprite, { props: { num: 1, imageOnly: true } })
     await flushPromises()
     expect(sprite.find('pet-render').exists()).toBe(false)
     expect(petResourceCache.getPetSwfUrl).not.toHaveBeenCalled()
+    expect(ensureRuffleRuntime).not.toHaveBeenCalled()
     await sprite.get('img').trigger('load')
     await sprite.vm.ready
     expect(sprite.vm.availableState).toEqual([])

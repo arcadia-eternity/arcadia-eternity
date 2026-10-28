@@ -95,8 +95,6 @@ test('GitHub callback is scrubbed before delayed game assets load and uses an in
   expect(page.url()).not.toContain('one-time-code')
   expect(page.url()).not.toContain('pending-state')
   expect(assetReferer).not.toContain('one-time-code')
-  expect(completedProfiles).toHaveLength(0)
-
   releaseRuffle!()
   await expect(page.getByText('已绑定的登录方式')).toBeVisible()
   expect(completedProfiles).toHaveLength(1)

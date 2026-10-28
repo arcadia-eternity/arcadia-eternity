@@ -380,9 +380,7 @@
 
     <main class="flex-1 overflow-auto relative">
       <router-view v-slot="{ Component }">
-        <transition name="fade">
-          <component :is="Component" class="w-full" :key="$route.path" />
-        </transition>
+        <component :is="Component" class="w-full" :key="$route.path" />
       </router-view>
 
       <!-- 桌面端版本信息 - 固定在左下角 -->
@@ -927,17 +925,6 @@ header {
 .h-screen {
   height: 100vh !important;
   height: 100dvh !important; /* 动态视口高度，更适合移动端 */
-}
-
-/* 动画效果 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 /* Element Plus 深度选择器样式 - 移动端优化 */

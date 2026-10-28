@@ -11,6 +11,7 @@ import TeamBuilder from '@/pages/teamBuilder.vue'
 import StorageManager from '@/pages/storageManager.vue'
 import AccountPage from '@/pages/accountPage.vue'
 import { isDesktop, isStaticMode } from '@/utils/env'
+import { captureOAuthCallbackAtBoot } from '@/services/serverSession'
 
 // 战报相关组件
 const BattleRecordList = () => import('@/components/battleReport/BattleRecordList.vue')
@@ -233,6 +234,9 @@ const webOnlyRoutes: RouteRecordRaw[] = [
 if (!isDesktop) {
   routes.push(...webOnlyRoutes)
 }
+
+// Capture before history remembers the initial URL, so mounting cannot restore the one-time query.
+if (!isStaticMode) captureOAuthCallbackAtBoot(window.location, window.history)
 
 const router = createRouter({
   history: isStaticMode ? createWebHashHistory() : createWebHistory(import.meta.env.BASE_URL),
