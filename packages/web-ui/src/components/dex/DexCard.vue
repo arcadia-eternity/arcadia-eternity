@@ -9,6 +9,7 @@
       <div class="mb-3 flex justify-center">
         <PetIcon
           :id="(item as SpeciesSchemaType).num"
+          :species="item as SpeciesSchemaType"
           class="w-16 h-16 group-hover:scale-110 transition-transform duration-200"
         />
       </div>
@@ -43,11 +44,14 @@
       </h3>
 
       <!-- 技能描述 -->
-      <div
+      <ContentDescription
         v-if="getSkillDescription()"
         class="text-xs text-gray-600 line-clamp-2 leading-relaxed text-[11px] sm:text-xs"
-        v-html="getRenderedSkillDescription()"
-      ></div>
+        namespace="skill"
+        :content-id="item.id"
+        :fallback="getSkillDescription()"
+        :context="{ skill: item }"
+      />
 
       <!-- 技能属性 -->
       <div class="grid grid-cols-2 gap-1 sm:gap-2 text-[10px] sm:text-xs">
@@ -71,8 +75,9 @@
         <div
           class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden group-hover:scale-110 transition-transform duration-200"
         >
-          <img
+          <ResourceImage
             v-if="markImageUrl"
+            :uncached="!!(item as MarkSchemaType).presentation?.icon"
             :src="markImageUrl"
             :alt="getItemName()"
             class="w-full h-full object-contain"
@@ -99,11 +104,14 @@
       </h3>
 
       <!-- 印记描述 -->
-      <div
+      <ContentDescription
         v-if="getMarkDescription()"
         class="text-xs text-gray-600 line-clamp-2 leading-relaxed text-center"
-        v-html="getRenderedMarkDescription()"
-      ></div>
+        namespace="mark"
+        :content-id="item.id"
+        :fallback="getMarkDescription()"
+        :context="{ mark: item }"
+      />
 
       <!-- 印记属性 -->
       <div class="space-y-1 text-xs">
@@ -123,6 +131,8 @@
 </template>
 
 <script setup lang="ts">
+import ResourceImage from '@/components/ResourceImage.vue'
+import { resolveMarkIconUrl } from '@/utils/resourceResolver'
 import { computed, ref } from 'vue'
 import { useTranslation } from 'i18next-vue'
 import { useResourceStore } from '@/stores/resource'
@@ -130,18 +140,12 @@ import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import { ShieldCheckIcon } from '@heroicons/vue/24/outline'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
-import MarkdownIt from 'markdown-it'
-import { renderContentDescription } from '@/i18n/serverContent'
+import ContentDescription from '@/components/ContentDescription'
 
 const { i18next } = useTranslation()
 const resourceStore = useResourceStore()
 
 // 创建markdown实例
-const md = new MarkdownIt({
-  html: true,
-  linkify: true,
-  typographer: true,
-})
 
 const props = defineProps<{
   item: SpeciesSchemaType | SkillSchemaType | MarkSchemaType
@@ -158,7 +162,7 @@ const showImageError = ref(false)
 const markImageUrl = computed(() => {
   if (props.type !== 'marks' || showImageError.value) return null
   try {
-    const imageUrl = resourceStore.markImage.byId[props.item.id]
+    const imageUrl = resolveMarkIconUrl(props.item as MarkSchemaType, resourceStore.getMarkImage)
     return imageUrl || null
   } catch {
     return null
@@ -206,12 +210,6 @@ function getSkillDescription(): string {
   }
 }
 
-function getRenderedSkillDescription(): string {
-  const description = getSkillDescription()
-  if (!description) return ''
-  return renderContentDescription(md, description, props.type === 'skills' ? 'skill' : 'mark', props.item.id)
-}
-
 function getMarkDescription(): string {
   if (props.type !== 'marks') return ''
   try {
@@ -223,12 +221,6 @@ function getMarkDescription(): string {
   } catch {
     return ''
   }
-}
-
-function getRenderedMarkDescription(): string {
-  const description = getMarkDescription()
-  if (!description) return ''
-  return renderContentDescription(md, description, props.type === 'skills' ? 'skill' : 'mark', props.item.id)
 }
 
 function onImageError() {

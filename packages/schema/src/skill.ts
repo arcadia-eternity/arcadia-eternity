@@ -1,6 +1,7 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { Category, Element, IgnoreStageStrategy, AttackTargetOpinion } from '@arcadia-eternity/const'
 import { StringEnum } from './utils'
+import { ContentPresentationSchema } from './presentation'
 
 export const CategorySchema = StringEnum(Object.values(Category))
 
@@ -9,6 +10,7 @@ export const AttackTargetOpinionSchema = StringEnum(Object.values(AttackTargetOp
 export const ignoreStageStrategySchema = StringEnum(Object.values(IgnoreStageStrategy))
 
 export const SkillSchema = Type.Object({
+  presentation: Type.Optional(ContentPresentationSchema),
   id: Type.String({ minLength: 1 }),
   sfxRef: Type.Optional(Type.String()),
   element: Type.Union(

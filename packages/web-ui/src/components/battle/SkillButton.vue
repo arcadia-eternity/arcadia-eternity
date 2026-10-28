@@ -7,18 +7,13 @@ import Tooltip from './Tooltip.vue'
 import ModifiedValue from './ModifiedValue.vue'
 import BattleMarkInfo from './BattleMarkInfo.vue'
 import { Z_INDEX } from '@/constants/zIndex'
-import MarkdownIt from 'markdown-it'
-import { renderContentDescription } from '@/i18n/serverContent'
+import ContentDescription from '@/components/ContentDescription'
 import i18next from 'i18next'
 import { computed, ref } from 'vue'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
 import { getSkillTypeEffectiveness } from '@/utils/typeEffectiveness'
-
-const md = new MarkdownIt({
-  html: true,
-})
 
 const battleStore = useBattleStore()
 const gameDataStore = useGameDataStore()
@@ -154,7 +149,7 @@ const skillMarkRelations = computed(() => {
 
 <template>
   <div class="battle-skill-slot">
-    <Tooltip portal position="top" v-model:show="showDetails" :trigger="showDetails ? 'click' : 'hover'">
+    <Tooltip interactive portal position="top" v-model:show="showDetails" :trigger="showDetails ? 'click' : 'hover'">
       <template #trigger>
         <div class="battle-skill__trigger">
           <button
@@ -222,7 +217,7 @@ const skillMarkRelations = computed(() => {
             </span>
           </div>
         </div>
-        <div v-html="renderContentDescription(md, description, 'skill', skill.baseId)" />
+        <ContentDescription namespace="skill" :content-id="skill.baseId" :fallback="description" :context="{ skill }" />
 
         <!-- 技能属性详情 -->
         <div class="mt-4 border-t border-gray-600 pt-3">

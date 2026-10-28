@@ -201,7 +201,9 @@ const petStatsInfo = computed(() => {
     <Tooltip position="bottom">
       <template #trigger>
         <PetIcon
-          :id="gameDataStore.getSpecies(activePet!.speciesID)?.num ?? 0"
+          :uncached="!!gameDataStore.serverFallback"
+          :id="gameDataStore.getSpecies(activePet!.speciesID)?.num"
+          :species="gameDataStore.getSpecies(activePet!.speciesID)"
           :class="petIconClasses"
           :reverse="side == 'right'"
         />

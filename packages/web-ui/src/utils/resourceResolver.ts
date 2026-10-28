@@ -27,6 +27,7 @@ export function resolveMarkIconUrl(
   getMarkImage: (id: string) => string | null,
 ): string {
   if (!mark) return MARK_ICON_FALLBACK
+  if (typeof mark.presentation?.icon === 'string') return mark.presentation.icon
   if (mark.iconRef) {
     if (isHttpUrl(mark.iconRef) || isProtocolUrl(mark.iconRef)) return officialAssetUrl(mark.iconRef)
     const mapped = getMarkImage(mark.iconRef)
@@ -52,6 +53,7 @@ export function resolveSkillSfxUrl(
   getSkillSound: (id: string) => string | null,
 ): string {
   if (!skill) return SKILL_SFX_FALLBACK
+  if (typeof skill.presentation?.sfx === 'string') return skill.presentation.sfx
   if (skill.sfxRef) {
     if (isHttpUrl(skill.sfxRef) || isProtocolUrl(skill.sfxRef)) return officialAssetUrl(skill.sfxRef)
     const mapped = getSkillSound(skill.sfxRef)
@@ -68,8 +70,19 @@ export function resolveSpeciesSpriteAsset(
   swfNum: number
   customSwfUrl?: string
   customImageUrl?: string
+  fallbackImageUrl?: string
 } {
   if (!species) return { swfNum: 0 }
+  const battle = species.presentation?.battle
+  if (battle && typeof battle.source === 'string') {
+    return battle.renderer === 'seer2-swf'
+      ? {
+          swfNum: 0,
+          customSwfUrl: battle.source,
+          fallbackImageUrl: typeof battle.fallback === 'string' ? battle.fallback : undefined,
+        }
+      : { swfNum: 0, customImageUrl: battle.source }
+  }
   if (species.assetRef) {
     if (isProtocolUrl(species.assetRef)) {
       const lower = species.assetRef.toLowerCase()
@@ -95,10 +108,16 @@ export function resolveSpeciesSpriteAsset(
 
 export function resolveSpeciesPortraitUrl(species: SpeciesSchemaType | undefined): string {
   if (!species) return PET_IMAGE_FALLBACK
+  if (typeof species.presentation?.portrait === 'string') return species.presentation.portrait
   if (species.assetRef && isHttpUrl(species.assetRef)) return officialAssetUrl(species.assetRef)
   if (species.assetRef && !isProtocolUrl(species.assetRef)) return resolveRuntimeAssetUrl(species.assetRef)
   if (typeof species.num === 'number' && species.num > 0) {
     return officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${species.num}.png`)
   }
   return PET_IMAGE_FALLBACK
+}
+
+export function resolveSpeciesIconUrl(species: Partial<SpeciesSchemaType> | undefined): string | undefined {
+  if (typeof species?.presentation?.icon === 'string') return species.presentation.icon
+  return undefined
 }

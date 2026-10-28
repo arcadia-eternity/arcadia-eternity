@@ -304,7 +304,12 @@
                   >
                     <div class="flex items-center space-x-2">
                       <div class="flex-shrink-0">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-10 h-10" />
+                        <PetIcon
+                          :uncached="!!gameDataStore.serverFallback"
+                          :id="gameDataStore.getSpecies(pet.species)?.num"
+                          :species="gameDataStore.getSpecies(pet.species)"
+                          class="w-10 h-10"
+                        />
                       </div>
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center space-x-1">
@@ -460,7 +465,12 @@
                       >
                         <template #default="{ item }">
                           <div class="flex items-center space-x-2">
-                            <PetIcon :id="item.num" class="w-6 h-6 flex-shrink-0" />
+                            <PetIcon
+                              :uncached="!!gameDataStore.serverFallback"
+                              :id="item.num"
+                              :species="item"
+                              class="w-6 h-6 flex-shrink-0"
+                            />
                             <div class="flex-1 min-w-0">
                               <div class="flex items-center space-x-1 text-xs font-medium text-gray-900 truncate">
                                 <ElementIcon
@@ -778,10 +788,13 @@
                               </span>
                             </div>
                             <!-- 技能描述 -->
-                            <div
+                            <ContentDescription
                               class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
-                              v-html="renderContentDescription(md, item.description, 'skill', item.value)"
-                            ></div>
+                              namespace="skill"
+                              :content-id="item.value"
+                              :fallback="item.description"
+                              :context="{ skill: gameDataStore.getSkill(item.value) }"
+                            />
                           </div>
                         </template>
                       </el-select-v2>
@@ -843,10 +856,13 @@
                             </span>
                           </div>
                           <!-- 技能描述 -->
-                          <div
+                          <ContentDescription
                             class="text-xs text-gray-600 leading-relaxed break-words whitespace-normal prose prose-xs max-w-none overflow-hidden"
-                            v-html="renderContentDescription(md, item.description, 'skill', item.value)"
-                          ></div>
+                            namespace="skill"
+                            :content-id="item.value"
+                            :fallback="item.description"
+                            :context="{ skill: gameDataStore.getSkill(item.value) }"
+                          />
                         </div>
                       </template>
                     </el-select-v2>
@@ -1109,8 +1125,7 @@ import { Nature } from '@arcadia-eternity/const'
 import { Sortable } from 'sortablejs-vue3'
 import PetIcon from '@/components/PetIcon.vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
-import MarkdownIt from 'markdown-it'
-import { renderContentDescription } from '@/i18n/serverContent'
+import ContentDescription from '@/components/ContentDescription'
 import {
   InfoFilled,
   FolderOpened,
@@ -1141,11 +1156,6 @@ const { importTeamConfig, moveToStorage, deletePet } = usePetManagement()
 const { exportTeamConfig } = useTeamExport()
 
 // 创建markdown-it实例
-const md = new MarkdownIt({
-  html: true,
-  linkify: false,
-  typographer: false,
-})
 
 // 移动端检测
 const { isMobile } = useMobile()

@@ -80,6 +80,7 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   })
   const app = express()
   app.disable('x-powered-by')
+  app.disable('etag')
   const allowed = options.corsOrigins ?? []
   const origin = (value: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
     callback(null, !value || allowed.includes('*') || allowed.includes(value))
@@ -152,19 +153,35 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   })
   app.get('/api/v1/environments/:id', (req, res) => {
     const descriptor = environments.descriptor(req.params.id)
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.setHeader('Cache-Control', 'no-store')
     res.json(descriptor)
   })
   app.get('/api/v1/environments/:id/content', (req, res) => {
     const content = environments.content(req.params.id)
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.setHeader('Cache-Control', 'no-store')
     res.json(content)
   })
-  app.get('/api/v1/environments/:id/assets/:hash', (req, res) => {
+  app.get('/api/v1/environments/:id/resources', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store')
+    const descriptor = environments.descriptor(req.params.id)
+    res.json({ files: descriptor.resources, remote: descriptor.remoteResources ?? [] })
+  })
+  app.get('/api/v1/environments/:id/assets/:hash', (req, res, next) => {
     const asset = environments.asset(req.params.id, req.params.hash)
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.once('close', () => {
+      void asset.release().catch(next)
+    })
+    res.setHeader('Cache-Control', 'no-store')
     res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.type(asset.mime).send(Buffer.from(asset.bytes))
+    res
+      .type(asset.mime)
+      .sendFile(asset.file, { acceptRanges: true, cacheControl: false, lastModified: false }, error => {
+        if (error && 'status' in error && error.status === 416 && !res.headersSent) {
+          res.status(416).end()
+          return
+        }
+        if (error) next(error)
+      })
   })
   const admissions = new Map<string, { count: number; until: number }>()
   let pendingAdmissions = 0
@@ -419,7 +436,11 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       res.sendStatus(204)
     })
   }
-  app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((error: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (res.headersSent) {
+      next(error)
+      return
+    }
     if (error instanceof DevelopmentError) {
       res.status(error.status).json({ code: error.code })
       return

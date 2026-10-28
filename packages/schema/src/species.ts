@@ -1,6 +1,7 @@
 import { Type, type Static } from '@sinclair/typebox'
 import { Element } from './element'
 import { withUIHint } from './uiMetadata'
+import { ContentPresentationSchema } from './presentation'
 
 export const LearnableSkillSchema = Type.Object({
   skill_id: Type.String(),
@@ -12,6 +13,7 @@ export const SpeciesSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   num: Type.Number({ default: 0 }),
   assetRef: Type.Optional(Type.String()),
+  presentation: Type.Optional(ContentPresentationSchema),
   element: Type.Union(
     Object.values(Element).map(v => Type.Literal(v)),
     {

@@ -12,3 +12,5 @@ export class NativeNodePackLoader extends NativePackLoader {
     return resolver
   }
 }
+
+export type { PreparedPresentation } from './src/npm/resources'

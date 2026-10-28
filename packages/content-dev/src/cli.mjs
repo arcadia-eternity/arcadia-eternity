@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process'
+import { spawn, execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 const require = createRequire(import.meta.url)
 const [command, ...args] = process.argv.slice(2)
 const help = `arcadia-content <command>
   check     Check TypeScript and JSON/YAML content
-  build     Compile TypeScript and assemble dist/content.json
+  build     Compile TypeScript and assemble content/media/locales metadata
   rename    Change package/project/namespace identities and local references
   demo      Run the battle configured in arcadia.config.mjs
   pack      Check, build and create an npm content package
@@ -54,6 +57,23 @@ try {
     else if (command === 'demo') await import('./demo.mjs')
     else {
       await build()
+      const manifest = JSON.parse(await readFile(resolve('package.json'), 'utf8'))
+      const presentation = JSON.parse(await readFile(resolve('dist/presentation.json'), 'utf8'))
+      if (presentation.resources.length || Object.keys(presentation.locales).length) {
+        if (manifest.arcadia?.presentation !== 'dist/presentation.json')
+          throw new Error('Set arcadia.presentation to dist/presentation.json before packing media/locales')
+        const { stdout } = await promisify(execFile)('npm', ['pack', '--dry-run', '--ignore-scripts', '--json'], {
+          cwd: process.cwd(),
+        })
+        const included = new Set(JSON.parse(stdout)[0].files.map(file => file.path))
+        const required = [
+          'dist/content.json',
+          'dist/presentation.json',
+          ...presentation.resources.filter(resource => resource.kind === 'file').map(resource => resource.source),
+        ]
+        for (const file of required)
+          if (!included.has(file)) throw new Error(`npm files omits required presentation file: ${file}`)
+      }
       await run('npm', ['pack', '--ignore-scripts'])
     }
   }

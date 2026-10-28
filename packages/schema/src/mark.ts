@@ -1,4 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox'
+import { ContentPresentationSchema } from './presentation'
 import { StackStrategy } from '@arcadia-eternity/const'
 import { NativeEnum, parseWithErrors } from './utils'
 
@@ -27,6 +28,7 @@ export const MarkConfigSchema = Type.Object(
 )
 
 export const MarkSchema = Type.Object({
+  presentation: Type.Optional(ContentPresentationSchema),
   id: Type.String({ minLength: 1 }),
   iconRef: Type.Optional(Type.String()),
   config: Type.Optional(MarkConfigSchema),

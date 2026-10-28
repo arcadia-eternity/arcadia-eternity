@@ -45,7 +45,13 @@
                 <span class="text-gray-500">•</span>
                 <span class="text-gray-600">{{ getCategoryName() }}</span>
               </div>
-              <div class="text-gray-600" v-html="getRenderedSkillDescription()"></div>
+              <ContentDescription
+                class="text-gray-600"
+                namespace="skill"
+                :content-id="skill.id"
+                :fallback="getSkillDescription()"
+                :context="{ skill }"
+              />
             </div>
           </div>
         </div>
@@ -173,19 +179,13 @@ import { useTranslation } from 'i18next-vue'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import RelatedMarks from './RelatedMarks.vue'
 import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
-import MarkdownIt from 'markdown-it'
-import { renderContentDescription } from '@/i18n/serverContent'
+import ContentDescription from '@/components/ContentDescription'
 
 const { i18next } = useTranslation()
 const route = useRoute()
 const gameDataStore = useGameDataStore()
 
 // 创建markdown实例
-const md = new MarkdownIt({
-  html: true,
-  linkify: true,
-  typographer: true,
-})
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -216,12 +216,6 @@ function getSkillDescription(): string {
   } catch {
     return ''
   }
-}
-
-function getRenderedSkillDescription(): string {
-  const description = getSkillDescription()
-  if (!description) return ''
-  return renderContentDescription(md, description, 'skill', skill.value!.id)
 }
 
 function getElementName(): string {

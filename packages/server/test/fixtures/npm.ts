@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 
 const exec = promisify(execFile)
-export async function createNpmFixture() {
+export async function createNpmFixture(options: { presentation?: boolean; remoteUrl?: string } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'arcadia-server-npm-'))
   try {
     const repository = fileURLToPath(new URL('../../../../', import.meta.url))
@@ -24,6 +24,50 @@ export async function createNpmFixture() {
     const manifest = JSON.parse(await readFile(join(source, 'package.json'), 'utf8'))
     manifest.files.push('icon.png')
     manifest.arcadia.assets = { [sha256]: 'icon.png' }
+    if (options.presentation) {
+      await mkdir(join(source, 'assets'), { recursive: true })
+      await writeFile(join(source, 'assets/icon.png'), asset)
+      manifest.files.push('assets')
+      manifest.arcadia.presentation = 'dist/presentation.json'
+      await writeFile(
+        join(source, 'dist/presentation.json'),
+        JSON.stringify({
+          version: 1,
+          defaultLocale: 'zh-CN',
+          resources: [
+            {
+              kind: 'file',
+              id: 'assets/icon.png',
+              source: 'assets/icon.png',
+              sha256,
+              bytes: asset.length,
+              mime: 'image/png',
+            },
+            {
+              kind: 'http',
+              id: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
+              source: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
+              mime: 'application/x-shockwave-flash',
+            },
+          ],
+          locales: {
+            'zh-CN': {
+              species: { pet: { name: '展示精灵' } },
+              skill: {
+                strike: {
+                  description: '造成 <damage>{power}</damage> 点伤害，并施加 <mark>example-slow:slow</mark>。',
+                },
+              },
+              mark: { slow: { name: '减速', description: '剩余 {stack} 层' } },
+            },
+            en: {
+              species: { pet: { name: 'Display pet' } },
+              skill: { strike: { description: 'Deal <damage>{power}</damage> damage.' } },
+            },
+          },
+        }),
+      )
+    }
     await writeFile(join(source, 'package.json'), JSON.stringify(manifest))
     const content = JSON.parse(await readFile(join(source, 'content.json'), 'utf8'))
     for (const kind of ['species', 'skills', 'marks']) {
@@ -31,6 +75,18 @@ export async function createNpmFixture() {
         item.name = `${kind} name`
         item.description = `${kind} description`
       }
+    }
+    if (options.presentation) {
+      content.data.species[0].presentation = {
+        icon: 'assets/icon.png',
+        portrait: 'assets/icon.png',
+        battle: {
+          renderer: 'seer2-swf',
+          source: options.remoteUrl ?? 'http://127.0.0.1:1/not-fetched.swf',
+          fallback: 'assets/icon.png',
+        },
+      }
+      content.data.marks[0].presentation = { icon: 'assets/icon.png' }
     }
     content.assets = [{ id: 'icon', variant: 'default', mime: 'image/png', bytes: asset.length, sha256 }]
     await writeFile(join(source, 'content.json'), JSON.stringify(content))
@@ -61,6 +117,7 @@ export async function createNpmFixture() {
     await approve()
     return {
       directory,
+      installedDirectory: join(directory, 'node_modules', manifest.name),
       asset,
       approve,
       async editEffects(edit: (code: string) => string) {

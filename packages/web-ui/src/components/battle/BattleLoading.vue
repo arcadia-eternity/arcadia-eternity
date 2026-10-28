@@ -36,8 +36,10 @@ const activeTask = computed(() => props.tasks.find(t => t.state === 'loading')?.
           <div class="battle-loading__pets">
             <div v-for="pet in team?.team || []" :key="pet.id" class="battle-loading__pet">
               <PetIcon
+                :uncached="!!data.serverFallback"
                 :id="pet.isUnknown ? 0 : (data.getSpecies(pet.speciesID)?.num ?? 0)"
                 :is-unknown="!!pet.isUnknown"
+                :species="pet.isUnknown ? undefined : data.getSpecies(pet.speciesID)"
                 :reverse="side === 1"
               />
             </div>

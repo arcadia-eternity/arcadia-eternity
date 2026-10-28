@@ -5,7 +5,7 @@ import PetSprite from '../PetSprite.vue'
 
 vi.mock('seer2-pet-animator', () => ({ ActionState: { IDLE: 'idle' } }))
 vi.mock('@/services/petResourceCache', () => ({
-  petResourceCache: { getPetSwfUrl: vi.fn(async () => '/pet.swf') },
+  petResourceCache: { getPetSwfUrl: vi.fn(async () => '/pet.swf'), getRemotePetUrl: vi.fn(() => '/remote.swf') },
 }))
 
 class DelayedPetRenderer extends HTMLElement {
@@ -23,7 +23,11 @@ class DelayedPetRenderer extends HTMLElement {
 }
 customElements.define('pet-render', DelayedPetRenderer)
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
 
 describe('PetSprite readiness', () => {
   it('keeps readiness pending until the renderer callbacks finish, even on a slow load', async () => {
@@ -126,4 +130,19 @@ describe('PetSprite readiness', () => {
     expect(ready).toHaveBeenCalledOnce()
     sprite.unmount()
   })
+})
+
+it('bypasses the existing desktop SWF cache in server environments', async () => {
+  const { petResourceCache } = await import('@/services/petResourceCache')
+  vi.mocked(petResourceCache.getPetSwfUrl).mockClear()
+  const request = vi.fn(async () => new Response('media'))
+  vi.stubGlobal('fetch', request)
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:uncached')
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+  const sprite = mount(PetSprite, { props: { num: 1, uncached: true } })
+  await flushPromises()
+  expect(petResourceCache.getPetSwfUrl).not.toHaveBeenCalled()
+  expect(petResourceCache.getRemotePetUrl).toHaveBeenCalledWith(1)
+  expect(request).toHaveBeenCalledWith('/remote.swf', expect.objectContaining({ cache: 'no-store' }))
+  sprite.unmount()
 })

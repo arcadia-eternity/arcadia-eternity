@@ -89,6 +89,7 @@ declare module 'vue' {
     PlayerCard: typeof import('./src/components/PlayerCard.vue')['default']
     RangeEditor: typeof import('./src/components/RangeEditor.vue')['default']
     RelatedMarks: typeof import('./src/components/dex/RelatedMarks.vue')['default']
+    ResourceImage: typeof import('./src/components/ResourceImage.vue')['default']
     RoomBattleOptions: typeof import('./src/components/RoomBattleOptions.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

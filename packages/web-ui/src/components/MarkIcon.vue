@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { MarkSchemaType } from '@arcadia-eternity/schema'
 import { useGameDataStore } from '@/stores/gameData'
 import { useResourceStore } from '@/stores/resource'
+import ResourceImage from '@/components/ResourceImage.vue'
 import { resolveMarkIconUrl } from '@/utils/resourceResolver'
 
 const props = withDefaults(
@@ -54,7 +55,13 @@ const iconStyle = computed(() => {
 </script>
 
 <template>
-  <img :src="imageUrl" alt="" class="mark-icon" :style="iconStyle" />
+  <ResourceImage
+    :src="imageUrl"
+    :uncached="!!gameDataStore.serverFallback || !!resolvedMark?.presentation?.icon"
+    alt=""
+    class="mark-icon"
+    :style="iconStyle"
+  />
 </template>
 
 <style scoped>

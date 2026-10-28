@@ -1303,8 +1303,8 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
     const newPetInfo = store.getPetById(toPetId)
     const newPetSpeciesNum = gameDataStore.getSpecies(newPetInfo?.speciesID ?? '')?.num ?? 0
-    if (newPetSpeciesNum !== 0) {
-      playPetSound(newPetSpeciesNum)
+    if (newPetInfo) {
+      playPetSound(newPetSpeciesNum, newPetInfo?.speciesID)
     }
     await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
     assertExecution(execution)
@@ -1843,7 +1843,7 @@ const animatesubscribe = animationQueue
 
 const preloadPetSprites = async () => {
   const imageMode = () => gameSettingStore.battleRenderer === 'image'
-  if (imageMode()) return
+  if (imageMode() || gameDataStore.serverFallback) return
   const pets = [...(currentPlayer.value?.team || []), ...(opponentPlayer.value?.team || [])].filter(
     pet => !pet.isUnknown,
   )
@@ -1890,8 +1890,8 @@ async function initialPetEntryAnimation() {
     [leftPet, leftPetSpeciesNum.value, -battleViewWidth / 2 - 100, 'left'],
     [rightPet, rightPetSpeciesNum.value, battleViewWidth / 2 + 100, 'right'],
   ] as const) {
-    if (pet && pet.$el && speciesNum !== 0) {
-      playPetSound(speciesNum)
+    if (pet && pet.$el) {
+      playPetSound(speciesNum, side === 'left' ? leftActiveSpecies.value?.id : rightActiveSpecies.value?.id)
       if (pet.availableState.includes(ActionState.PRESENT)) {
         animations.push(
           new Promise<void>(resolve => {
@@ -2553,7 +2553,9 @@ watch(
                   :image-only="battleRenderer === 'image'"
                   :allow-recovery="!animating"
                   :swf-url="leftPetSpriteAsset.customSwfUrl"
+                  :uncached="!!gameDataStore.serverFallback"
                   :image-url="leftPetSpriteAsset.customImageUrl"
+                  :fallback-image-url="leftPetSpriteAsset.fallbackImageUrl"
                   class="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none"
                   :class="Z_INDEX_CLASS.PET_SPRITE"
                   @hit="handleAttackHit('left')"
@@ -2572,7 +2574,9 @@ watch(
                   :image-only="battleRenderer === 'image'"
                   :allow-recovery="!animating"
                   :swf-url="rightPetSpriteAsset.customSwfUrl"
+                  :uncached="!!gameDataStore.serverFallback"
                   :image-url="rightPetSpriteAsset.customImageUrl"
+                  :fallback-image-url="rightPetSpriteAsset.fallbackImageUrl"
                   :reverse="true"
                   class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"
                   :class="Z_INDEX_CLASS.PET_SPRITE"

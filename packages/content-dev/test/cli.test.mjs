@@ -50,3 +50,50 @@ test('CLI checks, builds and packs from the caller directory, with type errors f
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('pack checks the generated presentation entry and refuses missing npm media files', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-content-media-pack-'))
+  try {
+    await mkdir(join(root, 'data/species'), { recursive: true })
+    await mkdir(join(root, 'assets'))
+    await mkdir(join(root, 'locales/zh-CN'), { recursive: true })
+    await mkdir(join(root, 'src'))
+    await writeFile(join(root, 'src/index.ts'), 'export {}\n')
+    await writeFile(
+      join(root, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          target: 'ES2022',
+          module: 'ESNext',
+          outDir: 'dist',
+          rootDir: 'src',
+          strict: true,
+          types: [],
+        },
+        include: ['src/**/*.ts'],
+      }),
+    )
+    await writeFile(join(root, 'assets/icon.png'), Buffer.from('image'))
+    await writeFile(join(root, 'data/species/pet.yaml'), 'id: pet\npresentation:\n  icon: assets/icon.png\n')
+    await writeFile(join(root, 'locales/zh-CN/species.yaml'), 'pet:\n  name: 精灵\n')
+    const manifest = {
+      name: '@test/media-pack',
+      version: '1.0.0',
+      files: ['dist'],
+      arcadia: { formatVersion: 1, projectId: 'media', namespace: 'media', content: 'dist/content.json' },
+    }
+    const save = () => writeFile(join(root, 'package.json'), JSON.stringify(manifest))
+    const run = (...args) => exec(process.execPath, [cli, ...args], { cwd: root })
+    await save()
+    await assert.rejects(run('pack'), error => /arcadia.presentation/.test(error.stderr))
+    manifest.arcadia.presentation = 'dist/presentation.json'
+    await save()
+    await assert.rejects(run('pack'), error => /omits required.*assets\/icon.png/.test(error.stderr))
+    manifest.files.push('assets', 'locales')
+    await save()
+    await run('pack')
+    assert.ok((await readFile(join(root, 'test-media-pack-1.0.0.tgz'))).length > 0)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

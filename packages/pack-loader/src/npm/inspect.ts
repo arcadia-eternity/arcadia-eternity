@@ -15,6 +15,7 @@ import {
   type WorkDraft,
 } from '../works/model'
 import { verifyAssets } from '../works/compiler'
+import { PresentationManifestSchema, parseWithErrors, type PresentationManifest } from '@arcadia-eternity/schema'
 import { effectSdkApiVersion } from '@arcadia-eternity/battle/v4/authoring'
 import { resolveNpmInvocation } from './runner'
 
@@ -28,6 +29,7 @@ export interface NpmContentManifest {
   effects?: string
   sdkApi?: number
   /** Asset digest -> package-relative filename. Bytes are checked even in headless mode. */
+  presentation?: string
   assets: Record<string, string>
 }
 export interface InstalledNpmPackage {
@@ -38,6 +40,7 @@ export interface InstalledNpmPackage {
   dependencies: Record<string, string>
   manifest?: NpmContentManifest
   draft?: WorkDraft
+  presentation?: PresentationManifest
 }
 export interface NpmProjectInspection {
   format: 'arcadia.npm-installation'
@@ -114,13 +117,17 @@ function readManifest(value: unknown): NpmContentManifest {
     !input ||
     input.formatVersion !== 1 ||
     Object.keys(input).some(
-      key => !['formatVersion', 'projectId', 'namespace', 'content', 'effects', 'sdkApi', 'assets'].includes(key),
+      key =>
+        !['formatVersion', 'projectId', 'namespace', 'content', 'effects', 'sdkApi', 'assets', 'presentation'].includes(
+          key,
+        ),
     )
   )
     fail('NPM_METADATA', 'arcadia', 'Unsupported Arcadia package metadata')
   createDraft(input.projectId, input.projectId, input.namespace)
   packageFile('/', input.content)
   if (input.effects !== undefined) packageFile('/', input.effects)
+  if (input.presentation !== undefined) packageFile('/', input.presentation)
   if ((input.effects !== undefined || input.sdkApi !== undefined) && input.sdkApi !== effectSdkApiVersion)
     fail('SDK_INCOMPATIBLE', 'arcadia.sdkApi', `Code packages require Effect SDK API ${effectSdkApiVersion}`)
   input.assets ??= {}
@@ -237,6 +244,21 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
       const blobs: Record<string, Uint8Array> = {}
       for (const [hash, file] of Object.entries(manifest.assets)) blobs[hash] = await readFile(packageFile(dir, file))
       await verifyAssets(draft.assets, blobs)
+      if (manifest.presentation) {
+        const raw = await jsonFile(packageFile(dir, manifest.presentation))
+        entry.presentation = parseWithErrors(PresentationManifestSchema, raw)
+        const ids = new Set<string>()
+        for (const asset of entry.presentation.resources) {
+          if (ids.has(asset.id)) fail('RESOURCE_CONFLICT', asset.id, 'Duplicate resource ID')
+          ids.add(asset.id)
+          if (asset.kind === 'file') packageFile(dir, asset.source)
+          else {
+            const url = new URL(asset.source)
+            if (url.username || url.password)
+              fail('RESOURCE_URL', asset.source, 'Resource URL must not contain credentials')
+          }
+        }
+      }
       entry.manifest = manifest
       entry.draft = draft
     }

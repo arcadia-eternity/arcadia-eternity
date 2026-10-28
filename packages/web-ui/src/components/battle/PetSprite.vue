@@ -4,6 +4,7 @@ import 'seer2-pet-animator'
 import { ActionState, type PetRendererEvent } from 'seer2-pet-animator'
 import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { asyncComputed } from '@vueuse/core'
+import { useUncachedResource } from '@/composition/useUncachedResource'
 import { petResourceCache } from '@/services/petResourceCache'
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
@@ -13,6 +14,8 @@ const props = withDefaults(
     num: number
     swfUrl?: string
     imageUrl?: string
+    fallbackImageUrl?: string
+    uncached?: boolean
     reverse?: boolean
     imageOnly?: boolean
     allowRecovery?: boolean
@@ -21,6 +24,8 @@ const props = withDefaults(
     num: 999,
     swfUrl: '',
     imageUrl: '',
+    fallbackImageUrl: '',
+    uncached: false,
     reverse: false,
     imageOnly: false,
     allowRecovery: true,
@@ -34,28 +39,48 @@ const imageFailed = ref(false)
 const availableState = ref<ActionState[]>([])
 const ready = ref<Promise<void>>(Promise.resolve())
 const forceHttps = computed(() => window.location.protocol === 'https:')
-const resolvedSwfUrl = asyncComputed(
+const originalSwfUrl = asyncComputed(
   async () =>
     props.imageOnly || props.imageUrl
       ? ''
-      : props.swfUrl || (props.num ? petResourceCache.getPetSwfUrl(props.num) : ''),
+      : props.swfUrl ||
+        (props.num
+          ? props.uncached
+            ? petResourceCache.getRemotePetUrl(props.num)
+            : petResourceCache.getPetSwfUrl(props.num)
+          : ''),
   '',
 )
 const portrait = computed(
-  () => props.imageUrl || officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`),
+  () =>
+    props.imageUrl ||
+    props.fallbackImageUrl ||
+    officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`),
 )
+const { url: resolvedSwfUrl, error: swfLoadError } = useUncachedResource(
+  () => originalSwfUrl.value,
+  () => props.uncached,
+)
+const { url: portraitUrl, error: portraitLoadError } = useUncachedResource(
+  () => portrait.value,
+  () => props.uncached,
+)
+const fallbackActive = ref(false)
+const portraitLoaded = ref(false)
 let generation = 0
 let resolveReady: (() => void) | undefined
 let rejectReady: ((error: Error) => void) | undefined
 
 watch(
-  () => [props.num, props.swfUrl, props.imageUrl, props.imageOnly],
+  () => [props.num, props.swfUrl, props.imageUrl, props.imageOnly, props.fallbackImageUrl],
   () => {
     generation++
     rejectReady?.(new Error('精灵资源已切换'))
     loadedStates.value = []
     inited.value = false
     imageFailed.value = false
+    fallbackActive.value = false
+    portraitLoaded.value = false
     availableState.value = []
     ready.value = new Promise<void>((resolve, reject) => {
       resolveReady = resolve
@@ -91,7 +116,10 @@ watch(
       finish?.()
     } catch (error) {
       if (current === generation && renderer === petRenderRef.value) {
-        fail?.(error instanceof Error ? error : new Error('精灵动画加载失败'))
+        if (props.fallbackImageUrl) {
+          fallbackActive.value = true
+          if (portraitLoaded.value) finish?.()
+        } else fail?.(error instanceof Error ? error : new Error('精灵动画加载失败'))
       }
     }
   },
@@ -116,12 +144,23 @@ onUnmounted(() => {
   rejectReady?.(new Error('精灵组件已卸载'))
 })
 const handleImageLoad = () => {
-  if (props.imageOnly || props.imageUrl) resolveReady?.()
+  portraitLoaded.value = true
+  if (props.imageOnly || props.imageUrl || fallbackActive.value) resolveReady?.()
 }
 const handleImageError = () => {
   imageFailed.value = true
-  if (props.imageOnly || props.imageUrl) rejectReady?.(new Error('精灵图片加载失败'))
+  if (props.imageOnly || props.imageUrl || fallbackActive.value) rejectReady?.(new Error('精灵图片加载失败'))
 }
+watch(swfLoadError, error => {
+  if (!error) return
+  if (props.fallbackImageUrl) {
+    fallbackActive.value = true
+    if (portraitLoaded.value) resolveReady?.()
+  } else rejectReady?.(error)
+})
+watch(portraitLoadError, error => {
+  if (error) handleImageError()
+})
 const setState = async (state: ActionState) => {
   if (inited.value) await petRenderRef.value?.setState(state)
 }
@@ -143,9 +182,9 @@ defineExpose({ setState, getState, availableState, ready })
       data-testid="pet-static-fallback"
     >
       <img
-        v-if="!imageFailed"
-        :key="`${portrait}-${imageOnly}`"
-        :src="portrait"
+        v-if="!imageFailed && portraitUrl"
+        :key="`${portraitUrl}-${imageOnly}`"
+        :src="portraitUrl"
         alt="精灵静态形象"
         @load="handleImageLoad"
         @error="handleImageError"

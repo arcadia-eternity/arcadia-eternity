@@ -9,16 +9,11 @@ import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
 import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
-import MarkdownIt from 'markdown-it'
-import { renderContentDescription } from '@/i18n/serverContent'
+import ContentDescription from '@/components/ContentDescription'
 import { getCurrentSkillEffectiveness } from '@/utils/typeEffectiveness'
 
 const gameDataStore = useGameDataStore()
 const battleStore = useBattleStore()
-
-const md = new MarkdownIt({
-  html: true,
-})
 
 interface Props {
   pet: PetMessage
@@ -138,7 +133,7 @@ const processedSkills = computed(() => {
           }) ||
           i18next.t('unknown_skill', { ns: 'webui' }) ||
           '未知技能'
-        skillDescription = renderContentDescription(md, rawDescription, 'skill', skill.baseId)
+        skillDescription = rawDescription
       } catch {
         skillDescription = i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能'
       }
@@ -251,6 +246,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
 <template>
   <div class="flex flex-wrap content-center justify-center">
     <Tooltip
+      interactive
       portal
       :show="showTooltip"
       :position="position === 'left' ? 'right' : position === 'right' ? 'left' : 'top'"
@@ -288,7 +284,9 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
             <!-- 图标容器 -->
             <div class="relative">
               <PetIcon
+                :uncached="!!gameDataStore.serverFallback"
                 :id="petIconId"
+                :species="speciesInfo ?? undefined"
                 :name="petDisplayName"
                 :is-unknown="isPetUnknown || !speciesInfo"
                 :class="position === 'left' || position === 'right' ? 'pet-button__side-icon' : 'size-35'"
@@ -374,10 +372,13 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
             </div>
 
             <!-- 技能描述 -->
-            <div
+            <ContentDescription
               v-if="!skill.isUnknown"
+              namespace="skill"
+              :content-id="skill.baseId"
+              :fallback="skill.displayDescription"
+              :context="{ skill }"
               class="text-sm text-gray-200 prose prose-invert prose-sm max-w-none"
-              v-html="skill.displayDescription"
             />
             <div v-else class="text-sm text-gray-400">
               {{ i18next.t('unknown_skill', { ns: 'webui' }) || '未知技能' }}

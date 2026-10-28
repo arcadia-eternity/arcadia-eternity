@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import MarkdownIt from 'markdown-it'
-import { renderContentDescription } from '@/i18n/serverContent'
+import ContentDescription from '@/components/ContentDescription'
 import Tooltip from './Tooltip.vue'
+import ResourceImage from '../ResourceImage.vue'
 import type { MarkMessage } from '@arcadia-eternity/const'
 import { useResourceStore } from '@/stores/resource'
 import { Z_INDEX } from '@/constants/zIndex'
@@ -10,9 +10,6 @@ import i18next from 'i18next'
 import { useGameDataStore } from '@/stores/gameData'
 import { resolveMarkIconUrl } from '@/utils/resourceResolver'
 
-const md = new MarkdownIt({
-  html: true,
-})
 const resourceStore = useResourceStore()
 const dataStore = useGameDataStore()
 
@@ -47,6 +44,7 @@ const duration = computed(() => props.mark.duration ?? -1)
 <template>
   <div ref="rootEl" class="relative inline-block overflow-visible group" data-tooltip-parent>
     <Tooltip
+      interactive
       portal
       v-model:show="showTooltip"
       position="bottom"
@@ -62,8 +60,9 @@ const duration = computed(() => props.mark.duration ?? -1)
           class="battle-mark__trigger relative transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
           :class="`z-[${Z_INDEX.MARK}]`"
         >
-          <img
+          <ResourceImage
             :src="image"
+            :uncached="!!markData?.presentation?.icon"
             class="battle-mark__icon object-contain transition-opacity duration-200 ease-in-out pointer-events-none"
             :alt="name"
             :class="{ 'opacity-50': !mark.config.persistent && duration == 1 }"
@@ -75,10 +74,13 @@ const duration = computed(() => props.mark.duration ?? -1)
       </template>
 
       <h3 class="text-lg font-bold mb-2">{{ name }}</h3>
-      <div
+      <ContentDescription
+        namespace="mark"
+        :content-id="mark.baseId"
+        :fallback="description"
+        :context="{ mark }"
         class="text-sm text-gray-200 leading-relaxed mb-3 prose prose-invert max-w-none"
-        v-html="renderContentDescription(md, description, 'mark', mark.baseId)"
-      ></div>
+      />
       <div class="text-xs text-gray-400 mt-2" v-if="!mark.config.persistent">剩余回合: {{ duration }}</div>
     </Tooltip>
   </div>

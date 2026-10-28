@@ -29,7 +29,12 @@
           <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
             <!-- 精灵图标 -->
             <div class="flex-shrink-0">
-              <PetIcon :id="species.num" class="w-32 h-32" />
+              <ResourceImage
+                :src="resolveSpeciesPortraitUrl(species)"
+                :uncached="!!gameDataStore.serverFallback"
+                class="w-32 h-32 object-contain"
+                :alt="getSpeciesName()"
+              />
             </div>
 
             <!-- 基本信息 -->
@@ -183,7 +188,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useGameDataStore } from '@/stores/gameData'
 import { useTranslation } from 'i18next-vue'
-import PetIcon from '@/components/PetIcon.vue'
+import ResourceImage from '@/components/ResourceImage.vue'
+import { resolveSpeciesPortraitUrl } from '@/utils/resourceResolver'
 import ElementIcon from '@/components/battle/ElementIcon.vue'
 import { ArrowLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 

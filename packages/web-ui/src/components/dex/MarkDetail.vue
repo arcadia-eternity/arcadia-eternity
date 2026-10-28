@@ -31,8 +31,9 @@
             <div
               class="flex-shrink-0 flex items-center justify-center w-32 h-32 bg-gray-100 border border-gray-200 rounded-lg overflow-hidden"
             >
-              <img
+              <ResourceImage
                 v-if="markImageUrl"
+                :uncached="!!mark.presentation?.icon"
                 :src="markImageUrl"
                 :alt="getMarkName()"
                 class="w-full h-full object-contain"
@@ -46,7 +47,13 @@
               <h1 class="text-3xl font-bold text-gray-800 mb-2">
                 {{ getMarkName() }}
               </h1>
-              <div class="text-gray-600 mb-4" v-html="getRenderedMarkDescription()"></div>
+              <ContentDescription
+                class="text-gray-600 mb-4"
+                namespace="mark"
+                :content-id="mark.id"
+                :fallback="getMarkDescription()"
+                :context="{ mark }"
+              />
               <div class="flex items-center justify-center md:justify-start space-x-2">
                 <span
                   v-if="mark.config?.isShield"
@@ -212,8 +219,9 @@ import { useGameDataStore } from '@/stores/gameData'
 import { useResourceStore } from '@/stores/resource'
 import { useTranslation } from 'i18next-vue'
 import { ArrowLeftIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline'
-import MarkdownIt from 'markdown-it'
-import { renderContentDescription } from '@/i18n/serverContent'
+import ContentDescription from '@/components/ContentDescription'
+import ResourceImage from '@/components/ResourceImage.vue'
+import { resolveMarkIconUrl } from '@/utils/resourceResolver'
 
 const { i18next } = useTranslation()
 const route = useRoute()
@@ -221,11 +229,6 @@ const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
 
 // 创建markdown实例
-const md = new MarkdownIt({
-  html: true,
-  linkify: true,
-  typographer: true,
-})
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -239,7 +242,7 @@ const markImageUrl = computed(() => {
   if (!mark.value || showImageError.value) return null
   try {
     // 尝试从资源存储中获取印记图像URL
-    const imageUrl = resourceStore.markImage.byId[mark.value.id]
+    const imageUrl = resolveMarkIconUrl(mark.value, resourceStore.getMarkImage)
     return imageUrl || null
   } catch {
     return null
@@ -272,12 +275,6 @@ function getMarkDescription(): string {
   } catch {
     return ''
   }
-}
-
-function getRenderedMarkDescription(): string {
-  const description = getMarkDescription()
-  if (!description) return ''
-  return renderContentDescription(md, description, 'mark', mark.value!.id)
 }
 
 function onImageError() {

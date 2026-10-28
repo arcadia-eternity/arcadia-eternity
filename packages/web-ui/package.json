@@ -79,6 +79,7 @@
     "i18next-chained-backend": "^5.0.2",
     "i18next-http-backend": "^4.0.2",
     "i18next-vue": "^5.4.0",
+    "intl-messageformat": "^12.1.4",
     "jsondiffpatch": "catalog:",
     "markdown-it": "^14.3.1",
     "mitt": "^3.0.1",

@@ -61,3 +61,58 @@ for (const [name, source, expected] of [
     }
   })
 }
+
+test('builds separate media/locales metadata without fetching any HTTP source', async () => {
+  const root = await fixture()
+  try {
+    const image = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    )
+    await mkdir(join(root, 'assets/pets'), { recursive: true })
+    await mkdir(join(root, 'locales/zh-CN'), { recursive: true })
+    await writeFile(join(root, 'assets/pets/icon.png'), image)
+    await writeFile(
+      join(root, 'locales/zh-CN/species.yaml'),
+      'pet:\n  name: 火猫\n  description: 当前体力 <heal>{hp}</heal>\n',
+    )
+    await writeFile(
+      join(root, 'data/species/pet.json'),
+      JSON.stringify({
+        id: 'pet',
+        presentation: {
+          icon: 'assets/pets/icon.png',
+          battle: {
+            renderer: 'seer2-swf',
+            source: 'http://127.0.0.1:1/never-download.swf',
+            fallback: 'assets/pets/icon.png',
+          },
+        },
+      }),
+    )
+    await build(root)
+    const result = JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8'))
+    assert.equal(result.resources.length, 2)
+    assert.equal(result.resources[0].bytes, image.length)
+    assert.deepEqual(result.resources[1], {
+      kind: 'http',
+      id: 'http://127.0.0.1:1/never-download.swf',
+      source: 'http://127.0.0.1:1/never-download.swf',
+      mime: 'application/x-shockwave-flash',
+    })
+    assert.equal(result.locales['zh-CN'].species.pet.name, '火猫')
+    assert.equal(
+      JSON.parse(await readFile(join(root, 'dist/content.json'), 'utf8')).data.species[0].presentation.battle.renderer,
+      'seer2-swf',
+    )
+    await build(root, '--check')
+    await writeFile(
+      join(root, 'data/species/pet.json'),
+      JSON.stringify({ id: 'pet', presentation: { icon: 'assets/missing.png' } }),
+    )
+    await assert.rejects(build(root), error => /pet.json.*Missing resource/.test(error.stderr))
+    assert.deepEqual(JSON.parse(await readFile(join(root, 'dist/presentation.json'), 'utf8')), result)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

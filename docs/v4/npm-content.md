@@ -43,7 +43,9 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表�
 
 数据包可以省略 `effects` 和 `sdkApi`。代码包声明 SDK API 版本，效果定义由 `createEffects` 返回。技能和印记直接引用所需效果，不再维护 `arcadia.exports`；加载器据引用生成内部注册信息，并检查实际效果的适用对象。未被引用的效果不注册。所有包都有 `content`，代码包可提供空内容集合。元数据检查不会导入效果模块。
 
-资源通过 `arcadia.assets` 提供 `sha256 → 包内相对文件` 映射，与草稿 `assets` 声明对应。即使在无界面运行时也检查声明的资源字节，以确保客户端取得对应展示资源。源码、构建产物和 source map 不做安装文件摘要或本地防篡改检查。
+推荐用 `arcadia.presentation: "dist/presentation.json"` 接入工具生成的资源／语言索引，源文件与 `presentation` 用途声明见[内容展示合同](content-presentation.md)。包内文件从固定环境的包目录流式提供；HTTP/HTTPS 资源只公布地址，不在构建／环境准备时下载。不建立服务器或客户端资源缓存，资源响应和客户端主动请求使用 `no-store`。远程 URL 固定的是引用，不保证源站字节不变。
+
+现有 `arcadia.assets` 提供 `sha256 → 包内相对文件` 映射，与草稿 `assets` 声明对应。即使在无界面运行时也检查声明的资源字节，以确保客户端取得对应展示资源。源码、构建产物和 source map 不做安装文件摘要或本地防篡改检查。
 
 ## 标准依赖与固定安装
 

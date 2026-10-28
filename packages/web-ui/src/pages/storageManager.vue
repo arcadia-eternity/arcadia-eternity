@@ -543,7 +543,12 @@
                       <template #content>
                         <div class="pet-tooltip-content">
                           <div class="flex items-center space-x-3 mb-2">
-                            <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                            <PetIcon
+                              :uncached="!!gameDataStore.serverFallback"
+                              :id="gameDataStore.getSpecies(pet.species)?.num"
+                              :species="gameDataStore.getSpecies(pet.species)"
+                              class="w-12 h-12"
+                            />
                             <div>
                               <div class="font-semibold text-white">{{ pet.name }}</div>
                               <div class="text-gray-300 text-sm">
@@ -609,7 +614,12 @@
                         class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                       >
                         <div class="flex flex-col items-center space-y-1">
-                          <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
+                          <PetIcon
+                            :uncached="!!gameDataStore.serverFallback"
+                            :id="gameDataStore.getSpecies(pet.species)?.num"
+                            :species="gameDataStore.getSpecies(pet.species)"
+                            class="w-8 h-8 sm:w-10 sm:h-10"
+                          />
                           <div class="text-center w-full">
                             <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                             <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
@@ -906,7 +916,12 @@
                   <template #content>
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <PetIcon
+                          :uncached="!!gameDataStore.serverFallback"
+                          :id="gameDataStore.getSpecies(pet.species)?.num"
+                          :species="gameDataStore.getSpecies(pet.species)"
+                          class="w-12 h-12"
+                        />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
@@ -973,7 +988,12 @@
                     class="relative bg-white rounded-lg border border-gray-200 p-1 sm:p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                   >
                     <div class="flex flex-col items-center space-y-1">
-                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8 sm:w-10 sm:h-10" />
+                      <PetIcon
+                        :uncached="!!gameDataStore.serverFallback"
+                        :id="gameDataStore.getSpecies(pet.species)?.num"
+                        :species="gameDataStore.getSpecies(pet.species)"
+                        class="w-8 h-8 sm:w-10 sm:h-10"
+                      />
                       <div class="text-center w-full">
                         <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
@@ -1042,7 +1062,12 @@
                   <template #content>
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <PetIcon
+                          :uncached="!!gameDataStore.serverFallback"
+                          :id="gameDataStore.getSpecies(pet.species)?.num"
+                          :species="gameDataStore.getSpecies(pet.species)"
+                          class="w-12 h-12"
+                        />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
@@ -1108,7 +1133,12 @@
                     class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                   >
                     <div class="flex flex-col items-center space-y-1">
-                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-8 h-8" />
+                      <PetIcon
+                        :uncached="!!gameDataStore.serverFallback"
+                        :id="gameDataStore.getSpecies(pet.species)?.num"
+                        :species="gameDataStore.getSpecies(pet.species)"
+                        class="w-8 h-8"
+                      />
                       <div class="text-center w-full">
                         <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
@@ -1385,7 +1415,12 @@
                   <template #content>
                     <div class="pet-tooltip-content">
                       <div class="flex items-center space-x-3 mb-2">
-                        <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-12 h-12" />
+                        <PetIcon
+                          :uncached="!!gameDataStore.serverFallback"
+                          :id="gameDataStore.getSpecies(pet.species)?.num"
+                          :species="gameDataStore.getSpecies(pet.species)"
+                          class="w-12 h-12"
+                        />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
@@ -1451,7 +1486,12 @@
                     class="relative bg-white rounded-lg border border-gray-200 p-2 hover:shadow-md transition-all duration-200 group cursor-pointer active:bg-gray-50 touch-manipulation"
                   >
                     <div class="flex flex-col items-center space-y-1">
-                      <PetIcon :id="gameDataStore.getSpecies(pet.species)?.num" class="w-10 h-10" />
+                      <PetIcon
+                        :uncached="!!gameDataStore.serverFallback"
+                        :id="gameDataStore.getSpecies(pet.species)?.num"
+                        :species="gameDataStore.getSpecies(pet.species)"
+                        class="w-10 h-10"
+                      />
                       <div class="text-center w-full">
                         <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
@@ -1570,7 +1610,12 @@
 
             <div v-if="selectedPetForDetail" class="space-y-4">
               <div class="flex items-center space-x-4">
-                <PetIcon :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num" class="w-16 h-16" />
+                <PetIcon
+                  :uncached="!!gameDataStore.serverFallback"
+                  :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num"
+                  :species="gameDataStore.getSpecies(selectedPetForDetail.species)"
+                  class="w-16 h-16"
+                />
                 <div>
                   <h4 class="text-xl font-semibold text-gray-900">{{ selectedPetForDetail.name }}</h4>
                   <p class="text-gray-600">

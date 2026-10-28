@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useResourceStore } from '@/stores/resource'
+import MarkIcon from '@/components/MarkIcon.vue'
+import ContentDescription from '@/components/ContentDescription'
 import type { SkillMarkRelation } from '@/services/skillMarkRelationService'
 import i18next from 'i18next'
-import { ShieldCheckIcon } from '@heroicons/vue/24/outline'
 
 interface Props {
   markId: string
@@ -16,8 +16,6 @@ const props = withDefaults(defineProps<Props>(), {
   compact: true,
   showDescription: false,
 })
-
-const resourceStore = useResourceStore()
 
 // 获取印记名称
 const markName = computed(() => {
@@ -43,15 +41,6 @@ const markDescription = computed(() => {
     )
   } catch {
     return ''
-  }
-})
-
-// 获取印记图片
-const markImage = computed(() => {
-  try {
-    return resourceStore.markImage.byId[props.markId] || null
-  } catch {
-    return null
   }
 })
 
@@ -86,8 +75,7 @@ const getRelationTypeClass = (relationType: SkillMarkRelation['relationType']): 
     <div class="flex items-center gap-2">
       <!-- 印记图标 -->
       <div class="flex-shrink-0 w-6 h-6 bg-slate-600/50 rounded flex items-center justify-center overflow-hidden">
-        <img v-if="markImage" :src="markImage" :alt="markName" class="w-full h-full object-contain" />
-        <ShieldCheckIcon v-else class="w-4 h-4 text-purple-400" />
+        <MarkIcon :mark-id="markId" :size="24" :alt="markName" />
       </div>
 
       <!-- 印记信息 -->
@@ -103,8 +91,12 @@ const getRelationTypeClass = (relationType: SkillMarkRelation['relationType']): 
     </div>
 
     <!-- 印记描述 -->
-    <div v-if="showDescription && markDescription" class="text-xs text-gray-300 leading-relaxed pl-8">
-      {{ markDescription }}
-    </div>
+    <ContentDescription
+      v-if="showDescription && markDescription"
+      namespace="mark"
+      :content-id="markId"
+      :fallback="markDescription"
+      class="text-xs text-gray-300 leading-relaxed pl-8"
+    />
   </div>
 </template>

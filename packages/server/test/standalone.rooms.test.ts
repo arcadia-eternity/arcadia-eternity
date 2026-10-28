@@ -109,7 +109,7 @@ it('serves approved npm environments to code-free clients and pins rooms across 
     for (const privateValue of ['createEffects', 'behaviors', 'arcadia-admission', fixture.directory, 'filesDigest'])
       expect(publicJson).not.toContain(privateValue)
     const resource = await fetch(`${url}${first.resources[0].url}`)
-    expect(resource.headers.get('cache-control')).toContain('immutable')
+    expect(resource.headers.get('cache-control')).toBe('no-store')
     expect(Buffer.from(await resource.arrayBuffer())).toEqual(fixture.asset)
     expect(await ack(a.socket, 'createPrivateRoom', { environmentId: 'forged', config: {} })).toMatchObject({
       code: 'ENVIRONMENT_NOT_FOUND',

@@ -4,6 +4,7 @@ import { Z_INDEX } from '@/constants/zIndex'
 
 interface Props {
   portal?: boolean
+  interactive?: boolean
   position?: 'top' | 'bottom' | 'left' | 'right'
   trigger?: 'hover' | 'click' | 'focus'
   show?: boolean
@@ -12,6 +13,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   portal: false,
+  interactive: false,
   position: 'bottom',
   trigger: 'hover',
   contentClass: '',
@@ -35,6 +37,7 @@ const adjustTooltipPosition = async () => {
   if (!showTooltip.value || !tooltipRef.value) return
 
   await nextTick()
+  if (!showTooltip.value || !tooltipRef.value) return
 
   const tooltip = tooltipRef.value
   if (props.portal && triggerRef.value) {
@@ -88,8 +91,9 @@ const adjustTooltipPosition = async () => {
 const tooltipClasses = computed(() => {
   // 使用常量确保始终在所有战斗组件之上
   // PetSprite(5) < PetButton(45) < SkillButton(30) < BattleStatus(40) < Mark(50) < Tooltip(200)
-  if (props.portal) return 'fixed w-max pointer-events-none z-[2000]'
-  const baseClasses = `absolute w-max pointer-events-none z-[${Z_INDEX.TOOLTIP}]`
+  const pointerEvents = props.interactive ? 'pointer-events-auto' : 'pointer-events-none'
+  if (props.portal) return `fixed w-max ${pointerEvents} z-[2000]`
+  const baseClasses = `absolute w-max ${pointerEvents} z-[${Z_INDEX.TOOLTIP}]`
   const positionClasses = {
     bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
     top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
@@ -116,16 +120,18 @@ const arrowClasses = computed(() => {
   }
 })
 
+let closeTimer: ReturnType<typeof setTimeout> | undefined
 function toggleTooltip(show: boolean) {
-  if (props.trigger === 'hover') {
-    showTooltip.value = show
-    if (show) {
-      // 显示tooltip时调整位置
-      nextTick(() => {
-        adjustTooltipPosition()
-      })
-    }
+  clearTimeout(closeTimer)
+  if (props.trigger !== 'hover') return
+  if (!show && props.interactive) {
+    closeTimer = setTimeout(() => {
+      showTooltip.value = false
+    }, 180)
+    return
   }
+  showTooltip.value = show
+  if (show) void nextTick(adjustTooltipPosition)
 }
 
 // 监听show prop的变化
@@ -158,6 +164,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  clearTimeout(closeTimer)
   window.removeEventListener('scroll', adjustTooltipPosition, true)
   if (resizeObserver) {
     resizeObserver.disconnect()
@@ -180,7 +187,17 @@ onUnmounted(() => {
     <!-- 直接使用CSS定位的tooltip -->
     <Teleport to="body" :disabled="!portal">
       <transition name="fade">
-        <div v-show="showTooltip" ref="tooltipRef" :class="tooltipClasses" :style="tooltipStyle">
+        <div
+          v-if="showTooltip"
+          ref="tooltipRef"
+          :class="tooltipClasses"
+          :style="tooltipStyle"
+          role="tooltip"
+          @mouseenter="interactive && toggleTooltip(true)"
+          @mouseleave="interactive && toggleTooltip(false)"
+          @focusin="interactive && toggleTooltip(true)"
+          @focusout="interactive && toggleTooltip(false)"
+        >
           <div
             class="battle-tooltip relative bg-black/90 text-white p-4 rounded-xl min-w-[280px] max-w-[320px] shadow-2xl shadow-black/30 backdrop-blur-sm border border-white/10"
             :class="contentClass"

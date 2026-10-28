@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -8,6 +9,7 @@ import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
 import { cloneJson, digestJson, fail, runtimeId, type Json, type WorkHost, type WorkRelease } from '../works/model'
 import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProjectInspection } from './inspect'
 import { captureNpmProject } from './capture'
+import { preparePresentation, type PreparedPresentation } from './resources'
 
 export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
   readonly createContent: (
@@ -18,6 +20,8 @@ export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
 }
 export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnvironment>> & {
   readonly installation: NpmProjectInspection
+  presentation: PreparedPresentation[]
+  assetFile(hash: string): string | undefined
   readAsset(hash: string): Uint8Array | undefined
   dispose(): Promise<void>
 }
@@ -42,6 +46,7 @@ export async function prepareNpmProject(
     const installation = Object.freeze({ ...inspected, lockfileDigest: original.lockfileDigest })
     return Object.freeze({
       ...(await compileInstallation(captured.root, host, installation, approval.policy)),
+      presentation: await preparePresentation(captured.root, installation.packages),
       dispose: captured.dispose,
     })
   } catch (error) {
@@ -146,7 +151,7 @@ async function compileInstallation(
   const byLocation = new Map(installation.packages.map(pkg => [pkg.location, pkg]))
   const releases = new Map<string, WorkRelease>(),
     visiting = new Set<string>()
-  const assetBytes = new Map<string, Uint8Array>()
+  const assetFiles = new Map<string, string>()
   // npm resolves ordinary library versions. Only content registrations participate in the game dependency graph.
   function contentDependencies(pkg: InstalledNpmPackage): InstalledNpmPackage[] {
     const found = new Map<string, InstalledNpmPackage>(),
@@ -192,7 +197,7 @@ async function compileInstallation(
     const blobs: Record<string, Uint8Array> = {}
     for (const [hash, file] of Object.entries(manifest.assets)) {
       blobs[hash] = await readFile(packageFile(resolve(root, pkg.location), file))
-      assetBytes.set(hash, blobs[hash])
+      assetFiles.set(hash, packageFile(resolve(root, pkg.location), file))
     }
     const release = await compileRelease(draft, pkg.version, combinedHost, [...releases.values()], blobs)
     visiting.delete(pkg.location)
@@ -204,5 +209,13 @@ async function compileInstallation(
     ...policy,
     npmInstallation: installation.digest,
   })
-  return Object.freeze({ ...prepared, installation, readAsset: (hash: string) => assetBytes.get(hash)?.slice() })
+  return Object.freeze({
+    ...prepared,
+    installation,
+    assetFile: (hash: string) => assetFiles.get(hash),
+    readAsset: (hash: string) => {
+      const file = assetFiles.get(hash)
+      return file ? new Uint8Array(readFileSync(file)) : undefined
+    },
+  })
 }

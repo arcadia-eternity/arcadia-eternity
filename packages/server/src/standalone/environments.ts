@@ -1,16 +1,17 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
+import type { PreparedPresentation } from '@arcadia-eternity/pack-loader/node'
 import { prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
 import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
 import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
-import { SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
+import { SkillSchema, MarkSchema, SpeciesSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createStandaloneRuntime, loadStandaloneBase, type StandaloneRuntime } from './native'
 
 interface Environment {
   runtime: StandaloneRuntime
   descriptor: ServerEnvironmentDescriptor
   content: ServerEnvironmentContent
-  readAsset(hash: string): Uint8Array | undefined
+  assetFile(hash: string): string | undefined
   dispose(): Promise<void>
   retired: boolean
   references: number
@@ -34,7 +35,6 @@ export class ServerEnvironmentRegistry {
   private initializing?: Promise<void>
   private defaultId?: string
   private closed = false
-
   async ready(): Promise<void> {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
     this.initializing ??= (async () => {
@@ -52,7 +52,7 @@ export class ServerEnvironmentRegistry {
           resources: [],
         },
         content: this.publicContent(runtime, base.data),
-        readAsset: () => undefined,
+        assetFile: () => undefined,
         dispose: async () => {},
         references: 0,
         retired: false,
@@ -76,7 +76,19 @@ export class ServerEnvironmentRegistry {
         ...(typeof record.description === 'string' ? { description: record.description } : {}),
       }
     }
-    const speciesText = new Map(data.species.map(raw => [(raw as { id: string }).id, text(raw)]))
+    const speciesText = new Map(
+      data.species.map(raw => {
+        const parsed = parseWithErrors(SpeciesSchema, raw)
+        return [
+          parsed.id,
+          {
+            ...text(raw),
+            ...(parsed.assetRef ? { assetRef: parsed.assetRef } : {}),
+            ...(parsed.presentation ? { presentation: parsed.presentation } : {}),
+          },
+        ] as const
+      }),
+    )
     return {
       species: [...runtime.species.values()].map(item => ({ ...structuredClone(item), ...speciesText.get(item.id) })),
       skills: data.skills.map(raw => {
@@ -85,9 +97,31 @@ export class ServerEnvironmentRegistry {
       }),
       marks: data.marks.map(raw => {
         const mark = parseWithErrors(MarkSchema, raw)
-        return { id: mark.id, ...(mark.iconRef ? { iconRef: mark.iconRef } : {}), tags: mark.tags ?? [], ...text(raw) }
+        return {
+          id: mark.id,
+          ...(mark.iconRef ? { iconRef: mark.iconRef } : {}),
+          tags: mark.tags ?? [],
+          ...(mark.presentation ? { presentation: mark.presentation } : {}),
+          ...text(raw),
+        }
       }),
     }
+  }
+
+  private contentLocales(packages: PreparedPresentation[]): NonNullable<ServerEnvironmentContent['locales']> {
+    const bundles: NonNullable<ServerEnvironmentContent['locales']>['bundles'] = {}
+    for (const pkg of packages)
+      for (const [language, namespaces] of Object.entries(pkg.manifest.locales)) {
+        for (const [namespace, entries] of Object.entries(namespaces)) {
+          const target = ((bundles[language] ??= {})[namespace] ??= {})
+          for (const [key, value] of Object.entries(entries)) {
+            const id = `${pkg.namespace}:${key}`
+            if (Object.hasOwn(target, id)) throw new EnvironmentError('LOCALE_CONFLICT')
+            target[id] = value
+          }
+        }
+      }
+    return { defaultLocale: 'zh-CN', bundles }
   }
 
   private publish(environment: Environment) {
@@ -116,19 +150,48 @@ export class ServerEnvironmentRegistry {
       // Local code edits do not change the metadata identity. Every preparation is
       // a fresh room-selectable instance, so it cannot silently reuse an older runtime.
       const id = digest({ runtime: runtime.identity, instance: randomUUID() })
-      const resources = prepared.releases.flatMap(release =>
+      const legacyResources = prepared.releases.flatMap(release =>
         release.assets.map(asset => ({
           ...asset,
           projectId: release.project.id,
           url: `/api/v1/environments/${id}/assets/${asset.sha256}`,
         })),
       )
+      const resources = [
+        ...legacyResources,
+        ...prepared.presentation.flatMap(pkg =>
+          pkg.resources.map(asset => ({
+            id: asset.id,
+            variant: 'default',
+            projectId: pkg.projectId,
+            sha256: asset.sha256,
+            bytes: asset.bytes,
+            mime: asset.mime,
+            url: `/api/v1/environments/${id}/assets/${asset.sha256}`,
+          })),
+        ),
+      ]
+      const files = new Map(
+        prepared.presentation.flatMap(pkg => pkg.resources.map(asset => [asset.sha256, asset.file] as const)),
+      )
+      const content = this.publicContent(runtime, prepared.data)
+      content.locales = this.contentLocales(prepared.presentation)
       const descriptor: ServerEnvironmentDescriptor = {
         id,
         protocolVersion: 1,
         runtime: runtime.identity,
         resources,
-        resourceRevision: digest(resources),
+        remoteResources: prepared.presentation.flatMap(pkg =>
+          pkg.manifest.resources
+            .filter(asset => asset.kind === 'http')
+            .map(asset => ({
+              projectId: pkg.projectId,
+              id: asset.id,
+              url: asset.source,
+              ...(asset.mime ? { mime: asset.mime } : {}),
+            })),
+        ),
+        resourceRevision: digest({ resources, presentation: prepared.presentation.map(pkg => pkg.manifest) }),
         packages: prepared.installation.packages
           .filter(pkg => pkg.manifest)
           .map(pkg => ({
@@ -141,8 +204,8 @@ export class ServerEnvironmentRegistry {
       this.publish({
         runtime,
         descriptor,
-        content: this.publicContent(runtime, prepared.data),
-        readAsset: prepared.readAsset,
+        content,
+        assetFile: hash => files.get(hash) ?? prepared.assetFile(hash),
         dispose: prepared.dispose,
         references: 0,
         retired: false,
@@ -171,9 +234,22 @@ export class ServerEnvironmentRegistry {
   asset(id: string, hash: string) {
     const entry = this.entry(id)
     const asset = entry.descriptor.resources.find(asset => asset.sha256 === hash)
-    const bytes = asset && entry.readAsset(hash)
-    if (!asset || !bytes) throw new EnvironmentError('RESOURCE_NOT_FOUND')
-    return { mime: asset.mime, bytes }
+    const file = asset && entry.assetFile(hash)
+    if (!asset || !file) throw new EnvironmentError('RESOURCE_NOT_FOUND')
+    entry.references++
+    let released = false
+    return {
+      mime: asset.mime,
+      file,
+      bytes: asset.bytes,
+      sha256: asset.sha256,
+      release: async () => {
+        if (released) return
+        released = true
+        entry.references--
+        await this.collect(entry)
+      },
+    }
   }
 
   /** Keep a lease for every room or retained checkpoint; retiring never destroys a referenced environment. */
