@@ -84,6 +84,10 @@ it('installs, inspects and requires separate explicit approval before executing 
   expect(digest).toMatch(/^[a-f0-9]{64}$/)
   expect((await invoke(['content', 'npm', 'inspect', environment])).digest).toBe(digest)
   expect((await invoke(['content', 'validate', '--npm-project', environment], 2)).diagnostics).toHaveLength(1)
+  expect(
+    (await invoke(['content', 'npm', 'approve', environment, '--digest', digest, '--profile', 'local-development'], 2))
+      .diagnostics[0].code,
+  ).toBe('ARGUMENT_INVALID')
   const approved = await invoke(['content', 'npm', 'approve', environment, '--profile', 'local-development'])
   expect(approved).toEqual({ format: 'arcadia.npm-admission', version: 2, profile: 'local-development' })
   const validated = await invoke(['content', 'validate', '--npm-project', environment])

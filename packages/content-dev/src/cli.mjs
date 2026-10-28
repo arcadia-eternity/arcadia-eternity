@@ -53,8 +53,6 @@ try {
     } else if (command === 'build') await build()
     else if (command === 'demo') await import('./demo.mjs')
     else {
-      await data(true)
-      await types(true)
       await build()
       await run('npm', ['pack', '--ignore-scripts'])
     }

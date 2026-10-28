@@ -8,48 +8,27 @@
 
 模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects.ts`，演示队伍放在 `arcadia.config.mjs`。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-dev`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
 
-SDK 和工具尚未正式发布到 npm；模板首次安装从 `arcadia-sdk.json` 指定的主仓库提交载入安装器，并构建、安装本地开发物料。后续使用本地工具命令。工具物料用 `node scripts/stage-author-sdk.mjs /new/sdk-dir --dev-tools` 生成；未指定该选项时仍是原来的六包 SDK。
+SDK 和工具尚未正式发布到 npm；模板首次安装从 `arcadia-sdk.json` 指定的主仓库提交载入安装器，并构建、安装本地开发物料。后续使用本地工具命令。工具物料用 `node scripts/stage-author-sdk.mjs /new/sdk-dir` 生成，包含工具和 SDK 的完整依赖。
 
-以下生成器入口保留，供已有仓库内示例和兼容测试使用。
+## 本地 SDK 与验证
 
-## 在本仓库试用
-
-先按 [npm 内容包](npm-content.md) 中的说明构建仓库依赖与 CLI。选择一个**不存在**的目录，在仓库根目录运行：
+如需使用已经构建好的本地 SDK，先在主仓库运行：
 
 ```sh
-node examples/ugc/create-content-pack.mjs ./my-first-pack \
-  --name @your-scope/my-first-pack \
-  --project-id my-first-pack \
-  --namespace my-first-pack
-cd my-first-pack
-npm test
-```
-
-生成器不会覆盖已有目录。`--json` 输出结构化结果，错误写入标准错误并返回非零退出码。项目 ID 与 namespace 是游戏内容身份，应在发布后保持稳定；npm 名称是安装身份，可以与它们不同。
-
-生成的测试会编译 TS，将实际 npm 包安装进临时项目，加载真实引擎，并检查未命中、命中、重复刷新、来源移除、自然到期和现有选招等待点的保存恢复。它使用合成测试宿主身份，不授予生产服务器准入。故意修改减速量后重新运行 `npm test`，测试应指出速度贡献不符。仓库里的 `packages/pack-loader/test/npm-project.test.ts` 还覆盖运行时参数修改等引擎合同。
-
-生成项目附带 `.agents/skills/arcadia-content-authoring/SKILL.md`，能被支持该位置的编码助手发现；其他工具可直接读取此文件。它说明 SDK 的作用域、参数和生命周期，以及构建、测试、预览的边界。参数仍可由其他效果修改，不需要为每个参数建立编辑表单。
-
-## 独立项目和服务器
-
-在本仓库下创建项目时，依赖可由上级工作区提供；生成包的 `devDependencies` 只记录目标版本，并不表示 SDK 已经公开发布。
-
-如果要在本机仓库外开发，可以先构建仓库依赖，再在仓库根目录生成一份仅供本地开发的 SDK 物料：
-
-```sh
+pnpm --filter @arcadia-eternity/content-dev... run build
 node scripts/stage-author-sdk.mjs /path/to/new-sdk-directory
-node examples/ugc/create-content-pack.mjs /path/to/new-project \
-  --name @your-scope/my-first-pack \
-  --project-id my-first-pack \
-  --namespace my-first-pack
-cd /path/to/new-project
-npm install --no-save --no-package-lock --ignore-scripts /path/to/new-sdk-directory/*.tgz
-npm test
 ```
 
-目标 SDK 目录必须不存在。脚本打包现有构建产物及其工作区运行依赖，不会构建、安装或发布；生成清单记录各包的版本和摘要。请确保先从与目标宿主相同的可信源码构建依赖，版本号本身不能证明宿主兼容。安装会更改项目的 `node_modules`，但不修改项目声明或锁文件；第三方依赖、TypeScript 和 Node 类型仍需从配置的 npm 源获取，或事先放入 npm 缓存。`--offline` 只适用于所需依赖均已缓存的情况。目前 Windows 的 SDK 物料生成尚未验证。
+再在自己的模板项目运行：
 
-这些包仅用于本地开发，尚未整理完整的发行许可证和 notices，不是正式 SDK 发布物。自有包声明 MIT，暂未填写版权署名；不会将根目录 MPL 许可证冒充为这些包的 MIT 许可证。
+```sh
+npm run setup -- --sdk-dir /path/to/new-sdk-directory
+npm test
+npm run demo
+```
 
-修改源码后需要重新构建、打包并检查实际安装产物。服务器管理员单独决定是否准入；创建项目、通过测试或安装均不自动授权代码执行。仓库当前 CLI 的安装、检查、准入、战斗和回放步骤见 [npm 内容包](npm-content.md)。预览入口和开发服务器的完整作者体验仍由 #223／#244 跟踪。
+效果只在 TypeScript 中定义，并由技能或印记的数据引用；不再在 `package.json` 重复维护 `arcadia.exports`。文件可以分别放置，也可以在一个 JSON/YAML 数组中维护多条记录，引用依靠稳定的内容 ID。
+
+模板测试会打包并安装真实 npm 产物，覆盖命中、未命中、刷新、来源清理、自然到期、参数修改和等待点恢复。通用测试工具保留在主仓库，模板只维护自己的行为断言。
+
+SDK 尚未正式发布到 npm。创建项目、安装依赖和通过测试不替代服务器管理员的准入决定。安装、战斗和回放流程见 [npm 内容包](npm-content.md)。

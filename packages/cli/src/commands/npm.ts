@@ -67,7 +67,6 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
   npm
     .command('approve')
     .argument('<directory>')
-    .option('--digest <sha256>', 'Legacy option; ignored because approval is not bound to local file contents')
     .requiredOption('--profile <profile>', 'local-development, self-hosted or official (administrator decision)')
     .option('--out <path>', 'New approval file; defaults to arcadia-admission.json in the environment')
     .option('--json', 'JSON output')

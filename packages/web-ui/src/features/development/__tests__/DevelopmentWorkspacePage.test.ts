@@ -33,7 +33,7 @@ const content = {
 const snapshot = () => ({
   revision,
   content: structuredClone(content),
-  project: { projectId: 'demo', namespace: 'demo', exports: [{ id: 'effect', sourceKind: 'skill' }] },
+  project: { projectId: 'demo', namespace: 'demo' },
 })
 const response = (data: unknown, status = 200) => ({ ok: status < 400, status, json: async () => data }) as Response
 const mountPage = () => mount(DevelopmentWorkspacePage, { global: { stubs: { RouterLink: true } } })
@@ -109,7 +109,7 @@ describe('development workspace page', () => {
     wrapper.unmount()
   })
 
-  it('adds a declared effect reference while preserving existing parameters', async () => {
+  it('adds an effect reference without a duplicate package declaration while preserving existing parameters', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(response(snapshot())).mockResolvedValueOnce(response(snapshot()))
     vi.stubGlobal('fetch', fetch)
     const wrapper = mountPage()

@@ -228,8 +228,6 @@ jobs:
         run: pnpm test:cli
       - name: Verify standard npm artifacts, admission and content environments
         run: pnpm --filter @arcadia-eternity/pack-loader test:run
-      - name: Verify generated UGC authoring project
-        run: node --test examples/ugc/test/create-content-pack.test.mjs
       - name: Verify shared content-pack development tooling
         run: |
           pnpm test:content-dev

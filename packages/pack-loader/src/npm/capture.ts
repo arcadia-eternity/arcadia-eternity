@@ -31,14 +31,6 @@ async function relocateMetadata(root: string, source: string, installation: NpmP
         for (const name of Object.keys(dependencies)) dependencies[name] = fileSource(dependencies[name], base)
     }
   }
-  const legacyDependencies = (dependencies: unknown) => {
-    if (!object(dependencies)) return
-    for (const entry of Object.values(dependencies)) {
-      if (!object(entry)) continue
-      for (const field of ['version', 'resolved']) entry[field] = fileSource(entry[field], source)
-      legacyDependencies(entry.dependencies)
-    }
-  }
   const lockfile = (lock: Metadata) => {
     if (object(lock.packages))
       for (const [location, entry] of Object.entries(lock.packages)) {
@@ -46,7 +38,6 @@ async function relocateMetadata(root: string, source: string, installation: NpmP
         if ('resolved' in entry) entry.resolved = fileSource(entry.resolved, source)
         declarations(entry, resolve(source, location))
       }
-    legacyDependencies(lock.dependencies)
   }
   const rewrite = async (file: string, update: (metadata: Metadata) => void) => {
     let contents: string

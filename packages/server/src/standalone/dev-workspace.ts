@@ -98,21 +98,6 @@ export class DevelopmentWorkspace {
       arcadia.content !== 'content.json'
     )
       fail('DEVELOPMENT_PACKAGE', 400)
-    const exports = arcadia.exports ?? []
-    if (
-      !Array.isArray(exports) ||
-      exports.length > 256 ||
-      exports.some(
-        item =>
-          !record(item) ||
-          typeof item.id !== 'string' ||
-          !/^[a-z0-9][a-z0-9_./-]{0,119}$/.test(item.id) ||
-          item.id.split('/').some(part => !part || part === '.' || part === '..') ||
-          (item.sourceKind !== 'skill' && item.sourceKind !== 'petMark'),
-      )
-    )
-      fail('DEVELOPMENT_PACKAGE', 400)
-    if (new Set(exports.map(item => item.id)).size !== exports.length) fail('DEVELOPMENT_PACKAGE', 400)
     const bytes = await this.readFile('content.json')
     if (!packageBytes.equals(await this.readFile('package.json')) || !bytes.equals(await this.readFile('content.json')))
       fail('DEVELOPMENT_CHANGED', 409)
@@ -126,7 +111,6 @@ export class DevelopmentWorkspace {
     const project = {
       projectId: arcadia.projectId,
       namespace: arcadia.namespace,
-      exports: exports.map(item => ({ id: item.id as string, sourceKind: item.sourceKind as 'skill' | 'petMark' })),
     }
     return { revision: digest(bytes, project), content, project }
   }

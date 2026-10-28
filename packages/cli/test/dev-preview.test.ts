@@ -47,11 +47,7 @@ async function fixture(name: string) {
         namespace: 'example-slow',
         content: 'content.json',
         effects: 'dist/effects.js',
-        sdkApi: 1,
-        exports: [
-          { id: 'apply-slow', sourceKind: 'skill' },
-          { id: 'speed-penalty', sourceKind: 'petMark' },
-        ],
+        sdkApi: 2,
       },
     }),
   )

@@ -24,16 +24,6 @@
     "namespace": "example-slow",
     "content": "content.json",
     "effects": "dist/effects.js",
-    "sdkApi": 2,
-    "exports": [
-      {
-        "id": "apply-slow",
-        "sourceKind": "skill"
-      },
-      {
-        "id": "speed-penalty",
-        "sourceKind": "petMark"
-      }
-    ]
+    "sdkApi": 2
   }
 }

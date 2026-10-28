@@ -28,7 +28,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 
 `triggers / priority / when / apply / consumesStacks / tags` 与官方 `defineNativeEffect` 一致。`defineCodeEffect` 只把定义接入 npm 内容导出和每次使用的注册流程；回调收到原本的 `EffectContext`，领域方法走原有战斗阶段。简单定义无需 `build`。需要组合工具时，可用 `build({ effectId, sourceMark }) → { triggers, apply, ... }` 返回 `defineEffect` 定义。两种写法使用相同的字段名；辅助上下文保留 `read` 和 `ops`，原生回调接收原始引擎上下文。
 
-在 package.json 的 `arcadia.exports` 中声明 `{ "id": "heal-on-hit", "sourceKind": "skill" }`，并在技能的 `behaviors` 中通过独立 `useId` 引用它；完整内容与安装格式见 [npm 内容包](npm-content.md)。`createEffects` 返回的导出必须与声明一致。
+在技能或印记的 `behaviors` 中通过独立 `useId` 引用效果 ID。`createEffects` 是代码定义的唯一来源，`package.json` 不再维护效果清单；加载器在准入后读取模块，检查实际效果是否适用于引用它的对象。未被内容引用的效果不会注册。完整格式见 [npm 内容包](npm-content.md)。
 
 独立的官方内容宿主也可以使用 `sdk.defineNativeEffect` 构造内核 `Effect`，由自己的内容目录注册；npm 的 `createEffects` 返回 `defineCodeEffect` 产生的导出。
 
@@ -47,7 +47,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 | 持续取值工具       | 原有 capture/follow、`bindings`；底层值计划集中在 `sdk.valuePlans`，避免与即时 `sdk.values` 混淆                                                           |
 | 执行预算           | `executionBudgetPolicy`、`ExecutionBudgetExceeded`；本局的 `battle.executionBudget`                                                                        |
 
-这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`CodeEffectModule` 和 `CodeEffectModuleContext` 定义模块签名，`EffectSdk` 是注入对象的类型；旧 `NpmEffectModuleContext` 类型名仍兼容。
+这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`CodeEffectModule` 和 `CodeEffectModuleContext` 定义模块签名，`EffectSdk` 是注入对象的类型。
 
 ## 上下文和执行顺序
 

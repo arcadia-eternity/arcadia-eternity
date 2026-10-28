@@ -6,7 +6,8 @@ export async function readNpmAdmission(file: string) {
   const record = JSON.parse(await readFile(file, 'utf8'))
   if (
     record?.format !== 'arcadia.npm-admission' ||
-    ![1, 2].includes(record.version) ||
+    record.version !== 2 ||
+    Object.keys(record).some(key => !['format', 'version', 'profile'].includes(key)) ||
     !['local-development', 'self-hosted', 'official'].includes(record.profile)
   )
     fail('NPM_ADMISSION', file, 'Expected an explicit npm project approval')

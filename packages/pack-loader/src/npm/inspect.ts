@@ -11,7 +11,6 @@ import {
   fail,
   freeze,
   parseDraft,
-  runtimeId,
   type Json,
   type WorkDraft,
 } from '../works/model'
@@ -28,7 +27,6 @@ export interface NpmContentManifest {
   content: string
   effects?: string
   sdkApi?: number
-  exports: { id: string; sourceKind: 'skill' | 'petMark' }[]
   /** Asset digest -> package-relative filename. Bytes are checked even in headless mode. */
   assets: Record<string, string>
 }
@@ -116,8 +114,7 @@ function readManifest(value: unknown): NpmContentManifest {
     !input ||
     input.formatVersion !== 1 ||
     Object.keys(input).some(
-      key =>
-        !['formatVersion', 'projectId', 'namespace', 'content', 'effects', 'sdkApi', 'exports', 'assets'].includes(key),
+      key => !['formatVersion', 'projectId', 'namespace', 'content', 'effects', 'sdkApi', 'assets'].includes(key),
     )
   )
     fail('NPM_METADATA', 'arcadia', 'Unsupported Arcadia package metadata')
@@ -126,23 +123,7 @@ function readManifest(value: unknown): NpmContentManifest {
   if (input.effects !== undefined) packageFile('/', input.effects)
   if ((input.effects !== undefined || input.sdkApi !== undefined) && input.sdkApi !== effectSdkApiVersion)
     fail('SDK_INCOMPATIBLE', 'arcadia.sdkApi', `Code packages require Effect SDK API ${effectSdkApiVersion}`)
-  input.exports ??= []
   input.assets ??= {}
-  if (!Array.isArray(input.exports) || input.exports.length > 256)
-    fail('NPM_METADATA', 'arcadia.exports', 'Invalid effect exports')
-  const ids = new Set<string>()
-  for (const entry of input.exports) {
-    if (
-      !entry ||
-      Object.keys(entry).some(key => key !== 'id' && key !== 'sourceKind') ||
-      !['skill', 'petMark'].includes(entry.sourceKind)
-    )
-      fail('NPM_METADATA', 'arcadia.exports', 'Invalid effect export')
-    runtimeId(input.namespace, entry.id)
-    if (ids.has(entry.id)) fail('DUPLICATE_EXPORT', entry.id, 'Duplicate effect export')
-    ids.add(entry.id)
-  }
-  if (input.exports.length && !input.effects) fail('NPM_METADATA', 'arcadia.effects', 'Effect exports require a module')
   if (!input.assets || typeof input.assets !== 'object' || Array.isArray(input.assets))
     fail('NPM_METADATA', 'arcadia.assets', 'Invalid asset files')
   for (const [hash, path] of Object.entries(input.assets)) {
@@ -162,8 +143,8 @@ export async function inspectNpmProject(directory: string): Promise<NpmProjectIn
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     lock = await jsonFile(resolve(root, 'package-lock.json'))
   }
-  if (lock.lockfileVersion !== 2 && lock.lockfileVersion !== 3)
-    fail('NPM_LOCK', 'package-lock.json', 'An npm lockfile v2/v3 with an installed package tree is required')
+  if (lock.lockfileVersion !== 3)
+    fail('NPM_LOCK', 'package-lock.json', 'An npm lockfile v3 with an installed package tree is required')
   const lockedPackages = record(lock.packages, 'packages')
   const lockedRoot = record(lockedPackages[''], 'packages[""]')
   const rootPackage = await jsonFile(resolve(root, 'package.json'))

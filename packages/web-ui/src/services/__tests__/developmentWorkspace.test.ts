@@ -11,7 +11,6 @@ const content = {
 const project = {
   projectId: 'my-project',
   namespace: 'my-pack',
-  exports: [{ id: 'apply-slow', sourceKind: 'skill' }],
 }
 const snapshot = { revision, content, project }
 
@@ -100,17 +99,6 @@ describe('local development workspace client', () => {
     expect(error.message).not.toContain(token)
     await expect(client.save('wrong', content)).rejects.toMatchObject({ code: 'DEVELOPMENT_CONTENT' })
     request.mockResolvedValue(new Response(JSON.stringify({ ...snapshot, revision: 'bad' }), { status: 200 }))
-    await expect(client.read()).rejects.toMatchObject({ code: 'RESPONSE_INVALID' })
-    request.mockResolvedValue(
-      new Response(JSON.stringify({ ...snapshot, project: { ...project, exports: undefined } }), { status: 200 }),
-    )
-    expect((await client.read()).project.exports).toEqual([])
-    request.mockResolvedValue(
-      new Response(
-        JSON.stringify({ ...snapshot, project: { ...project, exports: [{ id: '../bad', sourceKind: 'skill' }] } }),
-        { status: 200 },
-      ),
-    )
     await expect(client.read()).rejects.toMatchObject({ code: 'RESPONSE_INVALID' })
     request.mockResolvedValue(
       new Response(JSON.stringify({ ...snapshot, project: { ...project, namespace: 'Upper' } }), { status: 200 }),

@@ -72,7 +72,7 @@ export async function setup(args = process.argv.slice(2), root = process.cwd()) 
       const pnpm = args => run('npx', ['--yes', `--package=pnpm@${pin.pnpmVersion}`, 'pnpm', ...args], source)
       await pnpm(['install', '--frozen-lockfile', '--ignore-scripts'])
       await pnpm(['--filter', '@arcadia-eternity/content-dev...', 'run', 'build'])
-      await run(process.execPath, ['scripts/stage-author-sdk.mjs', sdkDirectory, '--dev-tools'], source)
+      await run(process.execPath, ['scripts/stage-author-sdk.mjs', sdkDirectory], source)
     }
     const index = JSON.parse(await readFile(join(sdkDirectory, 'arcadia-author-sdk.json'), 'utf8'))
     if (

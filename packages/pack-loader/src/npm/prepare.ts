@@ -2,16 +2,13 @@ import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as sdk from '@arcadia-eternity/battle/v4/authoring'
-import type { CodeEffectModule, CodeEffectModuleContext } from '@arcadia-eternity/battle/v4/authoring'
+import type { CodeEffectModule } from '@arcadia-eternity/battle/v4/authoring'
 import type { BehaviorCatalogOptions, ContentCatalog, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
 import { cloneJson, digestJson, fail, runtimeId, type Json, type WorkHost, type WorkRelease } from '../works/model'
 import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProjectInspection } from './inspect'
 import { captureNpmProject } from './capture'
 
-/** Compatibility names; author modules can depend only on the public battle SDK types. */
-export type NpmEffectModuleContext = CodeEffectModuleContext
-export type NpmEffectModule = CodeEffectModule
 export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
   readonly createContent: (
     data: ContentPrototypeData,
@@ -32,7 +29,7 @@ export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnviro
 export async function prepareNpmProject(
   directory: string,
   host: NpmContentHost,
-  approval: { policy: Readonly<Record<string, Json>>; /** Ignored for legacy callers. */ installationDigest?: string },
+  approval: { policy: Readonly<Record<string, Json>> },
 ): Promise<Readonly<PreparedNpmEnvironment>> {
   const source = await realpath(directory)
   const original = await inspectNpmProject(source)
@@ -62,6 +59,32 @@ async function compileInstallation(
   const policy = cloneJson(policyInput)
   const contentPackages = installation.packages.filter(pkg => pkg.manifest)
   if (!contentPackages.length) fail('NPM_CONTENT_MISSING', 'dependencies', 'No installed Arcadia content packages')
+  // A content attachment already identifies the effect and its source kind. Do not ask
+  // authors to repeat those declarations in package.json; the actual code is checked
+  // when the admitted module receives the canonical mark prototypes below.
+  const byProject = new Map(contentPackages.map(pkg => [pkg.manifest!.projectId, pkg]))
+  const codeUses = new Map(contentPackages.map(pkg => [pkg.location, new Map<string, 'skill' | 'petMark'>()]))
+  for (const consumer of contentPackages)
+    for (const [collection, sourceKind] of [
+      ['skills', 'skill'],
+      ['marks', 'petMark'],
+    ] as const)
+      for (const record of consumer.draft!.data[collection])
+        for (const use of Array.isArray(record.behaviors) ? record.behaviors : []) {
+          if (!use || typeof use !== 'object' || Array.isArray(use)) continue
+          const reference = use.definitionId
+          if (!reference || typeof reference !== 'object' || Array.isArray(reference)) continue
+          const ref = reference.$ref
+          if (!ref || typeof ref !== 'object' || Array.isArray(ref) || ref.kind !== 'behavior') continue
+          const provider = typeof ref.projectId === 'string' ? byProject.get(ref.projectId) : undefined
+          if (!provider?.manifest!.effects || typeof ref.id !== 'string') continue
+          if (provider.draft!.data.behaviors.some(definition => definition.id === ref.id)) continue
+          runtimeId(provider.manifest!.namespace, ref.id)
+          const uses = codeUses.get(provider.location)!
+          if (uses.has(ref.id) && uses.get(ref.id) !== sourceKind)
+            fail('NPM_EXPORT', ref.id, 'The same effect cannot serve both skill and petMark attachments')
+          uses.set(ref.id, sourceKind)
+        }
   const build = Object.freeze({
     ...host.build,
     registryBuildId: await digestJson({
@@ -69,14 +92,14 @@ async function compileInstallation(
       installation: installation.digest,
     }),
   })
-  const modules = new Map<string, NpmEffectModule>()
+  const modules = new Map<string, CodeEffectModule>()
   for (const pkg of contentPackages) {
     if (!pkg.manifest!.effects) continue
     const file = packageFile(resolve(root, pkg.location), pkg.manifest!.effects!)
     const module: unknown = await import(pathToFileURL(file).href)
     if (!module || typeof module !== 'object' || typeof Reflect.get(module, 'createEffects') !== 'function')
       fail('NPM_EXPORT', pkg.location, 'Effect module must export createEffects(context)')
-    modules.set(pkg.location, module as NpmEffectModule)
+    modules.set(pkg.location, module as CodeEffectModule)
   }
   const combinedHost: WorkHost = {
     ...host,
@@ -84,7 +107,9 @@ async function compileInstallation(
     allowedExports: [
       ...(host.allowedExports ?? host.templates.map(def => def.implementation.exportId)),
       ...contentPackages.flatMap(pkg =>
-        pkg.manifest!.exports.map(entry => runtimeId(pkg.manifest!.namespace, entry.id)),
+        [...codeUses.get(pkg.location)!.keys(), ...pkg.draft!.data.behaviors.map(definition => definition.id)].map(id =>
+          runtimeId(pkg.manifest!.namespace, id),
+        ),
       ),
     ],
     createContent(data, revision) {
@@ -94,23 +119,18 @@ async function compileInstallation(
       return host.createContent(data, revision, ({ marks }) => ({
         nativeExports: contentPackages.flatMap(pkg => {
           const manifest = pkg.manifest!
-          if (
-            !manifest.effects ||
-            !manifest.exports.some(entry => usedExports.has(runtimeId(manifest.namespace, entry.id)))
-          )
-            return []
+          if (!manifest.effects || ![...usedExports].some(id => id.startsWith(`${manifest.namespace}:`))) return []
           const exports = modules
             .get(pkg.location)!
             .createEffects({ sdk, marks, id: id => runtimeId(manifest.namespace, id) })
-          if (!Array.isArray(exports) || exports.length !== manifest.exports.length)
-            fail('NPM_EXPORT', pkg.location, 'Module exports differ from declared effects')
+          if (!Array.isArray(exports) || exports.length > 5000)
+            fail('NPM_EXPORT', pkg.location, 'Expected a bounded array of code effects')
           const seen = new Set<string>()
           for (const effect of exports) {
-            const declaration = manifest.exports.find(entry => runtimeId(manifest.namespace, entry.id) === effect?.id)
             if (
-              !declaration ||
+              typeof effect?.id !== 'string' ||
+              !effect.id.startsWith(`${manifest.namespace}:`) ||
               seen.has(effect.id) ||
-              effect.sourceKind !== declaration.sourceKind ||
               !effect.parameters ||
               typeof effect.parameters !== 'object' ||
               Object.keys(effect.parameters).length
@@ -118,7 +138,7 @@ async function compileInstallation(
               fail('NPM_EXPORT', pkg.location, 'Unknown, duplicated or incompatible code effect export')
             seen.add(effect.id)
           }
-          return exports
+          return exports.filter(effect => usedExports.has(effect.id))
         }),
       }))
     },
@@ -154,13 +174,13 @@ async function compileInstallation(
     for (const dep of contentDependencies(pkg)) dependencies.push(await compile(dep))
     const draft = cloneJson(pkg.draft!),
       manifest = pkg.manifest!
-    for (const effect of manifest.exports) {
+    for (const [id, sourceKind] of codeUses.get(pkg.location)!) {
       draft.data.behaviors.push({
-        ...sdk.codeEffectDefinition({ ...effect, id: runtimeId(manifest.namespace, effect.id) }),
-        id: effect.id,
+        ...sdk.codeEffectDefinition({ id: runtimeId(manifest.namespace, id), sourceKind }),
+        id,
       })
       draft.requirements.push({
-        exportId: runtimeId(manifest.namespace, effect.id),
+        exportId: runtimeId(manifest.namespace, id),
         registryBuildId: build.registryBuildId,
       })
     }

@@ -137,10 +137,6 @@ beforeAll(async () => {
         content: 'content.json',
         effects: 'effects.js',
         sdkApi: 2,
-        exports: [
-          { id: 'apply', sourceKind: 'skill' },
-          { id: 'penalty', sourceKind: 'petMark' },
-        ],
       },
     },
     {
@@ -169,9 +165,7 @@ afterAll(async () => {
   if (root) await rm(root, { recursive: true, force: true })
 })
 async function prepare(dir = environment) {
-  const installation = await inspectNpmProject(dir)
   const prepared = await prepareNpmProject(dir, host, {
-    installationDigest: installation.digest,
     policy: { trust: 'local-development' },
   })
   environments.push(prepared)
@@ -226,7 +220,6 @@ it('captures local tarballs without changing source metadata or its lock audit i
   expect(await Promise.all(files.map(file => readFile(join(environment, file), 'utf8')))).toEqual(before)
 })
 it.each([
-  { version: 2, shrinkwrap: false, reference: 'project-relative' },
   { version: 3, shrinkwrap: false, reference: 'project-relative' },
   { version: 3, shrinkwrap: true, reference: 'project-relative' },
   { version: 3, shrinkwrap: false, reference: 'home-relative' },
@@ -313,7 +306,6 @@ it('allows local code edits without renewed approval while preserving the existi
   try {
     await writeFile(file, 'export const penalty = -90')
     const next = await prepareNpmProject(environment, host, {
-      installationDigest: 'old-file-digest-is-ignored',
       policy: { trust: 'local-development' },
     })
     environments.push(next)
@@ -493,7 +485,7 @@ it('allows nested versions of ordinary libraries but rejects duplicate content i
   await expect(inspectNpmProject(dir)).rejects.toThrow('Content identity slow')
 }, 30000)
 
-it('rejects incompatible SDKs, escaping paths, and undeclared code exports with diagnostics', async () => {
+it('rejects incompatible SDKs, escaping paths, and missing referenced effects with diagnostics', async () => {
   const dir = join(root, 'invalid-module')
   await cp(environment, dir, { recursive: true })
   const file = join(dir, 'node_modules/@arcadia-test/slow/package.json'),
@@ -508,5 +500,90 @@ it('rejects incompatible SDKs, escaping paths, and undeclared code exports with 
   await expect(inspectNpmProject(dir)).rejects.toThrow('package-relative')
   await writeFile(file, original)
   await writeFile(join(dir, 'node_modules/@arcadia-test/slow/effects.js'), 'export const createEffects = () => []')
-  await expect(prepare(dir)).rejects.toThrow('Module exports differ')
+  await expect(prepare(dir)).rejects.toThrow()
+})
+
+it('accepts unused code definitions without a duplicate package export list', async () => {
+  const dir = join(root, 'unused-effect')
+  await cp(environment, dir, { recursive: true })
+  const module = join(dir, 'node_modules/@arcadia-test/slow/effects.js')
+  await writeFile(
+    module,
+    effectModule.replace(
+      '  return [',
+      `  return [
+    sdk.defineCodeEffect({ id: id('unused'), sourceKind: 'skill', triggers: [sdk.EffectTrigger.OnHit], apply() {} }),`,
+    ),
+  )
+  const prepared = await prepare(dir)
+  expect(prepared.content.effects.some(effect => effect.id.includes('unused'))).toBe(false)
+  const f = fixture(prepared.content)
+  const speed = f.b.activePet.stat.spe
+  f.battle.applyEffects(f.event(), EffectTrigger.OnHit)
+  expect(f.b.activePet.stat.spe).toBe(speed - 25)
+})
+it('checks the actual effect source kind and rejects duplicate returned IDs', async () => {
+  const dir = join(root, 'wrong-effect')
+  await cp(environment, dir, { recursive: true })
+  const module = join(dir, 'node_modules/@arcadia-test/slow/effects.js')
+  await writeFile(
+    module,
+    effectModule.replace("id: id('apply'), sourceKind: 'skill'", "id: id('apply'), sourceKind: 'petMark'"),
+  )
+  await expect(prepare(dir)).rejects.toThrow()
+  await writeFile(module, effectModule.replace("id: id('penalty')", "id: id('apply')"))
+  await expect(prepare(dir)).rejects.toThrow('duplicated')
+})
+
+it('resolves an effect referenced only by another installed content package', async () => {
+  const dir = join(root, 'cross-package-effect')
+  await cp(environment, dir, { recursive: true })
+  const provider = join(dir, 'node_modules/@arcadia-test/slow/content.json')
+  const providerData = JSON.parse(await readFile(provider, 'utf8'))
+  providerData.data.skills.find((skill: { id: string }) => skill.id === 'strike').behaviors = []
+  await writeFile(provider, JSON.stringify(providerData))
+  const artifact = await pack(
+    'effect-consumer',
+    {
+      name: '@arcadia-test/effect-consumer',
+      version: '1.0.0',
+      dependencies: { '@arcadia-test/slow': '1.0.0' },
+      arcadia: { formatVersion: 1, projectId: 'consumer', namespace: 'consumer', content: 'content.json' },
+    },
+    {
+      'content.json': JSON.stringify({
+        data: {
+          species: [],
+          marks: [],
+          behaviors: [],
+          skills: [
+            {
+              id: 'copy',
+              element: 'Normal',
+              category: 'Physical',
+              power: 1,
+              rage: 0,
+              accuracy: 100,
+              behaviors: [{ useId: 'slow', definitionId: ref('behavior', 'apply') }],
+            },
+          ],
+        },
+      }),
+    },
+  )
+  await exec('npm', ['install', artifact, '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir })
+  const prepared = await prepare(dir)
+  expect(
+    prepared.content.getSkill('consumer:copy' as Parameters<typeof prepared.content.getSkill>[0]).effects,
+  ).toHaveLength(1)
+})
+
+it('requires the current npm lockfile format rather than accepting the legacy v2 tree', async () => {
+  const dir = join(root, 'old-lockfile')
+  await cp(environment, dir, { recursive: true })
+  const file = join(dir, 'package-lock.json')
+  const lock = JSON.parse(await readFile(file, 'utf8'))
+  lock.lockfileVersion = 2
+  await writeFile(file, JSON.stringify(lock))
+  await expect(inspectNpmProject(dir)).rejects.toThrow('lockfile v3')
 })

@@ -7,7 +7,6 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LocalBattleHost } from '../local-battle-host.mjs'
-import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
@@ -55,11 +54,9 @@ test(
         cwd: directory,
         env: { ...process.env, npm_config_cache: cache },
       })
-      const inspection = await inspectNpmProject(directory)
       const admission = {
         format: 'arcadia.npm-admission',
-        version: 1,
-        installationDigest: inspection.digest,
+        version: 2,
         profile: 'local-development',
       }
       await writeFile(join(directory, 'arcadia-admission.json'), JSON.stringify(admission))
@@ -79,10 +76,6 @@ test(
       const content = await (await fetch(`${ready.url}/api/v1/environments/${environment.id}/content`)).json()
       assert.ok(content.species.some(item => item.id === 'example-slow:pet'))
       assert.equal((await host.stop()).status, 'idle')
-      await writeFile(
-        join(directory, 'arcadia-admission.json'),
-        JSON.stringify({ ...admission, installationDigest: '0'.repeat(64) }),
-      )
       const effects = join(directory, 'node_modules/@arcadia-example/slow/dist/effects.js')
       await writeFile(effects, (await readFile(effects, 'utf8')) + '\n// local changes are allowed\n')
       assert.equal((await host.start(directory)).status, 'running')

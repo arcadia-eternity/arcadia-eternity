@@ -52,7 +52,7 @@ function exportedPaths(value) {
 }
 
 /** Prepare local development packages; this does not build, install or publish them. */
-export async function stageAuthorSdk(output, { devTools = false } = {}) {
+export async function stageAuthorSdk(output) {
   if (process.platform === 'win32') throw new Error('SDK staging is not yet validated on Windows')
   if (typeof output !== 'string' || !output) throw new Error('A new output directory is required')
   const target = resolve(output)
@@ -77,7 +77,7 @@ export async function stageAuthorSdk(output, { devTools = false } = {}) {
       for (const [dep, spec] of Object.entries(pkg.manifest[section] ?? {}))
         if (typeof spec === 'string' && spec.startsWith('workspace:')) visit(dep)
   }
-  visit(devTools ? '@arcadia-eternity/content-dev' : '@arcadia-eternity/pack-loader')
+  visit('@arcadia-eternity/content-dev')
 
   const battleBuild = join(packages.get('@arcadia-eternity/battle').directory, 'dist')
   const build = JSON.parse(await readFile(join(battleBuild, 'environment-build.json'), 'utf8'))
@@ -197,7 +197,8 @@ export async function stageAuthorSdk(output, { devTools = false } = {}) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  stageAuthorSdk(process.argv[2], { devTools: process.argv.includes('--dev-tools') })
+  if (process.argv.length !== 3) throw new Error('Usage: node scripts/stage-author-sdk.mjs <new-directory>')
+  stageAuthorSdk(process.argv[2])
     .then(result => console.log(JSON.stringify(result)))
     .catch(error => {
       console.error(error instanceof Error ? error.message : String(error))

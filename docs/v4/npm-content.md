@@ -1,6 +1,6 @@
 # npm 内容包与原生 Effect SDK
 
-当前实现提供 Node／CLI 的 npm 包检查、显式准入、固定环境、完整战斗和原环境回放，并接入单进程权威服务器的环境目录和房间。它承接 #242／#243／#244 的一部分；基础表单工作区、桌面建服、导出与发布工具仍需继续完成。已有浏览器 creator／`.arcadia` 流程属于兼容实现。
+当前实现提供 Node／CLI 的 npm 包检查、显式准入、固定环境、完整战斗和原环境回放，并接入单进程权威服务器的环境目录和房间。它承接 #242／#243／#244 的一部分；基础表单工作区、桌面建服、导出与发布工具仍需继续完成。npm 内容包是这条作者流程的唯一交付格式。
 
 ## 作者入口
 
@@ -8,7 +8,7 @@
 
 从新包开始时，可按[创作者入门](ugc-authoring-start.md)生成带真实引擎场景测试和 Agent Skill 的 TypeScript 项目。
 
-效果模块导出 `createEffects({ sdk, marks, id })`。宿主注入与本局核心相同的 SDK 和规范印记原型；`id(localId)` 生成包的 `namespace:id`。类型从 `@arcadia-eternity/battle/v4/authoring` 导入 `CodeEffectModuleContext`；旧 `NpmEffectModuleContext` 类型名继续兼容。运行时代码使用注入的 `sdk`，避免包内另一个引擎副本产生不兼容的类、参数 token 或恢复工厂。
+效果模块导出 `createEffects({ sdk, marks, id })`。宿主注入与本局核心相同的 SDK 和规范印记原型；`id(localId)` 生成包的 `namespace:id`。类型从 `@arcadia-eternity/battle/v4/authoring` 导入 `CodeEffectModuleContext`。运行时代码使用注入的 `sdk`，避免包内另一个引擎副本产生不兼容的类、参数 token 或恢复工厂。
 
 `sdk.defineCodeEffect` 支持与官方效果相同的 `triggers / when / apply` 字段，直接提供真实引擎上下文与领域类。简单定义无需 `build`；每个使用位置由宿主分配稳定编译身份。需要原有工具时，`build` 仍可返回 `defineEffect` 接受的定义，并收到 `effectId` 和可用的 `sourceMark`。API 索引、来源清理和失败语义见 [Effect SDK](effect-sdk.md)。配置复用使用普通 TS 函数；跨回合状态使用引擎实例、参数和绑定，不能放在模块全局或共享闭包中。
 
@@ -34,24 +34,20 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表�
     "namespace": "my-slow",
     "content": "content.json",
     "effects": "dist/effects.js",
-    "sdkApi": 2,
-    "exports": [
-      { "id": "apply-slow", "sourceKind": "skill" },
-      { "id": "speed-penalty", "sourceKind": "petMark" }
-    ]
+    "sdkApi": 2
   }
 }
 ```
 
-`content.json` 使用现有草稿数据结构；可以仅提供 `data` 和 `assets`，项目身份由元信息补齐，也可以显式保存完整草稿。显式身份必须匹配包声明。`data.behaviors` 可继续保留旧原生模板引用；声明的代码导出由宿主生成行为定义，作者无需复制一份参数 Schema。对象中的引用继续使用 `$ref { projectId, kind, id }`，官方旧 ID 保持兼容。
+`content.json` 使用现有草稿数据结构；可以仅提供 `data` 和 `assets`，项目身份由元信息补齐，也可以显式保存完整草稿。显式身份必须匹配包声明。被内容引用的代码效果由宿主生成内部行为定义，作者无需再写效果元数据或参数 Schema。对象中的引用继续使用 `$ref { projectId, kind, id }`，官方内容直接使用其现有 ID。
 
-数据包可以省略 `effects`、`sdkApi` 和 `exports`。代码包必须声明 SDK API 版本，并返回与 `exports` 完全一致的导出。所有包都有 `content`，代码包可提供空内容集合。元数据检查不会导入效果模块。
+数据包可以省略 `effects` 和 `sdkApi`。代码包声明 SDK API 版本，效果定义由 `createEffects` 返回。技能和印记直接引用所需效果，不再维护 `arcadia.exports`；加载器据引用生成内部注册信息，并检查实际效果的适用对象。未被引用的效果不注册。所有包都有 `content`，代码包可提供空内容集合。元数据检查不会导入效果模块。
 
 资源通过 `arcadia.assets` 提供 `sha256 → 包内相对文件` 映射，与草稿 `assets` 声明对应。即使在无界面运行时也检查声明的资源字节，以确保客户端取得对应展示资源。源码、构建产物和 source map 不做安装文件摘要或本地防篡改检查。
 
 ## 标准依赖与固定安装
 
-依赖范围、解析、peer 校验和下载完整性由 npm 负责。服务器项目持有 `package.json` 和标准 `package-lock.json` 或 `npm-shrinkwrap.json`；支持 lockfile v2／v3。普通 npm 包中的 `package-lock.json` 不作为消费者锁定承诺，服务器项目应维护自己的锁文件。
+依赖范围、解析、peer 校验和下载完整性由 npm 负责。服务器项目持有 `package.json` 和标准 `package-lock.json` 或 `npm-shrinkwrap.json`；支持 lockfile v3。普通 npm 包中的 `package-lock.json` 不作为消费者锁定承诺，服务器项目应维护自己的锁文件。
 
 安装目录必须是完整的 production 依赖树。`content npm install` 使用 `npm ci --omit=dev --ignore-scripts`，不执行根项目或依赖生命周期脚本。需要安装脚本构建的依赖应先由管理员在获准的构建流程中准备好，再检查实际输出。不能假定 `--ignore-scripts` 后任意原生依赖都已可运行。
 
@@ -101,7 +97,7 @@ node dist/cli.js battle simulate --npm-project /path/to/server-project \
 node dist/cli.js battle replay replay.json --npm-project /path/to/server-project --json
 ```
 
-默认准入文件是项目根目录的 `arcadia-admission.json`；`--approval` 可指定另一个文件。新准入记录为版本 2，只记录管理员选择的 profile；旧版记录仍可读取，其中的 installationDigest 不再检查，旧 `--digest` 参数兼容接受但不参与准入。准入命令默认不会覆盖已有批准。安装命令拒绝覆盖已有 `node_modules`，升级应准备新的项目目录。`--offline` 仅使用 npm 已有缓存和本地产物，缺失依赖会失败。
+默认准入文件是项目根目录的 `arcadia-admission.json`；`--approval` 可指定另一个文件。准入记录使用版本 2，只记录管理员选择的 profile。准入命令默认不会覆盖已有批准。安装命令拒绝覆盖已有 `node_modules`，升级应准备新的项目目录。`--offline` 仅使用 npm 已有缓存和本地产物，缺失依赖会失败。
 
 ## 权威服务器与房间
 

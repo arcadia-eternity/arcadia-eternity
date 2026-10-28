@@ -91,9 +91,6 @@ const optionsFor = (local: ContentRecord[], external: ReferenceOption[]): Refere
 ]
 const skillOptions = computed(() => (project.value ? optionsFor(skills.value, externalSkills.value) : []))
 const markOptions = computed(() => (project.value ? optionsFor(marks.value, externalMarks.value) : []))
-const effects = computed(
-  () => project.value?.exports.filter(item => item.sourceKind === (kind.value === 'skill' ? 'skill' : 'petMark')) ?? [],
-)
 const value = (record: Record<string, Json> | undefined, key: string) => record?.[key]
 const string = (entry: unknown) => (typeof entry === 'string' || typeof entry === 'number' ? String(entry) : '')
 const nested = (record: Record<string, Json> | undefined, key: string) =>
@@ -249,7 +246,13 @@ function addEffect() {
     error.value = '该内容已使用此效果实例 ID。'
     return
   }
-  if (!effects.value.some(item => item.id === effectId.value)) return
+  if (
+    !/^[a-z0-9][a-z0-9_./-]{0,119}$/.test(effectId.value) ||
+    effectId.value.split('/').some(part => !part || part === '.' || part === '..')
+  ) {
+    error.value = '请输入有效的包内效果 ID。'
+    return
+  }
   change('behaviors', [
     ...existing,
     { useId: useId.value, definitionId: workRef(project.value.projectId, 'behavior', effectId.value) },
@@ -561,11 +564,7 @@ onBeforeUnmount(() => {
               <code>{{ JSON.stringify(item) }}</code
               ><button @click="removeListItem('behaviors', index)">移除引用</button>
             </div>
-            <label
-              >包内声明<select v-model="effectId" data-testid="development-effect">
-                <option value="">请选择</option>
-                <option v-for="item in effects" :key="item.id" :value="item.id">{{ item.id }}</option>
-              </select></label
+            <label>效果 ID<input v-model="effectId" data-testid="development-effect" /></label
             ><label>使用 ID<input v-model="useId" data-testid="development-effect-use-id" /></label
             ><button :disabled="!effectId || !useId" @click="addEffect">添加效果引用</button>
           </div>

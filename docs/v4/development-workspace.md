@@ -10,7 +10,7 @@ node dist/cli.js server --host 127.0.0.1 --development-project /path/to/source-p
 
 默认允许本机开发网页来源；如网页使用其他来源，应通过 `--cors-origin` 显式指定。令牌不要写在命令参数中，也不要放进可分享的项目文件。进入网页的开发工作区后，填写本机服务地址与令牌即可读取源码。
 
-`GET /api/v1/development/content` 和 `PUT /api/v1/development/content` 使用 `Authorization: Bearer <令牌>`。服务只读管理员选定的 npm 源项目中的固定 `package.json` 和 `content.json`，禁止符号链接和超限文件；接口不接受路径。GET 将完整 `content.json` 返回给持令牌的开发客户端，包括自定义字段；不要在该源码文件放置凭据或私人数据。返回 `{ revision, content, project }`：revision 是 content.json 字节及项目 ID、namespace、Effect 导出列表共同计算的 SHA-256，用于检测编辑保存冲突；project 包含项目 ID、namespace 和包声明的 Effect 导出。导出列表只表示源码声明，不证明代码可运行或已准入。
+`GET /api/v1/development/content` 和 `PUT /api/v1/development/content` 使用 `Authorization: Bearer <令牌>`。服务只读管理员选定的 npm 源项目中的固定 `package.json` 和 `content.json`，禁止符号链接和超限文件；接口不接受路径。GET 将完整 `content.json` 返回给持令牌的开发客户端，包括自定义字段；不要在该源码文件放置凭据或私人数据。返回 `{ revision, content, project }`：revision 是 content.json 字节及项目 ID和 namespace共同计算的 SHA-256，用于检测编辑保存冲突；project 包含项目 ID 和 namespace。效果引用填写 TypeScript 定义中的包内 ID；可用性与适用对象在加载时检查。
 
 PUT 接受 `{ revision, content }`，校验旧 revision 和完整 JSON 对象，将结果原子替换原文件。调用者应基于 GET 返回的完整对象修改所需字段，保留未展示的内容。服务通过项目内 `.arcadia-content.lock` 串行化配合该锁的写入，并再次检查文件和包身份；过期修订返回 409 `REVISION_CONFLICT`，锁已占用返回 409 `DEVELOPMENT_BUSY`。若进程异常退出留下锁，应先确认没有写入进程再手动删除它。
 

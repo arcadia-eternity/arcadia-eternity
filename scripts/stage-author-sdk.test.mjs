@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -46,20 +46,14 @@ test(
 
       await t.test('builds and runs a starter in an independent directory', { skip: !cache }, async () => {
         const project = join(temporary, 'project')
-        await exec(
-          process.execPath,
-          [
-            join(root, 'examples/ugc/create-content-pack.mjs'),
-            project,
-            '--name',
-            '@test/local-sdk',
-            '--project-id',
-            'test-local-sdk',
-            '--namespace',
-            'test-local-sdk',
-          ],
-          { cwd: temporary },
-        )
+        await cp(join(root, 'examples/ugc/slow'), project, {
+          recursive: true,
+          filter: path => !/(?:^|[/\\])(?:node_modules|dist)(?:[/\\]|$)/.test(path),
+        })
+        const metadataFile = join(project, 'package.json')
+        const metadata = JSON.parse(await readFile(metadataFile, 'utf8'))
+        metadata.scripts.test = 'npm run build && node --test test/*.test.mjs'
+        await writeFile(metadataFile, JSON.stringify(metadata, null, 2) + '\n')
         const original = await readFile(join(project, 'package.json'), 'utf8')
         const archives = (await readdir(bundle)).filter(name => name.endsWith('.tgz')).map(name => join(bundle, name))
         const env = { ...process.env, npm_config_cache: cache, npm_config_registry: 'https://registry.npmjs.org' }
@@ -89,10 +83,10 @@ test(
   },
 )
 
-test('development tooling is opt-in and packaged with its executable and testing entry', async () => {
+test('development tooling is packaged with its executable and testing entry', async () => {
   const temporary = await mkdtemp(join(tmpdir(), 'arcadia-content-dev-sdk-'))
   try {
-    const index = await stageAuthorSdk(join(temporary, 'sdk'), { devTools: true })
+    const index = await stageAuthorSdk(join(temporary, 'sdk'))
     assert.equal(index.packages.length, 7)
     const tool = index.packages.find(pkg => pkg.name === '@arcadia-eternity/content-dev')
     assert.ok(tool)

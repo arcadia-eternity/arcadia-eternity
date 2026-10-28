@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
-import { inspectNpmProject } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
 export async function createNpmFixture() {
@@ -50,13 +49,11 @@ export async function createNpmFixture() {
       cwd: directory,
     })
     const approve = async () => {
-      const inspected = await inspectNpmProject(directory)
       await writeFile(
         join(directory, 'arcadia-admission.json'),
         JSON.stringify({
           format: 'arcadia.npm-admission',
-          version: 1,
-          installationDigest: inspected.digest,
+          version: 2,
           profile: 'local-development',
         }),
       )

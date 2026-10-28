@@ -26,13 +26,12 @@ async function npm(cwd: string, args: string[]) {
     maxBuffer: 8 * 1024 * 1024,
   })
 }
-async function approval(directory: string, digest: string, profile = 'local-development') {
+async function approval(directory: string, profile = 'local-development') {
   await writeFile(
     join(directory, 'arcadia-admission.json'),
     JSON.stringify({
       format: 'arcadia.npm-admission',
-      version: 1,
-      installationDigest: digest,
+      version: 2,
       profile,
     }),
   )
@@ -111,7 +110,7 @@ beforeAll(async () => {
   await writeFile(join(source, 'accounts.json'), 'PRIVATE_SENSITIVE_ACCOUNT')
   await npm(source, ['install'])
   installedDigest = (await inspectNpmProject(source)).digest
-  await approval(source, installedDigest)
+  await approval(source)
 }, 60000)
 afterAll(async () => {
   if (originalCache === undefined) delete process.env.npm_config_cache
@@ -198,9 +197,9 @@ it('exports only shareable files, rebuilds offline in a clean host, and verifies
   await npm(fresh, ['ci', '--omit=dev'])
   expect((await inspectNpmProject(fresh)).digest).toBe(installedDigest)
   await expect(verifyProject(fresh)).rejects.toThrow()
-  await approval(fresh, installedDigest, 'self-hosted')
+  await approval(fresh, 'self-hosted')
   await expect(verifyProject(fresh)).rejects.toMatchObject({ code: 'PROJECT_POLICY' })
-  await approval(fresh, installedDigest)
+  await approval(fresh)
   expect(await verifyProject(fresh)).toMatchObject({
     verified: true,
     revision: exported.revision,
@@ -274,8 +273,7 @@ it.each([
     lock.packages['node_modules/@arcadia-example/slow'].integrity =
       `sha512-${createHash('sha512').update(bytes).digest('base64')}`
     await writeJson(lockfile, lock)
-    const inspection = await inspectNpmProject(dir)
-    await approval(dir, inspection.digest)
+    await approval(dir)
     const output = join(temporary, `archive-output-${suffix}`)
     await expect(exportProject(dir, output, true)).rejects.toMatchObject({ code: 'PROJECT_ARCHIVE' })
     expect(await exists(output)).toBe(false)
@@ -309,7 +307,7 @@ it('requires an unauthenticated public registry probe and can rebuild its pinned
   expect(await exists(join(output, 'artifacts'))).toBe(false)
   await npm(output, ['ci', '--omit=dev'])
   expect((await inspectNpmProject(output)).digest).toBe(installedDigest)
-  await approval(output, installedDigest)
+  await approval(output)
   expect(await verifyProject(output)).toMatchObject({ verified: true, revision: exported.revision })
 }, 60000)
 
@@ -332,7 +330,7 @@ it('rejects a small SRI-matching compressed archive whose expansion exceeds the 
   lock.packages['node_modules/@arcadia-example/slow'].integrity =
     `sha512-${createHash('sha512').update(bytes).digest('base64')}`
   await writeJson(lockfile, lock)
-  await approval(dir, (await inspectNpmProject(dir)).digest)
+  await approval(dir)
   const output = join(temporary, 'archive-bomb-output')
   await expect(exportProject(dir, output, true)).rejects.toMatchObject({ code: 'PROJECT_ARCHIVE' })
   expect(await exists(output)).toBe(false)
@@ -350,7 +348,7 @@ it('rejects local tarball references outside the explicitly selected source proj
   await writeJson(join(dir, 'package.json'), manifest)
   await writeJson(join(dir, 'package-lock.json'), lock)
   await npm(dir, ['ci', '--omit=dev'])
-  await approval(dir, (await inspectNpmProject(dir)).digest)
+  await approval(dir)
   const output = join(temporary, 'outside-output')
   await expect(exportProject(dir, output, true)).rejects.toMatchObject({ code: 'PROJECT_SOURCE' })
   expect(await exists(output)).toBe(false)
@@ -409,15 +407,15 @@ it('rejects transitive local file dependencies even when the source installation
     dependencies: { '@arcadia-example/slow': `file:artifacts/${contentTarball}` },
   })
   await npm(project, ['install'])
-  await approval(project, (await inspectNpmProject(project)).digest)
+  await approval(project)
   const output = join(temporary, 'nested-output')
   await expect(exportProject(project, output, true)).rejects.toMatchObject({ code: 'PROJECT_SOURCE' })
   expect(await exists(output)).toBe(false)
 }, 60000)
 
-it('rebuilds a version-2 lockfile while preserving an omitted optional peer dependency', async () => {
-  const project = join(temporary, 'v2-peer-source')
-  const sampleDir = join(temporary, 'v2-peer-sample')
+it('preserves an omitted optional peer dependency in the current lockfile format', async () => {
+  const project = join(temporary, 'v3-peer-source')
+  const sampleDir = join(temporary, 'v3-peer-sample')
   await mkdir(project)
   await mkdir(join(project, 'artifacts'))
   await cp(join(workspace, 'examples/ugc/slow'), sampleDir, { recursive: true })
@@ -436,16 +434,16 @@ it('rebuilds a version-2 lockfile while preserving an omitted optional peer depe
   )
   const tarball = JSON.parse(packed.stdout)[0].filename
   await writeJson(join(project, 'package.json'), {
-    name: 'v2-peer-project',
+    name: 'v3-peer-project',
     version: '1.0.0',
     private: true,
     dependencies: { '@arcadia-example/slow': `file:artifacts/${tarball}` },
   })
-  await npm(project, ['install', '--lockfile-version=2'])
-  expect((await json(join(project, 'package-lock.json'))).lockfileVersion).toBe(2)
+  await npm(project, ['install', '--lockfile-version=3'])
+  expect((await json(join(project, 'package-lock.json'))).lockfileVersion).toBe(3)
   const inspected = await inspectNpmProject(project)
-  await approval(project, inspected.digest)
-  const output = join(temporary, 'v2-peer-export')
+  await approval(project)
+  const output = join(temporary, 'v3-peer-export')
   const exported = await exportProject(project, output, true)
   const lock = await json(join(output, 'package-lock.json'))
   expect(lock.lockfileVersion).toBe(3)
@@ -454,7 +452,7 @@ it('rebuilds a version-2 lockfile while preserving an omitted optional peer depe
   })
   await npm(output, ['ci', '--omit=dev'])
   expect((await inspectNpmProject(output)).digest).toBe(inspected.digest)
-  await approval(output, inspected.digest)
+  await approval(output)
   expect(await verifyProject(output)).toMatchObject({ verified: true, revision: exported.revision })
 }, 60000)
 

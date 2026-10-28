@@ -367,8 +367,7 @@ export async function exportProject(
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     rawLock = await readJson(resolve(root, 'package-lock.json'))
   }
-  if (rawLock.lockfileVersion !== 2 && rawLock.lockfileVersion !== 3)
-    throw new CliError('PROJECT_FORMAT', 'Expected npm lockfile version 2 or 3')
+  if (rawLock.lockfileVersion !== 3) throw new CliError('PROJECT_FORMAT', 'Expected npm lockfile version 3')
   const inputPackages = object(rawLock.packages)
   if (Object.keys(inputPackages).length > 257) throw new CliError('PROJECT_LIMIT', 'Too many locked packages')
   const rootLock = object(inputPackages[''])

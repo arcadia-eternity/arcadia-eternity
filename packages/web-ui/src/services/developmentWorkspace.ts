@@ -5,7 +5,6 @@ export interface DevelopmentWorkspaceSnapshot {
   project: {
     projectId: string
     namespace: string
-    exports: { id: string; sourceKind: 'skill' | 'petMark' }[]
   }
 }
 
@@ -70,27 +69,10 @@ function snapshot(value: unknown): DevelopmentWorkspaceSnapshot {
     !/^[a-z0-9][a-z0-9_.-]{0,79}$/.test(value.project.namespace)
   )
     throw new DevelopmentWorkspaceError('RESPONSE_INVALID', '开发服务返回的数据格式不正确')
-  const rawExports = value.project.exports ?? []
-  if (!Array.isArray(rawExports) || rawExports.length > 256)
-    throw new DevelopmentWorkspaceError('RESPONSE_INVALID', '开发服务返回的数据格式不正确')
-  const ids = new Set<string>()
-  const exports = rawExports.map((item): DevelopmentWorkspaceSnapshot['project']['exports'][number] => {
-    if (
-      !isObject(item) ||
-      typeof item.id !== 'string' ||
-      !/^[a-z0-9][a-z0-9_./-]{0,119}$/.test(item.id) ||
-      item.id.split('/').some(part => !part || part === '.' || part === '..') ||
-      (item.sourceKind !== 'skill' && item.sourceKind !== 'petMark') ||
-      ids.has(item.id)
-    )
-      throw new DevelopmentWorkspaceError('RESPONSE_INVALID', '开发服务返回的数据格式不正确')
-    ids.add(item.id)
-    return { id: item.id, sourceKind: item.sourceKind }
-  })
   return {
     revision: value.revision,
     content: value.content,
-    project: { projectId: value.project.projectId, namespace: value.project.namespace, exports },
+    project: { projectId: value.project.projectId, namespace: value.project.namespace },
   }
 }
 

@@ -23,7 +23,6 @@ async function fixture() {
         projectId: 'author',
         namespace: 'author',
         content: 'content.json',
-        exports: [{ id: 'slow', sourceKind: 'skill' }],
       },
     }),
   )
@@ -45,7 +44,6 @@ it('uses the actual source file and rejects stale updates while preserving hidde
   expect(initial.project).toMatchObject({
     projectId: 'author',
     namespace: 'author',
-    exports: [{ id: 'slow', sourceKind: 'skill' }],
   })
   const content = structuredClone(initial.content) as {
     data: { species: { id: string; hidden: { retained: boolean } }[] }
@@ -102,26 +100,6 @@ it('rejects a replaced root and invalid package metadata', async () => {
   await rm(root)
   await rename(moved, root)
   await writeFile(join(root, 'package.json'), '{')
-  await expect(workspace.read()).rejects.toMatchObject({ code: 'DEVELOPMENT_PACKAGE' })
-})
-
-it('rejects duplicate declared effect IDs in the source manifest', async () => {
-  const root = await fixture(),
-    workspace = new DevelopmentWorkspace(root, token)
-  await writeFile(
-    join(root, 'package.json'),
-    JSON.stringify({
-      arcadia: {
-        projectId: 'author',
-        namespace: 'author',
-        content: 'content.json',
-        exports: [
-          { id: 'same', sourceKind: 'skill' },
-          { id: 'same', sourceKind: 'petMark' },
-        ],
-      },
-    }),
-  )
   await expect(workspace.read()).rejects.toMatchObject({ code: 'DEVELOPMENT_PACKAGE' })
 })
 
@@ -183,11 +161,7 @@ it('exposes editing only on an explicitly enabled loopback server with an indepe
   ).toBe(404)
 }, 30000)
 
-for (const change of [
-  { projectId: 'renamed' },
-  { namespace: 'renamed' },
-  { exports: [{ id: 'other', sourceKind: 'skill' }] },
-]) {
+for (const change of [{ projectId: 'renamed' }, { namespace: 'renamed' }]) {
   it(`rejects a save after package metadata changes: ${Object.keys(change)[0]}`, async () => {
     const root = await fixture()
     const workspace = new DevelopmentWorkspace(root, token)
