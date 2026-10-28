@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { homedir, tmpdir } from 'node:os'
+import { join, relative, sep } from 'node:path'
 import {
   AttackTargetOpinion,
   BattleMessageType,
@@ -113,7 +113,7 @@ async function pack(name: string, manifest: object, files: Record<string, string
 }
 beforeAll(async () => {
   setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
-  root = await mkdtemp(join(tmpdir(), 'arcadia-npm-'))
+  root = await realpath(await mkdtemp(join(tmpdir(), 'arcadia-npm source-')))
   const library = await pack(
     'library',
     { name: 'arcadia-test-library', version: '1.0.0', type: 'module', exports: './index.js' },
@@ -216,6 +216,64 @@ it('installs standard tarballs without lifecycle execution and inspects without 
   expect(installation.packages.every(pkg => !('filesDigest' in pkg))).toBe(true)
   expect(process.env.ARCADIA_NPM_TEST_LOADED).toBeUndefined()
 })
+it('captures local tarballs without changing source metadata or its lock audit identity', async () => {
+  const files = ['package.json', 'package-lock.json', 'node_modules/.package-lock.json']
+  const before = await Promise.all(files.map(file => readFile(join(environment, file), 'utf8')))
+  const source = await inspectNpmProject(environment)
+  const captured = await prepare()
+  expect(captured.installation.digest).toBe(source.digest)
+  expect(captured.installation.lockfileDigest).toBe(source.lockfileDigest)
+  expect(await Promise.all(files.map(file => readFile(join(environment, file), 'utf8')))).toEqual(before)
+})
+it.each([
+  { version: 2, shrinkwrap: false, reference: 'project-relative' },
+  { version: 3, shrinkwrap: false, reference: 'project-relative' },
+  { version: 3, shrinkwrap: true, reference: 'project-relative' },
+  { version: 3, shrinkwrap: false, reference: 'home-relative' },
+])(
+  'captures relative root tarballs with lockfile v$version, shrinkwrap=$shrinkwrap and $reference',
+  async ({ version, shrinkwrap, reference }) => {
+    const directory = join(root, `relative-${version}-${shrinkwrap}-${reference}`)
+    await cp(environment, directory, { recursive: true })
+    const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+    let artifact = manifest.dependencies['@arcadia-test/slow'].slice(5)
+    const homeFixture = reference === 'home-relative' ? await mkdtemp(join(homedir(), '.arcadia-npm-test-')) : undefined
+    try {
+      if (homeFixture) {
+        const target = join(homeFixture, 'slow.tgz')
+        await cp(artifact, target)
+        artifact = target
+      }
+      manifest.dependencies['@arcadia-test/slow'] =
+        reference === 'home-relative'
+          ? `file:~/${relative(homedir(), artifact).split(sep).join('/')}`
+          : `file:${relative(directory, artifact).split(sep).join('/')}`
+      await writeFile(join(directory, 'package.json'), JSON.stringify(manifest))
+      await exec(
+        'npm',
+        [
+          'install',
+          '--package-lock-only',
+          '--lockfile-version',
+          String(version),
+          '--ignore-scripts',
+          '--offline',
+          '--no-audit',
+          '--no-fund',
+        ],
+        { cwd: directory },
+      )
+      if (shrinkwrap) await rename(join(directory, 'package-lock.json'), join(directory, 'npm-shrinkwrap.json'))
+      const original = await inspectNpmProject(directory)
+      const captured = await prepare(directory)
+      expect(captured.installation.digest).toBe(original.digest)
+      expect(captured.installation.lockfileDigest).toBe(original.lockfileDigest)
+      expect(await readFile(join(directory, 'package.json'), 'utf8')).toBe(JSON.stringify(manifest))
+    } finally {
+      if (homeFixture) await rm(homeFixture, { recursive: true, force: true })
+    }
+  },
+)
 it('executes code effects in the real engine with refresh, removal, and independent battles', async () => {
   const { content } = await prepare()
   expect(process.env.ARCADIA_NPM_TEST_LOADED).toBe('yes')

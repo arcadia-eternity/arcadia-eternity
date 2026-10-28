@@ -46,9 +46,14 @@ export async function prepareNpmProject(
   approval: { policy: Readonly<Record<string, Json>>; /** Ignored for legacy callers. */ installationDigest?: string },
 ): Promise<Readonly<PreparedNpmEnvironment>> {
   const source = await realpath(directory)
-  const captured = await captureNpmProject(source)
+  const original = await inspectNpmProject(source)
+  const captured = await captureNpmProject(source, original)
   try {
-    const installation = await inspectNpmProject(captured.root)
+    const inspected = await inspectNpmProject(captured.root)
+    if (inspected.digest !== original.digest)
+      fail('NPM_CHANGED', 'node_modules', 'The installed dependency graph changed while capturing the environment')
+    // Relocation only changes private npm source paths. Audit the administrator's original lockfile.
+    const installation = Object.freeze({ ...inspected, lockfileDigest: original.lockfileDigest })
     return Object.freeze({
       ...(await compileInstallation(captured.root, host, installation, approval.policy)),
       dispose: captured.dispose,
