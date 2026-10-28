@@ -1,0 +1,29 @@
+{
+  "name": "@arcadia-eternity/content-dev",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "bin": {
+    "arcadia-content": "./dist/cli.mjs"
+  },
+  "exports": {
+    "./testing": "./dist/testing.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "test:run": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@arcadia-eternity/battle": "workspace:^",
+    "@arcadia-eternity/pack-loader": "workspace:^",
+    "typescript": "catalog:",
+    "yaml": "catalog:"
+  }
+}

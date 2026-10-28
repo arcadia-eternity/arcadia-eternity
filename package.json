@@ -58,7 +58,8 @@
     "test:server-standalone": "pnpm --filter @arcadia-eternity/server test:run",
     "typecheck:server-standalone": "pnpm exec tsgo -p packages/server/tsconfig.standalone-test.json",
     "lint:server-standalone": "pnpm exec eslint --config eslint.config.server-standalone.js 'packages/server/src/standalone/**/*.ts' packages/server/test/standalone*.ts packages/server/test/sessionIdentity.test.ts packages/server/test/account*.test.ts packages/server/test/provider*.test.ts",
-    "build:server": "pnpm --filter @arcadia-eternity/server... --if-present build"
+    "build:server": "pnpm --filter @arcadia-eternity/server... --if-present build",
+    "test:content-dev": "pnpm --filter @arcadia-eternity/content-dev test:run"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

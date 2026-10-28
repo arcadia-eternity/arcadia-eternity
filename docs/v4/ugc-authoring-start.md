@@ -2,6 +2,16 @@
 
 这个入口创建一个标准 npm 包：包含精灵、技能、减速印记、TypeScript 效果、场景测试和供编码助手使用的 Agent Skill。首个示例命中后减速两回合，重复命中刷新持续时间而不叠加幅度；可以在此基础上修改内容。它不会安装、批准、发布或部署内容。
 
+## 从独立模板开始
+
+在独立仓库开发时，使用组织下的 [content-pack-template](https://github.com/arcadia-eternity/content-pack-template)，点击 **Use this template** 创建自己的包，然后运行 `npm run setup`、`npm test` 和 `npm run demo`。
+
+模板按 `data/species`、`data/skills`、`data/marks` 分文件维护 JSON/YAML，效果放在 `src/effects.ts`，演示队伍放在 `arcadia.config.mjs`。通用构建、校验、重命名、安装和演示由本仓库的 [`@arcadia-eternity/content-dev`](../../packages/content-dev/README.md) 提供，模板通过 `arcadia-content` 命令调用。通用工具和它的测试都留在主仓库，作者只维护本包内容与行为测试。
+
+SDK 和工具尚未正式发布到 npm；模板首次安装从 `arcadia-sdk.json` 指定的主仓库提交载入安装器，并构建、安装本地开发物料。后续使用本地工具命令。工具物料用 `node scripts/stage-author-sdk.mjs /new/sdk-dir --dev-tools` 生成；未指定该选项时仍是原来的六包 SDK。
+
+以下生成器入口保留，供已有仓库内示例和兼容测试使用。
+
 ## 在本仓库试用
 
 先按 [npm 内容包](npm-content.md) 中的说明构建仓库依赖与 CLI。选择一个**不存在**的目录，在仓库根目录运行：

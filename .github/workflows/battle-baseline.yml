@@ -221,7 +221,7 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build offline dependency graph
-        run: pnpm --filter '@arcadia-eternity/cli^...' run build
+        run: pnpm --filter '@arcadia-eternity/cli^...' --filter @arcadia-eternity/content-dev... run build
       - name: Check CLI types
         run: pnpm typecheck:cli
       - name: Run relocated offline CLI and lifecycle regressions
@@ -230,3 +230,7 @@ jobs:
         run: pnpm --filter @arcadia-eternity/pack-loader test:run
       - name: Verify generated UGC authoring project
         run: node --test examples/ugc/test/create-content-pack.test.mjs
+      - name: Verify shared content-pack development tooling
+        run: |
+          pnpm test:content-dev
+          node --test scripts/stage-author-sdk.test.mjs

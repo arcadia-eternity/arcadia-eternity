@@ -9,7 +9,7 @@ const jobPackages = {
   // Keep database changes under server coverage after the direct dependency was removed.
   server: ['server', 'console', 'client', 'database', 'cli', 'cli-validator', 'p2p-transport'],
   browser: ['web-ui'],
-  cli: ['cli'],
+  cli: ['cli', 'content-dev'],
 }
 
 const sharedFiles = new Set([
@@ -44,7 +44,7 @@ const jobFiles = {
     /^scripts\/desktop-license-reference\//,
   ],
   // The offline bundle includes the root entry and lazy legacy command module.
-  cli: [/^bin\//, /^rolldown\.config\.js$/, /^examples\/ugc\//],
+  cli: [/^bin\//, /^rolldown\.config\.js$/, /^examples\/ugc\//, /^scripts\/stage-author-sdk(?:\.test)?\.mjs$/],
 }
 
 function git(args, cwd) {

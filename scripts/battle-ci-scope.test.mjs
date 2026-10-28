@@ -217,3 +217,14 @@ test('workflow command writes explicit GitHub outputs for manual runs and an emp
     )
   }
 })
+
+for (const path of [
+  'packages/content-dev/src/cli.mjs',
+  'packages/content-dev/test/setup.test.mjs',
+  'scripts/stage-author-sdk.mjs',
+  'scripts/stage-author-sdk.test.mjs',
+]) {
+  test(`content developer tooling runs its CLI and staging checks: ${path}`, () => {
+    assert.deepEqual(affectedBattleJobs([path], packages), { ...none, cli: true })
+  })
+}

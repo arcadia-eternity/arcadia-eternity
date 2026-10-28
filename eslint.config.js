@@ -64,6 +64,10 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    ...tseslint.configs.disableTypeChecked,
+    files: ['packages/content-dev/**/*.mjs'],
+  },
   // Imported historical source: retain V1 syntax while compatibility is established.
   // New adapters/tests use the normal rules in eslint.config.v4.js.
   {

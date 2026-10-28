@@ -88,3 +88,22 @@ test(
     }
   },
 )
+
+test('development tooling is opt-in and packaged with its executable and testing entry', async () => {
+  const temporary = await mkdtemp(join(tmpdir(), 'arcadia-content-dev-sdk-'))
+  try {
+    const index = await stageAuthorSdk(join(temporary, 'sdk'), { devTools: true })
+    assert.equal(index.packages.length, 7)
+    const tool = index.packages.find(pkg => pkg.name === '@arcadia-eternity/content-dev')
+    assert.ok(tool)
+    const archive = join(temporary, 'sdk', tool.filename)
+    const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)
+    const files = (await exec('tar', ['-tzf', archive])).stdout.split('\n')
+    assert.equal(metadata.bin['arcadia-content'], './dist/cli.mjs')
+    assert.ok(files.includes('package/dist/cli.mjs'))
+    assert.ok(files.includes('package/dist/testing.mjs'))
+    assert.ok(!files.some(file => /package\/test\//.test(file)))
+  } finally {
+    await rm(temporary, { recursive: true, force: true })
+  }
+})
