@@ -1,20 +1,20 @@
-import type { NpmEffectModuleContext } from '@arcadia-eternity/pack-loader/node'
+import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/v4/authoring'
 
 /** The host supplies its SDK and canonical prototypes; importing this file registers nothing globally. */
-export function createEffects({ sdk, marks, id }: NpmEffectModuleContext) {
-  const { defineCodeEffect, numberParam, targets, ops, conditions } = sdk
+export function createEffects({ sdk, marks, id }: CodeEffectModuleContext) {
+  const { defineCodeEffect, numberParam, targets, ops, EffectTrigger, AddMarkContext } = sdk
   const slow = marks.get(id('slow'))
   if (!slow) throw new Error('Missing slow mark')
   return [
     defineCodeEffect({
       id: id('apply-slow'),
       sourceKind: 'skill',
-      build: ({ effectId }) => ({
-        id: effectId,
-        on: 'OnHit',
-        when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(slow)),
-      }),
+      triggers: [EffectTrigger.OnHit],
+      when: context => context.source === context.parent.skill,
+      apply(context) {
+        const target = context.parent.actualTarget
+        if (target) target.addMark(new AddMarkContext(context, target, slow))
+      },
     }),
     defineCodeEffect({
       id: id('speed-penalty'),

@@ -1,5 +1,7 @@
 # TypeScript 效果编写
 
+直接使用官方领域 API 编写代码效果，先看 [Effect SDK](effect-sdk.md)：包含原生 `triggers / when / apply`、上下文和领域操作索引、来源清理与可运行示例。本文说明可选的选择、计算和持续绑定工具。
+
 官方效果维护在 `packs/base/src/effects/`。作者 API 通过 `@arcadia-eternity/battle/v4/authoring` 或内核的 `effectAuthoring` 命名空间使用，示例见[作者 API 示例](../../packages/battle/design/effect-authoring/README.md)。
 
 新的 npm 代码包使用 `defineCodeEffect` 和宿主注入的 SDK，见 [npm 内容包](npm-content.md)。运行时参数继续支持其他效果修改；取消的是强制的效果参数表单，不是参数声明、验证、作用域或生命周期。
@@ -46,7 +48,7 @@ UGC 新效果直接以 TypeScript 编写，经 npm 产物安装和宿主准入�
 
 作品通过 `NativePackLoader.fromWorks`／共同环境准备流程解析精确依赖、校验可信导出与参数，冻结运行目录。当前 Release 摘要基于规范化源载荷，并非旧规则展开结果或全部有效默认值归一化后的语义；该合同的剩余工作见 #243。归档传输摘要、Release 摘要和环境摘要分别表达不同身份。
 
-执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。派发深度与受计费的持续计算继续受限；规则动作计费适配器已删除，原生动作并不因此自动按每步计费。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/v4/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
+执行预算由 Battle 拥有，嵌套派发复用当前 root，回合累计跨 root 保留。效果执行入口、SDK 动作组合和受计费的值计算均参与计数；具体计费位置见 [SDK 预算合同](effect-sdk.md#执行预算与失败)。耗尽后 fault 锁存并停止计时、释放等待，skipOnError 不能吞掉；快照保存已花费的回合预算。限额见 [budget.ts](../../packages/battle/src/v4/execution/budget.ts)。可信任意回调中的无限循环无法由同步计数器抢占；旧 ReactiveValue 内部与未来 Config 图的全面计费仍需扩展。
 
 creator 与 CLI 已接入作品运行；完整宿主体验、Mod 安装准入、服务端环境策略及资源预算矩阵仍有独立验收。能力允许列表和有限参数不能代替对可信 TS 实现的审查。
 

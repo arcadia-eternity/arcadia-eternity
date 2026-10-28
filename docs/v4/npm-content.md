@@ -8,9 +8,9 @@
 
 从新包开始时，可按[创作者入门](ugc-authoring-start.md)生成带真实引擎场景测试和 Agent Skill 的 TypeScript 项目。
 
-效果模块导出 `createEffects({ sdk, marks, id })`。宿主注入与本局核心相同的 SDK 和规范印记原型；`id(localId)` 生成包的 `namespace:id`。类型可从 `@arcadia-eternity/pack-loader/node` 导入 `NpmEffectModuleContext`。运行时代码使用注入的 `sdk`，避免包内另一个引擎副本产生不兼容的类、参数 token 或恢复工厂。
+效果模块导出 `createEffects({ sdk, marks, id })`。宿主注入与本局核心相同的 SDK 和规范印记原型；`id(localId)` 生成包的 `namespace:id`。类型从 `@arcadia-eternity/battle/v4/authoring` 导入 `CodeEffectModuleContext`；旧 `NpmEffectModuleContext` 类型名继续兼容。运行时代码使用注入的 `sdk`，避免包内另一个引擎副本产生不兼容的类、参数 token 或恢复工厂。
 
-`sdk.defineCodeEffect` 导出代码工厂，每个使用位置分别编译，工厂收到稳定 `effectId` 和可用的 `sourceMark`。其 `build` 返回 `defineEffect` 所接受的类型化定义。配置复用使用普通 TS 函数；跨回合状态使用引擎实例、参数和绑定，不能放在模块全局或共享闭包中。
+`sdk.defineCodeEffect` 支持与官方效果相同的 `triggers / when / apply` 字段，直接提供真实引擎上下文与领域类。简单定义无需 `build`；每个使用位置由宿主分配稳定编译身份。需要原有工具时，`build` 仍可返回 `defineEffect` 接受的定义，并收到 `effectId` 和可用的 `sourceMark`。API 索引、来源清理和失败语义见 [Effect SDK](effect-sdk.md)。配置复用使用普通 TS 函数；跨回合状态使用引擎实例、参数和绑定，不能放在模块全局或共享闭包中。
 
 **运行时参数与编辑表单是两个合同。** `numberParam`、`booleanParam`、`stringParam` 仍可声明在效果的 `parameters` 中；执行时读取当前作用域的有效值，支持稳定地址、标签、其他效果的修改和来源清理。不要求为其建立编辑器表单或序列化配置 Schema。示例的减速量使用 `numberParam` 和 `follow`，其他效果修改该参数时，速度贡献随之更新。固定且不参与战斗修改的选项才适合直接使用 TS 常量。
 

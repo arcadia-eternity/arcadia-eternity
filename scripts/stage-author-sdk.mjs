@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import YAML from 'yaml'
 
@@ -78,6 +78,16 @@ export async function stageAuthorSdk(output) {
         if (typeof spec === 'string' && spec.startsWith('workspace:')) visit(dep)
   }
   visit('@arcadia-eternity/pack-loader')
+
+  const battleBuild = join(packages.get('@arcadia-eternity/battle').directory, 'dist')
+  const build = JSON.parse(await readFile(join(battleBuild, 'environment-build.json'), 'utf8'))
+  const { effectSdkApiVersion } = await import(pathToFileURL(join(battleBuild, 'v4-authoring.js')).href)
+  if (
+    build.formatVersion !== 1 ||
+    ![build.coreBuildId, build.registryBuildId].every(id => /^[a-f0-9]{64}$/.test(id)) ||
+    effectSdkApiVersion !== 1
+  )
+    throw new Error('Build a compatible battle SDK before staging author packages')
 
   const scratch = await mkdtemp(join(tmpdir(), 'arcadia-author-sdk-'))
   let created = false
@@ -159,6 +169,8 @@ export async function stageAuthorSdk(output) {
       format: 'arcadia.author-sdk-local',
       version: 1,
       releaseReady: false,
+      sdkApi: effectSdkApiVersion,
+      build,
       packages: records,
     }
     await writeFile(join(artifacts, 'arcadia-author-sdk.json'), JSON.stringify(index, null, 2) + '\n')

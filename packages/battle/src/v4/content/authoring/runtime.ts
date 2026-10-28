@@ -147,6 +147,15 @@ function engine(ctx: Frame) {
   if (!result) throw new Error('Persistent queries cannot access a trigger event or perform actions')
   return result
 }
+/** Internal bridge for native code exports; callbacks receive the original engine context. */
+export function nativeEffectContext(ctx: Frame): EffectContext<EffectTrigger> {
+  return engine(ctx)
+}
+/** Keep nested SDK calls in the same root, including calls from custom TS callbacks. */
+function runAction<T extends C.Trigger>(ctx: C.EffectFrame<T>, operation: () => void): void {
+  const { battle } = engine(ctx as Frame)
+  battle.executionBudget.action(battle.currentTurn, operation)
+}
 function read(ctx: Frame, input: unknown): unknown {
   if (input !== null && typeof input === 'object') {
     const reader = readers.get(input)
@@ -245,8 +254,10 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
     condition: evaluate => ctx => evaluate(ctx, query(ctx as Frame)),
     apply: operator => {
       const action = (ctx: Parameters<typeof operator>[0]) => {
-        engine(ctx as Frame).battle.executionBudget.chargeComputation()
-        operator(ctx, query(ctx as Frame))
+        runAction(ctx as Frame, () => {
+          engine(ctx as Frame).battle.executionBudget.chargeComputation()
+          operator(ctx, query(ctx as Frame))
+        })
       }
       actionBindings.set(action, actionBindings.get(operator) ?? [])
       return action
@@ -517,8 +528,8 @@ export const actions: typeof C.actions = {
   choose: (condition, whenTrue, whenFalse) => {
     const action: typeof whenTrue = ctx => {
       engine(ctx as Frame).battle.executionBudget.chargeComputation()
-      if (condition(ctx)) whenTrue(ctx)
-      else whenFalse?.(ctx)
+      if (condition(ctx)) runAction(ctx as Frame, () => whenTrue(ctx))
+      else if (whenFalse) runAction(ctx as Frame, () => whenFalse(ctx))
     }
     actionBindings.set(action, [
       ...(actionBindings.get(whenTrue) ?? []),
@@ -528,7 +539,7 @@ export const actions: typeof C.actions = {
   },
   sequence: (...actions) => {
     const action = (ctx: Parameters<(typeof actions)[number]>[0]) => {
-      for (const apply of actions) apply(ctx)
+      for (const apply of actions) runAction(ctx as Frame, () => apply(ctx))
     }
     actionBindings.set(
       action,
@@ -1309,8 +1320,10 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
       read: (input: unknown) => read(result as Frame, input),
       ops: {
         modifyDamage: (event: DamageContext, change: { delta: number; percent: number }) => {
-          if (event.battle !== source.battle) throw new Error('Cross-battle damage context')
-          event.addModified(change.percent, change.delta)
+          runAction(result as Frame, () => {
+            if (event.battle !== source.battle) throw new Error('Cross-battle damage context')
+            event.addModified(change.percent, change.delta)
+          })
         },
       },
     } as C.EffectFrame<T>
@@ -1333,7 +1346,8 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
         : undefined,
     apply: ctx => {
       if (!acceptsSource(ctx)) throw new Error('Mismatched authored behavior source')
-      definition.execute(frame(ctx), parameters)
+      const current = frame(ctx)
+      runAction(current, () => definition.execute(current, parameters))
     },
   })
   effectBindings.set(effect, [...bindings.values()])

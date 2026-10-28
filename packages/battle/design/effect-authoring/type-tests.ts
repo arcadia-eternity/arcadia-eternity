@@ -3,6 +3,7 @@
 import type { DamageContext, UseSkillContext } from '../../src/v4/context'
 import type { Pet } from '../../src/v4/pet'
 import type { MarkInstance } from '../../src/v4/mark'
+import * as sdk from '@arcadia-eternity/battle/v4/authoring'
 import {
   actions,
   bindings,
@@ -399,3 +400,43 @@ contexts.addMark.apply(ops.setMarkTransferOnSwitch(true))
 ops.setMarkTransferOnSwitch(1)
 // @ts-expect-error Configuration is set on a pending application, not a live mark.
 targets.sourceMark.apply(ops.setMarkTransferOnSwitch(true))
+
+// Native SDK callbacks retain the actual engine context, including union narrowing.
+sdk.defineCodeEffect({
+  id: 'type-test/native',
+  sourceKind: 'skill',
+  triggers: [sdk.EffectTrigger.OnHit],
+  apply(context) {
+    exact<Equal<typeof context.parent, UseSkillContext>>(true)
+    // @ts-expect-error OnHit is not a damage event.
+    context.parent.damageResult
+    const owner = context.source.owner
+    if (owner instanceof sdk.Pet) owner.heal(new sdk.HealContext(context, context.source, owner, 20))
+  },
+})
+sdk.defineCodeEffect({
+  id: 'type-test/native-union',
+  sourceKind: 'petMark',
+  triggers: [sdk.EffectTrigger.OnHit, sdk.EffectTrigger.OnDamage],
+  apply(context) {
+    if (context.trigger === sdk.EffectTrigger.OnDamage) exact<Equal<typeof context.parent, DamageContext>>(true)
+    else exact<Equal<typeof context.parent, UseSkillContext>>(true)
+  },
+})
+sdk.defineCodeEffect({
+  id: 'type-test/native-invalid',
+  sourceKind: 'skill',
+  // @ts-expect-error Undispatched events are not accepted by native code registration.
+  triggers: ['ImaginaryTrigger'],
+  apply() {},
+})
+const nativeModule: sdk.CodeEffectModule = {
+  createEffects: ({ sdk: injected, id }) => [
+    injected.defineCodeEffect({
+      id: id('native'),
+      sourceKind: 'skill',
+      triggers: [injected.EffectTrigger.OnHit],
+      apply() {},
+    }),
+  ],
+}

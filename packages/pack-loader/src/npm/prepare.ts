@@ -2,27 +2,16 @@ import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as sdk from '@arcadia-eternity/battle/v4/authoring'
-import type {
-  BaseMark,
-  BehaviorCatalogOptions,
-  ContentCatalog,
-  ContentPrototypeData,
-  NativeBehaviorExport,
-} from '@arcadia-eternity/battle/v4'
+import type { CodeEffectModule, CodeEffectModuleContext } from '@arcadia-eternity/battle/v4/authoring'
+import type { BehaviorCatalogOptions, ContentCatalog, ContentPrototypeData } from '@arcadia-eternity/battle/v4'
 import { compileRelease, prepareWorkEnvironment } from '../works/compiler'
 import { cloneJson, digestJson, fail, runtimeId, type Json, type WorkHost, type WorkRelease } from '../works/model'
 import { inspectNpmProject, packageFile, type InstalledNpmPackage, type NpmProjectInspection } from './inspect'
 import { captureNpmProject } from './capture'
 
-export interface NpmEffectModuleContext {
-  /** Use the host SDK so packages share its domain types and restoration registry. */
-  readonly sdk: typeof sdk
-  readonly marks: ReadonlyMap<string, BaseMark>
-  readonly id: (localId: string) => string
-}
-export interface NpmEffectModule {
-  readonly createEffects: (context: NpmEffectModuleContext) => readonly NativeBehaviorExport[]
-}
+/** Compatibility names; author modules can depend only on the public battle SDK types. */
+export type NpmEffectModuleContext = CodeEffectModuleContext
+export type NpmEffectModule = CodeEffectModule
 export interface NpmContentHost extends Omit<WorkHost, 'createContent'> {
   readonly createContent: (
     data: ContentPrototypeData,

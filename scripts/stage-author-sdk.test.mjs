@@ -22,6 +22,9 @@ test(
       const bundle = join(temporary, 'sdk')
       const index = await stageAuthorSdk(bundle)
       assert.equal(index.releaseReady, false)
+      assert.equal(index.sdkApi, 1)
+      assert.match(index.build.coreBuildId, /^[a-f0-9]{64}$/)
+      assert.match(index.build.registryBuildId, /^[a-f0-9]{64}$/)
       assert.ok(index.packages.some(pkg => pkg.name === '@arcadia-eternity/pack-loader'))
       assert.ok(index.packages.some(pkg => pkg.name === '@arcadia-eternity/battle'))
       for (const pkg of index.packages) {

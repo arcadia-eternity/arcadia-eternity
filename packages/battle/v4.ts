@@ -17,6 +17,7 @@ export {
 } from './src/v4/legacy/schema/player'
 
 export * as effectAuthoring from './src/v4/content/authoring'
+export * as effectSdk from './v4-authoring'
 export {
   createContentCatalog,
   type ContentPrototypeData,

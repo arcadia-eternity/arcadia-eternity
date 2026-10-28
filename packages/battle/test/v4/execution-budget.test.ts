@@ -11,6 +11,15 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/v4'
 import { makeScenario } from './scenario'
+import {
+  actions,
+  codeEffectDefinition,
+  compileEffect,
+  defineCodeEffect,
+  ops,
+  targets,
+} from '@arcadia-eternity/battle/v4/authoring'
+import { compileBehaviorUse } from '@arcadia-eternity/battle/v4'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -159,3 +168,89 @@ it('preserves cumulative computation limits across roots and rejects malformed s
   expect(() => invalid.restoreState({ ...state, turnComputations: -1 })).toThrow('Invalid execution budget state')
   expect(() => invalid.restoreState({ turn: 0, turnActions: 0 })).toThrow('Invalid execution budget state')
 })
+
+it('meters native SDK recursion through the same dispatcher and preserves the original failure', () => {
+  const { battle, source } = setup()
+  const native = defineCodeEffect({
+    id: 'sdk:recursive',
+    sourceKind: 'skill',
+    triggers: [EffectTrigger.TurnEnd],
+    apply(context) {
+      try {
+        context.battle.applyEffects(context.parent, EffectTrigger.TurnEnd, context.source)
+      } catch {
+        /* A callback cannot clear a latched engine fault. */
+      }
+    },
+  })
+  const compiled = compileBehaviorUse(
+    codeEffectDefinition(native),
+    { useId: 'recursive', definitionId: native.id },
+    {
+      owner: { kind: 'skill', id: source.baseId },
+      nativeExports: [native],
+    },
+  )
+  if (!compiled.ok) throw new Error(JSON.stringify(compiled.diagnostics))
+  compiled.parameters.install(battle.configSystem)
+  source.effects.splice(0, source.effects.length, compiled.effect)
+  expect(() => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)).toThrow(
+    ExecutionBudgetExceeded,
+  )
+  const fault = battle.executionBudget.fault
+  expect(fault?.dimension).toBe('depth')
+  expect(() => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)).toThrow(fault)
+})
+
+it.each(['selector', 'sequence', 'branch'] as const)(
+  'charges %s actions inside a custom callback and blocks subsequent actions after exhaustion',
+  mode => {
+    const { battle, source, a } = setup()
+    let writes = 0,
+      after = 0
+    const action =
+      mode === 'selector'
+        ? targets.ownerPet.apply(() => {
+            writes++
+          })
+        : mode === 'sequence'
+          ? actions.sequence(() => {
+              writes++
+            })
+          : actions.choose(
+              () => true,
+              () => {
+                writes++
+              },
+            )
+    const effect = compileEffect({
+      id: 'sdk:budget-actions',
+      on: 'TurnEnd',
+      execute(frame) {
+        try {
+          for (let i = 0; i <= executionBudgetPolicy.actions; i++) action(frame)
+        } catch {
+          expect(() => targets.ownerPet.property('currentHp').apply(ops.assign(1))(frame)).toThrow(
+            battle.executionBudget.fault,
+          )
+        }
+      },
+    })
+    const later = defineNativeEffect({
+      id: 'later' as effectId,
+      triggers: [EffectTrigger.TurnEnd],
+      apply() {
+        after++
+      },
+    })
+    source.effects.splice(0, source.effects.length, effect, later)
+    const hp = a.activePet.currentHp
+    expect(() => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)).toThrow(
+      ExecutionBudgetExceeded,
+    )
+    expect(battle.executionBudget.fault?.dimension).toBe('actions')
+    expect(writes).toBe(executionBudgetPolicy.actions - 1)
+    expect(after).toBe(0)
+    expect(a.activePet.currentHp).toBe(hp)
+  },
+)
