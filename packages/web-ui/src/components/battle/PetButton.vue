@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getNumericAttributeModifier } from '@/utils/modifierStyles'
 import { computed, ref } from 'vue'
 import PetIcon from '../PetIcon.vue'
 import ElementIcon from './ElementIcon.vue'
@@ -156,7 +157,7 @@ const hasModifiers = computed(() => {
 // 获取等级的 modifier 信息
 const levelModifierInfo = computed(() => {
   if (!props.pet.modifierState) return undefined
-  return props.pet.modifierState.attributes.find(attr => attr.attributeName === 'level')
+  return getNumericAttributeModifier(props.pet.modifierState, 'level')
 })
 
 // 获取 HP 相关的 modifier 信息
@@ -164,8 +165,8 @@ const hpModifierInfo = computed(() => {
   if (!props.pet.modifierState) return { currentHp: undefined, maxHp: undefined }
 
   return {
-    currentHp: props.pet.modifierState.attributes.find(attr => attr.attributeName === 'currentHp'),
-    maxHp: props.pet.modifierState.attributes.find(attr => attr.attributeName === 'maxHp'),
+    currentHp: getNumericAttributeModifier(props.pet.modifierState, 'currentHp'),
+    maxHp: getNumericAttributeModifier(props.pet.modifierState, 'maxHp'),
   }
 })
 
@@ -239,7 +240,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
   if (!skill.modifierState) return undefined
 
   // 在技能的 modifierState 中查找对应的属性
-  return skill.modifierState.attributes.find(attr => attr.attributeName === attributeName)
+  return getNumericAttributeModifier(skill.modifierState, attributeName)
 }
 </script>
 

@@ -20,7 +20,13 @@ it('renders original vector digits and keeps effective modifier values and mirro
       max: 499,
       rage: 54,
       reverse: true,
-      currentHpModifierInfo: { isModified: true, currentValue: 123, modifiers: [] } as never,
+      currentHpModifierInfo: {
+        attributeName: 'currentHp',
+        baseValue: 447,
+        isModified: true,
+        currentValue: 123,
+        modifiers: [],
+      },
     },
   })
   expect(bar.classes()).toContain('battle-bars--reverse')

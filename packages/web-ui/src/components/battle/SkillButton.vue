@@ -22,9 +22,9 @@ const props = defineProps<{
   skill: SkillMessage
   disabled?: boolean
   // Modifier 信息
-  powerModifierInfo?: AttributeModifierInfo
-  accuracyModifierInfo?: AttributeModifierInfo
-  rageModifierInfo?: AttributeModifierInfo
+  powerModifierInfo?: AttributeModifierInfo<number>
+  accuracyModifierInfo?: AttributeModifierInfo<number>
+  rageModifierInfo?: AttributeModifierInfo<number>
   // 属性克制倍率（可选，如果不提供则自动计算）
   typeEffectiveness?: number
 }>()

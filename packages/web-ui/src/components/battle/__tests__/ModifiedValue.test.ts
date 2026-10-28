@@ -1,9 +1,56 @@
-import { describe, test, expect } from 'vitest'
+import { describe, test, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import ModifiedValue from '../ModifiedValue.vue'
 import type { AttributeModifierInfo } from '@arcadia-eternity/const'
 
 describe('ModifiedValue Component', () => {
+  test.each([
+    { baseValue: 100, currentValue: 120 },
+    { baseValue: false, currentValue: true },
+    { baseValue: 'before', currentValue: 'after' },
+  ])('preserves the slot value type ($currentValue)', ({ baseValue, currentValue }) => {
+    const slot = vi.fn(({ value }: { value: number | string | boolean }) => h('span', String(value)))
+    const wrapper = mount(ModifiedValue, {
+      props: {
+        value: baseValue,
+        attributeInfo: { attributeName: 'custom', baseValue, currentValue, isModified: true, modifiers: [] },
+      },
+      slots: { default: slot },
+    })
+    expect(slot).toHaveBeenLastCalledWith(expect.objectContaining({ value: currentValue }))
+    expect(wrapper.text()).toBe(String(currentValue))
+    wrapper.unmount()
+  })
+
+  test('formats percentages before and after the modifier changes', async () => {
+    const attributeInfo: AttributeModifierInfo<number> = {
+      attributeName: 'critRate',
+      baseValue: 10,
+      currentValue: 25,
+      isModified: false,
+      modifiers: [],
+    }
+    const wrapper = mount(ModifiedValue, {
+      props: { value: 10, attributeInfo, format: (value: number) => `${value}%` },
+    })
+    expect(wrapper.text()).toBe('10%')
+    await wrapper.setProps({ attributeInfo: { ...attributeInfo, isModified: true } })
+    expect(wrapper.text()).toBe('25%')
+    wrapper.unmount()
+  })
+
+  test('passes the numeric value to the slot even when text formatting is configured', () => {
+    const slot = vi.fn(({ value }: { value: number }) => h('span', value.toFixed(1)))
+    const wrapper = mount(ModifiedValue, {
+      props: { value: 10, format: (value: number) => `${value}%` },
+      slots: { default: slot },
+    })
+    expect(slot).toHaveBeenLastCalledWith(expect.objectContaining({ value: 10 }))
+    expect(wrapper.text()).toBe('10.0')
+    wrapper.unmount()
+  })
+
   test('should display normal value without modifiers', () => {
     const wrapper = mount(ModifiedValue, {
       props: {
@@ -16,7 +63,7 @@ describe('ModifiedValue Component', () => {
   })
 
   test('should display buffed value with green color', () => {
-    const attributeInfo: AttributeModifierInfo = {
+    const attributeInfo: AttributeModifierInfo<number> = {
       attributeName: 'atk',
       baseValue: 100,
       currentValue: 120,
@@ -46,7 +93,7 @@ describe('ModifiedValue Component', () => {
   })
 
   test('should display debuffed value with red color', () => {
-    const attributeInfo: AttributeModifierInfo = {
+    const attributeInfo: AttributeModifierInfo<number> = {
       attributeName: 'atk',
       baseValue: 100,
       currentValue: 80,
@@ -76,7 +123,7 @@ describe('ModifiedValue Component', () => {
   })
 
   test('should display clamped value with orange color', () => {
-    const attributeInfo: AttributeModifierInfo = {
+    const attributeInfo: AttributeModifierInfo<number> = {
       attributeName: 'atk',
       baseValue: 100,
       currentValue: 90,
@@ -104,7 +151,7 @@ describe('ModifiedValue Component', () => {
   })
 
   test('should display mixed effects with purple color', () => {
-    const attributeInfo: AttributeModifierInfo = {
+    const attributeInfo: AttributeModifierInfo<number> = {
       attributeName: 'atk',
       baseValue: 100,
       currentValue: 110,

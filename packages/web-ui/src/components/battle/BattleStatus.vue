@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getNumericAttributeModifier } from '@/utils/modifierStyles'
 import { computed, ref } from 'vue'
 import { useElementSize } from '@vueuse/core'
 import HealthRageBar from './HealthRageBar.vue'
@@ -55,7 +56,7 @@ const levelModifierInfo = computed(() => {
   const pet = activePet.value
   if (!pet?.modifierState) return undefined
 
-  return pet.modifierState.attributes.find(attr => attr.attributeName === 'level')
+  return getNumericAttributeModifier(pet.modifierState, 'level')
 })
 
 // 获取 HP 相关的 modifier 信息
@@ -64,8 +65,8 @@ const hpModifierInfo = computed(() => {
   if (!pet?.modifierState) return undefined
 
   return {
-    currentHp: pet.modifierState.attributes.find(attr => attr.attributeName === 'currentHp'),
-    maxHp: pet.modifierState.attributes.find(attr => attr.attributeName === 'maxHp'),
+    currentHp: getNumericAttributeModifier(pet.modifierState, 'currentHp'),
+    maxHp: getNumericAttributeModifier(pet.modifierState, 'maxHp'),
   }
 })
 
@@ -74,10 +75,12 @@ const rageModifierInfo = computed(() => {
   if (!props.player.modifierState) return undefined
 
   return {
-    rage: props.player.modifierState.attributes.find(attr => attr.attributeName === 'rage'),
-    maxRage: props.player.modifierState.attributes.find(attr => attr.attributeName === 'maxRage'),
+    rage: getNumericAttributeModifier(props.player.modifierState, 'rage'),
+    maxRage: getNumericAttributeModifier(props.player.modifierState, 'maxRage'),
   }
 })
+
+const formatPercentage = (value: number) => `${value}%`
 
 // 获取属性名称的i18n翻译
 const getStatName = (statKey: string): string => {
@@ -89,7 +92,7 @@ const getStatModifierInfo = (statKey: string) => {
   const pet = activePet.value
   if (!pet?.modifierState) return undefined
 
-  return pet.modifierState.attributes.find(attr => attr.attributeName === statKey)
+  return getNumericAttributeModifier(pet.modifierState, statKey)
 }
 
 // 计算属性相性效果（用于精灵图标背景色）
@@ -155,7 +158,8 @@ const petStatsInfo = computed(() => {
   }
 
   const stats = pet.stats
-  const statEntries: Array<{ key: string; name: string; value: number; modifierInfo?: AttributeModifierInfo }> = []
+  const statEntries: Array<{ key: string; name: string; value: number; modifierInfo?: AttributeModifierInfo<number> }> =
+    []
 
   // 主要战斗属性
   const mainStats = ['atk', 'def', 'spa', 'spd', 'spe']
@@ -214,10 +218,11 @@ const petStatsInfo = computed(() => {
           <div v-for="stat in petStatsInfo.statEntries" :key="stat.key" class="flex justify-between items-center">
             <span>{{ stat.name }}:</span>
             <ModifiedValue
-              :value="
+              :value="stat.value"
+              :format="
                 stat.key === 'critRate' || stat.key === 'accuracy' || stat.key === 'evasion'
-                  ? `${stat.value}%`
-                  : stat.value
+                  ? formatPercentage
+                  : undefined
               "
               :attribute-info="stat.modifierInfo"
               size="sm"

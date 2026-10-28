@@ -25,7 +25,7 @@ defineProps<{
   canSurrender: boolean
   skillAvailable: (id: skillId) => boolean
   petSelectable: (id: petId) => boolean
-  modifier: (skill: SkillMessage, attribute: string) => AttributeModifierInfo | undefined
+  modifier: (skill: SkillMessage, attribute: string) => AttributeModifierInfo<number> | undefined
   effectiveness: (skill: SkillMessage) => number
 }>()
 defineEmits<{

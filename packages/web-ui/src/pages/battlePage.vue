@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getNumericAttributeModifier } from '@/utils/modifierStyles'
 import { waitForSkillAnimation } from '@/composition/skillAnimationWait'
 import '@/assets/battle-theme.css'
 import BattleCommandDock from '@/components/battle/BattleCommandDock.vue'
@@ -654,7 +655,7 @@ const getSkillModifierInfo = (skill: SkillMessage, attributeName: string) => {
   if (!skill.modifierState) return undefined
 
   // 在技能的 modifierState 中查找对应的属性
-  return skill.modifierState.attributes.find(attr => attr.attributeName === attributeName)
+  return getNumericAttributeModifier(skill.modifierState, attributeName)
 }
 
 // 计算技能对敌方精灵的属性克制倍率

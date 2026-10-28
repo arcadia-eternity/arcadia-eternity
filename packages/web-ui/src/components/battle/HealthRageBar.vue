@@ -11,10 +11,10 @@ const props = withDefaults(
     rage?: number
     maxRage?: number
     reverse?: boolean
-    currentHpModifierInfo?: AttributeModifierInfo
-    maxHpModifierInfo?: AttributeModifierInfo
-    rageModifierInfo?: AttributeModifierInfo
-    maxRageModifierInfo?: AttributeModifierInfo
+    currentHpModifierInfo?: AttributeModifierInfo<number>
+    maxHpModifierInfo?: AttributeModifierInfo<number>
+    rageModifierInfo?: AttributeModifierInfo<number>
+    maxRageModifierInfo?: AttributeModifierInfo<number>
   }>(),
   { rage: 0, maxRage: 100, reverse: false },
 )
