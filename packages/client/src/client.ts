@@ -22,8 +22,9 @@ import {
   type JoinPrivateRoomRequest,
   type JoinPrivateRoomSpectatorRequest,
   type ServerEnvironmentAcceptance,
+  type MatchmakingRequest,
 } from '@arcadia-eternity/protocol'
-import { type PlayerSchemaType, type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
+import { type PlayerSelectionSchemaType, type PetSchemaType } from '@arcadia-eternity/schema'
 import { io, type ManagerOptions, type Socket } from 'socket.io-client'
 import { nanoid } from 'nanoid'
 
@@ -77,9 +78,13 @@ const dispatchedEvents = new Set<string>([
   'privateRoomEvent',
   'privateRoomPeerSignal',
   'battleTerminated',
+  'matchSuccess',
+  'matchmakingError',
 ])
 
 export class BattleClient {
+  private matchmakingGeneration = 0
+  private timedOutMatchmaking = false
   private socket: Socket<ServerToClientEvents, ClientToServerEvents>
   private eventHandlers = new Map<string, Set<(...args: unknown[]) => void>>()
   private subscriptions = new Map<string, Map<(...args: unknown[]) => void, Set<(...args: unknown[]) => void>>>()
@@ -218,6 +223,7 @@ export class BattleClient {
 
   // 公开的状态重置方法
   resetState() {
+    this.timedOutMatchmaking = false
     this.updateState({
       matchmaking: 'idle',
       battle: 'idle',
@@ -341,49 +347,33 @@ export class BattleClient {
     this.clearTimerSnapshots()
   }
 
-  async joinMatchmaking(
-    data: PlayerSchemaType | { playerSchema: PlayerSchemaType; ruleSetId?: string },
-  ): Promise<void> {
+  async joinMatchmaking(data: MatchmakingRequest): Promise<void> {
     this.verifyConnection()
-
-    // 处理不同的输入格式
-    let playerData: PlayerSchemaType
-    let ruleSetId: string
-
-    if ('playerSchema' in data) {
-      // 新格式：包含规则集信息
-      playerData = data.playerSchema
-      ruleSetId = data.ruleSetId || 'standard'
-    } else {
-      // 旧格式：直接是 PlayerSchemaType
-      playerData = data
-      ruleSetId = 'standard'
-    }
-
+    if (this.timedOutMatchmaking) throw new Error('仍在确认上次匹配已取消，请稍后重试')
+    const generation = ++this.matchmakingGeneration
     this.updateState({ matchmaking: 'searching' })
-
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.error('⏰ Matchmaking timeout after', this.options.actionTimeout, 'ms')
+        if (generation === this.matchmakingGeneration && this.state.matchmaking === 'searching') {
+          // The queue belongs to the seat, which may have other connected sockets.
+          this.timedOutMatchmaking = true
+          this.retryTimedOutCancellation()
+        }
         reject(new Error('Matchmaking timeout'))
       }, this.options.actionTimeout)
-
-      this.socket.emit(
-        'joinMatchmaking',
-        {
-          playerSchema: playerData,
-          ruleSetId,
-        },
-        response => {
-          clearTimeout(timeout)
-          this.handleMatchmakingResponse(response, resolve, reject)
-        },
-      )
+      this.socket.emit('joinMatchmaking', data, response => {
+        clearTimeout(timeout)
+        if (generation !== this.matchmakingGeneration) {
+          resolve()
+          return
+        }
+        this.handleMatchmakingResponse(response, resolve, reject)
+      })
     })
   }
 
   async cancelMatchmaking(): Promise<void> {
-    if (this.state.matchmaking !== 'searching') {
+    if (this.state.matchmaking !== 'searching' && !this.timedOutMatchmaking) {
       throw new Error('当前没有在匹配队列中')
     }
 
@@ -395,6 +385,8 @@ export class BattleClient {
       this.socket.emit('cancelMatchmaking', response => {
         clearTimeout(timeout)
         if (response.status === 'SUCCESS') {
+          this.timedOutMatchmaking = false
+          ++this.matchmakingGeneration
           this.updateState({
             matchmaking: 'idle',
             roomId: undefined,
@@ -1097,13 +1089,27 @@ export class BattleClient {
     }
   }
 
+  private retryTimedOutCancellation() {
+    if (!this.timedOutMatchmaking || !this.socket.connected) return
+    this.socket.emit('cancelMatchmaking', response => {
+      if (response.status === 'SUCCESS') {
+        this.timedOutMatchmaking = false
+        ++this.matchmakingGeneration
+        if (this.state.matchmaking === 'searching') this.updateState({ matchmaking: 'idle' })
+      } else if (response.code === 'MATCH_ALREADY_STARTED') this.timedOutMatchmaking = false
+    })
+  }
+
   private setupEventListeners() {
     // 连接状态事件
     this.socket.on('connect', () => {
       this.updateState({ status: 'connected' })
+      this.retryTimedOutCancellation()
     })
 
     this.socket.on('disconnect', () => {
+      ++this.matchmakingGeneration
+      if (this.state.matchmaking === 'searching') this.updateState({ matchmaking: 'idle' })
       // 保留 battle/matchmaking 状态，避免短暂断线被误判为战斗结束
       this.updateState({
         status: 'disconnected',
@@ -1130,8 +1136,16 @@ export class BattleClient {
     })
 
     // 游戏事件
+    this.socket.on('matchmakingError', response => {
+      this.timedOutMatchmaking = false
+      ++this.matchmakingGeneration
+      if (this.state.matchmaking === 'searching') this.updateState({ matchmaking: 'idle' })
+      this.eventHandlers.get('matchmakingError')?.forEach(handler => handler(response))
+    })
+
     this.socket.on('matchSuccess', response => {
       if (response.status === 'SUCCESS') {
+        this.timedOutMatchmaking = false
         this.lastBattleEndEventAt = 0
         this.currentBattleTurn = null
         this.updateState({
@@ -1140,6 +1154,7 @@ export class BattleClient {
           roomId: response.data.roomId,
           opponent: response.data.opponent,
         })
+        this.eventHandlers.get('matchSuccess')?.forEach(handler => handler(response))
       } else {
         console.error('❌ Match success event with error status:', response)
       }

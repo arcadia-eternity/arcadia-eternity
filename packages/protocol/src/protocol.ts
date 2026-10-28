@@ -40,6 +40,17 @@ export type ServerState = {
   playersInRooms: number
 }
 
+/** Ordinary server-authoritative matching; all players use the same server timer preset. */
+export type MatchmakingRequest =
+  | PlayerSchemaType
+  | {
+      playerSchema: PlayerSchemaType
+      /** Legacy standard is accepted without enabling the removed rules service. */
+      ruleSetId?: string
+      environmentId?: string
+      environment?: ServerEnvironmentAcceptance
+    }
+
 export interface ServerToClientEvents {
   ping: () => void
 
@@ -93,15 +104,7 @@ export interface ClientToServerEvents {
   getServerState: (ack: AckResponse<ServerState>) => void
 
   // 加入匹配队列
-  joinMatchmaking: (
-    data:
-      | PlayerSchemaType // 旧格式：直接传递玩家数据
-      | {
-          playerSchema: PlayerSchemaType
-          ruleSetId?: string
-        }, // 新格式：包含规则集信息
-    callback: AckResponse<{ status: 'QUEUED' }>,
-  ) => void
+  joinMatchmaking: (data: MatchmakingRequest, callback: AckResponse<{ status: 'QUEUED' }>) => void
   //取消匹配
   cancelMatchmaking: (ack: AckResponse<{ status: 'CANCELED' }>) => void
   // 准备开始对战
@@ -270,6 +273,8 @@ export interface PrivateRoomSpectator {
 }
 
 export interface PrivateRoomInfo {
+  /** Automatically paired room, closed after the result instead of returning to a friend lobby. */
+  matchmaking?: boolean
   environment?: ServerEnvironmentDescriptor
   id: string
   config: {

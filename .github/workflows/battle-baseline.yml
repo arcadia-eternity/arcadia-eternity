@@ -179,6 +179,8 @@ jobs:
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify native local page, selected teams and cold startup
         run: pnpm test:web-native:e2e
+      - name: Verify ordinary matchmaking and authoritative friend rooms
+        run: PLAYWRIGHT_ONLINE=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/matchmaking-online.spec.ts e2e/server-room-online.spec.ts
       - uses: actions/cache@v4
         with:
           path: packages/web-ui/.static-assets-cache

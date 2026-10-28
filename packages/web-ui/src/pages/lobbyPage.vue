@@ -98,6 +98,8 @@
       </a>
     </div>
 
+    <MatchmakingPanel :auto-open="startMatching" />
+
     <!-- 好友房间 -->
     <div class="mb-6 md:mb-8 space-y-6">
       <!-- 私人房间区域 -->
@@ -247,8 +249,11 @@ import { User, Monitor, Setting, FolderOpened, Collection, Download } from '@ele
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
+import MatchmakingPanel from '@/components/MatchmakingPanel.vue'
 import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
+
+defineProps<{ startMatching?: boolean }>()
 
 const router = useRouter()
 const battleClientStore = useBattleClientStore()

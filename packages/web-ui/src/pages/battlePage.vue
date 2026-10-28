@@ -27,6 +27,7 @@ import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
 import { useBattleClientStore } from '@/stores/battleClient'
+import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleReportStore } from '@/stores/battleReport'
 import { useBattleViewStore } from '@/stores/battleView'
 import { useGameDataStore } from '@/stores/gameData'
@@ -1081,6 +1082,7 @@ const navigateToLobbyWithMatching = async () => {
   if (isFullscreen.value) {
     await exitFullscreen()
   }
+  if (route.query.matchmaking === 'true') await usePrivateRoomStore().leaveRoom()
   router.push(isLocalBattle.value ? '/local-battle' : { name: 'Lobby', query: { startMatching: 'true' } })
 }
 

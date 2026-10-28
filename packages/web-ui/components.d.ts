@@ -78,6 +78,7 @@ declare module 'vue' {
     MarkCard: typeof import('./src/components/dex/MarkCard.vue')['default']
     MarkDetail: typeof import('./src/components/dex/MarkDetail.vue')['default']
     MarkIcon: typeof import('./src/components/MarkIcon.vue')['default']
+    MatchmakingPanel: typeof import('./src/components/MatchmakingPanel.vue')['default']
     ModifiedValue: typeof import('./src/components/battle/ModifiedValue.vue')['default']
     OfflineResources: typeof import('./src/components/OfflineResources.vue')['default']
     Pet: typeof import('./src/components/battle/Pet.vue')['default']

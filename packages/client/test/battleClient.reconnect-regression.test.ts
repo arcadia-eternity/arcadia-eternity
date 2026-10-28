@@ -568,4 +568,63 @@ describe('BattleClient command ordering', () => {
     socket.trigger('reconnectTest', { message: 'second', timestamp: 2 })
     expect(newOnce).toHaveBeenCalledTimes(1)
   })
+  it('keeps a late enqueue acknowledgement from replacing seat-wide cancellation', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    client.resetState()
+    let acknowledge!: (value: unknown) => void
+    socket.setResponder('joinMatchmaking', (_request, ack) => {
+      acknowledge = ack
+    })
+    const joining = client.joinMatchmaking({ id: 'player', name: 'Player', team: [] })
+    expect(client.currentState.matchmaking).toBe('searching')
+    const error = vi.fn()
+    client.on('matchmakingError', error)
+    socket.trigger('matchmakingError', { status: 'ERROR', code: 'MATCHMAKING_CANCELED' })
+    acknowledge({ status: 'SUCCESS', data: { status: 'QUEUED' } })
+    await joining
+    expect(client.currentState.matchmaking).toBe('idle')
+    expect(error).toHaveBeenCalledOnce()
+  })
+
+  it('clears a queued client on disconnect while preserving an already active battle', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    client.resetState()
+    socket.setResponder('joinMatchmaking', (_request, ack) => ack({ status: 'SUCCESS', data: { status: 'QUEUED' } }))
+    await client.joinMatchmaking({ id: 'player', name: 'Player', team: [] })
+    socket.disconnect()
+    expect(client.currentState.matchmaking).toBe('idle')
+    socket.connect()
+    socket.trigger('matchSuccess', {
+      status: 'SUCCESS',
+      data: { roomId: 'matched', opponent: { id: 'other', name: 'Other' } },
+    })
+    socket.disconnect()
+    expect(client.currentState).toMatchObject({ matchmaking: 'matched', battle: 'active', roomId: 'matched' })
+  })
+  it('explicitly cancels a timed out seat admission and retries cancellation after reconnecting', async () => {
+    const { client, socket } = await createConnectedBattleClient()
+    client.resetState()
+    vi.useFakeTimers()
+    try {
+      socket.setResponder('joinMatchmaking', () => {})
+      let cancelAck!: (response: unknown) => void
+      socket.setResponder('cancelMatchmaking', ack => {
+        cancelAck = ack
+      })
+      const joining = client.joinMatchmaking({ id: 'player', name: 'Player', team: [] })
+      const rejected = expect(joining).rejects.toThrow('Matchmaking timeout')
+      await vi.advanceTimersByTimeAsync(30000)
+      await rejected
+      expect(socket.emitted.filter(event => event === 'cancelMatchmaking')).toHaveLength(1)
+      expect(client.currentState.matchmaking).toBe('searching')
+      socket.disconnect()
+      socket.connect()
+      expect(socket.emitted.filter(event => event === 'cancelMatchmaking')).toHaveLength(2)
+      await expect(client.joinMatchmaking({ id: 'player', name: 'Player', team: [] })).rejects.toThrow('仍在确认')
+      cancelAck({ status: 'SUCCESS', data: { status: 'CANCELED' } })
+      expect(client.currentState.matchmaking).toBe('idle')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

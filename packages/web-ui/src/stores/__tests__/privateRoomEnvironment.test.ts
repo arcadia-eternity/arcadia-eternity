@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
   battle: { initBattle: vi.fn(), resetBattleWithoutSurrender: vi.fn() },
   client: {
     _instance: {},
+    currentState: { matchmaking: 'idle' },
+    cancelMatchmaking: vi.fn(),
+    joinMatchmaking: vi.fn(),
     playerId: 'host',
     serverUrl: 'https://server-a.test',
     on: vi.fn(),
@@ -368,4 +371,37 @@ it('keeps a running battle active if leaving the old server fails', async () => 
   await expect(store.switchServer('https://server-b.test')).rejects.toThrow('leave failed')
   expect(isCurrent()).toBe(true)
   expect(store.currentRoom?.battleRoomId).toBe('battle-a')
+})
+
+it('cancels content preparation before it can apply metadata or enter matchmaking', async () => {
+  const store = usePrivateRoomStore()
+  const descriptor = { id: 'match-environment', packages: [] }
+  mocks.list.mockResolvedValueOnce([descriptor])
+  let finish!: (value: unknown) => void
+  mocks.prepare.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const joining = store.joinMatchmaking([], descriptor.id)
+  const rejected = expect(joining).rejects.toThrow('对战内容已变化')
+  await vi.waitFor(() => expect(mocks.prepare).toHaveBeenCalledOnce())
+  await store.cancelMatchmaking()
+  finish({ content: { species: [], skills: [], marks: [] }, acceptance: {} })
+  await rejected
+  expect(mocks.client.joinMatchmaking).not.toHaveBeenCalled()
+  expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalled()
+})
+
+it('cancels the old matchmaking queue before switching servers', async () => {
+  const store = usePrivateRoomStore()
+  mocks.client.currentState.matchmaking = 'searching'
+  mocks.client.cancelMatchmaking.mockResolvedValueOnce(undefined)
+  await store.switchServer('https://server-b.test')
+  expect(mocks.client.cancelMatchmaking).toHaveBeenCalledOnce()
+  expect(mocks.client.cancelMatchmaking.mock.invocationCallOrder[0]).toBeLessThan(
+    mocks.client.disconnect.mock.invocationCallOrder[0],
+  )
+  mocks.client.currentState.matchmaking = 'idle'
 })

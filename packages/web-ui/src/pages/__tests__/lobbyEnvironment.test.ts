@@ -28,6 +28,7 @@ vi.mock('element-plus', () => ({
 }))
 
 const stubs = {
+  MatchmakingPanel: true,
   RouterLink: { template: '<a><slot /></a>' },
   ElIcon: { template: '<i><slot /></i>' },
   ElButton: {

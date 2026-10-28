@@ -7,12 +7,12 @@ import {
 } from '@arcadia-eternity/client'
 import type {
   PetSchemaType,
-  PlayerSchemaType,
   PlayerSelectionSchemaType,
   PrivateRoomBattleStartInfo,
   PrivateRoomInfo,
   UpdatePrivateRoomConfigRequest,
   ServerEnvironmentAcceptance,
+  MatchmakingRequest,
 } from '@arcadia-eternity/protocol'
 import { defineStore } from 'pinia'
 import { ref, shallowRef, computed } from 'vue'
@@ -287,7 +287,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
     initComplete.value = true
   }
 
-  const joinMatchmaking = (data: PlayerSchemaType | { playerSchema: PlayerSchemaType; ruleSetId?: string }) => {
+  const joinMatchmaking = (data: MatchmakingRequest) => {
     if (!_instance.value) {
       throw new Error('BattleClient not initialized')
     }

@@ -18,6 +18,7 @@
     "test:e2e:online:relay": "cross-env PLAYWRIGHT_ONLINE=1 PLAYWRIGHT_P2P_TRANSPORT=relay playwright test e2e/private-room-online.spec.ts",
     "test:e2e:online:webrtc": "cross-env PLAYWRIGHT_ONLINE=1 PLAYWRIGHT_P2P_TRANSPORT=webrtc playwright test e2e/private-room-online.spec.ts",
     "test:e2e:online:server": "cross-env PLAYWRIGHT_ONLINE=1 playwright test e2e/server-room-online.spec.ts",
+    "test:e2e:online:matchmaking": "cross-env PLAYWRIGHT_ONLINE=1 playwright test e2e/matchmaking-online.spec.ts",
     "test:e2e:online:relay:external": "cross-env PLAYWRIGHT_ONLINE=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:4176 PLAYWRIGHT_P2P_TRANSPORT=relay playwright test e2e/private-room-online.spec.ts --config playwright.external.config.ts",
     "test:e2e:online:webrtc:external": "cross-env PLAYWRIGHT_ONLINE=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:4176 PLAYWRIGHT_P2P_TRANSPORT=webrtc playwright test e2e/private-room-online.spec.ts --config playwright.external.config.ts",
     "test:e2e:headed": "playwright test --headed",

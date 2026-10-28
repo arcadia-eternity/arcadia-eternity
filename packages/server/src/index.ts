@@ -1,4 +1,6 @@
 export { createSingleProcessApp } from './standalone/app'
+export { fifoMatchmaking } from './standalone/matchmaking'
+export type { MatchmakingPolicy, MatchmakingCandidate, RatingScope } from './standalone/matchmaking'
 export { ServerEnvironmentRegistry, EnvironmentError } from './standalone/environments'
 export { SessionRegistry, SessionError } from './standalone/session'
 export type { AccountProvider, VerifiedAccount, SessionRegistryOptions } from './standalone/session'

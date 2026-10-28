@@ -85,6 +85,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (scope !== serverScope()) throw new Error('服务器连接已变化，请重试')
   }
   let preparedEnvironment: { key: string; task: ReturnType<typeof prepareServerEnvironment> } | null = null
+  let matchmakingGeneration = 0
+  let matchmakingEnvironmentGeneration = 0
   let environmentCatalogGeneration = 0
   watch(
     () => [
@@ -182,7 +184,51 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (generation === environmentCatalogGeneration && scope === serverScope()) environments.value = items
   }
 
+  const prepareMatchmakingEnvironment = async (environmentId?: string) => {
+    const generation = ++matchmakingEnvironmentGeneration
+    const scope = serverScope()
+    const descriptor = environmentId
+      ? environments.value.find(item => item.id === environmentId)
+      : environments.value.find(item => !item.packages.length)
+    if (!descriptor) throw new Error('对战内容不可用，请重新选择')
+    const prepared = await prepareServerEnvironment(battleClientStore.serverUrl, descriptor)
+    assertServerScope(scope)
+    if (generation !== matchmakingEnvironmentGeneration) throw new Error('对战内容已变化，请重新选择')
+    if (isSwitchingServer.value) throw new Error('正在切换服务器')
+    gameDataStore.applyServerEnvironment(prepared.content)
+    return { descriptor, ...prepared }
+  }
+
+  const cancelMatchmaking = async () => {
+    ++matchmakingGeneration
+    ++matchmakingEnvironmentGeneration
+    if (battleClientStore.currentState.matchmaking === 'searching') await battleClientStore.cancelMatchmaking()
+  }
+
+  const joinMatchmaking = (team: PetSchemaType[], environmentId?: string): Promise<void> =>
+    admitRoom(async () => {
+      const scope = serverScope()
+      const generation = ++matchmakingGeneration
+      // A result screen may still retain its automatically paired room for a few seconds.
+      if (currentRoom.value?.matchmaking && currentRoom.value.status === 'ended') await leaveRoom()
+      if (currentRoom.value) throw new Error('请先离开当前房间')
+      await refreshEnvironments()
+      assertServerScope(scope)
+      if (generation !== matchmakingGeneration) throw new Error('匹配已取消')
+      const prepared = await prepareMatchmakingEnvironment(environmentId)
+      assertServerScope(scope)
+      if (generation !== matchmakingGeneration) throw new Error('匹配已取消')
+      if (isSwitchingServer.value) throw new Error('正在切换服务器')
+      await battleClientStore.joinMatchmaking({
+        playerSchema: { id: battleClientStore.playerId, name: playerStore.player?.name ?? 'Player', team },
+        environmentId: prepared.descriptor.id,
+        environment: prepared.acceptance,
+      })
+      assertServerScope(scope)
+    })
+
   const roomEnvironment = async (): Promise<ServerEnvironmentAcceptance | undefined> => {
+    ++matchmakingEnvironmentGeneration
     const room = currentRoom.value
     const descriptor = room?.environment
     if (!room || room.config.battleMode !== 'server' || !descriptor?.packages.length) {
@@ -346,10 +392,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const switchServer = async (address: string): Promise<void> => {
     const target = authStore.checkServerUrl(address)
     const generation = ++serverSwitchGeneration
+    ++matchmakingGeneration
     isSwitchingServer.value = true
     try {
       await Promise.allSettled([...roomAdmissions])
       if (generation !== serverSwitchGeneration) return
+      if (battleClientStore.currentState.matchmaking === 'searching') await battleClientStore.cancelMatchmaking()
       const hadBattle = currentRoom.value?.status === 'started' || !!battleStartInFlight
       if (currentRoom.value) await leaveRoom()
       if (generation !== serverSwitchGeneration) return
@@ -1043,6 +1091,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
           roomId: battleStartInfo.battleRoomId,
           privateRoom: 'true',
           roomCode: currentRoom.value?.config.roomCode,
+          ...(currentRoom.value?.matchmaking && { matchmaking: 'true' }),
           ...(isSpectator.value && { spectate: 'true' }),
         },
       })
@@ -1302,6 +1351,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       case 'roomClosed':
         cleanup()
+        if (event.data.reason === 'MATCH_FINISHED') break
         router.push('/')
         break
     }
@@ -1375,6 +1425,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
   // 完全清理房间状态（只在真正离开房间时使用）
   const cleanup = (): void => {
+    ++matchmakingEnvironmentGeneration
     battleStartGeneration++
     stopRoomPolling()
     void teardownPeerTransport()
@@ -1426,6 +1477,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     // 方法
     createRoom,
     refreshEnvironments,
+    joinMatchmaking,
+    cancelMatchmaking,
+    prepareMatchmakingEnvironment,
     joinRoom,
     joinAsSpectator,
     leaveRoom,
