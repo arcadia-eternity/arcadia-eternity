@@ -82,7 +82,11 @@ function run(native: boolean, global: boolean, variant: (typeof variants)[number
           : [first, second]
   if (native) {
     const effect = compileEffect(
-      defineEffect({ id: 'fixture/remove', on: 'TurnEnd', execute: selectFrom(selected).apply(ops.removeMark()) }),
+      defineEffect({
+        id: 'fixture/remove',
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom(selected).apply(ops.removeMark()),
+      }),
     )
     const apply = effect.apply
     if (typeof apply !== 'function') throw new Error('Expected compiled action')
@@ -152,8 +156,8 @@ for (const global of [false, true])
     const effect = compileEffect(
       defineEffect({
         id: 'fixture/sequence',
-        on: 'TurnEnd',
-        execute: actions.sequence(
+        triggers: [EffectTrigger.TurnEnd],
+        apply: actions.sequence(
           ctx => {
             reads.push([...ctx.read(values)])
           },
@@ -195,8 +199,8 @@ it('prevalidates foreign active targets before any removal', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/foreign-remove',
-      on: 'TurnEnd',
-      execute: selectFrom([local, remote]).apply(ops.removeMark()),
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([local, remote]).apply(ops.removeMark()),
     }),
   )
   const apply = effect.apply
@@ -232,8 +236,8 @@ it('rechecks a later active target after lifecycle callbacks transfer its owner'
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/recheck',
-      on: 'TurnEnd',
-      execute: selectFrom([first, second]).apply(ops.removeMark()),
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([first, second]).apply(ops.removeMark()),
     }),
   )
   const apply = effect.apply

@@ -1,4 +1,4 @@
-import { compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
 import type { ParameterCatalog } from '@arcadia-eternity/battle/v4'
 const definitions = [
   {
@@ -78,9 +78,9 @@ export function createNamedParameterModifiers(catalogs: ReadonlyMap<string, Para
           compileEffect(
             defineEffect({
               id: d.id,
-              on: 'OnBattleStart',
+              triggers: [EffectTrigger.OnBattleStart],
               priority: 0,
-              execute: target.apply(ops.addParameterModifier(catalog, d.reference, 'delta', d.amount)),
+              apply: target.apply(ops.addParameterModifier(catalog, d.reference, 'delta', d.amount)),
             }),
           ),
         ]

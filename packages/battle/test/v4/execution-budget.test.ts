@@ -225,8 +225,8 @@ it.each(['selector', 'sequence', 'branch'] as const)(
             )
     const effect = compileEffect({
       id: 'sdk:budget-actions',
-      on: 'TurnEnd',
-      execute(frame) {
+      triggers: [EffectTrigger.TurnEnd],
+      apply(frame) {
         try {
           for (let i = 0; i <= executionBudgetPolicy.actions; i++) action(frame)
         } catch {

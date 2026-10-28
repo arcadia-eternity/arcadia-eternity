@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   booleanParam,
   compileEffect,
   conditions,
@@ -13,14 +14,14 @@ export function createWeaknessTransfer() {
   return compileEffect(
     defineEffect({
       id: 'effect_emblem_set_ruodianbiaoji_keeponswitchout',
-      on: 'OnBeforeAddMark',
+      triggers: [EffectTrigger.OnBeforeAddMark],
       priority: 0,
       parameters: { transfer },
       when: conditions.all(
         conditions.ownerAddsMark,
         contexts.addMark.condition((_ctx, events) => events.some(event => event.baseMark.id === 'mark_ruodianjihao')),
       ),
-      execute: contexts.addMark.apply(ops.setMarkTransferOnSwitch(transfer)),
+      apply: contexts.addMark.apply(ops.setMarkTransferOnSwitch(transfer)),
     }),
   )
 }

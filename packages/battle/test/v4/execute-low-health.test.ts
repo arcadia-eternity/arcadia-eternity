@@ -55,7 +55,7 @@ const variants = [
 function run(
   native: boolean,
   kind: 'skill' | 'mark',
-  trigger: 'OnHit' | 'OnMiss',
+  trigger: EffectTrigger.OnHit | EffectTrigger.OnMiss,
   variant: (typeof variants)[number],
   threshold?: number,
 ) {
@@ -147,7 +147,7 @@ function run(
   }
 }
 for (const kind of ['skill', 'mark'] as const)
-  for (const trigger of ['OnHit', 'OnMiss'] as const)
+  for (const trigger of [EffectTrigger.OnHit, EffectTrigger.OnMiss] as const)
     for (const variant of variants)
       it(`${kind} ${trigger} ${variant}`, () => {
         const actual = run(true, kind, trigger, variant)
@@ -166,8 +166,8 @@ for (const kind of ['skill', 'mark'] as const)
         if (variant === 'late-opponent') expect(actual.hp).toEqual([74, 0])
       })
 it('uses the configured strict HP threshold', () => {
-  expect(run(true, 'skill', 'OnHit', 'below', 74).hp[0]).toBe(74)
-  expect(run(true, 'skill', 'OnHit', 'boundary', 76).hp[0]).toBe(0)
+  expect(run(true, 'skill', EffectTrigger.OnHit, 'below', 74).hp[0]).toBe(74)
+  expect(run(true, 'skill', EffectTrigger.OnHit, 'boundary', 76).hp[0]).toBe(0)
 })
 
 it('skips duplicate/dead targets and does not dispatch damage or defeat effects itself', () => {
@@ -179,8 +179,8 @@ it('skips duplicate/dead targets and does not dispatch damage or defeat effects 
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/execute-duplicate',
-      on: 'TurnEnd',
-      execute: selectFrom([target, target]).apply(ops.executeKill()),
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([target, target]).apply(ops.executeKill()),
     }),
   )
   const messages: unknown[] = []
@@ -208,8 +208,8 @@ it('rejects a foreign target before defeating any selected pet', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/execute-foreign',
-      on: 'TurnEnd',
-      execute: selectFrom([target, foreign]).apply(ops.executeKill()),
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([target, foreign]).apply(ops.executeKill()),
     }),
   )
   const context = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnEnd, f.a.activePet.skills[0], effect)

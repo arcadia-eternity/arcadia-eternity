@@ -1,3 +1,4 @@
+import { EffectTrigger } from '../../v4'
 import { expect, it, vi } from 'vitest'
 import { Category, Element, type baseSkillId } from '@arcadia-eternity/const'
 import { createContentCatalog as assembleCatalog } from '../../src/v4/content/definition-catalog'
@@ -24,9 +25,9 @@ function createContentCatalog(...args: Parameters<typeof assembleCatalog>) {
       const amount = numberParam({ default: params.amount as number })
       return defineEffect({
         id: effectId,
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         parameters: { amount },
-        execute: targets.ownerPet.apply(ops.heal(amount)),
+        apply: targets.ownerPet.apply(ops.heal(amount)),
       })
     },
   })
@@ -111,9 +112,9 @@ it.each(['parameters', 'capability'] as const)('rejects invalid %s before callin
     const amount = numberParam({ default: params.amount as number })
     return defineEffect({
       id: effectId,
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       parameters: { amount },
-      execute: targets.ownerPet.apply(ops.heal(amount)),
+      apply: targets.ownerPet.apply(ops.heal(amount)),
     })
   })
   const native = defineNativeBehavior({

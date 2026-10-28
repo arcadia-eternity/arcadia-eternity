@@ -1,6 +1,7 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import { BaseMark } from '@arcadia-eternity/battle/v4'
 import {
+  EffectTrigger,
   selectFrom,
   compileEffect,
   defineEffect,
@@ -63,10 +64,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_add_crit_on_damage: compileEffect(
       defineEffect({
         id: 'effect_mark_add_crit_on_damage',
-        on: 'PostDamage',
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_huixin')!)),
           targets.sourceMark.apply(ops.removeMark()),
         ),
@@ -75,14 +76,14 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_add_guanghudun_on_turn_end_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_add_guanghudun_on_turn_end_with_stack',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(conditions.ownerIsActive, (ctx: EffectFrame) => {
           const left = ctx.read(targets.sourceMark.select(mark => mark.stack).first())
           const right = 1
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(resolved.get('mark_guanghudun')!, {
               stack: targets.sourceMark.select(mark => mark.stack).first(),
@@ -95,13 +96,13 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_add_mark_zhongdu_if_using_physical_attack: compileEffect(
       defineEffect({
         id: 'effect_mark_add_mark_zhongdu_if_using_physical_attack',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
           targets.sourceMark.apply(ops.removeMark()),
         ),
@@ -110,14 +111,14 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_add_multihit_1_on_next_multihit_skill: compileEffect(
       defineEffect({
         id: 'effect_mark_add_multihit_1_on_next_multihit_skill',
-        on: 'BeforeMultiHit',
+        triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
           const right = 1
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.skillUse.apply(ops.addMultihitResult(1)),
           targets.sourceMark.apply(ops.removeMark()),
         ),
@@ -126,10 +127,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_double_rage_cost_double_damage_non_climax: compileEffect(
       defineEffect({
         id: 'effect_mark_double_rage_cost_double_damage_non_climax',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.selfSkills
             .where(skill => (skill.category as string) !== 'Climax')
             .where(skill => (skill.category as string) !== 'Status')
@@ -144,7 +145,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_fear_consume_stacks_at_3: compileEffect(
       defineEffect({
         id: 'effect_mark_fear_consume_stacks_at_3',
-        on: 'OnStack',
+        triggers: [EffectTrigger.OnStack],
         priority: 0,
         when: conditions.all(
           (ctx: EffectFrame) => {
@@ -158,7 +159,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             return left !== undefined && right !== undefined && left < right
           },
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_kongju')!)),
           targets.sourceMark.apply(ops.consumeStacks(targets.sourceMark.select(mark => mark.stack).first())),
         ),
@@ -167,7 +168,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_hunluan_consume_stacks_at_2: compileEffect(
       defineEffect({
         id: 'effect_mark_hunluan_consume_stacks_at_2',
-        on: 'OnStack',
+        triggers: [EffectTrigger.OnStack],
         priority: 0,
         when: conditions.all(
           (ctx: EffectFrame) => {
@@ -181,7 +182,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             return left !== undefined && right !== undefined && left < right
           },
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_hunluan')!)),
           targets.sourceMark.apply(ops.consumeStacks(targets.sourceMark.select(mark => mark.stack).first())),
         ),
@@ -190,13 +191,13 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_shandianluoyin_paralyze: compileEffect(
       defineEffect({
         id: 'effect_mark_shandianluoyin_paralyze',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.ownerIsSkillTarget,
           contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_shandianluoyin'),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_mabi')!)),
           targets.sourceMark.apply(ops.removeMark()),
         ),
@@ -205,13 +206,13 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_mark_xukongtizhi_consume_on_evasion: compileEffect(
       defineEffect({
         id: 'effect_mark_xukongtizhi_consume_on_evasion',
-        on: 'OnMiss',
+        triggers: [EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.all(
           conditions.ownerIsSkillTarget,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongtizhi').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongganying')!)),
           targets.sourceMark.apply(ops.removeMark()),
         ),
@@ -220,10 +221,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_anzhilingyu_or_anyinglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_anzhilingyu_or_anyinglingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -239,10 +240,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_bingzhilingyu_or_bingshuanglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_bingzhilingyu_or_bingshuanglingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -258,10 +259,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_both_shanghaizengjia_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_both_shanghaizengjia_50',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 50 })),
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 50 })),
         ),
@@ -270,10 +271,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_chongzhilingyu_or_chongqunLingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_chongzhilingyu_or_chongqunLingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -289,10 +290,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_dianzhilingyu_or_diancilingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_dianzhilingyu_or_diancilingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -308,10 +309,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_feizhilingyu_or_feikonglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_feizhilingyu_or_feikonglingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -327,10 +328,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_fengzhilingyu_or_fengbaolingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fengzhilingyu_or_fengbaolingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -346,10 +347,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_guangzhilingyu_or_guanghuilingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_guangzhilingyu_or_guanghuilingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -365,10 +366,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_opponent_baiya_equal_damage_max_800: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_baiya_equal_damage_max_800',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_baiya')!, {
               stack: contexts.damage
@@ -383,7 +384,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_opponent_dongshang_10_percent_if_consume_dongqifuti_70_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_dongshang_10_percent_if_consume_dongqifuti_70_percent',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -397,7 +398,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             ),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
           targets.opponentMarks.where(mark => mark.baseId === 'mark_dongqifuti').apply(ops.removeMark()),
         ),
@@ -406,10 +407,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_opponent_heiya_equal_damage_max_800: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_heiya_equal_damage_max_800',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_heiya')!, {
               stack: contexts.damage
@@ -424,19 +425,19 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_opponent_meihuo: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_meihuo',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: actions.sequence(targets.opponentActive.apply(ops.addMark(resolved.get('mark_meihuo')!))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.addMark(resolved.get('mark_meihuo')!))),
       }),
     ),
     effect_skill_add_mark_shazhilingyu_or_shabaoLingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shazhilingyu_or_shabaoLingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -452,10 +453,10 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_mark_zhanzhilingyu_or_zhandoulingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhanzhilingyu_or_zhandoulingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
@@ -471,13 +472,13 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_add_multihit_1_consume_shazhidanke: compileEffect(
       defineEffect({
         id: 'effect_skill_add_multihit_1_consume_shazhidanke',
-        on: 'BeforeMultiHit',
+        triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.skillUse.apply(ops.addMultihitResult(1)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').apply(ops.consumeStacks(1)),
         ),
@@ -486,14 +487,14 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_huanxiang_add_mark_opponent_dongshang: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_huanxiang_add_mark_opponent_dongshang',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
           targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice'),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
         ),
@@ -502,13 +503,13 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_huanxiang_multihit_2: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_huanxiang_multihit_2',
-        on: 'BeforeMultiHit',
+        triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.skillUse.apply(ops.addMultihitResult(1)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
         ),
@@ -517,13 +518,13 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_huanxiang_multihit_4_to_5: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_huanxiang_multihit_4_to_5',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.skillUse.apply(ops.setMultihit(selectFrom([4, 5]).all())),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
         ),
@@ -532,7 +533,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_maidijinzhen_add_jinzhenfenmo: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_maidijinzhen_add_jinzhenfenmo',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -540,7 +541,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maidijinzhen')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maidijinzhen').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_jinzhenfenmo')!)),
         ),
@@ -549,7 +550,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_maimaijinzhen_add_liuxie_50: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_maimaijinzhen_add_liuxie_50',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -557,7 +558,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maimaijinzhen').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
         ),
@@ -566,7 +567,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_maimaijinzhen_add_maidijinzhen: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_maimaijinzhen_add_maidijinzhen',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -574,7 +575,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maimaijinzhen').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_maidijinzhen')!)),
         ),
@@ -583,7 +584,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_maimaijinzhen_heal_self_50: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_maimaijinzhen_heal_self_50',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -591,7 +592,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maimaijinzhen').apply(ops.consumeStacks(1)),
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_50_per_turn')!, { duration: 5 })),
         ),
@@ -600,7 +601,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_opponent_yinbo_add_yinbopingzhang: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_opponent_yinbo_add_yinbopingzhang',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -608,7 +609,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(resolved.get('mark_yinbopingzhang')!, {
               stack: targets.opponentMarks
@@ -624,7 +625,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_consume_opponent_yinbo_add_zaoyin: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_opponent_yinbo_add_zaoyin',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -632,7 +633,7 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_zaoyin')!, {
               stack: targets.opponentMarks
@@ -648,13 +649,13 @@ export function createGeneratedCompoundActions(marks: ReadonlyMap<string, BaseMa
     effect_skill_priority_plus_1_consume_shazhidanke: compileEffect(
       defineEffect({
         id: 'effect_skill_priority_plus_1_consume_shazhidanke',
-        on: 'BeforeSort',
+        triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.skillUse.property('priority').apply(ops.add(1)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').apply(ops.consumeStacks(1)),
         ),

@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   compileEffect,
   defineEffect,
   numberParam,
@@ -16,19 +17,19 @@ export function createGeneratedSkillPowerEffects() {
     effect_ability_add_power_50_percent_normal: compileEffect(
       defineEffect({
         id: 'effect_ability_add_power_50_percent_normal',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Normal'),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.5)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.5)),
       }),
     ),
     effect_ability_amplify_power_consume_ruodian: compileEffect(
       defineEffect({
         id: 'effect_ability_amplify_power_consume_ruodian',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
@@ -46,26 +47,26 @@ export function createGeneratedSkillPowerEffects() {
             events.some(event => event.skill.tags.includes('consume_ruodian')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.25)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.25)),
       }),
     ),
     effect_ability_damage_amplify_10_percent_weight_100kg: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_10_percent_weight_100kg',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.ownerUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.weight).first())
           const right = 100
           return left !== undefined && right !== undefined && left >= right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.1)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.1)),
       }),
     ),
     effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70: compileEffect(
       defineEffect({
         id: 'effect_ability_fennu_power_boost_10_percent_when_rage_between_50_and_70',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
@@ -80,13 +81,13 @@ export function createGeneratedSkillPowerEffects() {
             return left !== undefined && right !== undefined && left < right
           },
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.1)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.1)),
       }),
     ),
     effect_ability_fennu_power_boost_15_percent_when_rage_gt_70: compileEffect(
       defineEffect({
         id: 'effect_ability_fennu_power_boost_15_percent_when_rage_gt_70',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
@@ -101,26 +102,26 @@ export function createGeneratedSkillPowerEffects() {
             return left !== undefined && right !== undefined && left < right
           },
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.15)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.15)),
       }),
     ),
     effect_ability_fennu_power_boost_25_percent_when_full_rage: compileEffect(
       defineEffect({
         id: 'effect_ability_fennu_power_boost_25_percent_when_full_rage',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.ownerUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
           const right = ctx.read(targets.selfPlayer.select(player => player.maxRage).first())
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.25)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.25)),
       }),
     ),
     effect_ability_fire_power_boost_below_25_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_fire_power_boost_below_25_percent',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
@@ -136,13 +137,13 @@ export function createGeneratedSkillPowerEffects() {
           },
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Fire'),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.25)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.25)),
       }),
     ),
     effect_ability_water_power_boost_below_25_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_water_power_boost_below_25_percent',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
@@ -158,130 +159,130 @@ export function createGeneratedSkillPowerEffects() {
           },
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Water'),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.25)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.25)),
       }),
     ),
     effect_global_power_35_percent_bug: compileEffect(
       defineEffect({
         id: 'effect_global_power_35_percent_bug',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.any(
           contexts.skillUse.condition((_ctx, events) =>
             events.some(event => (['Bug'] as string[]).includes(event.element)),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
     effect_global_power_35_percent_electric: compileEffect(
       defineEffect({
         id: 'effect_global_power_35_percent_electric',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.any(
           contexts.skillUse.condition((_ctx, events) =>
             events.some(event => (['Electric'] as string[]).includes(event.element)),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
     effect_global_power_35_percent_fighting_dragon_ancient: compileEffect(
       defineEffect({
         id: 'effect_global_power_35_percent_fighting_dragon_ancient',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.any(
           contexts.skillUse.condition((_ctx, events) =>
             events.some(event => (['Fighting', 'Dragon', 'Ancient'] as string[]).includes(event.element)),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
     effect_global_power_35_percent_fire: compileEffect(
       defineEffect({
         id: 'effect_global_power_35_percent_fire',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.any(contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Fire')),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
     effect_global_power_35_percent_grass_light: compileEffect(
       defineEffect({
         id: 'effect_global_power_35_percent_grass_light',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.any(
           contexts.skillUse.condition((_ctx, events) =>
             events.some(event => (['Grass', 'Light'] as string[]).includes(event.element)),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
     effect_global_power_35_percent_shadow_trait: compileEffect(
       defineEffect({
         id: 'effect_global_power_35_percent_shadow_trait',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.any(
           contexts.skillUse.condition((_ctx, events) =>
             events.some(event => (['Shadow', 'Trait'] as string[]).includes(event.element)),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
     effect_global_power_35_percent_water: compileEffect(
       defineEffect({
         id: 'effect_global_power_35_percent_water',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.any(contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Water')),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.35)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.35)),
       }),
     ),
     effect_mark_add_power_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_add_power_stack',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(ops.addPower(targets.sourceMark.select(mark => mark.stack).all())),
+        apply: contexts.skillUse.apply(ops.addPower(targets.sourceMark.select(mark => mark.stack).all())),
       }),
     ),
     effect_mark_amplify_fire_skill_70: compileEffect(
       defineEffect({
         id: 'effect_mark_amplify_fire_skill_70',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Fire'),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.7)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.7)),
       }),
     ),
     effect_mark_amplify_next_damage_skill_power: compileEffect(
       defineEffect({
         id: 'effect_mark_amplify_next_damage_skill_power',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         consumesStacks: 1,
         when: conditions.all(
           conditions.ownerUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_mark_amplify_non_yanggong: compileEffect(
       defineEffect({
         id: 'effect_mark_amplify_non_yanggong',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         consumesStacks: 1,
         when: conditions.all(
@@ -289,37 +290,37 @@ export function createGeneratedSkillPowerEffects() {
           contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
           contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId !== 'skill_yanggong'),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(50)),
+        apply: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
     effect_mark_amplify_skill_10: compileEffect(
       defineEffect({
         id: 'effect_mark_amplify_skill_10',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.ownerUsesSkill),
-        execute: contexts.skillUse.apply(ops.amplifyPower(1.1)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(1.1)),
       }),
     ),
     effect_mark_reduce_power_special: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_power_special',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(0.5)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(0.5)),
       }),
     ),
     effect_skill_add_power_10_per_opponent_manxingduyao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_10_per_opponent_manxingduyao',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: () => true,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
               .where(mark => mark.baseId === 'mark_manxingduyao')
@@ -333,10 +334,10 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_15_each_huohuanzhixin: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_15_each_huohuanzhixin',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
               .where(mark => mark.baseId === 'mark_huohuanzhixin')
@@ -350,13 +351,13 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_15_per_spd_level: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_15_per_spd_level',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_spd_up').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
               .where(mark => mark.baseId === 'stat_stage_spd_up')
@@ -372,11 +373,11 @@ export function createGeneratedSkillPowerEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_power_20_per_pofang_turn',
-          on: 'AfterUseSkillCheck',
+          triggers: [EffectTrigger.AfterUseSkillCheck],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: contexts.skillUse.apply(
+          apply: contexts.skillUse.apply(
             ops.addPower(
               values.combine(
                 targets.opponentMarks
@@ -394,22 +395,22 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_25_if_has_field: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_25_if_has_field',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.tags.includes('area')).condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(25)),
+        apply: contexts.skillUse.apply(ops.addPower(25)),
       }),
     ),
     effect_skill_add_power_25_zhongzinengliang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_25_zhongzinengliang',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
               .where(mark => mark.baseId === 'mark_zhongzinengliang')
@@ -423,49 +424,49 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_30_has_mark_yinghua: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_30_has_mark_yinghua',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_yinghua').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(30)),
+        apply: contexts.skillUse.apply(ops.addPower(30)),
       }),
     ),
     effect_skill_add_power_30_if_female: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_30_if_female',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(30)),
+        apply: contexts.skillUse.apply(ops.addPower(30)),
       }),
     ),
     effect_skill_add_power_30_if_male: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_30_if_male',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(30)),
+        apply: contexts.skillUse.apply(ops.addPower(30)),
       }),
     ),
     effect_skill_add_power_30_per_shunliu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_30_per_shunliu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
               .where(mark => mark.baseId === 'mark_shunliu')
@@ -479,13 +480,13 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_30_per_stack_if_has_shunliu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_30_per_stack_if_has_shunliu',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
               .where(mark => mark.baseId === 'mark_shunliu')
@@ -499,10 +500,10 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_30_per_usetime: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_30_per_usetime',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerPet
               .select(pet => pet.lastSkillUsedTimes)
@@ -517,38 +518,38 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_35_if_opponent_spa_gt_atk: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_35_if_opponent_spa_gt_atk',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.opponentActive.select(pet => pet.stat.spa).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.stat.atk).first())
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(ops.addPower(35)),
+        apply: contexts.skillUse.apply(ops.addPower(35)),
       }),
     ),
     effect_skill_add_power_40_if_first: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_if_first',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: contexts.skillUse.apply(ops.addPower(40)),
+        apply: contexts.skillUse.apply(ops.addPower(40)),
       }),
     ),
     effect_skill_add_power_40_if_last: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_if_last',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
-        execute: contexts.skillUse.apply(ops.addPower(40)),
+        apply: contexts.skillUse.apply(ops.addPower(40)),
       }),
     ),
     effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -556,13 +557,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_jingshencuoluan')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(40)),
+        apply: contexts.skillUse.apply(ops.addPower(40)),
       }),
     ),
     effect_skill_add_power_40_opponent_per_atk_level: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_opponent_per_atk_level',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -570,7 +571,7 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_atk_up')),
           ),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
               .where(mark => mark.baseId === 'stat_stage_atk_up')
@@ -584,7 +585,7 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_40_opponent_per_def_level: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_opponent_per_def_level',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -592,7 +593,7 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_def_up')),
           ),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
               .where(mark => mark.baseId === 'stat_stage_def_up')
@@ -606,7 +607,7 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_40_opponent_per_spa_level: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_opponent_per_spa_level',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -614,7 +615,7 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spa_up')),
           ),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
               .where(mark => mark.baseId === 'stat_stage_spa_up')
@@ -628,7 +629,7 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_40_opponent_per_spd_level: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_opponent_per_spd_level',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -636,7 +637,7 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spd_up')),
           ),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
               .where(mark => mark.baseId === 'stat_stage_spd_up')
@@ -650,7 +651,7 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_40_opponent_per_spe_level: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_40_opponent_per_spe_level',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -658,7 +659,7 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spe_up')),
           ),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
               .where(mark => mark.baseId === 'stat_stage_spe_up')
@@ -672,40 +673,40 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_50_consecutive_2_times: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_50_consecutive_2_times',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: contexts.skillUse.apply(ops.addPower(50)),
+        apply: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
     effect_skill_add_power_50_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_50_if_aideminyi',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(50)),
+        apply: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
     effect_skill_add_power_50_if_has_xukongganying: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_50_if_has_xukongganying',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(50)),
+        apply: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
     effect_skill_add_power_50_if_opponent_renzhezhixin: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_50_if_opponent_renzhezhixin',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -713,13 +714,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_renzhezhixin')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(50)),
+        apply: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
     effect_skill_add_power_50_if_opponent_wuzhezhixin: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_50_if_opponent_wuzhezhixin',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -727,16 +728,16 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_wuzhezhixin')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(50)),
+        apply: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
     effect_skill_add_power_50_ruodian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_50_ruodian',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
               .where(mark => mark.baseId === 'mark_ruodianjihao')
@@ -750,14 +751,14 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_add_power_by_self_max_hp_minus_500: compileEffect(
       defineEffect({
         id: 'effect_skill_add_power_by_self_max_hp_minus_500',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           const right = 500
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerPet
               .select(pet => pet.stat.maxHp)
@@ -771,13 +772,13 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_consume_xinzhiyinji_power_2x: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_xinzhiyinji_power_2x',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             contexts.skillUse
               .select(event => event.power)
@@ -790,10 +791,10 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_100_if_bingzhilingyu_200_if_bingshuanglingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             values.choose(
               targets.ownerMarks.where(mark => mark.baseId === 'mark_bingshuanglingyu').condition(checks.exists()),
@@ -811,10 +812,10 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_100_if_dianzhilingyu_200_if_diancilingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             values.choose(
               targets.ownerMarks.where(mark => mark.baseId === 'mark_diancilingyu').condition(checks.exists()),
@@ -832,10 +833,10 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_100_if_fengzhilingyu_200_if_fengbaolingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             values.choose(
               targets.ownerMarks.where(mark => mark.baseId === 'mark_fengbaolingyu').condition(checks.exists()),
@@ -853,7 +854,7 @@ export function createGeneratedSkillPowerEffects() {
     effect_skill_power_2x_below_quarter_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_below_quarter_hp',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -865,13 +866,13 @@ export function createGeneratedSkillPowerEffects() {
           )
           return left !== undefined && right !== undefined && left <= right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_anzhilingyu_or_anyinglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_anzhilingyu_or_anyinglingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -880,47 +881,47 @@ export function createGeneratedSkillPowerEffects() {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_anyinglingyu').condition(checks.exists()),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_first: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_first',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 1,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_first_round: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_first_round',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 1,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.battle.select(battle => battle.currentTurn).first())
           const right = 1
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_first_switch_in_zuijiazhuogong: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_first_switch_in_zuijiazhuogong',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 1,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_first_turn_after_switch').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_guangzhilingyu_or_guanghuilingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_guangzhilingyu_or_guanghuilingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -929,13 +930,13 @@ export function createGeneratedSkillPowerEffects() {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_guanghuilingyu').condition(checks.exists()),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_mark_chongzhilingyu_or_chongqunLingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_mark_chongzhilingyu_or_chongqunLingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -944,13 +945,13 @@ export function createGeneratedSkillPowerEffects() {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_chongqunlingyu').condition(checks.exists()),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_mark_feizhilingyu_or_feikonglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_mark_feizhilingyu_or_feikonglingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -959,37 +960,37 @@ export function createGeneratedSkillPowerEffects() {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_feikonglingyu').condition(checks.exists()),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_mark_penti: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_mark_penti',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_penti').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_mark_qianglipenti: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_mark_qianglipenti',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_qianglipenti').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_mark_shazhilingyu_or_shabaoLingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_mark_shazhilingyu_or_shabaoLingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -998,13 +999,13 @@ export function createGeneratedSkillPowerEffects() {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_shabaoLingyu').condition(checks.exists()),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_mark_zhanzhilingyu_or_zhandouLingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_mark_zhanzhilingyu_or_zhandouLingyu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1013,100 +1014,100 @@ export function createGeneratedSkillPowerEffects() {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_zhandoulingyu').condition(checks.exists()),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_shuiliangbaohe: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_shuiliangbaohe',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_shuiliangchongzu: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_shuiliangchongzu',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_xukongganying: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_xukongganying',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_has_zhaocai: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_has_zhaocai',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_height_above_100: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_height_above_100',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
           const right = 100
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_height_gt_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_height_gt_opponent',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_height_lt_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_height_lt_opponent',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_hp_above_half: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_hp_above_half',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -1118,13 +1119,13 @@ export function createGeneratedSkillPowerEffects() {
           )
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_hp_below_half: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_hp_below_half',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -1136,22 +1137,22 @@ export function createGeneratedSkillPowerEffects() {
           )
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_last: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_last',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_oppoent_has_yinzhiwang: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_oppoent_has_yinzhiwang',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1159,13 +1160,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinzhiwang')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_has_mark_haipa: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_has_mark_haipa',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1173,13 +1174,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_haipa')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_has_mark_hunmi: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_has_mark_hunmi',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1187,13 +1188,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_hunmi')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1204,13 +1205,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_haipa')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_has_mark_mabi: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_has_mark_mabi',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1218,25 +1219,25 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_has_shield: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_has_shield',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentMarks.where(mark => mark.tags.includes('shield')).condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_hunluan: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_hunluan',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1244,13 +1245,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_hunluan')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_is_bingdong: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_is_bingdong',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1258,13 +1259,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_bingdong')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_mabi: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_mabi',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1272,13 +1273,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_shuimian: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_shuimian',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1286,13 +1287,13 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shuimian')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_shuimian_or_mabi: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_shuimian_or_mabi',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1300,13 +1301,13 @@ export function createGeneratedSkillPowerEffects() {
             .where(mark => (['mark_shuimian', 'mark_mabi'] as string[]).includes(mark.baseId))
             .condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_opponent_zhixi: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_opponent_zhixi',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1314,26 +1315,26 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhixi')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_if_self_full_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_if_self_full_hp',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
           const right = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_opponent_below_quarter_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_opponent_below_quarter_hp',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
@@ -1345,32 +1346,32 @@ export function createGeneratedSkillPowerEffects() {
           )
           return left !== undefined && right !== undefined && left <= right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_opponent_maxhp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_opponent_maxhp',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.opponentActive.select(pet => pet.stat.maxHp).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_2x_opponent_shaoshang: compileEffect(
       defineEffect({
         id: 'effect_skill_power_2x_opponent_shaoshang',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentMarks.where(mark => mark.baseId === 'mark_shaoshang').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power_4x_10_percent: (() => {
@@ -1380,21 +1381,21 @@ export function createGeneratedSkillPowerEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_power_4x_10_percent',
-          on: 'AfterUseSkillCheck',
+          triggers: [EffectTrigger.AfterUseSkillCheck],
           priority: 0,
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
           ),
-          execute: contexts.skillUse.apply(ops.amplifyPower(4)),
+          apply: contexts.skillUse.apply(ops.amplifyPower(4)),
         }),
       )
     })(),
     effect_skill_power_4x_below_1_6_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_4x_below_1_6_hp',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -1406,37 +1407,37 @@ export function createGeneratedSkillPowerEffects() {
           )
           return left !== undefined && right !== undefined && left <= right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(4)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(4)),
       }),
     ),
     effect_skill_power_4x_if_has_mark_chaojipenti: compileEffect(
       defineEffect({
         id: 'effect_skill_power_4x_if_has_mark_chaojipenti',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_chaojipenti').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(4)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(4)),
       }),
     ),
     effect_skill_power_4x_if_has_mark_qianglipenti: compileEffect(
       defineEffect({
         id: 'effect_skill_power_4x_if_has_mark_qianglipenti',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_qianglipenti').condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(4)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(4)),
       }),
     ),
     effect_skill_power_4x_opponent_below_quarter_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power_4x_opponent_below_quarter_hp',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
@@ -1448,13 +1449,13 @@ export function createGeneratedSkillPowerEffects() {
           )
           return left !== undefined && right !== undefined && left <= right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(4)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(4)),
       }),
     ),
     effect_skill_power_plus_50_if_opponent_has_kongjuzhinian: compileEffect(
       defineEffect({
         id: 'effect_skill_power_plus_50_if_opponent_has_kongjuzhinian',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1462,51 +1463,51 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kongjuzhinian')),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.addPower(50)),
+        apply: contexts.skillUse.apply(ops.addPower(50)),
       }),
     ),
     effect_skill_power2x_if_heavier: compileEffect(
       defineEffect({
         id: 'effect_skill_power2x_if_heavier',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.weight).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.weight).first())
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power2x_if_higher_level: compileEffect(
       defineEffect({
         id: 'effect_skill_power2x_if_higher_level',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.level).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.level).first())
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power2x_if_opponent_has_exceptional: compileEffect(
       defineEffect({
         id: 'effect_skill_power2x_if_opponent_has_exceptional',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentMarks.where(mark => mark.tags.includes('exceptional')).condition(checks.exists()),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power2x_if_opponent_has_tongjiling_and_below_half_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_power2x_if_opponent_has_tongjiling_and_below_half_hp',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1524,26 +1525,26 @@ export function createGeneratedSkillPowerEffects() {
             return left !== undefined && right !== undefined && left < right
           },
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power2x_if_weight_above_99: compileEffect(
       defineEffect({
         id: 'effect_skill_power2x_if_weight_above_99',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.weight).first())
           const right = 99
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_power2x_vs_wind_psychic_fighting_trait: compileEffect(
       defineEffect({
         id: 'effect_skill_power2x_vs_wind_psychic_fighting_trait',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1551,17 +1552,17 @@ export function createGeneratedSkillPowerEffects() {
             pets.some(pet => (['Wind', 'Psychic', 'Fighting', 'Trait'] as string[]).includes(pet.element)),
           ),
         ),
-        execute: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       }),
     ),
     effect_skill_reduce_power_on_consecutive_hits_10_max_20: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_power_on_consecutive_hits_10_max_20',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         tags: ['xingzhili'],
         when: conditions.all(conditions.selfUsesSkill),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerPet
               .select(pet => pet.lastSkillUsedTimes)

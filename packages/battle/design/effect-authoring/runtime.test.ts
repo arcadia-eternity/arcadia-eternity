@@ -88,6 +88,44 @@ function hook(id: string, trigger: EffectTrigger, apply: (ctx: EffectContext<Eff
       (ctx.parent instanceof EffectContext && !ctx.parent.effect?.triggers.includes(EffectTrigger.BeforeEffect)),
   )
 }
+it('dispatches authored trigger arrays with the matching parent and leaves native contexts intact', () => {
+  const f = fixture()
+  const triggers = [EffectTrigger.OnHit, EffectTrigger.OnDamage] as const
+  const calls: unknown[] = []
+  const definition = defineEffect({
+    id: 'fixture/authored-context',
+    triggers,
+    when(ctx) {
+      calls.push(['when', ctx.trigger, ctx.parent])
+      return true
+    },
+    apply(ctx) {
+      calls.push(['apply', ctx.trigger, ctx.parent])
+      expect(ctx.read(targets.ownerPet.first())).toBe(f.owner)
+      if (ctx.trigger === EffectTrigger.OnDamage) ctx.ops.modifyDamage(ctx.parent, { delta: 5, percent: 0 })
+      else expect(ctx.parent.skill).toBe(f.skill)
+    },
+  })
+  const effect = compileEffect(definition)
+  const damage = new DamageContext(f.use, f.owner, f.b.activePet, 100)
+  for (const [trigger, parent] of [
+    [EffectTrigger.OnHit, f.use],
+    [EffectTrigger.OnDamage, damage],
+  ] as const) {
+    const context = new EffectContext(parent, trigger, f.skill, effect)
+    expect(effect.condition!(context)).toBe(true)
+    effect.innerApply(context)
+    expect(context).not.toHaveProperty('read')
+    expect(context).not.toHaveProperty('ops')
+  }
+  expect(calls).toEqual([
+    ['when', EffectTrigger.OnHit, f.use],
+    ['apply', EffectTrigger.OnHit, f.use],
+    ['when', EffectTrigger.OnDamage, damage],
+    ['apply', EffectTrigger.OnDamage, damage],
+  ])
+  expect(damage.modified).toEqual([0, 5])
+})
 it('runs fantasy consumption and re-queries owner after the removal hook', () => {
   const f = fixture()
   const next = f.a.team[1]
@@ -131,8 +169,8 @@ it('reads HP again in execution after admission and preserves lazy branches', ()
   const effect = compileEffect(
     defineEffect({
       id: 'lazy',
-      on: 'BeforeHit',
-      execute: ctx => {
+      triggers: [EffectTrigger.BeforeHit],
+      apply: ctx => {
         result = ctx.read(chosen)
       },
     }),
@@ -165,8 +203,8 @@ function penalty(plan: BindingValue<number, Presence>, id = 'penalty') {
   return compileEffect(
     defineEffect({
       id,
-      on: 'OnMarkCreated',
-      execute: targets.ownerPet.apply(
+      triggers: [EffectTrigger.OnMarkCreated],
+      apply: targets.ownerPet.apply(
         ops.bindAttribute({
           key: 'speed',
           attribute: 'spe',
@@ -274,8 +312,8 @@ it('reads a numeric operand once for all targets in one operation', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'consume-two',
-      on: 'BeforeHit',
-      execute: targets.ownerMarks.where(mark => mark.baseId.startsWith('counter/')).apply(ops.consumeStacks(amount)),
+      triggers: [EffectTrigger.BeforeHit],
+      apply: targets.ownerMarks.where(mark => mark.baseId.startsWith('counter/')).apply(ops.consumeStacks(amount)),
     }),
   )
   f.skill.effects.splice(0, f.skill.effects.length, effect)
@@ -376,8 +414,8 @@ it('re-queries the nearest damage context between actions and reads percent then
   const effect = compileEffect(
     defineEffect({
       id: 'nested-damage',
-      on: 'BeforeEffect',
-      execute: actions.sequence(
+      triggers: [EffectTrigger.BeforeEffect],
+      apply: actions.sequence(
         apply,
         () => {
           Reflect.set(nested, 'parent', second)
@@ -409,8 +447,8 @@ it('skips missing damage inputs and rejects foreign contexts before writing', ()
   const effect = compileEffect(
     defineEffect({
       id: 'missing-damage',
-      on: 'OnDamage',
-      execute: contexts.damage.apply(ops.modifyDamage({ percent: missing, delta })),
+      triggers: [EffectTrigger.OnDamage],
+      apply: contexts.damage.apply(ops.modifyDamage({ percent: missing, delta })),
     }),
   )
   f.battle.executionBudget.run(f.battle.currentTurn, () =>
@@ -422,8 +460,8 @@ it('skips missing damage inputs and rejects foreign contexts before writing', ()
   const cross = compileEffect(
     defineEffect({
       id: 'foreign-damage',
-      on: 'OnDamage',
-      execute: contexts.damage.select(() => foreign).apply(ops.modifyDamage({ percent: 10, delta: 5 })),
+      triggers: [EffectTrigger.OnDamage],
+      apply: contexts.damage.select(() => foreign).apply(ops.modifyDamage({ percent: 10, delta: 5 })),
     }),
   )
   expect(() =>
@@ -447,9 +485,9 @@ it('composes condition predicates in order with short-circuiting', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'condition-order',
-      on: 'BeforeHit',
+      triggers: [EffectTrigger.BeforeHit],
       when: conditions.all(yes, conditions.not(no), conditions.any(yes, no), no, yes),
-      execute: () => {
+      apply: () => {
         throw new Error('must not execute')
       },
     }),
@@ -467,9 +505,9 @@ it('reads declared parameters from the current source scope on each action', () 
   const effect = compileEffect(
     defineEffect({
       id: 'test/parameters',
-      on: 'BeforeHit',
+      triggers: [EffectTrigger.BeforeHit],
       parameters: { amount, enabled },
-      execute(ctx, p) {
+      apply(ctx, p) {
         observed.push([ctx.read(p.amount), ctx.read(p.enabled)])
       },
     }),
@@ -515,9 +553,9 @@ it('rejects missing installation, undeclared references and ambiguous parameter 
   const amount = numberParam({ default: 5 })
   const definition = defineEffect({
     id: 'test/missing-parameter',
-    on: 'BeforeHit',
+    triggers: [EffectTrigger.BeforeHit],
     parameters: { amount },
-    execute(ctx) {
+    apply(ctx) {
       ctx.read(amount)
     },
   })
@@ -529,8 +567,8 @@ it('rejects missing installation, undeclared references and ambiguous parameter 
   const undeclared = compileEffect(
     defineEffect({
       id: 'test/undeclared',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         ctx.read(amount)
       },
     }),
@@ -540,7 +578,12 @@ it('rejects missing installation, undeclared references and ambiguous parameter 
   )
   expect(() =>
     compileEffect(
-      defineEffect({ id: definition.id, on: 'BeforeHit', parameters: { first: amount, second: amount }, execute() {} }),
+      defineEffect({
+        id: definition.id,
+        triggers: [EffectTrigger.BeforeHit],
+        parameters: { first: amount, second: amount },
+        apply() {},
+      }),
     ),
   ).toThrow('multiple names')
 })
@@ -557,9 +600,9 @@ it('owns parameter metadata and isolates a shared declaration between effects an
     compileEffect(
       defineEffect({
         id,
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         parameters: { amount },
-        execute(ctx) {
+        apply(ctx) {
           observed.push(ctx.read(amount))
         },
       }),
@@ -611,8 +654,8 @@ it('combines values left-to-right once and reads the right input even when the l
   const effect = compileEffect(
     defineEffect({
       id: 'test/combine',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         results.push(ctx.read(combined))
       },
     }),
@@ -631,10 +674,10 @@ it('uses engine-owned consumption before action reads and still executes after t
   const effect = compileEffect(
     defineEffect({
       id: 'test/auto-consume',
-      on: 'OnBeforeCalculateDamage',
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
       consumesStacks: 1,
       tags,
-      execute(ctx) {
+      apply(ctx) {
         observed.push(ctx.read(targets.sourceMark.select(m => m.stack).first())!)
         contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 }))(ctx)
       },
@@ -680,8 +723,8 @@ it('queries nested heal contexts per action and reads both modifier inputs even 
   const effect = compileEffect(
     defineEffect({
       id: 'test/heal-query',
-      on: 'BeforeEffect',
-      execute: contexts.heal.apply(ops.modifyHeal({ percent, delta })),
+      triggers: [EffectTrigger.BeforeEffect],
+      apply: contexts.heal.apply(ops.modifyHeal({ percent, delta })),
     }),
   )
   const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
@@ -698,8 +741,8 @@ it('probability conditions use one ordered battle draw, including certain outcom
   const effect = compileEffect(
     defineEffect({
       id: 'test/probability',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         observed.push(conditions.chance(0)(ctx), conditions.chance(100)(ctx))
         observed.push(conditions.all(() => false, conditions.chance(50))(ctx))
         observed.push(conditions.any(() => true, conditions.chance(50))(ctx))
@@ -738,8 +781,8 @@ it('rechecks damage and healing ownership after value callbacks mutate the selec
   const effect = compileEffect(
     defineEffect({
       id: 'test/mutated-contexts',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         expect(() => ops.modifyDamage({ percent: damagePercent, delta: 0 })(ctx, damageTargets)).toThrow(
           'Cross-battle damage context',
         )
@@ -774,8 +817,8 @@ it('power operations read complete lists again for each target and preserve frac
   const effect = compileEffect(
     defineEffect({
       id: 'test/power-values',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         ops.addPower(amounts)(ctx, [f.use, other])
         ops.amplifyPower(1.25)(ctx, [f.use, other])
       },
@@ -793,8 +836,8 @@ it('skill context queries resolve ancestry afresh while owner admission stays di
   const effect = compileEffect(
     defineEffect({
       id: 'test/skill-context',
-      on: 'BeforeEffect',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeEffect],
+      apply(ctx) {
         results.push(conditions.ownerUsesSkill(ctx), conditions.selfUsesSkill(ctx))
         contexts.skillUse.apply(ops.addPower(4))(ctx)
       },
@@ -820,8 +863,8 @@ it('opponent mark queries follow the direct skill target and requery after targe
   const effect = compileEffect(
     defineEffect({
       id: 'test/opponent-mark-target',
-      on: ['BeforeHit', 'BeforeEffect'],
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit, EffectTrigger.BeforeEffect],
+      apply(ctx) {
         results.push(ctx.read(amounts))
         f.use.actualTarget = f.b.team[1]
         marks[2].stack = 5
@@ -847,8 +890,8 @@ it('skill-order searches ancestry while periodic conditions retain direct event 
   const effect = compileEffect(
     defineEffect({
       id: 'test/skill-admission',
-      on: ['BeforeHit', 'BeforeEffect'],
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit, EffectTrigger.BeforeEffect],
+      apply(ctx) {
         answers.push([conditions.firstSkillThisTurn(ctx), conditions.lastSkillThisTurn(ctx), everySecond(ctx)])
       },
     }),
@@ -887,8 +930,8 @@ it('player queries use the direct skill actor, requery ownership, then fall back
   const effect = compileEffect(
     defineEffect({
       id: 'test/player-and-battle-queries',
-      on: ['BeforeHit', 'BeforeEffect'],
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit, EffectTrigger.BeforeEffect],
+      apply(ctx) {
         seen.push(ctx.read(players)?.id, ctx.read(rounds))
         f.owner.owner = f.b
         f.battle.currentTurn = 7
@@ -939,8 +982,8 @@ it('conditional power lists distinguish no branch from zero and read only the se
   const effect = compileEffect(
     defineEffect({
       id: 'test/conditional-power-lists',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         const apply = contexts.skillUse.apply(ops.addPower(selected))
         apply(ctx)
         high = false
@@ -970,9 +1013,9 @@ it('parameterized probability rereads at admission and keeps one draw for zero a
   const effect = compileEffect(
     defineEffect({
       id: 'test/parameter-probability',
-      on: 'BeforeHit',
+      triggers: [EffectTrigger.BeforeHit],
       parameters: { percent },
-      execute(ctx) {
+      apply(ctx) {
         const chance = conditions.chance(percent)
         outcomes.push(chance(ctx))
         f.battle.configSystem.set(parameterAddress('test/parameter-probability', 'parameters', 'percent'), 100)
@@ -1020,8 +1063,8 @@ it('mark application reads ordered inputs once per action and shares them across
   const effect = compileEffect(
     defineEffect({
       id: 'test/mark-read-order',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         apply(ctx, [f.owner, f.b.activePet])
         stack = 4
         duration = 5
@@ -1058,8 +1101,8 @@ it('missing marks skip option reads; missing options use base defaults while exp
   const effect = compileEffect(
     defineEffect({
       id: 'test/mark-defaults',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         targets.ownerPet.apply(
           ops.addMark(missingMark, {
             stack: targets.ownerPet
@@ -1097,8 +1140,8 @@ it('mark application rejects foreign targets before writes and rechecks ownershi
   const effect = compileEffect(
     defineEffect({
       id: 'test/mark-ownership',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         expect(() => ops.addMark(base, { stack: value })(ctx, [f.owner, foreign.owner])).toThrow('Cross-battle')
         expect(reads).toBe(0)
         const move = targets.ownerPet
@@ -1144,8 +1187,8 @@ it('later mark actions requery owner and numeric sources after a creation hook m
   const effect = compileEffect(
     defineEffect({
       id: 'test/mark-requery',
-      on: 'BeforeHit',
-      execute: actions.sequence(
+      triggers: [EffectTrigger.BeforeHit],
+      apply: actions.sequence(
         targets.ownerPet.apply(ops.addMark(first, { stack })),
         targets.ownerPet.apply(ops.addMark(second, { stack })),
       ),
@@ -1178,8 +1221,8 @@ it('mark creation hooks cannot move a later selected target into another battle 
   const effect = compileEffect(
     defineEffect({
       id: 'test/mark-hook-ownership',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         try {
           expect(() => ops.addMark(base)(ctx, [f.owner, later])).toThrow('Cross-battle')
         } finally {
@@ -1209,8 +1252,8 @@ it('flatMap requeries membership and preserves ordered snapshots through later o
   const effect = compileEffect(
     defineEffect({
       id: 'test/flatten-field-members',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         results.push(ctx.read(stacks))
         f.battle.marks.splice(0, 1)
         second.stack = 11
@@ -1234,15 +1277,20 @@ it('entry predicates distinguish the direct incoming pet from the current active
   const entry = compileEffect(
     defineEffect({
       id: 'test/direct-entry',
-      on: ['OnSwitchIn', 'BeforeEffect'],
+      triggers: [EffectTrigger.OnSwitchIn, EffectTrigger.BeforeEffect],
       when: conditions.ownerSwitchesIn,
-      execute() {},
+      apply() {},
     }),
   )
   expect(entry.condition!(direct)).toBe(true)
   expect(entry.condition!(nested)).toBe(false)
   const active = compileEffect(
-    defineEffect({ id: 'test/current-active', on: 'OnSwitchIn', when: conditions.ownerIsActive, execute() {} }),
+    defineEffect({
+      id: 'test/current-active',
+      triggers: [EffectTrigger.OnSwitchIn],
+      when: conditions.ownerIsActive,
+      apply() {},
+    }),
   )
   expect(active.condition!(direct)).toBe(false)
   f.a.activePet = incoming
@@ -1257,9 +1305,9 @@ it('target admission uses the direct skill actual target and follows it between 
   const effect = compileEffect(
     defineEffect({
       id: 'test/target-admission',
-      on: ['OnMiss', 'BeforeEffect'],
+      triggers: [EffectTrigger.OnMiss, EffectTrigger.BeforeEffect],
       when: conditions.ownerIsSkillTarget,
-      execute() {},
+      apply() {},
     }),
   )
   const direct = new EffectContext(f.use, EffectTrigger.OnMiss, f.skill)
@@ -1276,7 +1324,12 @@ it('target admission rejects non-pet sources when the actual target is missing',
   const f = fixture()
   const mark = new BaseMark('test/non-pet-target-source' as baseMarkId, []).createInstance()
   const effect = compileEffect(
-    defineEffect({ id: 'test/missing-actual-target', on: 'OnMiss', when: conditions.ownerIsSkillTarget, execute() {} }),
+    defineEffect({
+      id: 'test/missing-actual-target',
+      triggers: [EffectTrigger.OnMiss],
+      when: conditions.ownerIsSkillTarget,
+      apply() {},
+    }),
   )
   f.use.actualTarget = undefined
   for (const owner of [f.battle, null, f.owner]) {
@@ -1297,8 +1350,8 @@ it('random selectors fully shuffle on every use and preserve fixed membership an
   const effect = compileEffect(
     defineEffect({
       id: 'test/random-selector',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         results.push(ctx.read(query.all()))
         results.push(ctx.read(query.where(n => n > 2).first()))
         results.push(ctx.read(selectFrom<number>([]).shuffled().first()))
@@ -1329,8 +1382,8 @@ it('random selectors requery dynamic membership before shuffling', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'test/random-membership',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         results.push(ctx.read(query))
         f.add('test/random-second')
         results.push(ctx.read(query))
@@ -1369,9 +1422,9 @@ it('switch queries requery nearest context while the outgoing predicate requires
   const predicate = compileEffect(
     defineEffect({
       id: 'test/outgoing',
-      on: ['OnSwitchOut', 'BeforeEffect'],
+      triggers: [EffectTrigger.OnSwitchOut, EffectTrigger.BeforeEffect],
       when: conditions.ownerSwitchesOut,
-      execute() {},
+      apply() {},
     }),
   )
   expect(predicate.condition!(direct)).toBe(true)
@@ -1383,8 +1436,8 @@ it('switch queries requery nearest context while the outgoing predicate requires
   const effect = compileEffect(
     defineEffect({
       id: 'test/switch-target-query',
-      on: 'BeforeEffect',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeEffect],
+      apply(ctx) {
         results.push(ctx.read(target)?.id)
         event.switchInPet = f.owner
         results.push(ctx.read(target)?.id)
@@ -1403,8 +1456,8 @@ it('opponent player requery uses the direct target and source fallback in nested
   const effect = compileEffect(
     defineEffect({
       id: 'test/opponent-player-query',
-      on: ['BeforeHit', 'BeforeEffect'],
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit, EffectTrigger.BeforeEffect],
+      apply(ctx) {
         seen.push(ctx.read(query)?.id)
         f.use.actualTarget = f.a.activePet
         seen.push(ctx.read(query)?.id)
@@ -1477,8 +1530,8 @@ it.each([false, true])('conditional checkSelf uses the direct event subject, nes
   const effect = compileEffect(
     defineEffect({
       id: 'test/conditional-event-owner',
-      on: ['PostDamage', 'BeforeEffect'],
-      execute(ctx) {
+      triggers: [EffectTrigger.PostDamage, EffectTrigger.BeforeEffect],
+      apply(ctx) {
         answers.push(ctx.read(values.choose(conditions.sourceOwnsEvent, 10, 20)))
       },
     }),
@@ -1505,8 +1558,8 @@ it('inclusive random values read afresh, include both endpoints and consume one 
   const effect = compileEffect(
     defineEffect({
       id: 'test/random-int',
-      on: 'BeforeHit',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeHit],
+      apply(ctx) {
         for (let i = 0; i < 400; i++) samples.push(ctx.read(query))
         samples.push(ctx.read(values.randomInt(7, 7)))
       },
@@ -1568,8 +1621,8 @@ it('rage modifiers query ancestry afresh and read both inputs in order even when
   const effect = compileEffect(
     defineEffect({
       id: 'test/rage-query',
-      on: 'BeforeEffect',
-      execute: contexts.rage.apply(ops.modifyRage({ percent, delta })),
+      triggers: [EffectTrigger.BeforeEffect],
+      apply: contexts.rage.apply(ops.modifyRage({ percent, delta })),
     }),
   )
   const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
@@ -1593,8 +1646,8 @@ it('rage modifiers reject foreign contexts before reading either amount', () => 
   const effect = compileEffect(
     defineEffect({
       id: 'test/rage-cross-battle',
-      on: 'BeforeHit',
-      execute: selectFrom([foreign]).apply(ops.modifyRage({ percent: amount, delta: amount })),
+      triggers: [EffectTrigger.BeforeHit],
+      apply: selectFrom([foreign]).apply(ops.modifyRage({ percent: amount, delta: amount })),
     }),
   )
   expect(() => f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))).toThrow('Cross-battle rage context')
@@ -1616,8 +1669,8 @@ it('skill instance flags read once per application, can clear, and skip missing 
   const effect = compileEffect(
     defineEffect({
       id: 'test/skill-flags',
-      on: 'BeforeHit',
-      execute: targets.selfSkills.apply(ops.setSkillSureHit(input)),
+      triggers: [EffectTrigger.BeforeHit],
+      apply: targets.selfSkills.apply(ops.setSkillSureHit(input)),
     }),
   )
   const apply = () => f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))
@@ -1649,8 +1702,8 @@ it('skill instance assignments reject foreign targets before reads and recheck a
     compileEffect(
       defineEffect({
         id: 'test/skill-flags-boundary',
-        on: 'BeforeHit',
-        execute: selectFrom([skill]).apply(ops.setSkillSureHit(input)),
+        triggers: [EffectTrigger.BeforeHit],
+        apply: selectFrom([skill]).apply(ops.setSkillSureHit(input)),
       }),
     )
   expect(() => f.battle.executionBudget.run(0, () => make(other.skill).innerApply(f.ctx))).toThrow()

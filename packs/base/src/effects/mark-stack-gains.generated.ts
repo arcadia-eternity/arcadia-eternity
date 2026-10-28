@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   compileEffect,
   defineEffect,
   conditions,
@@ -14,23 +15,23 @@ export function createGeneratedMarkStackGains() {
     effect_mark_add_stack_on_turn_end: compileEffect(
       defineEffect({
         id: 'effect_mark_add_stack_on_turn_end',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(targets.sourceMark.apply(ops.addStacks(1))),
+        apply: actions.sequence(targets.sourceMark.apply(ops.addStacks(1))),
       }),
     ),
     effect_mark_stack_mark_with_damage: compileEffect(
       defineEffect({
         id: 'effect_mark_stack_mark_with_damage',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
           const right = 0
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.sourceMark.apply(
             ops.addStacks(
               contexts.damage

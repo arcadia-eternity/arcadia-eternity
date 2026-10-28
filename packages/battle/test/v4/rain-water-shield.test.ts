@@ -179,8 +179,8 @@ it('samples a scoped assignment once, rejects foreign writes, and validates base
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/scoped-assignment',
-      on: 'BeforeHit',
-      execute: ctx => {
+      triggers: [EffectTrigger.BeforeHit],
+      apply: ctx => {
         expect(() => assign(ctx, [a.activePet, foreign.a.activePet])).toThrow('Cross-battle')
         expect(reads).toBe(0)
         assign(ctx, [a.activePet, b.activePet])

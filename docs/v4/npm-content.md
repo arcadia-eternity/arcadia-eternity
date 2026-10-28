@@ -16,7 +16,7 @@
 
 每次使用的参数地址为 `parameterAddress(effectId, 'parameters', name)`。技能／印记的 `useId` 区分同一代码导出的多次使用；来源实例和对局持有各自的状态。文件移动和 npm 名称变化不改变 `projectId`、namespace、局部 ID 或 useId；修改 namespace 会改变运行 ID。
 
-SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `1`。API 版本表示兼容合同；核心、SDK、内容元数据和依赖图仍参与环境身份，但不再逐文件摘要用户安装的代码。用户自行管理本地改动；相同环境元数据不能证明代码文件未变，恢复和回放仍需用户提供匹配的代码。
+SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表示兼容合同；核心、SDK、内容元数据和依赖图仍参与环境身份，但不再逐文件摘要用户安装的代码。用户自行管理本地改动；相同环境元数据不能证明代码文件未变，恢复和回放仍需用户提供匹配的代码。
 
 随机数使用 `sdk.values.randomInt`、`conditions.chance` 或本局 RNG。生命周期、捕获／跟随、操作和预算合同见[效果编写](effect-authoring.md)。快照范围仍为现有等待点，见[快照](v1-snapshots.md)。
 
@@ -34,7 +34,7 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `1`。API 版本表�
     "namespace": "my-slow",
     "content": "content.json",
     "effects": "dist/effects.js",
-    "sdkApi": 1,
+    "sdkApi": 2,
     "exports": [
       { "id": "apply-slow", "sourceKind": "skill" },
       { "id": "speed-penalty", "sourceKind": "petMark" }

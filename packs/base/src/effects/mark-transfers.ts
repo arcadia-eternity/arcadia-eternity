@@ -1,4 +1,12 @@
-import { actions, compileEffect, conditions, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import {
+  EffectTrigger,
+  actions,
+  compileEffect,
+  conditions,
+  defineEffect,
+  ops,
+  targets,
+} from '@arcadia-eternity/battle/v4/authoring'
 
 import { statusTransferOnHit } from './shared-plans'
 
@@ -8,12 +16,10 @@ export function createMarkTransfers() {
     effect_skill_transfer_debuff_stage_to_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_transfer_debuff_stage_to_opponent',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(
-          ops.transferStatStages(targets.ownerPet.first(), { strategy: 'negative' }),
-        ),
+        apply: targets.opponentActive.apply(ops.transferStatStages(targets.ownerPet.first(), { strategy: 'negative' })),
       }),
     ),
     effect_skill_transfer_status_marks_to_opponent: compileEffect(
@@ -25,10 +31,10 @@ export function createMarkTransfers() {
     effect_mark_transfer_to_opponent_on_hit: compileEffect(
       defineEffect({
         id: 'effect_mark_transfer_to_opponent_on_hit',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.ownerIsSkillTarget,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(ops.transferMarks(targets.sourceMark.all())),
           targets.sourceMark.apply(ops.addStacks(1)),
         ),

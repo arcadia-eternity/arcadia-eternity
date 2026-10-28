@@ -126,8 +126,8 @@ it('validates the whole selected context collection before writing any flag', ()
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/cross-battle-bypass',
-      on: 'BeforeHit',
-      execute: selectFrom([local, foreign]).apply(ops.setIgnoreShield()),
+      triggers: [EffectTrigger.BeforeHit],
+      apply: selectFrom([local, foreign]).apply(ops.setIgnoreShield()),
     }),
   )
   const ctx = new EffectContext(local, EffectTrigger.BeforeHit, f.a.activePet.skills[0])

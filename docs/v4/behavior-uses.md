@@ -81,10 +81,10 @@ const native = defineNativeBehavior({
     const amount = numberParam({ default: params.amount as number })
     return defineEffect({
       id: effectId,
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       parameters: { amount },
       when: conditions.selfUsesSkill,
-      execute: targets.ownerPet.apply(ops.heal(amount)),
+      apply: targets.ownerPet.apply(ops.heal(amount)),
     })
   },
 })

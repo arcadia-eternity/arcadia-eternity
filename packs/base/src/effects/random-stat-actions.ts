@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   actions,
   checks,
   compileEffect,
@@ -27,10 +28,10 @@ export function createRandomStatActions() {
     effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_atk_or_spa_1_stage_if_opponent_nogender_and_self_has_wuxing',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when,
-        execute: randomAction(
+        apply: randomAction(
           targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
           targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
         ),
@@ -39,10 +40,10 @@ export function createRandomStatActions() {
     effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_or_spe_1_stage_if_opponent_nogender_and_self_has_wuxing',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when,
-        execute: randomAction(
+        apply: randomAction(
           targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
           targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
         ),
@@ -51,10 +52,10 @@ export function createRandomStatActions() {
     effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_atk_def_or_spa_spd_1_stage_if_opponent_nogender_and_self_has_wuxing',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when,
-        execute: randomAction(
+        apply: randomAction(
           actions.sequence(
             targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
             targets.opponentActive.apply(ops.changeStatStage('def', -1)),

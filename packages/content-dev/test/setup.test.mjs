@@ -12,7 +12,7 @@ test('setup rejects incomplete or corrupted development archives before installi
     await mkdir(join(root, 'sdk'))
     await mkdir(join(root, '.arcadia'))
     await writeFile(join(root, '.arcadia/sdk-installed.json'), 'previous installation')
-    const pin = { sdkApi: 1, revision: 'a'.repeat(40), pnpmVersion: '11.21.0' }
+    const pin = { sdkApi: 2, revision: 'a'.repeat(40), pnpmVersion: '11.21.0' }
     await writeFile(join(root, 'arcadia-sdk.json'), JSON.stringify(pin))
     const bytes = Buffer.from('not an npm archive')
     const records = []
@@ -27,7 +27,7 @@ test('setup rejects incomplete or corrupted development archives before installi
     const index = {
       format: 'arcadia.author-sdk-local',
       version: 1,
-      sdkApi: 1,
+      sdkApi: 2,
       build: { formatVersion: 1, coreBuildId: 'a'.repeat(64), registryBuildId: 'b'.repeat(64) },
       packages: records,
     }

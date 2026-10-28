@@ -67,8 +67,8 @@ for (const kind of ['direct', 'damage', 'nested-effect', 'missing'] as const)
       const effect = compileEffect(
         defineEffect({
           id: 'fixture/order-query',
-          on: 'BeforeEffect',
-          execute(frame) {
+          triggers: [EffectTrigger.BeforeEffect],
+          apply(frame) {
             answers.push([conditions.firstSkillThisTurn(frame), conditions.lastSkillThisTurn(frame)])
           },
         }),

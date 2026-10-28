@@ -198,8 +198,8 @@ it('rejects a foreign skill before removing any selected transformation', () => 
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/foreign-transform',
-      on: 'TurnEnd',
-      execute: selectFrom([skill, foreign.a.activePet.skills[0]]).apply(ops.removeSkillTransformation()),
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([skill, foreign.a.activePet.skills[0]]).apply(ops.removeSkillTransformation()),
     }),
   )
   const ctx = new EffectContext(new TurnContext(own.battle), EffectTrigger.TurnEnd, skill, effect)
@@ -230,8 +230,8 @@ for (const variant of ['foreign', 'foreign-after-read', 'missing', 'two-targets'
     const effect = compileEffect(
       defineEffect({
         id: 'fixture/transform-read',
-        on: 'TurnEnd',
-        execute: selectFrom([first, second]).apply(ops.transformSkill(prototype)),
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom([first, second]).apply(ops.transformSkill(prototype)),
       }),
     )
     const ctx = new EffectContext(new TurnContext(own.battle), EffectTrigger.TurnEnd, first, effect)

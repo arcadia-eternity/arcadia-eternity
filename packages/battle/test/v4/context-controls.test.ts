@@ -190,8 +190,8 @@ it('reads redirection once for all selected contexts and requeries after a posit
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/control-read',
-      on: 'BeforeHit',
-      execute: selectFrom([f.use, second]).apply(
+      triggers: [EffectTrigger.BeforeHit],
+      apply: selectFrom([f.use, second]).apply(
         ops.setActualTarget(
           targets.opponentActive.first().map(pet => {
             reads++
@@ -223,8 +223,8 @@ it('rejects foreign skill contexts before reads and foreign target pets before w
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/control-context-guard',
-      on: 'BeforeHit',
-      execute: selectFrom([f.use, other.use]).apply(
+      triggers: [EffectTrigger.BeforeHit],
+      apply: selectFrom([f.use, other.use]).apply(
         ops.setActualTarget(
           targets.ownerPet.first().map(pet => {
             reads++
@@ -241,8 +241,8 @@ it('rejects foreign skill contexts before reads and foreign target pets before w
   const foreign = compileEffect(
     defineEffect({
       id: 'fixture/control-target-guard',
-      on: 'BeforeHit',
-      execute: selectFrom([f.use]).apply(ops.setActualTarget(selectFrom([other.pet]).first())),
+      triggers: [EffectTrigger.BeforeHit],
+      apply: selectFrom([f.use]).apply(ops.setActualTarget(selectFrom([other.pet]).first())),
     }),
   )
   expect(() => fire(foreign)).toThrow('Cross-battle or unowned write target')

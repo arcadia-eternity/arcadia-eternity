@@ -39,7 +39,11 @@ for (const variant of ['normal', 'empty', 'duplicate', 'foreign'] as const)
             : [damage]
     const { compileEffect, defineEffect, selectFrom, ops } = effectAuthoring
     const e = compileEffect(
-      defineEffect({ id: 'fixture/prevent', on: 'TurnEnd', execute: selectFrom(selected).apply(ops.preventDamage()) }),
+      defineEffect({
+        id: 'fixture/prevent',
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom(selected).apply(ops.preventDamage()),
+      }),
     )
     const apply = () =>
       battle.executionBudget.run(battle.currentTurn, () => {

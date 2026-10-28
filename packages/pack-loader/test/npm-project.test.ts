@@ -81,20 +81,20 @@ const effectModule = `
 import { penalty } from 'arcadia-test-library'
 process.env.ARCADIA_NPM_TEST_LOADED = 'yes'
 export function createEffects({ sdk, marks, id }) {
-  const { defineCodeEffect, targets, ops, conditions } = sdk
+  const { defineCodeEffect, targets, ops, conditions, EffectTrigger } = sdk
   const slow = marks.get(id('slow'))
   if (!slow) throw new Error('Missing slow mark')
   return [
     defineCodeEffect({ id: id('apply'), sourceKind: 'skill', build: ({ effectId }) => ({
-      id: effectId, on: 'OnHit', when: conditions.selfUsesSkill,
-      execute: targets.opponentActive.apply(ops.addMark(slow)),
+      id: effectId, triggers: [EffectTrigger.OnHit], when: conditions.selfUsesSkill,
+      apply: targets.opponentActive.apply(ops.addMark(slow)),
     }) }),
     defineCodeEffect({ id: id('penalty'), sourceKind: 'petMark', build: ({ effectId }) => {
       const amount = sdk.numberParam({ default: penalty, tags: ['slow:amount'] })
       return {
-      id: effectId, on: 'OnMarkCreated', rebindOnOwnerTransfer: true,
+      id: effectId, triggers: [EffectTrigger.OnMarkCreated], rebindOnOwnerTransfer: true,
       parameters: { amount },
-      execute: targets.ownerPet.apply(ops.bindAttribute({
+      apply: targets.ownerPet.apply(ops.bindAttribute({
         key: 'slow-speed', attribute: 'spe', operation: 'delta',
         value: amount.follow({ key: 'amount' }),
         lifetime: 'sourceMark', missing: 'detach',
@@ -136,7 +136,7 @@ beforeAll(async () => {
         namespace: 'slow',
         content: 'content.json',
         effects: 'effects.js',
-        sdkApi: 1,
+        sdkApi: 2,
         exports: [
           { id: 'apply', sourceKind: 'skill' },
           { id: 'penalty', sourceKind: 'petMark' },
@@ -502,7 +502,7 @@ it('rejects incompatible SDKs, escaping paths, and undeclared code exports with 
   manifest.arcadia.sdkApi = 999
   await writeFile(file, JSON.stringify(manifest))
   await expect(inspectNpmProject(dir)).rejects.toThrow('Effect SDK API')
-  manifest.arcadia.sdkApi = 1
+  manifest.arcadia.sdkApi = 2
   manifest.arcadia.content = '../content.json'
   await writeFile(file, JSON.stringify(manifest))
   await expect(inspectNpmProject(dir)).rejects.toThrow('package-relative')

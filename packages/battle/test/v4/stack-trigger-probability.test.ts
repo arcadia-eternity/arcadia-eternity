@@ -201,8 +201,8 @@ for (const selection of ['capture', 'follow'] as const)
       const effect = compileEffect(
         defineEffect({
           id: 'fixture/parameter-binding-timing',
-          on: 'OnMarkCreated',
-          execute: targets.ownerPet.apply(
+          triggers: [EffectTrigger.OnMarkCreated],
+          apply: targets.ownerPet.apply(
             ops.bindTaggedParameter({ key: 'def-bonus', tag: 'skill_effect_probability', operation: 'delta', value }),
           ),
         }),
@@ -238,9 +238,9 @@ it('rejects a parameter plan that follows its own destination', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/self-dependent',
-      on: 'TurnEnd',
+      triggers: [EffectTrigger.TurnEnd],
       parameters: { amount },
-      execute: targets.ownerPet.apply(
+      apply: targets.ownerPet.apply(
         ops.bindTaggedParameter({
           key: 'cycle',
           tag: 'self-dependent',
@@ -287,8 +287,8 @@ it('detaches a non-finite contribution and recovers when its input becomes valid
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/recovering-parameter',
-      on: 'TurnEnd',
-      execute: targets.ownerPet.apply(
+      triggers: [EffectTrigger.TurnEnd],
+      apply: targets.ownerPet.apply(
         ops.bindTaggedParameter({ key: 'bonus', tag: 'skill_effect_probability', operation: 'delta', value }),
       ),
     }),
@@ -315,8 +315,8 @@ it('rejects a cycle through another bound parameter', () => {
     compileEffect(
       defineEffect({
         id: `fixture/${tag}`,
-        on: 'TurnEnd',
-        execute: targets.ownerPet.apply(
+        triggers: [EffectTrigger.TurnEnd],
+        apply: targets.ownerPet.apply(
           ops.bindTaggedParameter({
             key: 'dependent',
             tag,

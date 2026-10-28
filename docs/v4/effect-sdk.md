@@ -1,6 +1,6 @@
 # Effect SDK：使用现有战斗 API 编写 TypeScript 效果
 
-SDK 公开官方效果使用的领域类、上下文和操作。公共入口是 `@arcadia-eternity/battle/v4/authoring`；npm 包运行时使用宿主传入的 `sdk`，类型从这个入口导入。当前兼容版本为 `arcadia.sdkApi: 1`，类型入口和本地打包物料已提供，公开 npm 发行另行管理。
+SDK 公开官方效果使用的领域类、上下文和操作。公共入口是 `@arcadia-eternity/battle/v4/authoring`；npm 包运行时使用宿主传入的 `sdk`，类型从这个入口导入。当前兼容版本为 `arcadia.sdkApi: 2`，类型入口和本地打包物料已提供，公开 npm 发行另行管理。
 
 ## 从一个效果开始
 
@@ -26,7 +26,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
 }
 ```
 
-`triggers / priority / when / apply / consumesStacks / tags` 与官方 `defineNativeEffect` 一致。`defineCodeEffect` 只把定义接入 npm 内容导出和每次使用的注册流程；回调收到原本的 `EffectContext`，领域方法走原有战斗阶段。简单定义无需 `build`。旧的 `build({ effectId, sourceMark }) → { on, execute, ... }` 写法继续支持。
+`triggers / priority / when / apply / consumesStacks / tags` 与官方 `defineNativeEffect` 一致。`defineCodeEffect` 只把定义接入 npm 内容导出和每次使用的注册流程；回调收到原本的 `EffectContext`，领域方法走原有战斗阶段。简单定义无需 `build`。需要组合工具时，可用 `build({ effectId, sourceMark }) → { triggers, apply, ... }` 返回 `defineEffect` 定义。两种写法使用相同的字段名；辅助上下文保留 `read` 和 `ops`，原生回调接收原始引擎上下文。
 
 在 package.json 的 `arcadia.exports` 中声明 `{ "id": "heal-on-hit", "sourceKind": "skill" }`，并在技能的 `behaviors` 中通过独立 `useId` 引用它；完整内容与安装格式见 [npm 内容包](npm-content.md)。`createEffects` 返回的导出必须与声明一致。
 

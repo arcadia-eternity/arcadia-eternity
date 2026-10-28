@@ -1,13 +1,13 @@
-import { conditions, targets, ops, values, type Value } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, conditions, targets, ops, values, type Value } from '@arcadia-eternity/battle/v4/authoring'
 
 type Numeric = number | Value<number, 'optional' | 'required'>
 
 /** Official effects and configurable templates share the same target, event and lifecycle decisions. */
 export function healingOnHit(amount: Numeric) {
   return {
-    on: 'OnHit' as const,
+    triggers: [EffectTrigger.OnHit as const],
     when: conditions.selfUsesSkill,
-    execute: targets.ownerPet.apply(ops.heal(amount)),
+    apply: targets.ownerPet.apply(ops.heal(amount)),
   }
 }
 
@@ -21,10 +21,10 @@ export function consecutiveHealingAmount(normal: number | Value<number>, repeate
 
 export function statusTransferOnHit(category: string) {
   return {
-    on: 'OnHit' as const,
+    triggers: [EffectTrigger.OnHit as const],
     priority: 0,
     when: conditions.selfUsesSkill,
-    execute: targets.opponentActive.apply(
+    apply: targets.opponentActive.apply(
       ops.transferMarks(targets.ownerMarks.where(mark => mark.tags.includes(category)).all()),
     ),
   }

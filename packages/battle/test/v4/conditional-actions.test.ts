@@ -264,8 +264,8 @@ it('registers bindings from both lazy arms and switches the chosen arm at execut
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/branch-bindings',
-      on: 'OnHit',
-      execute: actions.choose(
+      triggers: [EffectTrigger.OnHit],
+      apply: actions.choose(
         () => {
           calls++
           return left

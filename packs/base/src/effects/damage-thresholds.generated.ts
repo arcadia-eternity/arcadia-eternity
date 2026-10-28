@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   compileEffect,
   defineEffect,
   conditions,
@@ -14,10 +15,10 @@ export function createGeneratedDamageThresholds() {
     effect_mark_damage_cap_half_max_hp: compileEffect(
       defineEffect({
         id: 'effect_mark_damage_cap_half_max_hp',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.damage.apply(
             ops.setDamageThreshold({
               max: targets.ownerPet
@@ -32,40 +33,40 @@ export function createGeneratedDamageThresholds() {
     effect_skill_min_damage_100: compileEffect(
       defineEffect({
         id: 'effect_skill_min_damage_100',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 100 }))),
+        apply: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 100 }))),
       }),
     ),
     effect_skill_min_damage_95: compileEffect(
       defineEffect({
         id: 'effect_skill_min_damage_95',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 95 }))),
+        apply: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 95 }))),
       }),
     ),
     effect_skill_minimum_damage_100_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_minimum_damage_100_if_aideminyi',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 100 }))),
+        apply: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 100 }))),
       }),
     ),
     effect_skill_save_hp_to_1: compileEffect(
       defineEffect({
         id: 'effect_skill_save_hp_to_1',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.damage.apply(
             ops.setDamageThreshold({
               max: targets.opponentActive

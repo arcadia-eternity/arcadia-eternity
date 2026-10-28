@@ -1,6 +1,7 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import { BaseMark } from '@arcadia-eternity/battle/v4'
 import {
+  EffectTrigger,
   compileEffect,
   defineEffect,
   numberParam,
@@ -214,166 +215,166 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_ability_add_mark_buxieanguang_on_switch: compileEffect(
       defineEffect({
         id: 'effect_ability_add_mark_buxieanguang_on_switch',
-        on: ['OnSwitchIn'],
+        triggers: [EffectTrigger.OnSwitchIn],
         priority: 0,
         when: conditions.ownerSwitchesIn,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_buxieanguang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_buxieanguang')!)),
       }),
     ),
     effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill: compileEffect(
       defineEffect({
         id: 'effect_ability_add_mark_opponent_xifamihuo_if_using_xifa_skill',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('xifa'))),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xifamihuo')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xifamihuo')!, { stack: 1 })),
       }),
     ),
     effect_ability_add_shoufashanghaizengjia_on_lead: compileEffect(
       defineEffect({
         id: 'effect_ability_add_shoufashanghaizengjia_on_lead',
-        on: ['OnBattleStart'],
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoufashanghaizengjia')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoufashanghaizengjia')!)),
       }),
     ),
     effect_ability_add_shoufashanghaizengjia_on_switch_in: compileEffect(
       defineEffect({
         id: 'effect_ability_add_shoufashanghaizengjia_on_switch_in',
-        on: ['OnSwitchIn'],
+        triggers: [EffectTrigger.OnSwitchIn],
         priority: 0,
         when: conditions.ownerSwitchesIn,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoufashanghaizengjia')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoufashanghaizengjia')!)),
       }),
     ),
     effect_ability_add_xukongtizhi_on_skill_hit: compileEffect(
       defineEffect({
         id: 'effect_ability_add_xukongtizhi_on_skill_hit',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 10 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 10 })),
       }),
     ),
     effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss: compileEffect(
       defineEffect({
         id: 'effect_ability_atk_skill_add_shabaozhi_1_hit_or_miss',
-        on: ['OnHit', 'OnMiss'],
+        triggers: [EffectTrigger.OnHit, EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shabaozhili')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shabaozhili')!, { stack: 1 })),
       }),
     ),
     effect_ability_atk_skill_add_shunliu_1: compileEffect(
       defineEffect({
         id: 'effect_ability_atk_skill_add_shunliu_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shunliu')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shunliu')!, { stack: 1 })),
       }),
     ),
     effect_ability_set_field_leibaotian_on_lead: compileEffect(
       defineEffect({
         id: 'effect_ability_set_field_leibaotian_on_lead',
-        on: ['OnBattleStart'],
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
       }),
     ),
     effect_ability_set_field_leibaotian_on_switch: compileEffect(
       defineEffect({
         id: 'effect_ability_set_field_leibaotian_on_switch',
-        on: ['OnSwitchIn'],
+        triggers: [EffectTrigger.OnSwitchIn],
         priority: 0,
         when: conditions.ownerSwitchesIn,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
       }),
     ),
     effect_ability_set_field_yemu_on_switch: compileEffect(
       defineEffect({
         id: 'effect_ability_set_field_yemu_on_switch',
-        on: ['OnSwitchIn'],
+        triggers: [EffectTrigger.OnSwitchIn],
         priority: 0,
         when: conditions.ownerSwitchesIn,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yemu')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yemu')!)),
       }),
     ),
     effect_ability_shiguang_climax_add_mark_shiguangchongsheng: compileEffect(
       defineEffect({
         id: 'effect_ability_shiguang_climax_add_mark_shiguangchongsheng',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiguangchongsheng')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiguangchongsheng')!)),
       }),
     ),
     effect_ability_spa_skill_add_dadizhi_1_hit_or_miss: compileEffect(
       defineEffect({
         id: 'effect_ability_spa_skill_add_dadizhi_1_hit_or_miss',
-        on: ['OnHit', 'OnMiss'],
+        triggers: [EffectTrigger.OnHit, EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dadizhiyou')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dadizhiyou')!, { stack: 1 })),
       }),
     ),
     effect_ability_spa_skill_add_niliu_1: compileEffect(
       defineEffect({
         id: 'effect_ability_spa_skill_add_niliu_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_niliu')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_niliu')!, { stack: 1 })),
       }),
     ),
     effect_emblem_add_mark_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_mark_aideminyi',
-        on: ['OnBattleStart'],
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: () => true,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
       }),
     ),
     effect_emblem_add_mark_fenshenhying_when_use_fenshenshu: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_mark_fenshenhying_when_use_fenshenshu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_fenshenshu'),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fenshenhying')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fenshenhying')!)),
       }),
     ),
     effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_mark_shoudaoshanghaijianshao_15_on_switchin',
-        on: ['OnSwitchOut'],
+        triggers: [EffectTrigger.OnSwitchOut],
         priority: 0,
         when: conditions.ownerSwitchesIn,
-        execute: contexts.switchPet
+        apply: contexts.switchPet
           .select(event => event.switchInPet)
           .apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 15 })),
       }),
@@ -381,10 +382,10 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_mark_switchinpet_shoudaoshanghaijianshao_25_on_switchout',
-        on: ['OnSwitchOut'],
+        triggers: [EffectTrigger.OnSwitchOut],
         priority: 0,
         when: conditions.ownerSwitchesOut,
-        execute: contexts.switchPet
+        apply: contexts.switchPet
           .select(event => event.switchInPet)
           .apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 25 })),
       }),
@@ -392,19 +393,19 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_emblem_add_xukongtizhi_when_opponent_hit_self: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_xukongtizhi_when_opponent_hit_self',
-        on: ['PostDamage'],
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 5 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongtizhi')!, { stack: 5 })),
       }),
     ),
     effect_mark_add_damage_increase_25_on_switch_in: compileEffect(
       defineEffect({
         id: 'effect_mark_add_damage_increase_25_on_switch_in',
-        on: ['OnSwitchOut'],
+        triggers: [EffectTrigger.OnSwitchOut],
         priority: 0,
         when: conditions.ownerSwitchesOut,
-        execute: contexts.switchPet
+        apply: contexts.switchPet
           .select(event => event.switchInPet)
           .apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 25 })),
       }),
@@ -412,56 +413,56 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_mark_on_duration_end_add_mark_penti: compileEffect(
       defineEffect({
         id: 'effect_mark_on_duration_end_add_mark_penti',
-        on: ['OnMarkDurationEnd'],
+        triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         when: () => true,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_penti')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_penti')!)),
       }),
     ),
     effect_mark_on_duration_end_add_mark_qianglipenti: compileEffect(
       defineEffect({
         id: 'effect_mark_on_duration_end_add_mark_qianglipenti',
-        on: ['OnMarkDurationEnd'],
+        triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         when: () => true,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qianglipenti')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qianglipenti')!)),
       }),
     ),
     effect_mark_onDestroy_add_mark_tizhongjiangdi: compileEffect(
       defineEffect({
         id: 'effect_mark_onDestroy_add_mark_tizhongjiangdi',
-        on: ['OnMarkDestroy'],
+        triggers: [EffectTrigger.OnMarkDestroy],
         priority: 0,
         when: () => true,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tizhongjiangdi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tizhongjiangdi')!)),
       }),
     ),
     effect_mark_paralyze_on_physical_50_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_paralyze_on_physical_50_percent',
-        on: ['OnDamage'],
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
           conditions.chance(50),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
       }),
     ),
     effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent',
-        on: ['PostDamage'],
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, conditions.chance(50)),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
       }),
     ),
     effect_mark_yingfeng_heal_50_on_evasion_in_yemu: compileEffect(
       defineEffect({
         id: 'effect_mark_yingfeng_heal_50_on_evasion_in_yemu',
-        on: ['OnMiss'],
+        triggers: [EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.all(
           conditions.ownerIsSkillTarget,
@@ -470,142 +471,142 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             .where(mark => mark.baseId === 'mark_global_yemu')
             .condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_50_per_turn')!, { duration: 3 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_50_per_turn')!, { duration: 3 })),
       }),
     ),
     effect_skill_add_first_turn_mark_on_switch_in: compileEffect(
       defineEffect({
         id: 'effect_skill_add_first_turn_mark_on_switch_in',
-        on: ['OnSwitchIn'],
+        triggers: [EffectTrigger.OnSwitchIn],
         priority: 0,
         when: conditions.ownerSwitchesIn,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_first_turn_after_switch')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_first_turn_after_switch')!)),
       }),
     ),
     effect_skill_add_liuxie_50_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_add_liuxie_50_opponent',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_aideminyi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_aideminyi')!)),
       }),
     ),
     effect_skill_add_mark_anyingzhiguang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_anyingzhiguang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_anyingzhiguang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_anyingzhiguang')!)),
       }),
     ),
     effect_skill_add_mark_bileiyanshen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_bileiyanshen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_bileiyanshen')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_bileiyanshen')!)),
       }),
     ),
     effect_skill_add_mark_bizhong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_bizhong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_bizhong')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_bizhong')!)),
       }),
     ),
     effect_skill_add_mark_busi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_busi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_busi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_busi')!)),
       }),
     ),
     effect_skill_add_mark_chaojipenti: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_chaojipenti',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chaojipenti')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chaojipenti')!)),
       }),
     ),
     effect_skill_add_mark_chihuan_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_chihuan_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chihuan')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chihuan')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_chongqunzhen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_chongqunzhen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chongqunzhen')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chongqunzhen')!)),
       }),
     ),
     effect_skill_add_mark_chuansuoweilai: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_chuansuoweilai',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chuansuoweilai')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_chuansuoweilai')!)),
       }),
     ),
     effect_skill_add_mark_dadizhiyou_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_dadizhiyou_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dadizhiyou')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dadizhiyou')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_dianhe_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_dianhe_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dianhe')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dianhe')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_dianxizengqiang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_dianxizengqiang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dianxizengqiang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dianxizengqiang')!)),
       }),
     ),
     effect_skill_add_mark_dongqifuti: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_dongqifuti',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dongqifuti')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_dongqifuti')!)),
       }),
     ),
     effect_skill_add_mark_exin_opponent_50: (() => {
@@ -619,34 +620,34 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_exin_opponent_50',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_exin')!, { stack: 50 })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_exin')!, { stack: 50 })),
         }),
       )
     })(),
     effect_skill_add_mark_fanshe: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fanshe',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fanshe')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fanshe')!)),
       }),
     ),
     effect_skill_add_mark_fansheguike: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fansheguike',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           const right = 500
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.addMark(resolved.get('mark_fansheguike')!, {
             stack: targets.ownerPet
               .select(pet => pet.stat.maxHp)
@@ -660,86 +661,86 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_fantan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fantan',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fantan')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fantan')!)),
       }),
     ),
     effect_skill_add_mark_fasibilei: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fasibilei',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fasibilei')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fasibilei')!)),
       }),
     ),
     effect_skill_add_mark_feixuanzhen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_feixuanzhen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_feixuanzhen')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_feixuanzhen')!)),
       }),
     ),
     effect_skill_add_mark_fenshen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_fenshen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fenshen')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fenshen')!)),
       }),
     ),
     effect_skill_add_mark_gongshoujianbei: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_gongshoujianbei',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_gongshoujianbei')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_gongshoujianbei')!)),
       }),
     ),
     effect_skill_add_mark_guanghua: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_guanghua',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guanghua')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guanghua')!)),
       }),
     ),
     effect_skill_add_mark_guangwulingtong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_guangwulingtong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guangwulingtong')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guangwulingtong')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_guangwushentong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_guangwushentong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guangwushentong')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guangwushentong')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           const right = 500
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.addMark(resolved.get('mark_hanbinghujia')!, {
             stack: targets.ownerPet
               .select(pet => pet.stat.maxHp)
@@ -754,76 +755,76 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_hanbingjia: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_hanbingjia',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_hanbingjia')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_hanbingjia')!)),
       }),
     ),
     effect_skill_add_mark_houkongfan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_houkongfan',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_houkongfan')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_houkongfan')!)),
       }),
     ),
     effect_skill_add_mark_huafenmiman_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huafenmiman_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huafenmiman')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huafenmiman')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_huanxiang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huanxiang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huanxiang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huanxiang')!)),
       }),
     ),
     effect_skill_add_mark_huifu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huifu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu')!)),
       }),
     ),
     effect_skill_add_mark_huifu_1_16: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huifu_1_16',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_1_16')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_1_16')!)),
       }),
     ),
     effect_skill_add_mark_huifu_1_16_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huifu_1_16_if_aideminyi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_1_16')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_1_16')!)),
       }),
     ),
     effect_skill_add_mark_huijiachifan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huijiachifan',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huijiachifan')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huijiachifan')!)),
       }),
     ),
     effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi: (() => {
@@ -837,7 +838,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_hunmi_50_percent_if_opponent_has_mark_mabi',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -847,17 +848,17 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             ),
             conditions.chance(parameters.condition_2_percent),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
         }),
       )
     })(),
     effect_skill_add_mark_hunzhuoshuiyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_hunzhuoshuiyu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_hunzhuoshuiyu')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_hunzhuoshuiyu')!)),
       }),
     ),
     effect_skill_add_mark_huohuanzhixin_1: (() => {
@@ -871,13 +872,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_huohuanzhixin_1',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.ownerPet.apply(
-            ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack }),
-          ),
+          apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack })),
         }),
       )
     })(),
@@ -892,13 +891,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_huohuanzhixin_2',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.ownerPet.apply(
-            ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack }),
-          ),
+          apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack })),
         }),
       )
     })(),
@@ -913,98 +910,96 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_huohuanzhixin_3',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.ownerPet.apply(
-            ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack }),
-          ),
+          apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huohuanzhixin')!, { stack: parameters.stack })),
         }),
       )
     })(),
     effect_skill_add_mark_huoxing: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_huoxing',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huoxing')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huoxing')!)),
       }),
     ),
     effect_skill_add_mark_jieli_hit_or_miss: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_jieli_hit_or_miss',
-        on: ['OnHit', 'OnMiss'],
+        triggers: [EffectTrigger.OnHit, EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jieli')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jieli')!)),
       }),
     ),
     effect_skill_add_mark_jingshenshikong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_jingshenshikong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jingshenshikong')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jingshenshikong')!)),
       }),
     ),
     effect_skill_add_mark_jingyangshengxi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_jingyangshengxi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jingyangshengxi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jingyangshengxi')!)),
       }),
     ),
     effect_skill_add_mark_jinzhenwayi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_jinzhenwayi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jinzhenwayi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_jinzhenwayi')!)),
       }),
     ),
     effect_skill_add_mark_jizhong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_jizhong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_bizhong')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_bizhong')!)),
       }),
     ),
     effect_skill_add_mark_judushenti: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_judushenti',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_judushenti')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_judushenti')!)),
       }),
     ),
     effect_skill_add_mark_kongqichuliang_100: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_kongqichuliang_100',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_kongqichuliang')!, { stack: 100 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_kongqichuliang')!, { stack: 100 })),
       }),
     ),
     effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.addMark(resolved.get('mark_kongqihudun')!, {
             stack: targets.ownerMarks
               .where(mark => mark.baseId === 'mark_kongqichuliang')
@@ -1017,127 +1012,127 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_leishenjuexing: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_leishenjuexing',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_leishenjuexing')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_leishenjuexing')!)),
       }),
     ),
     effect_skill_add_mark_lianji: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_lianji',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_lianji')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_lianji')!)),
       }),
     ),
     effect_skill_add_mark_lingqiao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_lingqiao',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_lingqiao')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_lingqiao')!)),
       }),
     ),
     effect_skill_add_mark_lingtongchuanda: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_lingtongchuanda',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_lingtongchuanda')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_lingtongchuanda')!)),
       }),
     ),
     effect_skill_add_mark_liuxingdun: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_liuxingdun',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_liuxingdun')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_liuxingdun')!)),
       }),
     ),
     effect_skill_add_mark_longlinjia: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_longlinjia',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_longlinjia')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_longlinjia')!)),
       }),
     ),
     effect_skill_add_mark_mianyibuliang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_mianyibuliang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyibuliang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyibuliang')!)),
       }),
     ),
     effect_skill_add_mark_mianyiruohua: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_mianyiruohua',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyiruohua')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyiruohua')!)),
       }),
     ),
     effect_skill_add_mark_mianyiyichang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_mianyiyichang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyiyichang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyiyichang')!)),
       }),
     ),
     effect_skill_add_mark_mianyiyichang_hit_or_miss: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_mianyiyichang_hit_or_miss',
-        on: ['OnHit', 'OnMiss'],
+        triggers: [EffectTrigger.OnHit, EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyiyichang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mianyiyichang')!)),
       }),
     ),
     effect_skill_add_mark_mingzhongtisheng_10: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_mingzhongtisheng_10',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mingzhongtisheng')!, { stack: 10 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mingzhongtisheng')!, { stack: 10 })),
       }),
     ),
     effect_skill_add_mark_mingzhongtisheng_15: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_mingzhongtisheng_15',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mingzhongtisheng')!, { stack: 15 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_mingzhongtisheng')!, { stack: 15 })),
       }),
     ),
     effect_skill_add_mark_niandongfanshe: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_niandongfanshe',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_niandongfanshe')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_niandongfanshe')!)),
       }),
     ),
     effect_skill_add_mark_opponent_anhunqu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_anhunqu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_anhunqu')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_anhunqu')!)),
       }),
     ),
     effect_skill_add_mark_opponent_bingdong_40_percent: (() => {
@@ -1151,57 +1146,57 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_bingdong_40_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_bingdong')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_bingdong')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_bingningzhiqi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_bingningzhiqi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_bingningzhiqi')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_bingningzhiqi')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_bingshuangzhixing: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_bingshuangzhixing',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_bingshuangzhixing')!, { stack: 60 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_bingshuangzhixing')!, { stack: 60 })),
       }),
     ),
     effect_skill_add_mark_opponent_chenmo: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_chenmo',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_chenmo')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_chenmo')!)),
       }),
     ),
     effect_skill_add_mark_opponent_chongzhuangzhenci: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_chongzhuangzhenci',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_chongzhuangzhenci')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_chongzhuangzhenci')!)),
       }),
     ),
     effect_skill_add_mark_opponent_cuimian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_cuimian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_cuimian')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_cuimian')!)),
       }),
     ),
     effect_skill_add_mark_opponent_dongshang_10_percent: (() => {
@@ -1211,7 +1206,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_dongshang_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1219,14 +1214,14 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice'),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_dongshang_when_reused: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_dongshang_when_reused',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1236,31 +1231,31 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
           ),
           targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice'),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
       }),
     ),
     effect_skill_add_mark_opponent_guanghuizhiying: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_guanghuizhiying',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_guanghuizhiying')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_guanghuizhiying')!)),
       }),
     ),
     effect_skill_add_mark_opponent_haipa: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_haipa',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
       }),
     ),
     effect_skill_add_mark_opponent_haipa_10_if_heavier_40: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_haipa_10_if_heavier_40',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1276,7 +1271,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             ),
           ),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
       }),
     ),
     effect_skill_add_mark_opponent_haipa_10_percent: (() => {
@@ -1286,11 +1281,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_haipa_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
         }),
       )
     })(),
@@ -1301,11 +1296,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_haipa_15_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
         }),
       )
     })(),
@@ -1316,11 +1311,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_haipa_5_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
         }),
       )
     })(),
@@ -1331,7 +1326,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_haipa_if_has_cuimian_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1341,7 +1336,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             ),
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_2_1_percent)),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
         }),
       )
     })(),
@@ -1352,7 +1347,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_haipa_if_has_cuimian_15_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1362,26 +1357,26 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             ),
             conditions.chance(parameters.condition_2_percent),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_heianwuzhi_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_heianwuzhi_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_heianwuzhi')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_heianwuzhi')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_hongbaoshi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_hongbaoshi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hongbaoshi')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hongbaoshi')!)),
       }),
     ),
     effect_skill_add_mark_opponent_hunmi_10_percent: (() => {
@@ -1391,14 +1386,14 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_hunmi_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
         }),
       )
     })(),
@@ -1409,69 +1404,69 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_hunmi_5_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_jiguang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_jiguang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jiguang')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jiguang')!)),
       }),
     ),
     effect_skill_add_mark_opponent_jingshencuoluan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_jingshencuoluan',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jingshencuoluan')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jingshencuoluan')!)),
       }),
     ),
     effect_skill_add_mark_opponent_jisheng: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_jisheng',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jisheng')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jisheng')!)),
       }),
     ),
     effect_skill_add_mark_opponent_jishengzhadan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_jishengzhadan',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jishengzhadan')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jishengzhadan')!)),
       }),
     ),
     effect_skill_add_mark_opponent_jueying: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_jueying',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jueying')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_jueying')!)),
       }),
     ),
     effect_skill_add_mark_opponent_kaowen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_kaowen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kaowen')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kaowen')!)),
       }),
     ),
     effect_skill_add_mark_opponent_kongju_20_percent: (() => {
@@ -1481,57 +1476,57 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_kongju_20_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kongju')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kongju')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_kongjuzhinian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_kongjuzhinian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kongjuzhinian')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kongjuzhinian')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_kuihuazhongzi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_kuihuazhongzi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kuihuazhongzi')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_kuihuazhongzi')!)),
       }),
     ),
     effect_skill_add_mark_opponent_lache_35: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_lache_35',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_lache')!, { stack: 35 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_lache')!, { stack: 35 })),
       }),
     ),
     effect_skill_add_mark_opponent_lanbaoshi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_lanbaoshi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_lanbaoshi')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_lanbaoshi')!)),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_30_30_percent: (() => {
@@ -1541,40 +1536,40 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_liuxie_30_30_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.stat.maxHp).first())
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 30 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_40_if_last: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_40_if_last',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 40 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 40 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_40_if_pofang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_40_if_pofang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1582,13 +1577,13 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_pofang')),
           ),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 40 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 40 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_50_if_field_yemu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_50_if_field_yemu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1597,13 +1592,13 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             .where(mark => mark.baseId === 'mark_global_yemu')
             .condition(checks.exists()),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1611,13 +1606,13 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
           ),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -1629,25 +1624,25 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
           )
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_60_hit_or_miss: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_60_hit_or_miss',
-        on: ['OnHit', 'OnMiss'],
+        triggers: [EffectTrigger.OnHit, EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 60 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 60 })),
       }),
     ),
     effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxie_with_zhongzinengliang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(
+        apply: targets.opponentActive.apply(
           ops.addMark(resolved.get('mark_liuxie')!, {
             stack: 50,
             duration: targets.ownerMarks
@@ -1662,22 +1657,22 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_chongqunlingyu').condition(checks.exists()),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 60 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 60 })),
       }),
     ),
     effect_skill_add_mark_opponent_mabi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mabi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
       }),
     ),
     effect_skill_add_mark_opponent_mabi_10_percent: (() => {
@@ -1691,11 +1686,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mabi_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
         }),
       )
     })(),
@@ -1710,11 +1705,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mabi_15_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
         }),
       )
     })(),
@@ -1729,11 +1724,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mabi_20_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
         }),
       )
     })(),
@@ -1748,39 +1743,39 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mabi_70_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_maimaijinzhen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_maimaijinzhen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_maimaijinzhen')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_maimaijinzhen')!)),
       }),
     ),
     effect_skill_add_mark_opponent_manxingduyao_1_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_manxingduyao_1_stack',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_manxingduyao_5_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_manxingduyao_5_stack',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 5 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 5 })),
       }),
     ),
     effect_skill_add_mark_opponent_manxingduyao_70_percent: (() => {
@@ -1790,21 +1785,21 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_manxingduyao_70_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 1 })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_manxingduyao')!, { stack: 1 })),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_mihuo: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mihuo',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mihuo')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mihuo')!)),
       }),
     ),
     effect_skill_add_mark_opponent_mingzhongxiajiang_15: (() => {
@@ -1818,11 +1813,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_15',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(
+          apply: targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: parameters.stack }),
           ),
         }),
@@ -1831,19 +1826,19 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: 15 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: 15 })),
       }),
     ),
     effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1852,7 +1847,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
           ),
           conditions.lastSkillThisTurn,
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: 15 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: 15 })),
       }),
     ),
     effect_skill_add_mark_opponent_mingzhongxiajiang_25: (() => {
@@ -1866,11 +1861,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_25',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(
+          apply: targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: parameters.stack }),
           ),
         }),
@@ -1887,11 +1882,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mingzhongxiajiang_5',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(
+          apply: targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: parameters.stack }),
           ),
         }),
@@ -1900,13 +1895,13 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_opponent_nishui: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_nishui',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
       }),
     ),
     effect_skill_add_mark_opponent_nishui_10_percent: (() => {
@@ -1916,7 +1911,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_nishui_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1924,7 +1919,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
         }),
       )
     })(),
@@ -1935,7 +1930,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_nishui_30_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1943,7 +1938,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             conditions.chance(parameters.condition_1_percent),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
         }),
       )
     })(),
@@ -1958,7 +1953,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_nishui_50_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1966,7 +1961,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             conditions.chance(parameters.condition_1_percent),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
         }),
       )
     })(),
@@ -1981,7 +1976,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_nishui_50_percent_if_has_shunliu',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1990,86 +1985,86 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             conditions.chance(parameters.condition_2_percent),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_nishui')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_pofang_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_pofang_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_pofang')!, { stack: 50 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_pofang')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_opponent_ruodian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_ruodian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_ruodianjihao')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_ruodianjihao')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_ruodian_2: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_ruodian_2',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_ruodianjihao')!, { stack: 2 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_ruodianjihao')!, { stack: 2 })),
       }),
     ),
     effect_skill_add_mark_opponent_shadu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shadu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shadu')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shadu')!)),
       }),
     ),
     effect_skill_add_mark_opponent_shaduhongxue: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shaduhongxue',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaduhongxue')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaduhongxue')!)),
       }),
     ),
     effect_skill_add_mark_opponent_shanguangboji: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shanguangboji',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shanguangboji')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shanguangboji')!)),
       }),
     ),
     effect_skill_add_mark_opponent_shihua: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shihua',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shihua')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shihua')!)),
       }),
     ),
     effect_skill_add_mark_opponent_shiming_if_first: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shiming_if_first',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shiming')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shiming')!)),
       }),
     ),
     effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -2077,16 +2072,16 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
           ),
         ),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shoudaoshanghaizengjia')!, { stack: 50 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shoudaoshanghaizengjia')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_opponent_shuanghunxuanlv: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shuanghunxuanlv',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuanghunxuanlv')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuanghunxuanlv')!)),
       }),
     ),
     effect_skill_add_mark_opponent_shuangpozhuiji_if_damage_less_100: (() => {
@@ -2094,7 +2089,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shuangpozhuiji_if_damage_less_100',
-          on: ['OnDamage'],
+          triggers: [EffectTrigger.OnDamage],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
@@ -2102,7 +2097,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             const right = ctx.read(parameters.condition_1_value)
             return left !== undefined && right !== undefined && left < right
           }),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuangpozhuiji')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuangpozhuiji')!)),
         }),
       )
     })(),
@@ -2111,7 +2106,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shuangrenzhuiji_if_damage_less_100',
-          on: ['OnDamage'],
+          triggers: [EffectTrigger.OnDamage],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
@@ -2119,17 +2114,17 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             const right = ctx.read(parameters.condition_1_value)
             return left !== undefined && right !== undefined && left < right
           }),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuangrenzhuiji')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuangrenzhuiji')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_shuimian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shuimian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
       }),
     ),
     effect_skill_add_mark_opponent_shuimian_10_percent: (() => {
@@ -2139,14 +2134,14 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shuimian_10_percent',
-          on: ['BeforeHit'],
+          triggers: [EffectTrigger.BeforeHit],
           priority: 0,
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
         }),
       )
     })(),
@@ -2157,11 +2152,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shuimian_40_percent',
-          on: ['BeforeHit'],
+          triggers: [EffectTrigger.BeforeHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
         }),
       )
     })(),
@@ -2172,11 +2167,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_tanhuan_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanhuan')!)),
+          apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanhuan')!)),
         }),
       )
     })(),
@@ -2187,11 +2182,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_tanhuan_30_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanhuan')!)),
+          apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanhuan')!)),
         }),
       )
     })(),
@@ -2202,7 +2197,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_taobi_60_percent_if_opponent_has_kaowen',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -2212,89 +2207,89 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             ),
             conditions.chance(parameters.condition_2_percent),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_taobi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_taobi')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_tongjiling: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_tongjiling',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_tongjiling')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_tongjiling')!)),
       }),
     ),
     effect_skill_add_mark_opponent_wulicao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_wulicao',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_wulicao')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_wulicao')!)),
       }),
     ),
     effect_skill_add_mark_opponent_wuzhezhixin_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_wuzhezhixin_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_wuzhezhixin')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_wuzhezhixin')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_xinlingzhiyue: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_xinlingzhiyue',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xinlingzhiyue')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xinlingzhiyue')!)),
       }),
     ),
     effect_skill_add_mark_opponent_xinzhiyinji: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_xinzhiyinji',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xinzhiyinji')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xinzhiyinji')!)),
       }),
     ),
     effect_skill_add_mark_opponent_xuanyun: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_xuanyun',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xuanyun')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xuanyun')!)),
       }),
     ),
     effect_skill_add_mark_opponent_xuehongyinji: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_xuehongyinji',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xuehongyinji')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xuehongyinji')!)),
       }),
     ),
     effect_skill_add_mark_opponent_xueruoshuipao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_xueruoshuipao',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xueruoshuipao')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xueruoshuipao')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_xuruoshuipao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_xuruoshuipao',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xuruoshuipao')!, { stack: 1 })),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_xuruoshuipao')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_opponent_yinbo_10: (() => {
@@ -2308,11 +2303,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_yinbo_10',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
         }),
       )
     })(),
@@ -2327,11 +2322,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_yinbo_30',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
         }),
       )
     })(),
@@ -2346,11 +2341,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_yinbo_35',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
         }),
       )
     })(),
@@ -2365,11 +2360,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_yinbo_40',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
         }),
       )
     })(),
@@ -2384,48 +2379,48 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_yinbo_45',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinbo')!, { stack: parameters.stack })),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_yingzhidouqi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_yingzhidouqi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yingzhidouqi')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yingzhidouqi')!)),
       }),
     ),
     effect_skill_add_mark_opponent_yinzhiwang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_yinzhiwang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinzhiwang')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yinzhiwang')!)),
       }),
     ),
     effect_skill_add_mark_opponent_yishang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_yishang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yishang')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_yishang')!)),
       }),
     ),
     effect_skill_add_mark_opponent_zhixi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zhixi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
       }),
     ),
     effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying: (() => {
@@ -2436,7 +2431,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_zhixi_10_or_40_percent_if_has_xukongganying',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -2454,7 +2449,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
               ),
             ),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
         }),
       )
     })(),
@@ -2465,11 +2460,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_zhixi_40_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
         }),
       )
     })(),
@@ -2480,24 +2475,24 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_zhixi_5_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_zhongdu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zhongdu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
       }),
     ),
     effect_skill_add_mark_opponent_zhongdu_10_percent: (() => {
@@ -2507,11 +2502,11 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_zhongdu_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
         }),
       )
     })(),
@@ -2522,30 +2517,30 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_zhongdu_5_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
           ),
-          execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+          apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
         }),
       )
     })(),
     effect_skill_add_mark_opponent_zhongdu_consecutive_2_times: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zhongdu_consecutive_2_times',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
       }),
     ),
     effect_skill_add_mark_opponent_zhongdu_duration_2: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zhongdu_duration_2',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -2553,7 +2548,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
           ),
         ),
-        execute: targets.opponentActive.apply(
+        apply: targets.opponentActive.apply(
           ops.addMark(resolved.get('mark_zhongdu')!, {
             duration: targets.opponentMarks
               .where(mark => mark.baseId === 'mark_zhongdu')
@@ -2567,167 +2562,167 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_opponent_zhongdu_if_3_hits: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zhongdu_if_3_hits',
-        on: ['BeforeMultiHit'],
+        triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
           const right = 3
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
       }),
     ),
     effect_skill_add_mark_opponent_zisun: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_zisun',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zisun')!)),
+        apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zisun')!)),
       }),
     ),
     effect_skill_add_mark_penti: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_penti',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_penti')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_penti')!)),
       }),
     ),
     effect_skill_add_mark_qianggong_1_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_qianggong_1_stack',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qianggong')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qianggong')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_qianglipenti: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_qianglipenti',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qianglipenti')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qianglipenti')!)),
       }),
     ),
     effect_skill_add_mark_qiliuyongdong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_qiliuyongdong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qiliuyongdong')!, { stack: 2 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_qiliuyongdong')!, { stack: 2 })),
       }),
     ),
     effect_skill_add_mark_renzhezhixin_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_renzhezhixin_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_renzhezhixin')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_renzhezhixin')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_rouhua_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_rouhua_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_rouhua')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_rouhua')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_rouhua_50_if_female: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_rouhua_50_if_female',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_rouhua')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_rouhua')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_self_hanshuangpingzhang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_self_hanshuangpingzhang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_hanshuangpingzhang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_hanshuangpingzhang')!)),
       }),
     ),
     effect_skill_add_mark_self_yihuopingzhang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_self_yihuopingzhang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yihuopingzhang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yihuopingzhang')!)),
       }),
     ),
     effect_skill_add_mark_shabaozhen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shabaozhen',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shabaozhen')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shabaozhen')!)),
       }),
     ),
     effect_skill_add_mark_shabaozhili_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shabaozhili_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shabaozhili')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shabaozhili')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_shaduzhixue: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shaduzhixue',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shaduzhixue')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shaduzhixue')!)),
       }),
     ),
     effect_skill_add_mark_shahezhili: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shahezhili',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shahezhili')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shahezhili')!)),
       }),
     ),
     effect_skill_add_mark_shanbi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanbi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_shanbi_2: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanbi_2',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 2 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 2 })),
       }),
     ),
     effect_skill_add_mark_shanbi_below_1_8_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanbi_below_1_8_hp',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -2739,82 +2734,82 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
           )
           return left !== undefined && right !== undefined && left <= right
         }),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_shanbi_if_first: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanbi_if_first',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!)),
       }),
     ),
     effect_skill_add_mark_shanbiwugong_if_shabaolingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanbiwugong_if_shabaolingyu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shabaolingyu').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbiwugong')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbiwugong')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_shandianshoushu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shandianshoushu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shandianshoushu')!, { stack: 150 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shandianshoushu')!, { stack: 150 })),
       }),
     ),
     effect_skill_add_mark_shandianwaiyi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shandianwaiyi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shandianwaiyi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shandianwaiyi')!)),
       }),
     ),
     effect_skill_add_mark_shanghaizengjia_100: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanghaizengjia_100',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 100 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 100 })),
       }),
     ),
     effect_skill_add_mark_shanghaizengjia_150: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanghaizengjia_150',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 150 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 150 })),
       }),
     ),
     effect_skill_add_mark_shanghaizengjia_75: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanghaizengjia_75',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 75 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanghaizengjia')!, { stack: 75 })),
       }),
     ),
     effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shanghaizengjia_stack_with_zengzhong_stack_x75',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.addMark(resolved.get('mark_shanghaizengjia')!, {
             stack: targets.ownerMarks
               .where(mark => mark.baseId === 'mark_zengzhong')
@@ -2828,37 +2823,37 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_shazhidanke: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shazhidanke',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shazhidanke')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shazhidanke')!)),
       }),
     ),
     effect_skill_add_mark_shazhiwang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shazhiwang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shazhiwang')!, { stack: 30 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shazhiwang')!, { stack: 30 })),
       }),
     ),
     effect_skill_add_mark_shijianfaze: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shijianfaze',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shijianfaze')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shijianfaze')!)),
       }),
     ),
     effect_skill_add_mark_shijianhudun: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shijianhudun',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shijianhudun')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shijianhudun')!)),
       }),
     ),
     effect_skill_add_mark_shiming_10_percent: (() => {
@@ -2868,429 +2863,429 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_shiming_10_percent',
-          on: ['OnHit'],
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiming')!)),
+          apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiming')!)),
         }),
       )
     })(),
     effect_skill_add_mark_shiyanzhiyue: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shiyanzhiyue',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiyanzhiyue')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shiyanzhiyue')!)),
       }),
     ),
     effect_skill_add_mark_shoudaoshanghaijianshao_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shoudaoshanghaijianshao_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_shoudaoshanghaijianshao_75: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shoudaoshanghaijianshao_75',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 75 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoudaoshanghaijianshao')!, { stack: 75 })),
       }),
     ),
     effect_skill_add_mark_shoudaoshanghaizengjia_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shoudaoshanghaizengjia_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoudaoshanghaizengjia')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shoudaoshanghaizengjia')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_shuiliangbaohe: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shuiliangbaohe',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuiliangbaohe')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuiliangbaohe')!)),
       }),
     ),
     effect_skill_add_mark_shuiliangchongzu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shuiliangchongzu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuiliangchongzu')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuiliangchongzu')!)),
       }),
     ),
     effect_skill_add_mark_shuimian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shuimian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuimian')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuimian')!)),
       }),
     ),
     effect_skill_add_mark_shuiwenzhenji: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_shuiwenzhenji',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuiwenzhenji')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shuiwenzhenji')!)),
       }),
     ),
     effect_skill_add_mark_suijixianzhi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_suijixianzhi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_suijixianzhi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_suijixianzhi')!)),
       }),
     ),
     effect_skill_add_mark_taitanzhihu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_taitanzhihu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_taitanzhihu')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_taitanzhihu')!)),
       }),
     ),
     effect_skill_add_mark_tanxingzhifang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_tanxingzhifang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanxingzhifang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_tanxingzhifang')!)),
       }),
     ),
     effect_skill_add_mark_taobi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_taobi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_taobi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_taobi')!)),
       }),
     ),
     effect_skill_add_mark_teshushanghaizengjia_100: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_teshushanghaizengjia_100',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_teshushanghaizengjia')!, { stack: 100 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_teshushanghaizengjia')!, { stack: 100 })),
       }),
     ),
     effect_skill_add_mark_teshushanghaizengjia_35: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_teshushanghaizengjia_35',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_teshushanghaizengjia')!, { stack: 35 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_teshushanghaizengjia')!, { stack: 35 })),
       }),
     ),
     effect_skill_add_mark_teshushanghaizengjia_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_teshushanghaizengjia_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_teshushanghaizengjia')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_teshushanghaizengjia')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_wanan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_wanan',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wanan')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wanan')!)),
       }),
     ),
     effect_skill_add_mark_weilibianhua_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_weilibianhua_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_weilibianhua')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_weilibianhua')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_weilifanbei: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_weilifanbei',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_weilifanbei')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_weilifanbei')!)),
       }),
     ),
     effect_skill_add_mark_wulishanghaizengjia_100: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_wulishanghaizengjia_100',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wulishanghaizengjia')!, { stack: 100 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wulishanghaizengjia')!, { stack: 100 })),
       }),
     ),
     effect_skill_add_mark_wulishanghaizengjia_35: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_wulishanghaizengjia_35',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wulishanghaizengjia')!, { stack: 35 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wulishanghaizengjia')!, { stack: 35 })),
       }),
     ),
     effect_skill_add_mark_wulishanghaizengjia_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_wulishanghaizengjia_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wulishanghaizengjia')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_wulishanghaizengjia')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_xingzhihui_20: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xingzhihui_20',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xingzhihui')!, { stack: 20 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xingzhihui')!, { stack: 20 })),
       }),
     ),
     effect_skill_add_mark_xingzhihui_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xingzhihui_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xingzhihui')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xingzhihui')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_xingzhili: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xingzhili',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xingzhili')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xingzhili')!)),
       }),
     ),
     effect_skill_add_mark_xishoucao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xishoucao',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xishoucao')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xishoucao')!)),
       }),
     ),
     effect_skill_add_mark_xudian: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xudian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xudian')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xudian')!)),
       }),
     ),
     effect_skill_add_mark_xuli_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xuli_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xuli')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xuli')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_xuli_5: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xuli_5',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xuli')!, { stack: 5 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xuli')!, { stack: 5 })),
       }),
     ),
     effect_skill_add_mark_xulichongji: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xulichongji',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xulichongji')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xulichongji')!)),
       }),
     ),
     effect_skill_add_mark_xunjie_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_xunjie_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xunjie')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_xunjie')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_yanggong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yanggong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yanggong')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yanggong')!)),
       }),
     ),
     effect_skill_add_mark_yanhuo: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yanhuo',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yanhuo')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yanhuo')!)),
       }),
     ),
     effect_skill_add_mark_yingfeng: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yingfeng',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yingfeng')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yingfeng')!)),
       }),
     ),
     effect_skill_add_mark_yinghua_25: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yinghua_25',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 25 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 25 })),
       }),
     ),
     effect_skill_add_mark_yinghua_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yinghua_50',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_yinghua_50_if_male: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yinghua_50_if_male',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 50 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 50 })),
       }),
     ),
     effect_skill_add_mark_yinghua_65_hit_or_miss: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yinghua_65_hit_or_miss',
-        on: ['OnHit', 'OnMiss'],
+        triggers: [EffectTrigger.OnHit, EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 65 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yinghua')!, { stack: 65 })),
       }),
     ),
     effect_skill_add_mark_yingyongyizhi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yingyongyizhi',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yingyongyizhi')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yingyongyizhi')!)),
       }),
     ),
     effect_skill_add_mark_yitelingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yitelingyu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yitelingyu')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yitelingyu')!)),
       }),
     ),
     effect_skill_add_mark_yuecuoyueyong: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yuecuoyueyong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yuecuoyueyong')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yuecuoyueyong')!)),
       }),
     ),
     effect_skill_add_mark_yurenfantan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_yurenfantan',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yurenfantan')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_yurenfantan')!)),
       }),
     ),
     effect_skill_add_mark_zengzhong_1: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zengzhong_1',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zengzhong')!, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zengzhong')!, { stack: 1 })),
       }),
     ),
     effect_skill_add_mark_zengzhong_2: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zengzhong_2',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zengzhong')!, { stack: 2 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zengzhong')!, { stack: 2 })),
       }),
     ),
     effect_skill_add_mark_zhenkongzhixin: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhenkongzhixin',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhenkongzhixin')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhenkongzhixin')!)),
       }),
     ),
     effect_skill_add_mark_zhenshihuanxiang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhenshihuanxiang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhenshihuanxiang')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhenshihuanxiang')!)),
       }),
     ),
     effect_skill_add_mark_zhifanghudun_stack_with_weight: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhifanghudun_stack_with_weight',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.addMark(resolved.get('mark_zhifanghudun')!, {
             stack: targets.ownerPet.select(pet => pet.weight).first(),
           }),
@@ -3300,25 +3295,25 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_add_mark_zhongzinengliang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhongzinengliang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhongzinengliang')!, { stack: 4 })),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhongzinengliang')!, { stack: 4 })),
       }),
     ),
     effect_skill_add_mark_zhunbeidongzuo: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhunbeidongzuo',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhunbeidongzuo')!)),
+        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhunbeidongzuo')!)),
       }),
     ),
     effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20: compileEffect(
       defineEffect({
         id: 'effect_skill_add_self_yuansuzhufu_increase_on_consecutive_hits_10_max_20',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         tags: ['xingzhili'],
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
@@ -3326,7 +3321,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
           const right = 1
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.addMark(resolved.get('mark_yuansuzhufu')!, {
             stack: targets.ownerPet
               .select(pet => pet.lastSkillUsedTimes)
@@ -3341,7 +3336,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_double_mark_liuxie_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_double_mark_liuxie_stack',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -3349,7 +3344,7 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_liuxie')),
           ),
         ),
-        execute: targets.opponentActive.apply(
+        apply: targets.opponentActive.apply(
           ops.addMark(resolved.get('mark_liuxie')!, {
             stack: targets.opponentMarks
               .where(mark => mark.baseId === 'mark_liuxie')
@@ -3363,64 +3358,64 @@ export function createGeneratedMarkApplications(marks: ReadonlyMap<string, BaseM
     effect_skill_set_field_chongqun: compileEffect(
       defineEffect({
         id: 'effect_skill_set_field_chongqun',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_chongqun')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_chongqun')!)),
       }),
     ),
     effect_skill_set_field_guzhanchang: compileEffect(
       defineEffect({
         id: 'effect_skill_set_field_guzhanchang',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_guzhanchang')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_guzhanchang')!)),
       }),
     ),
     effect_skill_set_field_leibaotian: compileEffect(
       defineEffect({
         id: 'effect_skill_set_field_leibaotian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_leibaotian')!)),
       }),
     ),
     effect_skill_set_field_qingtian: compileEffect(
       defineEffect({
         id: 'effect_skill_set_field_qingtian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_qingtian')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_qingtian')!)),
       }),
     ),
     effect_skill_set_field_yanre: compileEffect(
       defineEffect({
         id: 'effect_skill_set_field_yanre',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yanre')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yanre')!)),
       }),
     ),
     effect_skill_set_field_yemu: compileEffect(
       defineEffect({
         id: 'effect_skill_set_field_yemu',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yemu')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yemu')!)),
       }),
     ),
     effect_skill_set_field_yutian: compileEffect(
       defineEffect({
         id: 'effect_skill_set_field_yutian',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yutian')!)),
+        apply: contexts.battle.apply(ops.addMark(resolved.get('mark_global_yutian')!)),
       }),
     ),
   })

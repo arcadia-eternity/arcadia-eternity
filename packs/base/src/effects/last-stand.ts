@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   defineEffect,
@@ -14,7 +15,7 @@ export function createLastStand() {
     effect_mark_set_health_to_1_on_damage: compileEffect(
       defineEffect({
         id: 'effect_mark_set_health_to_1_on_damage',
-        on: 'PostDamage',
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         consumesStacks: 1,
         parameters: { health },
@@ -22,7 +23,7 @@ export function createLastStand() {
           conditions.selfBeDamaged,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.currentHp <= 0)),
         ),
-        execute: targets.ownerPet.property('currentHp').apply(ops.assign(health)),
+        apply: targets.ownerPet.property('currentHp').apply(ops.assign(health)),
       }),
     ),
   })

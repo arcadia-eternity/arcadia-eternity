@@ -325,8 +325,8 @@ for (const operation of ['setMarkDuration', 'setMarkStack', 'setMarkMaxStack'] a
       const effect = compileEffect(
         defineEffect({
           id: 'fixture/settings-read',
-          on: 'OnBeforeAddMark',
-          execute: selectFrom(events).apply(ops[operation](input)),
+          triggers: [EffectTrigger.OnBeforeAddMark],
+          apply: selectFrom(events).apply(ops[operation](input)),
         }),
       )
       const ctx = new EffectContext(events[0], EffectTrigger.OnBeforeAddMark, a.activePet.skills[0], effect)
@@ -379,8 +379,8 @@ for (const operation of ['setMarkDuration', 'setMarkStack', 'setMarkMaxStack'] a
       const effect = compileEffect(
         defineEffect({
           id: 'fixture/settings-boundary',
-          on: 'OnBeforeAddMark',
-          execute: selectFrom(variant === 'empty-targets' ? [] : events).apply(ops[operation](input)),
+          triggers: [EffectTrigger.OnBeforeAddMark],
+          apply: selectFrom(variant === 'empty-targets' ? [] : events).apply(ops[operation](input)),
         }),
       )
       const ctx = new EffectContext(events[0], EffectTrigger.OnBeforeAddMark, a.activePet.skills[0], effect)

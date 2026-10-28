@@ -1,5 +1,6 @@
 import { BaseMark } from '@arcadia-eternity/battle/v4'
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   defineEffect,
@@ -23,10 +24,10 @@ export function createRandomMarkApplications(marks: ReadonlyMap<string, BaseMark
     effect_skill_add_mark_zhaocai_or_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_zhaocai_or_jinbao',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.addMark(luckyMark)),
+        apply: targets.ownerPet.apply(ops.addMark(luckyMark)),
       }),
     ),
   })

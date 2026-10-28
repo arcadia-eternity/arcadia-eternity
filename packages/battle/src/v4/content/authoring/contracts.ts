@@ -21,7 +21,7 @@ import type { Player } from '../../player'
 import type { BaseSkill, SkillInstance } from '../../skill'
 import type { Battle } from '../../battle'
 
-export type EventMap = { [K in NativeEffectTrigger as `${K}`]: TriggerContextMap[K] }
+export type EventMap = { [K in NativeEffectTrigger]: TriggerContextMap[K] }
 export type Trigger = keyof EventMap
 export type Presence = 'required' | 'optional'
 type Scalar = number | string | boolean
@@ -93,9 +93,9 @@ interface FrameServices {
   }
 }
 
-/** Discriminated by on, including multi-trigger definitions. Reuses the real engine's context types. */
+/** Discriminated by trigger, including multi-trigger definitions. Parent is the direct triggering event. */
 export type EffectFrame<T extends Trigger = Trigger> = {
-  [K in T]: FrameServices & { readonly on: K; readonly event: EventMap[K] }
+  [K in T]: FrameServices & { readonly trigger: K; readonly parent: EventMap[K] }
 }[T]
 export type Condition<T extends Trigger = Trigger> = (ctx: EffectFrame<T>) => boolean
 export type Action<T extends Trigger = Trigger> = (ctx: EffectFrame<T>) => void
@@ -125,7 +125,7 @@ export declare function stringParam(options: {
 type Parameters = Readonly<Record<string, Parameter<unknown>>>
 export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly id: string
-  readonly on: T | readonly T[]
+  readonly triggers: readonly T[]
   readonly priority?: number
   /** Engine-owned consumption runs before the action, only for mark sources. */
   readonly consumesStacks?: number
@@ -133,10 +133,10 @@ export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly rebindOnOwnerTransfer?: boolean
   readonly tags?: readonly string[]
   readonly parameters?: P
-  /** Declare plans used inside custom execute callbacks; composed actions are discovered automatically. */
+  /** Declare plans used inside custom apply callbacks; composed actions are discovered automatically. */
   readonly bindings?: Readonly<Record<string, BindingValue<number, Presence>>>
   readonly when?: (ctx: NoInfer<EffectFrame<T>>, params: P) => boolean
-  readonly execute: (ctx: NoInfer<EffectFrame<T>>, params: P) => void
+  readonly apply: (ctx: NoInfer<EffectFrame<T>>, params: P) => void
 }
 export declare function defineEffect<const T extends Trigger, const P extends Parameters = Record<never, never>>(
   definition: EffectDefinition<T, P>,
@@ -175,7 +175,7 @@ export declare const contexts: {
   readonly skillUse: Selector<UseSkillContext>
   /** Nearest switch ancestor, requeried independently on each use. */
   readonly switchPet: Selector<SwitchPetContext>
-  /** Searches ancestry; unlike event, a matching ancestor is not guaranteed. */
+  /** Searches ancestry; unlike parent, a matching ancestor is not guaranteed. */
   readonly nearestSkillUse: (ctx: EffectFrame) => UseSkillContext | undefined
 }
 export declare const conditions: {

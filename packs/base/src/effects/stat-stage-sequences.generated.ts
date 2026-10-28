@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   selectFrom,
   compileEffect,
   defineEffect,
@@ -15,10 +16,10 @@ export function createGeneratedStatStageSequences() {
     effect_mark_raise_def_1_when_hit_and_remove_self: compileEffect(
       defineEffect({
         id: 'effect_mark_raise_def_1_when_hit_and_remove_self',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.changeStatStage('def', 1)),
           targets.sourceMark.apply(ops.removeMark()),
         ),
@@ -27,7 +28,7 @@ export function createGeneratedStatStageSequences() {
     effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_heianwuzhi_reduce_opponent_spd_1_stage',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(
@@ -39,7 +40,7 @@ export function createGeneratedStatStageSequences() {
           const right = 0
           return right !== undefined && left.some(value => value > right)
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_heianwuzhi').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
         ),
@@ -48,13 +49,13 @@ export function createGeneratedStatStageSequences() {
     effect_skill_consume_huanxiang_raise_spa_1_stage: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_huanxiang_raise_spa_1_stage',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
           targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
         ),
@@ -63,13 +64,13 @@ export function createGeneratedStatStageSequences() {
     effect_skill_consume_huanxiang_raise_spd_1_stage: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_huanxiang_raise_spd_1_stage',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
           targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
         ),
@@ -78,10 +79,10 @@ export function createGeneratedStatStageSequences() {
     effect_skill_raise_atk_1_stage_and_other_1_stage: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_1_stage_and_other_1_stage',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
           targets.ownerPet.apply((ctx, pets) => {
             const stat = ctx.read(
@@ -97,13 +98,13 @@ export function createGeneratedStatStageSequences() {
     effect_skill_raise_atk_def_1_stage_if_male: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_def_1_stage_if_male',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
           targets.ownerPet.apply(ops.changeStatStage('def', 1)),
         ),
@@ -112,10 +113,10 @@ export function createGeneratedStatStageSequences() {
     effect_skill_raise_both_spe_1_stage: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_both_spe_1_stage',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
           targets.opponentActive.apply(ops.changeStatStage('spe', 1)),
         ),
@@ -124,13 +125,13 @@ export function createGeneratedStatStageSequences() {
     effect_skill_raise_spa_spd_1_stage_if_female: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spa_spd_1_stage_if_female',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
           targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
         ),
@@ -139,10 +140,10 @@ export function createGeneratedStatStageSequences() {
     effect_skill_reduce_both_spa_1_stage: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_both_spa_1_stage',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.changeStatStage('spa', -1)),
           targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
         ),
@@ -151,13 +152,13 @@ export function createGeneratedStatStageSequences() {
     effect_skill_reduce_opponent_atk_def_1_stage_if_opponent_male: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_atk_def_1_stage_if_opponent_male',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
           targets.opponentActive.apply(ops.changeStatStage('def', -1)),
         ),
@@ -166,13 +167,13 @@ export function createGeneratedStatStageSequences() {
     effect_skill_reduce_opponent_spa_spd_1_stage_if_opponent_female: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spa_spd_1_stage_if_opponent_female',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
           targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
         ),

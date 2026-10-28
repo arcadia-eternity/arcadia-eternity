@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   numberParam,
   compileEffect,
   defineEffect,
@@ -17,11 +18,11 @@ export function createGeneratedVitalSequences() {
     effect_mark_absorb_damage_to_heal: compileEffect(
       defineEffect({
         id: 'effect_mark_absorb_damage_to_heal',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         consumesStacks: 1,
         when: conditions.selfBeDamaged,
-        execute: actions.sequence(
+        apply: actions.sequence(
           contexts.damage.apply(ops.preventDamage()),
           targets.ownerPet.apply(
             ops.heal(
@@ -42,10 +43,10 @@ export function createGeneratedVitalSequences() {
     effect_mark_absorb_hp_to_opponent: compileEffect(
       defineEffect({
         id: 'effect_mark_absorb_hp_to_opponent',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               values.combine(
@@ -95,7 +96,7 @@ export function createGeneratedVitalSequences() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_explode_on_stack_over_100',
-          on: 'OnStack',
+          triggers: [EffectTrigger.OnStack],
           priority: 0,
           parameters,
           when: conditions.all(conditions.sourceOwnsEvent, (ctx: EffectFrame) => {
@@ -103,7 +104,7 @@ export function createGeneratedVitalSequences() {
             const right = 100
             return left !== undefined && right !== undefined && left >= right
           }),
-          execute: actions.sequence(
+          apply: actions.sequence(
             targets.ownerPet.apply(ops.dealDamage(parameters.action0_value)),
             targets.sourceMark.apply(ops.consumeStacks(parameters.action1_value)),
           ),
@@ -113,10 +114,10 @@ export function createGeneratedVitalSequences() {
     effect_mark_heal_self_1_16_turnEnd: compileEffect(
       defineEffect({
         id: 'effect_mark_heal_self_1_16_turnEnd',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -131,10 +132,10 @@ export function createGeneratedVitalSequences() {
     effect_mark_heal_self_1_6_turnEnd: compileEffect(
       defineEffect({
         id: 'effect_mark_heal_self_1_6_turnEnd',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -149,10 +150,10 @@ export function createGeneratedVitalSequences() {
     effect_mark_heal_self_1_8_turnEnd: compileEffect(
       defineEffect({
         id: 'effect_mark_heal_self_1_8_turnEnd',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -167,11 +168,11 @@ export function createGeneratedVitalSequences() {
     effect_mark_mihuo_damage_self: compileEffect(
       defineEffect({
         id: 'effect_mark_mihuo_damage_self',
-        on: 'PostDamage',
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         consumesStacks: 1,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first())),
         ),
       }),
@@ -179,11 +180,11 @@ export function createGeneratedVitalSequences() {
     effect_mark_reflect_damage: compileEffect(
       defineEffect({
         id: 'effect_mark_reflect_damage',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         consumesStacks: 1,
         when: conditions.selfBeDamaged,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.dealDamage(
               contexts.damage
@@ -198,10 +199,10 @@ export function createGeneratedVitalSequences() {
     effect_mark_reflect_damage_1_4: compileEffect(
       defineEffect({
         id: 'effect_mark_reflect_damage_1_4',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.dealDamage(
               contexts.damage
@@ -216,13 +217,13 @@ export function createGeneratedVitalSequences() {
     effect_mark_reflect_special_damage_50_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reflect_special_damage_50_percent',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.dealDamage(
               contexts.damage
@@ -237,7 +238,7 @@ export function createGeneratedVitalSequences() {
     effect_mark_self_damage_50_percent_once: compileEffect(
       defineEffect({
         id: 'effect_mark_self_damage_50_percent_once',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -245,7 +246,7 @@ export function createGeneratedVitalSequences() {
           (ctx: EffectFrame) =>
             ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               contexts.damage
@@ -261,7 +262,7 @@ export function createGeneratedVitalSequences() {
     effect_mark_self_damage_50_percent_once_when_special: compileEffect(
       defineEffect({
         id: 'effect_mark_self_damage_50_percent_once_when_special',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -269,7 +270,7 @@ export function createGeneratedVitalSequences() {
           (ctx: EffectFrame) =>
             ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               contexts.damage
@@ -285,7 +286,7 @@ export function createGeneratedVitalSequences() {
     effect_skill_add_rage_with_consume_yinbo_stack: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_with_consume_yinbo_stack',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -293,7 +294,7 @@ export function createGeneratedVitalSequences() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addRage(
               targets.opponentMarks
@@ -317,11 +318,11 @@ export function createGeneratedVitalSequences() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_clear_rage_add_fixed_damage',
-          on: 'OnBeforeCalculateDamage',
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: actions.sequence(
+          apply: actions.sequence(
             contexts.damage.apply(
               ops.modifyDamage({
                 percent: 0,
@@ -347,13 +348,13 @@ export function createGeneratedVitalSequences() {
     effect_skill_consume_dongqifuti_heal_self_quarter_max_hp: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_dongqifuti_heal_self_quarter_max_hp',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_dongqifuti').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -371,7 +372,7 @@ export function createGeneratedVitalSequences() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_consume_opponent_yinbo_damage_2x',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -380,7 +381,7 @@ export function createGeneratedVitalSequences() {
               pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
             ),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             targets.opponentActive.apply(
               ops.dealDamage(
                 values.combine(
@@ -403,11 +404,11 @@ export function createGeneratedVitalSequences() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_consume_opponent_yinbo_heal_self_2x',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: actions.sequence(
+          apply: actions.sequence(
             targets.ownerPet.apply(
               ops.heal(
                 values.combine(
@@ -428,13 +429,13 @@ export function createGeneratedVitalSequences() {
     effect_skill_ignite_opponent_mark_jishengzhadan: compileEffect(
       defineEffect({
         id: 'effect_skill_ignite_opponent_mark_jishengzhadan',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentMarks.where(mark => mark.baseId === 'mark_jishengzhadan').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_jishengzhadan').apply(ops.removeMark()),
           targets.opponentActive.apply(ops.dealDamage(300)),
         ),
@@ -443,13 +444,13 @@ export function createGeneratedVitalSequences() {
     effect_skill_ignite_opponent_mark_shaoshang: compileEffect(
       defineEffect({
         id: 'effect_skill_ignite_opponent_mark_shaoshang',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentMarks.where(mark => mark.baseId === 'mark_shaoshang').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_shaoshang').apply(ops.removeMark()),
           targets.opponentActive.apply(ops.dealDamage(150)),
         ),

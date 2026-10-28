@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   defineEffect,
@@ -41,9 +42,9 @@ export const officialConsecutiveHealingEffects = Object.freeze({
   effect_skill_heal_self_quarter_if_consecutive_half: compileEffect(
     defineEffect({
       id: 'effect_skill_heal_self_quarter_if_consecutive_half',
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       when: conditions.selfUsesSkill,
-      execute: targets.ownerPet.apply(
+      apply: targets.ownerPet.apply(
         ops.heal(
           values.combine(targets.ownerPet.first().attribute('maxHp'), values.choose(repeated, 8, 4), (hp, divisor) =>
             Math.floor(hp / divisor),

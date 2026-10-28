@@ -88,8 +88,8 @@ function run(
     ? compileEffect(
         defineEffect({
           id: 'fixture/outcome',
-          on: 'BeforeHit',
-          execute: contexts.skillUse.apply(
+          triggers: [EffectTrigger.BeforeHit],
+          apply: contexts.skillUse.apply(
             operation === 'addCritRate'
               ? ops.addCritRate(query)
               : operation === 'addAccuracy'
@@ -102,7 +102,7 @@ function run(
       )
     : EffectParser.parse({
         id: 'fixture/outcome',
-        trigger: 'BeforeHit',
+        trigger: EffectTrigger.BeforeHit,
         priority: 0,
         apply: {
           type: operation,
@@ -210,7 +210,11 @@ it.each(['addCritRate', 'addAccuracy', 'setAccuracy'] as const)(
       })
       .first()
     const effect = compileEffect(
-      defineEffect({ id: 'fixture/count', on: 'TurnStart', execute: selectFrom(events).apply(ops[operation](values)) }),
+      defineEffect({
+        id: 'fixture/count',
+        triggers: [EffectTrigger.TurnStart],
+        apply: selectFrom(events).apply(ops[operation](values)),
+      }),
     )
     skill.effects.splice(0, skill.effects.length, effect)
     battle.applyEffects(turn, EffectTrigger.TurnStart, skill)
@@ -246,8 +250,8 @@ it.each(operations)('%s rejects foreign contexts without changing them', operati
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/foreign-outcome',
-      on: 'TurnStart',
-      execute(ctx) {
+      triggers: [EffectTrigger.TurnStart],
+      apply(ctx) {
         expect(() => apply(ctx, [foreign])).toThrow(/Cross-battle skill context/)
         checked = true
       },
@@ -282,8 +286,8 @@ it.each(['addCritRate', 'addAccuracy', 'setAccuracy'] as const)('%s keeps empty-
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/empty-outcome',
-      on: 'TurnStart',
-      execute(ctx) {
+      triggers: [EffectTrigger.TurnStart],
+      apply(ctx) {
         apply(ctx, [])
       },
     }),

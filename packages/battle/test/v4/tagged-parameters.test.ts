@@ -225,8 +225,8 @@ it('samples amount then priority per target and appends one modifier per matched
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/tag-read-order',
-      on: 'TurnEnd',
-      execute: selectFrom([a.activePet, b.activePet]).apply(
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([a.activePet, b.activePet]).apply(
         ops.addTaggedParameterModifier('fixture/tag', 'delta', value, rank),
       ),
     }),
@@ -255,8 +255,8 @@ it('rejects foreign scope before reading a modifier amount', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/tag-foreign',
-      on: 'TurnEnd',
-      execute: selectFrom([foreign.a.activePet]).apply(
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([foreign.a.activePet]).apply(
         ops.addTaggedParameterModifier(
           'fixture/tag',
           'delta',

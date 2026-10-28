@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   checks,
   compileEffect,
   conditions,
@@ -18,7 +19,7 @@ function healing(id: string, on: Trigger, divisor: number, needsField = false) {
   return compileEffect(
     defineEffect({
       id,
-      on,
+      triggers: [on],
       priority: 0,
       parameters,
       when: needsField
@@ -27,7 +28,7 @@ function healing(id: string, on: Trigger, divisor: number, needsField = false) {
             targets.ownerMarks.where(mark => mark.baseId === 'mark_guanghuilingyu').condition(checks.exists()),
           )
         : conditions.selfUsesSkill,
-      execute: targets.ownerPet.apply(ops.heal(amount)),
+      apply: targets.ownerPet.apply(ops.heal(amount)),
     }),
   )
 }
@@ -35,16 +36,16 @@ function healing(id: string, on: Trigger, divisor: number, needsField = false) {
 /** Finite divisions retain legacy flooring; a zero divisor is rejected by the shared numeric action boundary. */
 export function createFractionalHealing() {
   return Object.freeze({
-    effect_skill_heal_self_1_6_max_hp: healing('effect_skill_heal_self_1_6_max_hp', 'OnHit', 6),
+    effect_skill_heal_self_1_6_max_hp: healing('effect_skill_heal_self_1_6_max_hp', EffectTrigger.OnHit, 6),
     effect_skill_heal_quarter_if_guanghuilingyu: healing(
       'effect_skill_heal_quarter_if_guanghuilingyu',
-      'OnHit',
+      EffectTrigger.OnHit,
       4,
       true,
     ),
     effect_skill_heal_self_1_6_max_hp_on_defeat_opponent: healing(
       'effect_skill_heal_self_1_6_max_hp_on_defeat_opponent',
-      'OnDefeat',
+      EffectTrigger.OnDefeat,
       6,
     ),
   })

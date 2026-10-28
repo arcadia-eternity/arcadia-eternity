@@ -1,5 +1,12 @@
 import type { BaseMark } from '@arcadia-eternity/battle/v4'
-import { compileEffect, defineEffect, ops, selectFrom, targets } from '@arcadia-eternity/battle/v4/authoring'
+import {
+  EffectTrigger,
+  compileEffect,
+  defineEffect,
+  ops,
+  selectFrom,
+  targets,
+} from '@arcadia-eternity/battle/v4/authoring'
 
 /** The supplied ordered catalog is read at execution time, including membership and tag changes. */
 export function createCurseMarkApplication(marks: ReadonlyMap<string, BaseMark>) {
@@ -11,9 +18,9 @@ export function createCurseMarkApplication(marks: ReadonlyMap<string, BaseMark>)
   return compileEffect(
     defineEffect({
       id: 'effect_mark_curse_add_random_status',
-      on: 'OnMarkDestroy',
+      triggers: [EffectTrigger.OnMarkDestroy],
       priority: 0,
-      execute: targets.ownerPet.apply(ops.addMark(randomStatus)),
+      apply: targets.ownerPet.apply(ops.addMark(randomStatus)),
     }),
   )
 }

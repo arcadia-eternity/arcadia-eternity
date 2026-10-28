@@ -22,7 +22,7 @@ export async function setup(args = process.argv.slice(2), root = process.cwd()) 
   }
 
   const pin = JSON.parse(await readFile(join(root, 'arcadia-sdk.json'), 'utf8'))
-  if (!/^[a-f0-9]{40}$/.test(pin.revision) || !/^\d+\.\d+\.\d+$/.test(pin.pnpmVersion) || pin.sdkApi !== 1)
+  if (!/^[a-f0-9]{40}$/.test(pin.revision) || !/^\d+\.\d+\.\d+$/.test(pin.pnpmVersion) || pin.sdkApi !== 2)
     throw new Error('Invalid SDK pin in arcadia-sdk.json')
   if (process.platform === 'win32' || Number(process.versions.node.split('.')[0]) !== 24)
     throw new Error('This development SDK currently supports Node.js 24 on Linux or macOS.')

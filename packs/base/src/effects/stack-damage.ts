@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   checks,
   compileEffect,
   conditions,
@@ -18,13 +19,13 @@ export function createStackDamageEffects() {
     effect_mark_special_damage_reduction_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_special_damage_reduction_with_stack',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.sourceMark
@@ -38,11 +39,11 @@ export function createStackDamageEffects() {
     effect_skill_add_damage_30_per_niliu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_30_per_niliu',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         parameters: { damagePerStack },
         when: conditions.all(conditions.selfUsesSkill, inverseCurrent.condition(checks.exists())),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: values.combine(inverseCurrent.first().attribute('stack'), damagePerStack, (stack, amount) =>

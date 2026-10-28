@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   compileEffect,
   defineEffect,
   conditions,
@@ -13,10 +14,10 @@ export function createGeneratedSkillFlags() {
     effect_ability_multi_hit_skills_sure_hit: compileEffect(
       defineEffect({
         id: 'effect_ability_multi_hit_skills_sure_hit',
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.selfSkills
             .where(skill => (Array.isArray(skill.multihit) ? skill.multihit[0] : skill.multihit) !== 1)
             .apply(ops.setSkillSureHit(true)),
@@ -26,10 +27,10 @@ export function createGeneratedSkillFlags() {
     effect_emblem_fenshenshu_set_sure_hit: compileEffect(
       defineEffect({
         id: 'effect_emblem_fenshenshu_set_sure_hit',
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.selfSkills
             .where(skill => (skill.baseId as string) === 'skill_fenshenshu')
             .apply(ops.setSkillSureHit(true)),
@@ -39,12 +40,12 @@ export function createGeneratedSkillFlags() {
     effect_emblem_jihuo_fire_skill_sure_hit: compileEffect(
       defineEffect({
         id: 'effect_emblem_jihuo_fire_skill_sure_hit',
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: conditions.all(
           targets.selfSkills.where(skill => (skill.element as string) === 'Fire').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.selfSkills.where(skill => (skill.element as string) === 'Fire').apply(ops.setSkillSureHit(true)),
         ),
       }),
@@ -52,10 +53,10 @@ export function createGeneratedSkillFlags() {
     effect_emblem_pofangyiji_sure_hit: compileEffect(
       defineEffect({
         id: 'effect_emblem_pofangyiji_sure_hit',
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.selfSkills
             .where(skill => (skill.baseId as string) === 'skill_pofangyiji')
             .apply(ops.setSkillSureHit(true)),
@@ -65,10 +66,10 @@ export function createGeneratedSkillFlags() {
     effect_emblem_skill_kaowenzhe_sure_hit: compileEffect(
       defineEffect({
         id: 'effect_emblem_skill_kaowenzhe_sure_hit',
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.selfSkills
             .where(skill => (skill.baseId as string) === 'skill_kaowenzhe')
             .apply(ops.setSkillSureHit(true)),
@@ -78,10 +79,10 @@ export function createGeneratedSkillFlags() {
     effect_emblem_skill_tongjiling_sure_hit: compileEffect(
       defineEffect({
         id: 'effect_emblem_skill_tongjiling_sure_hit',
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.selfSkills
             .where(skill => (skill.baseId as string) === 'skill_tongjiling')
             .apply(ops.setSkillSureHit(true)),

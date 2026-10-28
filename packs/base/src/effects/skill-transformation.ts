@@ -1,14 +1,22 @@
-import { compileEffect, conditions, contexts, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import {
+  EffectTrigger,
+  compileEffect,
+  conditions,
+  contexts,
+  defineEffect,
+  ops,
+  targets,
+} from '@arcadia-eternity/battle/v4/authoring'
 
 /** Restore the most recently installed transformation after this instance finishes its skill use. */
 export function createSkillTransformationRemoval() {
   return compileEffect(
     defineEffect({
       id: 'effect_skill_clear_transform_when_use',
-      on: 'SkillUseEnd',
+      triggers: [EffectTrigger.SkillUseEnd],
       priority: 5,
       when: conditions.selfUsesSkill,
-      execute: targets.sourceSkill.apply(ops.removeSkillTransformation()),
+      apply: targets.sourceSkill.apply(ops.removeSkillTransformation()),
     }),
   )
 }
@@ -18,7 +26,7 @@ export function createSkillTransformationCopy() {
   return compileEffect(
     defineEffect({
       id: 'effect_skill_change_to_used_skill',
-      on: 'AfterUseSkillCheck',
+      triggers: [EffectTrigger.AfterUseSkillCheck],
       priority: 0,
       when: conditions.all(
         conditions.sourceOwnsEvent,
@@ -27,7 +35,7 @@ export function createSkillTransformationCopy() {
           return skills[0] !== used
         }),
       ),
-      execute: targets.sourceSkill.apply(ops.transformSkill(contexts.skillUse.select(use => use.skill.base).first())),
+      apply: targets.sourceSkill.apply(ops.transformSkill(contexts.skillUse.select(use => use.skill.base).first())),
     }),
   )
 }

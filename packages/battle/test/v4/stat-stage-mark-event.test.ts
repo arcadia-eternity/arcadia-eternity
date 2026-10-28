@@ -163,8 +163,8 @@ it('reuses nearest mark queries independently while admission keeps the direct-e
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/query',
-      on: 'TurnStart',
-      execute(ctx) {
+      triggers: [EffectTrigger.TurnStart],
+      apply(ctx) {
         observed.push(ctx.read(query), conditions.ownerAddsMark(ctx))
         const event = ctx.read(contexts.addMark.first())
         if (event) event.stack = 5

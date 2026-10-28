@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   contexts,
@@ -14,7 +15,7 @@ export function createEmblemSkillCost() {
   return compileEffect(
     defineEffect({
       id: 'effect_emblem_yinji_reduce_rage_cost_xinzhiyinji',
-      on: 'BeforeUseSkillCheck',
+      triggers: [EffectTrigger.BeforeUseSkillCheck],
       priority: 0,
       parameters: { reduction },
       when: conditions.all(
@@ -23,7 +24,7 @@ export function createEmblemSkillCost() {
           uses.some(use => ['skill_xinzhiyinji', 'skill_xuehongyinji'].includes(use.skill.baseId)),
         ),
       ),
-      execute: contexts.skillUse
+      apply: contexts.skillUse
         .property('rage')
         .apply(
           ops.assign(

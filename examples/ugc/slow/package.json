@@ -24,7 +24,7 @@
     "namespace": "example-slow",
     "content": "content.json",
     "effects": "dist/effects.js",
-    "sdkApi": 1,
+    "sdkApi": 2,
     "exports": [
       {
         "id": "apply-slow",

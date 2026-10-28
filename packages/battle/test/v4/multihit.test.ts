@@ -318,7 +318,7 @@ for (const native of [false, true]) {
     const r = run('effect_skill_add_hit_result_ruodian', native, 'skill', 'phase', { counts: [2, 7] })
     expect(r.cursor).toBe(3)
     expect(r.resolvedHits).toBe(2)
-    expect(r.events).toEqual(['OnHit', 'OnHit'])
+    expect(r.events).toEqual([EffectTrigger.OnHit, EffectTrigger.OnHit])
   })
   for (const uses of [1, 2, 3, 4, 5]) {
     it(`usage counts at execution ${native}/${uses}`, () => {
@@ -337,7 +337,7 @@ for (const native of [false, true]) {
     const miss = run('effect_ability_add_multihit_1_on_multihit_skill', native, 'mark', 'miss')
     expect(miss.cursor).toBe(1)
     expect(miss.resolvedHits).toBe(3)
-    expect(miss.events).toEqual(['OnMiss'])
+    expect(miss.events).toEqual([EffectTrigger.OnMiss])
   })
 }
 for (const id of ids.filter(id => id.includes('_percent_')))
@@ -399,8 +399,8 @@ for (const operation of ['addMultihitResult', 'setMultihit'] as const)
       const effect = compileEffect(
         defineEffect({
           id: 'fixture/multihit-read',
-          on: 'BeforeMultiHit',
-          execute: selectFrom(uses).apply(ops[operation](input)),
+          triggers: [EffectTrigger.BeforeMultiHit],
+          apply: selectFrom(uses).apply(ops[operation](input)),
         }),
       )
       const c = new EffectContext(uses[0], EffectTrigger.BeforeMultiHit, a.activePet.skills[0], effect)
@@ -471,8 +471,8 @@ for (const operation of ['addMultihitResult', 'setMultihit'] as const)
       const effect = compileEffect(
         defineEffect({
           id: 'fixture/multihit-boundary',
-          on: 'BeforeMultiHit',
-          execute: selectFrom([variant === 'foreign' ? foreign : use]).apply(ops[operation](input)),
+          triggers: [EffectTrigger.BeforeMultiHit],
+          apply: selectFrom([variant === 'foreign' ? foreign : use]).apply(ops[operation](input)),
         }),
       )
       const c = new EffectContext(use, EffectTrigger.BeforeMultiHit, a.activePet.skills[0], effect)

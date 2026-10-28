@@ -174,8 +174,8 @@ it('combined plans retain sibling dependencies after a fault and reject missing 
     return compileEffect(
       defineEffect({
         id: `fixture/combined/${capture}`,
-        on: 'OnMarkCreated',
-        execute: targets.ownerPet.apply(
+        triggers: [EffectTrigger.OnMarkCreated],
+        apply: targets.ownerPet.apply(
           ops.bindAttribute({
             key: 'combined',
             attribute: 'critRate',

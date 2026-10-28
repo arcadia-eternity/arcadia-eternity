@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   compileEffect,
   defineEffect,
   conditions,
@@ -15,31 +16,31 @@ export function createGeneratedSkillNumericReferences() {
     effect_ability_physical_evasion_boost_5_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_physical_evasion_boost_5_percent',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.ownerIsSkillTarget,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
-        execute: actions.sequence(contexts.skillUse.property('evasion').apply(ops.add(5))),
+        apply: actions.sequence(contexts.skillUse.property('evasion').apply(ops.add(5))),
       }),
     ),
     effect_ability_reduce_climax_skill_rage_cost_5: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_climax_skill_rage_cost_5',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
         ),
-        execute: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
+        apply: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
       }),
     ),
     effect_emblem_reduce_5_rage_cost_in_field_chongqun: compileEffect(
       defineEffect({
         id: 'effect_emblem_reduce_5_rage_cost_in_field_chongqun',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -53,66 +54,66 @@ export function createGeneratedSkillNumericReferences() {
             .where(mark => mark.baseId === 'mark_global_chongqun')
             .condition(checks.exists()),
         ),
-        execute: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
+        apply: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
       }),
     ),
     effect_emblem_reduce_light_climax_skill_rage_cost_5: compileEffect(
       defineEffect({
         id: 'effect_emblem_reduce_light_climax_skill_rage_cost_5',
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Light'),
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
         ),
-        execute: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
+        apply: actions.sequence(contexts.skillUse.property('rage').apply(ops.add(-5))),
       }),
     ),
     effect_skill_priority_plus_1: compileEffect(
       defineEffect({
         id: 'effect_skill_priority_plus_1',
-        on: 'BeforeSort',
+        triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
       }),
     ),
     effect_skill_priority_plus_1_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_priority_plus_1_if_aideminyi',
-        on: 'BeforeSort',
+        triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
       }),
     ),
     effect_skill_priority_plus_1_if_atk_over_500: compileEffect(
       defineEffect({
         id: 'effect_skill_priority_plus_1_if_atk_over_500',
-        on: 'BeforeSort',
+        triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.atk).first())
           const right = 500
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
       }),
     ),
     effect_skill_priority_plus_2_if_has_mark_chaojipenti: compileEffect(
       defineEffect({
         id: 'effect_skill_priority_plus_2_if_has_mark_chaojipenti',
-        on: 'BeforeSort',
+        triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_chaojipenti').condition(checks.exists()),
         ),
-        execute: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(2))),
+        apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(2))),
       }),
     ),
   })

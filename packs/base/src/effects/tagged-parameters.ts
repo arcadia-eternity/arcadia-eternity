@@ -1,4 +1,4 @@
-import { compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
 
 /** Match installed parameter tags at execution; repeated applications append scoped modifiers. */
 export function createTaggedParameterModifiers() {
@@ -6,9 +6,9 @@ export function createTaggedParameterModifiers() {
     compileEffect(
       defineEffect({
         id,
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
-        execute: targets.ownerPet.apply(ops.addTaggedParameterModifier(tag, 'delta', amount)),
+        apply: targets.ownerPet.apply(ops.addTaggedParameterModifier(tag, 'delta', amount)),
       }),
     )
   return Object.freeze({
@@ -35,9 +35,9 @@ export function createTaggedParameterModifiers() {
     effect_emblem_add_mark_mabi_chance_5: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_mark_mabi_chance_5',
-        on: 'OnBattleStart',
+        triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
-        execute: targets.opponentPlayer.apply(ops.addTaggedParameterModifier('mark_mabi_chance', 'delta', 5)),
+        apply: targets.opponentPlayer.apply(ops.addTaggedParameterModifier('mark_mabi_chance', 'delta', 5)),
       }),
     ),
   })

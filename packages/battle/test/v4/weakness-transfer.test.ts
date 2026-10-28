@@ -180,8 +180,8 @@ for (const value of [true, false, undefined])
     const effect = compileEffect(
       defineEffect({
         id: 'fixture/transfer-flag',
-        on: 'TurnEnd',
-        execute: selectFrom([first, second]).apply(ops.setMarkTransferOnSwitch(input)),
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom([first, second]).apply(ops.setMarkTransferOnSwitch(input)),
       }),
     )
     battle.executionBudget.run(0, () => effect.innerApply(parent))
@@ -210,8 +210,8 @@ it('rejects a foreign application context before reading or writing', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/foreign-transfer',
-      on: 'TurnEnd',
-      execute: selectFrom([first, second]).apply(ops.setMarkTransferOnSwitch(input)),
+      triggers: [EffectTrigger.TurnEnd],
+      apply: selectFrom([first, second]).apply(ops.setMarkTransferOnSwitch(input)),
     }),
   )
   const before = structuredClone([first.config, second.config])

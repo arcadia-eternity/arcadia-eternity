@@ -5,7 +5,7 @@ import type { NativeEffectContext, NativeEffectDefinition, NativeEffectTrigger }
 import { nativeEffectContext } from './authoring/runtime'
 
 /** Bump when the injected authoring/module contract changes incompatibly. Actual builds have separate digests. */
-export const effectSdkApiVersion = 1 as const
+export const effectSdkApiVersion = 2 as const
 
 /** A code export is compiled separately for each content use. Never keep battle state in this factory. */
 export interface CodeEffectContext {
@@ -44,7 +44,7 @@ export function defineCodeEffect<
 }): NativeBehaviorExport
 export function defineCodeEffect(input: CodeExport & object): NativeBehaviorExport {
   type Parameters = Readonly<Record<string, Parameter<unknown>>>
-  type Definition = EffectDefinition<Trigger, Parameters> | NativeCodeEffectDefinition<NativeEffectTrigger, Parameters>
+  type Definition = EffectDefinition<Trigger, Parameters>
   const declared = input as CodeExport & NativeCodeEffectDefinition<NativeEffectTrigger, Parameters>
   const direct =
     'build' in input
@@ -60,28 +60,25 @@ export function defineCodeEffect(input: CodeExport & object): NativeBehaviorExpo
   const build =
     'build' in input
       ? (input.build as (context: CodeEffectContext) => Definition)
-      : (context: CodeEffectContext) => ({
-          ...direct!,
-          id: context.effectId,
-        })
+      : (context: CodeEffectContext): Definition => {
+          const { when, apply, ...metadata } = direct!
+          if (typeof apply !== 'function') throw new Error('Native code effect requires an apply callback')
+          // Preserve native context identity; authored factories already receive an authoring frame.
+          return {
+            ...metadata,
+            id: context.effectId,
+            when: when
+              ? frame => when(nativeEffectContext(frame) as NativeEffectContext<NativeEffectTrigger>)
+              : undefined,
+            apply: frame => apply(nativeEffectContext(frame) as NativeEffectContext<NativeEffectTrigger>),
+          }
+        }
   if (typeof build !== 'function') throw new Error('Code effect requires a definition factory')
   return defineNativeBehavior({
     id: input.id,
     sourceKind: input.sourceKind,
     parameters: {},
-    build(context) {
-      const definition = build({ effectId: context.effectId, sourceMark: context.sourceMark })
-      if (!('triggers' in definition)) return definition
-      const { triggers, when, apply, ...metadata } = definition
-      if (typeof apply !== 'function') throw new Error('Native code effect requires an apply callback')
-      // Only adapt registration. Timing, context identity and domain operations are the official engine's.
-      return {
-        ...metadata,
-        on: triggers.length === 1 ? triggers[0] : triggers,
-        when: when ? frame => when(nativeEffectContext(frame) as NativeEffectContext<NativeEffectTrigger>) : undefined,
-        execute: frame => apply(nativeEffectContext(frame) as NativeEffectContext<NativeEffectTrigger>),
-      }
-    },
+    build: context => build({ effectId: context.effectId, sourceMark: context.sourceMark }),
   })
 }
 

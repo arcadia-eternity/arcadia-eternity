@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   contexts,
@@ -11,9 +12,9 @@ function healingModifier(id: string, percent: number, when: Condition = conditio
   return compileEffect(
     defineEffect({
       id,
-      on: 'OnBeforeHeal',
+      triggers: [EffectTrigger.OnBeforeHeal],
       when,
-      execute: contexts.heal.apply(ops.modifyHeal({ percent, delta: 0 })),
+      apply: contexts.heal.apply(ops.modifyHeal({ percent, delta: 0 })),
     }),
   )
 }

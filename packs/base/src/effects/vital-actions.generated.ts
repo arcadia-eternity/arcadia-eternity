@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   numberParam,
   compileEffect,
   defineEffect,
@@ -17,20 +18,20 @@ export function createGeneratedVitalActions() {
     effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end: compileEffect(
       defineEffect({
         id: 'effect_ability_add_rage_15_if_rage_lt_opponent_at_turn_end',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(conditions.ownerIsActive, (ctx: EffectFrame) => {
           const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
           const right = ctx.read(targets.opponentPlayer.select(player => player.currentRage).first())
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(15))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(15))),
       }),
     ),
     effect_ability_add_rage_5_when_attack_opponent_has_tongjiling: compileEffect(
       defineEffect({
         id: 'effect_ability_add_rage_5_when_attack_opponent_has_tongjiling',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -38,22 +39,22 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
           ),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       }),
     ),
     effect_ability_add_rage_5_when_first_attack: compileEffect(
       defineEffect({
         id: 'effect_ability_add_rage_5_when_first_attack',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       }),
     ),
     effect_ability_heal_1_16_when_qingtian: compileEffect(
       defineEffect({
         id: 'effect_ability_heal_1_16_when_qingtian',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(
           conditions.ownerIsActive,
@@ -62,7 +63,7 @@ export function createGeneratedVitalActions() {
             .where(mark => mark.baseId === 'mark_global_qingtian')
             .condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -77,14 +78,14 @@ export function createGeneratedVitalActions() {
     effect_ability_heal_1_8_max_hp_when_rage_gt_opponent: compileEffect(
       defineEffect({
         id: 'effect_ability_heal_1_8_max_hp_when_rage_gt_opponent',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
           const right = ctx.read(targets.opponentPlayer.select(player => player.currentRage).first())
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -99,14 +100,14 @@ export function createGeneratedVitalActions() {
     effect_ability_heal_half_damage_when_rage_lt_opponent: compileEffect(
       defineEffect({
         id: 'effect_ability_heal_half_damage_when_rage_lt_opponent',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
           const right = ctx.read(targets.opponentPlayer.select(player => player.currentRage).first())
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               contexts.damage
@@ -121,19 +122,19 @@ export function createGeneratedVitalActions() {
     effect_ability_huafenmiman_damage_opponent_25_per_turn: compileEffect(
       defineEffect({
         id: 'effect_ability_huafenmiman_damage_opponent_25_per_turn',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(
           conditions.ownerIsActive,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huafenmiman').condition(checks.exists()),
         ),
-        execute: actions.sequence(targets.opponentActive.apply(ops.dealDamage(25))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.dealDamage(25))),
       }),
     ),
     effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -142,55 +143,55 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
           ),
         ),
-        execute: actions.sequence(targets.opponentActive.apply(ops.addRage(-5))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.addRage(-5))),
       }),
     ),
     effect_emblem_add_rage_5_when_use_feixuanzhiguang: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_rage_5_when_use_feixuanzhiguang',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_feixuanzhiguang'),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       }),
     ),
     effect_emblem_add_rage_on_hit_if_has_shunliu: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_rage_on_hit_if_has_shunliu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       }),
     ),
     effect_emblem_yuren_dealdamage_on_physical_skill: compileEffect(
       defineEffect({
         id: 'effect_emblem_yuren_dealdamage_on_physical_skill',
-        on: 'PostDamage',
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
-        execute: actions.sequence(targets.opponentActive.apply(ops.dealDamage(50))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.dealDamage(50))),
       }),
     ),
     effect_heal_1_16_max_hp_per_stack_if_has_niliu: compileEffect(
       defineEffect({
         id: 'effect_heal_1_16_max_hp_per_stack_if_has_niliu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               values.combine(
@@ -212,10 +213,10 @@ export function createGeneratedVitalActions() {
     effect_mark_damage_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_damage_with_stack',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.dealDamage(targets.sourceMark.select(mark => mark.stack).first())),
         ),
       }),
@@ -223,10 +224,10 @@ export function createGeneratedVitalActions() {
     effect_mark_damage_with_stack_mutilipy_10: compileEffect(
       defineEffect({
         id: 'effect_mark_damage_with_stack_mutilipy_10',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               targets.sourceMark
@@ -241,19 +242,19 @@ export function createGeneratedVitalActions() {
     effect_mark_dingshizhadan_on_duration_end_deal_damage_50: compileEffect(
       defineEffect({
         id: 'effect_mark_dingshizhadan_on_duration_end_deal_damage_50',
-        on: 'OnMarkDurationEnd',
+        triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(targets.ownerPet.apply(ops.dealDamage(50))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.dealDamage(50))),
       }),
     ),
     effect_mark_fantan_reflect_damage_1_3: compileEffect(
       defineEffect({
         id: 'effect_mark_fantan_reflect_damage_1_3',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.dealDamage(
               contexts.damage
@@ -268,10 +269,10 @@ export function createGeneratedVitalActions() {
     effect_mark_heal_all_hp_on_expire: compileEffect(
       defineEffect({
         id: 'effect_mark_heal_all_hp_on_expire',
-        on: 'OnMarkDurationEnd',
+        triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first())),
         ),
       }),
@@ -279,10 +280,10 @@ export function createGeneratedVitalActions() {
     effect_mark_posion_damage: compileEffect(
       defineEffect({
         id: 'effect_mark_posion_damage',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               targets.sourceMark
@@ -297,38 +298,38 @@ export function createGeneratedVitalActions() {
     effect_mark_reduce_opponent_rage_15_if_damage_below_75: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_opponent_rage_15_if_damage_below_75',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
           const right = 75
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: actions.sequence(targets.opponentActive.apply(ops.addRage(-15))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.addRage(-15))),
       }),
     ),
     effect_mark_reflect_physical_damage_30: compileEffect(
       defineEffect({
         id: 'effect_mark_reflect_physical_damage_30',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
         ),
-        execute: actions.sequence(targets.opponentActive.apply(ops.dealDamage(30))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.dealDamage(30))),
       }),
     ),
     effect_mark_reflect_special_damage_max_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_reflect_special_damage_max_with_stack',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.dealDamage(
               values.combine(
@@ -344,7 +345,7 @@ export function createGeneratedVitalActions() {
     effect_mark_self_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_self_damage_25_percent',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -352,7 +353,7 @@ export function createGeneratedVitalActions() {
           (ctx: EffectFrame) =>
             ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               contexts.damage
@@ -367,28 +368,28 @@ export function createGeneratedVitalActions() {
     effect_mark_self_damage_on_expire: compileEffect(
       defineEffect({
         id: 'effect_mark_self_damage_on_expire',
-        on: 'OnMarkDurationEnd',
+        triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(targets.ownerPet.apply(ops.dealDamage(300))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.dealDamage(300))),
       }),
     ),
     effect_mark_shijianzhadan_on_duration_end_deal_damage_50: compileEffect(
       defineEffect({
         id: 'effect_mark_shijianzhadan_on_duration_end_deal_damage_50',
-        on: 'OnMarkDurationEnd',
+        triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(targets.ownerPet.apply(ops.dealDamage(100))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.dealDamage(100))),
       }),
     ),
     effect_mark_turn_damage: compileEffect(
       defineEffect({
         id: 'effect_mark_turn_damage',
-        on: 'TurnEnd',
+        triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               targets.ownerPet
@@ -403,16 +404,16 @@ export function createGeneratedVitalActions() {
     effect_skill_add_rage_15_if_first: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_15_if_first',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(15))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(15))),
       }),
     ),
     effect_skill_add_rage_25_if_opponent_shaoshang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_25_if_opponent_shaoshang',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -420,13 +421,13 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shaoshang')),
           ),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(25))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(25))),
       }),
     ),
     effect_skill_add_rage_30_if_guzhanchang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_30_if_guzhanchang',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -435,13 +436,13 @@ export function createGeneratedVitalActions() {
             .where(mark => mark.baseId === 'mark_global_guzhanchang')
             .condition(checks.exists()),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(30))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(30))),
       }),
     ),
     effect_skill_add_rage_30_if_hp_below_half: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_30_if_hp_below_half',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -453,25 +454,25 @@ export function createGeneratedVitalActions() {
           )
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(30))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(30))),
       }),
     ),
     effect_skill_add_rage_40_if_feikonglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_40_if_feikonglingyu',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_feikonglingyu').condition(checks.exists()),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(35))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(35))),
       }),
     ),
     effect_skill_add_rage_opponent_45_if_opponent_has_kaowen: compileEffect(
       defineEffect({
         id: 'effect_skill_add_rage_opponent_45_if_opponent_has_kaowen',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -479,13 +480,13 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
           ),
         ),
-        execute: actions.sequence(targets.opponentActive.apply(ops.addRage(45))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.addRage(45))),
       }),
     ),
     effect_skill_add_self_40_rage_if_opponent_mabi: compileEffect(
       defineEffect({
         id: 'effect_skill_add_self_40_rage_if_opponent_mabi',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -493,16 +494,16 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
           ),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.addRage(40))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.addRage(40))),
       }),
     ),
     effect_skill_deal_damage_spa_sixth_on_miss: compileEffect(
       defineEffect({
         id: 'effect_skill_deal_damage_spa_sixth_on_miss',
-        on: 'OnMiss',
+        triggers: [EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.opponentActive.apply(
             ops.dealDamage(
               targets.ownerPet
@@ -517,19 +518,19 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_125_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_125_if_aideminyi',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: actions.sequence(targets.ownerPet.apply(ops.heal(125))),
+        apply: actions.sequence(targets.ownerPet.apply(ops.heal(125))),
       }),
     ),
     effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -537,7 +538,7 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_jingshencuoluan')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               contexts.damage
@@ -557,11 +558,11 @@ export function createGeneratedVitalActions() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_heal_70_double_if_field_yemu',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: actions.sequence(
+          apply: actions.sequence(
             targets.ownerPet.apply(
               ops.heal(
                 values.choose(
@@ -581,10 +582,10 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_by_damage_25_zhongzinengliang: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_by_damage_25_zhongzinengliang',
-        on: 'PostDamage',
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               values.combine(
@@ -606,14 +607,14 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_half_damage_dealt_if_3_hits: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_half_damage_dealt_if_3_hits',
-        on: 'OnDamage',
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
           const right = 3
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               contexts.damage
@@ -628,13 +629,13 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_self_1_16_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_self_1_16_if_aideminyi',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -649,10 +650,10 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_self_by_kongqi: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_self_by_kongqi',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerMarks
@@ -667,10 +668,10 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_self_def_quarter_hit_or_miss: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_self_def_quarter_hit_or_miss',
-        on: ['OnHit', 'OnMiss'],
+        triggers: [EffectTrigger.OnHit, EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -685,10 +686,10 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_self_eighth: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_self_eighth',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -703,7 +704,7 @@ export function createGeneratedVitalActions() {
     effect_skill_heal_self_quarter_if_opponent_has_kaowen_on_defeat_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_heal_self_quarter_if_opponent_has_kaowen_on_defeat_opponent',
-        on: 'OnDefeat',
+        triggers: [EffectTrigger.OnDefeat],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -711,7 +712,7 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
           ),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
               targets.ownerPet
@@ -726,7 +727,7 @@ export function createGeneratedVitalActions() {
     effect_skill_reduce_opponent_rage_30_if_opponent_has_tongjiling: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_rage_30_if_opponent_has_tongjiling',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -734,16 +735,16 @@ export function createGeneratedVitalActions() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
           ),
         ),
-        execute: actions.sequence(targets.opponentActive.apply(ops.addRage(-20))),
+        apply: actions.sequence(targets.opponentActive.apply(ops.addRage(-20))),
       }),
     ),
     effect_skill_reduce_self_hp_1_6: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_self_hp_1_6',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               targets.ownerPet
@@ -758,10 +759,10 @@ export function createGeneratedVitalActions() {
     effect_skill_self_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_self_damage_25_percent',
-        on: 'PostDamage',
+        triggers: [EffectTrigger.PostDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
               contexts.damage

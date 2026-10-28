@@ -336,7 +336,11 @@ for (const variant of [
     if (variant === 'foreign') second.owner = other.a
     const selected = ['foreign', 'foreign-after-first'].includes(variant) ? [first, second] : [first]
     const effect = compileEffect(
-      defineEffect({ id: 'fixture/clear-operator', on: 'TurnStart', execute: selectFrom(selected).apply(operation) }),
+      defineEffect({
+        id: 'fixture/clear-operator',
+        triggers: [EffectTrigger.TurnStart],
+        apply: selectFrom(selected).apply(operation),
+      }),
     )
     const apply = () => battle.executionBudget.run(battle.currentTurn, () => effect.innerApply(context))
     if (['foreign', 'foreign-after-first', 'foreign-within-pet'].includes(variant))

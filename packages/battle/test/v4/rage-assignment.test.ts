@@ -131,8 +131,8 @@ for (const amount of [-10, 0, 12.5, 10000])
         const effect = compileEffect(
           defineEffect({
             id: 'fixture/set-rage',
-            on: 'TurnStart',
-            execute: selectFrom(selected).apply(ops.setRage(amount)),
+            triggers: [EffectTrigger.TurnStart],
+            apply: selectFrom(selected).apply(ops.setRage(amount)),
           }),
         )
         f.battle.executionBudget.run(0, () => effect.innerApply(ctx))
@@ -168,8 +168,8 @@ it('samples the value once before phase callbacks and skips absent input', () =>
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/rage-read-once',
-      on: 'TurnStart',
-      execute: selectFrom([f.a, f.b]).apply(ops.setRage(input)),
+      triggers: [EffectTrigger.TurnStart],
+      apply: selectFrom([f.a, f.b]).apply(ops.setRage(input)),
     }),
   )
   const ctx = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, f.a.activePet.skills[0])

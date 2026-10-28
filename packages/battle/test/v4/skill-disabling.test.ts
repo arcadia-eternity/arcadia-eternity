@@ -234,8 +234,8 @@ it('cross-battle skill cancellation rejects before any write', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/foreign-skill',
-      on: 'BeforeUseSkillCheck',
-      execute: selectFrom([own, other]).apply(ops.disableContext()),
+      triggers: [EffectTrigger.BeforeUseSkillCheck],
+      apply: selectFrom([own, other]).apply(ops.disableContext()),
     }),
   )
   expect(() =>

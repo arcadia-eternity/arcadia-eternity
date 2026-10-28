@@ -150,7 +150,11 @@ function run(id: Id, native: boolean, kind: 'mark' | 'skill', variant: string) {
   )
   if (variant === 'empty') f.a.activePet.skills = []
   const fire = () =>
-    f.battle.applyEffects<EffectTrigger>(d.trigger === 'OnBattleStart' ? f.battle : f.event, d.trigger, f.source)
+    f.battle.applyEffects<EffectTrigger>(
+      d.trigger === EffectTrigger.OnBattleStart ? f.battle : f.event,
+      d.trigger,
+      f.source,
+    )
   fire()
   const first = read()
   if (variant === 'repeat') fire()
@@ -222,8 +226,8 @@ it('sourceSkill selects the effect source rather than the current skill event', 
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/source-skill',
-      on: 'BeforeUseSkillCheck',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeUseSkillCheck],
+      apply(ctx) {
         expect(ctx.read(targets.sourceSkill.first())).toBe(f.source)
       },
     }),
@@ -241,9 +245,13 @@ for (const id of ids)
       const read = () => f.skills.map(s => s.attributeSystem.getAttribute$(d.apply.attribute).value)
       const before = read(),
         fire = () =>
-          f.battle.applyEffects<EffectTrigger>(d.trigger === 'OnBattleStart' ? f.battle : f.event, d.trigger, f.source)
+          f.battle.applyEffects<EffectTrigger>(
+            d.trigger === EffectTrigger.OnBattleStart ? f.battle : f.event,
+            d.trigger,
+            f.source,
+          )
       // Starting a battle naturally dispatches OnBattleStart once; install manually only for OnMarkCreated.
-      if (d.trigger === 'OnMarkCreated') fire()
+      if (d.trigger === EffectTrigger.OnMarkCreated) fire()
       const ready = new Promise<void>(resolve =>
         f.battle.registerListener(m => {
           if (m.type === BattleMessageType.TurnAction) resolve()

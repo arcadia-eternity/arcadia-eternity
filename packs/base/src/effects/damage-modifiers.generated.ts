@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   compileEffect,
   defineEffect,
   numberParam,
@@ -16,52 +17,52 @@ export function createGeneratedDamageModifierEffects() {
     effect_ability_add_damage_40_if_using_yutu_skill: compileEffect(
       defineEffect({
         id: 'effect_ability_add_damage_40_if_using_yutu_skill',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('yutu'))),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
       }),
     ),
     effect_ability_damage_add_10: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_add_10',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 10 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 10 })),
       }),
     ),
     effect_ability_damage_amplify_10_percent_has_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_10_percent_has_aideminyi',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_ability_damage_amplify_10_percent_has_kongqichuliang: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_10_percent_has_kongqichuliang',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_ability_damage_amplify_10_percent_opponent_has_manxingduyao: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_10_percent_opponent_has_manxingduyao',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -69,13 +70,13 @@ export function createGeneratedDamageModifierEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_manxingduyao')),
           ),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_ability_damage_amplify_10_percent_opponent_has_pofang: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_10_percent_opponent_has_pofang',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -83,13 +84,13 @@ export function createGeneratedDamageModifierEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_pofang')),
           ),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_ability_damage_amplify_15_percent_opponent_has_shaoshang: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_15_percent_opponent_has_shaoshang',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -97,13 +98,13 @@ export function createGeneratedDamageModifierEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shaoshang')),
           ),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       }),
     ),
     effect_ability_damage_amplify_15_percent_opponent_has_xuanyun: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_amplify_15_percent_opponent_has_xuanyun',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -111,53 +112,53 @@ export function createGeneratedDamageModifierEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_xuanyun')),
           ),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       }),
     ),
     effect_ability_damage_boost_10_percent_when_first: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_boost_10_percent_when_first',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_ability_damage_reduction_10: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_reduction_10',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -10 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -10 })),
       }),
     ),
     effect_ability_damage_reduction_10_percent_when_last: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_reduction_10_percent_when_last',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, conditions.not(conditions.lastSkillThisTurn)),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_damage_reduction_50_percent_at_full_hp: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_reduction_50_percent_at_full_hp',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
           const right = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_ability_damage_reduction_below_25_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_damage_reduction_below_25_percent',
-        on: ['OnDamage'],
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -169,49 +170,49 @@ export function createGeneratedDamageModifierEffects() {
           )
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
       }),
     ),
     effect_ability_fixed_damage_15_when_has_penti: compileEffect(
       defineEffect({
         id: 'effect_ability_fixed_damage_15_when_has_penti',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           targets.ownerMarks.where(mark => mark.tags.includes('penti')).condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 15 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 15 })),
       }),
     ),
     effect_ability_ice_damage_boost_15_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_ice_damage_boost_15_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Ice'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       }),
     ),
     effect_ability_increase_special_damage_taken_15_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_increase_special_damage_taken_15_percent',
-        on: ['OnDamage'],
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       }),
     ),
     effect_ability_physical_damage_reduction_below_25_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_physical_damage_reduction_below_25_percent',
-        on: ['OnDamage'],
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -227,46 +228,46 @@ export function createGeneratedDamageModifierEffects() {
           },
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
       }),
     ),
     effect_ability_reduce_damage_10_if_has_mark_huanxiang: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_damage_10_if_has_mark_huanxiang',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_reduce_damage_10_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_damage_10_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_reduce_damage_10_percent_has_shazhidanke: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_damage_10_percent_has_shazhidanke',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.skillActorDiffersFromOwner,
@@ -274,170 +275,170 @@ export function createGeneratedDamageModifierEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
           ),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_reduce_damage_when_max_hp_over_500: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_damage_when_max_hp_over_500',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           const right = 500
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_reduce_physical_damage_30_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_physical_damage_30_percent',
-        on: ['OnDamage'],
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
       }),
     ),
     effect_ability_reduce_special_damage_10_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_reduce_special_damage_10_percent',
-        on: ['OnDamage'],
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_ability_shuiliangbaohe_increase_damage_10_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_shuiliangbaohe_increase_damage_10_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_ability_shuiliangchongzu_increase_damage_5_percent: compileEffect(
       defineEffect({
         id: 'effect_ability_shuiliangchongzu_increase_damage_5_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       }),
     ),
     effect_emblem_add_damage_if_has_niliu: compileEffect(
       defineEffect({
         id: 'effect_emblem_add_damage_if_has_niliu',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_emblem_climax_damage_boost_10_percent: compileEffect(
       defineEffect({
         id: 'effect_emblem_climax_damage_boost_10_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_emblem_increase_quan_skill_damage_5_percent: compileEffect(
       defineEffect({
         id: 'effect_emblem_increase_quan_skill_damage_5_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('quan'))),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       }),
     ),
     effect_emblem_zhongji_damage_boost_35_percent: compileEffect(
       defineEffect({
         id: 'effect_emblem_zhongji_damage_boost_35_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_zhongji'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
       }),
     ),
     effect_mark_buxieanguang_reduce_light_damage_half: compileEffect(
       defineEffect({
         id: 'effect_mark_buxieanguang_reduce_light_damage_half',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.element === 'Light'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_mark_double_physical_damage_taken: compileEffect(
       defineEffect({
         id: 'effect_mark_double_physical_damage_taken',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
       }),
     ),
     effect_mark_double_special_damage_taken: compileEffect(
       defineEffect({
         id: 'effect_mark_double_special_damage_taken',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
       }),
     ),
     effect_mark_fixed_damage_20: compileEffect(
       defineEffect({
         id: 'effect_mark_fixed_damage_20',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 20 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 20 })),
       }),
     ),
     effect_mark_fixed_damage_40: compileEffect(
       defineEffect({
         id: 'effect_mark_fixed_damage_40',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
       }),
     ),
     effect_mark_hongbaoshizhiguang_add_200_fixed_damage: (() => {
@@ -451,7 +452,7 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_hongbaoshizhiguang_add_200_fixed_damage',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           consumesStacks: 1,
           parameters,
@@ -459,17 +460,17 @@ export function createGeneratedDamageModifierEffects() {
             conditions.selfBeDamaged,
             contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_hongbaoshizhiguang'),
           ),
-          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+          apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }),
       )
     })(),
     effect_mark_increase_damage_10_percent_per_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_10_percent_per_stack',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: targets.sourceMark
               .select(mark => mark.stack)
@@ -483,46 +484,46 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_increase_damage_dealt_10_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_dealt_10_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_mark_increase_damage_dealt_20_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_dealt_20_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
       }),
     ),
     effect_mark_increase_damage_dealt_25_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_dealt_25_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 25, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 25, delta: 0 })),
       }),
     ),
     effect_mark_increase_damage_dealt_35_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_dealt_35_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
       }),
     ),
     effect_mark_increase_damage_taken: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_taken',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({ percent: targets.sourceMark.select(mark => mark.stack).first(), delta: 0 }),
         ),
       }),
@@ -540,11 +541,11 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_increase_damage_taken_15_percent_per_stack',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           parameters,
           when: conditions.selfBeDamaged,
-          execute: contexts.damage.apply(
+          apply: contexts.damage.apply(
             ops.modifyDamage({
               percent: values.combine(
                 targets.sourceMark.select(mark => mark.stack).first(),
@@ -560,76 +561,76 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_increase_damage_taken_40: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_taken_40',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
       }),
     ),
     effect_mark_increase_damage_taken_50: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_taken_50',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       }),
     ),
     effect_mark_increase_damage_taken_50_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_taken_50_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       }),
     ),
     effect_mark_increase_damage_taken_75_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_damage_taken_75_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 75, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 75, delta: 0 })),
       }),
     ),
     effect_mark_increase_multi_hit_damage_35_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_multi_hit_damage_35_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
           const right = 1
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
       }),
     ),
     effect_mark_increase_self_element_damage_10_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_self_element_damage_10_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const element = ctx.read(contexts.skillUse.select(event => event.element).first())
           const own = ctx.read(targets.ownerPet.select(pet => pet.element).first())
           return element !== undefined && own !== undefined && element === own
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       }),
     ),
     effect_mark_increase_self_element_damage_20_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_self_element_damage_20_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const element = ctx.read(contexts.skillUse.select(event => event.element).first())
           const own = ctx.read(targets.ownerPet.select(pet => pet.element).first())
           return element !== undefined && own !== undefined && element === own
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
       }),
     ),
     effect_mark_jiguang_add_200_damage: (() => {
@@ -643,7 +644,7 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_jiguang_add_200_damage',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           consumesStacks: 1,
           parameters,
@@ -651,7 +652,7 @@ export function createGeneratedDamageModifierEffects() {
             conditions.selfBeDamaged,
             contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_jiguang'),
           ),
-          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+          apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }),
       )
     })(),
@@ -666,7 +667,7 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_jueying_add_200_damage',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           consumesStacks: 1,
           parameters,
@@ -674,7 +675,7 @@ export function createGeneratedDamageModifierEffects() {
             conditions.selfBeDamaged,
             contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_jueying'),
           ),
-          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+          apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }),
       )
     })(),
@@ -689,7 +690,7 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_lanbaoshizhiguang_add_200_fixed_damage',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           consumesStacks: 1,
           parameters,
@@ -697,20 +698,20 @@ export function createGeneratedDamageModifierEffects() {
             conditions.selfBeDamaged,
             contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_lanbaoshizhili'),
           ),
-          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+          apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }),
       )
     })(),
     effect_mark_reduce_atk_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_atk_damage_25_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
       }),
     ),
     effect_mark_reduce_damage_15_percent_per_stack: (() => {
@@ -724,11 +725,11 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_reduce_damage_15_percent_per_stack',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           parameters,
           when: conditions.selfBeDamaged,
-          execute: contexts.damage.apply(
+          apply: contexts.damage.apply(
             ops.modifyDamage({
               percent: values.combine(
                 targets.sourceMark.select(mark => mark.stack).first(),
@@ -744,37 +745,37 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_reduce_damage_30_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_30_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
       }),
     ),
     effect_mark_reduce_damage_50_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_50_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_mark_reduce_damage_dealt_40: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_dealt_40',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -40 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -40 })),
       }),
     ),
     effect_mark_reduce_damage_taken_10_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_taken_10_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       }),
     ),
     effect_mark_reduce_damage_taken_15_percent_per_stack: (() => {
@@ -788,11 +789,11 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_reduce_damage_taken_15_percent_per_stack',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           parameters,
           when: conditions.selfBeDamaged,
-          execute: contexts.damage.apply(
+          apply: contexts.damage.apply(
             ops.modifyDamage({
               percent: values
                 .combine(targets.sourceMark.select(mark => mark.stack).first(), parameters.percent_step1, (n, factor) =>
@@ -808,28 +809,28 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_reduce_damage_taken_20_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_taken_20_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
       }),
     ),
     effect_mark_reduce_damage_taken_25_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_taken_25_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
       }),
     ),
     effect_mark_reduce_damage_taken_by_25_per_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_damage_taken_by_25_per_stack',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.sourceMark
@@ -843,47 +844,47 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_reduce_fire_damage_half: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_fire_damage_half',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Fire'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_mark_reduce_next_skill_damage_50_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_next_skill_damage_50_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         consumesStacks: 1,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_mark_reduce_opponent_spa_damage_20_percent: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_opponent_spa_damage_20_percent',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
       }),
     ),
     effect_mark_reduce_physical_damage_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_physical_damage_with_stack',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
         ),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: targets.sourceMark
               .select(mark => mark.stack)
@@ -897,25 +898,25 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_reduce_special_damage_30: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_special_damage_30',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -30 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -30 })),
       }),
     ),
     effect_mark_reduce_special_damage_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_special_damage_with_stack',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: targets.sourceMark
               .select(mark => mark.stack)
@@ -929,10 +930,10 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150: compileEffect(
       defineEffect({
         id: 'effect_mark_shijianhudun_reduce_damage_75_if_has_mark_shijianfaze_150',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: values.choose(
@@ -947,20 +948,20 @@ export function createGeneratedDamageModifierEffects() {
     effect_mark_xulichongji_add_50_percent_damage: compileEffect(
       defineEffect({
         id: 'effect_mark_xulichongji_add_50_percent_damage',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         consumesStacks: 1,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       }),
     ),
     effect_skill_add_damage_40_or_80_if_has_xukongganying: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_40_or_80_if_has_xukongganying',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: values.choose(
@@ -975,10 +976,10 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_add_damage_50_or_100_if_has_xukongganying: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_50_or_100_if_has_xukongganying',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: values.choose(
@@ -993,10 +994,10 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_add_damage_50_per_usetime: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_50_per_usetime',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: targets.ownerPet
               .select(pet => pet.lastSkillUsedTimes)
@@ -1012,10 +1013,10 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_add_damage_50_percent_if_last: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_50_percent_if_last',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       }),
     ),
     effect_skill_add_damage_80_if_opponent_has_mark_zhongdu: (() => {
@@ -1023,7 +1024,7 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_damage_80_if_opponent_has_mark_zhongdu',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -1032,17 +1033,17 @@ export function createGeneratedDamageModifierEffects() {
               pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
             ),
           ),
-          execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
+          apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }),
       )
     })(),
     effect_skill_add_damage_by_kongqichuliang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_by_kongqichuliang',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.ownerMarks
@@ -1056,14 +1057,14 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_add_damage_maxhp_1_4_maxhp_max_180: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_maxhp_1_4_maxhp_max_180',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
           const right = ctx.read(targets.opponentActive.select(pet => pet.stat.maxHp).first())
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.opponentActive
@@ -1078,10 +1079,10 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_add_damage_spa_sixth: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_spa_sixth',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.ownerPet
@@ -1095,62 +1096,62 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_add_fixed_damage_100_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_100_if_has_jinbao',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 100 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 100 })),
       }),
     ),
     effect_skill_add_fixed_damage_25_if_3_hits: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_25_if_3_hits',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
           const right = 3
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 25 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 25 })),
       }),
     ),
     effect_skill_add_fixed_damage_50: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_50',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
       }),
     ),
     effect_skill_add_fixed_damage_50_if_first: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_50_if_first',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
       }),
     ),
     effect_skill_add_fixed_damage_50_if_last: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_50_if_last',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
       }),
     ),
     effect_skill_add_fixed_damage_55: compileEffect(
       defineEffect({
         id: 'effect_skill_add_fixed_damage_55',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 55 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 55 })),
       }),
     ),
     effect_skill_add_fixed_damage_6_percent_max_hp: (() => {
@@ -1164,11 +1165,11 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_fixed_damage_6_percent_max_hp',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: contexts.damage.apply(
+          apply: contexts.damage.apply(
             ops.modifyDamage({
               percent: 0,
               delta: values.combine(
@@ -1184,82 +1185,82 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_damage_increase_30_percent_if_first: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_increase_30_percent_if_first',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 30, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 30, delta: 0 })),
       }),
     ),
     effect_skill_damage_increase_30_percent_if_last: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_increase_30_percent_if_last',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 30, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 30, delta: 0 })),
       }),
     ),
     effect_skill_damage_increase_50_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_increase_50_if_has_jinbao',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       }),
     ),
     effect_skill_damage_increase_50_if_has_zhaocai: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_increase_50_if_has_zhaocai',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       }),
     ),
     effect_skill_damage_reduce_50_if_has_jinbao: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_reduce_50_if_has_jinbao',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_skill_damage_reduce_50_if_has_zhaocai: compileEffect(
       defineEffect({
         id: 'effect_skill_damage_reduce_50_if_has_zhaocai',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       }),
     ),
     effect_skill_fixed_damage_30_70: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_30_70',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: values.randomInt(30, 70) })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: values.randomInt(30, 70) })),
       }),
     ),
     effect_skill_fixed_damage_30_70_if_opponent_has_cuimian: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_30_70_if_opponent_has_cuimian',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1267,31 +1268,31 @@ export function createGeneratedDamageModifierEffects() {
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
           ),
         ),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: values.randomInt(30, 70) })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: values.randomInt(30, 70) })),
       }),
     ),
     effect_skill_fixed_damage_40: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_40',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
       }),
     ),
     effect_skill_fixed_damage_50: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_50',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
       }),
     ),
     effect_skill_fixed_damage_50_if_hp_lt_half: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_50_if_hp_lt_half',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -1303,7 +1304,7 @@ export function createGeneratedDamageModifierEffects() {
           )
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
       }),
     ),
     effect_skill_fixed_damage_7_percent_max_hp: (() => {
@@ -1311,11 +1312,11 @@ export function createGeneratedDamageModifierEffects() {
       return compileEffect(
         defineEffect({
           id: 'effect_skill_fixed_damage_7_percent_max_hp',
-          on: ['OnBeforeCalculateDamage'],
+          triggers: [EffectTrigger.OnBeforeCalculateDamage],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: contexts.damage.apply(
+          apply: contexts.damage.apply(
             ops.modifyDamage({
               percent: 0,
               delta: values.combine(
@@ -1331,14 +1332,14 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_fixed_damage_by_self_max_hp_minus_500: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_by_self_max_hp_minus_500',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
           const right = 500
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.ownerPet
@@ -1353,10 +1354,10 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_fixed_damage_max_hp_1_8: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_max_hp_1_8',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.opponentActive
@@ -1370,7 +1371,7 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500: compileEffect(
       defineEffect({
         id: 'effect_skill_fixed_damage_with_qianggong_stack_if_atk_over_500',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1381,7 +1382,7 @@ export function createGeneratedDamageModifierEffects() {
           },
           targets.ownerMarks.where(mark => mark.baseId === 'mark_qianggong').condition(checks.exists()),
         ),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
             delta: targets.ownerMarks
@@ -1396,7 +1397,7 @@ export function createGeneratedDamageModifierEffects() {
     effect_skill_reduce_damage_on_consecutive_hits_10_percent_max_2: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_damage_on_consecutive_hits_10_percent_max_2',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         tags: ['xingzhili'],
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
@@ -1404,7 +1405,7 @@ export function createGeneratedDamageModifierEffects() {
           const right = 1
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: contexts.damage.apply(
+        apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: targets.ownerPet
               .select(pet => pet.lastSkillUsedTimes)
@@ -1420,11 +1421,11 @@ export function createGeneratedDamageModifierEffects() {
     effect_zhongzinengliang_damage_reduction: compileEffect(
       defineEffect({
         id: 'effect_zhongzinengliang_damage_reduction',
-        on: ['OnBeforeCalculateDamage'],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         consumesStacks: 1,
         when: conditions.all(conditions.selfBeDamaged),
-        execute: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
       }),
     ),
   })

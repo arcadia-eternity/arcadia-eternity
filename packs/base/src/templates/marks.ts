@@ -1,4 +1,12 @@
-import { conditions, contexts, targets, ops, bindings, type Trigger } from '@arcadia-eternity/battle/v4/authoring'
+import {
+  EffectTrigger,
+  conditions,
+  contexts,
+  targets,
+  ops,
+  bindings,
+  type Trigger,
+} from '@arcadia-eternity/battle/v4/authoring'
 import {
   template,
   numeric,
@@ -27,14 +35,14 @@ export const markTemplates = [
       family: 'apply-mark',
       title: '命中后附加印记',
       description: '本技能命中时，按概率向自己或对手当前目标附加指定印记。使用印记自身的持续与叠层配置。',
-      timing: 'OnHit',
+      timing: EffectTrigger.OnHit,
       sourceKind: 'skill',
       fields: { mark: reference('印记', 'mark'), target: target(), chance: chance(), stacks: stacks() },
     },
     c => ({
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       when: conditions.all(conditions.selfUsesSkill, probability(c.number('chance'))),
-      execute: pets(c.text('target')).apply(ops.addMark(c.mark('mark'), { stack: c.number('stacks') })),
+      apply: pets(c.text('target')).apply(ops.addMark(c.mark('mark'), { stack: c.number('stacks') })),
     }),
   ),
   template(
@@ -43,14 +51,14 @@ export const markTemplates = [
       family: 'mark-attribute',
       title: '印记修改属性',
       description: '印记创建时为持有者增加属性贡献，随来源印记清理。百分比与固定值分别计算。',
-      timing: 'OnMarkCreated',
+      timing: EffectTrigger.OnMarkCreated,
       sourceKind: 'petMark',
       fields: { attribute: choice('属性', attributes), operation: choice('计算方式', operations), amount: amount() },
     },
     c => ({
-      on: 'OnMarkCreated',
+      triggers: [EffectTrigger.OnMarkCreated],
       rebindOnOwnerTransfer: true,
-      execute: targets.ownerPet.apply(
+      apply: targets.ownerPet.apply(
         ops.addAttributeModifier(
           c.text('attribute') as (typeof attributes)[number],
           c.text('operation') as 'delta' | 'percent',
@@ -70,9 +78,9 @@ export const markTemplates = [
       fields: { attribute: choice('属性', attributes), amount: amount() },
     },
     c => ({
-      on: 'OnMarkCreated',
+      triggers: [EffectTrigger.OnMarkCreated],
       rebindOnOwnerTransfer: true,
-      execute: targets.ownerPet.apply(
+      apply: targets.ownerPet.apply(
         ops.bindAttribute({
           key: 'contribution',
           attribute: c.text('attribute') as (typeof attributes)[number],
@@ -104,10 +112,10 @@ export const markTemplates = [
       fields: { mark: reference('印记', 'mark'), target: target(), stacks: stacks() },
     },
     c => ({
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       priority: -50,
       when: conditions.selfUsesSkill,
-      execute: marks(c.text('target'))
+      apply: marks(c.text('target'))
         .where(mark => mark.baseId === c.text('mark'))
         .apply(ops.consumeStacks(c.number('stacks'))),
     }),
@@ -118,14 +126,14 @@ export const markTemplates = [
       family: 'clear-status',
       title: '命中后清除状态',
       description: '移除所选对象上带指定状态标签的印记，使用正常移除流程。',
-      timing: 'OnHit',
+      timing: EffectTrigger.OnHit,
       sourceKind: 'skill',
       fields: { target: target(), category: choice('状态类别', categories) },
     },
     c => ({
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       when: conditions.selfUsesSkill,
-      execute: marks(c.text('target'))
+      apply: marks(c.text('target'))
         .where(mark => mark.tags.includes(c.text('category')))
         .apply(ops.removeMark()),
     }),
@@ -137,17 +145,17 @@ export const markTemplates = [
         family: 'entry-mark',
         title: event === 'switch-in' ? '换入时获得印记' : '开战时获得印记',
         description: '持有者换入或作为开场出战精灵时，为自己附加印记。',
-        timing: event === 'switch-in' ? 'OnSwitchIn' : 'OnBattleStart',
+        timing: event === 'switch-in' ? EffectTrigger.OnSwitchIn : EffectTrigger.OnBattleStart,
         sourceKind: 'petMark',
         fields: { mark: reference('印记', 'mark'), chance: chance(), stacks: stacks() },
       },
       c => ({
-        on: (event === 'switch-in' ? 'OnSwitchIn' : 'OnBattleStart') as Trigger,
+        triggers: [(event === 'switch-in' ? EffectTrigger.OnSwitchIn : EffectTrigger.OnBattleStart) as Trigger],
         when: conditions.all(
           event === 'switch-in' ? conditions.ownerSwitchesIn : conditions.ownerIsActive,
           probability(c.number('chance')),
         ),
-        execute: targets.ownerPet.apply(ops.addMark(c.mark('mark'), { stack: c.number('stacks') })),
+        apply: targets.ownerPet.apply(ops.addMark(c.mark('mark'), { stack: c.number('stacks') })),
       }),
     ),
   ),
@@ -157,14 +165,14 @@ export const markTemplates = [
       family: 'reaction-mark',
       title: '受击后附加印记',
       description: '持有者受到伤害时，按概率向自己或对手当前出战精灵附加印记。',
-      timing: 'OnDamage',
+      timing: EffectTrigger.OnDamage,
       sourceKind: 'petMark',
       fields: { mark: reference('印记', 'mark'), target: target(), chance: chance(), stacks: stacks() },
     },
     c => ({
-      on: 'OnDamage',
+      triggers: [EffectTrigger.OnDamage],
       when: conditions.all(conditions.selfBeDamaged, probability(c.number('chance'))),
-      execute: pets(c.text('target')).apply(ops.addMark(c.mark('mark'), { stack: c.number('stacks') })),
+      apply: pets(c.text('target')).apply(ops.addMark(c.mark('mark'), { stack: c.number('stacks') })),
     }),
   ),
   ...(['expiry', 'destroy'] as const).map(event =>
@@ -175,13 +183,13 @@ export const markTemplates = [
         title: event === 'expiry' ? '印记到期后附加印记' : '印记销毁后附加印记',
         description:
           '由引擎向来源印记派发对应生命周期事件，为原持有者附加后继印记。销毁包含到期后的销毁阶段。后继必须为不同且无互斥组的印记。',
-        timing: event === 'expiry' ? 'OnMarkDurationEnd' : 'OnMarkDestroy',
+        timing: event === 'expiry' ? EffectTrigger.OnMarkDurationEnd : EffectTrigger.OnMarkDestroy,
         sourceKind: 'petMark',
         fields: { mark: reference('后继印记', 'mark'), stacks: stacks() },
       },
       c => ({
-        on: (event === 'expiry' ? 'OnMarkDurationEnd' : 'OnMarkDestroy') as Trigger,
-        execute: targets.ownerPet.apply(ops.addMark(c.successor('mark'), { stack: c.number('stacks') })),
+        triggers: [(event === 'expiry' ? EffectTrigger.OnMarkDurationEnd : EffectTrigger.OnMarkDestroy) as Trigger],
+        apply: targets.ownerPet.apply(ops.addMark(c.successor('mark'), { stack: c.number('stacks') })),
       }),
     ),
   ),
@@ -191,14 +199,14 @@ export const markTemplates = [
       family: 'periodic-stacks',
       title: '回合末增加层数',
       description: '持有者处于出战位置时，每回合末增加来源印记层数，服从印记层数上限。',
-      timing: 'TurnEnd',
+      timing: EffectTrigger.TurnEnd,
       sourceKind: 'petMark',
       fields: { stacks: stacks() },
     },
     c => ({
-      on: 'TurnEnd',
+      triggers: [EffectTrigger.TurnEnd],
       when: conditions.ownerIsActive,
-      execute: targets.sourceMark.apply(ops.addStacks(c.number('stacks'))),
+      apply: targets.sourceMark.apply(ops.addStacks(c.number('stacks'))),
     }),
   ),
   template(
@@ -207,19 +215,19 @@ export const markTemplates = [
       family: 'periodic-stacks',
       title: '使用攻击技能后消耗层数',
       description: '持有者使用非状态、非必杀技能结束时，消耗来源印记层数。',
-      timing: 'SkillUseEnd',
+      timing: EffectTrigger.SkillUseEnd,
       sourceKind: 'petMark',
       fields: { stacks: stacks() },
     },
     c => ({
-      on: 'SkillUseEnd',
+      triggers: [EffectTrigger.SkillUseEnd],
       when: conditions.all(
         conditions.selfUsesSkill,
         contexts.skillUse.condition((_ctx, uses) =>
           uses.some(use => use.category !== 'Status' && use.category !== 'Climax'),
         ),
       ),
-      execute: targets.sourceMark.apply(ops.consumeStacks(c.number('stacks'))),
+      apply: targets.sourceMark.apply(ops.consumeStacks(c.number('stacks'))),
     }),
   ),
   ...(['duration', 'maxStacks'] as const).map(setting =>
@@ -229,7 +237,7 @@ export const markTemplates = [
         family: 'mark-application',
         title: setting === 'duration' ? '修改附加印记的持续时间' : '修改附加印记的层数上限',
         description: '持有者施加指定印记时，设置这次附加的配置；不改印记原型。',
-        timing: 'OnBeforeAddMark',
+        timing: EffectTrigger.OnBeforeAddMark,
         sourceKind: 'petMark',
         fields: {
           mark: reference('印记', 'mark'),
@@ -244,12 +252,12 @@ export const markTemplates = [
         },
       },
       c => ({
-        on: 'OnBeforeAddMark',
+        triggers: [EffectTrigger.OnBeforeAddMark],
         when: conditions.all(
           conditions.ownerAddsMark,
           contexts.addMark.condition((_ctx, events) => events.some(event => event.baseMark.id === c.text('mark'))),
         ),
-        execute: contexts.addMark.apply(
+        apply: contexts.addMark.apply(
           setting === 'duration' ? ops.setMarkDuration(c.number('amount')) : ops.setMarkMaxStack(c.number('amount')),
         ),
       }),
@@ -261,17 +269,17 @@ export const markTemplates = [
       family: 'mark-immunity',
       title: '免疫指定印记',
       description: '在持有者接收指定印记之前取消该次附加，不移除已经存在的印记。',
-      timing: 'OnBeforeAddMark',
+      timing: EffectTrigger.OnBeforeAddMark,
       sourceKind: 'petMark',
       fields: { mark: reference('免疫印记', 'mark') },
     },
     c => ({
-      on: 'OnBeforeAddMark',
+      triggers: [EffectTrigger.OnBeforeAddMark],
       when: conditions.all(
         conditions.ownerReceivesMark,
         contexts.addMark.condition((_ctx, events) => events.some(event => event.baseMark.id === c.text('mark'))),
       ),
-      execute: contexts.addMark.apply(ops.disableContext()),
+      apply: contexts.addMark.apply(ops.disableContext()),
     }),
   ),
   template(
@@ -280,19 +288,19 @@ export const markTemplates = [
       family: 'mark-immunity',
       title: '免疫状态类别',
       description: '接收带所选标签的印记时取消附加；类别按完整标签列表匹配。',
-      timing: 'OnBeforeAddMark',
+      timing: EffectTrigger.OnBeforeAddMark,
       sourceKind: 'petMark',
       fields: { category: choice('状态类别', categories) },
     },
     c => ({
-      on: 'OnBeforeAddMark',
+      triggers: [EffectTrigger.OnBeforeAddMark],
       when: conditions.all(
         conditions.ownerReceivesMark,
         contexts.addMark.condition((_ctx, events) =>
           events.some(event => event.baseMark.tags.includes(c.text('category'))),
         ),
       ),
-      execute: contexts.addMark.apply(ops.disableContext()),
+      apply: contexts.addMark.apply(ops.disableContext()),
     }),
   ),
   template(
@@ -301,7 +309,7 @@ export const markTemplates = [
       family: 'status-transfer',
       title: '命中后转移状态',
       description: '把自己带所选标签的印记转移给对手；使用既有转移流程，保留其层数与持续语义。',
-      timing: 'OnHit',
+      timing: EffectTrigger.OnHit,
       sourceKind: 'skill',
       fields: { category: choice('状态类别', categories) },
     },

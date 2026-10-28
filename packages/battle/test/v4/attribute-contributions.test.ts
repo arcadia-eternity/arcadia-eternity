@@ -154,7 +154,7 @@ function run(id: Id, native: boolean, kind: 'skill' | 'mark', variant: (typeof v
   if (variant === 'empty-skills') a.activePet.skills = []
   // Explicit source dispatch also exercises skill-owned contributions independent of registration.
   const fire = () =>
-    battle.applyEffects<EffectTrigger>(d.trigger === 'OnBattleStart' ? battle : event, d.trigger, source)
+    battle.applyEffects<EffectTrigger>(d.trigger === EffectTrigger.OnBattleStart ? battle : event, d.trigger, source)
   fire()
   if (variant === 'repeat') fire()
   const applied = read()
@@ -194,8 +194,8 @@ it('direct skill event chooses actor team and skills; queries refresh after owne
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/team-query',
-      on: 'BeforeUseSkillCheck',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeUseSkillCheck],
+      apply(ctx) {
         expect(ctx.read(targets.selfTeam.all())).toEqual(a.team)
         expect(ctx.read(targets.selfSkills.all())).toEqual(a.activePet.skills)
       },
@@ -244,8 +244,8 @@ for (const skillTarget of [false, true])
     const effect = compileEffect(
       defineEffect({
         id: 'fixture/contribution-order',
-        on: 'TurnStart',
-        execute: skillTarget
+        triggers: [EffectTrigger.TurnStart],
+        apply: skillTarget
           ? selectFrom(skills).apply(ops.addSkillAttributeModifier('accuracy', 'delta', amount, { priority }))
           : selectFrom(pets).apply(ops.addAttributeModifier('accuracy', 'delta', amount, priority)),
       }),
@@ -301,7 +301,9 @@ for (const skillTarget of [false, true])
       const execute = skillTarget
         ? selectFrom([pet.skills[0]]).apply(ops.addSkillAttributeModifier('accuracy', 'delta', input))
         : selectFrom([pet]).apply(ops.addAttributeModifier('accuracy', 'delta', input))
-      const effect = compileEffect(defineEffect({ id: 'fixture/contribution-guard', on: 'TurnStart', execute }))
+      const effect = compileEffect(
+        defineEffect({ id: 'fixture/contribution-guard', triggers: [EffectTrigger.TurnStart], apply: execute }),
+      )
       const fire = () =>
         battle.executionBudget.run(battle.currentTurn, () =>
           effect.innerApply(new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, source, effect)),

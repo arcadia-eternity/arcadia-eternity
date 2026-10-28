@@ -33,7 +33,12 @@ it('keeps runtime parameters modifiable by other effects without an editor form 
     sourceKind: 'skill',
     build({ effectId }) {
       const amount = numberParam({ default: 5, tags: ['code:healing'] })
-      return { id: effectId, on: 'OnHit', parameters: { amount }, execute: targets.ownerPet.apply(ops.heal(amount)) }
+      return {
+        id: effectId,
+        triggers: [EffectTrigger.OnHit],
+        parameters: { amount },
+        apply: targets.ownerPet.apply(ops.heal(amount)),
+      }
     },
   })
   const definition = codeEffectDefinition(recovery)
@@ -56,8 +61,8 @@ it('keeps runtime parameters modifiable by other effects without an editor form 
     sourceKind: 'petMark',
     build: ({ effectId }) => ({
       id: effectId,
-      on: 'OnMarkCreated',
-      execute: targets.ownerPet.apply(ops.addTaggedParameterModifier('code:healing', 'delta', 10)),
+      triggers: [EffectTrigger.OnMarkCreated],
+      apply: targets.ownerPet.apply(ops.addTaggedParameterModifier('code:healing', 'delta', 10)),
     }),
   })
   const modifier = compileBehaviorUse(

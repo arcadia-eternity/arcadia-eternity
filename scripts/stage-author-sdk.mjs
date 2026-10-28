@@ -85,7 +85,7 @@ export async function stageAuthorSdk(output, { devTools = false } = {}) {
   if (
     build.formatVersion !== 1 ||
     ![build.coreBuildId, build.registryBuildId].every(id => /^[a-f0-9]{64}$/.test(id)) ||
-    effectSdkApiVersion !== 1
+    effectSdkApiVersion !== 2
   )
     throw new Error('Build a compatible battle SDK before staging author packages')
 

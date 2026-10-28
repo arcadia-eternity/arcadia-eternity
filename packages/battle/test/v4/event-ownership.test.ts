@@ -59,8 +59,8 @@ for (const kind of ['actor', 'recipient', 'global'] as const)
       const effect = effectAuthoring.compileEffect(
         effectAuthoring.defineEffect({
           id: 'fixture/ownership',
-          on: 'BeforeHit',
-          execute(ctx) {
+          triggers: [EffectTrigger.BeforeHit],
+          apply(ctx) {
             observed.push(effectAuthoring.conditions.sourceOwnsEvent(ctx))
           },
         }),

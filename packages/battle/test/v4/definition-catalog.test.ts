@@ -79,10 +79,10 @@ const native: TrustedEffectFactory = marks => {
   const effect = compileEffect(
     defineEffect({
       id: 'native/heal',
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       parameters: { amount },
       when: conditions.selfUsesSkill,
-      execute: targets.ownerPet.apply(ops.heal(amount)),
+      apply: targets.ownerPet.apply(ops.heal(amount)),
     }),
   )
   const recovery = marks.get('ugc/recovery')!
@@ -111,9 +111,9 @@ const native: TrustedEffectFactory = marks => {
   const apply = compileEffect(
     defineEffect({
       id: 'native/apply-recovery',
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       when: conditions.selfUsesSkill,
-      execute: targets.ownerPet.apply(ops.addMark(recovery)),
+      apply: targets.ownerPet.apply(ops.addMark(recovery)),
     }),
   )
   return {

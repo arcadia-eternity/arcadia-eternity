@@ -262,8 +262,8 @@ for (const update of [false, true])
           const effect = compileEffect(
             defineEffect({
               id: 'fixture/set-skill-read',
-              on: 'BeforeUseSkillCheck',
-              execute: selectFrom(selected).apply(ops.setSkill(input, update)),
+              triggers: [EffectTrigger.BeforeUseSkillCheck],
+              apply: selectFrom(selected).apply(ops.setSkill(input, update)),
             }),
           )
           battle.executionBudget.run(0, () => effect.innerApply(context))

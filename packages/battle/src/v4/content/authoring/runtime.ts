@@ -5,7 +5,7 @@ import { Modifier, DurationType } from '../../attributeSystem'
 import {
   BattleMessageType,
   type effectId,
-  type EffectTrigger,
+  EffectTrigger,
   type StatTypeWithoutHp,
   type CleanStageStrategy,
   IgnoreStageStrategy,
@@ -29,7 +29,7 @@ import { Player } from '../../player'
 import { RagePhase } from '../../phase/rage'
 import { BaseSkill, SkillInstance } from '../../skill'
 import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, type MarkInstance } from '../../mark'
-import { defineNativeEffect, type NativeEffectTrigger } from '../../content/native-effect'
+import { defineNativeEffect } from '../../content/native-effect'
 import type { SnapshotCatalog } from '../../snapshot'
 import { Effect } from '../../effect'
 import type { Battle } from '../../battle'
@@ -76,10 +76,10 @@ function bindingFrame(source: MarkInstanceImpl, parameters: AuthoringParameters)
     throw new Error('Persistent queries cannot access a trigger event or perform actions')
   }
   const frame = {
-    get on() {
+    get trigger() {
       return unavailable()
     },
-    get event() {
+    get parent() {
       return unavailable()
     },
     read: (input: unknown) => read(frame as Frame, input),
@@ -429,10 +429,10 @@ export const conditions: typeof C.conditions = {
   },
   ownerReceivesRage(ctx) {
     const pet = owner(ctx)
-    return pet !== undefined && ctx.event instanceof RageContext && pet.owner === ctx.event.target
+    return pet !== undefined && ctx.parent instanceof RageContext && pet.owner === ctx.parent.target
   },
   ownerReceivesDamageRage(ctx) {
-    const event = ctx.event,
+    const event = ctx.parent,
       sourceOwner = engine(ctx).source.owner
     return (
       event instanceof RageContext &&
@@ -442,9 +442,9 @@ export const conditions: typeof C.conditions = {
       sourceOwner === event.target.activePet
     )
   },
-  ownerUsesSkill: ctx => ctx.event instanceof UseSkillContext && owner(ctx) === ctx.event.pet,
+  ownerUsesSkill: ctx => ctx.parent instanceof UseSkillContext && owner(ctx) === ctx.parent.pet,
   sourceOwnsEvent: ctx => {
-    const event = ctx.event,
+    const event = ctx.parent,
       sourceOwner = engine(ctx).source.owner
     if (event instanceof UseSkillContext) return sourceOwner === event.pet
     if (event instanceof DamageContext || event instanceof HealContext) return sourceOwner === event.target
@@ -463,12 +463,12 @@ export const conditions: typeof C.conditions = {
   },
   ownerIsSkillTarget: ctx => {
     const pet = owner(ctx)
-    return pet !== undefined && ctx.event instanceof UseSkillContext && pet === ctx.event.actualTarget
+    return pet !== undefined && ctx.parent instanceof UseSkillContext && pet === ctx.parent.actualTarget
   },
-  ownerSwitchesIn: ctx => ctx.event instanceof SwitchPetContext && owner(ctx) === ctx.event.switchInPet,
+  ownerSwitchesIn: ctx => ctx.parent instanceof SwitchPetContext && owner(ctx) === ctx.parent.switchInPet,
   ownerLosesSwitchRage: ctx => {
     const pet = owner(ctx),
-      event = ctx.event
+      event = ctx.parent
     return (
       pet !== undefined &&
       event instanceof RageContext &&
@@ -482,7 +482,7 @@ export const conditions: typeof C.conditions = {
   },
   ownerSwitchesOut: ctx => {
     const pet = owner(ctx)
-    return pet !== undefined && ctx.event instanceof SwitchPetContext && pet === ctx.event.switchOutPet
+    return pet !== undefined && ctx.parent instanceof SwitchPetContext && pet === ctx.parent.switchOutPet
   },
   ownerIsActive: ctx => owner(ctx)?.isActive() ?? false,
   firstSkillThisTurn: skillOrder('first'),
@@ -490,16 +490,16 @@ export const conditions: typeof C.conditions = {
   everyNthUse: times => {
     if (!Number.isSafeInteger(times) || times <= 0) throw new Error('Expected positive consecutive-use interval')
     return ctx =>
-      ctx.event instanceof UseSkillContext &&
-      owner(ctx) === ctx.event.pet &&
-      (ctx.event.skill.owner?.lastSkillUsedTimes ?? 0) % times === 0
+      ctx.parent instanceof UseSkillContext &&
+      owner(ctx) === ctx.parent.pet &&
+      (ctx.parent.skill.owner?.lastSkillUsedTimes ?? 0) % times === 0
   },
   ownerAddsMark: ctx =>
-    ctx.event instanceof AddMarkContext && engine(ctx).source.owner === ctx.event.parent.source.owner,
-  ownerReceivesMark: ctx => ctx.event instanceof AddMarkContext && engine(ctx).source.owner === ctx.event.target,
+    ctx.parent instanceof AddMarkContext && engine(ctx).source.owner === ctx.parent.parent.source.owner,
+  ownerReceivesMark: ctx => ctx.parent instanceof AddMarkContext && engine(ctx).source.owner === ctx.parent.target,
   statStageChange: (stat, direction) => ctx => {
-    if (!(ctx.event instanceof AddMarkContext)) return false
-    const mark = ctx.event.baseMark
+    if (!(ctx.parent instanceof AddMarkContext)) return false
+    const mark = ctx.parent.baseMark
     return (
       mark instanceof BaseStatLevelMark &&
       (stat === undefined ? ['atk', 'def', 'spa', 'spd', 'spe'].includes(mark.statType) : mark.statType === stat) &&
@@ -512,8 +512,8 @@ export const conditions: typeof C.conditions = {
       event = nearestContext(ctx, DamageContext)
     return !!pet && !!event && pet.owner !== event.target.owner
   },
-  selfBeDamaged: ctx => ctx.event instanceof DamageContext && owner(ctx) === ctx.event.target,
-  selfBeHealed: ctx => ctx.event instanceof HealContext && owner(ctx) === ctx.event.target,
+  selfBeDamaged: ctx => ctx.parent instanceof DamageContext && owner(ctx) === ctx.parent.target,
+  selfBeHealed: ctx => ctx.parent instanceof HealContext && owner(ctx) === ctx.parent.target,
   chance: percent => {
     if (typeof percent === 'number' && !Number.isFinite(percent)) throw new Error('Expected finite probability')
     return ctx => {
@@ -599,7 +599,7 @@ export const values: typeof C.values = {
 export const defineEffect: typeof C.defineEffect = definition =>
   Object.freeze({
     ...definition,
-    on: Array.isArray(definition.on) ? Object.freeze([...definition.on]) : definition.on,
+    triggers: Object.freeze([...definition.triggers]),
     tags: definition.tags ? Object.freeze([...definition.tags]) : undefined,
     parameters: definition.parameters ? Object.freeze({ ...definition.parameters }) : undefined,
     bindings: definition.bindings ? Object.freeze({ ...definition.bindings }) : undefined,
@@ -1295,7 +1295,10 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
   const definition = defineEffect(input)
   if (
     definition.rebindOnOwnerTransfer &&
-    (definition.on !== 'OnMarkCreated' || definition.when || definition.consumesStacks)
+    (definition.triggers.length !== 1 ||
+      definition.triggers[0] !== EffectTrigger.OnMarkCreated ||
+      definition.when ||
+      definition.consumesStacks)
   )
     throw new Error('Owner contributions require an unconditional OnMarkCreated initializer without consumption')
   const parameterSet = new AuthoringParameters(definition.id, definition.parameters ?? {}, options)
@@ -1308,15 +1311,15 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
   const bindings = compileBindings(
     definition.id,
     [
-      ...(actionBindings.get(definition.execute) ?? []),
+      ...(actionBindings.get(definition.apply) ?? []),
       ...Object.entries(definition.bindings ?? {}).map(([key, value]) => ({ key, value })),
     ],
     parameterSet,
   )
   const frame = (source: EffectContext<EffectTrigger>): C.EffectFrame<T> => {
     const result = {
-      on: source.trigger,
-      event: source.parent,
+      trigger: source.trigger,
+      parent: source.parent,
       read: (input: unknown) => read(result as Frame, input),
       ops: {
         modifyDamage: (event: DamageContext, change: { delta: number; percent: number }) => {
@@ -1336,7 +1339,7 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
   const parameters = definition.parameters ?? ({} as P)
   const effect = defineNativeEffect({
     id: definition.id as effectId,
-    triggers: (Array.isArray(definition.on) ? definition.on : [definition.on]) as NativeEffectTrigger[],
+    triggers: definition.triggers,
     priority: definition.priority,
     consumesStacks: definition.consumesStacks,
     tags: definition.tags,
@@ -1347,7 +1350,7 @@ export function compileEffect<T extends C.Trigger, P extends Readonly<Record<str
     apply: ctx => {
       if (!acceptsSource(ctx)) throw new Error('Mismatched authored behavior source')
       const current = frame(ctx)
-      runAction(current, () => definition.execute(current, parameters))
+      runAction(current, () => definition.apply(current, parameters))
     },
   })
   effectBindings.set(effect, [...bindings.values()])

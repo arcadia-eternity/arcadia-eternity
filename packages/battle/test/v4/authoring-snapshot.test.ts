@@ -49,8 +49,8 @@ function definition(mode: Mode, custom = false) {
     return compileEffect(
       defineEffect({
         id: 'snapshot/opponent-rage',
-        on: 'OnMarkCreated',
-        execute: targets.ownerPet.apply(
+        triggers: [EffectTrigger.OnMarkCreated],
+        apply: targets.ownerPet.apply(
           ops.bindAttribute({
             key: 'speed',
             attribute: 'spe',
@@ -72,9 +72,9 @@ function definition(mode: Mode, custom = false) {
     return compileEffect(
       defineEffect({
         id: 'snapshot/parameter',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         parameters: { amount },
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.bindAttribute({
             key: 'speed',
             attribute: 'spe',
@@ -107,9 +107,9 @@ function definition(mode: Mode, custom = false) {
   return compileEffect(
     defineEffect({
       id: 'snapshot/authored',
-      on: 'OnMarkCreated',
+      triggers: [EffectTrigger.OnMarkCreated],
       ...(custom ? { bindings: { speed: value } } : {}),
-      execute: custom ? ctx => apply(ctx) : actions.sequence(apply),
+      apply: custom ? ctx => apply(ctx) : actions.sequence(apply),
     }),
   )
 }
@@ -238,7 +238,11 @@ it('rejects conflicting static binding keys before registering or executing effe
     )
   expect(() =>
     compileEffect(
-      defineEffect({ id: 'duplicate', on: 'OnMarkCreated', execute: actions.sequence(apply(p), apply(q)) }),
+      defineEffect({
+        id: 'duplicate',
+        triggers: [EffectTrigger.OnMarkCreated],
+        apply: actions.sequence(apply(p), apply(q)),
+      }),
     ),
   ).toThrow('Conflicting authored binding')
 })
@@ -257,7 +261,11 @@ it('registers effect factories atomically and supports repeated references to th
       }),
     )
   const effect = compileEffect(
-    defineEffect({ id: 'atomic', on: 'OnMarkCreated', execute: actions.sequence(action('first'), action('second')) }),
+    defineEffect({
+      id: 'atomic',
+      triggers: [EffectTrigger.OnMarkCreated],
+      apply: actions.sequence(action('first'), action('second')),
+    }),
   )
   const firstKey = 'authoring/["atomic","first"]'
   const secondKey = 'authoring/["atomic","second"]'

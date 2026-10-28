@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions -- Compile-only positive and negative type assertions intentionally do not execute. */
 /** Compile only. @ts-expect-error must fail if its misuse ever becomes accepted. */
+import { EffectTrigger } from '../../v4'
 import type { DamageContext, UseSkillContext } from '../../src/v4/context'
 import type { Pet } from '../../src/v4/pet'
 import type { MarkInstance } from '../../src/v4/mark'
@@ -37,10 +38,10 @@ function exact<T extends true>(_value: T): void {}
 
 // Positive inference tests also guard against accidental `any` or widening to every event.
 export type ExampleInference = [
-  Expect<Equal<Parameters<typeof consumeFantasyForDefense.execute>[0]['event'], UseSkillContext>>,
-  Expect<Equal<Parameters<typeof damageBoostByHp.execute>[0]['event'], DamageContext>>,
-  Expect<Equal<Parameters<typeof timeRebirth.execute>[0]['event'], DamageContext>>,
-  Expect<Equal<Parameters<typeof weaknessSpeedPenalty.execute>[0]['on'], 'OnMarkCreated'>>,
+  Expect<Equal<Parameters<typeof consumeFantasyForDefense.apply>[0]['parent'], UseSkillContext>>,
+  Expect<Equal<Parameters<typeof damageBoostByHp.apply>[0]['parent'], DamageContext>>,
+  Expect<Equal<Parameters<typeof timeRebirth.apply>[0]['parent'], DamageContext>>,
+  Expect<Equal<Parameters<typeof weaknessSpeedPenalty.apply>[0]['trigger'], EffectTrigger.OnMarkCreated>>,
   Expect<Equal<typeof capturedInstancePenalty, BindingValue<number, 'optional'>>>,
   Expect<Equal<typeof followingInstancePenalty, typeof capturedInstancePenalty>>,
   Expect<Equal<typeof entryStackPenalty, typeof capturedInstancePenalty>>,
@@ -50,18 +51,18 @@ export type ExampleInference = [
 
 const hit = defineEffect({
   id: 'type-test/hit',
-  on: 'OnHit',
+  triggers: [EffectTrigger.OnHit],
   parameters: {
     chance: numberParam({ default: 20, tags: ['skill_effect_probability'] }),
     enabled: booleanParam({ default: true }),
   },
   when(ctx, params) {
-    exact<Equal<typeof ctx.event, UseSkillContext>>(true)
+    exact<Equal<typeof ctx.parent, UseSkillContext>>(true)
     const enabled = ctx.read(params.enabled)
     exact<Equal<typeof enabled, boolean>>(true)
     return enabled
   },
-  execute(ctx, params) {
+  apply(ctx, params) {
     const chance = ctx.read(params.chance)
     exact<Equal<typeof chance, number>>(true)
     const owner = ctx.read(targets.ownerPet.first())
@@ -69,7 +70,7 @@ const hit = defineEffect({
     const skillUse = contexts.nearestSkillUse(ctx)
     exact<Equal<typeof skillUse, UseSkillContext | undefined>>(true)
     // @ts-expect-error A skill event is not a damage event.
-    ctx.event.damageResult
+    ctx.parent.damageResult
     // @ts-expect-error Parameter names are inferred, not an open dictionary.
     params.missing
     // @ts-expect-error A required number parameter does not become a string.
@@ -88,24 +89,24 @@ const hit = defineEffect({
       values.choose(() => false, 2, 3),
     )
     exact<Equal<typeof branch, Value<number>>>(true)
-    exact<Equal<ReturnType<typeof hit.execute>, void>>(true)
+    exact<Equal<ReturnType<typeof hit.apply>, void>>(true)
   },
 })
 
 // Conditional type correlation survives a union of triggers.
 defineEffect({
   id: 'type-test/union',
-  on: ['OnHit', 'OnDamage'],
-  execute(ctx) {
+  triggers: [EffectTrigger.OnHit, EffectTrigger.OnDamage],
+  apply(ctx) {
     // @ts-expect-error Cannot access damage before narrowing the trigger.
-    ctx.event.damageResult
-    if (ctx.on === 'OnDamage') exact<Equal<typeof ctx.event, DamageContext>>(true)
-    else exact<Equal<typeof ctx.event, UseSkillContext>>(true)
+    ctx.parent.damageResult
+    if (ctx.trigger === EffectTrigger.OnDamage) exact<Equal<typeof ctx.parent, DamageContext>>(true)
+    else exact<Equal<typeof ctx.parent, UseSkillContext>>(true)
   },
 })
 
 // @ts-expect-error Unknown or undispatched trigger.
-defineEffect({ id: 'invalid-trigger', on: 'ImaginaryTrigger', execute() {} })
+defineEffect({ id: 'invalid-trigger', triggers: ['ImaginaryTrigger'], apply() {} })
 // @ts-expect-error Values cannot be used as writable references.
 targets.ownerPet.select(pet => pet.currentHp).apply(ops.assign(20))
 // @ts-expect-error Arbitrary keys, including identity, are not writable fields.
@@ -156,36 +157,36 @@ ops.bindAttribute({
   value: capturedInstancePenalty.map(String),
 })
 
-const damageOnly: Action<'OnDamage'> = ctx => {
-  ctx.event.damageResult
+const damageOnly: Action<EffectTrigger.OnDamage> = ctx => {
+  ctx.parent.damageResult
 }
 // @ts-expect-error A damage-only callback cannot run for every trigger.
 const everyTrigger: Action = damageOnly
 const damageSequence = actions.sequence(damageOnly)
-exact<Equal<typeof damageSequence, Action<'OnDamage'>>>(true)
-defineEffect({ id: 'damage-sequence', on: 'OnDamage', execute: damageSequence })
+exact<Equal<typeof damageSequence, Action<EffectTrigger.OnDamage>>>(true)
+defineEffect({ id: 'damage-sequence', triggers: [EffectTrigger.OnDamage], apply: damageSequence })
 defineEffect({
   id: 'wrong-context',
-  on: 'OnHit',
+  triggers: [EffectTrigger.OnHit],
   // @ts-expect-error OnHit cannot run a damage-only callback.
-  execute: damageOnly,
+  apply: damageOnly,
 })
 
 // This branch proves the event/frame itself does not lose the discriminant.
-export function narrowFrame(ctx: EffectFrame<'OnHit' | 'OnDamage'>): void {
-  if (ctx.on === 'OnHit') exact<Equal<typeof ctx.event, UseSkillContext>>(true)
+export function narrowFrame(ctx: EffectFrame<EffectTrigger.OnHit | EffectTrigger.OnDamage>): void {
+  if (ctx.trigger === EffectTrigger.OnHit) exact<Equal<typeof ctx.parent, UseSkillContext>>(true)
 }
 
-const damageOperator = targets.ownerPet.apply((ctx: EffectFrame<'OnDamage'>, pets) => {
+const damageOperator = targets.ownerPet.apply((ctx: EffectFrame<EffectTrigger.OnDamage>, pets) => {
   exact<Equal<typeof pets, readonly Pet[]>>(true)
-  ctx.event.damageResult
+  ctx.parent.damageResult
 })
-exact<Equal<typeof damageOperator, Action<'OnDamage'>>>(true)
+exact<Equal<typeof damageOperator, Action<EffectTrigger.OnDamage>>>(true)
 defineEffect({
   id: 'wrong-selection-context',
-  on: 'OnHit',
+  triggers: [EffectTrigger.OnHit],
   // @ts-expect-error Applying a selector retains the operator's event requirement.
-  execute: damageOperator,
+  apply: damageOperator,
 })
 
 const scalar = targets.ownerPet.select(pet => pet.currentHp).first()
@@ -323,11 +324,11 @@ declare const mixedNumericTargets: Selector<Pet | UseSkillContext>
 // @ts-expect-error Mixed targets cannot claim a key absent from some members.
 mixedNumericTargets.property('priority')
 
-declare const branchDamage: Action<'OnDamage'>
-declare const branchHit: Action<'OnHit'>
-actions.choose<'OnDamage'>(() => true, branchDamage)
+declare const branchDamage: Action<EffectTrigger.OnDamage>
+declare const branchHit: Action<EffectTrigger.OnHit>
+actions.choose<EffectTrigger.OnDamage>(() => true, branchDamage)
 // @ts-expect-error A branch action must accept the conditional action's trigger frame.
-actions.choose<'OnDamage'>(() => true, branchDamage, branchHit)
+actions.choose<EffectTrigger.OnDamage>(() => true, branchDamage, branchHit)
 // @ts-expect-error Branch conditions return boolean.
 actions.choose(() => 1, branchDamage)
 
@@ -355,9 +356,9 @@ ops.setSkillSureHit(1)
 
 const consumptionEvent = defineEffect({
   id: 'type-test/consumption-context',
-  on: 'OnBeforeConsumeStack',
-  execute(ctx) {
-    exact<Equal<typeof ctx.event, import('../../src/v4/context').ConsumeStackContext>>(true)
+  triggers: [EffectTrigger.OnBeforeConsumeStack],
+  apply(ctx) {
+    exact<Equal<typeof ctx.parent, import('../../src/v4/context').ConsumeStackContext>>(true)
     contexts.consumeStack.apply(ops.disableContext())(ctx)
   },
 })

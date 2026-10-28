@@ -1,4 +1,4 @@
-import { defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
 
 const weaknessMark = targets.ownerMarks.where(mark => mark.baseId === 'mark_ruodianjihao').first()
 
@@ -26,8 +26,8 @@ export const entryStackPenalty = weaknessMark
 /** Source: effect_mark_reduce_speed_ruodian. Only the first plan is used in this specimen. */
 export const weaknessSpeedPenalty = defineEffect({
   id: 'effect_mark_reduce_speed_ruodian',
-  on: 'OnMarkCreated',
-  execute: targets.ownerPet.apply(
+  triggers: [EffectTrigger.OnMarkCreated],
+  apply: targets.ownerPet.apply(
     ops.bindAttribute({
       key: 'speed-penalty',
       attribute: 'spe',

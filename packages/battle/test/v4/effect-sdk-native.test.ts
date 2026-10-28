@@ -172,12 +172,17 @@ it('restores native effects, source modifiers and RNG from a supported waiting-p
 
 it('keeps native parameters scoped to each use and exposes the actual typed context', () => {
   const f = fixture(),
-    seen: unknown[] = []
+    seen: unknown[] = [],
+    admitted: unknown[] = []
   const native = sdk.defineCodeEffect({
     id: 'sdk:configured',
     sourceKind: 'skill',
     triggers: [EffectTrigger.OnHit],
     parameters: { amount: sdk.numberParam({ default: 5 }) },
+    when(context) {
+      admitted.push(context)
+      return context.source === context.parent.skill
+    },
     apply(context) {
       seen.push(context)
       const owner = context.source.owner
@@ -207,6 +212,8 @@ it('keeps native parameters scoped to each use and exposes the actual typed cont
     )
     const context = new EffectContext(attack(f), EffectTrigger.OnHit, f.a.activePet.skills[0], compiled.effect)
     f.a.activePet.currentHp = 1
+    expect(compiled.effect.condition!(context)).toBe(true)
+    expect(admitted.at(-1)).toBe(context)
     compiled.effect.innerApply(context)
     expect(seen.at(-1)).toBe(context)
     expect(f.a.activePet.currentHp).toBe(8 + index)

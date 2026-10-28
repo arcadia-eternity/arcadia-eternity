@@ -8,7 +8,7 @@
 
 ## 一次执行
 
-`defineEffect` 的 `on` 推导事件类型，`compileEffect` 适配为现有 Effect。直接事件与 `contexts.nearestSkillUse` 等祖先查询分别使用；嵌套伤害/效果不能凭直接父级推断施放者。
+`defineEffect` 使用与 `defineNativeEffect` 一致的 `triggers / when / apply` 字段；`triggers` 始终是 `EffectTrigger` 数组，单触发也使用数组。`ctx.trigger` 推导并缩窄 `ctx.parent` 的事件类型，`compileEffect` 适配为现有 Effect。辅助上下文另外提供 `read` 和 `ops`，不修改引擎原始上下文。直接事件与 `contexts.nearestSkillUse` 等祖先查询分别使用；嵌套伤害/效果不能凭直接父级推断施放者。
 
 - 条件在收集时读取；动作在执行到该步时重新查询。条件通过后，HP、归属或目标可能已变化。
 - `actions.sequence` 按顺序执行，每步独立查询；后续步骤不隐式依赖前一步成功。

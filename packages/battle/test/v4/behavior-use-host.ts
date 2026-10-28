@@ -41,10 +41,10 @@ function nativeExports() {
         const amount = numberParam({ default: params.amount as number })
         return defineEffect({
           id: effectId,
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           parameters: { amount },
           when: conditions.selfUsesSkill,
-          execute: targets.ownerPet.apply(ops.heal(amount)),
+          apply: targets.ownerPet.apply(ops.heal(amount)),
         })
       },
     }),
@@ -57,9 +57,9 @@ function nativeExports() {
         const stack = targets.sourceMark.first().follow({ key: 'source' }).attribute('stack').follow({ key: 'stack' })
         return defineEffect({
           id: effectId,
-          on: 'OnMarkCreated',
+          triggers: [EffectTrigger.OnMarkCreated],
           parameters: { amount },
-          execute: actions.sequence(
+          apply: actions.sequence(
             targets.ownerPet.apply(
               ops.bindAttribute({
                 key: 'amount',

@@ -1,4 +1,12 @@
-import { compileEffect, conditions, contexts, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import {
+  EffectTrigger,
+  compileEffect,
+  conditions,
+  contexts,
+  defineEffect,
+  ops,
+  targets,
+} from '@arcadia-eternity/battle/v4/authoring'
 
 /** Legacy randomPick(1) fully shuffles the affordable pool, then selects its first member. */
 export function createRandomSkillSelection() {
@@ -6,10 +14,10 @@ export function createRandomSkillSelection() {
     compileEffect(
       defineEffect({
         id,
-        on: 'BeforeUseSkillCheck',
+        triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.sourceOwnsEvent,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           ops.setSkill(
             targets.selfAvailableSkills
               .where(skill => skill.baseId !== exclude)

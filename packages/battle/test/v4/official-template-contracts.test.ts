@@ -1,3 +1,4 @@
+import { EffectTrigger } from '../../v4'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import {
   BehaviorCompilationError,
@@ -85,9 +86,9 @@ it('validates every reference before invoking any native builder', () => {
     const mark = stringParam({ default: params.mark as string })
     return defineEffect({
       id: effectId,
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       parameters: { mark },
-      execute: targets.ownerPet.apply(ops.heal(1)),
+      apply: targets.ownerPet.apply(ops.heal(1)),
     })
   })
   const native = defineNativeBehavior({

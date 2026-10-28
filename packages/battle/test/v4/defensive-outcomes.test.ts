@@ -172,7 +172,11 @@ function run(
     skill.effects.push(
       defineNativeEffect({
         id: 'fixture/defensive-stage' as effectId,
-        triggers: [EffectTrigger[sourceDefinitions.get(id).trigger as 'BeforeUseSkillCheck' | 'AfterUseSkillCheck']],
+        triggers: [
+          EffectTrigger[
+            sourceDefinitions.get(id).trigger as EffectTrigger.BeforeUseSkillCheck | EffectTrigger.AfterUseSkillCheck
+          ],
+        ],
         when: c => c.parent instanceof UseSkillContext && c.parent.skill === skill,
         apply() {
           reached++
@@ -198,7 +202,10 @@ function run(
         : variant === 'nested'
           ? new EffectContext(use, EffectTrigger.BeforeEffect, source)
           : use
-    const trigger = EffectTrigger[sourceDefinitions.get(id).trigger as 'BeforeUseSkillCheck' | 'AfterUseSkillCheck']
+    const trigger =
+      EffectTrigger[
+        sourceDefinitions.get(id).trigger as EffectTrigger.BeforeUseSkillCheck | EffectTrigger.AfterUseSkillCheck
+      ]
     battle.applyEffects<EffectTrigger>(parent, trigger, source)
     if (variant === 'repeat' || variant === 'one-stack-repeat')
       battle.applyEffects<EffectTrigger>(parent, trigger, source)
@@ -272,8 +279,8 @@ it('skill actor inequality matches legacy for all owners and nearest/missing con
       const effect = effectAuthoring.compileEffect(
         effectAuthoring.defineEffect({
           id: 'fixture/inequality',
-          on: 'BeforeHit',
-          execute(frame) {
+          triggers: [EffectTrigger.BeforeHit],
+          apply(frame) {
             seen.push(effectAuthoring.conditions.skillActorDiffersFromOwner(frame))
           },
         }),

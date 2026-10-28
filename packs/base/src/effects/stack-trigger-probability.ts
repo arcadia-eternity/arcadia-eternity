@@ -1,4 +1,4 @@
-import { compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, compileEffect, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
 
 /** Capture the contributing mark, then follow that instance's stack for each parameter read. */
 export function createStackTriggerProbability() {
@@ -11,9 +11,9 @@ export function createStackTriggerProbability() {
     effect_mark_increase_skill_trigger_rate_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_skill_trigger_rate_with_stack',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.bindTaggedParameter({
             key: 'stack-trigger-probability',
             tag: 'skill_effect_probability',

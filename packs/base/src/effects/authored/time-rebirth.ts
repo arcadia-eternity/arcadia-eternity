@@ -1,4 +1,4 @@
-import { conditions, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, conditions, defineEffect, ops, targets } from '@arcadia-eternity/battle/v4/authoring'
 
 const owner = targets.ownerPet
 const isAtZeroHp = owner.condition((_ctx, pets) => pets.some(pet => pet.currentHp <= 0))
@@ -10,9 +10,9 @@ const recoveryHp = owner
 /** Source: effect_mark_shiguangchongsheng. Direct assignment deliberately does not become healing. */
 export const timeRebirth = defineEffect({
   id: 'effect_mark_shiguangchongsheng',
-  on: 'PostDamage',
+  triggers: [EffectTrigger.PostDamage],
   when(ctx) {
     return conditions.selfBeDamaged(ctx) && isAtZeroHp(ctx)
   },
-  execute: owner.property('currentHp').apply(ops.assign(recoveryHp)),
+  apply: owner.property('currentHp').apply(ops.assign(recoveryHp)),
 })

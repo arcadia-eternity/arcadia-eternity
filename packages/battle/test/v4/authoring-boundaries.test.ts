@@ -30,9 +30,9 @@ it('snapshots declaration defaults and parameter tables before compilation', () 
   const observed: unknown[] = []
   const definition = defineEffect({
     id: 'parameter-snapshot',
-    on: 'TurnStart',
+    triggers: [EffectTrigger.TurnStart],
     parameters: params,
-    execute(ctx, p) {
+    apply(ctx, p) {
       observed.push(ctx.read(p.amount), ctx.read(p.enabled))
     },
   })
@@ -67,7 +67,9 @@ it.each(['heal', 'stage', 'assign', 'consume', 'add-stacks'] as const)(
           : kind === 'assign'
             ? selected.property('currentHp').apply(ops.assign(5))
             : targets.ownerPet.select(() => mark).apply(kind === 'consume' ? ops.consumeStacks(1) : ops.addStacks(1))
-    const effect = compileEffect(defineEffect({ id: 'cross-battle', on: 'TurnStart', execute: action }))
+    const effect = compileEffect(
+      defineEffect({ id: 'cross-battle', triggers: [EffectTrigger.TurnStart], apply: action }),
+    )
     const context = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, source, effect)
     const before = target.stat.def
     expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(context))).toThrow(
@@ -97,8 +99,8 @@ it('snapshots binding operation and per-step capture options', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'binding-options',
-      on: 'OnMarkCreated',
-      execute: targets.ownerPet.apply(ops.bindAttribute(options)),
+      triggers: [EffectTrigger.OnMarkCreated],
+      apply: targets.ownerPet.apply(ops.bindAttribute(options)),
     }),
   )
   options.operation = 'override'

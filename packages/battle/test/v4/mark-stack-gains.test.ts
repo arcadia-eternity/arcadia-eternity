@@ -207,8 +207,8 @@ for (const amount of [0, -5, 0.5, 200])
     const effect = compileEffect(
       defineEffect({
         id: 'fixture/direct-gain',
-        on: 'TurnEnd',
-        execute: selectFrom([mark]).apply(ops.addStacks(amount)),
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom([mark]).apply(ops.addStacks(amount)),
       }),
     )
     battle.executionBudget.run(battle.currentTurn, () => effect.innerApply(ctx))
@@ -277,8 +277,8 @@ for (const variant of ['once', 'empty', 'nonfinite', 'unowned', 'foreign-after-r
     const effect = compileEffect(
       defineEffect({
         id: 'fixture/gain-reads',
-        on: 'TurnEnd',
-        execute: selectFrom(marks).apply(ops.addStacks(amount)),
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom(marks).apply(ops.addStacks(amount)),
       }),
     )
     const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, a.activePet.skills[0], effect)

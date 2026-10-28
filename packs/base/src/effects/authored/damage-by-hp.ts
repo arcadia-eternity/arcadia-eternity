@@ -1,4 +1,11 @@
-import { conditions, defineEffect, targets, values, type Condition } from '@arcadia-eternity/battle/v4/authoring'
+import {
+  EffectTrigger,
+  conditions,
+  defineEffect,
+  targets,
+  values,
+  type Condition,
+} from '@arcadia-eternity/battle/v4/authoring'
 
 const owner = targets.ownerPet
 function hpBelow(ratio: number): Condition {
@@ -16,11 +23,11 @@ const damageBonus = values.choose(
 /** Source: effect_mark_damage_boost_based_on_hp_percentage. Admission and amount read separately. */
 export const damageBoostByHp = defineEffect({
   id: 'effect_mark_damage_boost_based_on_hp_percentage',
-  on: 'OnBeforeCalculateDamage',
+  triggers: [EffectTrigger.OnBeforeCalculateDamage],
   when(ctx) {
     return conditions.selfUsesSkill(ctx) && belowThreeQuarters(ctx)
   },
-  execute(ctx) {
-    ctx.ops.modifyDamage(ctx.event, { delta: 0, percent: ctx.read(damageBonus) })
+  apply(ctx) {
+    ctx.ops.modifyDamage(ctx.parent, { delta: 0, percent: ctx.read(damageBonus) })
   },
 })

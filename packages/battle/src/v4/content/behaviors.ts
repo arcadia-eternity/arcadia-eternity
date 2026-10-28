@@ -307,7 +307,7 @@ export function defineNativeBehavior<T extends Trigger, P extends Readonly<Recor
   const result: NativeBehaviorExport = freezeContent(metadata)
   nativeBuilders.set(result, context => {
     const definition = build(context)
-    if (!definition || definition.id !== context.effectId || typeof definition.execute !== 'function')
+    if (!definition || definition.id !== context.effectId || typeof definition.apply !== 'function')
       throw new Error('Native behavior must build an authored definition with its provided effect identity')
     return compileEffect(definition, {
       source:

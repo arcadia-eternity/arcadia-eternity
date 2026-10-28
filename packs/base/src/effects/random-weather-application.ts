@@ -1,5 +1,6 @@
 import { BaseMark } from '@arcadia-eternity/battle/v4'
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   contexts,
@@ -22,10 +23,10 @@ export function createRandomWeatherApplication(marks: ReadonlyMap<string, BaseMa
   return compileEffect(
     defineEffect({
       id: 'effect_skill_set_field_qingtian_or_yemu',
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       priority: 0,
       when: conditions.all(conditions.selfUsesSkill, firstHit),
-      execute: contexts.battle.apply(ops.addMark(selectFrom(choices).shuffled().first())),
+      apply: contexts.battle.apply(ops.addMark(selectFrom(choices).shuffled().first())),
     }),
   )
 }

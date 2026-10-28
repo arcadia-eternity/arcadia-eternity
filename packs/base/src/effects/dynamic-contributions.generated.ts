@@ -1,5 +1,6 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import {
+  EffectTrigger,
   numberParam,
   compileEffect,
   defineEffect,
@@ -13,10 +14,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_add_atk_stack_x35: compileEffect(
       defineEffect({
         id: 'effect_mark_add_atk_stack_x35',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -39,10 +40,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_add_weight_stack_x50: compileEffect(
       defineEffect({
         id: 'effect_mark_add_weight_stack_x50',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -65,10 +66,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_def_boost_25_per_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_def_boost_25_per_stack',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -91,10 +92,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_increase_accuracy_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_increase_accuracy_stack',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -116,10 +117,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_raise_spe_by_25_per_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_raise_spe_by_25_per_stack',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -150,11 +151,11 @@ export function createGeneratedDynamicContributions() {
       return compileEffect(
         defineEffect({
           id: 'effect_mark_reduce_accuracy_5_per_stack',
-          on: 'OnMarkCreated',
+          triggers: [EffectTrigger.OnMarkCreated],
           priority: 0,
           parameters,
           when: () => true,
-          execute: actions.sequence(
+          apply: actions.sequence(
             targets.ownerPet.apply(
               ops.bindAttribute({
                 key: 'action0_value_binding',
@@ -181,10 +182,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_reduce_accuracy_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_accuracy_stack',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -207,10 +208,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_reduce_speed_with_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_speed_with_stack',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -233,10 +234,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_spa_boost_25_per_stack: compileEffect(
       defineEffect({
         id: 'effect_mark_spa_boost_25_per_stack',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',
@@ -259,10 +260,10 @@ export function createGeneratedDynamicContributions() {
     effect_mark_xukongtizhi_evasion: compileEffect(
       defineEffect({
         id: 'effect_mark_xukongtizhi_evasion',
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: () => true,
-        execute: actions.sequence(
+        apply: actions.sequence(
           targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'action0_value_binding',

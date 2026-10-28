@@ -20,14 +20,15 @@ async function capabilityArtifact({ amountMaximum = 100, multiplier = 1 } = {}) 
         load: id =>
           id === entry
             ? `import { defineNativeBehavior } from ${JSON.stringify(behavior)};
+               import { EffectTrigger } from '@arcadia-eternity/const';
                import { defineEffect, numberParam, ops, targets } from ${JSON.stringify(authoring)};
                export const behavior = defineNativeBehavior({
                  id: 'host.native-heal', sourceKind: 'skill',
                  parameters: { amount: { kind: 'number', default: 10, minimum: 0, maximum: ${amountMaximum} } },
                  build({ effectId, params }) {
                    const amount = numberParam({ default: params.amount });
-                   return defineEffect({ id: effectId, on: 'OnHit', parameters: { amount },
-                     execute: targets.ownerPet.apply(ops.heal(amount.map(value => value * ${multiplier}))) });
+                   return defineEffect({ id: effectId, triggers: [EffectTrigger.OnHit], parameters: { amount },
+                     apply: targets.ownerPet.apply(ops.heal(amount.map(value => value * ${multiplier}))) });
                  }
                });`
             : undefined,

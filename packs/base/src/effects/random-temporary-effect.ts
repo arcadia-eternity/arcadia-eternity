@@ -1,5 +1,5 @@
 import { Effect } from '@arcadia-eternity/battle/v4'
-import type { EffectTrigger } from '@arcadia-eternity/const'
+import { EffectTrigger } from '@arcadia-eternity/const'
 import {
   compileEffect,
   conditions,
@@ -27,10 +27,10 @@ export function createRandomTemporaryEffect(effects: ReadonlyMap<string, Effect<
   return compileEffect(
     defineEffect({
       id: 'effect_skill_random_xifa_effect',
-      on: 'BeforeSort',
+      triggers: [EffectTrigger.BeforeSort],
       priority: 100,
       when: conditions.selfUsesSkill,
-      execute: targets.sourceSkill.apply(ops.addTemporaryEffect(selectFrom(choices).shuffled().first())),
+      apply: targets.sourceSkill.apply(ops.addTemporaryEffect(selectFrom(choices).shuffled().first())),
     }),
   )
 }

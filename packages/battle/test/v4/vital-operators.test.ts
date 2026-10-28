@@ -66,8 +66,8 @@ function run(native: boolean, type: 'damage' | 'rage', variant: (typeof variants
       const e = compileEffect(
         defineEffect({
           id: 'fixture/damage',
-          on: 'TurnEnd',
-          execute: selectFrom(selected).apply(ops.dealDamage(value)),
+          triggers: [EffectTrigger.TurnEnd],
+          apply: selectFrom(selected).apply(ops.dealDamage(value)),
         }),
       )
       if (typeof e.apply !== 'function') throw new Error('Expected action')
@@ -82,7 +82,11 @@ function run(native: boolean, type: 'damage' | 'rage', variant: (typeof variants
         .select(get)
         .first()
       const e = compileEffect(
-        defineEffect({ id: 'fixture/rage', on: 'TurnEnd', execute: selectFrom(selected).apply(ops.addRage(value)) }),
+        defineEffect({
+          id: 'fixture/rage',
+          triggers: [EffectTrigger.TurnEnd],
+          apply: selectFrom(selected).apply(ops.addRage(value)),
+        }),
       )
       if (typeof e.apply !== 'function') throw new Error('Expected action')
       battle.executionBudget.run(battle.currentTurn, () => {
@@ -120,7 +124,7 @@ for (const type of ['damage', 'rage'] as const)
       type === 'damage'
         ? selectFrom([own.a.activePet, foreign.a.activePet]).apply(ops.dealDamage(5))
         : selectFrom([own.a, foreign.a]).apply(ops.addRage(5))
-    const e = compileEffect(defineEffect({ id: 'fixture/foreign', on: 'TurnEnd', execute: action }))
+    const e = compileEffect(defineEffect({ id: 'fixture/foreign', triggers: [EffectTrigger.TurnEnd], apply: action }))
     const ctx = new EffectContext<EffectTrigger>(
       new TurnContext(own.battle),
       EffectTrigger.TurnEnd,

@@ -1,5 +1,6 @@
 import { Element } from '@arcadia-eternity/const'
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   contexts,
@@ -14,7 +15,7 @@ export function createConsecutiveFlyingRage() {
   return compileEffect(
     defineEffect({
       id: 'effect_ability_add_20_rage_when_use_fly_skill_twice',
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       priority: 0,
       parameters: { rage },
       when: conditions.all(
@@ -23,7 +24,7 @@ export function createConsecutiveFlyingRage() {
           events.some(event => event.previousSkillElement === Element.Flying && event.element === Element.Flying),
         ),
       ),
-      execute: targets.ownerPet.apply(ops.addRage(rage)),
+      apply: targets.ownerPet.apply(ops.addRage(rage)),
     }),
   )
 }

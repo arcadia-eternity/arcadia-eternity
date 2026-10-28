@@ -104,10 +104,10 @@ function nativeRecovery(legacyAliases?: readonly string[]) {
       const amount = numberParam({ default: params.amount as number, legacyAliases })
       return defineEffect({
         id: effectId,
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         parameters: { amount },
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.heal(amount)),
+        apply: targets.ownerPet.apply(ops.heal(amount)),
       })
     },
   })
@@ -171,8 +171,8 @@ it('retains its compiled skill source when the caller changes the source options
   const effect = compileEffect(
     defineEffect({
       id: 'trusted/fixed-source',
-      on: 'OnHit',
-      execute: targets.ownerPet.apply(ops.heal(10)),
+      triggers: [EffectTrigger.OnHit],
+      apply: targets.ownerPet.apply(ops.heal(10)),
     }),
     { source },
   )
@@ -194,9 +194,9 @@ it('validates native candidates before invoking their trusted builder', () => {
       const amount = numberParam({ default: params.amount as number })
       return defineEffect({
         id: effectId,
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         parameters: { amount },
-        execute: targets.ownerPet.apply(ops.heal(amount)),
+        apply: targets.ownerPet.apply(ops.heal(amount)),
       })
     },
   })
@@ -228,10 +228,10 @@ it('captures the trusted builder at registration instead of following later conf
       const amount = numberParam({ default: params.amount as number })
       return defineEffect({
         id: effectId,
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 3,
         parameters: { amount },
-        execute: targets.ownerPet.apply(ops.heal(amount)),
+        apply: targets.ownerPet.apply(ops.heal(amount)),
       })
     },
   }
@@ -240,10 +240,10 @@ it('captures the trusted builder at registration instead of following later conf
     const amount = numberParam({ default: params.amount as number })
     return defineEffect({
       id: effectId,
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       priority: 99,
       parameters: { amount },
-      execute: targets.ownerPet.apply(ops.heal(20)),
+      apply: targets.ownerPet.apply(ops.heal(20)),
     })
   }
   const compiled = compileBehaviorUse(
@@ -275,9 +275,9 @@ it('keeps a native string selection within its published enum and length contrac
       const mode = stringParam({ default: params.mode as string })
       return defineEffect({
         id: effectId,
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         parameters: { mode },
-        execute: ctx => targets.ownerPet.apply(ops.heal(ctx.read(mode) === 'small' ? 10 : 20))(ctx),
+        apply: ctx => targets.ownerPet.apply(ops.heal(ctx.read(mode) === 'small' ? 10 : 20))(ctx),
       })
     },
   })
@@ -409,7 +409,7 @@ it('rejects native legacy aliases and attempts to widen the registered public co
     parameters: recovery().parameters,
     build: ({ effectId }) =>
       compileEffect(
-        defineEffect({ id: effectId, on: 'OnHit', execute: targets.ownerPet.apply(ops.heal(10)) }),
+        defineEffect({ id: effectId, triggers: [EffectTrigger.OnHit], apply: targets.ownerPet.apply(ops.heal(10)) }),
       ) as never,
   })
   expect(

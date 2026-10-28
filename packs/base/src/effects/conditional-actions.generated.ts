@@ -1,6 +1,7 @@
 // Reviewed native behavior; edit this TypeScript source directly.
 import { BaseMark } from '@arcadia-eternity/battle/v4'
 import {
+  EffectTrigger,
   selectFrom,
   numberParam,
   compileEffect,
@@ -33,11 +34,11 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_increase_damage_taken_once_50_percent_double_effect_if_frozen: compileEffect(
       defineEffect({
         id: 'effect_increase_damage_taken_once_50_percent_double_effect_if_frozen',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         consumesStacks: 1,
         when: conditions.selfBeDamaged,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             targets.ownerMarks.where(mark => mark.baseId === 'mark_bingdong').condition(checks.exists()),
             contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
@@ -49,10 +50,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_add_damage_100_or_add_mark_shijianzhadan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_100_or_add_mark_shijianzhadan',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
             contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 100 })),
@@ -64,10 +65,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_add_damage_50_or_add_mark_dingshizhadan: compileEffect(
       defineEffect({
         id: 'effect_skill_add_damage_50_or_add_mark_dingshizhadan',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
             contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
@@ -87,11 +88,11 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_mabi_30_percent_or_shandianluoyin_if_fail',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               conditions.chance(parameters.action0_value_condition_percent),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
@@ -117,11 +118,11 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_mabi_15_percent_or_raise_spa_1_stage_50_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               conditions.chance(parameters.action0_value_condition_percent),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
@@ -137,13 +138,13 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_add_mark_opponent_shaoshang: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shaoshang',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
         ),
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
             targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -158,7 +159,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shaoshang_10_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -166,7 +167,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -182,7 +183,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shaoshang_15_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -190,7 +191,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
             conditions.chance(parameters.condition_1_percent),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -206,7 +207,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shaoshang_20_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -214,7 +215,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
             conditions.chance(parameters.condition_1_percent),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -230,7 +231,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shaoshang_30_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -238,7 +239,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
             conditions.chance(parameters.condition_1_percent),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -254,7 +255,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shaoshang_5_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -262,7 +263,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_1_percent)),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -282,7 +283,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shaoshang_50_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -290,7 +291,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
             conditions.chance(parameters.condition_2_percent),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -306,7 +307,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shaoshang_60_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.all(
@@ -314,7 +315,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
             conditions.chance(parameters.condition_2_percent),
           ),
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -326,7 +327,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_add_mark_opponent_shaoshang_if_hp_above_75_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_add_mark_opponent_shaoshang_if_hp_above_75_percent',
-        on: 'OnHit',
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -338,7 +339,7 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
           )
           return left !== undefined && right !== undefined && left > right
         }),
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Fire'),
             targets.opponentActive.apply(ops.addMark(resolved.get('mark_shaoshang')!)),
@@ -362,11 +363,11 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
       return compileEffect(
         defineEffect({
           id: 'effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_spe_1_stage_50_percent',
-          on: 'OnHit',
+          triggers: [EffectTrigger.OnHit],
           priority: 0,
           parameters,
           when: conditions.selfUsesSkill,
-          execute: actions.sequence(
+          apply: actions.sequence(
             actions.choose(
               conditions.chance(parameters.action0_value_condition_percent),
               targets.opponentActive.apply(ops.addMark(resolved.get('mark_shuimian')!)),
@@ -382,10 +383,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_clear_opponent_spe_up_reverse_if_field_yemu: compileEffect(
       defineEffect({
         id: 'effect_skill_clear_opponent_spe_up_reverse_if_field_yemu',
-        on: 'BeforeHit',
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             contexts.battle
               .flatMap(battle => battle.marks)
@@ -400,10 +401,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             (ctx: EffectFrame) => {
               const left = ctx.read(
@@ -424,10 +425,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             (ctx: EffectFrame) => {
               const left = ctx.read(
@@ -448,10 +449,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             (ctx: EffectFrame) => {
               const left = ctx.read(
@@ -472,10 +473,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent',
-        on: 'OnBeforeCalculateDamage',
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill),
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             (ctx: EffectFrame) => {
               const left = ctx.read(
@@ -496,10 +497,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_consume_xinzhiyinji_multihit: compileEffect(
       defineEffect({
         id: 'effect_skill_consume_xinzhiyinji_multihit',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
             contexts.skillUse.apply(ops.setMultihit(selectFrom([5, 8]).all())),
@@ -511,10 +512,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_multihit_if_height_above_100: compileEffect(
       defineEffect({
         id: 'effect_skill_multihit_if_height_above_100',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             (ctx: EffectFrame) => {
               const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
@@ -530,10 +531,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_multihit_if_height_gt_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_multihit_if_height_gt_opponent',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             (ctx: EffectFrame) => {
               const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
@@ -549,10 +550,10 @@ export function createGeneratedConditionalActions(marks: ReadonlyMap<string, Bas
     effect_skill_multihit_if_height_lt_opponent: compileEffect(
       defineEffect({
         id: 'effect_skill_multihit_if_height_lt_opponent',
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: actions.sequence(
+        apply: actions.sequence(
           actions.choose(
             (ctx: EffectFrame) => {
               const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())

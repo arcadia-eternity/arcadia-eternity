@@ -305,7 +305,11 @@ for (const variant of [
       operation = ops.setDamageThreshold(options)
     if (variant === 'snapshot') options.min = selectFrom([999]).first()
     const effect = compileEffect(
-      defineEffect({ id: 'fixture/threshold-input', on: 'TurnEnd', execute: selectFrom(selected).apply(operation) }),
+      defineEffect({
+        id: 'fixture/threshold-input',
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom(selected).apply(operation),
+      }),
     )
     const ctx = new EffectContext(parent, EffectTrigger.TurnEnd, source, effect)
     const apply = () => battle.executionBudget.run(battle.currentTurn, () => effect.innerApply(ctx))

@@ -1,5 +1,12 @@
 import { BaseStatLevelMark } from '@arcadia-eternity/battle/v4'
-import { compileEffect, conditions, contexts, defineEffect, ops } from '@arcadia-eternity/battle/v4/authoring'
+import {
+  EffectTrigger,
+  compileEffect,
+  conditions,
+  contexts,
+  defineEffect,
+  ops,
+} from '@arcadia-eternity/battle/v4/authoring'
 
 /** V1 uses a signed prototype level; V2's statLevelMarkLevel is an unsigned event magnitude. */
 export function createDoubleStageDebuff() {
@@ -10,10 +17,10 @@ export function createDoubleStageDebuff() {
   return compileEffect(
     defineEffect({
       id: 'effect_mark_double_stage_debuff',
-      on: 'OnBeforeAddMark',
+      triggers: [EffectTrigger.OnBeforeAddMark],
       priority: 0,
       when: conditions.all(conditions.ownerAddsMark, conditions.statStageChange(undefined, 'down')),
-      execute: contexts.addMark.apply(ops.setStatLevelMarkLevel(doubledLevel)),
+      apply: contexts.addMark.apply(ops.setStatLevelMarkLevel(doubledLevel)),
     }),
   )
 }

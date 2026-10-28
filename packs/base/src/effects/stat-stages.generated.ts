@@ -417,10 +417,10 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_ability_enhance_atk_when_spa_enhanced: compileEffect(
       defineEffect({
         id: 'effect_ability_enhance_atk_when_spa_enhanced',
-        on: ['OnBeforeAddMark'],
+        triggers: [EffectTrigger.OnBeforeAddMark],
         priority: 0,
         when: conditions.all(conditions.ownerAddsMark, conditions.statStageChange('spa', 'up')),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.changeStatStage('atk', contexts.addMark.select(event => event.stack).first()),
         ),
       }),
@@ -428,54 +428,54 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_ability_raise_spe_1_stage_when_dodge: compileEffect(
       defineEffect({
         id: 'effect_ability_raise_spe_1_stage_when_dodge',
-        on: ['OnMiss'],
+        triggers: [EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.ownerIsSkillTarget,
-        execute: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
       }),
     ),
     effect_emblem_raise_spd_1_stage_when_baonuan_20_percent: compileEffect(
       defineEffect({
         id: 'effect_emblem_raise_spd_1_stage_when_baonuan_20_percent',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_baonuan'),
           conditions.chance(20),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       }),
     ),
     effect_emblem_raise_spd_1_stage_when_rouruan_20_percent: compileEffect(
       defineEffect({
         id: 'effect_emblem_raise_spd_1_stage_when_rouruan_20_percent',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_rouruan'),
           conditions.chance(20),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       }),
     ),
     effect_mark_reduce_opponent_atk_1_stage_when_fainted: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_opponent_atk_1_stage_when_fainted',
-        on: ['OnDefeat'],
+        triggers: [EffectTrigger.OnDefeat],
         priority: 0,
         when: conditions.ownerIsSkillTarget,
-        execute: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
       }),
     ),
     effect_mark_reduce_opponent_spe_1_stage_when_fainted: compileEffect(
       defineEffect({
         id: 'effect_mark_reduce_opponent_spe_1_stage_when_fainted',
-        on: ['OnDefeat'],
+        triggers: [EffectTrigger.OnDefeat],
         priority: 0,
         when: conditions.ownerIsSkillTarget,
-        execute: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
       }),
     ),
     effect_skill_raise_atk_1_stage: defineNativeEffect({
@@ -555,67 +555,67 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_atk_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_1_stage_after_2_uses',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
       }),
     ),
     effect_skill_raise_atk_1_stage_if_anyinglingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_1_stage_if_anyinglingyu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_anyinglingyu').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
       }),
     ),
     effect_skill_raise_atk_1_stage_if_has_shunliu: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_1_stage_if_has_shunliu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
       }),
     ),
     effect_skill_raise_atk_1_stage_if_opponent_male: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_1_stage_if_opponent_male',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
       }),
     ),
     effect_skill_raise_atk_1_stage_on_crit: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_1_stage_on_crit',
-        on: ['OnCritPreDamage'],
+        triggers: [EffectTrigger.OnCritPreDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
-        execute: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
       }),
     ),
     effect_skill_raise_atk_2_stage_if_male: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_atk_2_stage_if_male',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('atk', 2)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 2)),
       }),
     ),
     effect_skill_raise_atk_2_stages: defineNativeEffect({
@@ -677,40 +677,40 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_def_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_def_1_stage_after_2_uses',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
       }),
     ),
     effect_skill_raise_def_1_stage_if_aideminyi: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_def_1_stage_if_aideminyi',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
       }),
     ),
     effect_skill_raise_def_1_stage_if_has_shunliu: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_def_1_stage_if_has_shunliu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
       }),
     ),
     effect_skill_raise_def_1_stage_if_opponent_has_kaowen: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_def_1_stage_if_opponent_has_kaowen',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -718,7 +718,7 @@ export const generatedStatStageCandidates = Object.freeze({
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
           ),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
       }),
     ),
     effect_skill_raise_def_2_stages: defineNativeEffect({
@@ -738,26 +738,26 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_self_spa_1_stage_if_3_hits: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_self_spa_1_stage_if_3_hits',
-        on: ['BeforeMultiHit'],
+        triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
           const right = 3
           return left !== undefined && right !== undefined && left === right
         }),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
       }),
     ),
     effect_skill_raise_self_spa_2_stage_if_has_shijianfaze: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_self_spa_2_stage_if_has_shijianfaze',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: -1,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
       }),
     ),
     effect_skill_raise_spa_1_stage: defineNativeEffect({
@@ -823,28 +823,28 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_spa_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spa_1_stage_after_2_uses',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
       }),
     ),
     effect_skill_raise_spa_1_stage_if_has_niliu: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spa_1_stage_if_has_niliu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
       }),
     ),
     effect_skill_raise_spa_1_stage_if_hp_lt_half: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spa_1_stage_if_hp_lt_half',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -856,31 +856,31 @@ export const generatedStatStageCandidates = Object.freeze({
           )
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
       }),
     ),
     effect_skill_raise_spa_1_stage_if_shuiliangbaohe: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spa_1_stage_if_shuiliangbaohe',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
       }),
     ),
     effect_skill_raise_spa_2_stage_if_female: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spa_2_stage_if_female',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerPet.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
       }),
     ),
     effect_skill_raise_spa_2_stages: defineNativeEffect({
@@ -928,28 +928,28 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_spd_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spd_1_stage_after_2_uses',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       }),
     ),
     effect_skill_raise_spd_1_stage_if_has_niliu: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spd_1_stage_if_has_niliu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       }),
     ),
     effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -957,7 +957,7 @@ export const generatedStatStageCandidates = Object.freeze({
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
           ),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       }),
     ),
     effect_skill_raise_spd_2_stages: defineNativeEffect({
@@ -1059,16 +1059,16 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_spe_1_stage_after_2_uses: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spe_1_stage_after_2_uses',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
       }),
     ),
     effect_skill_raise_spe_1_stage_if_hp_below_75_percent: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spe_1_stage_if_hp_below_75_percent',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -1080,25 +1080,25 @@ export const generatedStatStageCandidates = Object.freeze({
           )
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
       }),
     ),
     effect_skill_raise_spe_1_stage_if_opponent_female: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spe_1_stage_if_opponent_female',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
       }),
     ),
     effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated',
-        on: ['OnDefeat'],
+        triggers: [EffectTrigger.OnDefeat],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1106,19 +1106,19 @@ export const generatedStatStageCandidates = Object.freeze({
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
           ),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
       }),
     ),
     effect_skill_raise_spe_1_stage_if_zhandoulingyu: compileEffect(
       defineEffect({
         id: 'effect_skill_raise_spe_1_stage_if_zhandoulingyu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_zhandoulingyu').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
       }),
     ),
     effect_skill_raise_spe_2_stages: defineNativeEffect({
@@ -1266,13 +1266,13 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_atk_1_stage_if_opponent_male: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_atk_1_stage_if_opponent_male',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Male')),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('atk', -1)),
       }),
     ),
     effect_skill_reduce_opponent_def_1_stage: defineNativeEffect({
@@ -1388,38 +1388,38 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_def_1_stage_if_has_shunliu: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_def_1_stage_if_has_shunliu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
       }),
     ),
     effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.selfPlayer.select(player => player.currentRage).first())
           const right = 30
           return left !== undefined && right !== undefined && left < right
         }),
-        execute: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
       }),
     ),
     effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_wuzhezhixin').condition(checks.exists()),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
       }),
     ),
     effect_skill_reduce_opponent_spa_1_stage: defineNativeEffect({
@@ -1503,7 +1503,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_spa_1_stage_if_bingdong: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spa_1_stage_if_bingdong',
-        on: ['OnHit'],
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1511,37 +1511,37 @@ export const generatedStatStageCandidates = Object.freeze({
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_bingdong')),
           ),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
       }),
     ),
     effect_skill_reduce_opponent_spa_1_stage_if_has_niliu: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spa_1_stage_if_has_niliu',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
       }),
     ),
     effect_skill_reduce_opponent_spa_1_stage_if_opponent_female: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spa_1_stage_if_opponent_female',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets.some(pet => pet.gender === 'Female')),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
       }),
     ),
     effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1550,7 +1550,7 @@ export const generatedStatStageCandidates = Object.freeze({
           ),
           conditions.lastSkillThisTurn,
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
       }),
     ),
     effect_skill_reduce_opponent_spd_1_stage: defineNativeEffect({
@@ -1682,16 +1682,16 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spd_1_stage_consecutive_2_times',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.everyNthUse(2)),
-        execute: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
       }),
     ),
     effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
@@ -1699,7 +1699,7 @@ export const generatedStatStageCandidates = Object.freeze({
             pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_renzhezhixin')),
           ),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
       }),
     ),
     effect_skill_reduce_opponent_spe_1_stage: defineNativeEffect({
@@ -1783,13 +1783,13 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze: compileEffect(
       defineEffect({
         id: 'effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: -1,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
         ),
-        execute: targets.opponentActive.apply(ops.changeStatStage('spe', -2)),
+        apply: targets.opponentActive.apply(ops.changeStatStage('spe', -2)),
       }),
     ),
     effect_skill_reduce_opponent_stat_1_stage: defineNativeEffect({
@@ -1813,24 +1813,24 @@ export const generatedStatStageCandidates = Object.freeze({
       return compileEffect(
         defineEffect({
           id: 'effect_skill_reduce_stat_5_percent',
-          on: ['OnDamage'],
+          triggers: [EffectTrigger.OnDamage],
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-          execute: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
+          apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
         }),
       )
     })(),
     effect_skill_set_self_spa_to_atk: compileEffect(
       defineEffect({
         id: 'effect_skill_set_self_spa_to_atk',
-        on: ['BeforeHit'],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').condition(checks.exists()),
         ),
-        execute: targets.ownerPet.apply(
+        apply: targets.ownerPet.apply(
           ops.changeStatStage(
             'spa',
             targets.ownerMarks

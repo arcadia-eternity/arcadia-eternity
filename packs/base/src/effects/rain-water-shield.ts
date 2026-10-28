@@ -1,4 +1,5 @@
 import {
+  EffectTrigger,
   compileEffect,
   conditions,
   contexts,
@@ -14,7 +15,7 @@ export function createRainWaterShield(catalog: ParameterCatalog) {
   return compileEffect(
     defineEffect({
       id: 'effect_ability_add_shuiwenpingzhang_value_if_yutian',
-      on: 'BeforeHit',
+      triggers: [EffectTrigger.BeforeHit],
       priority: 0,
       when: conditions.all(
         conditions.selfUsesSkill,
@@ -22,7 +23,7 @@ export function createRainWaterShield(catalog: ParameterCatalog) {
           events.some(event => event.skill.baseId === 'skill_shuiwenpingzhang'),
         ),
       ),
-      execute: targets.ownerPet.apply(
+      apply: targets.ownerPet.apply(
         ops.setParameter(
           catalog,
           'effect_skill_add_mark_shuiwenpingzhang.multiply_value',

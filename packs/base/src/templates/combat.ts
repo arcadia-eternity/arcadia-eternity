@@ -1,5 +1,5 @@
 import { Element, StatTypeWithoutHp, type SkillInstance } from '@arcadia-eternity/battle/v4'
-import { conditions, contexts, targets, ops, values } from '@arcadia-eternity/battle/v4/authoring'
+import { EffectTrigger, conditions, contexts, targets, ops, values } from '@arcadia-eternity/battle/v4/authoring'
 import {
   template,
   numeric,
@@ -41,7 +41,7 @@ export const combatTemplates = [
       family: 'stat-stage',
       title: '命中后改变能力等级',
       description: '本技能命中时，按概率改变自己或对手的指定能力等级。沿用等级上限和正常属性阶段印记流程。',
-      timing: 'OnHit',
+      timing: EffectTrigger.OnHit,
       sourceKind: 'skill',
       fields: {
         target: target(),
@@ -51,9 +51,9 @@ export const combatTemplates = [
       },
     },
     c => ({
-      on: 'OnHit',
+      triggers: [EffectTrigger.OnHit],
       when: conditions.all(conditions.selfUsesSkill, probability(c.number('chance'))),
-      execute: (c.text('target') === 'self' ? targets.ownerPet : targets.opponentActive).apply(
+      apply: (c.text('target') === 'self' ? targets.ownerPet : targets.opponentActive).apply(
         ops.changeStatStage(c.text('stat') as StatTypeWithoutHp, c.number('amount')),
       ),
     }),
@@ -65,7 +65,7 @@ export const combatTemplates = [
         family: 'skill-attribute',
         title: `印记修改技能属性（${scopeLabels[scope]}）`,
         description: '印记创建时修改当前符合范围的技能，来源印记消失时清理；不自动覆盖以后新获得的技能。',
-        timing: 'OnMarkCreated',
+        timing: EffectTrigger.OnMarkCreated,
         sourceKind: 'petMark',
         fields: {
           ...scopeFields(scope),
@@ -75,9 +75,9 @@ export const combatTemplates = [
         },
       },
       c => ({
-        on: 'OnMarkCreated',
+        triggers: [EffectTrigger.OnMarkCreated],
         rebindOnOwnerTransfer: true,
-        execute: targets.selfSkills
+        apply: targets.selfSkills
           .where(matches(c, scope))
           .apply(
             ops.addSkillAttributeModifier(
@@ -97,7 +97,7 @@ export const combatTemplates = [
         family: 'skill-power',
         title: `使用技能时调整威力（${scopeLabels[scope]}）`,
         description: '持有者使用符合范围的技能时，调整本次使用的威力。加法与倍率分别选择，不改技能原型。',
-        timing: 'AfterUseSkillCheck',
+        timing: EffectTrigger.AfterUseSkillCheck,
         sourceKind: 'petMark',
         fields: {
           ...scopeFields(scope),
@@ -106,12 +106,12 @@ export const combatTemplates = [
         },
       },
       c => ({
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         when: conditions.all(
           conditions.ownerUsesSkill,
           contexts.skillUse.condition((_ctx, uses) => uses.some(use => matches(c, scope)(use.skill))),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           c.text('operation') === 'add' ? ops.addPower(c.number('amount')) : ops.amplifyPower(c.number('amount')),
         ),
       }),
@@ -125,7 +125,7 @@ export const combatTemplates = [
           family: 'damage-modifier',
           title: `${direction === 'dealt' ? '造成' : '承受'}伤害修正${perStack ? '（每层）' : ''}`,
           description: '在伤害计算前调整固定值与百分比；每层版本读取来源印记当前层数并向下取整。',
-          timing: 'OnBeforeCalculateDamage',
+          timing: EffectTrigger.OnBeforeCalculateDamage,
           sourceKind: 'petMark',
           fields: { percent: numeric('百分比修正', 10, -100, 1000, '%'), delta: amount(0) },
         },
@@ -137,9 +137,9 @@ export const combatTemplates = [
                 )
               : c.number(name)
           return {
-            on: 'OnBeforeCalculateDamage',
+            triggers: [EffectTrigger.OnBeforeCalculateDamage],
             when: direction === 'dealt' ? conditions.selfUsesSkill : conditions.selfBeDamaged,
-            execute: contexts.damage.apply(ops.modifyDamage({ percent: scaled('percent'), delta: scaled('delta') })),
+            apply: contexts.damage.apply(ops.modifyDamage({ percent: scaled('percent'), delta: scaled('delta') })),
           }
         },
       ),
@@ -152,7 +152,10 @@ export const combatTemplates = [
         family: 'skill-result',
         title: `本技能${{ accuracy: '命中率修正', critRate: '暴击率修正', sureHit: '必中', sureCrit: '必暴' }[result]}`,
         description: '在本技能检查阶段修改本次使用结果。必中和必暴使用既有优先级裁决，不跳过其他机制。',
-        timing: result === 'accuracy' || result === 'sureHit' ? 'BeforeUseSkillCheck' : 'AfterUseSkillCheck',
+        timing:
+          result === 'accuracy' || result === 'sureHit'
+            ? EffectTrigger.BeforeUseSkillCheck
+            : EffectTrigger.AfterUseSkillCheck,
         sourceKind: 'skill',
         fields:
           result === 'accuracy' || result === 'critRate'
@@ -160,9 +163,13 @@ export const combatTemplates = [
             : {},
       },
       c => ({
-        on: result === 'accuracy' || result === 'sureHit' ? 'BeforeUseSkillCheck' : 'AfterUseSkillCheck',
+        triggers: [
+          result === 'accuracy' || result === 'sureHit'
+            ? EffectTrigger.BeforeUseSkillCheck
+            : EffectTrigger.AfterUseSkillCheck,
+        ],
         when: conditions.selfUsesSkill,
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           result === 'accuracy'
             ? ops.addAccuracy(c.number('amount'))
             : result === 'critRate'
@@ -181,7 +188,7 @@ export const combatTemplates = [
         family: 'next-attack',
         title: `下次攻击${{ power: '强化', sureHit: '必中', sureCrit: '必暴' }[result]}并消费印记`,
         description: '持有者下一次非状态技能在检查阶段获得强化并消费来源印记。消费在命中判定完成前，未命中仍消费。',
-        timing: 'AfterUseSkillCheck',
+        timing: EffectTrigger.AfterUseSkillCheck,
         sourceKind: 'petMark',
         fields: {
           ...(result === 'power' ? { multiplier: numeric('威力倍率', 1.5, 0, 1000) } : {}),
@@ -192,10 +199,10 @@ export const combatTemplates = [
         },
       },
       c => ({
-        on: 'AfterUseSkillCheck',
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         consumesStacks: c.scalar('stacks'),
         when: conditions.all(conditions.selfUsesSkill, damagingSkill),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           result === 'power'
             ? ops.amplifyPower(c.number('multiplier'))
             : result === 'sureHit'
@@ -215,12 +222,12 @@ export const combatTemplates = [
           operation === 'set'
             ? '本技能检查后，按概率设置多段次数。'
             : '本技能原本具有多段次数时，在多段判定前追加次数。',
-        timing: operation === 'set' ? 'AfterUseSkillCheck' : 'BeforeMultiHit',
+        timing: operation === 'set' ? EffectTrigger.AfterUseSkillCheck : EffectTrigger.BeforeMultiHit,
         sourceKind: 'skill',
         fields: { amount: numeric('次数', operation === 'set' ? 2 : 1, 1, 100, '次', true), chance: chance() },
       },
       c => ({
-        on: operation === 'set' ? 'AfterUseSkillCheck' : 'BeforeMultiHit',
+        triggers: [operation === 'set' ? EffectTrigger.AfterUseSkillCheck : EffectTrigger.BeforeMultiHit],
         when: conditions.all(
           conditions.selfUsesSkill,
           ...(operation === 'add'
@@ -228,7 +235,7 @@ export const combatTemplates = [
             : []),
           probability(c.number('chance')),
         ),
-        execute: contexts.skillUse.apply(
+        apply: contexts.skillUse.apply(
           operation === 'set' ? ops.setMultihit(c.number('amount')) : ops.addMultihitResult(c.number('amount')),
         ),
       }),

@@ -24,10 +24,10 @@ export function createEffects({ sdk, marks, id }: CodeEffectModuleContext) {
         const amount = numberParam({ default: -25, tags: [id('slow-amount')] })
         return {
           id: effectId,
-          on: 'OnMarkCreated',
+          triggers: [EffectTrigger.OnMarkCreated],
           rebindOnOwnerTransfer: true,
           parameters: { amount },
-          execute: targets.ownerPet.apply(
+          apply: targets.ownerPet.apply(
             ops.bindAttribute({
               key: 'speed',
               attribute: 'spe',

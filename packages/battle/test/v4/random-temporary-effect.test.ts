@@ -226,8 +226,8 @@ it('validates all native targets before writing any temporary effect', () => {
   const effect = effectAuthoring.compileEffect(
     effectAuthoring.defineEffect({
       id: 'fixture/cross-battle-temporary',
-      on: 'BeforeHit',
-      execute: effectAuthoring
+      triggers: [EffectTrigger.BeforeHit],
+      apply: effectAuthoring
         .selectFrom([skill, foreign])
         .apply(effectAuthoring.ops.addTemporaryEffect(dependencies.get(randomTemporaryEffectDependencies[0])!)),
     }),
@@ -246,8 +246,8 @@ it('validates all native targets before writing any temporary effect', () => {
     const literal = effectAuthoring.compileEffect(
       effectAuthoring.defineEffect({
         id: 'fixture/literal-temporary',
-        on: 'BeforeHit',
-        execute: effectAuthoring.targets.sourceSkill.apply(
+        triggers: [EffectTrigger.BeforeHit],
+        apply: effectAuthoring.targets.sourceSkill.apply(
           effectAuthoring.ops.addTemporaryEffect(dependencies.get(randomTemporaryEffectDependencies[0])!),
         ),
       }),

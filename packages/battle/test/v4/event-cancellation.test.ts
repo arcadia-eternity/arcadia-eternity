@@ -154,12 +154,12 @@ function runMark(id: Id, native: boolean, kind: 'skill' | 'mark', variant: (type
   }
   return { admitted, available: event.available, added: event.target.marks.some(m => m.base === base) }
 }
-for (const id of ids.filter(id => definitions.get(id).trigger === 'OnBeforeAddMark'))
+for (const id of ids.filter(id => definitions.get(id).trigger === EffectTrigger.OnBeforeAddMark))
   for (const kind of ['skill', 'mark'] as const)
     for (const variant of variants)
       it(`${id}/${kind}/${variant}`, () =>
         expect(runMark(id, true, kind, variant)).toEqual(runMark(id, false, kind, variant)))
-for (const id of ids.filter(id => definitions.get(id).trigger === 'OnBeforeAddMark')) {
+for (const id of ids.filter(id => definitions.get(id).trigger === EffectTrigger.OnBeforeAddMark)) {
   it(`cancels actual creation ${id}`, () =>
     expect(runMark(id, true, 'mark', 'real')).toEqual({ admitted: 1, available: false, added: false }))
   it(`does not recheck admission after base changes ${id}`, () =>
@@ -198,7 +198,7 @@ function runEffect(id: Id, native: boolean, variant: string) {
   else battle.applyEffects(outer, EffectTrigger.BeforeEffect, source)
   return { available: outer.available, executed, anying }
 }
-for (const id of ids.filter(id => definitions.get(id).trigger === 'BeforeEffect'))
+for (const id of ids.filter(id => definitions.get(id).trigger === EffectTrigger.BeforeEffect))
   for (const variant of [
     'normal',
     'wrong-owner',
@@ -212,7 +212,7 @@ for (const id of ids.filter(id => definitions.get(id).trigger === 'BeforeEffect'
     'real',
   ])
     it(`${id}/${variant}`, () => expect(runEffect(id, true, variant)).toEqual(runEffect(id, false, variant)))
-for (const id of ids.filter(id => definitions.get(id).trigger === 'BeforeEffect')) {
+for (const id of ids.filter(id => definitions.get(id).trigger === EffectTrigger.BeforeEffect)) {
   it(`cancels outer effect ${id}`, () => expect(runEffect(id, true, 'normal').available).toBe(false))
   it(`suppresses actual effect execution ${id}`, () => expect(runEffect(id, true, 'real').executed).toBe(0))
 }
@@ -232,8 +232,8 @@ it('nearest effect excludes the currently executing authoring effect and rejects
   const local = compileEffect(
     defineEffect({
       id: 'fixture/context-query',
-      on: 'BeforeEffect',
-      execute(ctx) {
+      triggers: [EffectTrigger.BeforeEffect],
+      apply(ctx) {
         expect(ctx.read(contexts.effect.first())).toBe(outer)
         expect(() => selectFrom([outer, other]).apply(ops.disableContext())(ctx)).toThrow('Cross-battle')
         expect(outer.available).toBe(true)
@@ -267,8 +267,8 @@ it('revalidates context ownership after each cancellation write', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/revalidate',
-      on: 'BeforeEffect',
-      execute: selectFrom([first, second]).apply(ops.disableContext()),
+      triggers: [EffectTrigger.BeforeEffect],
+      apply: selectFrom([first, second]).apply(ops.disableContext()),
     }),
   )
   expect(() =>

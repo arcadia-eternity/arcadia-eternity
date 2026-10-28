@@ -191,8 +191,8 @@ it('reads delta once and reads each reference immediately before addition', () =
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/add-reference',
-      on: 'BeforeSort',
-      execute: selectFrom([f.use, f.use])
+      triggers: [EffectTrigger.BeforeSort],
+      apply: selectFrom([f.use, f.use])
         .property('priority')
         .apply(
           ops.add(
@@ -219,8 +219,8 @@ it('preserves the legacy difference between rage eligibility and actual rage con
       effectAuthoring.compileEffect(
         effectAuthoring.defineEffect({
           id: 'fixture/rage-consumed',
-          on: 'AfterUseSkillCheck',
-          execute() {
+          triggers: [EffectTrigger.AfterUseSkillCheck],
+          apply() {
             afterConsumption.push(f.a.currentRage)
           },
         }),
@@ -253,8 +253,8 @@ it('rejects foreign numeric references before reading a delta', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/numeric-guard',
-      on: 'BeforeSort',
-      execute: selectFrom([f.use, foreign.use])
+      triggers: [EffectTrigger.BeforeSort],
+      apply: selectFrom([f.use, foreign.use])
         .property('priority')
         .apply(
           ops.add(
@@ -281,8 +281,8 @@ it('skips absent numeric inputs without overwriting the reference', () => {
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/numeric-missing',
-      on: 'BeforeSort',
-      execute: contexts.skillUse.property('priority').apply(
+      triggers: [EffectTrigger.BeforeSort],
+      apply: contexts.skillUse.property('priority').apply(
         ops.add(
           targets.ownerMarks
             .where(() => false)

@@ -42,8 +42,8 @@ for (const variant of ['detached', 'other-unowned', 'foreign', 'reattach-foreign
     const e = compileEffect(
       defineEffect({
         id: 'fixture/consume',
-        on: 'TurnEnd',
-        execute: selectFrom(selected).apply(ops.consumeStacks(amount)),
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom(selected).apply(ops.consumeStacks(amount)),
       }),
     )
     const apply = () =>
@@ -82,8 +82,8 @@ for (const variant of ['detached', 'other-unowned', 'foreign'] as const)
     const e = compileEffect(
       defineEffect({
         id: 'fixture/remove-detached',
-        on: 'TurnEnd',
-        execute: selectFrom(variant === 'detached' ? [source] : [source, other]).apply(ops.removeMark()),
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom(variant === 'detached' ? [source] : [source, other]).apply(ops.removeMark()),
       }),
     )
     const apply = () =>
@@ -140,8 +140,8 @@ for (const variant of [
     const effect = compileEffect(
       defineEffect({
         id: 'fixture/consume-snapshot',
-        on: 'TurnEnd',
-        execute: selectFrom([mark]).apply(ops.consumeStacks(amount)),
+        triggers: [EffectTrigger.TurnEnd],
+        apply: selectFrom([mark]).apply(ops.consumeStacks(amount)),
       }),
     )
     const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, a.activePet.skills[0], effect)

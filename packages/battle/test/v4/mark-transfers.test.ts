@@ -216,8 +216,8 @@ for (const operation of ['marks', 'stages'] as const)
     const effect = effectAuthoring.compileEffect(
       effectAuthoring.defineEffect({
         id: 'fixture/foreign-transfer',
-        on: 'OnHit',
-        execute: effectAuthoring.targets.opponentActive.apply(op),
+        triggers: [EffectTrigger.OnHit],
+        apply: effectAuthoring.targets.opponentActive.apply(op),
       }),
     )
     expect(() => f.battle.executionBudget.run(0, () => effect.innerApply(ctx))).toThrow('Cross-battle')
