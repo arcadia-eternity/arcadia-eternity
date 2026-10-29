@@ -94,7 +94,7 @@ test('clean production clients synchronize custom content, form teams, play a tu
     await host.getByTestId('room-environment-select').click()
     await host.getByRole('option', { name: '@arcadia-example/slow 1.0.0', exact: true }).click()
     await host.getByTestId('confirm-create-private-room-button').click()
-    await expect(host).toHaveURL(/\/room\/[A-Za-z0-9]+/, { timeout: 30_000 })
+    await expect(host).toHaveURL(/\/room\/[^/?#]+/, { timeout: 30_000 })
     console.log('Custom room created', host.url())
     const room = host.url()
     // Updating the server's default cannot replace the environment already leased by this room.

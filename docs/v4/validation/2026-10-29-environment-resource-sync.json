@@ -1,0 +1,53 @@
+{
+  "formatVersion": 1,
+  "issue": 250,
+  "date": "2026-10-29",
+  "status": "passed",
+  "sourceCommits": {
+    "publicCatalog": "152d0577",
+    "pairedWebsite": "524a5869",
+    "browserAcceptanceTest": "94b4b350"
+  },
+  "commands": [
+    "pnpm build:prod",
+    "PLAYWRIGHT_UGC_SYNC=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.ugc-environment.config.ts"
+  ],
+  "surface": {
+    "browser": "Installed Google Chrome channel",
+    "website": "Production bundled paired website served by createSingleProcessApp.webRoot",
+    "backend": "Real server with admitted npm fixture; no metadata/media interception",
+    "cleanBrowserContexts": 2,
+    "debugHooksAvailable": false
+  },
+  "checks": [
+    "UI environment selection chooses @arcadia-example/slow 1.0.0",
+    "Both clients start with empty teams and form example-slow:pet / example-slow:strike through the editor",
+    "Published catalog includes official and custom species; skills omit server effect payloads",
+    "Preparing a later power-1 environment and retiring the original does not replace the leased room power-60 catalog",
+    "Both clients enter through Ready/Start and execute custom skill/effect turns",
+    "Guest browser reload resumes the fixed room and battle",
+    "Custom package PNG decodes with naturalWidth 1; all observed package-media responses are no-store",
+    "No browser request includes /src/, /node_modules/, .ts or npm .tgz paths; unused declared SWF is not fetched",
+    "Battle ends naturally through attacks with corresponding winner/loser screens; no surrender"
+  ],
+  "results": {
+    "passingRunsSeconds": [48.4, 50.8],
+    "naturalBattleTurns": 3,
+    "hostResult": "胜利！",
+    "originalEnvironment": "188e0ac33a56c3ed645cb80dad04ccd1cc7d0defd9d56c346fc58880bb22f55d",
+    "laterDefaultEnvironment": "6e0b7fe0ab49b18558096715a21c7108f3e4db619f5ff2bcd971d3e6306356e3",
+    "retainedSkillPower": 60,
+    "environmentContentReads": 3,
+    "packageMediaRequests": 49,
+    "totalNetworkRequests": 2213
+  },
+  "localArtifacts": {
+    "directory": "/Users/yuuinih/.codex/worktrees/environment-resource-sync/test_battle/packages/web-ui/test-results/ugc-environment-sync-clean-e504c-onnect-and-finish-naturally",
+    "files": ["acceptance.json", "network-requests.json", "custom-battle-start.png", "custom-battle-result.png"]
+  },
+  "scope": [
+    "Representative one-pet custom image battle on macOS/Chrome",
+    "SWF isolation, physical audio playback and Windows/Linux/desktop remote-client acceptance are separate validations",
+    "No production deployment or npm publication"
+  ]
+}
