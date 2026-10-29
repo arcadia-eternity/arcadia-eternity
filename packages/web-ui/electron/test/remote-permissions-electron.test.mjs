@@ -42,6 +42,13 @@ test(
       const remote = app.windows().find(page => page !== manager)
       await remote.waitForLoadState('domcontentloaded')
       assert.equal(await remote.evaluate(() => typeof window.arcadiaDesktop), 'undefined')
+      assert.deepEqual(await remote.evaluate(() => Object.keys(window.arcadiaSwf).sort()), [
+        'bounds',
+        'create',
+        'dispose',
+        'onEvent',
+        'send',
+      ])
       assert.equal(
         (await remote.evaluate(() => window.arcadiaRemotePlay.getBootConfig())).backendOrigin,
         'https://server-a.test',
@@ -69,6 +76,14 @@ test(
               if (!error.message.includes('Unauthorized desktop frame')) results.push(`${channel}: ${error.message}`)
             }
           }
+        for (const senderFrame of sender.mainFrame.frames) {
+          try {
+            await ipcMain._invokeHandlers.get('swf:create')({ sender, senderFrame }, { instance: 'test-child' })
+            results.push('subframe SWF create')
+          } catch (error) {
+            if (!error.message.includes('Untrusted SWF controller')) results.push(error.message)
+          }
+        }
         return { count: channels.length, failures: results }
       }, remoteId)
       assert.ok(denied.count > 40)

@@ -9,6 +9,7 @@ import { promises as fs } from 'node:fs'
 import { LocalBattleHost } from './local-battle-host.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
 import { createRemotePlayController, protectDesktopNavigation } from './remote-play.mjs'
+import { createSwfHost } from './swf-host.mjs'
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
 import { ContentLibrary } from './content-library.mjs'
@@ -55,6 +56,11 @@ const remotePlay = createRemotePlayController({
       return true
     }
   },
+})
+const swfHost = createSwfHost({
+  isTrustedController: event =>
+    isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl) || remotePlay.isTrusted(event),
+  playerPath: path.join(projectRoot, devServerUrl ? 'public/swf-player.html' : 'dist/swf-player.html'),
 })
 const managementHttpToken = randomUUID()
 let mainWindow = null
@@ -1950,6 +1956,7 @@ app.on('before-quit', event => {
   event.preventDefault()
   stoppingForQuit ??= stopForQuit(
     [
+      () => swfHost.dispose(),
       () => remotePlay.destroy(),
       () => contentLibrary?.close(),
       () => contentProjects?.close(),
@@ -1995,6 +2002,7 @@ app
       callback({ requestHeaders: headers })
     })
     setupIpcHandlers()
+    swfHost.registerIpc(ipcMain)
     createMainWindow()
     void getContentLibrary()
       .resume()
