@@ -65,6 +65,7 @@ const swfHost = createSwfHost({
   isTrustedController: event =>
     isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl) || remotePlay.isTrusted(event),
   playerPath: path.join(projectRoot, devServerUrl ? 'public/swf-player.html' : 'dist/swf-player.html'),
+  runtimeDirectory: path.join(projectRoot, devServerUrl ? 'node_modules/@ruffle-rs/ruffle' : 'dist/ruffle'),
 })
 const managementHttpToken = randomUUID()
 let mainWindow = null
