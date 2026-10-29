@@ -54,6 +54,7 @@ export function validCommand(x) {
   if (!validEnvelope(x)) return false
   if (x.type === 'load') {
     if (!validBytes(x.bytes?.container) || !validBytes(x.bytes?.movie)) return false
+    if (x.runtime === undefined) return true
     if (!x.runtime || typeof x.runtime !== 'object' || Array.isArray(x.runtime)) return false
     let total = 0
     const entries = Object.entries(x.runtime)

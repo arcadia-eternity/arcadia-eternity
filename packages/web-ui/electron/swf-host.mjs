@@ -1,7 +1,7 @@
 import { BrowserWindow, WebContentsView, session, webContents, protocol } from 'electron'
 import { randomUUID } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import { readFile, readdir } from 'node:fs/promises'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { PLAYER_URL, validInstance, validBounds, validCommand, validEvent, rateGate } from './swf-policy.mjs'
 
 protocol.registerSchemesAsPrivileged([
@@ -13,6 +13,7 @@ export function createSwfHost({
   isTrustedController,
   getControllerWindow = event => BrowserWindow.fromWebContents(event.sender),
   playerPath = fileURLToPath(new URL('../dist/swf-player.html', import.meta.url)),
+  runtimeDirectory = fileURLToPath(new URL('../dist/ruffle/', import.meta.url)),
   watchdogMs = 8000,
 }) {
   const records = new Map(),
@@ -32,6 +33,7 @@ export function createSwfHost({
   function dispose(r, reason) {
     if (r.dead) return
     r.dead = true
+    r.owner.removeListener('closed', r.ownerClosed)
     clearInterval(r.timer)
     records.delete(r.key)
     if (!r.owner.isDestroyed()) r.owner.contentView.removeChildView(r.view)
@@ -45,6 +47,9 @@ export function createSwfHost({
       if (reason && !shared && pid > 0) wc.forcefullyCrashRenderer()
       wc.close()
     }
+    r.session.protocol.unhandle('arcadia-swf')
+    r.session.webRequest.onBeforeRequest(null)
+    void r.session.closeAllConnections().catch(() => {})
     void r.session.clearStorageData().catch(() => {})
     if (reason)
       emit(r, { v: 1, instance: r.instance, task: r.task || 1, seq: ++r.eventSeq, type: 'error', message: reason })
@@ -112,7 +117,8 @@ export function createSwfHost({
     view.webContents.on('will-attach-webview', event => event.preventDefault())
     view.webContents.on('render-process-gone', () => dispose(r, 'SWF player process exited'))
     view.webContents.on('unresponsive', () => dispose(r, 'SWF player unresponsive'))
-    owner.once('closed', () => dispose(r))
+    r.ownerClosed = () => dispose(r)
+    owner.once('closed', r.ownerClosed)
     owner.contentView.addChildView(view)
     view.setBounds({ x: 0, y: 0, width: 1, height: 1 })
     view.setVisible(false)
@@ -144,7 +150,7 @@ export function createSwfHost({
       registered.push(channel)
     }
     handle('swf:create', create)
-    handle('swf:send', (event, command) => {
+    handle('swf:send', async (event, command) => {
       const r = owned(event, command?.instance)
       if (
         !r.commands() ||
@@ -154,13 +160,32 @@ export function createSwfHost({
         (command.task > r.task && command.type !== 'load')
       )
         throw new Error('Invalid SWF command')
+      if (command.task > r.task) r.eventSeq = 0
       r.task = command.task
       r.seq = command.seq
       if (command.type === 'dispose') {
         dispose(r)
         return
       }
-      r.view.webContents.send('swf:player-command', command)
+      if (command.type === 'load') {
+        // Runtime code comes only from the installed distribution, never from the caller.
+        const names = (await readdir(runtimeDirectory)).filter(name =>
+          /^(ruffle\.js|core\.ruffle\.[a-f0-9]+\.js|[a-f0-9]+\.wasm)$/.test(name),
+        )
+        if (!names.includes('ruffle.js') || names.length > 8) throw new Error('Bundled Ruffle runtime unavailable')
+        const runtime = Object.fromEntries(
+          await Promise.all(
+            names.map(async name => {
+              const bytes = await readFile(new URL(name, pathToFileURL(runtimeDirectory + '/')))
+              return [name, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)]
+            }),
+          ),
+        )
+        command = { ...command, runtime }
+        if (!validCommand(command)) throw new Error('Bundled Ruffle runtime exceeds limits')
+      }
+      if (!r.dead && r.task === command.task && r.seq === command.seq)
+        r.view.webContents.send('swf:player-command', command)
     })
     handle('swf:bounds', (event, input) => {
       const r = owned(event, input?.instance)
