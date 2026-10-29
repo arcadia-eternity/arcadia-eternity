@@ -19,6 +19,17 @@ const elementPlusStyles = readdirSync(elementPlusComponents, { withFileTypes: tr
   .filter(entry => entry.isDirectory() && existsSync(new URL(`${entry.name}/style/css.mjs`, elementPlusComponents)))
   .map(entry => `element-plus/es/components/${entry.name}/style/css`)
 
+function buildCommitHash(): string {
+  const configured = process.env.GITHUB_SHA || process.env.COMMIT_HASH
+  if (configured) return configured
+  try {
+    return String(execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })).trim()
+  } catch {
+    // Source archives and Docker contexts intentionally omit Git metadata.
+    return 'unknown'
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const backendOrigin = process.env.VITE_BACKEND_ORIGIN ?? loadEnv(mode, process.cwd()).VITE_BACKEND_ORIGIN ?? '/'
@@ -33,9 +44,7 @@ export default defineConfig(({ mode }) => {
     define: {
       // 注入构建时间和commit hash
       'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
-      'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(
-        process.env.GITHUB_SHA || process.env.COMMIT_HASH || String(execSync('git rev-parse --short HEAD')) || 'dev',
-      ),
+      'import.meta.env.VITE_COMMIT_HASH': JSON.stringify(buildCommitHash()),
       // 下载源配置
       'import.meta.env.VITE_DOWNLOAD_SOURCES': JSON.stringify(process.env.VITE_DOWNLOAD_SOURCES || 'github'),
       'import.meta.env.VITE_CDN_BASE_URL': JSON.stringify(process.env.VITE_CDN_BASE_URL || ''),

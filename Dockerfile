@@ -21,6 +21,11 @@ RUN pnpm config set store-dir /tmp/pnpm-store && \
 # Copy source code
 COPY . .
 
+ARG GITHUB_SHA=""
+ARG COMMIT_HASH=""
+ENV GITHUB_SHA=$GITHUB_SHA
+ENV COMMIT_HASH=$COMMIT_HASH
+
 # Build the application
 RUN pnpm run build:prod
 
