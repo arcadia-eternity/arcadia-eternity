@@ -22,7 +22,7 @@ it('uses bundled placeholders and silence for remote same-ID content with undecl
   const localLookup = vi.fn(() => 'https://local-catalog.test/wrong.png')
   expect(resolveMarkIconUrl({ id: 'mark_ability_zhongjie', tags: ['ability'] }, localLookup)).toBe(unknownPet)
   expect(resolveSkillSfxUrl(skill, localLookup)).toBe('')
-  expect(resolveSpeciesSpriteAsset(species, localLookup)).toEqual({ swfNum: 0 })
+  expect(resolveSpeciesSpriteAsset(species, localLookup)).toEqual({ swfNum: 0, customImageUrl: unknownPet })
   expect(resolveSpeciesPortraitUrl(species)).toBe(unknownPet)
   expect(localLookup).not.toHaveBeenCalled()
 })

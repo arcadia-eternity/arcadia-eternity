@@ -102,3 +102,110 @@ it('publishes identical visibility and deduplicated bounds from configure and an
   expect(bounds).toHaveBeenCalledTimes(3)
   player.dispose()
 })
+
+it('waits for native creation and hides only explicit overlapping modals or invisible ancestors', async () => {
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
+  const frames: FrameRequestCallback[] = []
+  vi.stubGlobal(
+    'requestAnimationFrame',
+    vi.fn((cb: FrameRequestCallback) => {
+      frames.push(cb)
+      return frames.length
+    }),
+  )
+  vi.stubGlobal('cancelAnimationFrame', vi.fn())
+  let finishCreate!: () => void
+  const created = new Promise<void>(resolve => {
+    finishCreate = resolve
+  })
+  let callback: (event: unknown) => void = () => {}
+  const sent: SwfCommand[] = []
+  const bounds = vi.fn(async (_value: unknown) => {})
+  Object.assign(window, {
+    arcadiaSwf: {
+      create: () => created,
+      bounds,
+      dispose: async () => {},
+      onEvent: (handler: typeof callback) => {
+        callback = handler
+        return () => {}
+      },
+      send: async (command: SwfCommand) => {
+        sent.push(command)
+        if (command.type === 'load') callback({ ...command, type: 'ready', states: ['待机'] })
+      },
+    },
+  })
+  const ancestor = document.createElement('div'),
+    element = document.createElement('div')
+  ancestor.style.opacity = '0'
+  ancestor.append(element)
+  document.body.append(ancestor)
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ x: 10, y: 20, width: 100, height: 80 } as DOMRect)
+  const player = createSwfPlayer(element, () => {})
+  const data = new Uint8Array([70, 87, 83, 9, 8, 0, 0, 0]).buffer
+  const ready = player.load({ container: data, movie: data })
+  player.configure({ reverse: false, width: 100, height: 80 })
+  expect(bounds).not.toHaveBeenCalled()
+  expect(sent).toEqual([])
+  finishCreate()
+  await ready
+  expect(sent.map(command => command.type)).toEqual(['load', 'configure'])
+  const tick = () => frames.shift()?.(0)
+  const visible = () => expect(bounds.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ visible: true }))
+  const hidden = () => expect(bounds.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ visible: false }))
+  hidden()
+  ancestor.style.opacity = '1'
+  tick()
+  visible()
+  const modal = document.createElement('div')
+  modal.className = 'el-overlay'
+  document.body.append(modal)
+  let rect = { x: 500, y: 20, width: 100, height: 80 } as DOMRect
+  vi.spyOn(modal, 'getBoundingClientRect').mockImplementation(() => rect)
+  tick()
+  visible() // A non-intersecting dialog does not hide this sprite.
+  rect = { x: 10, y: 20, width: 100, height: 80 } as DOMRect
+  tick()
+  hidden()
+  modal.style.display = 'none'
+  tick()
+  visible()
+  modal.style.display = ''
+  modal.style.opacity = '0'
+  tick()
+  visible()
+  modal.style.opacity = '1'
+  tick()
+  hidden()
+  modal.remove()
+  tick()
+  visible()
+  const backdrop = document.createElement('div')
+  backdrop.innerHTML = '<div class="battle-result"></div>'
+  document.body.append(backdrop)
+  vi.spyOn(backdrop, 'getBoundingClientRect').mockReturnValue(rect)
+  tick()
+  hidden()
+  const result = backdrop.querySelector<HTMLElement>('.battle-result')!
+  result.style.display = 'none'
+  tick()
+  visible()
+  result.style.display = ''
+  tick()
+  hidden()
+  backdrop.remove()
+  tick()
+  visible()
+  ancestor.style.visibility = 'hidden'
+  tick()
+  hidden()
+  ancestor.style.visibility = ''
+  tick()
+  visible()
+  player.dispose()
+  ancestor.remove()
+  const calls = bounds.mock.calls.length
+  tick()
+  expect(bounds).toHaveBeenCalledTimes(calls)
+})

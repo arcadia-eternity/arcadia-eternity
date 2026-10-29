@@ -54,6 +54,23 @@ export function createSwfHost({
     if (reason)
       emit(r, { v: 1, instance: r.instance, task: r.task || 1, seq: ++r.eventSeq, type: 'error', message: reason })
   }
+  function applyBounds(r, input) {
+    // DOM rectangles use CSS pixels; native view bounds use device-independent pixels.
+    const zoom = r.owner.webContents.getZoomFactor()
+    const area = r.owner.getContentBounds()
+    const x = Math.max(0, Math.round(input.x * zoom))
+    const y = Math.max(0, Math.round(input.y * zoom))
+    r.zoomFactor = zoom
+    r.cssBounds = input
+    r.view.webContents.setZoomFactor(zoom)
+    r.view.setBounds({
+      x,
+      y,
+      width: Math.max(1, Math.min(Math.round(input.width * zoom), area.width - x)),
+      height: Math.max(1, Math.min(Math.round(input.height * zoom), area.height - y)),
+    })
+    r.view.setVisible(input.visible && input.width > 0 && input.height > 0 && x < area.width && y < area.height)
+  }
   function owned(event, instance) {
     const owner = controller(event)
     const r = records.get(key(owner.webContents.id, instance))
@@ -85,6 +102,8 @@ export function createSwfHost({
     const view = new WebContentsView({
       webPreferences: {
         session: isolated,
+        // Loading/callback readiness must progress while the DOM owner is hidden by a modal or fade.
+        backgroundThrottling: false,
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
@@ -124,6 +143,8 @@ export function createSwfHost({
     view.setVisible(false)
     r.timer = setInterval(
       () => {
+        if (!r.owner.isDestroyed() && r.cssBounds && r.zoomFactor !== r.owner.webContents.getZoomFactor())
+          applyBounds(r, r.cssBounds)
         if (Date.now() - r.heartbeat > watchdogMs) dispose(r, 'SWF player watchdog timeout')
       },
       Math.min(watchdogMs, 1000),
@@ -190,16 +211,7 @@ export function createSwfHost({
     handle('swf:bounds', (event, input) => {
       const r = owned(event, input?.instance)
       if (!r.commands() || !validBounds(input)) throw new Error('Invalid SWF bounds')
-      const area = r.owner.getContentBounds(),
-        x = Math.max(0, Math.round(input.x)),
-        y = Math.max(0, Math.round(input.y))
-      r.view.setBounds({
-        x,
-        y,
-        width: Math.max(1, Math.min(Math.round(input.width), area.width - x)),
-        height: Math.max(1, Math.min(Math.round(input.height), area.height - y)),
-      })
-      r.view.setVisible(input.visible && input.width > 0 && input.height > 0 && x < area.width && y < area.height)
+      applyBounds(r, input)
     })
     handle('swf:dispose', (event, input) => dispose(owned(event, input?.instance)))
     ipc.on('swf:heartbeat', heartbeat)
@@ -246,6 +258,8 @@ export function createSwfHost({
         ownerProcessId: r.owner.webContents.getOSProcessId(),
         partition: r.session.getStoragePath(),
         bounds: r.view.getBounds(),
+        visible: r.view.getVisible(),
+        zoomFactor: r.view.webContents.getZoomFactor(),
         sandboxed: r.view.webContents.getLastWebPreferences().sandbox,
       }))
     },

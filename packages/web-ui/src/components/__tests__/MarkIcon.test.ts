@@ -19,7 +19,11 @@ it.each(['status', 'ability', 'emblem'])(
       skills: [],
       marks: [{ id: `demo:${tag}`, tags: [tag], presentation: { icon: source } }],
     })
-    const request = vi.fn(async () => new Response('image'))
+    const png = Uint8Array.from(
+      atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aP8sAAAAASUVORK5CYII='),
+      character => character.charCodeAt(0),
+    )
+    const request = vi.fn(async () => new Response(png))
     vi.stubGlobal('fetch', request)
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mark')
     const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})

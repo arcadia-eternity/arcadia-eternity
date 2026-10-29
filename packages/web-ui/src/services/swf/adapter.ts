@@ -47,6 +47,41 @@ async function readRuntime(signal: AbortSignal): Promise<Record<string, ArrayBuf
   return runtime
 }
 
+// Native views sit above the owner DOM. Hide them for explicit modal surfaces;
+// ordinary battle HUD elements intentionally overlap sprites.
+function visuallyVisible(element: Element): boolean {
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const style = getComputedStyle(node)
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      style.visibility === 'collapse' ||
+      (style.opacity !== '' && Number(style.opacity) === 0)
+    )
+      return false
+  }
+  return true
+}
+function nativeVisible(element: HTMLElement, rect: DOMRect): boolean {
+  if (document.hidden || rect.width <= 0 || rect.height <= 0 || !visuallyVisible(element)) return false
+  return !Array.from(
+    document.querySelectorAll('.battle-result, .el-overlay, [role="dialog"], [aria-modal="true"], dialog[open]'),
+  ).some(surface => {
+    // The result panel lives inside a full-screen backdrop without a modal role.
+    const blocker = surface.matches('.battle-result') ? (surface.parentElement ?? surface) : surface
+    if (!visuallyVisible(surface) || !visuallyVisible(blocker)) return false
+    const r = blocker.getBoundingClientRect()
+    return (
+      r.width > 0 &&
+      r.height > 0 &&
+      r.x < rect.x + rect.width &&
+      r.x + r.width > rect.x &&
+      r.y < rect.y + rect.height &&
+      r.y + r.height > rect.y
+    )
+  })
+}
+
 export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler): SwfPlayer {
   const instance = crypto.randomUUID()
   let task = 0,
@@ -63,10 +98,13 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     epoch = Date.now()
   let loading: AbortController | undefined
   let nativeCreated: Promise<unknown> | undefined
+  let nativeReady = false
+  let nativeLoaded = false
+  let pendingConfiguration: SwfBounds | undefined
   let boundsFrame: number | undefined
   let lastBounds = ''
   const publishNativeBounds = () => {
-    if (!desktop || disposed) return
+    if (!desktop || !nativeReady || disposed) return
     const r = element.getBoundingClientRect()
     const bounds = {
       instance,
@@ -74,7 +112,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       y: r.y,
       width: r.width,
       height: r.height,
-      visible: !document.hidden && r.width > 0 && r.height > 0,
+      visible: nativeVisible(element, r),
     }
     const key = JSON.stringify(bounds)
     if (lastBounds !== key) {
@@ -83,7 +121,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     }
   }
   const updateNativeBounds = () => {
-    if (!desktop || disposed) return
+    if (!desktop || !nativeReady || disposed) return
     publishNativeBounds()
     boundsFrame = requestAnimationFrame(updateNativeBounds)
   }
@@ -103,6 +141,9 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     boundsFrame = undefined
     void desktop?.dispose({ instance }).catch(() => {})
     nativeCreated = undefined
+    nativeReady = false
+    nativeLoaded = false
+    lastBounds = ''
     task++
     reject?.(new Error(message))
     resolve = undefined
@@ -128,6 +169,11 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     }
     incoming = value.seq
     if (value.type === 'ready') {
+      nativeLoaded = true
+      if (desktop && pendingConfiguration) {
+        send({ ...command({ type: 'configure' }), bounds: pendingConfiguration } as SwfCommand)
+        pendingConfiguration = undefined
+      }
       if (timer) clearTimeout(timer)
       resolve?.(value.states)
       resolve = undefined
@@ -152,6 +198,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       task++
       incoming = 0
       const loadingTask = task
+      nativeLoaded = false
       loading = new AbortController()
       const ready = new Promise<string[]>((yes, no) => {
         resolve = yes
@@ -166,6 +213,8 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
         if (desktop) {
           nativeCreated ??= desktop.create({ instance })
           await nativeCreated
+          if (disposed || loadingTask !== task) throw new Error('Playback replaced')
+          nativeReady = true
           if (boundsFrame === undefined) updateNativeBounds()
           send(load)
         } else {
@@ -211,6 +260,10 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     getState: () => current,
     configure(bounds: SwfBounds) {
       if (disposed) return
+      if (desktop && !nativeLoaded) {
+        pendingConfiguration = bounds
+        return
+      }
       send({ ...command({ type: 'configure' }), bounds } as SwfCommand)
       publishNativeBounds()
     },

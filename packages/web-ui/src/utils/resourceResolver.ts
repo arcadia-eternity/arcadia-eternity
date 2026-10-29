@@ -103,7 +103,7 @@ export function resolveSpeciesSpriteAsset(
         : { swfNum: 0, customImageUrl: species.assetRef }
     return typeof species.presentation?.portrait === 'string'
       ? { swfNum: 0, customImageUrl: species.presentation.portrait }
-      : { swfNum: 0 }
+      : { swfNum: 0, customImageUrl: PET_IMAGE_FALLBACK }
   }
   if (species.assetRef) {
     if (isProtocolUrl(species.assetRef)) {
