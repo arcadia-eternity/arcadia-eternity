@@ -118,6 +118,7 @@ watch(
       const renderer = createSwfPlayer(element, event => {
         if (current !== generation) return
         if (event.type === 'error') {
+          loadedStates.value = []
           inited.value = false
           availableState.value = []
           fallbackActive.value = true

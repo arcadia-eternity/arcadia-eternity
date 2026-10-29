@@ -92,7 +92,9 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     frame?.remove()
     frame = undefined
   }
-  const fail = (message: string) => {
+  const fail = (message: string, notify = true) => {
+    if (disposed) return
+    if (notify) onEvent({ v: 1, instance, task, seq: ++incoming, type: 'error', message: message.slice(0, 240) })
     if (boundsFrame !== undefined) cancelAnimationFrame(boundsFrame)
     boundsFrame = undefined
     void desktop?.dispose({ instance }).catch(() => {})
@@ -128,7 +130,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       reject = undefined
     }
     if (value.type === 'complete') current = '待机'
-    if (value.type === 'error') fail(value.message)
+    if (value.type === 'error') fail(value.message, false)
     onEvent(value)
   }
   const unsubscribe = desktop?.onEvent(receive)

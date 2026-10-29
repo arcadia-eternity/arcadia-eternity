@@ -90,6 +90,22 @@ describe('isolated PetSprite readiness', () => {
     await sprite.vm.ready
     sprite.unmount()
   })
+  it('clears recovered states after a live player failure', async () => {
+    const sprite = mount(PetSprite, { props: { num: 1 } })
+    await flushPromises()
+    pending.resolve?.(['待机'])
+    await flushPromises()
+    const callback = vi.mocked(createSwfPlayer).mock.calls[0]![1]
+    callback({ v: 1, instance: 'fixture', task: 1, seq: 2, type: 'error', message: 'renderer failed' })
+    await flushPromises()
+    expect(sprite.vm.availableState).toEqual([])
+    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(true)
+    await sprite.setProps({ allowRecovery: false })
+    await sprite.setProps({ allowRecovery: true })
+    expect(sprite.vm.availableState).toEqual([])
+    sprite.unmount()
+  })
+
   it('uses server resource URL without desktop cache', async () => {
     const sprite = mount(PetSprite, { props: { num: 1, uncached: true } })
     await flushPromises()
