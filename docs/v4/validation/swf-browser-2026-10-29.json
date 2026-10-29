@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-29T07:38:54.092Z",
+  "browser": "156.0.8078.48",
+  "reports": [
+    {
+      "source": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+      "movieBytes": 60747,
+      "containerBytes": 3285,
+      "states": ["待机", "物理攻击", "属性攻击", "特殊攻击", "被打", "被暴击", "胜利", "失败", "闪避", "濒死", "空"],
+      "events": [
+        {
+          "v": 1,
+          "instance": "c03f3075-ee9c-4fc4-8119-137c216df8db",
+          "task": 1,
+          "seq": 1,
+          "type": "ready",
+          "states": ["待机", "物理攻击", "属性攻击", "特殊攻击", "被打", "被暴击", "胜利", "失败", "闪避", "濒死", "空"]
+        },
+        {
+          "v": 1,
+          "instance": "c03f3075-ee9c-4fc4-8119-137c216df8db",
+          "task": 1,
+          "seq": 2,
+          "type": "hit",
+          "state": "物理攻击"
+        },
+        {
+          "v": 1,
+          "instance": "c03f3075-ee9c-4fc4-8119-137c216df8db",
+          "task": 1,
+          "seq": 3,
+          "type": "complete",
+          "state": "物理攻击",
+          "duration": 4
+        },
+        {
+          "v": 1,
+          "instance": "c03f3075-ee9c-4fc4-8119-137c216df8db",
+          "task": 1,
+          "seq": 4,
+          "type": "complete",
+          "state": "被打",
+          "duration": 1
+        }
+      ],
+      "audio": [
+        {
+          "states": [],
+          "starts": 0
+        },
+        {
+          "states": ["running"],
+          "starts": 122
+        }
+      ]
+    },
+    {
+      "source": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+      "movieBytes": 32976,
+      "containerBytes": 3285,
+      "states": ["待机", "物理攻击", "属性攻击", "特殊攻击", "被打", "被暴击", "胜利", "失败", "闪避", "濒死", "空"],
+      "events": [
+        {
+          "v": 1,
+          "instance": "8001820d-45b4-4ac2-a716-78b3bdb588a2",
+          "task": 1,
+          "seq": 1,
+          "type": "ready",
+          "states": ["待机", "物理攻击", "属性攻击", "特殊攻击", "被打", "被暴击", "胜利", "失败", "闪避", "濒死", "空"]
+        },
+        {
+          "v": 1,
+          "instance": "8001820d-45b4-4ac2-a716-78b3bdb588a2",
+          "task": 1,
+          "seq": 2,
+          "type": "hit",
+          "state": "物理攻击"
+        },
+        {
+          "v": 1,
+          "instance": "8001820d-45b4-4ac2-a716-78b3bdb588a2",
+          "task": 1,
+          "seq": 3,
+          "type": "complete",
+          "state": "物理攻击",
+          "duration": 3
+        },
+        {
+          "v": 1,
+          "instance": "8001820d-45b4-4ac2-a716-78b3bdb588a2",
+          "task": 1,
+          "seq": 4,
+          "type": "complete",
+          "state": "被打",
+          "duration": 0.75
+        }
+      ],
+      "audio": [
+        {
+          "states": [],
+          "starts": 0
+        },
+        {
+          "states": ["running"],
+          "starts": 94
+        }
+      ]
+    }
+  ]
+}

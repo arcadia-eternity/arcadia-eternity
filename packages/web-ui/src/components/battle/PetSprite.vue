@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
-import 'seer2-pet-animator'
 import { ActionState, type PetRendererEvent } from 'seer2-pet-animator'
-import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { asyncComputed } from '@vueuse/core'
 import { useUncachedResource } from '@/composition/useUncachedResource'
 import { petResourceCache } from '@/services/petResourceCache'
-import { ensureRuffleRuntime } from '@/bootstrap/ruffle'
+import { createSwfPlayer } from '@/services/swf/adapter'
+import type { SwfPlayer } from '@/services/swf/protocol'
+import { readResourceBytes } from '@/services/resourceTransport'
+const containerUrl = new URL(
+  '../../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf',
+  import.meta.url,
+).href
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
 type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
@@ -33,14 +38,14 @@ const props = withDefaults(
   },
 )
 const emit = defineEmits<{ hit: [detail: HitEventDetail]; animateComplete: [detail: AnimationCompleteEventDetail] }>()
-const petRenderRef = useTemplateRef('pet-render')
+const petRenderRef = useTemplateRef<HTMLDivElement>('pet-render')
+let player: SwfPlayer | undefined
+let loadAbort: AbortController | undefined
 const loadedStates = ref<ActionState[]>([])
 const inited = ref(false)
-const runtimeReady = ref(false)
 const imageFailed = ref(false)
 const availableState = ref<ActionState[]>([])
 const ready = ref<Promise<void>>(Promise.resolve())
-const forceHttps = computed(() => window.location.protocol === 'https:')
 const originalSwfUrl = asyncComputed(
   async () =>
     props.imageOnly || props.imageUrl
@@ -58,10 +63,6 @@ const portrait = computed(
     props.imageUrl ||
     props.fallbackImageUrl ||
     officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`),
-)
-const { url: resolvedSwfUrl, error: swfLoadError } = useUncachedResource(
-  () => originalSwfUrl.value,
-  () => props.uncached,
 )
 const { url: portraitUrl, error: portraitLoadError } = useUncachedResource(
   () => portrait.value,
@@ -95,42 +96,69 @@ watch(
 )
 
 watch(
-  () => [resolvedSwfUrl.value, petRenderRef.value, props.num, props.swfUrl, props.imageUrl, props.imageOnly] as const,
-  async ([url]) => {
-    if (!url || props.imageUrl || props.imageOnly) return
+  () => [originalSwfUrl.value, petRenderRef.value, props.imageUrl, props.imageOnly] as const,
+  async ([url, element]) => {
+    loadAbort?.abort()
+    player?.dispose()
+    player = undefined
+    if (!url || !element || props.imageUrl || props.imageOnly) return
     const current = generation
     const finish = resolveReady
     const fail = rejectReady
-    let renderer: typeof petRenderRef.value = null
+    const controller = new AbortController()
+    loadAbort = controller
     try {
-      // The app can now mount before Ruffle; never connect pet-render to a config-only placeholder.
-      await ensureRuffleRuntime()
-      if (url !== resolvedSwfUrl.value || current !== generation) return
-      runtimeReady.value = true
-      await nextTick()
-      renderer = petRenderRef.value
-      if (!renderer || url !== resolvedSwfUrl.value || current !== generation) return
-      await renderer.updateComplete
-      let states: ActionState[] = []
-      for (let retry = 0; retry < 40 && current === generation; retry++) {
-        states = ((await renderer.getAvailableStates()) as ActionState[]) || []
-        if (states.length) break
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-      if (current !== generation || renderer !== petRenderRef.value) return
-      if (!states.length) throw new Error('精灵动画回调未就绪')
-      loadedStates.value = states
+      const [movie, containerResponse] = await Promise.all([
+        readResourceBytes(url, { signal: controller.signal, maxBytes: 16 * 1024 * 1024 }),
+        fetch(containerUrl, { signal: controller.signal, credentials: 'omit', cache: 'no-store', redirect: 'error' }),
+      ])
+      if (!containerResponse.ok) throw new Error('动画容器加载失败')
+      const container = await containerResponse.arrayBuffer()
+      if (current !== generation || controller.signal.aborted) return
+      const renderer = createSwfPlayer(element, event => {
+        if (current !== generation) return
+        if (event.type === 'error') {
+          inited.value = false
+          availableState.value = []
+          fallbackActive.value = true
+          return
+        }
+        if (!inited.value) return
+        if (event.type === 'hit')
+          emit('hit', { state: event.state, instanceId: event.instance } as unknown as HitEventDetail)
+        if (event.type === 'complete')
+          emit('animateComplete', {
+            state: event.state,
+            duration: event.duration,
+            instanceId: event.instance,
+          } as unknown as AnimationCompleteEventDetail)
+      })
+      player = renderer
+      const states = await renderer.load({ container, movie: movie.slice().buffer as ArrayBuffer })
+      if (current !== generation || player !== renderer) return
+      renderer.configure({
+        reverse: props.reverse,
+        width: element.clientWidth || 1000,
+        height: element.clientHeight || 600,
+      })
+      loadedStates.value = states as ActionState[]
       finish?.()
     } catch (error) {
-      if (current === generation && (!renderer || renderer === petRenderRef.value)) {
-        if (props.fallbackImageUrl) {
-          fallbackActive.value = true
-          if (portraitLoaded.value) finish?.()
-        } else fail?.(error instanceof Error ? error : new Error('精灵动画加载失败'))
-      }
+      if (current !== generation || controller.signal.aborted) return
+      if (props.fallbackImageUrl) {
+        fallbackActive.value = true
+        if (portraitLoaded.value) finish?.()
+      } else fail?.(error instanceof Error ? error : new Error('精灵动画加载失败'))
     }
   },
   { flush: 'post' },
+)
+watch(
+  () => props.reverse,
+  reverse => {
+    const element = petRenderRef.value
+    if (element) player?.configure({ reverse, width: element.clientWidth || 1000, height: element.clientHeight || 600 })
+  },
 )
 
 // Publishing recovered states changes the renderer used by the next skill.
@@ -148,6 +176,8 @@ watch(
 
 onUnmounted(() => {
   generation++
+  loadAbort?.abort()
+  player?.dispose()
   rejectReady?.(new Error('精灵组件已卸载'))
 })
 const handleImageLoad = () => {
@@ -158,26 +188,13 @@ const handleImageError = () => {
   imageFailed.value = true
   if (props.imageOnly || props.imageUrl || fallbackActive.value) rejectReady?.(new Error('精灵图片加载失败'))
 }
-watch(swfLoadError, error => {
-  if (!error) return
-  if (props.fallbackImageUrl) {
-    fallbackActive.value = true
-    if (portraitLoaded.value) resolveReady?.()
-  } else rejectReady?.(error)
-})
 watch(portraitLoadError, error => {
   if (error) handleImageError()
 })
 const setState = async (state: ActionState) => {
-  if (inited.value) await petRenderRef.value?.setState(state)
+  if (inited.value) await player?.setState(state)
 }
-const getState = async () => (inited.value ? petRenderRef.value?.getState() : ActionState.IDLE)
-const handleHit = (event: CustomEvent<HitEventDetail>) => {
-  if (inited.value && event.currentTarget === petRenderRef.value) emit('hit', event.detail)
-}
-const handleComplete = (event: CustomEvent<AnimationCompleteEventDetail>) => {
-  if (inited.value && event.currentTarget === petRenderRef.value) emit('animateComplete', event.detail)
-}
+const getState = async () => (inited.value ? player?.getState() : ActionState.IDLE)
 defineExpose({ setState, getState, availableState, ready })
 </script>
 <template>
@@ -201,22 +218,11 @@ defineExpose({ setState, getState, availableState, ready })
         <path d="M65 65q25-30 50 0t-25 35v16m0 12v8" fill="none" stroke="var(--battle-cyan)" stroke-width="8" />
       </svg>
     </div>
-    <pet-render
-      v-if="runtimeReady && resolvedSwfUrl && !imageOnly"
-      :key="resolvedSwfUrl"
-      class="overflow-visible pet-render"
+    <div
+      v-if="!imageOnly && !imageUrl"
+      class="overflow-visible pet-render w-full h-full"
       :style="{ opacity: inited ? 1 : 0 }"
       ref="pet-render"
-      :url="resolvedSwfUrl"
-      :reverse="reverse"
-      salign="TL"
-      :offsetX="275"
-      :offsetY="160"
-      :scaleX="1.1"
-      :scaleY="1.1"
-      @hit="handleHit"
-      @animationComplete="handleComplete"
-      :forceHttps="forceHttps"
     />
   </div>
 </template>

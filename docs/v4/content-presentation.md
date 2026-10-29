@@ -118,3 +118,17 @@ presentation:
 ## 2026-10-29 资源同步补齐
 
 新增完整目录校验、官方内容语言／素材引用导出、内容命名空间限制、内置服务器环境准备、目录与媒体状态区分、取消／迟到响应保护，以及按实际字节和图片尺寸的按需加载限制。既有房间环境固定、无全量素材预取与无缓存分发继续复用。验收以本次自动测试和集成记录为准；本节不宣称干净浏览器／签名桌面跨平台双玩家与 SWF 隔离验收已经全部完成。
+
+## SWF 播放隔离（#252 / #253）
+
+共享播放合同为 `src/services/swf/protocol.ts`：仅容器／影片字节、有限状态、朝向／尺寸、停止／释放；输出就绪、状态列表、命中／完成和有限错误。每个事件绑定实例、加载任务和单调序号。父端检查 schema、状态白名单、长度、频率和生命周期；回调只驱动既有表现队列，不新增对战协议或权威结果来源。
+
+浏览器把固定 `public/swf-player.html` 作为 `sandbox="allow-scripts"` 的 `srcdoc` 装入，始终不授予 `allow-same-origin`。父页面必须部署 `Content-Security-Policy: frame-src 'none'`（同时在 HTML 内设置该 meta 策略）；这允许初始 srcdoc，但阻止被攻陷子页面导航到网络目标。子页面 CSP 为 default-src none，脚本仅固定 bootstrap 和内部 blob，连接仅 blob，禁止表单、子框架、worker、对象。专用 MessageChannel 仅由当前 iframe 的 WindowProxy 转交；不以 `origin=null`、随机 ID 或全局 message 广播作为权限证明。
+
+父端按需以 no-store、omit credentials、拒绝重定向读取当前环境声明的影片；大小上限 16 MiB，FWS/CWS 声明和实际解压上限 64 MiB。固定 petContainer 也走字节，子影片 URL 仅为子页面从获批字节创建的 blob；没有 URL 代理接口。固定随客户端分发的 Ruffle 0.2.0-nightly.2026.3.15 的五个 JS/WASM 文件以有限字节传入，播放器内用 blob 装配，不存在 CDN 回退。运行文件名重写显式匹配该版本，升级需要重跑兼容测试。播放结束和切换释放 blob、通道、iframe 和请求。
+
+安装版本实测 `allowNetworking: none` 会使原容器的 ExternalInterface 不可用，因此采用 all，并由浏览器 CSP／桌面宿主网络拦截执行边界。配置开关本身不构成断网保证。加载 12 秒超时后拆除播放器并允许静态图回退；已有动画任务仍有绝对等待上限。`maxExecutionDuration: 5` 是 Ruffle 脚本执行提示，不是硬 CPU／内存限制；解码、WASM、GPU 和同步桥接可能影响浏览器主线程。iframe 不承诺独立进程或硬资源隔离，主线程完全卡死时父页面计时器也不能提供实时恢复保证。
+
+2026-10-29 验证：Chrome 中原作 fight/1.swf 与 fight/2.swf 通过原网络路径按需读取，固定容器加载 blob 子影片，返回 11 个状态；物理攻击产生 hit／complete，受击产生 complete，切换精灵与反向配置成功。音频上下文 running，观察到音源 start（未进行物理听音）。独立安全测试将整个播放器页面视为已被攻陷，验证父 DOM／存储／桌面桥、fetch／图片／弹窗和异步自身 HTTP、表单、meta 刷新、blob 和 data 导航被拒绝；输入测试覆盖错误归属、旧任务、重放、卸载后回调和超长事件。该记录不代表完成恶意 SWF 文件集、完整原作双玩家对战、全部代表素材（除上述两只）、跨浏览器或资源耗尽验收；这些仍需专项验收。
+
+复跑兼容验证：启动 Web Vite 开发服务，然后执行 `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 PLAYWRIGHT_CHROME_CHANNEL=chrome node packages/web-ui/scripts/verify-swf-browser.mjs`。脚本无需账号，直接按需读取原网络素材；生成包含状态、回调、音频观察的 JSON 报告。记录见 `docs/v4/validation/swf-browser-2026-10-29.json`。浏览器边界回归为 `packages/web-ui/e2e/swf-isolation.spec.ts`；共享端口异常与生命周期回归在 `src/services/swf/__tests__`。
