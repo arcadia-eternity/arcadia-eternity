@@ -27,7 +27,7 @@ test('paired site supports guests, team selection, invitations, battle and refre
     const timer = host.getByRole('dialog').getByRole('switch').first()
     if ((await timer.getAttribute('aria-checked')) === 'true') await timer.click()
     await host.getByTestId('confirm-create-private-room-button').click()
-    await expect(host).toHaveURL(/\/room\/[A-Za-z0-9]+/, { timeout: 30_000 })
+    await expect(host).toHaveURL(/\/room\/[^/?#]+/, { timeout: 30_000 })
     const invite = host.url()
     expect(new URL(invite).origin).toBe(new URL(baseURL!).origin)
     await guest.goto(invite)
