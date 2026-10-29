@@ -1,7 +1,7 @@
 import type { Command } from 'commander'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { lstat } from 'node:fs/promises'
+import { lstat, mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { inspectNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 import type { CommandContext } from '../context'
@@ -15,6 +15,43 @@ export function registerNpmCommands(content: Command, context: CommandContext) {
   async function report(value: unknown, json: boolean, text: string) {
     await context.stdout(json ? JSON.stringify(value) + '\n' : text + '\n')
   }
+  npm
+    .command('stage')
+    .description('Install a package source into a fresh host-owned project without running lifecycle scripts')
+    .argument('<directory>')
+    .option('--package <source...>', 'Exact npm package versions or host-selected local tarballs')
+    .option('--offline', 'Use only already cached npm artifacts')
+    .option('--json', 'JSON output')
+    .action(async (directory: string, options: { package?: string[]; offline?: boolean; json?: boolean }) => {
+      const cwd = resolve(context.cwd, directory)
+      try {
+        await lstat(resolve(cwd, 'node_modules'))
+        throw new CliError('NPM_INSTALL_EXISTS', 'Staging requires a fresh project directory')
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+      const invocation = await resolveNpmInvocation([
+        'install',
+        '--save-exact',
+        '--ignore-scripts',
+        '--omit=dev',
+        '--no-audit',
+        '--no-fund',
+        ...(options.offline ? ['--offline'] : []),
+        '--',
+        ...(options.package ?? []),
+      ])
+      await exec(invocation.file, invocation.args, {
+        cwd,
+        signal: context.signal,
+        maxBuffer: 8 * 1024 * 1024,
+        env: { ...process.env, npm_config_engine_strict: 'true' },
+        windowsHide: true,
+      })
+      await mkdir(resolve(cwd, 'node_modules'), { recursive: true })
+      const result = await inspectNpmProject(cwd)
+      await report(result, !!options.json, `Prepared ${result.packages.length} packages; code has not been admitted.`)
+    })
   npm
     .command('install')
     .argument('<directory>', 'Server project containing a standard npm lockfile')

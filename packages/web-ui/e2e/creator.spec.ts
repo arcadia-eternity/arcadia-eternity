@@ -1,4 +1,28 @@
-import { expect, test } from 'playwright/test'
+import { expect, test, type BrowserContext } from 'playwright/test'
+
+// Exercise the desktop authoring surface with transactional storage behind a test bridge.
+// The ordinary browser route is now read-only and is covered by content-manager.spec.ts.
+async function desktopAuthoring(context: BrowserContext) {
+  await context.addInitScript(() => {
+    const storage = async () => {
+      const modulePath = '/src/services/workStorage.ts'
+      const { BrowserWorkStorage } = await import(modulePath)
+      return new BrowserWorkStorage('desktop-authoring-test')
+    }
+    Object.defineProperty(window, 'arcadiaDesktop', {
+      value: {
+        getLocalServerPort: async () => null,
+        listWorkspacePacks: async () => [],
+        listCachedPets: async () => [],
+        getAppVersion: async () => 'test',
+        readWorkWorkspace: async () => (await storage()).read(),
+        compareAndSwapWorkWorkspace: async ({ expected, workspace }: { expected: number; workspace: unknown }) =>
+          (await storage()).compareAndSwap(expected, workspace),
+      },
+    })
+  })
+}
+test.beforeEach(async ({ context }) => desktopAuthoring(context))
 
 test('authors namespaced effects, persists a draft, publishes and shares it, and runs the real battle', async ({
   page,
@@ -58,6 +82,7 @@ test('authors namespaced effects, persists a draft, publishes and shares it, and
   await page.getByRole('button', { name: '结束试战', exact: true }).click()
   const other = await browser.newContext({ viewport: { width: 390, height: 844 } })
   try {
+    await desktopAuthoring(other)
     const receiver = await other.newPage()
     await receiver.goto('/creator')
     await expect(receiver.getByLabel('导入作品文件')).toBeEnabled()
@@ -75,7 +100,7 @@ test('authors namespaced effects, persists a draft, publishes and shares it, and
   }
 })
 
-test('a conflicting browser tab can preserve edits as a namespaced fork', async ({ page, context }) => {
+test('a conflicting authoring window can preserve edits as a namespaced fork', async ({ page, context }) => {
   await page.goto('/creator')
   await page.getByLabel('作品名称', { exact: true }).fill('原稿')
   await page.getByLabel('命名空间', { exact: true }).fill('source')

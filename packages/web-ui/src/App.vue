@@ -68,7 +68,8 @@
             人机对战
           </el-button>
           <el-button type="info" icon="Document" @click="router.push('/local-battle-reports')">本地战报</el-button>
-          <el-button @click="router.push('/creator/development')">创作工坊</el-button>
+          <el-button v-if="isDesktop" @click="router.push('/creator/development')">创作</el-button>
+          <el-button @click="router.push('/content')">内容包</el-button>
           <!-- 房间状态显示 -->
           <el-button
             v-if="!isStaticMode && privateRoomStore.currentRoom"
@@ -145,10 +146,11 @@
             <span>人机对战</span>
           </router-link>
           <router-link
+            v-if="isDesktop"
             to="/creator/development"
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600"
-            >创作工坊</router-link
+            >创作</router-link
           >
           <router-link
             to="/storage"
@@ -159,6 +161,12 @@
             <el-icon><Box /></el-icon>
             <span>精灵仓库</span>
           </router-link>
+          <router-link
+            to="/content"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >内容包</router-link
+          >
           <router-link
             to="/local-battle-reports"
             @click="showMobileMenu = false"
@@ -349,6 +357,10 @@
               </el-form-item>
             </el-form>
           </el-tab-pane>
+          <el-tab-pane v-if="isDesktop" label="本机服务" name="local-service">
+            <p class="mb-4">管理本机对战服务，使用在“内容包”中启用的内容。</p>
+            <el-button @click="openLocalService">打开本机服务管理</el-button>
+          </el-tab-pane>
         </el-tabs>
       </div>
 
@@ -414,7 +426,7 @@ import { createAppBootstrap } from '@/app/bootstrap'
 import { connectAndResumeOnlineRoom } from '@/app/onlineSession'
 import { useBattleStore } from './stores/battle'
 import { BattleClient, RemoteBattleSystem } from '@arcadia-eternity/client'
-import { isStaticMode } from '@/utils/env'
+import { isDesktop, isStaticMode } from '@/utils/env'
 import { localStorageUnavailable } from '@/services/localStorage'
 import OfflineResources from '@/components/OfflineResources.vue'
 
@@ -676,6 +688,10 @@ const musicOptions = computed(() => {
 })
 
 const showEditDialog = ref(false)
+function openLocalService() {
+  void router.push('/settings/local-service')
+  showEditDialog.value = false
+}
 const activeSettingTab = ref('game') // 默认显示游戏设置标签页
 const activeLogCategories = ref(['战斗流程', '技能相关']) // 默认展开前两个分类
 

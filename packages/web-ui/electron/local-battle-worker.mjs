@@ -30,7 +30,7 @@ process.once('SIGTERM', () => {
 await import(pathToFileURL(cli).href)
 // A CLI startup failure returns a nonzero exit code without creating a server.
 // Do not keep that failed process alive solely through the parent IPC channel.
-if (process.exitCode && process.connected) {
+if ((process.exitCode || argumentsForCli[0] !== 'server') && process.connected) {
   shuttingDown = true
   process.disconnect()
 }

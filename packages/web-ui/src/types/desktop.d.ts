@@ -135,6 +135,20 @@ export type LocalBattleHostStatus =
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
+  selectContentPackageFile?: (options: {
+    offline?: boolean
+  }) => Promise<import('./contentPackages').ContentPackagePlan | null>
+  inspectNpmContentPackage?: (options: {
+    spec: string
+    offline?: boolean
+  }) => Promise<import('./contentPackages').ContentPackagePlan>
+  contentPackageAction?: (
+    input: import('./contentPackages').ContentPackageAction,
+  ) => Promise<import('./contentPackages').ContentPackagePlan | string | null>
+  listContentProjects?: () => Promise<ContentProjectSummary[]>
+  addContentProject?: () => Promise<string | null>
+  contentProjectAction?: (input: ContentProjectAction) => Promise<unknown>
   selectAndStartLocalBattle?: () => Promise<LocalBattleHostStatus>
   getLocalBattleStatus?: () => Promise<LocalBattleHostStatus>
   stopLocalBattle?: () => Promise<LocalBattleHostStatus>
@@ -168,6 +182,41 @@ export interface ArcadiaDesktopApi {
   relaunch: () => Promise<void>
   getBasePackDir: () => Promise<string>
   showItemInFolder: (path: string) => Promise<void>
+}
+
+export interface ContentProjectPackage {
+  name: string
+  version: string
+  location: string
+  dependencies: Record<string, string>
+  integrity?: string
+  projectId?: string
+  namespace?: string
+  containsCode?: boolean
+}
+export interface ContentProjectSummary {
+  id: string
+  name: string
+  directory: string
+  installed: boolean
+  approved: boolean
+  running: boolean
+  exported?: boolean
+  dependencies: Record<string, string>
+  error?: string
+  inspection?: {
+    checkedAt: string
+    digest: string
+    packages: ContentProjectPackage[]
+    contentIds: { species: string[]; skills: string[]; marks: string[] }
+  }
+}
+export interface ContentProjectAction {
+  id: string
+  action: 'inspect' | 'install' | 'approve' | 'validate' | 'verify' | 'start' | 'rename' | 'forget' | 'export'
+  name?: string
+  offline?: boolean
+  includeLocalArtifacts?: boolean
 }
 
 declare global {

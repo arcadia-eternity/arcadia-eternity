@@ -2,6 +2,8 @@
 
 Electron 主进程提供独立本机对战子进程管理。Renderer 继续保持 `contextIsolation` 和 `nodeIntegration: false`，只读取服务器的公开内容、资源与对战状态，不载入 npm 效果代码。
 
+`/content` 已接入命名项目登记、内容包与依赖查看、安装、显式准入、校验、启停和导出；队伍缺失内容的保留策略及边界见[内容包与环境管理](content-management.md)。
+
 桌面桥提供三个受限入口：
 
 - `selectAndStartLocalBattle()` 打开系统目录选择器，选择一个已完整安装、带锁文件和 `arcadia-admission.json` 的服务器项目，再启动本机服务；取消选择时返回 `cancelled`，不改变已有服务。

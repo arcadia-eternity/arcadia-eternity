@@ -308,6 +308,7 @@
                           :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
+                          :is-unknown="!gameDataStore.getSpecies(pet.species)"
                           class="w-10 h-10"
                         />
                       </div>
@@ -321,7 +322,11 @@
                           <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         </div>
                         <p class="text-xs text-gray-500 truncate">
-                          {{ contentName(pet.species, 'species') }}
+                          {{
+                            gameDataStore.getSpecies(pet.species)
+                              ? contentName(pet.species, 'species')
+                              : `缺失精灵：${pet.species}`
+                          }}
                         </p>
                         <div class="flex items-center space-x-1 mt-0.5">
                           <span
@@ -410,6 +415,31 @@
         <!-- 配置区域 - 移动端全宽，桌面端占9列 -->
         <div class="lg:col-span-9" v-if="selectedPet">
           <div class="space-y-3">
+            <section
+              v-if="selectedMissingContent.length"
+              class="bg-amber-50 border border-amber-300 rounded-lg p-4"
+              role="status"
+              data-testid="missing-team-content"
+            >
+              <h3 class="font-medium text-amber-900">当前对局缺少内容</h3>
+              <p class="text-sm text-amber-800 mt-1">
+                原始配置会保留，可以保存和导出；恢复对应内容后会重新检查。此队伍暂时无法出战。
+              </p>
+              <ul class="text-sm text-amber-900 mt-2 space-y-2">
+                <li v-for="item in selectedMissingContent" :key="`${item.kind}-${item.skillIndex ?? item.contentId}`">
+                  {{ item.message }}
+                  <button
+                    v-if="item.kind === 'skill'"
+                    type="button"
+                    class="ml-2 underline"
+                    :aria-label="`移除缺失技能 ${item.contentId}`"
+                    @click="removeMissingSkill(item.skillIndex!)"
+                  >
+                    移除此技能
+                  </button>
+                </li>
+              </ul>
+            </section>
             <!-- 基础信息卡片 -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
               <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
@@ -669,7 +699,9 @@
                     <div class="flex items-center justify-between mb-2">
                       <h4 class="text-xs font-medium text-gray-900">{{ statChineseMap[stat] }}</h4>
                       <div class="text-right">
-                        <div class="text-sm font-bold text-gray-900">{{ computedStats[stat] }}</div>
+                        <div class="text-sm font-bold text-gray-900">
+                          {{ currentSpecies ? computedStats[stat] : '—' }}
+                        </div>
                         <div class="text-xs text-gray-500">最终值</div>
                       </div>
                     </div>
@@ -698,7 +730,7 @@
                     <div class="space-y-1">
                       <div class="flex justify-between text-xs">
                         <span class="text-gray-600">种族值</span>
-                        <span class="font-medium">{{ currentSpecies?.baseStats[stat] || 0 }}</span>
+                        <span class="font-medium">{{ currentSpecies?.baseStats[stat] ?? '—' }}</span>
                       </div>
                       <div class="flex justify-between text-xs">
                         <span class="text-gray-600">个体值</span>
@@ -747,6 +779,7 @@
                       </label>
                       <el-select-v2
                         :model-value="displayedNormalSkills[index]"
+                        :data-testid="`normal-skill-${index}`"
                         @update:model-value="value => handleNormalSkillChange(value, index)"
                         :options="normalSkillSelectOptions"
                         :disabled="!currentSpecies"
@@ -1109,7 +1142,7 @@
 </style>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, watchEffect, markRaw } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, markRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import { nanoid } from 'nanoid'
 import { useDebounceFn } from '@vueuse/core'
@@ -1143,6 +1176,7 @@ import { usePetManagement } from '@/composition/usePetManagement'
 import { useTeamExport } from '@/composition/useTeamExport'
 import { useMobile } from '@/composition/useMobile'
 import { readLocalData, writeLocalData } from '@/services/localStorage'
+import { findMissingTeamContent, replaceResolvedSkills } from '@/utils/teamContent'
 
 const { i18next } = useTranslation()
 
@@ -1222,40 +1256,6 @@ const handleDragEnd = (event: { oldIndex: number | undefined; newIndex: number |
       console.error('拖拽操作保存失败:', error)
       console.error('队伍顺序保存失败，请手动保存')
     }
-  }
-}
-
-// 使用规则系统的验证函数
-const validateTeam = async () => {
-  try {
-    const validation = await validationStore.validateTeam(currentTeam.value)
-
-    if (!validation.isValid) {
-      // 返回第一个错误信息
-      return validation.errors[0] || '队伍验证失败'
-    }
-
-    return null
-  } catch (error) {
-    console.error('队伍验证出错:', error)
-    // 如果规则系统出错，回退到简单验证
-    if (currentTeam.value.length > 6) {
-      return '队伍数量不能超过6个'
-    }
-
-    for (const pet of currentTeam.value) {
-      if (!pet.name || pet.name.length > 20) {
-        return '精灵名称不能为空且不能超过20个字符'
-      }
-      if (!pet.species) {
-        return '请为所有精灵选择种族'
-      }
-      if (currentEVTotal.value > 510) {
-        return '学习力总和不能超过510'
-      }
-    }
-
-    return null
   }
 }
 
@@ -1414,15 +1414,15 @@ const debouncedValidate = useDebounceFn(async () => {
 }, 300) // 300ms防抖
 
 // 监听队伍和规则集变化
-watchEffect(
-  () => {
-    // 依赖于规则集和队伍数据
-    // 触发防抖验证
-    debouncedValidate()
-  },
-  {
-    flush: 'post',
-  },
+watch(
+  [
+    currentTeam,
+    () => gameDataStore.loaded,
+    () => validationStore.isInitialized,
+    () => (gameDataStore.loaded ? findMissingTeamContent(currentTeam.value, gameDataStore) : []),
+  ],
+  () => debouncedValidate(),
+  { deep: true, immediate: true, flush: 'post' },
 )
 
 // 实时队伍验证结果
@@ -1464,6 +1464,14 @@ const debouncedValidatePet = useDebounceFn(async () => {
 const selectedPet = computed<PetSchemaType | null>(() => {
   return currentTeam.value.find(p => p.id === selectedPetId.value) || null
 })
+const selectedMissingContent = computed(() =>
+  selectedPet.value && gameDataStore.loaded ? findMissingTeamContent([selectedPet.value], gameDataStore) : [],
+)
+const removeMissingSkill = (index: number) => {
+  if (!selectedPet.value || gameDataStore.getSkill(selectedPet.value.skills[index])) return
+  selectedPet.value.skills.splice(index, 1)
+  debouncedSave()
+}
 
 // 监听当前精灵变化，触发精灵级别验证
 watch(
@@ -1580,17 +1588,16 @@ const displayedNormalSkills = computed({
   },
   set: newValues => {
     if (!selectedPet.value) return
-
-    // 获取当前的必杀技能
-    const climaxSkill = selectedPet.value.skills.find(skillId => {
-      const skill = gameDataStore.skillList.find(s => s.id === skillId)
-      return skill && skill.category === 'Climax'
-    })
-
-    // 合并普通技能和必杀技能
-    const normalSkills = newValues.filter(s => s)
-    const allSkills = climaxSkill ? [...normalSkills, climaxSkill] : normalSkills
-    selectedPet.value.skills = allSkills
+    try {
+      selectedPet.value.skills = replaceResolvedSkills(
+        selectedPet.value.skills,
+        newValues,
+        false,
+        gameDataStore.getSkill,
+      )
+    } catch (error) {
+      ElMessage.error((error as Error).message)
+    }
   },
 })
 
@@ -1605,16 +1612,16 @@ const displayedClimaxSkill = computed({
   },
   set: newValue => {
     if (!selectedPet.value) return
-
-    // 获取当前的普通技能
-    const normalSkills = selectedPet.value.skills.filter(skillId => {
-      const skill = gameDataStore.skillList.find(s => s.id === skillId)
-      return skill && skill.category !== 'Climax'
-    })
-
-    // 合并普通技能和必杀技能
-    const allSkills = newValue ? [...normalSkills, newValue] : normalSkills
-    selectedPet.value.skills = allSkills
+    try {
+      selectedPet.value.skills = replaceResolvedSkills(
+        selectedPet.value.skills,
+        newValue ? [newValue] : [],
+        true,
+        gameDataStore.getSkill,
+      )
+    } catch (error) {
+      ElMessage.error((error as Error).message)
+    }
   },
 })
 
@@ -1631,7 +1638,10 @@ const speciesOptions = computed(() => {
     element: species.element,
   }))
   options.sort((a, b) => a.num - b.num)
-  return options
+  const id = selectedPet.value?.species
+  return id && !gameDataStore.getSpecies(id)
+    ? [{ value: id, label: `缺失精灵：${id}`, num: undefined, element: undefined, disabled: true }, ...options]
+    : options
 })
 
 // 存储当前种族允许的性别
@@ -1655,12 +1665,7 @@ watch(
 
       allowedGendersForCurrentSpecies.value = allowedGenders
 
-      // 如果当前选中的性别不在允许范围内，自动选择第一个允许的性别
-      if (selectedPet.value && selectedPet.value.gender && !allowedGenders.includes(selectedPet.value.gender)) {
-        if (allowedGenders.length > 0) {
-          selectedPet.value.gender = allowedGenders[0] as Gender
-        }
-      }
+      // Viewing a draft or changing environments never rewrites saved attributes.
     } catch (error) {
       console.warn('获取性别限制失败:', error)
       allowedGendersForCurrentSpecies.value = ['Male', 'Female', 'NoGender']
@@ -1683,7 +1688,7 @@ const genderOptions = computed(() => {
 const abilitySelectOptions = computed(() => {
   if (!selectedPet.value) return []
   const currentAblity = selectedPet.value.ability
-  return filteredAbility.value
+  const options = filteredAbility.value
     .filter(ability => !!ability)
     .map(ability => ({
       value: ability.id,
@@ -1693,12 +1698,18 @@ const abilitySelectOptions = computed(() => {
       }),
       disabled: currentAblity === ability.id,
     }))
+  return currentAblity && !gameDataStore.getMark(currentAblity)
+    ? [
+        { value: currentAblity, label: `缺失特性：${currentAblity}`, description: '原始配置已保留', disabled: true },
+        ...options,
+      ]
+    : options
 })
 
 const emblemSelectOptions = computed(() => {
   if (!selectedPet.value) return []
   const currentElblem = selectedPet.value.emblem
-  return filteredElblem.value
+  const options = filteredElblem.value
     .filter(elblem => !!elblem)
     .map(elblem => ({
       value: elblem.id,
@@ -1708,6 +1719,12 @@ const emblemSelectOptions = computed(() => {
       }),
       disabled: currentElblem === elblem.id,
     }))
+  return currentElblem && !gameDataStore.getMark(currentElblem)
+    ? [
+        { value: currentElblem, label: `缺失纹章：${currentElblem}`, description: '原始配置已保留', disabled: true },
+        ...options,
+      ]
+    : options
 })
 
 const natureSelectOptions = computed(() => {
@@ -1848,15 +1865,9 @@ const setAsStarter = (petId: string) => {
 }
 
 const saveCurrentTeam = async () => {
-  const error = await validateTeam()
-  if (error) {
-    ElMessage.error(error)
-    return
-  }
-
   try {
-    petStorage.saveToLocal()
-    ElMessage.success('队伍保存成功')
+    if (!petStorage.validateAndSave()) return
+    ElMessage.success(selectedMissingContent.value.length ? '队伍已保存，缺失内容的原始配置已保留' : '队伍保存成功')
   } catch {
     ElMessage.error('保存失败，请检查数据')
   }
@@ -2090,6 +2101,7 @@ const debouncedSave = useDebounceFn(() => {
 watch(
   () => ({
     skills: selectedPet.value?.skills,
+    name: selectedPet.value?.name,
     evs: selectedPet.value?.evs,
     ability: selectedPet.value?.ability,
     emblem: selectedPet.value?.emblem,

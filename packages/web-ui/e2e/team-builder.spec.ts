@@ -1,5 +1,77 @@
 import { expect, test } from 'playwright/test'
 
+async function seedUnresolvedTeam(page: import('playwright/test').Page, missingSpecies = false) {
+  await page.addInitScript(
+    ({ missingSpecies }) => {
+      if (localStorage.getItem('missing-content-seeded')) return
+      localStorage.setItem('missing-content-seeded', '1')
+      const pet = {
+        id: 'a'.repeat(21),
+        name: '保留精灵',
+        species: missingSpecies ? 'custom:missing-pet' : 'pet_xiuluosi',
+        level: 100,
+        nature: 'Jolly',
+        gender: 'Female',
+        evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+        ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+        skills: ['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'],
+        ability: 'custom:missing-ability',
+        emblem: 'custom:missing-emblem',
+      }
+      localStorage.setItem(
+        'petStorage',
+        JSON.stringify({
+          storage: [],
+          teams: [{ name: '缺失内容队伍', pets: [pet], ruleSetId: 'casual_standard_ruleset' }],
+          currentTeamIndex: 0,
+          lastMatchingConfig: null,
+        }),
+      )
+    },
+    { missingSpecies },
+  )
+}
+
+test('editing recognized skills and saving never removes unresolved references', async ({ page }) => {
+  await seedUnresolvedTeam(page)
+  await page.goto('/team-builder')
+  await page.getByText('保留精灵', { exact: true }).click()
+  await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-skill')
+  const skill = page.getByTestId('normal-skill-0')
+  await skill.hover()
+  await skill.locator('.el-select__clear').click()
+  await page.getByPlaceholder('输入精灵名称').fill('仍然保留')
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  await expect
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets[0].skills))
+    .toEqual(['custom:missing-skill', 'skill_fenlitupo'])
+  await page.reload()
+  await page.getByText('仍然保留', { exact: true }).click()
+  await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-skill')
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets[0])
+  expect(saved.ability).toBe('custom:missing-ability')
+  expect(saved.emblem).toBe('custom:missing-emblem')
+  expect(saved.gender).toBe('Female')
+})
+
+test('a missing species remains editable, exportable and saved with its original configuration', async ({ page }) => {
+  await seedUnresolvedTeam(page, true)
+  await page.goto('/team-builder')
+  await page.getByText('保留精灵', { exact: true }).click()
+  await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
+  await page.getByPlaceholder('输入精灵名称').fill('失联但保留')
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出', exact: true }).click()
+  expect((await download).suggestedFilename()).toMatch(/\.yaml$/)
+  await page.reload()
+  await page.getByText('失联但保留', { exact: true }).click()
+  await expect(page.getByTestId('missing-team-content')).toContainText('custom:missing-pet')
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('petStorage')!).teams[0].pets[0])
+  expect(saved.species).toBe('custom:missing-pet')
+  expect(saved.skills).toEqual(['custom:missing-skill', 'skill_qili', 'skill_fenlitupo'])
+})
+
 test('the editor opens and saves while the animation runtime is still loading', async ({ page }) => {
   let release!: () => void
   const pendingRuntime = new Promise<void>(resolve => {

@@ -8,6 +8,8 @@ import { promises as fs } from 'node:fs'
 import { LocalBattleHost } from './local-battle-host.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
 import { stopForQuit } from './shutdown.mjs'
+import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
+import { ContentLibrary } from './content-library.mjs'
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')
@@ -45,6 +47,32 @@ let petsDir = null
 let packsDir = null
 let workspacePackStatePath = null
 let creatorWorkStorage
+let contentProjects
+let contentLibrary
+function getContentLibrary() {
+  contentLibrary ??= new ContentLibrary({
+    root: path.join(app.getPath('userData'), 'content-packages'),
+    host: localBattleHost,
+    run: (args, signal) =>
+      runContentCommand(
+        {
+          ...localBattleHost,
+          npmCacheDirectory: path.join(app.getPath('userData'), 'npm-content-cache'),
+        },
+        args,
+        signal,
+      ),
+  })
+  return contentLibrary
+}
+function getContentProjects() {
+  contentProjects ??= new ContentProjectManager({
+    file: path.join(app.getPath('userData'), 'content-projects.json'),
+    host: localBattleHost,
+    run: (args, signal) => runContentCommand(localBattleHost, args, signal),
+  })
+  return contentProjects
+}
 async function getCreatorWorkStorage() {
   const loader = app.isPackaged
     ? pathToFileURL(
@@ -1600,6 +1628,49 @@ function setupIpcHandlers() {
     if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl))
       throw new Error('Unauthorized desktop frame')
   }
+  ipcMain.handle('desktop:list-content-packages', event => {
+    requireLocalBattleCaller(event)
+    return getContentLibrary().list()
+  })
+  ipcMain.handle('desktop:select-content-package-file', async (event, options) => {
+    requireLocalBattleCaller(event)
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '添加内容包',
+      properties: ['openFile'],
+      filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
+    })
+    requireLocalBattleCaller(event)
+    if (selected.canceled || !selected.filePaths[0]) return null
+    return getContentLibrary().stageFile(selected.filePaths[0], options?.offline === true)
+  })
+  ipcMain.handle('desktop:inspect-npm-content-package', (event, options) => {
+    requireLocalBattleCaller(event)
+    return getContentLibrary().stageNpm(options?.spec, options?.offline === true)
+  })
+  ipcMain.handle('desktop:content-package-action', async (event, input) => {
+    requireLocalBattleCaller(event)
+    if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
+    const library = getContentLibrary()
+    if (input.action === 'confirm-install') return library.confirmInstall(input.planId, input.allowCode === true)
+    if (input.action === 'plan-selection') return library.planSelection(input.ids, input.offline === true)
+    if (input.action === 'apply-selection') {
+      await library.applySelection(input.planId, input.allowCode === true)
+      return null
+    }
+    if (input.action === 'cancel') {
+      await library.cancel(input.planId)
+      return null
+    }
+    if (input.action === 'uninstall') {
+      await library.uninstall(input.packageId)
+      return null
+    }
+    if (input.action === 'start') {
+      await library.start()
+      return null
+    }
+    throw new Error('不支持的内容包操作')
+  })
   ipcMain.handle('desktop:select-and-start-local-battle', async event => {
     requireLocalBattleCaller(event)
     const selected = await dialog.showOpenDialog(mainWindow, {
@@ -1621,6 +1692,36 @@ function setupIpcHandlers() {
   ipcMain.handle('desktop:get-local-battle-status', event => {
     requireLocalBattleCaller(event)
     return localBattleHost.status()
+  })
+  ipcMain.handle('desktop:list-content-projects', event => {
+    requireLocalBattleCaller(event)
+    return getContentProjects().list()
+  })
+  ipcMain.handle('desktop:add-content-project', async event => {
+    requireLocalBattleCaller(event)
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '登记 npm 内容环境',
+      properties: ['openDirectory'],
+    })
+    requireLocalBattleCaller(event)
+    if (selected.canceled || !selected.filePaths[0]) return null
+    return getContentProjects().add(selected.filePaths[0])
+  })
+  ipcMain.handle('desktop:content-project-action', async (event, input) => {
+    requireLocalBattleCaller(event)
+    if (!input || typeof input.id !== 'string') throw new Error('环境标识无效')
+    const manager = getContentProjects()
+    if (input.action === 'rename') return manager.rename(input.id, input.name)
+    if (input.action === 'forget') return manager.forget(input.id)
+    if (input.action === 'start') return manager.start(input.id)
+    if (input.action === 'export') {
+      const selected = await dialog.showSaveDialog(mainWindow, { title: '导出到新的环境目录', buttonLabel: '导出环境' })
+      requireLocalBattleCaller(event)
+      if (selected.canceled || !selected.filePath) return null
+      await manager.export(input.id, selected.filePath, input.includeLocalArtifacts === true)
+      return true
+    }
+    return manager.operate(input.id, input.action, { offline: input.offline === true })
   })
   ipcMain.handle('desktop:stop-local-battle', event => {
     requireLocalBattleCaller(event)
@@ -1789,9 +1890,17 @@ let stoppedForQuit = false
 app.on('before-quit', event => {
   if (stoppedForQuit) return
   event.preventDefault()
-  stoppingForQuit ??= stopForQuit([() => localBattleHost.stop(), () => stopLocalServer()], {
-    forceStop: () => localBattleHost.forceStop(),
-  }).finally(() => {
+  stoppingForQuit ??= stopForQuit(
+    [
+      () => contentLibrary?.close(),
+      () => contentProjects?.close(),
+      () => localBattleHost.stop(),
+      () => stopLocalServer(),
+    ],
+    {
+      forceStop: () => localBattleHost.forceStop(),
+    },
+  ).finally(() => {
     stoppedForQuit = true
     app.quit()
   })

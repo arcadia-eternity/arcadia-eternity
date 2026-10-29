@@ -547,12 +547,13 @@
                               :uncached="!!gameDataStore.serverFallback"
                               :id="gameDataStore.getSpecies(pet.species)?.num"
                               :species="gameDataStore.getSpecies(pet.species)"
+                              :is-unknown="!gameDataStore.getSpecies(pet.species)"
                               class="w-12 h-12"
                             />
                             <div>
                               <div class="font-semibold text-white">{{ pet.name }}</div>
                               <div class="text-gray-300 text-sm">
-                                {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                                {{ getSpeciesName(pet.species) }}
                               </div>
                               <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                             </div>
@@ -618,13 +619,14 @@
                             :uncached="!!gameDataStore.serverFallback"
                             :id="gameDataStore.getSpecies(pet.species)?.num"
                             :species="gameDataStore.getSpecies(pet.species)"
+                            :is-unknown="!gameDataStore.getSpecies(pet.species)"
                             class="w-8 h-8 sm:w-10 sm:h-10"
                           />
                           <div class="text-center w-full">
                             <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                             <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
                             <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
-                              {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                              {{ getSpeciesName(pet.species) }}
                             </p>
                           </div>
                           <!-- 移动端显示操作按钮，桌面端悬停显示 -->
@@ -920,12 +922,13 @@
                           :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
+                          :is-unknown="!gameDataStore.getSpecies(pet.species)"
                           class="w-12 h-12"
                         />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
-                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                            {{ getSpeciesName(pet.species) }}
                           </div>
                           <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                         </div>
@@ -992,13 +995,14 @@
                         :uncached="!!gameDataStore.serverFallback"
                         :id="gameDataStore.getSpecies(pet.species)?.num"
                         :species="gameDataStore.getSpecies(pet.species)"
+                        :is-unknown="!gameDataStore.getSpecies(pet.species)"
                         class="w-8 h-8 sm:w-10 sm:h-10"
                       />
                       <div class="text-center w-full">
                         <p class="text-xs sm:text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs sm:text-xs text-gray-500">Lv.{{ pet.level }}</p>
                         <p class="text-xs sm:text-xs text-gray-400 truncate hidden sm:block">
-                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          {{ getSpeciesName(pet.species) }}
                         </p>
                       </div>
 
@@ -1066,12 +1070,13 @@
                           :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
+                          :is-unknown="!gameDataStore.getSpecies(pet.species)"
                           class="w-12 h-12"
                         />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
-                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                            {{ getSpeciesName(pet.species) }}
                           </div>
                           <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                         </div>
@@ -1137,6 +1142,7 @@
                         :uncached="!!gameDataStore.serverFallback"
                         :id="gameDataStore.getSpecies(pet.species)?.num"
                         :species="gameDataStore.getSpecies(pet.species)"
+                        :is-unknown="!gameDataStore.getSpecies(pet.species)"
                         class="w-8 h-8"
                       />
                       <div class="text-center w-full">
@@ -1419,12 +1425,13 @@
                           :uncached="!!gameDataStore.serverFallback"
                           :id="gameDataStore.getSpecies(pet.species)?.num"
                           :species="gameDataStore.getSpecies(pet.species)"
+                          :is-unknown="!gameDataStore.getSpecies(pet.species)"
                           class="w-12 h-12"
                         />
                         <div>
                           <div class="font-semibold text-white">{{ pet.name }}</div>
                           <div class="text-gray-300 text-sm">
-                            {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                            {{ getSpeciesName(pet.species) }}
                           </div>
                           <div class="text-gray-400 text-xs">等级 {{ pet.level }}</div>
                         </div>
@@ -1490,13 +1497,14 @@
                         :uncached="!!gameDataStore.serverFallback"
                         :id="gameDataStore.getSpecies(pet.species)?.num"
                         :species="gameDataStore.getSpecies(pet.species)"
+                        :is-unknown="!gameDataStore.getSpecies(pet.species)"
                         class="w-10 h-10"
                       />
                       <div class="text-center w-full">
                         <p class="text-xs font-medium text-gray-900 truncate">{{ pet.name }}</p>
                         <p class="text-xs text-gray-500">Lv.{{ pet.level }}</p>
                         <p class="text-xs text-gray-400 truncate">
-                          {{ i18next.t(`${gameDataStore.getSpecies(pet.species)?.id}.name`, { ns: 'species' }) }}
+                          {{ getSpeciesName(pet.species) }}
                         </p>
                       </div>
 
@@ -1614,14 +1622,13 @@
                   :uncached="!!gameDataStore.serverFallback"
                   :id="gameDataStore.getSpecies(selectedPetForDetail.species)?.num"
                   :species="gameDataStore.getSpecies(selectedPetForDetail.species)"
+                  :is-unknown="!gameDataStore.getSpecies(selectedPetForDetail.species)"
                   class="w-16 h-16"
                 />
                 <div>
                   <h4 class="text-xl font-semibold text-gray-900">{{ selectedPetForDetail.name }}</h4>
                   <p class="text-gray-600">
-                    {{
-                      i18next.t(`${gameDataStore.getSpecies(selectedPetForDetail.species)?.id}.name`, { ns: 'species' })
-                    }}
+                    {{ getSpeciesName(selectedPetForDetail.species) }}
                   </p>
                   <p class="text-sm text-gray-500">等级 {{ selectedPetForDetail.level }}</p>
                 </div>
@@ -2721,9 +2728,15 @@ const getNatureText = (nature: Nature) => {
 }
 
 // 获取技能名称
-const getSkillName = (skillId: string) => {
-  return i18next.t(`${skillId}.name`, { ns: 'skill' })
-}
+const getSpeciesName = (speciesId: string) =>
+  gameDataStore.getSpecies(speciesId)
+    ? i18next.t(`${speciesId}.name`, { ns: 'species', nsSeparator: false, defaultValue: speciesId })
+    : `缺失精灵：${speciesId}`
+
+const getSkillName = (skillId: string) =>
+  gameDataStore.getSkill(skillId)
+    ? i18next.t(`${skillId}.name`, { ns: 'skill', nsSeparator: false, defaultValue: skillId })
+    : `缺失技能：${skillId}`
 </script>
 
 <style scoped>

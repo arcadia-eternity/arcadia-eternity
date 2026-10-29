@@ -20,15 +20,34 @@ const LocalBattleReports = () => import('@/components/battleReport/LocalBattleRe
 const PlayerBattleRecords = () => import('@/components/battleReport/PlayerBattleRecords.vue')
 const routes: RouteRecordRaw[] = [
   {
+    path: '/content',
+    name: 'ContentManager',
+    component: () => import('@/features/content/ContentManagerPage.vue'),
+    meta: { title: '内容包' },
+  },
+  {
+    path: '/settings/local-service',
+    name: 'LocalContentService',
+    component: () =>
+      isDesktop
+        ? import('@/features/content/LocalServicePage.vue')
+        : import('@/features/content/LocalContentOnlyPage.vue'),
+    meta: { title: '本机服务' },
+  },
+  {
     path: '/creator/development',
     name: 'DevelopmentWorkspace',
-    component: () => import('@/features/development/DevelopmentWorkspacePage.vue'),
+    component: () =>
+      isDesktop
+        ? import('@/features/development/DevelopmentWorkspacePage.vue')
+        : import('@/features/content/LocalContentOnlyPage.vue'),
     meta: { title: '开发服务工作区' },
   },
   {
     path: '/creator',
     name: 'Creator',
-    component: () => import('@/features/creator/CreatorPage.vue'),
+    component: () =>
+      isDesktop ? import('@/features/creator/CreatorPage.vue') : import('@/features/content/LocalContentOnlyPage.vue'),
     meta: { title: '创作工坊' },
   },
   {

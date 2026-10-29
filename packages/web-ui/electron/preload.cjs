@@ -1,12 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),
+  selectContentPackageFile: options => ipcRenderer.invoke('desktop:select-content-package-file', options),
+  inspectNpmContentPackage: options => ipcRenderer.invoke('desktop:inspect-npm-content-package', options),
+  contentPackageAction: input => ipcRenderer.invoke('desktop:content-package-action', input),
   readWorkWorkspace: () => ipcRenderer.invoke('desktop:read-work-workspace'),
   compareAndSwapWorkWorkspace: input => ipcRenderer.invoke('desktop:write-work-workspace', input),
   getLocalServerPort: () => ipcRenderer.invoke('desktop:get-local-server-port'),
   selectAndStartLocalBattle: () => ipcRenderer.invoke('desktop:select-and-start-local-battle'),
   getLocalBattleStatus: () => ipcRenderer.invoke('desktop:get-local-battle-status'),
   stopLocalBattle: () => ipcRenderer.invoke('desktop:stop-local-battle'),
+  listContentProjects: () => ipcRenderer.invoke('desktop:list-content-projects'),
+  addContentProject: () => ipcRenderer.invoke('desktop:add-content-project'),
+  contentProjectAction: input => ipcRenderer.invoke('desktop:content-project-action', input),
   downloadPetSwf: (petNum, remoteUrl) => ipcRenderer.invoke('desktop:download-pet-swf', { petNum, remoteUrl }),
   listCachedPets: () => ipcRenderer.invoke('desktop:list-cached-pets'),
   clearPetCache: () => ipcRenderer.invoke('desktop:clear-pet-cache'),

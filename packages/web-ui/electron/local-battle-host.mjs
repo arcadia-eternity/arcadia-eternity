@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { constants } from 'node:fs'
-import { access, mkdtemp, rm, stat } from 'node:fs/promises'
+import { access, mkdtemp, realpath, rm, stat } from 'node:fs/promises'
 import { get } from 'node:http'
 import { tmpdir } from 'node:os'
 import { basename, isAbsolute, join } from 'node:path'
@@ -19,7 +19,7 @@ export class LocalBattleHostError extends Error {
 const problem = (code, message) => new LocalBattleHostError(code, message)
 
 /** Don't forward the desktop process's account tokens or arbitrary Node options. */
-function workerEnvironment(cache, npmCliPath, packsDirectory) {
+export function workerEnvironment(cache, npmCliPath, packsDirectory) {
   const result = {}
   for (const key of ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LANG']) {
     if (process.env[key]) result[key] = process.env[key]
@@ -100,6 +100,7 @@ export class LocalBattleHost {
   #closed
   #stopping
   #generation = 0
+  #projectDirectory
   constructor({
     executable,
     cli,
@@ -120,12 +121,15 @@ export class LocalBattleHost {
   status() {
     return { ...this.#state }
   }
+  projectDirectory() {
+    return this.#child ? this.#projectDirectory : undefined
+  }
   /** Last resort during application shutdown; the child is already unresponsive. */
   forceStop() {
     ++this.#generation
     this.#child?.kill('SIGKILL')
   }
-  async start(directory) {
+  async start(directory, { builtinOnly = false } = {}) {
     if (this.#child || ['starting', 'stopping', 'running'].includes(this.#state.status))
       throw problem('HOST_BUSY', '本机对战服务已经启动或正在启动')
     const generation = ++this.#generation
@@ -160,6 +164,7 @@ export class LocalBattleHost {
         }
       }
       await verifyProject(directory)
+      const projectDirectory = await realpath(directory)
       cache = await mkdtemp(join(tmpdir(), 'arcadia-desktop-server-'))
       if (generation !== this.#generation) throw problem('HOST_STOPPED', '本机对战服务已停止')
       const serverId = `arcadia-desktop-${randomUUID()}`
@@ -177,8 +182,7 @@ export class LocalBattleHost {
           serverId,
           '--cors-origin',
           this.rendererOrigin,
-          '--npm-project',
-          directory,
+          ...(builtinOnly ? [] : ['--npm-project', directory]),
         ],
         {
           cwd: cache,
@@ -189,6 +193,7 @@ export class LocalBattleHost {
       )
       spawnedChild = child
       this.#child = child
+      this.#projectDirectory = projectDirectory
       const done = new Promise(resolve => {
         child.once('close', (code, signal) => resolve({ code, signal }))
       }).then(async result => {
