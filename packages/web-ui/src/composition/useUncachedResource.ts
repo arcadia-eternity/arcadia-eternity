@@ -1,4 +1,7 @@
 import { computed, shallowRef, watch } from 'vue'
+import { readResourceBytes } from '@/services/resourceTransport'
+import { imageResourceBlob } from '@/services/imageResource'
+import unknownPet from '@/assets/images/unknown-pet.svg'
 
 /** A mounted consumer owns its media bytes. No shared map, persistent store or prefetch. */
 export function useUncachedResource(source: () => string, enabled: () => boolean) {
@@ -9,7 +12,8 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
     ([value, active], _previous, cleanup) => {
       url.value = ''
       error.value = null
-      if (!active || !value) return
+      // This exact bundled placeholder is application code, including on arcadia-client://app.
+      if (!active || !value || value === unknownPet) return
       const controller = new AbortController()
       let objectUrl: string | undefined
       cleanup(() => {
@@ -17,9 +21,8 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
         if (objectUrl) URL.revokeObjectURL(objectUrl)
       })
       void (async () => {
-        const response = await fetch(value, { cache: 'no-store', credentials: 'omit', signal: controller.signal })
-        if (!response.ok) throw new Error(`资源加载失败 (${response.status})`)
-        const blob = await response.blob()
+        const bytes = await readResourceBytes(value, { signal: controller.signal })
+        const blob = imageResourceBlob(bytes)
         if (controller.signal.aborted) return
         objectUrl = URL.createObjectURL(blob)
         url.value = objectUrl
@@ -29,5 +32,5 @@ export function useUncachedResource(source: () => string, enabled: () => boolean
     },
     { immediate: true },
   )
-  return { url: computed(() => (enabled() ? url.value : source())), error }
+  return { url: computed(() => (enabled() && source() !== unknownPet ? url.value : source())), error }
 }

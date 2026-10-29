@@ -1,3 +1,9 @@
+import { METADATA_MAX_BYTES, publicHttpUrl, readResourceBytes } from './resourceTransport'
+import {
+  validateEnvironmentContent,
+  validateEnvironmentDescriptor,
+  validateMetadataTree,
+} from './serverContentValidation'
 import type { ContentPresentation, ResourceReference } from '@arcadia-eternity/schema'
 import type {
   ServerEnvironmentAcceptance,
@@ -10,7 +16,8 @@ export function environmentServerUrl(value: string): string {
   const url = new URL(value, globalThis.location?.href ?? 'http://localhost/')
   if (url.protocol === 'ws:') url.protocol = 'http:'
   if (url.protocol === 'wss:') url.protocol = 'https:'
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('不支持的服务器地址')
+  if (url.username || url.password || (url.protocol !== 'http:' && url.protocol !== 'https:'))
+    throw new Error('不支持的服务器地址')
   url.pathname = url.pathname.replace(/\/+$/, '')
   url.search = ''
   url.hash = ''
@@ -18,9 +25,10 @@ export function environmentServerUrl(value: string): string {
 }
 
 async function json<T>(url: string, request: typeof fetch, signal?: AbortSignal): Promise<T> {
-  const response = await request.call(globalThis, url, { cache: 'no-store', credentials: 'omit', signal })
-  if (!response.ok) throw new Error(`服务器环境请求失败（${response.status}）`)
-  return response.json() as Promise<T>
+  const bytes = await readResourceBytes(url, { maxBytes: METADATA_MAX_BYTES, signal }, request)
+  const value: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+  validateMetadataTree(value)
+  return value as T
 }
 
 export async function listServerEnvironments(
@@ -35,15 +43,11 @@ export async function listServerEnvironments(
   )
   if (!catalog || catalog.protocolVersion !== 1 || !Array.isArray(catalog.environments))
     throw new Error('服务器环境协议不兼容')
-  return catalog.environments.filter(
-    item =>
-      item &&
-      typeof item.id === 'string' &&
-      /^[a-f0-9]{64}$/.test(item.id) &&
-      item.protocolVersion === 1 &&
-      Array.isArray(item.packages) &&
-      item.packages.every(pkg => pkg && typeof pkg.projectId === 'string' && typeof pkg.namespace === 'string'),
-  )
+  if (catalog.environments.length > 256) throw new Error('服务器环境数量超过限制')
+  for (const item of catalog.environments) validateEnvironmentDescriptor(item)
+  if (new Set(catalog.environments.map(item => item.id)).size !== catalog.environments.length)
+    throw new Error('服务器环境标识重复')
+  return catalog.environments
 }
 
 /** Read public metadata only; no development credential or executable code is sent. */
@@ -59,8 +63,7 @@ export async function readServerEnvironmentContent(
     request,
     signal,
   )
-  if (!content || !Array.isArray(content.species) || !Array.isArray(content.skills) || !Array.isArray(content.marks))
-    throw new Error('服务器环境内容格式不正确')
+  validateEnvironmentContent(content)
   return content
 }
 
@@ -69,27 +72,15 @@ export async function prepareServerEnvironment(
   server: string,
   descriptor: ServerEnvironmentDescriptor,
   request: typeof fetch = fetch,
-): Promise<{ content: ServerEnvironmentContent; acceptance: ServerEnvironmentAcceptance }> {
+  signal?: AbortSignal,
+): Promise<{
+  content: ServerEnvironmentContent
+  acceptance: ServerEnvironmentAcceptance
+  readiness: { catalog: 'ready'; compatibility: 'compatible'; media: 'on-demand' }
+}> {
   const base = environmentServerUrl(server)
-  if (!/^[a-f0-9]{64}$/.test(descriptor.id) || descriptor.protocolVersion !== 1 || !Array.isArray(descriptor.resources))
-    throw new Error('服务器环境协议不兼容')
-  const content = await readServerEnvironmentContent(server, descriptor.id, request)
-  for (const resource of descriptor.resources) {
-    if (
-      !/^[a-f0-9]{64}$/.test(resource.sha256) ||
-      !Number.isSafeInteger(resource.bytes) ||
-      resource.bytes < 0 ||
-      resource.bytes > 64 * 1024 * 1024
-    )
-      throw new Error('服务器展示资源描述无效')
-    if (resource.url !== `/api/v1/environments/${descriptor.id}/assets/${resource.sha256}`)
-      throw new Error('服务器展示资源地址无效')
-  }
-  for (const resource of descriptor.remoteResources ?? []) {
-    const url = new URL(resource.url)
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
-      throw new Error('服务器远程资源地址无效')
-  }
+  validateEnvironmentDescriptor(descriptor)
+  const content = await readServerEnvironmentContent(server, descriptor.id, request, signal)
   const resourceUrl = (owner: string, reference: ResourceReference | undefined): string | undefined => {
     if (!reference) return reference
     const namespace =
@@ -100,7 +91,12 @@ export async function prepareServerEnvironment(
           : ''
     const resourceId = typeof reference === 'object' ? reference.path : reference
     const projectId = descriptor.packages.find(pkg => pkg.namespace === namespace)?.projectId
-    if (!projectId) return typeof reference === 'string' ? reference : undefined
+    if (!projectId) {
+      if (typeof reference !== 'string') throw new Error('内容资源命名空间无效')
+      // Unnamespaced core content may declare a direct HTTP resource. Never resolve against local workspace assets.
+      if (!/^https?:\/\//.test(reference)) throw new Error('内容资源未在服务器目录声明')
+      return publicHttpUrl(reference).toString()
+    }
     const remote = descriptor.remoteResources?.find(item => item.projectId === projectId && item.id === resourceId)
     if (remote) return remote.url
     const resource = descriptor.resources.find(
@@ -144,6 +140,7 @@ export async function prepareServerEnvironment(
   }
   return {
     content: displayContent,
+    readiness: { catalog: 'ready', compatibility: 'compatible', media: 'on-demand' },
     acceptance: {
       environmentId: descriptor.id,
       protocolVersion: 1,

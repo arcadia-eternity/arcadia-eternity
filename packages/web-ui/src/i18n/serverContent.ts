@@ -6,6 +6,7 @@ import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 // A transient overlay: never write server text into the official locale bundles.
 const text = shallowRef(new Map<string, string>())
 const activeContent = shallowRef<ServerEnvironmentContent | null>(null)
+const contentNamespaces = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
 export const contentLanguage = shallowRef(i18next.language || 'zh-CN')
 i18next.on('languageChanged', language => {
   contentLanguage.value = language
@@ -17,6 +18,7 @@ export function serverText(
   field: 'name' | 'description',
   language = contentLanguage.value,
 ): { value: string; rich: boolean } | undefined {
+  if (!contentNamespaces.has(namespace)) return undefined
   const content = activeContent.value
   const locales = content?.locales
   const kind = namespace.startsWith('mark') ? 'mark' : namespace
@@ -29,7 +31,10 @@ export function serverText(
     }
   }
   const value = text.value.get(`${kind}/${id}.${field}`)
-  return value === undefined ? undefined : { value, rich: false }
+  if (value !== undefined) return { value, rich: false }
+  const rows = kind === 'species' ? content?.species : kind === 'skill' ? content?.skills : content?.marks
+  if (rows?.some(row => row.id === id)) return { value: field === 'name' ? id : '', rich: false }
+  return undefined
 }
 
 export function setServerContentText(content: ServerEnvironmentContent | null) {
@@ -65,6 +70,7 @@ export const serverContentText: PostProcessorModule = {
         const match = /^(.*)\.(name|description)$/.exec(key)
         const replacement = match && serverText(namespace, match[1], match[2] as 'name' | 'description', language)
         if (replacement) return replacement.value
+        if (match && activeContent.value && contentNamespaces.has(namespace)) return match[2] === 'name' ? match[1] : ''
       }
     }
     return value
@@ -74,5 +80,7 @@ export const serverContentText: PostProcessorModule = {
 const safeMarkdown = new MarkdownIt({ html: false })
 /** Keep official formatting, while author text cannot introduce executable HTML. */
 export function renderContentDescription(markdown: MarkdownIt, value: string, namespace: string, id: string): string {
-  return (text.value.has(`${namespace}/${id}.description`) ? safeMarkdown : markdown).render(value)
+  return (activeContent.value || text.value.has(`${namespace}/${id}.description`) ? safeMarkdown : markdown).render(
+    value,
+  )
 }

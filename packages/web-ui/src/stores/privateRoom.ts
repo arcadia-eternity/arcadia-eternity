@@ -80,11 +80,24 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     )
     return pending
   }
-  const serverScope = () => `${battleClientStore.serverUrl}|${authStore.serverGeneration}`
+  const serverScope = () =>
+    `${battleClientStore.serverUrl}|${authStore.serverGeneration}|${authStore.serverInfo?.serverId ?? ''}|${authStore.serverInfo?.bootId ?? ''}`
   const assertServerScope = (scope: string) => {
     if (scope !== serverScope()) throw new Error('服务器连接已变化，请重试')
   }
-  let preparedEnvironment: { key: string; task: ReturnType<typeof prepareServerEnvironment> } | null = null
+  let preparedEnvironment: {
+    key: string
+    controller: AbortController
+    task: ReturnType<typeof prepareServerEnvironment>
+  } | null = null
+  let catalogController: AbortController | undefined
+  let matchmakingController: AbortController | undefined
+  const cancelEnvironmentRequests = () => {
+    preparedEnvironment?.controller.abort()
+    catalogController?.abort()
+    matchmakingController?.abort()
+    preparedEnvironment = null
+  }
   let matchmakingGeneration = 0
   let matchmakingEnvironmentGeneration = 0
   let environmentCatalogGeneration = 0
@@ -98,7 +111,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     () => {
       environmentCatalogGeneration++
       environments.value = []
-      preparedEnvironment = null
+      cancelEnvironmentRequests()
       gameDataStore.clearServerEnvironment()
     },
   )
@@ -179,8 +192,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     const generation = ++environmentCatalogGeneration
     const scope = serverScope()
     environments.value = []
+    preparedEnvironment?.controller.abort()
     preparedEnvironment = null
-    const items = await listServerEnvironments(battleClientStore.serverUrl)
+    catalogController?.abort()
+    catalogController = new AbortController()
+    const items = await listServerEnvironments(battleClientStore.serverUrl, fetch, catalogController.signal)
     if (generation === environmentCatalogGeneration && scope === serverScope()) environments.value = items
   }
 
@@ -191,7 +207,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       ? environments.value.find(item => item.id === environmentId)
       : environments.value.find(item => !item.packages.length)
     if (!descriptor) throw new Error('对战内容不可用，请重新选择')
-    const prepared = await prepareServerEnvironment(battleClientStore.serverUrl, descriptor)
+    matchmakingController?.abort()
+    matchmakingController = new AbortController()
+    const prepared = await prepareServerEnvironment(
+      battleClientStore.serverUrl,
+      descriptor,
+      fetch,
+      matchmakingController.signal,
+    )
     assertServerScope(scope)
     if (generation !== matchmakingEnvironmentGeneration) throw new Error('对战内容已变化，请重新选择')
     if (isSwitchingServer.value) throw new Error('正在切换服务器')
@@ -202,6 +225,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const cancelMatchmaking = async () => {
     ++matchmakingGeneration
     ++matchmakingEnvironmentGeneration
+    matchmakingController?.abort()
     if (battleClientStore.currentState.matchmaking === 'searching') await battleClientStore.cancelMatchmaking()
   }
 
@@ -231,13 +255,20 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     ++matchmakingEnvironmentGeneration
     const room = currentRoom.value
     const descriptor = room?.environment
-    if (!room || room.config.battleMode !== 'server' || !descriptor?.packages.length) {
+    if (!room || room.config.battleMode !== 'server' || !descriptor) {
       gameDataStore.clearServerEnvironment()
       return undefined
     }
     const key = `${serverScope()}|${authStore.serverInfo?.bootId ?? ''}|${descriptor.id}|${descriptor.resourceRevision}`
-    if (!preparedEnvironment || preparedEnvironment.key !== key)
-      preparedEnvironment = { key, task: prepareServerEnvironment(battleClientStore.serverUrl, descriptor) }
+    if (!preparedEnvironment || preparedEnvironment.key !== key) {
+      preparedEnvironment?.controller.abort()
+      const controller = new AbortController()
+      preparedEnvironment = {
+        key,
+        controller,
+        task: prepareServerEnvironment(battleClientStore.serverUrl, descriptor, fetch, controller.signal),
+      }
+    }
     const entry = preparedEnvironment
     let prepared: Awaited<typeof entry.task>
     try {
@@ -1430,7 +1461,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     stopRoomPolling()
     void teardownPeerTransport()
     currentRoom.value = null
-    preparedEnvironment = null
+    cancelEnvironmentRequests()
     environmentCatalogGeneration++
     environments.value = []
     gameDataStore.clearServerEnvironment()

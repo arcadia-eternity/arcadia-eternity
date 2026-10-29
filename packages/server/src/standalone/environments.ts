@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
+import type { NativePackLoadResult } from '@arcadia-eternity/pack-loader/native'
 import type { PreparedPresentation } from '@arcadia-eternity/pack-loader/node'
 import { prepareNpmProject, readNpmAdmission } from '@arcadia-eternity/pack-loader/node'
 import { createOfficialContent, officialTemplateDefinitions } from '@arcadia-eternity/data-pack-base/native'
@@ -42,6 +43,8 @@ export class ServerEnvironmentRegistry {
       const base = await loadStandaloneBase()
       const runtime = createStandaloneRuntime(base)
       const id = digest(runtime.identity)
+      const content = this.publicContent(runtime, base.data, base.assets)
+      content.locales = this.contentLocales([], base.locales, content)
       this.publish({
         runtime,
         descriptor: {
@@ -49,10 +52,10 @@ export class ServerEnvironmentRegistry {
           protocolVersion: 1,
           runtime: runtime.identity,
           packages: [],
-          resourceRevision: digest([]),
+          resourceRevision: digest(content),
           resources: [],
         },
-        content: this.publicContent(runtime, base.data),
+        content,
         assetFile: () => undefined,
         dispose: async () => {},
         references: 0,
@@ -70,6 +73,7 @@ export class ServerEnvironmentRegistry {
   private publicContent(
     runtime: StandaloneRuntime,
     data: Parameters<typeof createStandaloneRuntime>[0]['data'],
+    assets: NativePackLoadResult['assets'],
   ): ServerEnvironmentContent {
     const text = (raw: unknown) => {
       const record = raw as Record<string, unknown>
@@ -91,7 +95,7 @@ export class ServerEnvironmentRegistry {
         ] as const
       }),
     )
-    return {
+    const result: ServerEnvironmentContent = {
       species: [...runtime.species.values()].map(item => ({ ...structuredClone(item), ...speciesText.get(item.id) })),
       skills: data.skills.map(raw => {
         const { effect: _effect, ...display } = parseWithErrors(SkillSchema, raw)
@@ -108,26 +112,98 @@ export class ServerEnvironmentRegistry {
         }
       }),
     }
-  }
-
-  private contentLocales(packages: PreparedPresentation[]): NonNullable<ServerEnvironmentContent['locales']> {
-    const bundles: NonNullable<ServerEnvironmentContent['locales']>['bundles'] = {}
-    for (const pkg of packages)
-      for (const [language, namespaces] of Object.entries(pkg.manifest.locales)) {
-        for (const [namespace, entries] of Object.entries(namespaces)) {
-          const target = ((bundles[language] ??= {})[namespace] ??= {})
-          for (const [key, value] of Object.entries(entries)) {
-            const id = `${pkg.namespace}:${key}`
-            if (Object.hasOwn(target, id)) throw new EnvironmentError('LOCALE_CONFLICT')
-            target[id] = value
-          }
+    // Export the prepared base asset mappings too. A clean player never has to consult its own same-ID catalog.
+    for (const manifest of assets ?? []) {
+      const byId = new Map(manifest.assets.map(entry => [entry.id, entry]))
+      for (const species of result.species) {
+        if (species.id.includes(':') || species.presentation || species.assetRef) continue
+        const mapped = byId.get(manifest.mappings?.species?.[species.id] ?? species.id)
+        const portrait = `https://seer2-resource.yuuinih.com/png/pet/${species.num}.png`
+        species.presentation = {
+          icon: portrait,
+          portrait,
+          battle: {
+            renderer: 'seer2-swf',
+            source:
+              mapped?.type === 'petSwf'
+                ? mapped.uri
+                : `https://seer2-pet-resource.yuuinih.com/public/fight/${species.num}.swf`,
+            fallback: portrait,
+          },
         }
       }
-    return { defaultLocale: 'zh-CN', bundles }
+      for (const skill of result.skills) {
+        if (skill.id.includes(':') || skill.presentation || skill.sfxRef) continue
+        const mapped = byId.get(manifest.mappings?.skills?.[skill.id] ?? skill.id)
+        if (mapped?.type === 'skillSfx') skill.presentation = { sfx: mapped.uri }
+      }
+      for (const mark of result.marks) {
+        if (mark.id.includes(':') || mark.presentation || mark.iconRef) continue
+        const mapped = byId.get(manifest.mappings?.marks?.[mark.id] ?? mark.id)
+        mark.presentation = {
+          icon: mapped?.type === 'markIcon' ? mapped.uri : 'https://seer2-resource.yuuinih.com/png/traitMark/inc.png',
+        }
+      }
+    }
+    return result
+  }
+
+  private contentLocales(
+    packages: PreparedPresentation[],
+    official: NativePackLoadResult['locales'],
+    content: ServerEnvironmentContent,
+  ): NonNullable<ServerEnvironmentContent['locales']> {
+    const bundles: NonNullable<ServerEnvironmentContent['locales']>['bundles'] = {}
+    const allowed = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
+    const ids = {
+      species: new Set(content.species.map(row => row.id)),
+      skill: new Set(content.skills.map(row => row.id)),
+      mark: new Set(content.marks.map(row => row.id)),
+    }
+    const add = (language: string, namespace: string, entries: unknown, prefix = '') => {
+      if (!allowed.has(namespace)) throw new EnvironmentError('LOCALE_NAMESPACE_FORBIDDEN')
+      if (!entries || typeof entries !== 'object' || Array.isArray(entries))
+        throw new EnvironmentError('LOCALE_INVALID')
+      const known = ids[namespace === 'species' ? 'species' : namespace === 'skill' ? 'skill' : 'mark']
+      const target = ((bundles[language] ??= {})[namespace] ??= {})
+      for (const [key, raw] of Object.entries(entries)) {
+        const id = `${prefix}${key}`
+        // Official bundles also contain records excluded from this runtime. Never export unrelated UI/local data.
+        if (!known.has(id)) {
+          if (prefix) throw new EnvironmentError('LOCALE_CONTENT_NOT_FOUND')
+          continue
+        }
+        if (Object.hasOwn(target, id)) throw new EnvironmentError('LOCALE_CONFLICT')
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new EnvironmentError('LOCALE_INVALID')
+        const fields: Record<string, string> = {}
+        for (const [field, value] of Object.entries(raw)) {
+          if (!['name', 'description'].includes(field)) {
+            if (prefix) throw new EnvironmentError('LOCALE_FIELD_FORBIDDEN')
+            continue
+          }
+          if (typeof value !== 'string' || value.length > 16_384) throw new EnvironmentError('LOCALE_INVALID')
+          fields[field] = value
+        }
+        target[id] = fields
+      }
+    }
+    for (const [language, namespaces] of Object.entries(official ?? {}))
+      for (const [namespace, entries] of Object.entries(namespaces))
+        if (allowed.has(namespace)) add(language, namespace, entries)
+    for (const pkg of packages)
+      for (const [language, namespaces] of Object.entries(pkg.manifest.locales))
+        for (const [namespace, entries] of Object.entries(namespaces))
+          add(language, namespace, entries, `${pkg.namespace}:`)
+    return { defaultLocale: packages[0]?.manifest.defaultLocale ?? 'zh-CN', bundles }
   }
 
   private publish(environment: Environment) {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
+    if (
+      Buffer.byteLength(JSON.stringify(environment.content)) > 16 * 1024 * 1024 ||
+      Buffer.byteLength(JSON.stringify(environment.descriptor)) > 16 * 1024 * 1024
+    )
+      throw new EnvironmentError('PUBLIC_CATALOG_TOO_LARGE')
     this.entries.set(environment.descriptor.id, environment)
   }
 
@@ -176,8 +252,8 @@ export class ServerEnvironmentRegistry {
       const files = new Map(
         prepared.presentation.flatMap(pkg => pkg.resources.map(asset => [asset.sha256, asset.file] as const)),
       )
-      const content = this.publicContent(runtime, prepared.data)
-      content.locales = this.contentLocales(prepared.presentation)
+      const content = this.publicContent(runtime, prepared.data, base.assets)
+      content.locales = this.contentLocales(prepared.presentation, base.locales, content)
       const descriptor: ServerEnvironmentDescriptor = {
         id,
         protocolVersion: 1,
@@ -193,7 +269,7 @@ export class ServerEnvironmentRegistry {
               ...(asset.mime ? { mime: asset.mime } : {}),
             })),
         ),
-        resourceRevision: digest({ resources, presentation: prepared.presentation.map(pkg => pkg.manifest) }),
+        resourceRevision: digest({ content, resources, presentation: prepared.presentation.map(pkg => pkg.manifest) }),
         packages: prepared.installation.packages
           .filter(pkg => pkg.manifest)
           .map(pkg => ({

@@ -1,3 +1,4 @@
+import { readResourceBytes } from '@/services/resourceTransport'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { Howl } from 'howler'
 import { useGameSettingStore } from '@/stores/gameSetting'
@@ -108,9 +109,12 @@ export function useSound(
     }
     activeMedia.add(dispose)
     try {
-      const response = await fetch(source, { cache: 'no-store', credentials: 'omit', signal: controller.signal })
-      if (!response.ok) throw new Error(`音频加载失败 (${response.status})`)
-      const blob = await response.blob()
+      const bytes = await readResourceBytes(source, { signal: controller.signal, maxBytes: 16 * 1024 * 1024 })
+      const ogg = String.fromCharCode(...bytes.subarray(0, 4)) === 'OggS'
+      const mp3 =
+        String.fromCharCode(...bytes.subarray(0, 3)) === 'ID3' || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
+      if (!ogg && !mp3) throw new Error('不支持的音频格式')
+      const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: ogg ? 'audio/ogg' : 'audio/mpeg' })
       if (controller.signal.aborted) return
       url = URL.createObjectURL(blob)
       audio = new Audio(url)

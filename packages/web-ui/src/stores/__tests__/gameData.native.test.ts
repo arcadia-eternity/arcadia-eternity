@@ -206,7 +206,7 @@ it('displays active server names and descriptions without modifying official loc
   expect(i18n.t('ugc:mark.description', { ns: ['mark', 'mark_ability'] })).toBe('印记说明')
   store.applyServerEnvironment({ species: [{ ...species, name: '另一个服务器' }], skills: [], marks: [] })
   expect(name.value).toBe('另一个服务器')
-  expect(i18n.t('ugc:mark.description', { ns: 'mark', defaultValue: 'missing' })).toBe('missing')
+  expect(i18n.t('ugc:mark.description', { ns: 'mark', defaultValue: 'missing' })).toBe('')
   store.clearServerEnvironment()
   expect(name.value).toBe('official')
   expect(i18n.getResource('zh-CN', 'species', 'ugc:pet.name')).toBe('official')

@@ -208,8 +208,8 @@ it('discards an old catalog response after the active connection changes', async
   resolveA([{ id: 'server-a', packages: [] }])
   await first
   expect(store.environments.map(item => item.id)).toEqual(['server-b'])
-  expect(mocks.list).toHaveBeenNthCalledWith(1, 'https://server-a.test')
-  expect(mocks.list).toHaveBeenNthCalledWith(2, 'https://server-b.test')
+  expect(mocks.list).toHaveBeenNthCalledWith(1, 'https://server-a.test', expect.any(Function), expect.any(AbortSignal))
+  expect(mocks.list).toHaveBeenNthCalledWith(2, 'https://server-b.test', expect.any(Function), expect.any(AbortSignal))
 })
 
 for (const spectator of [false, true])
@@ -229,12 +229,12 @@ it('releases an admitted seat if retrieving room details fails', async () => {
   expect(store.currentRoom).toBeNull()
 })
 
-it('sends the verified server environment on ready without requiring a local effect implementation', async () => {
+it.each([true, false])('prepares server content on ready with local UGC packages=%s', async ugc => {
   const descriptor = {
     id: 'a'.repeat(64),
     protocolVersion: 1,
     resourceRevision: 'b'.repeat(64),
-    packages: [{ name: 'ugc', version: '1', projectId: 'ugc', namespace: 'ugc' }],
+    packages: ugc ? [{ name: 'ugc', version: '1', projectId: 'ugc', namespace: 'ugc' }] : [],
     resources: [],
   }
   const acceptance = {
