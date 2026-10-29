@@ -47,8 +47,18 @@ test('paired site supports guests, team selection, invitations, battle and refre
       await expect(page).toHaveURL(/\/battle\?.*privateRoom=true/, { timeout: 30_000 })
       await expect(page.getByRole('button', { name: '战斗', exact: true })).toBeVisible({ timeout: 45_000 })
     }
+    for (const page of [host, guest]) {
+      const skill = page.locator('button').filter({ hasText: '气力' }).first()
+      await expect(skill).toBeEnabled()
+      await skill.click()
+    }
+    for (const page of [host, guest])
+      await expect(page.getByText('休罗斯 使用 气力').first()).toBeVisible({ timeout: 30_000 })
     await guest.reload()
     await expect(guest.getByRole('button', { name: '战斗', exact: true })).toBeVisible({ timeout: 45_000 })
+    await host.getByRole('button', { name: /逃跑|投降/, exact: true }).click()
+    await host.getByRole('button', { name: '投降', exact: true }).click()
+    for (const page of [host, guest]) await expect(page.locator('.battle-result')).toBeVisible({ timeout: 30_000 })
   } finally {
     await hostContext.close()
     await guestContext.close()

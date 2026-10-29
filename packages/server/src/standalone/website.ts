@@ -52,7 +52,7 @@ export function mountPairedWebsite(app: Express, directory: string): void {
   app.use((req, res, next) => {
     // Only actual client routes receive HTML. Missing resources and service paths remain errors.
     if (
-      req.method !== 'GET' ||
+      !['GET', 'HEAD'].includes(req.method) ||
       !req.accepts('html') ||
       !(
         routes.has(req.path.replace(/\/$/, '') || '/') ||
