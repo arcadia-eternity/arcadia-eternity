@@ -23,6 +23,8 @@ export function protectDesktopNavigation(window, rendererUrl) {
     try {
       const url = new URL(value)
       return (
+        !url.username &&
+        !url.password &&
         url.protocol === expected.protocol &&
         url.host === expected.host &&
         (expected.protocol !== 'file:' || url.pathname === expected.pathname)
@@ -46,6 +48,7 @@ export function createRemotePlayController({
   rendererUrl,
   preload,
   onWindow,
+  setupSession,
   isManagementUrl = () => false,
 }) {
   let active
@@ -78,6 +81,7 @@ export function createRemotePlayController({
       active?.destroy()
       const sessionId = randomUUID()
       const isolatedSession = session.fromPartition(`remote-play-${sessionId}`, { cache: false })
+      setupSession?.(isolatedSession)
       isolatedSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
       isolatedSession.setPermissionCheckHandler(() => false)
       isolatedSession.webRequest.onBeforeRequest((details, callback) => {
@@ -88,7 +92,8 @@ export function createRemotePlayController({
             const root = new URL('.', rendererUrl)
             cancel ||= url.host !== root.host || !url.pathname.startsWith(root.pathname)
           }
-          if (!['file:', 'http:', 'https:', 'ws:', 'wss:', 'data:', 'blob:'].includes(url.protocol)) cancel = true
+          if (!['arcadia-client:', 'file:', 'http:', 'https:', 'ws:', 'wss:', 'data:', 'blob:'].includes(url.protocol))
+            cancel = true
         } catch {
           cancel = true
         }
@@ -124,7 +129,12 @@ export function createRemotePlayController({
         void isolatedSession.clearCache()
       })
       onWindow?.(window)
-      await window.loadURL(rendererUrl)
+      try {
+        await window.loadURL(rendererUrl)
+      } catch (error) {
+        if (!window.isDestroyed()) window.destroy()
+        throw error
+      }
       return { backendOrigin }
     },
     destroy() {

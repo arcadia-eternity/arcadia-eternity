@@ -41,6 +41,9 @@ test('remote partitions are disposable, frame-authorized and never share manager
     close() {
       this.destroy()
     }
+    isDestroyed() {
+      return this.destroyed === true
+    }
   }
   let current
   const session = {
@@ -88,6 +91,21 @@ test('remote partitions are disposable, frame-authorized and never share manager
   assert.throws(() => controller.getBootConfig({ sender: {}, senderFrame: {} }))
   await assert.rejects(controller.open('http://127.0.0.1:8103'))
   controller.destroy()
+  class FailedWindow extends Window {
+    async loadURL() {
+      throw new Error('fixture load failed')
+    }
+  }
+  const failed = createRemotePlayController({
+    BrowserWindow: FailedWindow,
+    session,
+    rendererUrl: 'https://ui.test/',
+    preload: 'remote-preload.cjs',
+    onWindow: window => (current = window),
+  })
+  await assert.rejects(failed.open('https://unavailable.test'), /fixture load failed/)
+  assert.equal(current.destroyed, true)
+  assert.equal(failed.isTrusted({ sender: current.webContents, senderFrame: current.webContents.mainFrame }), false)
 })
 
 test('all legacy desktop handlers register through the shared manager guard', async () => {

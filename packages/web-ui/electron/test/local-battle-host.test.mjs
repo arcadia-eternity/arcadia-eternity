@@ -236,6 +236,11 @@ describe('desktop IPC sender', () => {
     const contents = { mainFrame: { url: 'http://localhost:5173/room' } }
     const event = { sender: contents, senderFrame: contents.mainFrame }
     assert.equal(isTrustedDesktopRequest(event, contents, 'http://localhost:5173/'), true)
+    contents.mainFrame.url = 'arcadia-client://app/lobby'
+    assert.equal(isTrustedDesktopRequest(event, contents, 'arcadia-client://app/index.html'), true)
+    contents.mainFrame.url = 'arcadia-client://evil/index.html'
+    assert.equal(isTrustedDesktopRequest(event, contents, 'arcadia-client://app/index.html'), false)
+    contents.mainFrame.url = 'http://localhost:5173/'
     assert.equal(
       isTrustedDesktopRequest(
         { ...event, senderFrame: { url: contents.mainFrame.url } },

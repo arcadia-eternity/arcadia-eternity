@@ -10,6 +10,7 @@ import { LocalBattleHost } from './local-battle-host.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
 import { createRemotePlayController, protectDesktopNavigation } from './remote-play.mjs'
 import { createSwfHost } from './swf-host.mjs'
+import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-protocol.mjs'
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
 import { ContentLibrary } from './content-library.mjs'
@@ -24,13 +25,13 @@ const projectRoot = path.resolve(__dirname, '..')
 const rendererDistDir = path.join(projectRoot, 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.ARCADIA_ELECTRON_DEV_SERVER_URL
-const rendererUrl = devServerUrl ?? pathToFileURL(path.join(rendererDistDir, 'index.html')).href
+const rendererUrl = devServerUrl ?? CLIENT_URL
 const localBattleHost = new LocalBattleHost({
   executable: process.execPath,
   cli: app.isPackaged
     ? path.join(process.resourcesPath, 'arcadia-server', 'cli.js')
     : path.resolve(projectRoot, '../../dist/cli.js'),
-  rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : 'null',
+  rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
   ...(app.isPackaged
     ? {
         npmCliPath: path.join(process.resourcesPath, 'arcadia-server', 'runtime', 'npm', 'bin', 'npm-cli.js'),
@@ -48,6 +49,9 @@ const remotePlay = createRemotePlayController({
   session,
   rendererUrl,
   preload: path.join(__dirname, 'remote-preload.cjs'),
+  setupSession: isolated => {
+    if (!devServerUrl) registerClientProtocol(isolated, rendererDistDir)
+  },
   isManagementUrl: value => {
     try {
       const url = new URL(value)
@@ -1939,7 +1943,7 @@ function createMainWindow() {
   if (devServerUrl) {
     void mainWindow.loadURL(devServerUrl)
   } else {
-    void mainWindow.loadFile(path.join(rendererDistDir, 'index.html'))
+    void mainWindow.loadURL(CLIENT_URL)
   }
 }
 
@@ -1984,6 +1988,7 @@ app.on('activate', () => {
 app
   .whenReady()
   .then(async () => {
+    if (!devServerUrl) registerClientProtocol(session.defaultSession, rendererDistDir)
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = true
 
