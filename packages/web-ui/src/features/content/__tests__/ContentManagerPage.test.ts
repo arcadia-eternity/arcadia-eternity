@@ -116,7 +116,7 @@ it('shows only the current room packages in the browser and never changes saved 
   await button(page, '队伍影响').trigger('click')
   expect(page.text()).toContain('内容引用齐全')
   expect(page.text()).toContain('收藏队伍')
-  expect(page.text()).toContain('网页端只读')
+  expect(page.get('.scope').text()).toBe('只读')
   expect(button(page, '添加内容包')).toBeUndefined()
   expect(page.find('input[type=checkbox]').exists()).toBe(false)
   expect(read).toHaveBeenCalledWith('http://server-a', 'a'.repeat(64), expect.any(Function), expect.any(AbortSignal))

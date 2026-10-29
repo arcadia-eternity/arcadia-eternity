@@ -66,9 +66,9 @@ const selectionLabel = computed(() =>
   pendingSelections.value
     ? '正在保存内容选择…'
     : {
-        idle: '勾选内容即可自动准备，官方基础内容始终可用。',
+        idle: '',
         preparing: '正在准备所选内容…',
-        ready: '所选内容已就绪。新房间使用最新选择，已有房间不受影响。',
+        ready: '',
         failed: '未能启用所选内容，原有内容仍可用。',
       }[snapshot.value?.selection.status ?? 'idle'],
 )
@@ -115,7 +115,7 @@ const packages = computed<PackageView[]>(() => {
           version: pkg.version,
           namespace: pkg.namespace,
           author: '',
-          description: '本房间提供的内容包。',
+          description: '',
           source: '房间服务器',
           contentIds: ids,
           counts: roomContent.value
@@ -287,7 +287,7 @@ async function uninstall() {
     await api!.contentPackageAction!({ action: 'uninstall', packageId: pkg.id })
     await refresh()
     selectedId.value = 'official'
-    notice.value = '内容包已卸载，队伍原始配置仍保留。'
+    notice.value = '内容包已卸载'
   })
 }
 watch(
@@ -331,15 +331,12 @@ onBeforeUnmount(() => {
 <template>
   <main class="content-page" :class="{ 'detail-open': detailOpen }">
     <header class="page-heading">
-      <div>
-        <h1>内容包</h1>
-        <p>{{ readonly ? '只读查看房间提供的内容包与版本' : '管理用于本机对局的内容包' }}</p>
-      </div>
-      <span class="scope">{{ readonly ? '网页／房间只读' : '本机管理' }}</span>
+      <h1>内容包</h1>
+      <span class="scope">{{ readonly ? '只读' : '本机管理' }}</span>
     </header>
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <p v-if="notice" class="message" role="status">{{ notice }}</p>
-    <section v-if="!readonly" class="message selection-state" role="status" aria-live="polite">
+    <section v-if="!readonly && selectionLabel" class="message selection-state" role="status" aria-live="polite">
       <p>{{ selectionLabel }}</p>
       <template v-if="snapshot?.selection.status === 'failed'">
         <p class="problem">{{ snapshot.selection.message }}</p>
@@ -361,7 +358,6 @@ onBeforeUnmount(() => {
         /></template>
         <p class="nav-label">当前房间</p>
         <button :aria-current="mode === 'room' ? 'page' : undefined" @click="changeMode('room')">房间内容</button>
-        <p v-if="!local" class="readonly-note">网页端只读</p>
       </nav>
       <section class="package-workspace" aria-label="内容包管理">
         <div class="toolbar">
@@ -369,10 +365,10 @@ onBeforeUnmount(() => {
             v-if="!readonly"
             ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
             ><button :disabled="busy" @click="run(() => refresh())">刷新</button></template
-          ><span v-else class="tag">只读</span>
+          >
         </div>
-        <p v-if="readonly && !room" class="context-note">尚未进入房间，当前显示官方基础内容。</p>
-        <p v-if="readonly && room" class="context-note">房间 {{ room.config.roomCode }} · 本局版本由服务器固定提供</p>
+        <p v-if="readonly && !room" class="context-note">尚未进入房间</p>
+        <p v-if="readonly && room" class="context-note">房间 {{ room.config.roomCode }}</p>
         <p v-if="readonly && roomError" class="message error" role="alert">{{ roomError }}</p>
         <div class="columns">
           <div class="package-list">
@@ -416,9 +412,6 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <p v-if="!visiblePackages.length && !loading" class="list-note">没有符合条件的内容包。</p>
-            <p v-if="!readonly && snapshot?.packages.length === 0" class="list-note">
-              从本地 .tgz 文件或指定 npm 版本添加内容包。
-            </p>
           </div>
           <aside v-if="selected" class="package-detail" aria-label="内容包详情">
             <button class="back" @click="detailOpen = false">返回内容包列表</button>
@@ -454,7 +447,7 @@ onBeforeUnmount(() => {
             </div>
             <div id="package-detail-panel" role="tabpanel" :aria-labelledby="'package-tab-' + detailTab">
               <template v-if="detailTab === 'overview'"
-                ><p>{{ selected.description || '作者未提供说明。' }}</p>
+                ><p v-if="selected.description">{{ selected.description }}</p>
                 <p v-if="selected.counts" class="detail-subtitle">
                   {{ selected.counts.species }} 只精灵 · {{ selected.counts.skills }} 个技能 ·
                   {{ selected.counts.marks }} 个印记
@@ -476,6 +469,13 @@ onBeforeUnmount(() => {
                 <div v-if="!readonly && selected.local" class="detail-actions">
                   <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
                   ><button
+                    :title="
+                      draftIds.includes(selected.id) || activeIds.includes(selected.id)
+                        ? '请先停用后卸载'
+                        : snapshot?.selection.status === 'preparing'
+                          ? '内容准备完成后可卸载'
+                          : undefined
+                    "
                     :disabled="
                       busy ||
                       snapshot?.selection.status === 'preparing' ||
@@ -487,17 +487,12 @@ onBeforeUnmount(() => {
                     卸载此版本
                   </button>
                 </div>
-                <p v-if="!readonly && selected.local" class="detail-subtitle">
-                  选择版本后会自动准备，已有房间保留原内容。卸载前请先停用并等待准备完成。
-                </p></template
-              >
+              </template>
               <template v-else-if="detailTab === 'dependencies'"
                 ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
                 <template v-else-if="selected.graph"
                   ><p class="detail-subtitle">
-                    {{
-                      activeIds.includes(selected.id) ? '当前可用组合的实际依赖' : '安装时的内容包及依赖'
-                    }}，由程序统一处理。
+                    {{ activeIds.includes(selected.id) ? '当前可用组合的实际依赖' : '安装时的内容包及依赖' }}
                   </p>
                   <ul class="dependencies">
                     <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
@@ -510,7 +505,7 @@ onBeforeUnmount(() => {
                     </li>
                   </ul></template
                 >
-                <p v-else>服务器未提供包依赖清单。这里只展示本局公开的内容信息。</p></template
+                <p v-else>服务器未提供依赖清单。</p></template
               >
               <template v-else
                 ><p v-if="readonly && roomLoading">正在读取房间内容…</p>
@@ -528,10 +523,7 @@ onBeforeUnmount(() => {
                     </ul>
                   </li>
                 </ul>
-                <p class="detail-subtitle">
-                  停用或缺少定义不会清除队伍原始配置。草稿仍可保存、导出；开战时检查目标对局的实际内容。
-                </p></template
-              >
+              </template>
             </div>
           </aside>
         </div>
@@ -540,7 +532,7 @@ onBeforeUnmount(() => {
     <div v-if="adding" class="dialog-backdrop" @keydown.esc="!busy && (adding = false)">
       <section role="dialog" aria-modal="true" aria-labelledby="add-package-title" class="dialog">
         <h2 id="add-package-title">添加内容包</h2>
-        <p>选择文件，或填写包名与明确版本。安装后自动启用，内容包及其依赖将在本机运行。</p>
+        <p>安装后自动启用，内容包及其依赖将在本机运行。</p>
         <button :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</button
         ><label class="field"
           >npm 包名与版本<input v-model="npmSpec" placeholder="@author/pets@1.0.0" :disabled="busy" /></label
@@ -583,11 +575,6 @@ onBeforeUnmount(() => {
   font-size: 26px;
   font-weight: 600;
   margin: 0 0 6px;
-}
-.page-heading p {
-  color: var(--muted);
-  font-size: 14px;
-  margin: 0;
 }
 .scope,
 .tag {
@@ -649,8 +636,7 @@ input[type='checkbox'] {
   padding: 16px 9px;
   border-right: 1px solid var(--line);
 }
-.nav-label,
-.readonly-note {
+.nav-label {
   font-size: 12px;
   color: var(--muted);
   padding: 0 8px;
@@ -982,7 +968,6 @@ summary {
     padding: 8px;
   }
   .nav-label,
-  .readonly-note,
   .task-nav hr {
     display: none;
   }

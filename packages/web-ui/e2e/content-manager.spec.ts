@@ -85,7 +85,7 @@ test('content choices converge without apply controls or restarting the running 
   await page.getByLabel('启用 创作测试内容', { exact: true }).check()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '检查并应用更改', exact: true })).toHaveCount(0)
-  await expect(main.locator('.selection-state')).toContainText('所选内容已就绪')
+  await expect(main.locator('.package-detail > .detail-subtitle')).toContainText('本机已启用')
   await page.getByRole('button', { name: '添加内容包', exact: true }).click()
   await page.getByRole('button', { name: '安装本地 .tgz 文件', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -104,7 +104,7 @@ test('content choices converge without apply controls or restarting the running 
 
 test('browser content is read-only and desktop authoring and host routes stay closed', async ({ page }) => {
   await page.goto('/content')
-  await expect(page.locator('main.content-page')).toContainText('网页端只读')
+  await expect(page.locator('main.content-page .scope')).toHaveText('只读')
   await expect(page.getByRole('button', { name: '添加内容包', exact: true })).toHaveCount(0)
   await expect(page.locator('main.content-page input[type=checkbox]')).toHaveCount(0)
   await expect(page.locator('main.content-page')).toContainText('尚未进入房间')

@@ -60,7 +60,7 @@ test(
       await page.getByRole('button', { name: '添加内容包', exact: true }).click()
       await page.getByRole('button', { name: '安装本地 .tgz 文件', exact: true }).click()
       await expect(page.getByRole('dialog')).toHaveCount(0)
-      await expect(page.locator('.selection-state')).toContainText('所选内容已就绪')
+      await expect(page.locator('.package-detail > .detail-subtitle')).toContainText('本机已启用')
       const packages = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())
       assert.equal(packages.packages.length, 1)
       const pkg = packages.packages[0]
@@ -70,7 +70,7 @@ test(
       assert.equal(status.status, 'idle')
       await page.screenshot({ path: join(output, 'installed.png'), fullPage: true })
       await page.getByLabel('启用 ' + pkg.title, { exact: true }).uncheck()
-      await expect(page.locator('.selection-state')).toContainText('所选内容已就绪')
+      await expect(page.locator('.package-detail > .detail-subtitle')).toContainText('已安装，未启用')
       const current = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())
       assert.deepEqual(current.activeIds, [])
       assert.equal(current.serviceStatus.url, status.url)
