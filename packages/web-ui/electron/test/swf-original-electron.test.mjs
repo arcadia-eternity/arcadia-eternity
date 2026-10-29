@@ -21,7 +21,7 @@ test(
         movie = Array.from(await readFile(process.env.ARCADIA_SWF_MOVIE))
       await writeFile(
         join(directory, 'controller.cjs'),
-        `const{contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('qa',{create:x=>ipcRenderer.invoke('swf:create',x),send:x=>ipcRenderer.invoke('swf:send',x),bounds:x=>ipcRenderer.invoke('swf:bounds',x),onEvent:cb=>ipcRenderer.on('swf:event',(_e,x)=>cb(x))})`,
+        `const{contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('qa',{create:x=>ipcRenderer.invoke('swf:create',x),send:x=>ipcRenderer.invoke('swf:send',x),bounds:x=>ipcRenderer.invoke('swf:bounds',x),ackFrame:x=>ipcRenderer.send('swf:frame-ack',x),onFrame:cb=>ipcRenderer.on('swf:frame',(_e,x)=>cb(x)),onEvent:cb=>ipcRenderer.on('swf:event',(_e,x)=>cb(x))})`,
       )
       await writeFile(
         join(directory, 'entry.mjs'),
@@ -39,9 +39,60 @@ test(
       await owner.evaluate(
         async ({ container, movie }) => {
           window.events = []
+          window.frames = []
+          window.invalidFrames = []
+          window.qa.onFrame(frame => {
+            try {
+              const integers = ['task', 'frame', 'canvasWidth', 'canvasHeight', 'x', 'y', 'width', 'height']
+              if (
+                frame.v !== 1 ||
+                !['original-1', 'original-2'].includes(frame.instance) ||
+                !integers.every(key => Number.isSafeInteger(frame[key])) ||
+                frame.task < 1 ||
+                frame.frame < 1 ||
+                frame.canvasWidth < 1 ||
+                frame.canvasHeight < 1 ||
+                frame.canvasWidth > 2048 ||
+                frame.canvasHeight > 2048 ||
+                frame.canvasWidth * frame.canvasHeight > 2097152 ||
+                frame.x < 0 ||
+                frame.y < 0 ||
+                frame.width < 1 ||
+                frame.height < 1 ||
+                frame.x + frame.width > frame.canvasWidth ||
+                frame.y + frame.height > frame.canvasHeight ||
+                !(frame.png instanceof Uint8Array) ||
+                frame.png.byteLength < 24 ||
+                frame.png.byteLength > 8 * 1024 * 1024
+              )
+                throw new Error('Invalid frame bounds')
+              const signature = [137, 80, 78, 71, 13, 10, 26, 10]
+              const png = new DataView(frame.png.buffer, frame.png.byteOffset, frame.png.byteLength)
+              if (
+                !signature.every((byte, index) => frame.png[index] === byte) ||
+                png.getUint32(16) !== frame.width ||
+                png.getUint32(20) !== frame.height
+              )
+                throw new Error('Invalid PNG dimensions')
+              const previous = window.frames.findLast(value => value.instance === frame.instance)
+              if (previous && frame.frame <= previous.frame) throw new Error('Replayed frame')
+              window.frames.push({
+                instance: frame.instance,
+                task: frame.task,
+                frame: frame.frame,
+                width: frame.width,
+                height: frame.height,
+                bytes: frame.png.byteLength,
+              })
+            } catch (error) {
+              window.invalidFrames.push(String(error))
+            } finally {
+              window.qa.ackFrame({ instance: frame.instance, task: frame.task, frame: frame.frame })
+            }
+          })
           window.qa.onEvent(x => window.events.push(x))
           await window.qa.create({ instance: 'original-1' })
-          await window.qa.bounds({ instance: 'original-1', x: 0, y: 0, width: 1000, height: 600, visible: true })
+          await window.qa.bounds({ instance: 'original-1', width: 1000, height: 600 })
           await window.qa.send({
             v: 1,
             instance: 'original-1',
@@ -90,7 +141,7 @@ test(
       await owner.evaluate(
         async ({ container, movie }) => {
           await window.qa.create({ instance: 'original-2' })
-          await window.qa.bounds({ instance: 'original-2', x: 500, y: 0, width: 500, height: 600, visible: true })
+          await window.qa.bounds({ instance: 'original-2', width: 500, height: 600 })
           await window.qa.send({
             v: 1,
             instance: 'original-2',
@@ -107,6 +158,18 @@ test(
         null,
         { timeout: 20000 },
       )
+      await owner.waitForFunction(
+        () => ['original-1', 'original-2'].every(instance => window.frames.some(frame => frame.instance === instance)),
+        null,
+        { timeout: 10000 },
+      )
+      assert.deepEqual(await owner.evaluate(() => window.invalidFrames), [])
+      const frames = await owner.evaluate(() => ({
+        first: window.frames.find(frame => frame.instance === 'original-1'),
+        second: window.frames.find(frame => frame.instance === 'original-2'),
+        count: window.frames.length,
+      }))
+      assert.ok(frames.count >= 2)
       const metrics = await application.evaluate(({ app }) =>
         app
           .getAppMetrics()
@@ -117,6 +180,7 @@ test(
       console.log(
         JSON.stringify({
           pixels,
+          frames,
           metrics,
           processes: await application.evaluate(() => host.inspect()),
           events: await owner.evaluate(() => window.events),
