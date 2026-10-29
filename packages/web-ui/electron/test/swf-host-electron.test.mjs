@@ -65,12 +65,11 @@ test(
       await owner.evaluate(() =>
         window.qa.bounds({ instance: 'pet-1', x: 20, y: 30, width: 120, height: 140, visible: true }),
       )
-      assert.deepEqual((await application.evaluate(() => host.inspect()))[0].bounds, {
-        x: 20,
-        y: 30,
-        width: 120,
-        height: 140,
-      })
+      const sized = (await application.evaluate(() => host.inspect()))[0]
+      assert.equal(sized.offscreen, true)
+      assert.equal(sized.visible, false)
+      assert.equal(sized.frames.width, 120)
+      assert.equal(sized.frames.height, 140)
       const security = await application.evaluate(async ({ webContents }, networkUrl) => {
         const view = webContents.getAllWebContents().find(w => w.getURL().startsWith('arcadia-swf:'))
         return view.executeJavaScript(

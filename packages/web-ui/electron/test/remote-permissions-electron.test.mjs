@@ -67,10 +67,12 @@ test(
       await remote.waitForLoadState('domcontentloaded')
       assert.equal(await remote.evaluate(() => typeof window.arcadiaDesktop), 'undefined')
       assert.deepEqual(await remote.evaluate(() => Object.keys(window.arcadiaSwf).sort()), [
+        'ackFrame',
         'bounds',
         'create',
         'dispose',
         'onEvent',
+        'onFrame',
         'send',
       ])
       assert.equal(

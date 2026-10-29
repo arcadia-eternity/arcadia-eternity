@@ -52,6 +52,13 @@ contextBridge.exposeInMainWorld('arcadiaSwf', {
   send: command => ipcRenderer.invoke('swf:send', command),
   bounds: input => ipcRenderer.invoke('swf:bounds', input),
   dispose: input => ipcRenderer.invoke('swf:dispose', input),
+  ackFrame: input =>
+    ipcRenderer.send('swf:frame-ack', { instance: input?.instance, task: input?.task, frame: input?.frame }),
+  onFrame: callback => {
+    const listener = (_event, value) => callback(value)
+    ipcRenderer.on('swf:frame', listener)
+    return () => ipcRenderer.removeListener('swf:frame', listener)
+  },
   onEvent: callback => {
     const listener = (_event, value) => callback(value)
     ipcRenderer.on('swf:event', listener)

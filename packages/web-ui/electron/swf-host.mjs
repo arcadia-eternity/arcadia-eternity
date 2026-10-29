@@ -1,4 +1,5 @@
-import { BrowserWindow, WebContentsView, session, webContents, protocol } from 'electron'
+import { BrowserWindow, session, webContents, protocol } from 'electron'
+import { createFrameBroker, validFrameSize } from './swf-frame-broker.mjs'
 import { randomUUID } from 'node:crypto'
 import { readFile, readdir } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -8,7 +9,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'arcadia-swf', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ])
 
-/** Call after app.whenReady(). Each owner/instance gets an ephemeral session and view. */
+/** Call after app.whenReady(). Each owner/instance gets an ephemeral session and hidden offscreen renderer. */
 export function createSwfHost({
   isTrustedController,
   getControllerWindow = event => BrowserWindow.fromWebContents(event.sender),
@@ -28,24 +29,28 @@ export function createSwfHost({
     return owner
   }
   function emit(r, value) {
-    if (!r.owner.isDestroyed()) r.owner.webContents.send('swf:event', value)
+    if (!r.owner.isDestroyed() && !r.ownerContents.isDestroyed()) r.ownerContents.send('swf:event', value)
   }
   function dispose(r, reason) {
     if (r.dead) return
     r.dead = true
     r.owner.removeListener('closed', r.ownerClosed)
+    r.ownerContents.removeListener('did-start-navigation', r.ownerNavigation)
+    r.ownerContents.removeListener('render-process-gone', r.ownerGone)
+    r.ownerContents.removeListener('destroyed', r.ownerGone)
     clearInterval(r.timer)
+    r.frames.dispose()
+    r.view.webContents.removeListener('paint', r.paint)
     records.delete(r.key)
-    if (!r.owner.isDestroyed()) r.owner.contentView.removeChildView(r.view)
     const wc = r.view.webContents
-    // A view is not a process boundary. Never crash a process shared with another view/UI.
+    // Window/session isolation alone does not prove a unique process. Never crash a shared UI process.
     if (!wc.isDestroyed()) {
       const pid = wc.getOSProcessId()
       const shared = webContents
         .getAllWebContents()
         .some(other => other.id !== wc.id && !other.isDestroyed() && pid > 0 && other.getOSProcessId() === pid)
       if (reason && !shared && pid > 0) wc.forcefullyCrashRenderer()
-      wc.close()
+      r.view.destroy()
     }
     r.session.protocol.unhandle('arcadia-swf')
     r.session.webRequest.onBeforeRequest(null)
@@ -55,21 +60,12 @@ export function createSwfHost({
       emit(r, { v: 1, instance: r.instance, task: r.task || 1, seq: ++r.eventSeq, type: 'error', message: reason })
   }
   function applyBounds(r, input) {
-    // DOM rectangles use CSS pixels; native view bounds use device-independent pixels.
-    const zoom = r.owner.webContents.getZoomFactor()
-    const area = r.owner.getContentBounds()
-    const x = Math.max(0, Math.round(input.x * zoom))
-    const y = Math.max(0, Math.round(input.y * zoom))
-    r.zoomFactor = zoom
-    r.cssBounds = input
-    r.view.webContents.setZoomFactor(zoom)
-    r.view.setBounds({
-      x,
-      y,
-      width: Math.max(1, Math.min(Math.round(input.width * zoom), area.width - x)),
-      height: Math.max(1, Math.min(Math.round(input.height * zoom), area.height - y)),
-    })
-    r.view.setVisible(input.visible && input.width > 0 && input.height > 0 && x < area.width && y < area.height)
+    const width = Math.round(input.width),
+      height = Math.round(input.height)
+    if (!validFrameSize(width, height)) throw new Error('Invalid SWF frame size')
+    r.frames.resize(width, height)
+    r.view.setContentSize(width, height)
+    r.view.webContents.invalidate()
   }
   function owned(event, instance) {
     const owner = controller(event)
@@ -99,9 +95,17 @@ export function createSwfHost({
         headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
       })
     })
-    const view = new WebContentsView({
+    const view = new BrowserWindow({
+      width: 1,
+      height: 1,
+      show: false,
+      transparent: true,
+      frame: false,
+      skipTaskbar: true,
+      focusable: false,
       webPreferences: {
         session: isolated,
+        offscreen: { useSharedTexture: false, deviceScaleFactor: 1 },
         // Loading/callback readiness must progress while the DOM owner is hidden by a modal or fade.
         backgroundThrottling: false,
         sandbox: true,
@@ -119,6 +123,7 @@ export function createSwfHost({
       key: id,
       instance: input.instance,
       owner,
+      ownerContents: owner.webContents,
       view,
       session: isolated,
       task: 0,
@@ -129,6 +134,16 @@ export function createSwfHost({
       events: rateGate(60),
       dead: false,
     }
+    r.frames = createFrameBroker({
+      instance: r.instance,
+      send: frame => {
+        if (!r.dead && !r.ownerContents.isDestroyed()) r.ownerContents.send('swf:frame', frame)
+      },
+      fail: message => dispose(r, message),
+    })
+    r.paint = (_event, dirty, image) => r.frames.paint(dirty, image)
+    view.webContents.on('paint', r.paint)
+    view.webContents.setFrameRate(24)
     records.set(id, r)
     view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     view.webContents.on('will-navigate', event => event.preventDefault())
@@ -136,15 +151,20 @@ export function createSwfHost({
     view.webContents.on('will-attach-webview', event => event.preventDefault())
     view.webContents.on('render-process-gone', () => dispose(r, 'SWF player process exited'))
     view.webContents.on('unresponsive', () => dispose(r, 'SWF player unresponsive'))
+    view.once('closed', () => dispose(r, 'SWF player closed'))
     r.ownerClosed = () => dispose(r)
+    // Views belong to the controller document, not just its BrowserWindow. A reload
+    // must release the old document's slots before the next one creates its players.
+    r.ownerNavigation = details => {
+      if (details.isMainFrame && !details.isSameDocument) dispose(r)
+    }
+    r.ownerGone = () => dispose(r)
     owner.once('closed', r.ownerClosed)
-    owner.contentView.addChildView(view)
-    view.setBounds({ x: 0, y: 0, width: 1, height: 1 })
-    view.setVisible(false)
+    r.ownerContents.on('did-start-navigation', r.ownerNavigation)
+    r.ownerContents.once('render-process-gone', r.ownerGone)
+    r.ownerContents.once('destroyed', r.ownerGone)
     r.timer = setInterval(
       () => {
-        if (!r.owner.isDestroyed() && r.cssBounds && r.zoomFactor !== r.owner.webContents.getZoomFactor())
-          applyBounds(r, r.cssBounds)
         if (Date.now() - r.heartbeat > watchdogMs) dispose(r, 'SWF player watchdog timeout')
       },
       Math.min(watchdogMs, 1000),
@@ -189,6 +209,7 @@ export function createSwfHost({
         return
       }
       if (command.type === 'load') {
+        r.frames.reset(command.task)
         // Runtime code comes only from the installed distribution, never from the caller.
         const names = (await readdir(runtimeDirectory)).filter(name =>
           /^(ruffle\.js|core\.ruffle\.[a-f0-9]+\.js|[a-f0-9]+\.wasm)$/.test(name),
@@ -214,8 +235,16 @@ export function createSwfHost({
       applyBounds(r, input)
     })
     handle('swf:dispose', (event, input) => dispose(owned(event, input?.instance)))
+    ipc.on('swf:frame-ack', frameAck)
     ipc.on('swf:heartbeat', heartbeat)
     ipc.on('swf:player-event', playerEvent)
+  }
+  function frameAck(event, value) {
+    // Fire-and-forget IPC must never throw into the main event loop.
+    try {
+      if (!Number.isSafeInteger(value?.task) || !Number.isSafeInteger(value?.frame)) return
+      owned(event, value?.instance).frames.ack(value)
+    } catch {}
   }
   function playerRecord(event) {
     return [...records.values()].find(
@@ -239,6 +268,10 @@ export function createSwfHost({
     }
     if (!validEvent(value) || value.instance !== r.instance || value.task !== r.task || value.seq <= r.eventSeq) return
     r.eventSeq = value.seq
+    if (value.type === 'ready') {
+      r.frames.ready()
+      r.view.webContents.invalidate()
+    }
     emit(r, value)
   }
   return {
@@ -247,6 +280,7 @@ export function createSwfHost({
       for (const r of [...records.values()]) dispose(r)
       if (ipc) {
         for (const c of registered) ipc.removeHandler(c)
+        ipc.removeListener('swf:frame-ack', frameAck)
         ipc.removeListener('swf:heartbeat', heartbeat)
         ipc.removeListener('swf:player-event', playerEvent)
       }
@@ -258,7 +292,9 @@ export function createSwfHost({
         ownerProcessId: r.owner.webContents.getOSProcessId(),
         partition: r.session.getStoragePath(),
         bounds: r.view.getBounds(),
-        visible: r.view.getVisible(),
+        visible: r.view.isVisible(),
+        offscreen: r.view.webContents.isOffscreen(),
+        frames: r.frames.inspect(),
         zoomFactor: r.view.webContents.getZoomFactor(),
         sandboxed: r.view.webContents.getLastWebPreferences().sandbox,
       }))

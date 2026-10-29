@@ -46,6 +46,66 @@ export type SwfCommand = SwfEnvelope &
     | { type: 'configure'; bounds: SwfBounds }
     | { type: 'stop' | 'dispose' }
   )
+/** Host-rendered dirty PNG; never emitted by the untrusted SWF page. */
+export interface SwfFrame {
+  v: 1
+  instance: string
+  task: number
+  frame: number
+  canvasWidth: number
+  canvasHeight: number
+  x: number
+  y: number
+  width: number
+  height: number
+  png: Uint8Array
+}
+export interface SwfFrameAck {
+  instance: string
+  task: number
+  frame: number
+}
+export const SWF_FRAME_MAX_DIMENSION = 2048
+export const SWF_FRAME_MAX_PIXELS = 2097152
+export const SWF_FRAME_MAX_BYTES = 8 * 1024 * 1024
+export function validSwfFrameIdentity(value: unknown): value is SwfFrameAck & Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const x = value as Record<string, unknown>
+  return (
+    typeof x.instance === 'string' &&
+    /^[a-zA-Z0-9-]{1,80}$/.test(x.instance) &&
+    Number.isSafeInteger(x.task) &&
+    Number(x.task) > 0 &&
+    Number.isSafeInteger(x.frame) &&
+    Number(x.frame) > 0
+  )
+}
+/** Preflight dimensions before invoking a browser image decoder. */
+export function validSwfFrame(value: unknown): value is SwfFrame {
+  if (!validSwfFrameIdentity(value) || value.v !== 1 || Object.keys(value).length !== 11) return false
+  const x = value as unknown as SwfFrame
+  if (
+    ![x.canvasWidth, x.canvasHeight, x.width, x.height].every(
+      n => Number.isSafeInteger(n) && n > 0 && n <= SWF_FRAME_MAX_DIMENSION,
+    ) ||
+    x.canvasWidth * x.canvasHeight > SWF_FRAME_MAX_PIXELS ||
+    ![x.x, x.y].every(n => Number.isSafeInteger(n) && n >= 0) ||
+    x.x + x.width > x.canvasWidth ||
+    x.y + x.height > x.canvasHeight ||
+    !(x.png instanceof Uint8Array) ||
+    x.png.byteLength < 33 ||
+    x.png.byteLength > SWF_FRAME_MAX_BYTES
+  )
+    return false
+  const data = x.png
+  if (
+    ![137, 80, 78, 71, 13, 10, 26, 10].every((n, i) => data[i] === n) ||
+    ![73, 72, 68, 82].every((n, i) => data[i + 12] === n)
+  )
+    return false
+  const header = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  return header.getUint32(8) === 13 && header.getUint32(16) === x.width && header.getUint32(20) === x.height
+}
 export interface SwfPlayer {
   load(bytes: SwfBytes): Promise<string[]>
   setState(state: string): Promise<void>

@@ -44,10 +44,14 @@ export function validBytes(x) {
 export function validBounds(x) {
   return (
     x &&
-    ['x', 'y', 'width', 'height'].every(
-      k => Number.isFinite(x[k]) && x[k] >= (k === 'x' || k === 'y' ? -10000 : 0) && x[k] <= 10000,
-    ) &&
-    typeof x.visible === 'boolean'
+    typeof x === 'object' &&
+    Number.isFinite(x.width) &&
+    Number.isFinite(x.height) &&
+    x.width > 0 &&
+    x.height > 0 &&
+    x.width <= 2048 &&
+    x.height <= 2048 &&
+    Math.round(x.width) * Math.round(x.height) <= 2097152
   )
 }
 export function validCommand(x) {

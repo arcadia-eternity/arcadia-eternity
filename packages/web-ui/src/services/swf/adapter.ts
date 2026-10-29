@@ -2,6 +2,10 @@ import { readResourceBytes } from '../resourceTransport'
 import playerDocument from '../../../public/swf-player.html?raw'
 import {
   validateSwfBytes,
+  validSwfFrame,
+  validSwfFrameIdentity,
+  type SwfFrame,
+  type SwfFrameAck,
   validSwfEvent,
   SWF_STATES,
   type SwfBounds,
@@ -20,14 +24,9 @@ const runtimeFiles = [
 interface DesktopBridge {
   create(options: { instance: string }): Promise<unknown>
   send(command: SwfCommand): Promise<unknown>
-  bounds(options: {
-    instance: string
-    x: number
-    y: number
-    width: number
-    height: number
-    visible: boolean
-  }): Promise<unknown>
+  bounds(options: { instance: string; width: number; height: number }): Promise<unknown>
+  onFrame(callback: (value: unknown) => void): () => void
+  ackFrame(value: SwfFrameAck): void
   dispose(options: { instance: string }): Promise<unknown>
   onEvent(callback: (value: unknown) => void): () => void
 }
@@ -45,41 +44,6 @@ async function readRuntime(signal: AbortSignal): Promise<Record<string, ArrayBuf
     runtime[name] = bytes.slice().buffer as ArrayBuffer
   }
   return runtime
-}
-
-// Native views sit above the owner DOM. Hide them for explicit modal surfaces;
-// ordinary battle HUD elements intentionally overlap sprites.
-function visuallyVisible(element: Element): boolean {
-  for (let node: Element | null = element; node; node = node.parentElement) {
-    const style = getComputedStyle(node)
-    if (
-      style.display === 'none' ||
-      style.visibility === 'hidden' ||
-      style.visibility === 'collapse' ||
-      (style.opacity !== '' && Number(style.opacity) === 0)
-    )
-      return false
-  }
-  return true
-}
-function nativeVisible(element: HTMLElement, rect: DOMRect): boolean {
-  if (document.hidden || rect.width <= 0 || rect.height <= 0 || !visuallyVisible(element)) return false
-  return !Array.from(
-    document.querySelectorAll('.battle-result, .el-overlay, [role="dialog"], [aria-modal="true"], dialog[open]'),
-  ).some(surface => {
-    // The result panel lives inside a full-screen backdrop without a modal role.
-    const blocker = surface.matches('.battle-result') ? (surface.parentElement ?? surface) : surface
-    if (!visuallyVisible(surface) || !visuallyVisible(blocker)) return false
-    const r = blocker.getBoundingClientRect()
-    return (
-      r.width > 0 &&
-      r.height > 0 &&
-      r.x < rect.x + rect.width &&
-      r.x + r.width > rect.x &&
-      r.y < rect.y + rect.height &&
-      r.y + r.height > rect.y
-    )
-  })
 }
 
 export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler): SwfPlayer {
@@ -103,17 +67,32 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
   let pendingConfiguration: SwfBounds | undefined
   let boundsFrame: number | undefined
   let lastBounds = ''
+  let canvas: HTMLCanvasElement | undefined
+  let context: CanvasRenderingContext2D | undefined
+  let pendingReady: string[] | undefined
+  let paintedTask = 0
+  let lastFrame = 0
+  let decoding = false
+  let pendingFrame: SwfFrame | undefined
+  const acknowledgements = new Set<string>()
+  const acknowledge = (value: SwfFrameAck) => {
+    const key = `${value.task}:${value.frame}`
+    if (acknowledgements.has(key)) return
+    acknowledgements.add(key)
+    if (acknowledgements.size > 64) acknowledgements.delete(acknowledgements.values().next().value!)
+    if (typeof desktop?.ackFrame === 'function') desktop.ackFrame({ instance, task: value.task, frame: value.frame })
+  }
+  const finishReady = () => {
+    if (!pendingReady || (desktop && paintedTask !== task)) return
+    if (timer) clearTimeout(timer)
+    resolve?.(pendingReady)
+    resolve = undefined
+    reject = undefined
+    pendingReady = undefined
+  }
   const publishNativeBounds = () => {
     if (!desktop || !nativeReady || disposed) return
-    const r = element.getBoundingClientRect()
-    const bounds = {
-      instance,
-      x: r.x,
-      y: r.y,
-      width: r.width,
-      height: r.height,
-      visible: nativeVisible(element, r),
-    }
+    const bounds = { instance, width: element.clientWidth || 1, height: element.clientHeight || 1 }
     const key = JSON.stringify(bounds)
     if (lastBounds !== key) {
       lastBounds = key
@@ -133,6 +112,14 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     port = undefined
     frame?.remove()
     frame = undefined
+    canvas?.remove()
+    canvas = undefined
+    context = undefined
+    pendingReady = undefined
+    paintedTask = 0
+    lastFrame = 0
+    if (pendingFrame) acknowledge(pendingFrame)
+    pendingFrame = undefined
   }
   const fail = (message: string, notify = true) => {
     if (disposed) return
@@ -174,16 +161,69 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
         send({ ...command({ type: 'configure' }), bounds: pendingConfiguration } as SwfCommand)
         pendingConfiguration = undefined
       }
-      if (timer) clearTimeout(timer)
-      resolve?.(value.states)
-      resolve = undefined
-      reject = undefined
+      pendingReady = value.states
+      finishReady()
     }
     if (value.type === 'complete') current = '待机'
     if (value.type === 'error') fail(value.message, false)
     onEvent(value)
   }
-  const unsubscribe = desktop?.onEvent(receive)
+  const drawFrame = async (value: SwfFrame) => {
+    decoding = true
+    let bitmap: ImageBitmap | undefined
+    const target = canvas
+    try {
+      bitmap = await createImageBitmap(new Blob([value.png.slice().buffer as ArrayBuffer], { type: 'image/png' }))
+      if (disposed || value.task !== task || target !== canvas || !canvas || !context) return
+      if (bitmap.width !== value.width || bitmap.height !== value.height)
+        throw new Error('Invalid decoded frame dimensions')
+      const resized = canvas.width !== value.canvasWidth || canvas.height !== value.canvasHeight
+      if (
+        (paintedTask !== task || resized) &&
+        (value.x !== 0 || value.y !== 0 || value.width !== value.canvasWidth || value.height !== value.canvasHeight)
+      )
+        throw new Error('Desktop playback requires a full initial frame')
+      if (resized) {
+        canvas.width = value.canvasWidth
+        canvas.height = value.canvasHeight
+      }
+      context.clearRect(value.x, value.y, value.width, value.height)
+      context.drawImage(bitmap, value.x, value.y)
+      paintedTask = task
+      finishReady()
+    } catch {
+      if (!disposed && value.task === task && target === canvas) fail('Desktop playback frame unavailable')
+    } finally {
+      bitmap?.close()
+      acknowledge(value)
+      decoding = false
+      const next = pendingFrame
+      pendingFrame = undefined
+      if (next) {
+        if (!disposed && next.task === task) void drawFrame(next)
+        else acknowledge(next)
+      }
+    }
+  }
+  const receiveFrame = (value: unknown) => {
+    if (!validSwfFrameIdentity(value) || value.instance !== instance) return
+    if (disposed || value.task !== task || value.frame <= lastFrame) {
+      acknowledge(value)
+      return
+    }
+    if (!validSwfFrame(value)) {
+      acknowledge(value)
+      fail('Invalid desktop playback frame')
+      return
+    }
+    lastFrame = value.frame
+    if (decoding) {
+      if (pendingFrame) acknowledge(pendingFrame)
+      pendingFrame = value
+    } else void drawFrame(value)
+  }
+  const unsubscribe = typeof desktop?.onEvent === 'function' ? desktop.onEvent(receive) : undefined
+  const unsubscribeFrames = typeof desktop?.onFrame === 'function' ? desktop.onFrame(receiveFrame) : undefined
   const command = (value: Omit<SwfCommand, 'v' | 'instance' | 'task' | 'seq'>) =>
     ({ v: 1 as const, instance, task, seq: ++seq, ...value }) as SwfCommand
   const send = (value: SwfCommand) => {
@@ -192,6 +232,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
   }
   return {
     async load(bytes: SwfBytes) {
+      if (disposed) throw new Error('Playback disposed')
       await validateSwfBytes(bytes)
       reject?.(new Error('Playback replaced'))
       cleanup()
@@ -211,6 +252,18 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
         if (disposed || loadingTask !== task) throw new Error('Playback replaced')
         const load = { ...command({ type: 'load' }), bytes, runtime } as SwfCommand
         if (desktop) {
+          if (
+            typeof desktop.onFrame !== 'function' ||
+            typeof desktop.ackFrame !== 'function' ||
+            typeof createImageBitmap !== 'function'
+          )
+            throw new Error('Desktop frame playback unavailable')
+          canvas = document.createElement('canvas')
+          canvas.dataset.swfPlayer = instance
+          canvas.style.cssText = 'display:block;width:100%;height:100%;pointer-events:none;background:transparent'
+          context = canvas.getContext('2d') ?? undefined
+          if (!context) throw new Error('Desktop canvas playback unavailable')
+          element.append(canvas)
           nativeCreated ??= desktop.create({ instance })
           await nativeCreated
           if (disposed || loadingTask !== task) throw new Error('Playback replaced')
@@ -247,7 +300,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
           element.append(child)
         }
       } catch (error) {
-        fail(error instanceof Error ? error.message : 'Playback failed')
+        if (!disposed && loadingTask === task) fail(error instanceof Error ? error.message : 'Playback failed')
       }
       return ready
     },
@@ -279,6 +332,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       reject?.(new Error('Playback disposed'))
       cleanup()
       unsubscribe?.()
+      unsubscribeFrames?.()
       void desktop?.dispose({ instance }).catch(() => {})
     },
   }

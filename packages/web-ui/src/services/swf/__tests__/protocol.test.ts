@@ -36,3 +36,39 @@ it('bounds the actual decompressed stream even when the header lies', async () =
     vi.unstubAllGlobals()
   }
 })
+
+it('bounds host-rendered dirty PNG frames before image decoding', async () => {
+  const { validSwfFrame } = await import('../protocol')
+  const png = new Uint8Array(33)
+  png.set([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82])
+  new DataView(png.buffer).setUint32(16, 100)
+  new DataView(png.buffer).setUint32(20, 80)
+  const frame = {
+    v: 1,
+    instance: 'owned',
+    task: 1,
+    frame: 1,
+    canvasWidth: 1600,
+    canvasHeight: 900,
+    x: 20,
+    y: 30,
+    width: 100,
+    height: 80,
+    png,
+  }
+  expect(validSwfFrame(frame)).toBe(true)
+  for (const overrides of [
+    { canvasWidth: 2049 },
+    { canvasHeight: 2048 },
+    { x: -1 },
+    { x: 1550 },
+    { y: Infinity },
+    { task: 0 },
+    { frame: 0 },
+    { png: new Uint8Array(8 * 1024 * 1024 + 1) },
+    { width: 101 },
+    { png: new Uint8Array(33) },
+    { extra: 'untrusted' },
+  ])
+    expect(validSwfFrame({ ...frame, ...overrides })).toBe(false)
+})
