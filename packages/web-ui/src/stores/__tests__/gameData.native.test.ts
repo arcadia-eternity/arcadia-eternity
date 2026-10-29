@@ -6,7 +6,7 @@ import { parse } from 'yaml'
 import i18next from 'i18next'
 import { computed } from 'vue'
 import MarkdownIt from 'markdown-it'
-import { serverContentText, renderContentDescription, serverText } from '@/i18n/serverContent'
+import { serverContentText, renderContentDescription, serverText, isRemoteContentActive } from '@/i18n/serverContent'
 import { useGameDataStore } from '../gameData'
 import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
@@ -46,6 +46,7 @@ it('trial display restores exact prior records and text, including the connected
   const official = store.species
   const pet = { ...data.species[0], id: 'room:pet', name: '房间内容' }
   store.applyServerEnvironment({ species: [pet], skills: [], marks: [] })
+  expect(isRemoteContentActive()).toBe(true)
   const room = store.species,
     fallback = store.serverFallback
   const release = store.useLocalBattleContent({
@@ -53,10 +54,12 @@ it('trial display restores exact prior records and text, including the connected
     skills: [],
     marks: [],
   })
+  expect(isRemoteContentActive()).toBe(false)
   expect(serverText('species', 'trial:pet', 'name')?.value).toBe('试战内容')
   release()
   release()
   expect(store.species).toBe(room)
+  expect(isRemoteContentActive()).toBe(true)
   expect(store.serverFallback).toBe(fallback)
   expect(store.species.byId['trial:pet']).toBeUndefined()
   expect(serverText('species', 'room:pet', 'name')?.value).toBe('房间内容')

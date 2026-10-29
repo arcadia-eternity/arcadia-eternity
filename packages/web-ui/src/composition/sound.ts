@@ -1,3 +1,4 @@
+import { isRemoteContentActive } from '@/i18n/serverContent'
 import { readResourceBytes } from '@/services/resourceTransport'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { Howl } from 'howler'
@@ -37,7 +38,7 @@ export function useSound(
   }
 
   function registerSkillSound(id: baseSkillId) {
-    if (gameDataStore.serverFallback) return
+    if (gameDataStore.serverFallback || isRemoteContentActive()) return
     const skill = gameDataStore.getSkill(id)
     const src = resolveSkillSfxUrl(skill, resourceStore.getSkillSound)
     const howlerInstance = ensureHowlInstance(src)
@@ -51,10 +52,10 @@ export function useSound(
   }
 
   const victorySoundSrc = officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/battle/ko.mp3`)
-  if (!gameDataStore.serverFallback) ensureHowlInstance(victorySoundSrc)
+  if (!gameDataStore.serverFallback && !isRemoteContentActive()) ensureHowlInstance(victorySoundSrc)
 
   const registerPetSounds = (spriteNums: number[] | undefined) => {
-    if (gameDataStore.serverFallback) return
+    if (gameDataStore.serverFallback || isRemoteContentActive()) return
     if (spriteNums) {
       for (const num of spriteNums) {
         // Unknown/hidden pets have no official numeric sound resource.
@@ -97,7 +98,7 @@ export function useSound(
 
   const activeMedia = new Set<() => void>()
   const playOnce = async (source: string) => {
-    if (selfMute.value) return
+    if (selfMute.value || !source) return
     const controller = new AbortController()
     let url: string | undefined
     let audio: HTMLAudioElement | undefined
@@ -127,7 +128,7 @@ export function useSound(
     }
   }
   const playSkillSound = (id: baseSkillId) => {
-    if (gameDataStore.serverFallback) {
+    if (gameDataStore.serverFallback || isRemoteContentActive()) {
       void playOnce(resolveSkillSfxUrl(gameDataStore.getSkill(id), resourceStore.getSkillSound))
       return
     }
@@ -140,6 +141,7 @@ export function useSound(
       void playOnce(cry)
       return
     }
+    if (isRemoteContentActive()) return
     if (gameDataStore.serverFallback) {
       if (petSpriteNum > 0)
         void playOnce(officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`))
@@ -164,6 +166,7 @@ export function useSound(
   })
 
   const playVictorySound = () => {
+    if (isRemoteContentActive()) return
     if (gameDataStore.serverFallback) {
       void playOnce(victorySoundSrc)
       return

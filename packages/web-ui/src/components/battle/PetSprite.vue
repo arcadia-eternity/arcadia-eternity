@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isRemoteContentActive } from '@/i18n/serverContent'
+import unknownPet from '@/assets/images/unknown-pet.svg'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { ActionState, type PetRendererEvent } from 'seer2-pet-animator'
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
@@ -51,18 +53,21 @@ const originalSwfUrl = asyncComputed(
     props.imageOnly || props.imageUrl
       ? ''
       : props.swfUrl ||
-        (props.num
+        (!isRemoteContentActive() && props.num
           ? props.uncached
             ? petResourceCache.getRemotePetUrl(props.num)
             : petResourceCache.getPetSwfUrl(props.num)
           : ''),
   '',
 )
+const usesRemotePlaceholder = computed(() => isRemoteContentActive() && !props.swfUrl && !props.imageUrl)
 const portrait = computed(
   () =>
     props.imageUrl ||
     props.fallbackImageUrl ||
-    officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`),
+    (isRemoteContentActive()
+      ? unknownPet
+      : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`)),
 )
 const { url: portraitUrl, error: portraitLoadError } = useUncachedResource(
   () => portrait.value,
@@ -75,7 +80,7 @@ let resolveReady: (() => void) | undefined
 let rejectReady: ((error: Error) => void) | undefined
 
 watch(
-  () => [props.num, props.swfUrl, props.imageUrl, props.imageOnly, props.fallbackImageUrl],
+  () => [props.num, props.swfUrl, props.imageUrl, props.imageOnly, props.fallbackImageUrl, isRemoteContentActive()],
   () => {
     generation++
     rejectReady?.(new Error('精灵资源已切换'))
@@ -183,11 +188,12 @@ onUnmounted(() => {
 })
 const handleImageLoad = () => {
   portraitLoaded.value = true
-  if (props.imageOnly || props.imageUrl || fallbackActive.value) resolveReady?.()
+  if (props.imageOnly || props.imageUrl || fallbackActive.value || usesRemotePlaceholder.value) resolveReady?.()
 }
 const handleImageError = () => {
   imageFailed.value = true
-  if (props.imageOnly || props.imageUrl || fallbackActive.value) rejectReady?.(new Error('精灵图片加载失败'))
+  if (props.imageOnly || props.imageUrl || fallbackActive.value || usesRemotePlaceholder.value)
+    rejectReady?.(new Error('精灵图片加载失败'))
 }
 watch(portraitLoadError, error => {
   if (error) handleImageError()

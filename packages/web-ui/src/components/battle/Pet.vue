@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isRemoteContentActive } from '@/i18n/serverContent'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import unknownPet from '@/assets/images/unknown-pet.svg'
 import { computed } from 'vue'
@@ -13,7 +14,11 @@ const props = withDefaults(
   },
 )
 
-const petUrl = computed(() => officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`))
+const petUrl = computed(() =>
+  isRemoteContentActive()
+    ? unknownPet
+    : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/pet/${props.num}.png`),
+)
 </script>
 
 <template>

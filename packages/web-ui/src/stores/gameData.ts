@@ -7,7 +7,7 @@ import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadi
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import YAML from 'yaml'
-import { getServerContentText, setServerContentText } from '@/i18n/serverContent'
+import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
 import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -71,6 +71,7 @@ interface GameDataState {
 interface LocalDisplayScope {
   previous: GameDataState
   previousText: ServerEnvironmentContent | null
+  previousRemote: boolean
   displayed: GameDataState['species']
   parent?: LocalDisplayScope
   released: boolean
@@ -165,8 +166,16 @@ export const useGameDataStore = defineStore('gameData', {
       const current = localDisplays.get(this)
       const parent = current?.displayed === this.species ? current : undefined
       const previousText = getServerContentText()
-      this.applyServerEnvironment(content)
-      const scope: LocalDisplayScope = { previous, previousText, displayed: this.species, parent, released: false }
+      const previousRemote = isRemoteContentActive()
+      this.applyServerEnvironment(content, { remote: false })
+      const scope: LocalDisplayScope = {
+        previous,
+        previousText,
+        previousRemote,
+        displayed: this.species,
+        parent,
+        released: false,
+      }
       localDisplays.set(this, scope)
       return () => {
         if (scope.released) return
@@ -180,7 +189,7 @@ export const useGameDataStore = defineStore('gameData', {
         let restore = scope
         while (restore.parent?.released) restore = restore.parent
         this.$patch(state => Object.assign(state, restore.previous))
-        setServerContentText(restore.previousText)
+        setServerContentText(restore.previousText, restore.previousRemote)
         if (restore.parent) localDisplays.set(this, restore.parent)
         else localDisplays.delete(this)
       }
@@ -201,7 +210,7 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     /** Server room data is display-only; no native effect factory is loaded in the browser. */
-    applyServerEnvironment(content: ServerEnvironmentContent) {
+    applyServerEnvironment(content: ServerEnvironmentContent, options: { remote?: boolean } = {}) {
       const species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
       const skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
       const marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
@@ -226,7 +235,7 @@ export const useGameDataStore = defineStore('gameData', {
       this.gameDataLoaded = true
       this.error = null
       this.serverFallback = previous
-      setServerContentText(content)
+      setServerContentText(content, options.remote !== false)
     },
 
     clearServerEnvironment() {

@@ -1,3 +1,4 @@
+import { isRemoteContentActive } from '@/i18n/serverContent'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import unknownPet from '@/assets/images/unknown-pet.svg'
 import type { MarkSchemaType, SkillSchemaType, SpeciesSchemaType } from '@arcadia-eternity/schema'
@@ -26,6 +27,12 @@ export function resolveMarkIconUrl(
   mark: Partial<MarkSchemaType> | undefined,
   getMarkImage: (id: string) => string | null,
 ): string {
+  if (isRemoteContentActive())
+    return typeof mark?.presentation?.icon === 'string'
+      ? mark.presentation.icon
+      : mark?.iconRef && isHttpUrl(mark.iconRef)
+        ? mark.iconRef
+        : PET_IMAGE_FALLBACK
   if (!mark) return MARK_ICON_FALLBACK
   if (typeof mark.presentation?.icon === 'string') return mark.presentation.icon
   if (mark.iconRef) {
@@ -52,6 +59,12 @@ export function resolveSkillSfxUrl(
   skill: SkillSchemaType | undefined,
   getSkillSound: (id: string) => string | null,
 ): string {
+  if (isRemoteContentActive())
+    return typeof skill?.presentation?.sfx === 'string'
+      ? skill.presentation.sfx
+      : skill?.sfxRef && isHttpUrl(skill.sfxRef)
+        ? skill.sfxRef
+        : ''
   if (!skill) return SKILL_SFX_FALLBACK
   if (typeof skill.presentation?.sfx === 'string') return skill.presentation.sfx
   if (skill.sfxRef) {
@@ -83,6 +96,15 @@ export function resolveSpeciesSpriteAsset(
         }
       : { swfNum: 0, customImageUrl: battle.source }
   }
+  if (isRemoteContentActive()) {
+    if (species.assetRef && isHttpUrl(species.assetRef))
+      return species.assetRef.toLowerCase().endsWith('.swf')
+        ? { swfNum: 0, customSwfUrl: species.assetRef }
+        : { swfNum: 0, customImageUrl: species.assetRef }
+    return typeof species.presentation?.portrait === 'string'
+      ? { swfNum: 0, customImageUrl: species.presentation.portrait }
+      : { swfNum: 0 }
+  }
   if (species.assetRef) {
     if (isProtocolUrl(species.assetRef)) {
       const lower = species.assetRef.toLowerCase()
@@ -109,6 +131,8 @@ export function resolveSpeciesSpriteAsset(
 export function resolveSpeciesPortraitUrl(species: SpeciesSchemaType | undefined): string {
   if (!species) return PET_IMAGE_FALLBACK
   if (typeof species.presentation?.portrait === 'string') return species.presentation.portrait
+  if (isRemoteContentActive())
+    return species.assetRef && isHttpUrl(species.assetRef) ? species.assetRef : PET_IMAGE_FALLBACK
   if (species.assetRef && isHttpUrl(species.assetRef)) return officialAssetUrl(species.assetRef)
   if (species.assetRef && !isProtocolUrl(species.assetRef)) return resolveRuntimeAssetUrl(species.assetRef)
   if (typeof species.num === 'number' && species.num > 0) {
@@ -119,5 +143,5 @@ export function resolveSpeciesPortraitUrl(species: SpeciesSchemaType | undefined
 
 export function resolveSpeciesIconUrl(species: Partial<SpeciesSchemaType> | undefined): string | undefined {
   if (typeof species?.presentation?.icon === 'string') return species.presentation.icon
-  return undefined
+  return isRemoteContentActive() ? PET_IMAGE_FALLBACK : undefined
 }

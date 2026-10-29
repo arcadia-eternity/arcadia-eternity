@@ -6,6 +6,8 @@ import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 // A transient overlay: never write server text into the official locale bundles.
 const text = shallowRef(new Map<string, string>())
 const activeContent = shallowRef<ServerEnvironmentContent | null>(null)
+const remoteContent = shallowRef(false)
+export const isRemoteContentActive = () => remoteContent.value
 const contentNamespaces = new Set(['species', 'skill', 'mark', 'mark_ability', 'mark_emblem', 'mark_global'])
 export const contentLanguage = shallowRef(i18next.language || 'zh-CN')
 i18next.on('languageChanged', language => {
@@ -37,8 +39,9 @@ export function serverText(
   return undefined
 }
 
-export function setServerContentText(content: ServerEnvironmentContent | null) {
+export function setServerContentText(content: ServerEnvironmentContent | null, remote = true) {
   activeContent.value = content
+  remoteContent.value = content !== null && remote
   const next = new Map<string, string>()
   for (const [kind, rows] of Object.entries(content ?? {})) {
     const namespace = { species: 'species', skills: 'skill', marks: 'mark' }[kind]

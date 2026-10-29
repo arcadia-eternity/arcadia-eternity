@@ -1,6 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PetSprite from '../PetSprite.vue'
+import { setServerContentText } from '@/i18n/serverContent'
+import unknownPet from '@/assets/images/unknown-pet.svg'
 import { createSwfPlayer } from '@/services/swf/adapter'
 import { readResourceBytes } from '@/services/resourceTransport'
 const pending = vi.hoisted(() => ({
@@ -25,13 +27,17 @@ vi.mock('@/services/petResourceCache', () => ({
   petResourceCache: { getPetSwfUrl: vi.fn(async () => '/pet.swf'), getRemotePetUrl: vi.fn(() => '/remote.swf') },
 }))
 beforeEach(() => {
+  setServerContentText(null)
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => new Response(new Uint8Array([1, 2, 3]))),
   )
   vi.clearAllMocks()
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  setServerContentText(null)
+  vi.unstubAllGlobals()
+})
 describe('isolated PetSprite readiness', () => {
   it('waits for bounded bytes and player readiness', async () => {
     const sprite = mount(PetSprite, { props: { num: 1 } })
@@ -115,4 +121,17 @@ describe('isolated PetSprite readiness', () => {
     )
     sprite.unmount()
   })
+})
+
+it('never loads a same-number official movie or portrait for remote missing optional media', async () => {
+  setServerContentText({ species: [], skills: [], marks: [] })
+  const sprite = mount(PetSprite, { props: { num: 1, uncached: true } })
+  await flushPromises()
+  expect(createSwfPlayer).not.toHaveBeenCalled()
+  expect(readResourceBytes).not.toHaveBeenCalled()
+  expect(fetch).not.toHaveBeenCalled()
+  expect(sprite.get('img').attributes('src')).toBe(unknownPet)
+  await sprite.get('img').trigger('load')
+  await sprite.vm.ready
+  sprite.unmount()
 })

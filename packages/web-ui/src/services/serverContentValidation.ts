@@ -6,7 +6,7 @@ export const CONTENT_NAMESPACES = ['species', 'skill', 'mark', 'mark_ability', '
 const HASH = /^[a-f0-9]{64}$/
 const identifier = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 256
-const invalid = (): never => {
+function invalid(): never {
   throw new Error('服务器环境内容格式不正确或超过限制')
 }
 

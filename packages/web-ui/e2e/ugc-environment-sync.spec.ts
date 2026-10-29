@@ -69,6 +69,11 @@ test('clean production clients synchronize custom content, form teams, play a tu
     content.data.species[0].presentation.battle = { renderer: 'image', source: 'assets/icon.png' }
     content.data.skills[0].power = 60
     content.data.skills[0].name = '同步冲击'
+    const missingMedia = process.env.PLAYWRIGHT_UGC_MISSING_MEDIA === '1'
+    if (missingMedia) {
+      delete content.data.species[0].presentation
+      delete content.data.marks[0].presentation
+    }
     await writeFile(contentFile, JSON.stringify(content))
     const environment = await app.environments.prepareNpm(fixture.directory)
     await app.start()
@@ -126,15 +131,16 @@ test('clean production clients synchronize custom content, form teams, play a tu
       await expect(page.getByRole('button', { name: '战斗', exact: true })).toBeVisible({ timeout: 45_000 })
       await expect(page.getByTestId('battle-loading-overlay')).toHaveCount(0, { timeout: 45_000 })
     }
-    await expect
-      .poll(() =>
-        host
-          .getByTestId('pet-static-fallback')
-          .locator('img')
-          .first()
-          .evaluate((image: HTMLImageElement) => image.naturalWidth),
-      )
-      .toBe(1)
+    if (!missingMedia)
+      await expect
+        .poll(() =>
+          host
+            .getByTestId('pet-static-fallback')
+            .locator('img')
+            .first()
+            .evaluate((image: HTMLImageElement) => image.naturalWidth),
+        )
+        .toBe(1)
     await host.screenshot({ path: testInfo.outputPath('custom-battle-start.png'), fullPage: true })
     const skill = (page: Page) => page.locator('button').filter({ hasText: '同步冲击' }).first()
     const ended = (page: Page) =>
@@ -169,7 +175,8 @@ test('clean production clients synchronize custom content, form teams, play a tu
     await host.screenshot({ path: testInfo.outputPath('custom-battle-result.png'), fullPage: true })
     expect(requests.some(url => /\/src\/|\/node_modules\/|\.tgz(?:[?#]|$)|\.ts(?:[?#]|$)/.test(url))).toBe(false)
     expect(requests.some(url => url.includes('not-fetched.swf'))).toBe(false)
-    expect(mediaHeaders.length).toBeGreaterThan(0)
+    if (missingMedia) expect(mediaHeaders).toHaveLength(0)
+    else expect(mediaHeaders.length).toBeGreaterThan(0)
     expect((await Promise.all(mediaHeaders)).every(value => value === 'no-store')).toBe(true)
     const networkFile = testInfo.outputPath('network-requests.json')
     await writeFile(networkFile, JSON.stringify(requests, null, 2))
