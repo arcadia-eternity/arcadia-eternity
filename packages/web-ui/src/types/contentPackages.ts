@@ -35,6 +35,9 @@ export interface ContentLibrarySnapshot {
   revision: number
   packages: InstalledContentPackage[]
   activeIds: string[]
+  activeGraph?: PackageGraphEntry[]
+  desiredIds: string[]
+  selection: { status: 'idle' | 'preparing' | 'ready' | 'failed'; message?: string }
   hasSelection: boolean
   serviceStatus: LocalBattleHostStatus
   serviceNeedsRestart: boolean
@@ -51,6 +54,7 @@ export type ContentPackagePlan =
       requiresApproval: boolean
     }
 export type ContentPackageAction =
+  | { action: 'set-selection'; ids: string[]; offline?: boolean }
   | { action: 'confirm-install'; planId: string; allowCode: boolean }
   | { action: 'plan-selection'; ids: string[]; offline?: boolean }
   | { action: 'apply-selection'; planId: string; allowCode: boolean }

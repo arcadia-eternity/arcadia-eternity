@@ -290,7 +290,10 @@ export class RoomRegistry {
     const member = this.member(session)
     const environment =
       matchedEnvironment ??
-      this.environments.acquire(input.environmentId === undefined ? undefined : text(input.environmentId))
+      this.environments.acquire(
+        input.environmentId === undefined ? undefined : text(input.environmentId),
+        config.battleMode === 'p2p',
+      )
     try {
       this.checkRuntime(input, environment)
       if (environment.isNpm && config.battleMode !== 'server') fail('ENVIRONMENT_REQUIRES_SERVER')

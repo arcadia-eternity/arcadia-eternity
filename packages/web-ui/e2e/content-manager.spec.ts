@@ -5,9 +5,7 @@ import type {
   ContentPackageAction,
 } from '../src/types/contentPackages'
 
-test('real content page uses package plans and keeps a running host unchanged until manual restart', async ({
-  page,
-}, testInfo) => {
+test('content choices converge without apply controls or restarting the running host', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     const pkg: InstalledContentPackage = {
       id: 'package',
@@ -32,11 +30,13 @@ test('real content page uses package plans and keeps a running host unchanged un
       revision: 1,
       packages: [pkg],
       activeIds: [],
+      desiredIds: [],
+      selection: { status: 'ready' },
       hasSelection: true,
       serviceStatus: { status: 'running', url: 'http://127.0.0.1:12345', projectName: 'local', serverId: 'test' },
       serviceNeedsRestart: false,
     }
-    let draft: string[] = []
+    let revision = 0
     Object.defineProperty(window, 'arcadiaDesktop', {
       value: {
         getLocalServerPort: async () => null,
@@ -50,45 +50,26 @@ test('real content page uses package plans and keeps a running host unchanged un
           snapshot.serviceStatus = { status: 'idle' }
           return snapshot.serviceStatus
         },
-        selectContentPackageFile: async () => ({
-          id: 'install',
-          kind: 'install',
-          package: { ...pkg, id: 'second', title: '另一个包', name: '@example/second' },
-          requiresApproval: true,
-        }),
-        inspectNpmContentPackage: async () => {
+        installContentPackageFile: async () => {
+          snapshot.packages.push({ ...pkg, id: 'second', title: '另一个包', name: '@example/second' })
+          snapshot.desiredIds.push('second')
+          snapshot.activeIds = [...snapshot.desiredIds]
+          snapshot.selection = { status: 'ready' }
+          return 'second'
+        },
+        installNpmContentPackage: async () => {
           throw new Error('Exact versions only')
         },
         contentPackageAction: async (input: ContentPackageAction) => {
-          if (input.action === 'plan-selection') {
-            draft = [...input.ids]
-            return {
-              id: 'selection',
-              kind: 'selection',
-              ids: draft,
-              graph: pkg.graph,
-              contentIds: pkg.contentIds,
-              newDependencies: [],
-              requiresApproval: false,
-            }
-          }
-          if (input.action === 'apply-selection') {
-            snapshot.activeIds = draft
-            snapshot.revision++
-            snapshot.serviceNeedsRestart = true
-          }
-          if (input.action === 'confirm-install') {
-            snapshot.packages.push({ ...pkg, id: 'second', title: '另一个包', name: '@example/second' })
-            return 'second'
-          }
-          if (input.action === 'start') {
-            snapshot.serviceStatus = {
-              status: 'running',
-              url: 'http://127.0.0.1:12345',
-              projectName: 'local',
-              serverId: 'test',
-            }
-            snapshot.serviceNeedsRestart = false
+          if (input.action === 'set-selection') {
+            snapshot.desiredIds = [...input.ids]
+            snapshot.selection = { status: 'preparing' }
+            const current = ++revision
+            setTimeout(() => {
+              if (revision !== current) return
+              snapshot.activeIds = [...input.ids]
+              snapshot.selection = { status: 'ready' }
+            }, 200)
           }
           return null
         },
@@ -102,14 +83,12 @@ test('real content page uses package plans and keeps a running host unchanged un
   await page.getByRole('tab', { name: '依赖', exact: true }).click()
   await expect(main).toContainText('library')
   await page.getByLabel('启用 创作测试内容', { exact: true }).check()
-  await page.getByRole('button', { name: '检查并应用更改', exact: true }).click()
-  await expect(page.getByRole('dialog')).toContainText('当前服务和对局继续使用原内容')
-  await page.getByRole('button', { name: '确认应用', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('停止并重新启动')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '检查并应用更改', exact: true })).toHaveCount(0)
+  await expect(main.locator('.selection-state')).toContainText('所选内容已就绪')
   await page.getByRole('button', { name: '添加内容包', exact: true }).click()
-  await page.getByRole('button', { name: '选择本地 .tgz 文件', exact: true }).click()
-  await expect(page.getByRole('dialog')).toContainText('允许此包及其依赖在本机进程中运行')
-  await page.getByRole('button', { name: '安装并允许运行', exact: true }).click()
+  await page.getByRole('button', { name: '安装本地 .tgz 文件', exact: true }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(main.getByRole('heading', { name: '另一个包', exact: true })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('content-packages-desktop.png'), fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
@@ -119,11 +98,8 @@ test('real content page uses package plans and keeps a running host unchanged un
   expect(await main.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('content-packages-mobile.png'), fullPage: true })
   await page.goto('/settings/local-service')
-  await expect(page.getByRole('heading', { name: '本机服务', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: '停止本机服务', exact: true }).click()
-  await expect(page.getByRole('button', { name: '启动本机服务', exact: true })).toBeEnabled()
-  await page.getByRole('button', { name: '启动本机服务', exact: true }).click()
-  await expect(page.locator('main.local-service')).toContainText('运行中：http://127.0.0.1:12345')
+  await expect(page.getByRole('heading', { name: '高级本机工具', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '启动本机服务', exact: true })).not.toBeVisible()
 })
 
 test('browser content is read-only and desktop authoring and host routes stay closed', async ({ page }) => {

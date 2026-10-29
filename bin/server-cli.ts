@@ -3,6 +3,7 @@ import { Command, CommanderError, InvalidArgumentError } from 'commander'
 import pg from 'pg'
 import nodemailer from 'nodemailer'
 import { resolve } from 'node:path'
+import { attachDesktopContentControl } from './desktop-content-control'
 import {
   createSingleProcessApp,
   EmailCodeVerifier,
@@ -172,13 +173,24 @@ export async function runServerCli(args: string[]): Promise<number> {
         ? { development: { directory: resolve(options.developmentProject), token: developmentToken! } }
         : {}),
     })
-    for (const directory of options.npmProject ?? []) await server.environments.prepareNpm(directory)
+    await server.environments.ready()
+    const builtinId = server.environments.descriptor().id
+    const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
+    if (desktopControl && (options.host !== '127.0.0.1' || accounts)) throw new Error('Invalid desktop host')
+    for (const directory of options.npmProject ?? []) {
+      const prepared = await server.environments.prepareNpm(directory)
+      if (desktopControl) server.environments.selectDefault(prepared.id)
+    }
     await server.start()
+    const detachDesktopControl = desktopControl
+      ? attachDesktopContentControl(server.environments, builtinId)
+      : undefined
     const runningServer = server
     let closing = false
     const stop = () => {
       if (closing) return
       closing = true
+      detachDesktopControl?.()
       console.log('Stopping server; all rooms and sessions are being discarded.')
       void runningServer
         .stop()

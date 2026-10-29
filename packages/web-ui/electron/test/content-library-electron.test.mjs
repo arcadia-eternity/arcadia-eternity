@@ -12,7 +12,7 @@ const exec = promisify(execFile)
 const frontend = fileURLToPath(new URL('../../', import.meta.url))
 const repository = fileURLToPath(new URL('../../../../', import.meta.url))
 test(
-  'actual Electron window installs and enables a local package through preload IPC and starts the real host',
+  'actual Electron window automatically converges package choices without confirmation or restart',
   {
     timeout: 120000,
     skip: process.env.ARCADIA_DESKTOP_GUI_TEST !== '1',
@@ -58,31 +58,45 @@ test(
       const page = await application.firstWindow({ timeout: 20000 })
       await page.goto(rendererUrl + '/content', { timeout: 20000 })
       await page.getByRole('button', { name: '添加内容包', exact: true }).click()
-      await page.getByRole('button', { name: '选择本地 .tgz 文件', exact: true }).click()
-      await expect(page.getByRole('dialog')).toContainText('@arcadia-example/slow')
-      await page.getByRole('button', { name: '安装并允许运行', exact: true }).click()
-      await expect(page.getByRole('status')).toContainText('内容包已安装')
+      await page.getByRole('button', { name: '安装本地 .tgz 文件', exact: true }).click()
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+      await expect(page.locator('.selection-state')).toContainText('所选内容已就绪')
       const packages = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())
       assert.equal(packages.packages.length, 1)
       const pkg = packages.packages[0]
       assert.equal(pkg.name, '@arcadia-example/slow')
-      await page.getByLabel('启用 ' + pkg.title, { exact: true }).check()
-      await page.getByRole('button', { name: '检查并应用更改', exact: true }).click()
-      await page.getByRole('button', { name: '确认应用', exact: true }).click()
-      await expect(page.getByRole('status')).toContainText('本机内容选择已应用')
-      await page.screenshot({ path: join(output, 'installed.png'), fullPage: true })
-      await page.goto(env.ARCADIA_ELECTRON_DEV_SERVER_URL + '/settings/local-service')
-      await page.getByRole('button', { name: '启动本机服务', exact: true }).click()
-      await expect(page.locator('main.local-service')).toContainText('运行中：', { timeout: 45000 })
+      await expect(page.getByLabel('启用 ' + pkg.title, { exact: true })).toBeChecked()
       const status = await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())
       assert.equal(status.status, 'running')
+      await page.screenshot({ path: join(output, 'installed.png'), fullPage: true })
+      await page.getByLabel('启用 ' + pkg.title, { exact: true }).uncheck()
+      await expect(page.locator('.selection-state')).toContainText('所选内容已就绪')
+      const current = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())
+      assert.deepEqual(current.activeIds, [])
+      assert.equal(current.serviceStatus.url, status.url)
+      assert.equal(current.serviceStatus.serverId, status.serverId)
+      assert.equal(current.serviceNeedsRestart, false)
+      assert.equal(await page.getByRole('dialog').count(), 0)
       const catalogue = (await (await fetch(status.url + '/api/v1/environments')).json()).environments
-      assert.ok(catalogue.some(env => env.packages.some(pkg => pkg.name === '@arcadia-example/slow')))
-      await page.getByRole('button', { name: '停止本机服务', exact: true }).click()
-      await expect(page.locator('main.local-service')).toContainText('服务未运行')
+      assert.ok(catalogue.every(env => !env.packages.some(pkg => pkg.name === '@arcadia-example/slow')))
+      await page.goto(rendererUrl + '/settings/local-service')
+      await expect(page.getByRole('heading', { name: '高级本机工具', exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: '启动本机服务', exact: true })).not.toBeVisible()
       t.diagnostic(
         'Real Electron renderer → preload → guarded IPC → npm → content validation → loopback service passed',
       )
+    } catch (error) {
+      if (application?.windows()[0]) {
+        const diagnostics = await application
+          .windows()[0]
+          .evaluate(async () => ({
+            library: await window.arcadiaDesktop.listContentPackages(),
+            host: await window.arcadiaDesktop.getLocalBattleStatus(),
+          }))
+          .catch(() => null)
+        t.diagnostic(JSON.stringify(diagnostics))
+      }
+      throw error
     } finally {
       if (application) {
         const timeout = setTimeout(() => application.process().kill('SIGKILL'), 8000)

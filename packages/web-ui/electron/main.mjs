@@ -1647,10 +1647,29 @@ function setupIpcHandlers() {
     requireLocalBattleCaller(event)
     return getContentLibrary().stageNpm(options?.spec, options?.offline === true)
   })
+  ipcMain.handle('desktop:install-content-package-file', async (event, options) => {
+    requireLocalBattleCaller(event)
+    const selected = await dialog.showOpenDialog(mainWindow, {
+      title: '安装并启用内容包',
+      properties: ['openFile'],
+      filters: [{ name: 'npm 内容包', extensions: ['tgz'] }],
+    })
+    requireLocalBattleCaller(event)
+    if (selected.canceled || !selected.filePaths[0]) return null
+    return getContentLibrary().installFile(selected.filePaths[0], options?.offline === true)
+  })
+  ipcMain.handle('desktop:install-npm-content-package', (event, options) => {
+    requireLocalBattleCaller(event)
+    return getContentLibrary().installNpm(options?.spec, options?.offline === true)
+  })
   ipcMain.handle('desktop:content-package-action', async (event, input) => {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
+    if (input.action === 'set-selection') {
+      await library.setSelection(input.ids, input.offline === true)
+      return null
+    }
     if (input.action === 'confirm-install') return library.confirmInstall(input.planId, input.allowCode === true)
     if (input.action === 'plan-selection') return library.planSelection(input.ids, input.offline === true)
     if (input.action === 'apply-selection') {
@@ -1909,6 +1928,9 @@ app.on('before-quit', event => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createMainWindow()
+    void getContentLibrary()
+      .resume()
+      .catch(() => {})
   }
 })
 
@@ -1922,6 +1944,9 @@ app
     await startLocalServer()
     setupIpcHandlers()
     createMainWindow()
+    void getContentLibrary()
+      .resume()
+      .catch(() => {})
   })
   .catch(error => {
     console.error('Electron startup failed:', error)

@@ -357,9 +357,9 @@
               </el-form-item>
             </el-form>
           </el-tab-pane>
-          <el-tab-pane v-if="isDesktop" label="本机服务" name="local-service">
-            <p class="mb-4">管理本机对战服务，使用在“内容包”中启用的内容。</p>
-            <el-button @click="openLocalService">打开本机服务管理</el-button>
+          <el-tab-pane v-if="isDesktop" label="高级工具" name="local-service">
+            <p class="mb-4">内容包会自动准备；这里提供本机运行诊断和服务器项目管理。</p>
+            <el-button @click="openLocalService">打开高级本机工具</el-button>
           </el-tab-pane>
         </el-tabs>
       </div>

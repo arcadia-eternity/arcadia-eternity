@@ -19,14 +19,51 @@ async function fixture(name) {
   let status = { status: 'idle' },
     running,
     failValidation = false,
-    newDependency = false
+    newDependency = false,
+    currentEnvironment,
+    currentBuiltin = false,
+    blockedPreparation,
+    failPreparation = false
+  const prepared = [],
+    selected = [],
+    retired = []
   const host = {
     status: () => status,
     projectDirectory: () => running,
     start: async dir => {
       running = dir
+      currentEnvironment = 'initial:' + dir
       status = { status: 'running', url: 'http://127.0.0.1:1234', serverId: 'test', projectName: 'test' }
       return status
+    },
+    prepareProject: async (dir, { builtinOnly = false } = {}) => {
+      const started = status.status !== 'running'
+      if (started) await host.start(dir)
+      const value = { id: started ? currentEnvironment : 'prepared:' + dir, directory: dir, builtinOnly, started }
+      prepared.push(value)
+      if (blockedPreparation) {
+        const block = blockedPreparation
+        blockedPreparation = undefined
+        block.enter()
+        await block.promise
+      }
+      if (failPreparation) throw new Error('HOST_PREPARATION_FAILED')
+      return value
+    },
+    selectPrepared: async value => {
+      const previous = { id: currentEnvironment, directory: running, builtinOnly: currentBuiltin }
+      selected.push(value)
+      running = value.directory
+      currentEnvironment = value.id
+      currentBuiltin = value.builtinOnly
+      return previous
+    },
+    retirePrepared: async value => {
+      retired.push(value)
+    },
+    stop: async () => {
+      status = { status: 'idle' }
+      running = undefined
     },
   }
   const run = async args => {
@@ -87,6 +124,27 @@ async function fixture(name) {
   }
   return {
     manager,
+    prepared,
+    selected,
+    retired,
+    blockPreparation: () => {
+      let enter, release
+      const entered = new Promise(resolve => {
+        enter = resolve
+      })
+      const promise = new Promise(resolve => {
+        release = resolve
+      })
+      blockedPreparation = { enter, promise }
+      return { entered, release }
+    },
+    recover: () => {
+      failValidation = false
+      failPreparation = false
+    },
+    failHost: () => {
+      failPreparation = true
+    },
     host,
     run,
     calls,
@@ -202,4 +260,145 @@ it('rejects a persisted source path that escapes its managed installation', asyn
   await writeFile(file, JSON.stringify(stored))
   const restored = new ContentLibrary({ root: f.libraryRoot, run: f.run, host: f.host })
   await assert.rejects(restored.list(), /格式不正确/)
+})
+
+async function settled(manager, expected = 'ready') {
+  for (let i = 0; i < 250; i++) {
+    const snapshot = await manager.list()
+    if (snapshot.selection.status === expected) return snapshot
+    await new Promise(resolve => setTimeout(resolve, 20))
+  }
+  assert.fail('Content did not reach ' + expected)
+}
+it('automatically installs and enables with no apply step, and persists the desired selection', async () => {
+  const f = await fixture('automatic-install')
+  try {
+    const id = await f.manager.installFile(await f.file('water'), true)
+    assert.deepEqual((await f.manager.list()).desiredIds, [id])
+    assert.deepEqual((await settled(f.manager)).activeIds, [id])
+    assert.equal(f.host.status().status, 'running')
+    const stored = JSON.parse(await readFile(join(f.libraryRoot, 'library.json'), 'utf8'))
+    assert.deepEqual(stored.desiredIds, [id])
+  } finally {
+    await f.manager.close()
+  }
+})
+it('converges to the latest in-flight choice without switching to a superseded candidate or restarting', async () => {
+  const f = await fixture('automatic-latest')
+  try {
+    const a = await install(f, 'a'),
+      b = await install(f, 'b'),
+      c = await install(f, 'c')
+    await f.manager.setSelection([a], true)
+    await settled(f.manager)
+    const initial = f.host.status()
+    const block = f.blockPreparation()
+    await f.manager.setSelection([b], true)
+    await block.entered
+    const staleDirectory = f.prepared.at(-1).directory
+    await f.manager.setSelection([c], true)
+    assert.deepEqual((await f.manager.list()).desiredIds, [c])
+    block.release()
+    assert.deepEqual((await settled(f.manager)).activeIds, [c])
+    assert.ok(!f.selected.some(value => value.directory === staleDirectory))
+    assert.ok(f.retired.some(value => value.directory === staleDirectory))
+    assert.deepEqual(f.host.status(), initial)
+    const count = f.prepared.length
+    await new Promise(resolve => setTimeout(resolve, 350))
+    assert.equal(f.prepared.length, count)
+  } finally {
+    await f.manager.close()
+  }
+})
+it('retains the actual active content on failure and retries the desired choice without confirmation', async () => {
+  const f = await fixture('automatic-failure')
+  try {
+    const a = await install(f, 'a'),
+      b = await install(f, 'b')
+    await f.manager.setSelection([a], true)
+    await settled(f.manager)
+    const old = f.host.projectDirectory()
+    f.fail()
+    await f.manager.setSelection([b], true)
+    const failure = await settled(f.manager, 'failed')
+    assert.deepEqual(failure.activeIds, [a])
+    assert.deepEqual(failure.desiredIds, [b])
+    assert.equal(f.host.projectDirectory(), old)
+    const calls = f.calls.length
+    await new Promise(resolve => setTimeout(resolve, 350))
+    assert.equal(f.calls.length, calls)
+    f.recover()
+    await f.manager.setSelection([b], true)
+    assert.deepEqual((await settled(f.manager)).activeIds, [b])
+  } finally {
+    await f.manager.close()
+  }
+})
+it('restores the selected content after restart without reinstalling its package tree', async () => {
+  const f = await fixture('automatic-restore')
+  const id = await f.manager.installFile(await f.file('water'), true)
+  await settled(f.manager)
+  await f.manager.close()
+  await f.host.stop()
+  const before = f.calls.length
+  const restored = new ContentLibrary({ root: f.libraryRoot, host: f.host, run: f.run })
+  try {
+    await restored.resume()
+    assert.deepEqual((await settled(restored)).activeIds, [id])
+    assert.equal(f.calls.length, before)
+    assert.equal(f.host.status().status, 'running')
+  } finally {
+    await restored.close()
+  }
+})
+it('supports returning to official-only content automatically while keeping one host', async () => {
+  const f = await fixture('automatic-base')
+  try {
+    await f.manager.installFile(await f.file('water'), true)
+    const ready = await settled(f.manager)
+    await f.manager.setSelection([], true)
+    assert.deepEqual((await settled(f.manager)).activeIds, [])
+    assert.deepEqual(f.host.status(), ready.serviceStatus)
+    assert.equal(f.selected.at(-1).builtinOnly, true)
+  } finally {
+    await f.manager.close()
+  }
+})
+it('restores the last usable content when a persisted newer goal still fails after application restart', async () => {
+  const f = await fixture('automatic-fallback')
+  const a = await install(f, 'a'),
+    b = await install(f, 'b')
+  await f.manager.setSelection([a], true)
+  await settled(f.manager)
+  f.fail()
+  await f.manager.setSelection([b], true)
+  await settled(f.manager, 'failed')
+  const old = f.host.projectDirectory()
+  await f.manager.close()
+  await f.host.stop()
+  const restored = new ContentLibrary({ root: f.libraryRoot, host: f.host, run: f.run })
+  try {
+    await restored.resume()
+    const snapshot = await settled(restored, 'failed')
+    assert.deepEqual(snapshot.desiredIds, [b])
+    assert.deepEqual(snapshot.activeIds, [a])
+    assert.equal(f.host.status().status, 'running')
+    assert.equal(f.host.projectDirectory(), old)
+  } finally {
+    await restored.close()
+  }
+})
+it('does not prepare or switch content again when reopening an already ready client', async () => {
+  const f = await fixture('automatic-reopen')
+  try {
+    await f.manager.installFile(await f.file('water'), true)
+    await settled(f.manager)
+    const count = f.prepared.length
+    await f.manager.resume()
+    await new Promise(resolve => setTimeout(resolve, 350))
+    assert.equal(f.prepared.length, count)
+    assert.equal((await f.manager.list()).selection.status, 'ready')
+  } finally {
+    await f.manager.close()
+  }
 })

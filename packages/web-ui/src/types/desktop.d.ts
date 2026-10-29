@@ -151,6 +151,8 @@ export interface ArcadiaDesktopApi {
   contentProjectAction?: (input: ContentProjectAction) => Promise<unknown>
   selectAndStartLocalBattle?: () => Promise<LocalBattleHostStatus>
   getLocalBattleStatus?: () => Promise<LocalBattleHostStatus>
+  installContentPackageFile?: (options?: { offline?: boolean }) => Promise<string | null>
+  installNpmContentPackage?: (options: { spec: string; offline?: boolean }) => Promise<string>
   stopLocalBattle?: () => Promise<LocalBattleHostStatus>
   readWorkWorkspace?: () => Promise<import('@arcadia-eternity/pack-loader/native').WorkSnapshot>
   compareAndSwapWorkWorkspace?: (input: {

@@ -1,6 +1,6 @@
 import { after, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -250,5 +250,57 @@ describe('desktop IPC sender', () => {
     assert.equal(isTrustedDesktopRequest(event, contents, 'file:///app/dist/index.html'), true)
     contents.mainFrame.url = 'file:///tmp/foreign.html'
     assert.equal(isTrustedDesktopRequest(event, contents, 'file:///app/dist/index.html'), false)
+  })
+})
+
+describe('private desktop content control', () => {
+  it('selects prepared content with the same host identity and URL, while preserving rollback', async () => {
+    const instance = host()
+    try {
+      const first = await project('control-first'),
+        second = await project('control-second')
+      const initial = await instance.start(first)
+      const prepared = await instance.prepareProject(second)
+      assert.equal(instance.projectDirectory(), await realpath(first))
+      const previous = await instance.selectPrepared(prepared)
+      assert.equal(instance.projectDirectory(), await realpath(second))
+      assert.deepEqual(instance.status(), initial)
+      await instance.selectPrepared(previous)
+      assert.equal(instance.projectDirectory(), previous.directory)
+      await instance.retirePrepared(prepared)
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('keeps the selected content and process when a private preparation or selection is rejected', async () => {
+    const instance = host()
+    try {
+      await instance.start(await project('control-valid'))
+      const old = instance.projectDirectory(),
+        initial = instance.status()
+      await assert.rejects(instance.prepareProject(await project('bad-control')), { code: 'CONTENT_PREPARE_FAILED' })
+      await assert.rejects(instance.selectPrepared({ id: 'forged', directory: '/not-selected' }), {
+        code: 'CONTENT_PREPARE_FAILED',
+      })
+      assert.equal(instance.projectDirectory(), old)
+      assert.deepEqual(instance.status(), initial)
+    } finally {
+      await instance.stop()
+    }
+  })
+  it('rejects an in-flight request when the child exits and can start again cleanly', async () => {
+    const instance = host()
+    try {
+      await instance.start(await project('control-stop'))
+      const request = instance.prepareProject(await project('held-control'))
+      const rejected = assert.rejects(request, { code: 'HOST_UNAVAILABLE' })
+      await delay(50)
+      await instance.stop()
+      await rejected
+      await instance.start(await project('control-resume'))
+      assert.ok(await instance.prepareProject(await project('control-after-stop')))
+    } finally {
+      await instance.stop()
+    }
   })
 })

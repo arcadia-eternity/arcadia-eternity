@@ -9,7 +9,6 @@ import { findMissingTeamContent, type TeamContentLookup } from '@/utils/teamCont
 import type {
   ContentIds,
   ContentLibrarySnapshot,
-  ContentPackagePlan,
   InstalledContentPackage,
   PackageGraphEntry,
 } from '@/types/contentPackages'
@@ -54,16 +53,24 @@ const roomLoading = ref(false)
 const roomError = ref('')
 const adding = ref(false)
 const npmSpec = ref('')
-const plan = ref<ContentPackagePlan>()
 let controller: AbortController | undefined
 let disposed = false
+const pendingSelections = ref(0)
+let intent = 0
+let refreshRequest = 0
+let pollTimer: ReturnType<typeof setTimeout> | undefined
 const readonly = computed(() => !local || mode.value === 'room')
 const room = computed(() => rooms.currentRoom)
 const activeIds = computed(() => snapshot.value?.activeIds ?? [])
-const dirty = computed(
-  () =>
-    !!snapshot.value &&
-    (!snapshot.value.hasSelection || [...draftIds.value].sort().join(',') !== [...activeIds.value].sort().join(',')),
+const selectionLabel = computed(() =>
+  pendingSelections.value
+    ? '正在保存内容选择…'
+    : {
+        idle: '勾选内容即可自动准备，官方基础内容始终可用。',
+        preparing: '正在准备所选内容…',
+        ready: '所选内容已就绪。新房间使用最新选择，已有房间不受影响。',
+        failed: '未能启用所选内容，原有内容仍可用。',
+      }[snapshot.value?.selection.status ?? 'idle'],
 )
 const emptyIds = (): ContentIds => ({ species: [], skills: [], marks: [] })
 const publicIds = (content: ServerEnvironmentContent, namespace?: string): ContentIds =>
@@ -129,7 +136,7 @@ const packages = computed<PackageView[]>(() => {
       description: pkg.description,
       source: pkg.source.label,
       contentIds: pkg.contentIds,
-      graph: pkg.graph,
+      graph: activeIds.value.includes(pkg.id) ? (snapshot.value?.activeGraph ?? pkg.graph) : pkg.graph,
       counts: pkg.counts,
       local: pkg,
       error: pkg.error,
@@ -152,8 +159,6 @@ const proposedLookup = computed<TeamContentLookup>(() => {
   if (readonly.value && roomContent.value) {
     for (const kind of ['species', 'skills', 'marks'] as const)
       available[kind] = roomContent.value[kind].map(item => item.id)
-  } else if (plan.value?.kind === 'selection') {
-    for (const kind of ['species', 'skills', 'marks'] as const) available[kind].push(...plan.value.contentIds[kind])
   } else
     for (const pkg of snapshot.value?.packages ?? [])
       if (draftIds.value.includes(pkg.id) && !pkg.error) {
@@ -179,13 +184,6 @@ const relatedTeams = computed(() => {
     )
     .map(team => ({ name: team.name, missing: findMissingTeamContent(team.pets, proposedLookup.value) }))
 })
-const planIssues = computed(() =>
-  plan.value?.kind === 'selection'
-    ? pets.teams
-        .map(team => ({ name: team.name, missing: findMissingTeamContent(team.pets, proposedLookup.value) }))
-        .filter(team => team.missing.length)
-    : [],
-)
 function select(pkg: PackageView) {
   selectedId.value = pkg.id
   detailOpen.value = true
@@ -202,13 +200,45 @@ function changeMode(value: typeof mode.value) {
   detailOpen.value = false
   selectedId.value = value === 'issues' ? (snapshot.value?.packages.find(pkg => pkg.error)?.id ?? '') : 'official'
 }
-async function refresh(reset = false) {
+async function refresh() {
   if (!local) return
+  const request = ++refreshRequest
   const result = await api!.listContentPackages!()
-  if (disposed) return
+  if (disposed || request !== refreshRequest) return
   snapshot.value = result
-  if (reset) draftIds.value = [...result.activeIds]
-  else draftIds.value = draftIds.value.filter(id => result.packages.some(pkg => pkg.id === id))
+  if (!pendingSelections.value) draftIds.value = [...result.desiredIds]
+}
+async function poll() {
+  try {
+    await refresh()
+  } catch (cause) {
+    if (!disposed) error.value = cause instanceof Error ? cause.message : '无法读取内容状态'
+  } finally {
+    if (!disposed) pollTimer = setTimeout(poll, snapshot.value?.selection.status === 'preparing' ? 400 : 1500)
+  }
+}
+async function setSelection(ids: string[]) {
+  if (!local) return
+  const current = ++intent
+  pendingSelections.value++
+  error.value = ''
+  notice.value = ''
+  try {
+    await api!.contentPackageAction!({ action: 'set-selection', ids, offline: offline.value })
+  } catch (cause) {
+    if (current === intent && !disposed) error.value = cause instanceof Error ? cause.message : '无法保存内容选择'
+  } finally {
+    if (!disposed)
+      await refresh().catch(() => {
+        if (current === intent) error.value = '内容选择已保存，暂时无法读取进度'
+      })
+    pendingSelections.value--
+    if (!disposed && !pendingSelections.value && current === intent && snapshot.value)
+      draftIds.value = [...snapshot.value.desiredIds]
+  }
+}
+function retrySelection() {
+  void setSelection([...draftIds.value])
 }
 async function run(action: () => Promise<void>) {
   if (busy.value) return
@@ -231,81 +261,24 @@ function toggle(pkg: PackageView, checked: boolean) {
       pkg.id,
     ]
   else draftIds.value = draftIds.value.filter(id => id !== pkg.id)
+  void setSelection([...draftIds.value])
+}
+async function installSource(source: () => Promise<string | null>) {
+  if (!local) return
+  await run(async () => {
+    const id = await source()
+    if (!id || disposed) return
+    await refresh()
+    adding.value = false
+    selectedId.value = id
+    detailOpen.value = true
+  })
 }
 async function inspectFile() {
-  if (!local) return
-  await run(async () => {
-    const result = await api!.selectContentPackageFile!({ offline: offline.value })
-    if (result) {
-      if (await receivePlan(result)) adding.value = false
-    }
-  })
+  await installSource(() => api!.installContentPackageFile!({ offline: offline.value }))
 }
 async function inspectNpm() {
-  if (!local) return
-  await run(async () => {
-    const result = await api!.inspectNpmContentPackage!({ spec: npmSpec.value.trim(), offline: offline.value })
-    if (await receivePlan(result)) adding.value = false
-  })
-}
-async function receivePlan(result: ContentPackagePlan) {
-  if (disposed) {
-    await api!.contentPackageAction!({ action: 'cancel', planId: result.id }).catch(() => {})
-    return false
-  }
-  plan.value = result
-  return true
-}
-async function prepareSelection() {
-  if (!local || !dirty.value) return
-  await run(async () => {
-    const result = await api!.contentPackageAction!({
-      action: 'plan-selection',
-      ids: [...draftIds.value],
-      offline: offline.value,
-    })
-    if (!result || typeof result !== 'object' || result.kind !== 'selection') throw new Error('操作清单无效')
-    await receivePlan(result)
-  })
-}
-async function confirmPlan() {
-  const current = plan.value
-  if (!local || !current) return
-  await run(async () => {
-    if (current.kind === 'install') {
-      const id = await api!.contentPackageAction!({ action: 'confirm-install', planId: current.id, allowCode: true })
-      plan.value = undefined
-      await refresh()
-      if (typeof id === 'string') selectedId.value = id
-      detailOpen.value = true
-      notice.value = '内容包已安装。勾选启用并应用更改后，本机对局可以使用。'
-    } else {
-      try {
-        await api!.contentPackageAction!({
-          action: 'apply-selection',
-          planId: current.id,
-          allowCode: current.requiresApproval,
-        })
-      } catch (cause) {
-        await api!.contentPackageAction!({ action: 'cancel', planId: current.id }).catch(() => {})
-        plan.value = undefined
-        throw cause
-      }
-      plan.value = undefined
-      await refresh(true)
-      notice.value = snapshot.value?.serviceNeedsRestart
-        ? '内容选择已保存。当前本机服务继续使用原内容，停止并重新启动后使用新选择。'
-        : '本机内容选择已应用。'
-    }
-  })
-}
-async function cancelPlan() {
-  const current = plan.value
-  if (!local || !current) return
-  await run(async () => {
-    await api!.contentPackageAction!({ action: 'cancel', planId: current.id })
-    plan.value = undefined
-  })
+  await installSource(() => api!.installNpmContentPackage!({ spec: npmSpec.value.trim(), offline: offline.value }))
 }
 async function uninstall() {
   const pkg = selected.value
@@ -341,21 +314,17 @@ watch(
   { immediate: true },
 )
 onMounted(() => {
-  if (local)
-    void run(async () => {
-      loading.value = true
-      try {
-        await refresh(true)
-      } finally {
-        loading.value = false
-      }
+  if (local) {
+    loading.value = true
+    void poll().finally(() => {
+      loading.value = false
     })
+  }
 })
 onBeforeUnmount(() => {
   disposed = true
   controller?.abort()
-  if (local && plan.value && !busy.value)
-    void api!.contentPackageAction!({ action: 'cancel', planId: plan.value.id }).catch(() => {})
+  clearTimeout(pollTimer)
 })
 </script>
 
@@ -370,6 +339,13 @@ onBeforeUnmount(() => {
     </header>
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <p v-if="notice" class="message" role="status">{{ notice }}</p>
+    <section v-if="!readonly" class="message selection-state" role="status" aria-live="polite">
+      <p>{{ selectionLabel }}</p>
+      <template v-if="snapshot?.selection.status === 'failed'">
+        <p class="problem">{{ snapshot.selection.message }}</p>
+        <button :disabled="busy || !!pendingSelections" @click="retrySelection">重试准备</button>
+      </template>
+    </section>
     <div class="workspace">
       <nav class="task-nav" aria-label="内容包导航">
         <template v-if="local"
@@ -392,7 +368,7 @@ onBeforeUnmount(() => {
           <input v-model="query" type="search" aria-label="搜索内容包" placeholder="搜索内容包名称或作者" /><template
             v-if="!readonly"
             ><button class="primary" :disabled="busy" @click="adding = true">添加内容包</button
-            ><button :disabled="busy || dirty" @click="run(() => refresh())">刷新</button></template
+            ><button :disabled="busy" @click="run(() => refresh())">刷新</button></template
           ><span v-else class="tag">只读</span>
         </div>
         <p v-if="readonly && !room" class="context-note">尚未进入房间，当前显示官方基础内容。</p>
@@ -431,7 +407,11 @@ onBeforeUnmount(() => {
                   />启用</label
                 ><span v-if="pkg.error" class="problem">安装不可用</span
                 ><small v-if="!readonly && !pkg.builtin && draftIds.includes(pkg.id) !== activeIds.includes(pkg.id)">{{
-                  draftIds.includes(pkg.id) ? '待启用' : '待停用'
+                  snapshot?.selection.status === 'failed'
+                    ? '未能完成'
+                    : draftIds.includes(pkg.id)
+                      ? '正在启用'
+                      : '正在停用'
                 }}</small>
               </div>
             </div>
@@ -451,7 +431,9 @@ onBeforeUnmount(() => {
                   : readonly
                     ? '本局固定版本'
                     : draftIds.includes(selected.id) !== activeIds.includes(selected.id)
-                      ? '待应用更改'
+                      ? snapshot?.selection.status === 'failed'
+                        ? '未能完成选择'
+                        : '正在准备'
                       : activeIds.includes(selected.id)
                         ? '本机已启用'
                         : '已安装，未启用'
@@ -494,20 +476,29 @@ onBeforeUnmount(() => {
                 <div v-if="!readonly && selected.local" class="detail-actions">
                   <button :disabled="busy" @click="addOtherVersion">安装其他版本</button
                   ><button
-                    :disabled="busy || draftIds.includes(selected.id) || activeIds.includes(selected.id)"
+                    :disabled="
+                      busy ||
+                      snapshot?.selection.status === 'preparing' ||
+                      draftIds.includes(selected.id) ||
+                      activeIds.includes(selected.id)
+                    "
                     @click="uninstall"
                   >
                     卸载此版本
                   </button>
                 </div>
                 <p v-if="!readonly && selected.local" class="detail-subtitle">
-                  升级可先安装指定版本，再切换启用版本；卸载前须先停用并应用。
+                  选择版本后会自动准备，已有房间保留原内容。卸载前请先停用并等待准备完成。
                 </p></template
               >
               <template v-else-if="detailTab === 'dependencies'"
                 ><p v-if="selected.builtin">官方基础内容随游戏提供。</p>
                 <template v-else-if="selected.graph"
-                  ><p class="detail-subtitle">内容包及依赖由程序统一处理。</p>
+                  ><p class="detail-subtitle">
+                    {{
+                      activeIds.includes(selected.id) ? '当前可用组合的实际依赖' : '安装时的内容包及依赖'
+                    }}，由程序统一处理。
+                  </p>
                   <ul class="dependencies">
                     <li v-for="(dependency, index) in selected.graph" :key="dependency.name + '-' + index">
                       <strong>{{ dependency.name }}</strong> {{ dependency.version
@@ -544,22 +535,13 @@ onBeforeUnmount(() => {
             </div>
           </aside>
         </div>
-        <footer v-if="!readonly && dirty" class="pending">
-          <span>本机内容选择尚未应用</span>
-          <div>
-            <button :disabled="busy" @click="draftIds = [...activeIds]">撤销</button
-            ><button class="primary" :disabled="busy" @click="prepareSelection">
-              {{ busy ? '正在准备…' : '检查并应用更改' }}
-            </button>
-          </div>
-        </footer>
       </section>
     </div>
     <div v-if="adding" class="dialog-backdrop" @keydown.esc="!busy && (adding = false)">
       <section role="dialog" aria-modal="true" aria-labelledby="add-package-title" class="dialog">
         <h2 id="add-package-title">添加内容包</h2>
-        <p>选择文件，或填写包名与明确版本。</p>
-        <button :disabled="busy" @click="inspectFile">选择本地 .tgz 文件</button
+        <p>选择文件，或填写包名与明确版本。安装后自动启用，内容包及其依赖将在本机运行。</p>
+        <button :disabled="busy" @click="inspectFile">安装本地 .tgz 文件</button
         ><label class="field"
           >npm 包名与版本<input v-model="npmSpec" placeholder="@author/pets@1.0.0" :disabled="busy" /></label
         ><label class="offline"
@@ -569,55 +551,7 @@ onBeforeUnmount(() => {
         <div class="dialog-actions">
           <button :disabled="busy" @click="adding = false">取消</button
           ><button class="primary" :disabled="busy || !npmSpec.trim()" @click="inspectNpm">
-            {{ busy ? '正在检查…' : '查看安装清单' }}
-          </button>
-        </div>
-      </section>
-    </div>
-    <div v-if="plan" class="dialog-backdrop">
-      <section role="dialog" aria-modal="true" aria-labelledby="package-plan-title" class="dialog">
-        <h2 id="package-plan-title">{{ plan.kind === 'install' ? '确认安装内容包' : '应用本机内容选择' }}</h2>
-        <template v-if="plan.kind === 'install'"
-          ><p>
-            <strong>{{ plan.package.title }}</strong> {{ plan.package.version }}
-          </p>
-          <p class="detail-subtitle">{{ plan.package.source.label }}</p>
-          <p>允许此包及其依赖在本机进程中运行。安装后可选择是否启用。</p>
-          <ul class="plan-dependencies">
-            <li v-for="(pkg, index) in plan.package.graph" :key="index">{{ pkg.name }} {{ pkg.version }}</li>
-          </ul></template
-        >
-        <template v-else
-          ><p>本次选择 {{ plan.ids.length }} 个自定义内容包，官方基础内容始终保留。</p>
-          <template v-if="plan.requiresApproval"
-            ><p class="problem">解析到了新的依赖，请确认清单后允许其在本机运行。</p>
-            <ul>
-              <li v-for="(pkg, index) in plan.newDependencies" :key="index">{{ pkg.name }} {{ pkg.version }}</li>
-            </ul></template
-          >
-          <p v-if="snapshot?.serviceStatus.status === 'running'">
-            当前服务和对局继续使用原内容，新选择在下次启动本机服务时生效。
-          </p>
-          <p v-if="!planIssues.length">现有队伍的内容引用齐全。</p>
-          <ul v-else>
-            <li v-for="(team, index) in planIssues" :key="index">
-              {{ team.name }}：{{ team.missing.length }} 项内容将不可用，原始配置会保留。
-            </li>
-          </ul></template
-        >
-        <p v-if="error" role="alert" class="problem">{{ error }}</p>
-        <div class="dialog-actions">
-          <button :disabled="busy" @click="cancelPlan">取消</button
-          ><button class="primary" :disabled="busy" @click="confirmPlan">
-            {{
-              busy
-                ? '正在处理…'
-                : plan.kind === 'install'
-                  ? '安装并允许运行'
-                  : plan.requiresApproval
-                    ? '允许新依赖并应用'
-                    : '确认应用'
-            }}
+            {{ busy ? '正在安装…' : '安装并启用' }}
           </button>
         </div>
       </section>
@@ -943,20 +877,6 @@ summary {
 .detail-actions button {
   font-size: 12px;
 }
-.pending {
-  border-top: 1px solid var(--line);
-  background: #edf3fc;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  flex-wrap: wrap;
-}
-.pending > div {
-  display: flex;
-  gap: 8px;
-}
 .message {
   padding: 10px 14px;
   background: #edf3fc;
@@ -1022,10 +942,6 @@ summary {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 22px;
-}
-.plan-dependencies {
-  padding-left: 20px;
-  font-size: 13px;
 }
 @media (max-width: 1000px) {
   .columns {

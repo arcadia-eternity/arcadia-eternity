@@ -124,6 +124,51 @@ export class LocalBattleHost {
   projectDirectory() {
     return this.#child ? this.#projectDirectory : undefined
   }
+  async #request(action, input = {}) {
+    const child = this.#child
+    if (!child?.connected || this.#state.status !== 'running') throw problem('HOST_UNAVAILABLE', '本机内容尚未就绪')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => finish(problem('CONTENT_PREPARE_TIMEOUT', '内容准备超时，请重试')),
+        this.startupTimeoutMs,
+      )
+      const finish = (error, value) => {
+        clearTimeout(timeout)
+        child.off('message', onMessage)
+        child.off('close', onClose)
+        if (error) reject(error)
+        else resolve(value)
+      }
+      const onClose = () => finish(problem('HOST_UNAVAILABLE', '本机内容运行程序已退出'))
+      const onMessage = message => {
+        if (message?.type !== 'arcadia.desktop.content.result' || message.id !== id) return
+        if (!message.ok) finish(problem('CONTENT_PREPARE_FAILED', '内容准备失败，原有对局和内容仍保留'))
+        else finish(null, message.value)
+      }
+      child.on('message', onMessage)
+      child.once('close', onClose)
+      child.send({ type: 'arcadia.desktop.content', id, action, ...input }, error => {
+        if (error) finish(problem('HOST_UNAVAILABLE', '无法准备本机内容'))
+      })
+    })
+  }
+  async prepareProject(directory, { builtinOnly = false } = {}) {
+    const canonical = await realpath(directory)
+    const started = this.#state.status !== 'running'
+    if (started) await this.start(canonical, { builtinOnly: true })
+    const descriptor = await this.#request('prepare', { directory: canonical, builtinOnly })
+    return { id: descriptor.id, directory: canonical, builtinOnly: !descriptor.packages.length, started }
+  }
+  async selectPrepared(prepared) {
+    const directory = this.#projectDirectory
+    const previous = await this.#request('select', { environmentId: prepared.id })
+    this.#projectDirectory = prepared.directory
+    return { id: previous.id, directory, builtinOnly: !previous.packages.length }
+  }
+  async retirePrepared(prepared) {
+    if (prepared && !prepared.builtinOnly) await this.#request('retire', { environmentId: prepared.id })
+  }
   /** Last resort during application shutdown; the child is already unresponsive. */
   forceStop() {
     ++this.#generation
@@ -186,7 +231,7 @@ export class LocalBattleHost {
         ],
         {
           cwd: cache,
-          env: workerEnvironment(cache, this.npmCliPath, this.packsDirectory),
+          env: { ...workerEnvironment(cache, this.npmCliPath, this.packsDirectory), ARCADIA_DESKTOP_CONTROL: '1' },
           stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
           windowsHide: true,
         },

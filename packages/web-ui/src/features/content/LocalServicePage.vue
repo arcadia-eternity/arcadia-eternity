@@ -78,12 +78,13 @@ onMounted(() => void run(refresh))
 </script>
 <template>
   <main class="local-service">
-    <h1>本机服务</h1>
-    <p>在本机运行已选择的内容包，供本机建房与试战使用。</p>
+    <h1>高级本机工具</h1>
+    <p>内容会根据你的选择自动准备。这里提供诊断与已有服务器项目的管理工具。</p>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <section>
-      <h2>当前内容选择</h2>
+    <details>
+      <summary>本机运行诊断</summary>
+      <h2>当前可用内容</h2>
       <p>
         官方基础内容<span
           v-for="pkg in library?.packages.filter(pkg => library?.activeIds.includes(pkg.id))"
@@ -91,7 +92,7 @@ onMounted(() => void run(refresh))
           >、{{ pkg.title }} {{ pkg.version }}</span
         >
       </p>
-      <p v-if="library?.serviceNeedsRestart">新的内容选择在停止并重新启动本机服务后生效。当前对局仍使用原内容。</p>
+      <p>正常启停和版本切换由客户端自动处理，无需在这里操作。</p>
       <p v-if="status.status === 'running'">运行中：{{ status.url }}</p>
       <p v-else-if="status.status === 'failed'" class="error">{{ status.message }}</p>
       <p v-else>服务未运行</p>
@@ -101,8 +102,8 @@ onMounted(() => void run(refresh))
         ><button :disabled="busy || status.status !== 'running'" @click="stop">停止本机服务</button
         ><button :disabled="busy" @click="run(refresh)">刷新状态</button>
       </div>
-      <p v-if="!library?.hasSelection">请先在内容包页应用一次本机内容选择。</p>
-    </section>
+      <p v-if="!library?.hasSelection">在内容包页选择需要的内容，客户端会自动准备。</p>
+    </details>
     <details>
       <summary>高级服务器项目管理</summary>
       <p>兼容已有的 npm 服务器项目。普通内容包管理不需要手动登记项目目录。</p>

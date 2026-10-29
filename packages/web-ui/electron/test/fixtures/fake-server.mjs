@@ -37,6 +37,37 @@ if (project === 'unapproved') {
   })
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
   console.log(`Battle server ${serverId} listening on port ${server.address().port}`)
+  let current = { id: 'initial', packages: [{ name: 'test' }] }
+  const environments = new Map([
+    [current.id, current],
+    ['base', { id: 'base', packages: [] }],
+  ])
+  process.on('message', async message => {
+    if (message?.type !== 'arcadia.desktop.content') return
+    const reply = (ok, value) => {
+      if (process.connected) process.send({ type: 'arcadia.desktop.content.result', id: message.id, ok, value })
+    }
+    if (message.action === 'describe') return reply(true, current)
+    if (message.action === 'prepare') {
+      if (message.directory?.endsWith('bad-control')) return reply(false)
+      if (message.directory?.endsWith('held-control')) await new Promise(resolve => setTimeout(resolve, 2000).unref())
+      const value = message.builtinOnly
+        ? environments.get('base')
+        : { id: message.directory, packages: [{ name: 'next' }] }
+      environments.set(value.id, value)
+      return reply(true, value)
+    }
+    if (message.action === 'select' && environments.has(message.environmentId)) {
+      const previous = current
+      current = environments.get(message.environmentId)
+      return reply(true, previous)
+    }
+    if (message.action === 'retire' && message.environmentId !== current.id) {
+      environments.delete(message.environmentId)
+      return reply(true, null)
+    }
+    reply(false)
+  })
   if (project === 'crash') setTimeout(() => process.exit(7), 100)
   process.once('SIGTERM', () => server.close())
 }

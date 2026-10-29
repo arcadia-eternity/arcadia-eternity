@@ -32,7 +32,7 @@ const routes: RouteRecordRaw[] = [
       isDesktop
         ? import('@/features/content/LocalServicePage.vue')
         : import('@/features/content/LocalContentOnlyPage.vue'),
-    meta: { title: '本机服务' },
+    meta: { title: '高级本机工具' },
   },
   {
     path: '/creator/development',

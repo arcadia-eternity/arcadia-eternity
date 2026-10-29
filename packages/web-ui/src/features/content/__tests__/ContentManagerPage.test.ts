@@ -2,12 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import ContentManagerPage from '../ContentManagerPage.vue'
-import type {
-  ContentLibrarySnapshot,
-  InstalledContentPackage,
-  ContentPackageAction,
-  ContentPackagePlan,
-} from '@/types/contentPackages'
+import type { ContentLibrarySnapshot, InstalledContentPackage, ContentPackageAction } from '@/types/contentPackages'
 
 const { read } = vi.hoisted(() => ({ read: vi.fn() }))
 const battle = reactive({ serverUrl: 'http://server-a' })
@@ -76,35 +71,30 @@ function bridge(active = false) {
     revision: 1,
     packages: [structuredClone(pkg)],
     activeIds: active ? [pkg.id] : [],
+    desiredIds: active ? [pkg.id] : [],
+    selection: { status: active ? 'ready' : 'idle' },
     hasSelection: active,
     serviceStatus: { status: 'idle' },
     serviceNeedsRestart: false,
   }
-  const action = vi.fn(async (input: ContentPackageAction): Promise<ContentPackagePlan | string | undefined> => {
-    if (input.action === 'plan-selection')
-      return {
-        id: 'plan',
-        kind: 'selection',
-        ids: input.ids,
-        graph: pkg.graph,
-        contentIds: input.ids.length ? pkg.contentIds : { species: [], skills: [], marks: [] },
-        newDependencies: [],
-        requiresApproval: false,
-      }
-    if (input.action === 'apply-selection') snapshot.activeIds = []
+  const action = vi.fn(async (input: ContentPackageAction) => {
+    if (input.action === 'set-selection') {
+      snapshot.desiredIds = [...input.ids]
+      snapshot.selection = { status: 'preparing' }
+    }
+  })
+  const install = vi.fn(async () => {
+    snapshot.desiredIds = [pkg.id]
+    snapshot.selection = { status: 'preparing' }
+    return pkg.id
   })
   vi.stubGlobal('arcadiaDesktop', {
     listContentPackages: async () => structuredClone(snapshot),
     contentPackageAction: action,
-    selectContentPackageFile: vi.fn(async () => ({
-      id: 'install',
-      kind: 'install',
-      package: pkg,
-      requiresApproval: true,
-    })),
-    inspectNpmContentPackage: vi.fn(),
+    installContentPackageFile: install,
+    installNpmContentPackage: install,
   })
-  return { snapshot, action }
+  return { snapshot, action, install }
 }
 beforeEach(() => {
   read.mockReset().mockResolvedValue(content)
@@ -170,87 +160,96 @@ it('does not claim teams are compatible when room content cannot be read', async
   expect(page.text()).toContain('暂时无法检查队伍引用')
   expect(page.text()).not.toContain('暂无队伍引用')
 })
-it('stages a disable, checks the plan and preserves teams after applying', async () => {
+it('sends the desired state as soon as a checkbox changes, without apply or confirmation controls', async () => {
   const { action } = bridge(true)
   const before = JSON.stringify(pets.teams)
   const page = open()
   await flushPromises()
   await pickPackage(page)
   await page.get('input[aria-label="启用 创作内容"]').setValue(false)
+  await flushPromises()
+  expect(action).toHaveBeenCalledWith({ action: 'set-selection', ids: [], offline: false })
+  expect(page.find('[role=dialog]').exists()).toBe(false)
+  expect(button(page, '检查并应用更改')).toBeUndefined()
+  expect(page.text()).toContain('正在准备所选内容')
   await button(page, '队伍影响').trigger('click')
   expect(page.text()).toContain('custom:pet')
-  expect(action).not.toHaveBeenCalled()
-  await button(page, '检查并应用更改').trigger('click')
-  await flushPromises()
-  expect(page.get('[role=dialog]').text()).toContain('3 项内容将不可用')
-  await button(page, '确认应用').trigger('click')
-  await flushPromises()
-  expect(action).toHaveBeenCalledWith({ action: 'apply-selection', planId: 'plan', allowCode: false })
-  expect(page.text()).toContain('本机内容选择已应用')
   expect(JSON.stringify(pets.teams)).toBe(before)
 })
-it('requires an explicit install confirmation after inspecting a native-selected tarball', async () => {
-  const { action } = bridge()
-  action.mockImplementation(async input => (input.action === 'confirm-install' ? pkg.id : undefined))
+it('keeps rapid checkbox changes responsive and does not restore an older response', async () => {
+  const { snapshot, action } = bridge()
+  let finish!: () => void
+  const original = action.getMockImplementation()!
+  action.mockImplementation(async input => {
+    await original(input)
+    if (input.action === 'set-selection' && input.ids.length)
+      await new Promise<void>(resolve => {
+        finish = resolve
+      })
+  })
+  const page = open()
+  await flushPromises()
+  const checkbox = page.get('input[aria-label="启用 创作内容"]')
+  await checkbox.setValue(true)
+  await flushPromises()
+  expect(checkbox.attributes('disabled')).toBeUndefined()
+  await checkbox.setValue(false)
+  await flushPromises()
+  finish()
+  await flushPromises()
+  expect(snapshot.desiredIds).toEqual([])
+  expect((checkbox.element as HTMLInputElement).checked).toBe(false)
+  expect(action.mock.calls.map(([input]) => (input.action === 'set-selection' ? input.ids : null))).toEqual([
+    ['package'],
+    [],
+  ])
+})
+it('installs and enables from the source dialog without a second confirmation', async () => {
+  const { install, action } = bridge()
   const page = open()
   await flushPromises()
   await button(page, '添加内容包').trigger('click')
-  await button(page, '选择本地 .tgz 文件').trigger('click')
+  expect(page.get('[role=dialog]').text()).toContain('内容包及其依赖将在本机运行')
+  await button(page, '安装本地 .tgz 文件').trigger('click')
   await flushPromises()
-  expect(page.get('[role=dialog]').text()).toContain('library 2.0.0')
+  expect(install).toHaveBeenCalledWith({ offline: false })
   expect(action).not.toHaveBeenCalled()
-  await button(page, '安装并允许运行').trigger('click')
+  expect(page.find('[role=dialog]').exists()).toBe(false)
+  expect((page.get('input[aria-label="启用 创作内容"]').element as HTMLInputElement).checked).toBe(true)
+})
+it('shows a failed desired selection and retries it while retaining the old available content', async () => {
+  const { snapshot, action } = bridge(true)
+  snapshot.desiredIds = []
+  snapshot.selection = { status: 'failed', message: '内容冲突' }
+  const page = open()
   await flushPromises()
-  expect(action).toHaveBeenCalledWith({ action: 'confirm-install', planId: 'install', allowCode: true })
+  expect(page.text()).toContain('未能启用所选内容，原有内容仍可用')
+  expect(page.text()).toContain('内容冲突')
+  await button(page, '重试准备').trigger('click')
+  await flushPromises()
+  expect(action).toHaveBeenCalledWith({ action: 'set-selection', ids: [], offline: false })
+  expect(snapshot.activeIds).toEqual(['package'])
   expect(page.find('[role=dialog]').exists()).toBe(false)
 })
-it('keeps the saved active selection when validation fails', async () => {
-  const { action } = bridge(true)
+it('lets an accepted desired selection continue after leaving the page', async () => {
+  const { action, snapshot } = bridge(true)
+  let finish!: () => void
   const original = action.getMockImplementation()!
   action.mockImplementation(async input => {
-    if (input.action === 'apply-selection') throw new Error('内容冲突')
-    return original(input)
+    await original(input)
+    await new Promise<void>(resolve => {
+      finish = resolve
+    })
   })
   const page = open()
   await flushPromises()
   await page.get('input[aria-label="启用 创作内容"]').setValue(false)
-  await button(page, '检查并应用更改').trigger('click')
-  await flushPromises()
-  await button(page, '确认应用').trigger('click')
-  await flushPromises()
-  expect(page.text()).toContain('内容冲突')
-  expect(page.text()).toContain('本机内容选择尚未应用')
-  await button(page, '撤销').trigger('click')
-  expect((page.get('input[aria-label="启用 创作内容"]').element as HTMLInputElement).checked).toBe(true)
-})
-
-it('cleans up an unfinished operation plan when its page has already been closed', async () => {
-  const { action } = bridge(true)
-  let finish!: (value: ContentPackagePlan) => void
-  action.mockImplementation(async input =>
-    input.action === 'plan-selection'
-      ? new Promise<ContentPackagePlan>(resolve => {
-          finish = resolve
-        })
-      : undefined,
-  )
-  const page = open()
-  await flushPromises()
-  await page.get('input[aria-label="启用 创作内容"]').setValue(false)
-  await button(page, '检查并应用更改').trigger('click')
   await flushPromises()
   page.unmount()
   pages = []
-  finish({
-    id: 'abandoned',
-    kind: 'selection',
-    ids: [],
-    graph: [],
-    contentIds: { species: [], skills: [], marks: [] },
-    newDependencies: [],
-    requiresApproval: false,
-  })
+  finish()
   await flushPromises()
-  expect(action).toHaveBeenCalledWith({ action: 'cancel', planId: 'abandoned' })
-  expect(action.mock.calls.some(([input]) => input.action === 'apply-selection')).toBe(false)
+  expect(snapshot.desiredIds).toEqual([])
+  expect(action).toHaveBeenCalledTimes(1)
+  expect(action).toHaveBeenCalledWith({ action: 'set-selection', ids: [], offline: false })
 })

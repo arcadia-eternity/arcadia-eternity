@@ -34,6 +34,7 @@ export class ServerEnvironmentRegistry {
   private readonly entries = new Map<string, Environment>()
   private initializing?: Promise<void>
   private defaultId?: string
+  private builtinId?: string
   private closed = false
   async ready(): Promise<void> {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
@@ -58,6 +59,7 @@ export class ServerEnvironmentRegistry {
         retired: false,
       })
       this.defaultId = id
+      this.builtinId = id
     })().catch(error => {
       this.initializing = undefined
       throw error
@@ -228,6 +230,15 @@ export class ServerEnvironmentRegistry {
   descriptor(id?: string): ServerEnvironmentDescriptor {
     return structuredClone(this.entry(id).descriptor)
   }
+  /** Host-only selection for future rooms. Existing room leases keep their original runtime. */
+  selectDefault(id: string): ServerEnvironmentDescriptor {
+    if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
+    const entry = this.entry(id)
+    if (entry.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
+    const previous = this.descriptor()
+    this.defaultId = id
+    return previous
+  }
   content(id: string): ServerEnvironmentContent {
     return structuredClone(this.entry(id).content)
   }
@@ -253,9 +264,9 @@ export class ServerEnvironmentRegistry {
   }
 
   /** Keep a lease for every room or retained checkpoint; retiring never destroys a referenced environment. */
-  acquire(id?: string): EnvironmentLease {
+  acquire(id?: string, builtinOnly = false): EnvironmentLease {
     if (this.closed) throw new EnvironmentError('SERVER_STOPPED')
-    const entry = this.entry(id)
+    const entry = this.entry(id ?? (builtinOnly ? this.builtinId : undefined))
     if (entry.retired) throw new EnvironmentError('ENVIRONMENT_RETIRED')
     entry.references++
     let released = false
@@ -273,7 +284,7 @@ export class ServerEnvironmentRegistry {
   }
   async retire(id: string): Promise<void> {
     const entry = this.entry(id)
-    if (id === this.defaultId) throw new EnvironmentError('DEFAULT_ENVIRONMENT_REQUIRED')
+    if (id === this.defaultId || id === this.builtinId) throw new EnvironmentError('DEFAULT_ENVIRONMENT_REQUIRED')
     entry.retired = true
     await this.collect(entry)
   }
