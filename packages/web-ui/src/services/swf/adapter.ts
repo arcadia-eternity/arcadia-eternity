@@ -65,7 +65,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
   let nativeCreated: Promise<unknown> | undefined
   let boundsFrame: number | undefined
   let lastBounds = ''
-  const updateNativeBounds = () => {
+  const publishNativeBounds = () => {
     if (!desktop || disposed) return
     const r = element.getBoundingClientRect()
     const bounds = {
@@ -81,6 +81,10 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       lastBounds = key
       void desktop.bounds(bounds).catch(() => fail('Desktop playback bounds unavailable'))
     }
+  }
+  const updateNativeBounds = () => {
+    if (!desktop || disposed) return
+    publishNativeBounds()
     boundsFrame = requestAnimationFrame(updateNativeBounds)
   }
   const desktop = (window as Window & { arcadiaSwf?: DesktopBridge }).arcadiaSwf
@@ -208,19 +212,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     configure(bounds: SwfBounds) {
       if (disposed) return
       send({ ...command({ type: 'configure' }), bounds } as SwfCommand)
-      if (desktop) {
-        const r = element.getBoundingClientRect()
-        void desktop
-          .bounds({
-            instance,
-            x: r.x,
-            y: r.y,
-            width: r.width,
-            height: r.height,
-            visible: r.width > 0 && r.height > 0,
-          })
-          .catch(() => fail('Desktop playback bounds unavailable'))
-      }
+      publishNativeBounds()
     },
     stop() {
       current = '待机'
