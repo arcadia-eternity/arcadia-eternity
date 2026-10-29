@@ -135,6 +135,8 @@ export type LocalBattleHostStatus =
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  getBackendConfig(): Promise<{schemaVersion:1;backendOrigin:string}>
+  openRemotePlay(input: {url:string}): Promise<unknown>
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
   selectContentPackageFile?: (options: {
     offline?: boolean
@@ -224,5 +226,9 @@ export interface ContentProjectAction {
 declare global {
   interface Window {
     arcadiaDesktop?: ArcadiaDesktopApi
+    arcadiaRemotePlay?: {
+      getBootConfig(): Promise<{schemaVersion:1;mode:'remote-play';backendOrigin:string;sessionId:string}>
+      close(): Promise<void>
+    }
   }
 }

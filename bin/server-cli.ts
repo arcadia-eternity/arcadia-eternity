@@ -2,7 +2,8 @@ import 'dotenv/config'
 import { Command, CommanderError, InvalidArgumentError } from 'commander'
 import pg from 'pg'
 import nodemailer from 'nodemailer'
-import { resolve } from 'node:path'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { attachDesktopContentControl } from './desktop-content-control'
 import {
   createSingleProcessApp,
@@ -30,13 +31,12 @@ export async function runServerCli(args: string[]): Promise<number> {
     .option('-p, --port <number>', 'HTTP and Socket.IO port', portNumber, portNumber(process.env.PORT || '8102'))
     .option('--host <address>', 'Listen address', process.env.HOST || '0.0.0.0')
     .option('--server-id <id>', 'Stable identity of this server', process.env.SERVER_ID || 'arcadia-local')
+    .option('--headless', 'Serve API and Socket.IO without the paired website', process.env.ARCADIA_HEADLESS === '1')
+    .option('--web-root <directory>', 'Paired website build directory', process.env.ARCADIA_WEB_ROOT)
+    .option('--public-origin <origin>', 'Externally visible paired site origin', process.env.PUBLIC_ORIGIN)
     .option('--npm-project <directories...>', 'Prepare approved npm installations for room selection')
     .option('--development-project <directory>', 'Enable local authoring of one configured project')
-    .option(
-      '--cors-origin <origins>',
-      'Allowed browser origins, separated by commas',
-      process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:5173',
-    )
+    .option('--cors-origin <origins>', 'Allowed browser origins, separated by commas', process.env.CORS_ORIGIN || '')
   try {
     await program.parseAsync(args, { from: 'user' })
     const options = program.opts<{
@@ -44,6 +44,9 @@ export async function runServerCli(args: string[]): Promise<number> {
       host: string
       serverId: string
       corsOrigin: string
+      headless: boolean
+      webRoot?: string
+      publicOrigin?: string
       npmProject?: string[]
       developmentProject?: string
     }>()
@@ -163,11 +166,22 @@ export async function runServerCli(args: string[]): Promise<number> {
         },
       }
     }
+    if (options.headless && options.webRoot) throw new Error('--headless cannot be combined with --web-root')
+    const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
+    const webRoot =
+      options.headless || desktopControl
+        ? undefined
+        : resolve(options.webRoot ?? resolve(dirname(fileURLToPath(import.meta.url)), 'web'))
+    if (options.publicOrigin && !corsOrigins.includes(options.publicOrigin)) corsOrigins.push(options.publicOrigin)
     server = createSingleProcessApp({
+      webRoot,
+      desktopLocal: desktopControl,
+      publicOrigin: options.publicOrigin,
       port: options.port,
       host: options.host,
       serverId: options.serverId,
-      corsOrigins,
+      corsOrigins:
+        program.getOptionValueSource('corsOrigin') === 'default' && !process.env.CORS_ORIGIN ? undefined : corsOrigins,
       accounts,
       ...(options.developmentProject
         ? { development: { directory: resolve(options.developmentProject), token: developmentToken! } }
@@ -175,7 +189,6 @@ export async function runServerCli(args: string[]): Promise<number> {
     })
     await server.environments.ready()
     const builtinId = server.environments.descriptor().id
-    const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
     if (desktopControl && (options.host !== '127.0.0.1' || accounts)) throw new Error('Invalid desktop host')
     for (const directory of options.npmProject ?? []) {
       const prepared = await server.environments.prepareNpm(directory)

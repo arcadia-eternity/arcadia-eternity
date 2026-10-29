@@ -10,7 +10,7 @@
   "scripts": {
     "prepare": "husky",
     "build": "run-s lint build:package typecheck build:cli",
-    "build:prod": "pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/cli... --filter @arcadia-eternity/client... --filter @arcadia-eternity/p2p-transport... --if-present build && pnpm build:cli",
+    "build:prod": "pnpm --filter @arcadia-eternity/server... --filter @arcadia-eternity/cli... --filter @arcadia-eternity/client... --filter @arcadia-eternity/p2p-transport... --if-present build && pnpm build:cli && pnpm build:web-distribution",
     "watch": "run-p watch:package watch:cli",
     "clear": "run-p clear:package clear:cli",
     "build:package": "pnpm --filter \"./packages/**\" --filter \"./packs/**\" --filter=!@arcadia-eternity/web-ui --if-present run build",
@@ -59,7 +59,8 @@
     "typecheck:server-standalone": "pnpm exec tsgo -p packages/server/tsconfig.standalone-test.json",
     "lint:server-standalone": "pnpm exec eslint --config eslint.config.server-standalone.js 'packages/server/src/standalone/**/*.ts' packages/server/test/standalone*.ts packages/server/test/sessionIdentity.test.ts packages/server/test/account*.test.ts packages/server/test/provider*.test.ts",
     "build:server": "pnpm --filter @arcadia-eternity/server... --if-present build",
-    "test:content-dev": "pnpm --filter @arcadia-eternity/content-dev test:run"
+    "test:content-dev": "pnpm --filter @arcadia-eternity/content-dev test:run",
+    "build:web-distribution": "pnpm --filter @arcadia-eternity/web-ui build-only && node scripts/stage-paired-website.mjs"
   },
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",

@@ -3,6 +3,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import LobbyPage from '../lobbyPage.vue'
 
+const deployment = vi.hoisted(() => ({ desktop: false, authorize: vi.fn() }))
+vi.mock('@/bootstrap/deployment', () => ({
+  canSelectBackend: () => deployment.desktop,
+  authorizeLocalBackend: deployment.authorize,
+}))
+const remotePlay = vi.fn()
 const push = vi.fn()
 const refreshEnvironments = vi.fn()
 const createRoom = vi.fn()
@@ -63,6 +69,8 @@ const stubs = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  deployment.desktop = false
+  remotePlay.mockReset().mockResolvedValue(undefined)
   battleClient = reactive({ currentState: { status: 'connected' }, serverUrl: 'http://localhost:8102' })
   privateRoom = reactive({
     currentRoom: null,
@@ -117,116 +125,62 @@ it('keeps official room creation available when the server catalog is unavailabl
   expect(createRoom).toHaveBeenLastCalledWith(expect.objectContaining({ battleMode: 'p2p' }), undefined)
 })
 
-it('switches servers, shows a failure, and allows a retry', async () => {
-  switchServer.mockRejectedValueOnce(new Error('无法连接服务器'))
+it('browser displays its paired server without a server selection or local-host entry', () => {
   const page = mount(LobbyPage, { global: { stubs } })
-  expect(page.find('[data-testid="start-local-server-button"]').exists()).toBe(false)
   expect(page.get('[data-testid="current-server-address"]').text()).toBe('http://localhost:8102')
-  await page.get('[data-testid="server-address-input"]').setValue('http://other-server:8102')
+  expect(page.find('[data-testid="server-address-input"]').exists()).toBe(false)
+  expect(page.find('[data-testid="start-local-server-button"]').exists()).toBe(false)
+})
+
+it('desktop opens any typed server in an isolated window, shows failures and permits retry', async () => {
+  deployment.desktop = true
+  vi.stubGlobal('arcadiaDesktop', { openRemotePlay: remotePlay })
+  remotePlay.mockRejectedValueOnce(new Error('无法连接服务器'))
+  const page = mount(LobbyPage, { global: { stubs } })
+  await page.get('[data-testid="server-address-input"]').setValue('http://127.0.0.1:9999')
   await page.get('[data-testid="connect-server-button"]').trigger('click')
   await flushPromises()
-  expect(switchServer).toHaveBeenLastCalledWith('http://other-server:8102')
+  expect(remotePlay).toHaveBeenLastCalledWith({ url: 'http://127.0.0.1:9999' })
+  expect(switchServer).not.toHaveBeenCalled()
   expect(page.get('[role="alert"]').text()).toBe('无法连接服务器')
   await page.get('[data-testid="connect-server-button"]').trigger('click')
   await flushPromises()
-  expect(switchServer).toHaveBeenCalledTimes(2)
+  expect(remotePlay).toHaveBeenCalledTimes(2)
   expect(page.find('[role="alert"]').exists()).toBe(false)
 })
 
-it('prevents room and server actions while a server switch is running', async () => {
-  let finish!: () => void
-  switchServer.mockImplementationOnce(
-    () =>
-      new Promise<void>(resolve => {
-        finish = resolve
-      }),
-  )
-  const page = mount(LobbyPage, { global: { stubs } })
-  await page.get('[data-testid="server-address-input"]').setValue('http://other-server:8102')
-  await page.get('[data-testid="connect-server-button"]').trigger('click')
-  await flushPromises()
-  expect(page.get('[data-testid="connect-server-button"]').attributes('disabled')).toBeDefined()
-  expect(page.get('[data-testid="create-private-room-button"]').attributes('disabled')).toBeDefined()
-  finish()
-  await flushPromises()
-  expect(page.get('[data-testid="connect-server-button"]').attributes('disabled')).toBeUndefined()
-})
-
-it('asks before ending an active room, and cancellation never changes servers', async () => {
+it('keeps an existing manager room when opening an independent remote window', async () => {
+  deployment.desktop = true
+  vi.stubGlobal('arcadiaDesktop', { openRemotePlay: remotePlay })
   privateRoom.currentRoom = { status: 'started', config: { roomCode: 'ABC123' } }
-  confirmSwitch.mockRejectedValueOnce('cancel')
   const page = mount(LobbyPage, { global: { stubs } })
-  await page.get('[data-testid="server-address-input"]').setValue('http://other-server:8102')
   await page.get('[data-testid="connect-server-button"]').trigger('click')
   await flushPromises()
-  expect(confirmSwitch).toHaveBeenCalledWith(expect.stringContaining('终止'), expect.any(String), expect.any(Object))
+  expect(remotePlay).toHaveBeenCalledOnce()
+  expect(confirmSwitch).not.toHaveBeenCalled()
   expect(switchServer).not.toHaveBeenCalled()
-  await page.get('[data-testid="connect-server-button"]').trigger('click')
-  await flushPromises()
-  expect(switchServer).toHaveBeenCalledWith('http://other-server:8102')
 })
 
-it.each(['waiting', 'ready'])(
-  'asks before leaving a %s room and cancellation does not switch or start a service',
-  async status => {
-    privateRoom.currentRoom = { status, config: { roomCode: 'ABC123' } }
-    confirmSwitch.mockRejectedValue('cancel')
-    const startLocal = vi.fn()
-    vi.stubGlobal('arcadiaDesktop', { selectAndStartLocalBattle: startLocal })
-    const page = mount(LobbyPage, { global: { stubs } })
-    await page.get('[data-testid="server-address-input"]').setValue('http://other-server:8102')
-    await page.get('[data-testid="connect-server-button"]').trigger('click')
-    await flushPromises()
-    expect(confirmSwitch).toHaveBeenCalledWith(
-      expect.stringContaining('离开当前房间'),
-      expect.any(String),
-      expect.any(Object),
-    )
-    expect(confirmSwitch.mock.calls[0][0]).not.toContain('终止')
-    expect(switchServer).not.toHaveBeenCalled()
-    await page.get('[data-testid="start-local-server-button"]').trigger('click')
-    await flushPromises()
-    expect(startLocal).not.toHaveBeenCalled()
-    expect(switchServer).not.toHaveBeenCalled()
-  },
-)
-
-it('starts the desktop service, reports failures, ignores cancellation, and connects only when running', async () => {
-  const startLocal = vi
-    .fn()
-    .mockResolvedValueOnce({ status: 'failed', code: 'BAD_PROJECT', message: '项目构建失败' })
-    .mockRejectedValueOnce(new Error('本机服务启动异常'))
-    .mockResolvedValueOnce({ status: 'cancelled' })
-    .mockResolvedValueOnce({ status: 'running', url: 'http://127.0.0.1:9999', serverId: 'local', projectName: 'demo' })
-  vi.stubGlobal('arcadiaDesktop', { selectAndStartLocalBattle: startLocal })
+it('authorizes only a main-process local host before switching the manager connection', async () => {
+  deployment.desktop = true
+  const start = vi.fn().mockResolvedValue({ status: 'running', url: 'http://127.0.0.1:9999' })
+  vi.stubGlobal('arcadiaDesktop', { selectAndStartLocalBattle: start })
   const page = mount(LobbyPage, { global: { stubs } })
   await page.get('[data-testid="start-local-server-button"]').trigger('click')
   await flushPromises()
-  expect(page.get('[role="alert"]').text()).toBe('项目构建失败')
-  expect(switchServer).not.toHaveBeenCalled()
-  await page.get('[data-testid="start-local-server-button"]').trigger('click')
-  await flushPromises()
-  expect(page.get('[role="alert"]').text()).toBe('本机服务启动异常')
-  expect(switchServer).not.toHaveBeenCalled()
-  await page.get('[data-testid="start-local-server-button"]').trigger('click')
-  await flushPromises()
-  expect(switchServer).not.toHaveBeenCalled()
-  await page.get('[data-testid="start-local-server-button"]').trigger('click')
-  await flushPromises()
+  expect(deployment.authorize).toHaveBeenCalledOnce()
   expect(switchServer).toHaveBeenCalledWith('http://127.0.0.1:9999')
 })
 
-it('asks before starting a local service while a battle is active', async () => {
+it('requires confirmation before abandoning a current room for local hosting', async () => {
+  deployment.desktop = true
   privateRoom.currentRoom = { status: 'started', config: { roomCode: 'ABC123' } }
   confirmSwitch.mockRejectedValueOnce('cancel')
-  const startLocal = vi.fn().mockResolvedValue({ status: 'idle' })
-  vi.stubGlobal('arcadiaDesktop', { selectAndStartLocalBattle: startLocal })
+  const start = vi.fn().mockResolvedValue({ status: 'idle' })
+  vi.stubGlobal('arcadiaDesktop', { selectAndStartLocalBattle: start })
   const page = mount(LobbyPage, { global: { stubs } })
   await page.get('[data-testid="start-local-server-button"]').trigger('click')
   await flushPromises()
-  expect(startLocal).not.toHaveBeenCalled()
-  await page.get('[data-testid="start-local-server-button"]').trigger('click')
-  await flushPromises()
-  expect(startLocal).toHaveBeenCalledOnce()
+  expect(start).not.toHaveBeenCalled()
   expect(switchServer).not.toHaveBeenCalled()
 })

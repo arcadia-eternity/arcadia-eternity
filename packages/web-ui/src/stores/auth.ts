@@ -7,22 +7,22 @@ import type {
   ServerInfo,
   ServerSession,
 } from '@arcadia-eternity/protocol'
-import {
-  ServerSessionClient,
-  clearServerCredentials,
-  normalizeSelectedServer,
-  normalizeServerUrl,
-} from '@/services/serverSession'
+import { ServerSessionClient, clearServerCredentials, normalizeSelectedServer } from '@/services/serverSession'
 
-const API_BASE_URL = normalizeServerUrl(import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8102/api/v1')
-const DEFAULT_SERVER_URL = API_BASE_URL.replace(/\/api\/v1$/, '')
+import { getBackendOrigin, canSelectBackend, checkBackendSelection } from '@/bootstrap/deployment'
+
+const apiBaseUrl = () => `${getBackendOrigin()}/api/v1`
 const SERVER_SELECTION_KEY = 'arcadia-selected-server'
 const clients = new WeakMap<object, ServerSessionClient>()
 
 function initialSelection(): string | null {
+  if (!canSelectBackend()) return null
   try {
     const value = sessionStorage.getItem(SERVER_SELECTION_KEY)
-    return value ? normalizeSelectedServer(value) : null
+    if (!value) return null
+    const selected = normalizeSelectedServer(value)
+    checkBackendSelection(selected)
+    return selected
   } catch {
     return null
   }
@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', {
   state: () => {
     const selected = initialSelection()
     return {
-      serverUrl: selected ?? DEFAULT_SERVER_URL,
+      serverUrl: selected ?? getBackendOrigin(),
       hasSelectedServer: selected !== null,
       serverGeneration: 0,
       session: null as ServerSession | null,
@@ -49,6 +49,7 @@ export const useAuthStore = defineStore('auth', {
     /** Validate the address and storage before disconnecting the active room. */
     checkServerUrl(value: string): string {
       const next = normalizeSelectedServer(value)
+      checkBackendSelection(next)
       const probe = `${SERVER_SELECTION_KEY}:probe`
       sessionStorage.setItem(probe, next)
       sessionStorage.removeItem(probe)
@@ -57,7 +58,8 @@ export const useAuthStore = defineStore('auth', {
     /** Synchronously retire the old authority before any request may use the new address. */
     setServerUrl(value: string): void {
       const next = normalizeSelectedServer(value)
-      const previousApi = this.hasSelectedServer ? `${this.serverUrl}/api/v1` : API_BASE_URL
+      checkBackendSelection(next)
+      const previousApi = this.hasSelectedServer ? `${this.serverUrl}/api/v1` : apiBaseUrl()
       const nextApi = `${next}/api/v1`
       // Do not alter the active authority if persisting the new selection fails.
       sessionStorage.setItem(SERVER_SELECTION_KEY, next)
@@ -100,7 +102,7 @@ export const useAuthStore = defineStore('auth', {
       // Pinia devtools gives each action a new Proxy; the raw state stays stable per store instance.
       const key = toRaw(this.$state)
       if (clients.has(key)) return
-      const baseUrl = this.hasSelectedServer ? `${this.serverUrl}/api/v1` : API_BASE_URL
+      const baseUrl = this.hasSelectedServer ? `${this.serverUrl}/api/v1` : apiBaseUrl()
       const generation = this.serverGeneration
       const client = new ServerSessionClient(baseUrl, sessionStorage, fetch, reason => {
         if (clients.get(key) !== client || this.serverGeneration !== generation) return

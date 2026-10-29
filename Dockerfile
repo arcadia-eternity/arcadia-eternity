@@ -86,7 +86,7 @@ ENV NODE_PATH=/app/node_modules:/app/packages
 
 # Server configuration environment variables
 ENV PORT=8102
-ENV CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+ENV CORS_ORIGIN=
 
 # Keep this stable across deployments; bootId changes for each process.
 ENV SERVER_ID=arcadia

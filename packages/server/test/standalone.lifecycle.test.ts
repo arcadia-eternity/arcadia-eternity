@@ -16,7 +16,7 @@ afterEach(async () => {
 })
 
 async function boot(options: SingleProcessAppOptions = {}): Promise<Host> {
-  const app = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: ['*'], ...options })
+  const app = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: [], ...options })
   apps.push(app)
   await app.start()
   return { app, url: `http://127.0.0.1:${app.address!.port}` }
@@ -369,3 +369,47 @@ it('limits P2P relay to the other player and lets only the host finish the battl
   expect(lobby?.battleRoomId).toBeUndefined()
   expect(lobby?.lastBattleResult?.winner).toBe(ownerSession.seatId)
 }, 15_000)
+
+it('HTTP and WebSocket accept only the exact paired site origin', async () => {
+  const host = await boot({ corsOrigins: ['https://paired.example'] })
+  const value = await session(host)
+  for (const origin of ['https://paired.example', 'https://unpaired.example', 'null']) {
+    const response = await fetch(`${host.url}/api/v1/server-info`, { headers: { Origin: origin } })
+    expect(response.headers.get('access-control-allow-origin')).toBe(
+      origin === 'https://paired.example' ? origin : null,
+    )
+    const socket = io(host.url, {
+      auth: { token: value.token },
+      extraHeaders: { Origin: origin },
+      transports: ['websocket'],
+      reconnection: false,
+      autoConnect: false,
+    })
+    sockets.push(socket)
+    const result = event(socket, origin === 'https://paired.example' ? 'connect' : 'connect_error')
+    socket.connect()
+    await result
+    expect(socket.connected).toBe(origin === 'https://paired.example')
+    socket.disconnect()
+  }
+})
+
+it('rejects wildcard and opaque public CORS configuration', () => {
+  for (const origin of ['*', 'null', 'https://paired.example/path']) {
+    expect(() => createSingleProcessApp({ corsOrigins: [origin] })).toThrow()
+  }
+  expect(() => createSingleProcessApp({ host: '0.0.0.0', desktopLocal: true, corsOrigins: ['null'] })).toThrow(
+    'loopback',
+  )
+})
+
+it('default allows only the fixed shipped desktop origin and explicit lists can opt out', async () => {
+  const defaultHost = await boot({ corsOrigins: undefined })
+  for (const origin of ['arcadia-client://app', 'arcadia-client://other', 'null']) {
+    const response = await fetch(`${defaultHost.url}/health`, { headers: { Origin: origin } })
+    expect(response.headers.get('access-control-allow-origin')).toBe(origin === 'arcadia-client://app' ? origin : null)
+  }
+  const restricted = await boot({ corsOrigins: [] })
+  const response = await fetch(`${restricted.url}/health`, { headers: { Origin: 'arcadia-client://app' } })
+  expect(response.headers.get('access-control-allow-origin')).toBeNull()
+})

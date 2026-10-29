@@ -14,10 +14,10 @@ import type {
 } from '@arcadia-eternity/database'
 
 // API 基础配置
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8102/api/v1'
+import { useAuthStore } from '@/stores/auth'
+import { getBackendOrigin } from '@/bootstrap/deployment'
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -27,6 +27,7 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   config => {
+    config.baseURL = `${useAuthStore().serverUrl || getBackendOrigin()}/api/v1`
     // 可以在这里添加认证 token
     // const token = localStorage.getItem('auth_token')
     // if (token) {

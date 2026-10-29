@@ -6,7 +6,7 @@ import { createNpmFixture } from './fixtures/npm'
 
 it('publishes remote URLs without downloading and streams package files without cache, including HEAD and Range', async () => {
   const fixture = await createNpmFixture({ presentation: true })
-  const app = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: ['*'] })
+  const app = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: [] })
   try {
     const first = await app.environments.prepareNpm(fixture.directory)
     await app.start()

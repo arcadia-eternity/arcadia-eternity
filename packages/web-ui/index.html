@@ -2,6 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'none'" />
     <meta name="referrer" content="origin" />
     <link rel="icon" href="/favicon.png" />
     <link href="/src/styles.css" rel="stylesheet" />
@@ -10,6 +11,6 @@
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/bootstrap/entry.ts"></script>
   </body>
 </html>

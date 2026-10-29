@@ -132,7 +132,7 @@ packages/web-ui/dist
 packages/web-ui/node_modules
 
 # Development scripts
-scripts/
+# Paired website build uses staging scripts.
 
 # Test team files
 testteam*.yaml
@@ -141,3 +141,7 @@ testteam*.yaml
 Dockerfile*
 docker-compose*
 .dockerignore
+
+!tsconfig.json
+!tsconfig.*.json
+!packages/**/tsconfig*.json
