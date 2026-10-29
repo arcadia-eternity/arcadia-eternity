@@ -88,6 +88,8 @@ test(
       const installed = await settled()
       assert.deepEqual(installed.desiredIds, [id])
       assert.deepEqual(installed.activeIds, [id])
+      assert.equal(host.status().status, 'idle')
+      await library.start() // User explicitly chooses to host multiplayer.
       const ready = host.status()
       assert.equal(ready.status, 'running')
       const catalogue = async () => (await (await fetch(ready.url + '/api/v1/environments')).json()).environments

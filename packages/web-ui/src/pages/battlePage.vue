@@ -2148,6 +2148,7 @@ const setupMessageSubscription = async () => {
 }
 
 onUnmounted(async () => {
+  const departingBattle = store.battleInterface
   battleDisposed = true
   releaseBattleStateWait?.()
   cancelSpriteWaits()
@@ -2201,13 +2202,14 @@ onUnmounted(async () => {
   }
 
   // 清理战斗状态 - 观战者不发送surrender
-  if (isSpectatorMode.value || skipSurrenderOnUnmount.value) {
-    await store.resetBattleWithoutSurrender()
-  } else {
-    await store.resetBattle()
+  if (store.battleInterface === departingBattle) {
+    if (isSpectatorMode.value || skipSurrenderOnUnmount.value) {
+      await store.resetBattleWithoutSurrender()
+    } else {
+      await store.resetBattle()
+    }
+    battleClientStore.resetState()
   }
-
-  battleClientStore.resetState()
 })
 
 // 监听加载状态变化

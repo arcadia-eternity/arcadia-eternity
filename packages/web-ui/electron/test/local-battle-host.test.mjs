@@ -254,6 +254,16 @@ describe('desktop IPC sender', () => {
 })
 
 describe('private desktop content control', () => {
+  it('cannot implicitly start hosting while preparing content', async () => {
+    const instance = host()
+    const directory = await project('offline-preparation')
+    await assert.rejects(instance.prepareProject(directory), { code: 'HOST_UNAVAILABLE' })
+    assert.deepEqual(instance.status(), { status: 'idle' })
+    await instance.start(directory)
+    await instance.stop()
+    await assert.rejects(instance.prepareProject(directory), { code: 'HOST_UNAVAILABLE' })
+    assert.deepEqual(instance.status(), { status: 'idle' })
+  })
   it('selects prepared content with the same host identity and URL, while preserving rollback', async () => {
     const instance = host()
     try {

@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext } from 'playwright/test'
+import { prepareLocalBattle } from './helpers/local-battle-fixture'
 
 // Exercise the desktop authoring surface with transactional storage behind a test bridge.
 // The ordinary browser route is now read-only and is covered by content-manager.spec.ts.
@@ -22,12 +23,22 @@ async function desktopAuthoring(context: BrowserContext) {
     })
   })
 }
-test.beforeEach(async ({ context }) => desktopAuthoring(context))
+test.beforeEach(async ({ context, page }) => {
+  await desktopAuthoring(context)
+  await prepareLocalBattle(page)
+})
 
 test('authors namespaced effects, persists a draft, publishes and shares it, and runs the real battle', async ({
   page,
   browser,
 }) => {
+  // Authoring, reloads, a full animated battle, and a second mobile client all share this budget.
+  test.setTimeout(120_000)
+  const lifecycleErrors: string[] = []
+  page.on('console', message => {
+    if (message.text().includes('Native battle system is disposed')) lifecycleErrors.push(message.text())
+  })
+  page.on('pageerror', error => lifecycleErrors.push(error.message))
   await page.goto('/creator')
   await page.getByLabel('作品名称', { exact: true }).fill('寒霜作品')
   await page.getByLabel('命名空间', { exact: true }).fill('frost_pack')
@@ -44,6 +55,7 @@ test('authors namespaced effects, persists a draft, publishes and shares it, and
   await page.getByRole('button', { name: /^技能（/ }).click()
   await page.getByLabel('本地 ID', { exact: true }).fill('skills/ice_strike')
   await page.getByRole('button', { name: '添加内容', exact: true }).click()
+  await page.getByLabel('显示名称').fill('寒霜打击')
   await page.getByLabel('添加效果', { exact: true }).selectOption({ label: '命中后附加印记' })
   await page.getByRole('button', { name: '加入组合', exact: true }).click()
   const mark = page.locator('.effect-card').getByLabel('印记', { exact: true })
@@ -70,16 +82,84 @@ test('authors namespaced effects, persists a draft, publishes and shares it, and
   const file = await download.path()
   await page.getByRole('button', { name: '校验并准备试战', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('校验通过')
+  const original = await page.evaluate(async () => {
+    const petsPath = '/src/stores/petStorage.ts',
+      clientPath = '/src/stores/battleClient.ts'
+    const { usePetStorageStore } = await import(petsPath)
+    const { useBattleClientStore } = await import(clientPath)
+    return { teams: JSON.stringify(usePetStorageStore().teams), server: useBattleClientStore().serverUrl }
+  })
+  // Editing after preparation must persist, while this battle keeps its earlier snapshot.
+  await page.getByLabel('作品标题').fill('寒霜作品修改中')
+  await page.evaluate(() => {
+    const api = window.arcadiaDesktop!,
+      write = api.compareAndSwapWorkWorkspace!
+    const gate = new Promise<void>(resolve => {
+      Reflect.set(window, 'releaseTrialSave', resolve)
+    })
+    api.compareAndSwapWorkWorkspace = async input => {
+      api.compareAndSwapWorkWorkspace = write
+      await gate
+      return write(input)
+    }
+  })
   await page.getByRole('button', { name: '开始试战', exact: true }).click()
-  await expect(page.getByTestId('creator-battle')).toContainText('已完成 0 回合')
-  await page
-    .getByTestId('creator-battle')
-    .getByRole('button', { name: 'frost_pack:skills/ice_strike', exact: true })
-    .click()
-  await expect(page.getByTestId('creator-battle')).toContainText('已完成 1 回合')
-  await expect(page.getByTestId('creator-battle')).toContainText('frost_pack:slow × 1')
+  await expect(page.getByLabel('作品标题')).toBeDisabled()
+  await page.evaluate(() => Reflect.get(window, 'releaseTrialSave')())
+  await page.waitForURL(/\/local-battle\?trialKey=/)
+  await expect(page.getByRole('status')).toContainText('已载入 UGC 草稿快照：寒霜作品。')
+  await expect(page.getByRole('heading', { name: '本地对战', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+  await page.waitForURL(/\/battle\?dev=true/)
+  await expect(page.getByText('对战开始！', { exact: true })).toBeVisible()
+  const strike = page.getByRole('button', { name: /^寒霜打击 ·/ })
+  await expect(strike).toBeEnabled()
+  await strike.click()
+  await expect(
+    page
+      .getByRole('log', { name: '战斗记录' })
+      .getByText(/新精灵 使用 寒霜打击/)
+      .last(),
+  ).toBeVisible()
+  await expect
+    .poll(async () =>
+      page.evaluate(async () => {
+        const path = '/src/stores/battle.ts'
+        const { useBattleStore } = await import(path)
+        const state = await useBattleStore().battleInterface.getState(undefined, true)
+        return state.players.some(player =>
+          player.team?.some(pet => pet.marks?.some(mark => mark.baseId === 'frost_pack:slow')),
+        )
+      }),
+    )
+    .toBe(true)
   await page.screenshot({ path: '/tmp/ugc-creator-desktop.png', fullPage: true })
-  await page.getByRole('button', { name: '结束试战', exact: true }).click()
+  await page.evaluate(async () => {
+    const path = '/src/router/index.ts'
+    const { default: router } = await import(path)
+    void router.push('/creator')
+  })
+  await page.getByRole('button', { name: '确定', exact: true }).click()
+  await page.waitForURL(/\/creator$/)
+  await expect(page.getByRole('button', { name: '寒霜作品修改中 frost_pack:…' })).toBeVisible()
+  const restored = await page.evaluate(async () => {
+    const petsPath = '/src/stores/petStorage.ts',
+      clientPath = '/src/stores/battleClient.ts'
+    const dataPath = '/src/stores/gameData.ts',
+      battlePath = '/src/stores/battle.ts'
+    const { usePetStorageStore } = await import(petsPath)
+    const { useBattleClientStore } = await import(clientPath)
+    const { useGameDataStore } = await import(dataPath)
+    const { useBattleStore } = await import(battlePath)
+    return {
+      teams: JSON.stringify(usePetStorageStore().teams),
+      server: useBattleClientStore().serverUrl,
+      temporarySpecies: useGameDataStore().species.allIds.filter(id => id.startsWith('frost_pack:')),
+      battle: useBattleStore().battleInterface,
+    }
+  })
+  expect(restored).toEqual({ ...original, temporarySpecies: [], battle: null })
+  expect(lifecycleErrors).toEqual([])
   const other = await browser.newContext({ viewport: { width: 390, height: 844 } })
   try {
     await desktopAuthoring(other)
@@ -166,4 +246,10 @@ test('Web and Node load byte-equivalent source metadata for works', async ({ pag
     return loadCreatorBase()
   })
   expect(browser).toEqual(node.data)
+})
+
+test('expired trial links cannot silently launch an ordinary battle', async ({ page }) => {
+  await page.goto('/local-battle?trialKey=expired')
+  await expect(page.getByText('试战快照已失效，请回到创作页重新准备试战')).toBeVisible()
+  await expect(page.getByRole('button', { name: '开始本地对战', exact: true })).toBeDisabled()
 })

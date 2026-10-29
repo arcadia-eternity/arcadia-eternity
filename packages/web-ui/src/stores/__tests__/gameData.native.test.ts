@@ -6,7 +6,7 @@ import { parse } from 'yaml'
 import i18next from 'i18next'
 import { computed } from 'vue'
 import MarkdownIt from 'markdown-it'
-import { serverContentText, renderContentDescription } from '@/i18n/serverContent'
+import { serverContentText, renderContentDescription, serverText } from '@/i18n/serverContent'
 import { useGameDataStore } from '../gameData'
 import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
@@ -39,6 +39,63 @@ beforeEach(() => {
   loadMetadata.mockReset().mockResolvedValue(baseResult())
 })
 afterEach(() => vi.unstubAllGlobals())
+
+it('trial display restores exact prior records and text, including the connected room', async () => {
+  const store = useGameDataStore()
+  await store.initialize()
+  const official = store.species
+  const pet = { ...data.species[0], id: 'room:pet', name: '房间内容' }
+  store.applyServerEnvironment({ species: [pet], skills: [], marks: [] })
+  const room = store.species,
+    fallback = store.serverFallback
+  const release = store.useLocalBattleContent({
+    species: [{ ...pet, id: 'trial:pet', name: '试战内容' }],
+    skills: [],
+    marks: [],
+  })
+  expect(serverText('species', 'trial:pet', 'name')?.value).toBe('试战内容')
+  release()
+  release()
+  expect(store.species).toBe(room)
+  expect(store.serverFallback).toBe(fallback)
+  expect(store.species.byId['trial:pet']).toBeUndefined()
+  expect(serverText('species', 'room:pet', 'name')?.value).toBe('房间内容')
+  expect(serverText('species', 'trial:pet', 'name')).toBeUndefined()
+  store.clearServerEnvironment()
+  expect(store.species).toBe(official)
+})
+
+it('overlapping trials released out of order never resurrect disposed content', async () => {
+  const store = useGameDataStore()
+  await store.initialize()
+  const original = store.species
+  const content = (id: string) => ({ species: [{ ...data.species[0], id, name: id }], skills: [], marks: [] })
+  const first = store.useLocalBattleContent(content('first:pet'))
+  const second = store.useLocalBattleContent(content('second:pet'))
+  first()
+  expect(store.species.allIds).toEqual(['second:pet'])
+  second()
+  expect(store.species).toBe(original)
+  expect(serverText('species', 'first:pet', 'name')).toBeUndefined()
+  expect(serverText('species', 'second:pet', 'name')).toBeUndefined()
+})
+
+it('late trial cleanup cannot replace a later room, reset, or local reload', async () => {
+  const store = useGameDataStore()
+  const content = (id: string) => ({ species: [{ ...data.species[0], id, name: id }], skills: [], marks: [] })
+  for (const replace of [
+    async () => store.applyServerEnvironment(content('fresh:pet')),
+    async () => store.reset(),
+    async () => store.initialize({ forceReload: true }),
+  ]) {
+    const release = store.useLocalBattleContent(content('trial:pet'))
+    await replace()
+    const current = store.species
+    release()
+    expect(store.species).toBe(current)
+    expect(serverText('species', 'trial:pet', 'name')).toBeUndefined()
+  }
+})
 
 describe('native game metadata', () => {
   it('uses server-only metadata for a room and restores the prior local data when leaving', async () => {

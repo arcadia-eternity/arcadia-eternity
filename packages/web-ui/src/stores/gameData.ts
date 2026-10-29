@@ -7,7 +7,7 @@ import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadi
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import YAML from 'yaml'
-import { setServerContentText } from '@/i18n/serverContent'
+import { getServerContentText, setServerContentText } from '@/i18n/serverContent'
 import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -67,6 +67,15 @@ interface GameDataState {
     | 'error'
   > | null
 }
+
+interface LocalDisplayScope {
+  previous: GameDataState
+  previousText: ServerEnvironmentContent | null
+  displayed: GameDataState['species']
+  parent?: LocalDisplayScope
+  released: boolean
+}
+const localDisplays = new WeakMap<object, LocalDisplayScope>()
 
 function emptyWorkspaceRuntime(): WorkspaceRuntimeState {
   return {
@@ -139,6 +148,44 @@ export const useGameDataStore = defineStore('gameData', {
   },
 
   actions: {
+    /** Local trial display lasts exactly as long as its battle, including failed launches. */
+    useLocalBattleContent(content: ServerEnvironmentContent): () => void {
+      const previous = {
+        species: this.species,
+        skills: this.skills,
+        marks: this.marks,
+        effects: this.effects,
+        nativeEffectIds: this.nativeEffectIds,
+        workspaceRuntime: this.workspaceRuntime,
+        loaded: this.loaded,
+        gameDataLoaded: this.gameDataLoaded,
+        error: this.error,
+        serverFallback: this.serverFallback,
+      }
+      const current = localDisplays.get(this)
+      const parent = current?.displayed === this.species ? current : undefined
+      const previousText = getServerContentText()
+      this.applyServerEnvironment(content)
+      const scope: LocalDisplayScope = { previous, previousText, displayed: this.species, parent, released: false }
+      localDisplays.set(this, scope)
+      return () => {
+        if (scope.released) return
+        scope.released = true
+        if (localDisplays.get(this) !== scope) return
+        if (this.species !== scope.displayed) {
+          localDisplays.delete(this)
+          return
+        }
+        // Skip already released parents, so overlapping cleanup cannot resurrect an old trial.
+        let restore = scope
+        while (restore.parent?.released) restore = restore.parent
+        this.$patch(state => Object.assign(state, restore.previous))
+        setServerContentText(restore.previousText)
+        if (restore.parent) localDisplays.set(this, restore.parent)
+        else localDisplays.delete(this)
+      }
+    },
+
     reset() {
       setServerContentText(null)
       this.loaded = false

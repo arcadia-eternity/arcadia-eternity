@@ -39,7 +39,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
   if (from.name === 'Battle' && to.name !== 'Battle') {
     // 如果是回放模式或战斗已结束，直接清理并跳转
     if (store.isReplayMode || store.isBattleEnd) {
-      store.resetBattle()
+      await store.resetBattle()
       return true
     }
 
@@ -50,7 +50,7 @@ export const battleGuard = async (to: RouteLocationNormalized, from: RouteLocati
         cancelButtonText: '取消',
         type: 'warning',
       })
-      store.resetBattle()
+      await store.resetBattle()
       return true
     } catch {
       return false

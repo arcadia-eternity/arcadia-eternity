@@ -276,9 +276,14 @@ it('automatically installs and enables with no apply step, and persists the desi
     const id = await f.manager.installFile(await f.file('water'), true)
     assert.deepEqual((await f.manager.list()).desiredIds, [id])
     assert.deepEqual((await settled(f.manager)).activeIds, [id])
-    assert.equal(f.host.status().status, 'running')
+    assert.equal(f.host.status().status, 'idle')
+    assert.equal(f.prepared.length, 0)
+    await f.manager.setSelection([], true)
+    assert.deepEqual((await settled(f.manager)).activeIds, [])
+    assert.equal(f.host.status().status, 'idle')
+    assert.equal(f.prepared.length, 0)
     const stored = JSON.parse(await readFile(join(f.libraryRoot, 'library.json'), 'utf8'))
-    assert.deepEqual(stored.desiredIds, [id])
+    assert.deepEqual(stored.desiredIds, [])
   } finally {
     await f.manager.close()
   }
@@ -291,6 +296,7 @@ it('converges to the latest in-flight choice without switching to a superseded c
       c = await install(f, 'c')
     await f.manager.setSelection([a], true)
     await settled(f.manager)
+    await f.manager.start() // Explicit hosting is the only service start.
     const initial = f.host.status()
     const block = f.blockPreparation()
     await f.manager.setSelection([b], true)
@@ -334,7 +340,7 @@ it('retains the actual active content on failure and retries the desired choice 
     await f.manager.close()
   }
 })
-it('restores the selected content after restart without reinstalling its package tree', async () => {
+it('restores selected content after restart without reinstalling or starting hosting', async () => {
   const f = await fixture('automatic-restore')
   const id = await f.manager.installFile(await f.file('water'), true)
   await settled(f.manager)
@@ -346,16 +352,18 @@ it('restores the selected content after restart without reinstalling its package
     await restored.resume()
     assert.deepEqual((await settled(restored)).activeIds, [id])
     assert.equal(f.calls.length, before)
-    assert.equal(f.host.status().status, 'running')
+    assert.equal(f.host.status().status, 'idle')
   } finally {
     await restored.close()
   }
 })
-it('supports returning to official-only content automatically while keeping one host', async () => {
+it('updates an explicitly started host when returning to official-only content', async () => {
   const f = await fixture('automatic-base')
   try {
     await f.manager.installFile(await f.file('water'), true)
-    const ready = await settled(f.manager)
+    await settled(f.manager)
+    await f.manager.start()
+    const ready = await f.manager.list()
     await f.manager.setSelection([], true)
     assert.deepEqual((await settled(f.manager)).activeIds, [])
     assert.deepEqual(f.host.status(), ready.serviceStatus)
@@ -382,7 +390,7 @@ it('restores the last usable content when a persisted newer goal still fails aft
     const snapshot = await settled(restored, 'failed')
     assert.deepEqual(snapshot.desiredIds, [b])
     assert.deepEqual(snapshot.activeIds, [a])
-    assert.equal(f.host.status().status, 'running')
+    assert.equal(f.host.status().status, 'idle')
     assert.equal(f.host.projectDirectory(), old)
   } finally {
     await restored.close()

@@ -1,12 +1,21 @@
 <template>
   <div class="max-w-4xl w-full mx-auto p-6 min-h-[calc(100vh-60px)] flex flex-col justify-start gap-6">
-    <h1 class="text-3xl font-bold text-center text-gray-800">本地对战测试</h1>
+    <h1 class="text-3xl font-bold text-center text-gray-800">本地对战</h1>
 
     <div
       v-if="workbenchLaunchPayload"
       class="bg-blue-50 border border-blue-200 rounded-md px-4 py-3 text-sm text-blue-800"
     >
       已载入组合工作台配置：关联资源 {{ workbenchLaunchPayload.resources.length }} 个。
+    </div>
+
+    <div
+      v-if="trialLaunch"
+      role="status"
+      class="bg-blue-50 border border-blue-200 rounded-md px-4 py-3 text-sm text-blue-800"
+    >
+      已载入 UGC 草稿快照：{{ trialLaunch.title }}。临时队伍仅用于本次试战，不会覆盖已保存队伍。
+      <router-link to="/creator" class="underline ml-2">返回创作</router-link>
     </div>
 
     <!-- 战斗配置面板 -->
@@ -24,7 +33,7 @@
             v-model="selectedPlayer1TeamIndex"
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option v-for="(team, index) in availableTeams" :key="index" :value="petStorage.teams.indexOf(team)">
+            <option v-for="(team, index) in availableTeams" :key="index" :value="battleTeams.indexOf(team)">
               {{ team.name }} ({{ team.pets.length }}只精灵)
             </option>
           </select>
@@ -45,7 +54,7 @@
             v-model="selectedPlayer2TeamIndex"
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option v-for="(team, index) in availableTeams" :key="index" :value="petStorage.teams.indexOf(team)">
+            <option v-for="(team, index) in availableTeams" :key="index" :value="battleTeams.indexOf(team)">
               {{ team.name }} ({{ team.pets.length }}只精灵)
             </option>
           </select>
@@ -304,7 +313,7 @@
     <div class="text-center">
       <button
         @click="startLocalBattle"
-        :disabled="isLoading"
+        :disabled="isLoading || (!!route.query.trialKey && !trialLaunch)"
         class="px-6 py-3 text-lg font-medium text-white bg-blue-500 border-none rounded-md cursor-pointer transition-colors duration-200 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
         {{ isLoading ? '资源加载中...' : '开始本地对战' }}
@@ -319,15 +328,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, watch, computed } from 'vue'
+import { ref, shallowRef, onBeforeUnmount, reactive, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
 import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
-import { createNativeWebBattleSystem, type NativeWebBattleConfig } from '@/services/nativeBattleFactory'
+import { type NativeWebBattleConfig } from '@/services/nativeBattleFactory'
 import { useGameDataStore } from '@/stores/gameData'
 import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
 import { readBattleWorkbenchLaunch, type BattleWorkbenchLaunchPayload } from '@/utils/battleWorkbenchLaunch'
+
+import { LocalBattleSession, takeCreatorTrialLaunch } from '@/services/localBattleSession'
+import { getDesktopApi } from '@/utils/env'
 
 const router = useRouter()
 const route = useRoute()
@@ -339,18 +351,27 @@ const errorMessage = ref<string | null>(null)
 const isLoading = ref(true)
 const workbenchLaunchPayload = ref<BattleWorkbenchLaunchPayload | null>(null)
 
+const localSession = shallowRef(new LocalBattleSession())
+const trialLaunch = computed(() => localSession.value.trial)
+const battleTeams = computed(() =>
+  trialLaunch.value ? [...trialLaunch.value.teams, ...petStorage.teams] : petStorage.teams,
+)
+onBeforeUnmount(() => {
+  void localSession.value.releaseConfiguration().catch(error => console.warn('本地对战清理失败', error))
+})
+
 // 队伍选择
 const selectedPlayer1TeamIndex = ref(0)
 const selectedPlayer2TeamIndex = ref(0)
 
 // 可用队伍列表（过滤掉空队伍）
 const availableTeams = computed(() => {
-  return petStorage.teams.filter(team => team.pets.length > 0)
+  return battleTeams.value.filter(team => team.pets.length > 0)
 })
 
 const validTeamIndexSet = computed(() => {
   const output = new Set<number>()
-  petStorage.teams.forEach((team, index) => {
+  battleTeams.value.forEach((team, index) => {
     if (team.pets.length > 0) {
       output.add(index)
     }
@@ -361,13 +382,13 @@ const validTeamIndexSet = computed(() => {
 // 初始化队伍选择的函数
 const initializeTeamSelection = () => {
   // 设置玩家1为当前队伍
-  selectedPlayer1TeamIndex.value = petStorage.currentTeamIndex
+  selectedPlayer1TeamIndex.value = trialLaunch.value ? 0 : petStorage.currentTeamIndex
 
   // 设置玩家2为不同的队伍（如果有的话）
   const validTeams = availableTeams.value
   if (validTeams.length > 1) {
     // 找到第一个不同于玩家1的队伍
-    const differentTeamIndex = petStorage.teams.findIndex(
+    const differentTeamIndex = battleTeams.value.findIndex(
       (team, index) => index !== selectedPlayer1TeamIndex.value && team.pets.length > 0,
     )
     selectedPlayer2TeamIndex.value = differentTeamIndex >= 0 ? differentTeamIndex : 0
@@ -582,13 +603,35 @@ const loadPreset = (presetName: keyof typeof presets) => {
   enableTotalTimeLimit.value = preset.enableTotalTimeLimit
 }
 
-onMounted(async () => {
+async function initializeLocalBattle() {
+  const previous = localSession.value
+  const session = new LocalBattleSession()
+  localSession.value = session
+  isLoading.value = true
+  await previous.dispose().catch(error => console.warn('本地对战清理失败', error))
+  if (localSession.value !== session || session.state === 'disposed') return
+  isLoading.value = true
+  errorMessage.value = null
+  const trialKey = typeof route.query.trialKey === 'string' ? route.query.trialKey : ''
+  if (trialKey) {
+    const trial = getDesktopApi() ? takeCreatorTrialLaunch(trialKey) : null
+    if (!trial) {
+      errorMessage.value = '试战快照已失效，请回到创作页重新准备试战'
+      isLoading.value = false
+      return
+    }
+    void session.dispose()
+    localSession.value = trial
+    timerConfig.enabled = false
+  }
+  const owner = localSession.value
+  const isCurrent = () => localSession.value === owner && owner.state !== 'disposed'
   // 初始化队伍选择
   initializeTeamSelection()
 
   // 如果从组合工作台跳转，优先套用控制器配置
   const launchKey = typeof route.query.launchKey === 'string' ? route.query.launchKey : ''
-  if (parseQueryBoolean(route.query.workbench) && launchKey.length > 0) {
+  if (!trialLaunch.value && parseQueryBoolean(route.query.workbench) && launchKey.length > 0) {
     const payload = readBattleWorkbenchLaunch(launchKey)
     if (payload) {
       applyWorkbenchLaunchPayload(payload)
@@ -603,18 +646,19 @@ onMounted(async () => {
   } else {
     try {
       await dataStore.initialize()
-      dataStore.gameDataLoaded = true
+      if (isCurrent()) dataStore.gameDataLoaded = true
     } catch (error) {
-      errorMessage.value = `资源加载失败: ${(error as Error).message}`
+      if (isCurrent()) errorMessage.value = `资源加载失败: ${(error as Error).message}`
     } finally {
-      isLoading.value = false
+      if (isCurrent()) isLoading.value = false
     }
   }
 
+  if (!isCurrent()) return
   if (parseQueryBoolean(route.query.autoStart) && !errorMessage.value) {
     await startLocalBattle()
   }
-})
+}
 
 const startLocalBattle = async () => {
   // 防止重复点击
@@ -622,8 +666,10 @@ const startLocalBattle = async () => {
     return
   }
 
+  if (route.query.trialKey && !trialLaunch.value) return
   isLoading.value = true
   errorMessage.value = null
+  const session = localSession.value
 
   try {
     // 验证游戏数据是否已加载
@@ -636,8 +682,8 @@ const startLocalBattle = async () => {
       throw new Error('没有可用的队伍，请先在队伍编辑器中创建队伍')
     }
 
-    const player1Team = petStorage.teams[selectedPlayer1TeamIndex.value]
-    const player2Team = petStorage.teams[selectedPlayer2TeamIndex.value]
+    const player1Team = battleTeams.value[selectedPlayer1TeamIndex.value]
+    const player2Team = battleTeams.value[selectedPlayer2TeamIndex.value]
 
     if (!player1Team || player1Team.pets.length === 0) {
       throw new Error('玩家1队伍为空或不存在，请选择有效的队伍')
@@ -699,38 +745,24 @@ const startLocalBattle = async () => {
       }
     }
 
-    const localSystem = await createNativeWebBattleSystem(
-      { name: playerStore.name, team: player1Team.pets },
+    await session.start(
+      { name: trialLaunch.value ? player1Team.name : playerStore.name, team: player1Team.pets },
       { name: `${player2Team.name} (AI)`, team: player2Team.pets },
-      dataStore,
       battleOptions,
+      { data: dataStore, battle: battleStore, navigate: () => router.push('/battle?dev=true') },
     )
-    const initialState = await localSystem.getState(undefined, true)
-    const playerId = initialState.players[0]?.id
-    if (!playerId) {
-      throw new Error('战斗初始化失败: 无法解析玩家ID')
-    }
-
-    try {
-      await battleStore.initBattle(localSystem, playerId)
-    } catch (initError) {
-      throw new Error(`战斗初始化失败: ${(initError as Error).message}`)
-    }
-
-    // 跳转到战斗页面
-    router.push('/battle?dev=true')
   } catch (error) {
     console.error('本地对战启动失败:', error)
-    errorMessage.value = (error as Error).message
-
-    // 5秒后清除错误信息
-    setTimeout(() => {
-      if (errorMessage.value === (error as Error).message) {
-        errorMessage.value = null
-      }
-    }, 5000)
+    if (localSession.value === session && session.state !== 'disposed') errorMessage.value = (error as Error).message
   } finally {
-    isLoading.value = false
+    if (localSession.value === session) isLoading.value = false
   }
 }
+watch(
+  () => route.fullPath,
+  () => {
+    if (route.name === 'LocalBattle') void initializeLocalBattle()
+  },
+  { immediate: true },
+)
 </script>

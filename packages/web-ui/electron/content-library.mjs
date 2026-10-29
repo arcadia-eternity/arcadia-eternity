@@ -476,12 +476,7 @@ export class ContentLibrary {
   }
   async resume() {
     await this.#load()
-    if (
-      this.#state.activeProject &&
-      this.host.status().status === 'running' &&
-      this.host.projectDirectory() === join(this.root, 'projects', storageName(this.#state.activeProject)) &&
-      this.#state.activeGoalRevision === this.#state.goalRevision
-    ) {
+    if (this.#state.activeProject && this.#state.activeGoalRevision === this.#state.goalRevision) {
       this.#sync = { status: 'ready' }
       this.#settledGoal = this.#state.goalRevision
       return
@@ -527,16 +522,6 @@ export class ContentLibrary {
         await this.#exclusive(async () => {
           this.#sync = { status: 'preparing' }
           const same = this.#state.activeProject && JSON.stringify(goal.ids) === JSON.stringify(this.#state.activeIds)
-          if (!same && this.#state.activeProject && this.host.status().status !== 'running') {
-            try {
-              const fallback = await this.host.prepareProject(await this.#directory(this.#state.activeProject), {
-                builtinOnly: this.#state.activeIds.length === 0,
-              })
-              await this.host.selectPrepared(fallback)
-            } catch {
-              /* A damaged previous installation must not block a valid new choice. */
-            }
-          }
           if (same) directory = await this.#directory(this.#state.activeProject)
           else {
             const result = await this.#prepareSelection(goal.ids, this.#state.offline)
@@ -554,9 +539,13 @@ export class ContentLibrary {
             )
           }
           if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
-          prepared = await this.host.prepareProject(directory, { builtinOnly: goal.ids.length === 0 })
-          if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
-          previous = await this.host.selectPrepared(prepared)
+          // Only an explicitly started hosting process receives updates. Offline
+          // content preparation never starts rooms, matchmaking or an HTTP server.
+          if (this.host.status().status === 'running') {
+            prepared = await this.host.prepareProject(directory, { builtinOnly: goal.ids.length === 0 })
+            if (goal.revision !== this.#state.goalRevision || this.#controller.signal.aborted) return
+            previous = await this.host.selectPrepared(prepared)
+          }
           try {
             await this.#update(state => ({
               ...state,
@@ -566,11 +555,12 @@ export class ContentLibrary {
               activeGraph: plan?.graph ?? state.activeGraph,
             }))
           } catch (error) {
-            await this.host.selectPrepared(previous)
+            if (previous) await this.host.selectPrepared(previous)
             throw error
           }
           retained = true
-          if (previous.id !== prepared.id) await this.host.retirePrepared(previous).catch(() => {})
+          if (previous && prepared && previous.id !== prepared.id)
+            await this.host.retirePrepared(previous).catch(() => {})
         })
         if (goal.revision === this.#state.goalRevision) {
           this.#settledGoal = goal.revision
@@ -598,7 +588,7 @@ export class ContentLibrary {
   }
   async start() {
     return this.#exclusive(async () => {
-      if (!this.#state.activeProject) throw new Error('请先应用本机内容包选择')
+      if (!this.#state.activeProject) throw new Error('请先准备本机内容选择')
       const directory = await this.#directory(this.#state.activeProject)
       if (this.#controller.signal.aborted) throw new Error('内容包管理已关闭')
       return this.host.start(directory, { builtinOnly: this.#state.activeIds.length === 0 })

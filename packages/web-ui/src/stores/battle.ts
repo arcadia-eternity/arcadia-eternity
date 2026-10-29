@@ -194,12 +194,16 @@ export const useBattleStore = defineStore('battle', {
     },
 
     async sendplayerSelection(selection: PlayerSelection) {
+      const generation = this._initializationGeneration
+      const system = this.battleInterface
+      const isCurrent = () => generation === this._initializationGeneration && this.battleInterface === system
       const availableActionsCache = useCloned(this.availableActions)
       this.availableActions = []
       this.waitingForResponse = true
       try {
-        await this.battleInterface?.submitAction(toRaw(selection) as PlayerSelection)
+        await system?.submitAction(toRaw(selection) as PlayerSelection)
       } catch (error) {
+        if (!isCurrent()) return
         if (isBattleUnavailableError(error)) {
           this.waitingForResponse = false
           this.availableActions = []
@@ -209,9 +213,12 @@ export const useBattleStore = defineStore('battle', {
         }
         this.errorMessage = (error as Error).message
         try {
-          this.availableActions = await this.fetchAvailableSelection()
+          const actions = await this.fetchAvailableSelection(isCurrent)
+          if (!isCurrent()) return
+          this.availableActions = actions
           this.waitingForResponse = false
         } catch (fetchError) {
+          if (!isCurrent()) return
           this.errorMessage = (fetchError as Error).message
           this.availableActions = availableActionsCache.cloned.value
           this.waitingForResponse = false

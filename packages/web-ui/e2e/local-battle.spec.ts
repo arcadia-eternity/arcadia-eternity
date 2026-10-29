@@ -36,7 +36,7 @@ async function collectUnexpectedConsole(page: import('playwright/test').Page) {
 async function startLocalBattle(page: import('playwright/test').Page) {
   await page.goto('/local-battle')
 
-  await expect(page.getByRole('heading', { name: '本地对战测试' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '本地对战' })).toBeVisible()
 
   const startButton = page.getByRole('button', { name: '开始本地对战' })
   await expect(startButton).toBeEnabled()

@@ -11,12 +11,12 @@ import {
   collection,
 } from '@arcadia-eternity/pack-loader/native'
 import type { ContentPrototypeData } from '@arcadia-eternity/battle/v4'
-import { resolveRuntimePackRef } from '@/utils/packRef'
+import { resolveBasePackRef } from '@/utils/packRef'
 
 /** Use the same raw metadata boundary as Node; presentation-store defaults are not content identity. */
 export async function loadCreatorBase(): Promise<ContentPrototypeData> {
   const loader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
-  return (await loader.loadMetadata(await resolveRuntimePackRef(), { source: 'http', enforceLockfile: true })).data
+  return (await loader.loadMetadata(await resolveBasePackRef(), { source: 'http', enforceLockfile: true })).data
 }
 export const workHost = (base: ContentPrototypeData) => ({
   base,

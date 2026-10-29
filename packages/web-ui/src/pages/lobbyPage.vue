@@ -31,7 +31,7 @@
           :disabled="switchingServer"
           data-testid="start-local-server-button"
           @click="startLocalServer"
-          >启动本机对战服务</el-button
+          >由本机托管联机对战</el-button
         >
       </div>
       <p class="text-xs text-gray-500 mt-2">切换服务器会离开当前房间；如果对局正在进行，还会终止对局。</p>

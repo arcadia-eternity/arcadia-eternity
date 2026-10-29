@@ -93,6 +93,15 @@ async function save() {
   await refresh()
   notice.value = '草稿已保存到本机'
 }
+async function saveBeforeTrial() {
+  if (busy.value) throw new Error('作品正在处理中，请稍后再开始试战')
+  busy.value = true
+  try {
+    await save()
+  } finally {
+    busy.value = false
+  }
+}
 async function open(id: string) {
   await save()
   draft.value = clone(workspace.value.drafts[id])
@@ -469,6 +478,7 @@ onMounted(() => {
           <TrialBattle
             v-if="preview"
             :key="preview.selection.selected[0].digest"
+            :before-launch="saveBeforeTrial"
             :selection="preview.selection"
             :species="preview.species"
           />

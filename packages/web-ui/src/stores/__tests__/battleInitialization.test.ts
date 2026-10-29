@@ -67,3 +67,27 @@ it('a late cleanup cannot clear a new battle', async () => {
   expect(store.battleInterface).toBe(fresh)
   expect(store.playerId).toBe('new')
 })
+
+it('a rejected action from a disposed battle cannot read or alter the next battle', async () => {
+  const store = useBattleStore()
+  let reject!: (reason: Error) => void
+  const pending = new Promise<void>((_, fail) => {
+    reject = fail
+  })
+  const old = system()
+  old.submitAction = vi.fn(() => pending)
+  await store.initBattle(old, 'old')
+  const action = store.sendplayerSelection({ type: 'surrender', player: 'old' } as PlayerSelection)
+  await store.resetBattleWithoutSurrender()
+  const fresh = system()
+  await store.initBattle(fresh, 'new')
+  store.waitingForResponse = true
+  store.errorMessage = 'new battle message'
+  const calls = vi.mocked(old.getAvailableSelection).mock.calls.length
+  reject(new Error('Native battle system is disposed'))
+  await action
+  expect(old.getAvailableSelection).toHaveBeenCalledTimes(calls)
+  expect(store.battleInterface).toBe(fresh)
+  expect(store.waitingForResponse).toBe(true)
+  expect(store.errorMessage).toBe('new battle message')
+})

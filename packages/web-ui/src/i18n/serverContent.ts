@@ -47,6 +47,10 @@ export function setServerContentText(content: ServerEnvironmentContent | null) {
   text.value = next
 }
 
+export function getServerContentText(): ServerEnvironmentContent | null {
+  return activeContent.value
+}
+
 /** Original keys retain namespaced content IDs even when i18next parses a colon. */
 export const serverContentText: PostProcessorModule = {
   type: 'postProcessor',

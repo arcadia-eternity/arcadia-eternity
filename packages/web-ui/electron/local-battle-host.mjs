@@ -155,10 +155,9 @@ export class LocalBattleHost {
   }
   async prepareProject(directory, { builtinOnly = false } = {}) {
     const canonical = await realpath(directory)
-    const started = this.#state.status !== 'running'
-    if (started) await this.start(canonical, { builtinOnly: true })
+    if (this.#state.status !== 'running') throw problem('HOST_UNAVAILABLE', '请先明确启动本机联机托管')
     const descriptor = await this.#request('prepare', { directory: canonical, builtinOnly })
-    return { id: descriptor.id, directory: canonical, builtinOnly: !descriptor.packages.length, started }
+    return { id: descriptor.id, directory: canonical, builtinOnly: !descriptor.packages.length, started: false }
   }
   async selectPrepared(prepared) {
     const directory = this.#projectDirectory

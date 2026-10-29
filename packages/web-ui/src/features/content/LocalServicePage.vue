@@ -36,14 +36,14 @@ async function start() {
   await run(async () => {
     await api!.contentPackageAction!({ action: 'start' })
     await refresh()
-    notice.value = '本机服务已启动'
+    notice.value = '本机联机托管已启动'
   })
 }
 async function stop() {
   await run(async () => {
     await api!.stopLocalBattle!()
     await refresh()
-    notice.value = '本机服务已停止'
+    notice.value = '本机联机托管已停止'
   })
 }
 async function add() {
@@ -83,7 +83,7 @@ onMounted(() => void run(refresh))
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <details>
-      <summary>本机运行诊断</summary>
+      <summary>联机托管与诊断</summary>
       <h2>当前可用内容</h2>
       <p>
         官方基础内容<span
@@ -92,14 +92,14 @@ onMounted(() => void run(refresh))
           >、{{ pkg.title }} {{ pkg.version }}</span
         >
       </p>
-      <p>正常启停和版本切换由客户端自动处理，无需在这里操作。</p>
+      <p>只有由本机承担联机服务端时，才需要启动托管。离线对战、UGC 试战和连接其他服务器均无需启动。</p>
       <p v-if="status.status === 'running'">运行中：{{ status.url }}</p>
       <p v-else-if="status.status === 'failed'" class="error">{{ status.message }}</p>
-      <p v-else>服务未运行</p>
+      <p v-else>未托管联机对战</p>
       <div class="actions">
         <button :disabled="busy || !library?.hasSelection || status.status === 'running'" @click="start">
-          启动本机服务</button
-        ><button :disabled="busy || status.status !== 'running'" @click="stop">停止本机服务</button
+          由本机托管联机对战</button
+        ><button :disabled="busy || status.status !== 'running'" @click="stop">停止联机托管</button
         ><button :disabled="busy" @click="run(refresh)">刷新状态</button>
       </div>
       <p v-if="!library?.hasSelection">在内容包页选择需要的内容，客户端会自动准备。</p>
@@ -121,7 +121,8 @@ onMounted(() => void run(refresh))
           ><button :disabled="busy" @click="operate('inspect')">检查项目</button
           ><button :disabled="busy" @click="operate('install')">安装锁定依赖</button
           ><button :disabled="busy" @click="operate('validate')">校验项目</button
-          ><button :disabled="busy || status.status === 'running'" @click="operate('start')">启动此项目</button
+          ><button :disabled="busy || status.status === 'running'" @click="operate('start')">
+            使用此项目托管联机对战</button
           ><button :disabled="busy" @click="operate('forget')">移出列表</button>
         </div>
         <label><input v-model="offline" type="checkbox" />仅离线安装</label

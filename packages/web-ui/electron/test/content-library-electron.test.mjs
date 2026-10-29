@@ -67,7 +67,7 @@ test(
       assert.equal(pkg.name, '@arcadia-example/slow')
       await expect(page.getByLabel('启用 ' + pkg.title, { exact: true })).toBeChecked()
       const status = await page.evaluate(() => window.arcadiaDesktop.getLocalBattleStatus())
-      assert.equal(status.status, 'running')
+      assert.equal(status.status, 'idle')
       await page.screenshot({ path: join(output, 'installed.png'), fullPage: true })
       await page.getByLabel('启用 ' + pkg.title, { exact: true }).uncheck()
       await expect(page.locator('.selection-state')).toContainText('所选内容已就绪')
@@ -77,13 +77,12 @@ test(
       assert.equal(current.serviceStatus.serverId, status.serverId)
       assert.equal(current.serviceNeedsRestart, false)
       assert.equal(await page.getByRole('dialog').count(), 0)
-      const catalogue = (await (await fetch(status.url + '/api/v1/environments')).json()).environments
-      assert.ok(catalogue.every(env => !env.packages.some(pkg => pkg.name === '@arcadia-example/slow')))
+      assert.equal(current.serviceStatus.status, 'idle')
       await page.goto(rendererUrl + '/settings/local-service')
       await expect(page.getByRole('heading', { name: '高级本机工具', exact: true })).toBeVisible()
-      await expect(page.getByRole('button', { name: '启动本机服务', exact: true })).not.toBeVisible()
+      await expect(page.getByRole('button', { name: '由本机托管联机对战', exact: true })).not.toBeVisible()
       t.diagnostic(
-        'Real Electron renderer → preload → guarded IPC → npm → content validation → loopback service passed',
+        'Real Electron renderer → preload → guarded IPC → npm → content validation passed; multiplayer hosting remained idle',
       )
     } catch (error) {
       if (application?.windows()[0]) {
