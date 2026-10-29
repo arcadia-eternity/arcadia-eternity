@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-29",
+  "platform": "macOS arm64",
+  "electron": "41.10.7",
+  "implementationCommit": "e918b365",
+  "command": "ARCADIA_DESKTOP_GAMEPLAY_TEST=1 ARCADIA_DESKTOP_SWF_GAMEPLAY=1 node --import tsx --test electron/test/remote-gameplay-electron.test.mjs",
+  "result": "pass",
+  "durationSeconds": 36.496,
+  "renderer": "isolated-swf-dom-canvas",
+  "uiOrigins": ["arcadia-client://app", "arcadia-client://app"],
+  "battleResults": [
+    {
+      "turns": 2,
+      "results": ["胜利！", "失败..."]
+    }
+  ],
+  "managerDenials": [41, 41],
+  "canvasPixels": [
+    {
+      "player": "Host",
+      "pixels": [
+        {
+          "width": 1600,
+          "height": 900,
+          "visible": 10740,
+          "transparent": 1430556,
+          "partial": 1296
+        },
+        {
+          "width": 1600,
+          "height": 900,
+          "visible": 15922,
+          "transparent": 1425889,
+          "partial": 1811
+        }
+      ]
+    },
+    {
+      "player": "Guest",
+      "pixels": [
+        {
+          "width": 1600,
+          "height": 900,
+          "visible": 15696,
+          "transparent": 1425992,
+          "partial": 1688
+        },
+        {
+          "width": 1600,
+          "height": 900,
+          "visible": 10607,
+          "transparent": 1430710,
+          "partial": 1317
+        }
+      ]
+    }
+  ],
+  "resizeScenarios": ["initial", "initial", "1100x750@1.25", "1440x900@0.8", "1280x768@1"],
+  "climax": [
+    {
+      "playing": true,
+      "effectZ": "1060",
+      "blackZ": "1050",
+      "blackPointerEvents": "none",
+      "clickTarget": "战斗日志",
+      "clickToggledLog": true
+    }
+  ],
+  "frameRates": [
+    {
+      "fps": 19.197450787483533,
+      "bytesPerSecond": 156833.63950579838,
+      "maxBytes": 17810
+    },
+    {
+      "fps": 19.164782202508075,
+      "bytesPerSecond": 171448.66545012113,
+      "maxBytes": 10742
+    },
+    {
+      "fps": 20.81879639904875,
+      "bytesPerSecond": 181385.3650725891,
+      "maxBytes": 18969
+    },
+    {
+      "fps": 20.819967801685213,
+      "bytesPerSecond": 172629.97349091724,
+      "maxBytes": 17810
+    }
+  ],
+  "mediaRequests": [51],
+  "catalogRequests": [3],
+  "loadingFailures": [],
+  "assertedByHarness": [
+    "New player instances after guest refresh",
+    "Original ready/hit/complete callbacks",
+    "Both canvases contain visible and transparent pixels",
+    "Player windows are hidden, offscreen and sandboxed",
+    "All observed fixture media no-store",
+    "No executable modules or package archives from fixture server",
+    "Natural victory and defeat",
+    "Returning to lobby removes both canvases and isolated renderers"
+  ],
+  "localEvidenceDirectory": "packages/web-ui/native-content-qa.local/remote-gameplay-canvas",
+  "limitations": [
+    "Unsigned production renderer, not installed release",
+    "Fixture original movies use physical-attack fallback for Climax state; actual core Climax effect and blackout are exercised",
+    "Physical audio timing and other operating systems not tested"
+  ]
+}

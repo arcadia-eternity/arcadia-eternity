@@ -122,5 +122,45 @@
     "command": "PLAYWRIGHT_UGC_SYNC=1 PLAYWRIGHT_UGC_MISSING_MEDIA=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.ugc-environment.config.ts",
     "durationSeconds": 48.5
   },
-  "cleanup": "Both clean browser contexts, standalone server and packed fixture closed in finally"
+  "cleanup": "Both clean browser contexts, standalone server and packed fixture closed in finally",
+  "sharedLifecycleRerun": {
+    "date": "2026-10-29T10:02:32.004Z",
+    "implementationCommit": "e918b365",
+    "status": "passed",
+    "durationSeconds": 49.4,
+    "turns": 3,
+    "results": ["胜利！", "失败..."],
+    "refreshReadyInstances": ["c9938581-d770-4d87-8be1-c54bd79338a8", "bbd95251-0ff7-4baa-baa6-fc1e8dc2297c"],
+    "disposeCount": 2,
+    "mediaResponses": [
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+        "status": 200
+      }
+    ],
+    "networkFailureSummary": {
+      "net::ERR_ABORTED": 414
+    },
+    "artifactDirectory": "/tmp/arcadia-shared-lifecycle-browser/swf-battle-two-production--9e9e0-refresh-result-and-disposal"
+  }
 }
