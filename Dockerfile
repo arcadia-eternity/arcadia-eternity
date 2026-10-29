@@ -21,6 +21,11 @@ RUN pnpm config set store-dir /tmp/pnpm-store && \
 # Copy source code
 COPY . .
 
+ARG GITHUB_SHA=""
+ARG COMMIT_HASH=""
+ENV GITHUB_SHA=$GITHUB_SHA
+ENV COMMIT_HASH=$COMMIT_HASH
+
 # Build the application
 RUN pnpm run build:prod
 
@@ -86,7 +91,7 @@ ENV NODE_PATH=/app/node_modules:/app/packages
 
 # Server configuration environment variables
 ENV PORT=8102
-ENV CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+ENV CORS_ORIGIN=
 
 # Keep this stable across deployments; bootId changes for each process.
 ENV SERVER_ID=arcadia

@@ -6,7 +6,7 @@ import { parse } from 'yaml'
 import i18next from 'i18next'
 import { computed } from 'vue'
 import MarkdownIt from 'markdown-it'
-import { serverContentText, renderContentDescription, serverText } from '@/i18n/serverContent'
+import { serverContentText, renderContentDescription, serverText, isRemoteContentActive } from '@/i18n/serverContent'
 import { useGameDataStore } from '../gameData'
 import type { WorkspacePackSummary } from '@/services/packWorkspace'
 
@@ -46,6 +46,7 @@ it('trial display restores exact prior records and text, including the connected
   const official = store.species
   const pet = { ...data.species[0], id: 'room:pet', name: '房间内容' }
   store.applyServerEnvironment({ species: [pet], skills: [], marks: [] })
+  expect(isRemoteContentActive()).toBe(true)
   const room = store.species,
     fallback = store.serverFallback
   const release = store.useLocalBattleContent({
@@ -53,10 +54,12 @@ it('trial display restores exact prior records and text, including the connected
     skills: [],
     marks: [],
   })
+  expect(isRemoteContentActive()).toBe(false)
   expect(serverText('species', 'trial:pet', 'name')?.value).toBe('试战内容')
   release()
   release()
   expect(store.species).toBe(room)
+  expect(isRemoteContentActive()).toBe(true)
   expect(store.serverFallback).toBe(fallback)
   expect(store.species.byId['trial:pet']).toBeUndefined()
   expect(serverText('species', 'room:pet', 'name')?.value).toBe('房间内容')
@@ -206,11 +209,143 @@ it('displays active server names and descriptions without modifying official loc
   expect(i18n.t('ugc:mark.description', { ns: ['mark', 'mark_ability'] })).toBe('印记说明')
   store.applyServerEnvironment({ species: [{ ...species, name: '另一个服务器' }], skills: [], marks: [] })
   expect(name.value).toBe('另一个服务器')
-  expect(i18n.t('ugc:mark.description', { ns: 'mark', defaultValue: 'missing' })).toBe('missing')
+  expect(i18n.t('ugc:mark.description', { ns: 'mark', defaultValue: 'missing' })).toBe('')
   store.clearServerEnvironment()
   expect(name.value).toBe('official')
   expect(i18n.getResource('zh-CN', 'species', 'ugc:pet.name')).toBe('official')
   store.applyServerEnvironment({ species: [{ ...species, name: 'temporary' }], skills: [], marks: [] })
   store.reset()
   expect(name.value).toBe('official')
+})
+
+it('shares App and battle-page metadata initialization during a cold battle reload', async () => {
+  let finish!: (value: ReturnType<typeof baseResult>) => void
+  loadMetadata.mockImplementation(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const store = useGameDataStore()
+  const app = store.initialize(),
+    battlePage = store.initialize()
+  store.clearServerEnvironment() // The initial authentication watcher has no remote scope to clear.
+  await vi.waitFor(() => expect(loadMetadata).toHaveBeenCalled())
+  expect(loadMetadata).toHaveBeenCalledTimes(1)
+  finish(baseResult())
+  await Promise.all([app, battlePage])
+})
+
+it('cannot overwrite a recovered server catalog with late local metadata after room acceptance', async () => {
+  let finish!: (value: ReturnType<typeof baseResult>) => void
+  loadMetadata.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const store = useGameDataStore(),
+    lateLocal = store.initialize()
+  await vi.waitFor(() => expect(loadMetadata).toHaveBeenCalledOnce())
+  const species = {
+    ...data.species[0],
+    id: 'recovered:pet',
+    learnable_skills: [],
+    ability: [],
+    emblem: [],
+    presentation: { battle: { renderer: 'seer2-swf', source: 'https://media.test/pet.swf' } },
+  }
+  const cancelled = expect(lateLocal).rejects.toMatchObject({ name: 'AbortError' })
+  store.applyServerEnvironment({ species: [species], skills: [], marks: [] })
+  await cancelled
+  const recovered = store.species
+  await store.initialize() // New consumers observe the current remote catalog, never the old local ready.
+  finish(baseResult())
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(store.species).toBe(recovered)
+  expect(store.getSpecies('recovered:pet')?.presentation?.battle?.source).toBe('https://media.test/pet.swf')
+  expect(isRemoteContentActive()).toBe(true)
+})
+
+it('shares current readiness through a scope change and ignores a stale loader rejection', async () => {
+  let rejectOld!: (error: Error) => void
+  loadMetadata.mockImplementationOnce(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectOld = reject
+      }),
+  )
+  const store = useGameDataStore(),
+    consumer = store.whenReady()
+  await vi.waitFor(() => expect(loadMetadata).toHaveBeenCalledOnce())
+  const pet = { ...data.species[0], id: 'remote:ready', learnable_skills: [], ability: [], emblem: [] }
+  store.applyServerEnvironment({ species: [pet], skills: [], marks: [] })
+  await consumer
+  const current = store.species
+  rejectOld(new Error('late local request failed'))
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(store.species).toBe(current)
+  expect(store.error).toBeNull()
+  expect(store.loaded).toBe(true)
+})
+
+it('explicit reload cancels the old owner and shared consumers follow exactly one new load', async () => {
+  let finishOld!: (value: ReturnType<typeof baseResult>) => void
+  loadMetadata.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finishOld = resolve
+      }),
+  )
+  const store = useGameDataStore(),
+    oldOwner = store.initialize(),
+    consumer = store.whenReady()
+  const cancelled = expect(oldOwner).rejects.toMatchObject({ name: 'AbortError' })
+  await vi.waitFor(() => expect(loadMetadata).toHaveBeenCalledOnce())
+  const replacement = store.initialize({ forceReload: true })
+  await Promise.all([cancelled, replacement, consumer])
+  expect(loadMetadata).toHaveBeenCalledTimes(2)
+  const current = store.species
+  finishOld(baseResult())
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(store.species).toBe(current)
+})
+
+it('trial entry and exit own readiness without a late local load resurrecting the trial', async () => {
+  let finishOld!: (value: ReturnType<typeof baseResult>) => void
+  loadMetadata.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finishOld = resolve
+      }),
+  )
+  const store = useGameDataStore(),
+    consumer = store.whenReady()
+  await vi.waitFor(() => expect(loadMetadata).toHaveBeenCalledOnce())
+  const release = store.useLocalBattleContent({
+    species: [{ ...data.species[0], id: 'trial:ready', learnable_skills: [], ability: [], emblem: [] }],
+    skills: [],
+    marks: [],
+  })
+  await consumer
+  expect(store.getSpecies('trial:ready')).toBeDefined()
+  release()
+  await store.whenReady()
+  const current = store.species
+  finishOld(baseResult())
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(store.species).toBe(current)
+  expect(store.getSpecies('trial:ready')).toBeUndefined()
+  expect(loadMetadata).toHaveBeenCalledTimes(2)
+})
+
+it('propagates an active-loader AbortError instead of retrying the same scope forever', async () => {
+  loadMetadata.mockRejectedValueOnce(new DOMException('current loader aborted', 'AbortError'))
+  const store = useGameDataStore()
+  await expect(store.whenReady()).rejects.toMatchObject({ name: 'AbortError', message: 'current loader aborted' })
+  expect(loadMetadata).toHaveBeenCalledOnce()
 })

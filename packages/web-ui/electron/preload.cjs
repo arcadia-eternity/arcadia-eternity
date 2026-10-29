@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  getBackendConfig: () => ipcRenderer.invoke('desktop:get-backend-config'),
+  openRemotePlay: input => ipcRenderer.invoke('desktop:open-remote-play', input),
   listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),
   selectContentPackageFile: options => ipcRenderer.invoke('desktop:select-content-package-file', options),
   inspectNpmContentPackage: options => ipcRenderer.invoke('desktop:inspect-npm-content-package', options),
@@ -43,3 +45,23 @@ const desktopApi = {
 }
 
 contextBridge.exposeInMainWorld('arcadiaDesktop', desktopApi)
+
+// Fixed presentation controls only. The main process checks the actual owning main frame.
+contextBridge.exposeInMainWorld('arcadiaSwf', {
+  create: input => ipcRenderer.invoke('swf:create', input),
+  send: command => ipcRenderer.invoke('swf:send', command),
+  bounds: input => ipcRenderer.invoke('swf:bounds', input),
+  dispose: input => ipcRenderer.invoke('swf:dispose', input),
+  ackFrame: input =>
+    ipcRenderer.send('swf:frame-ack', { instance: input?.instance, task: input?.task, frame: input?.frame }),
+  onFrame: callback => {
+    const listener = (_event, value) => callback(value)
+    ipcRenderer.on('swf:frame', listener)
+    return () => ipcRenderer.removeListener('swf:frame', listener)
+  },
+  onEvent: callback => {
+    const listener = (_event, value) => callback(value)
+    ipcRenderer.on('swf:event', listener)
+    return () => ipcRenderer.removeListener('swf:event', listener)
+  },
+})

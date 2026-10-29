@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isRemoteContentActive } from '@/i18n/serverContent'
+import unknownPet from '@/assets/images/unknown-pet.svg'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useUncachedResource } from '@/composition/useUncachedResource'
@@ -25,7 +27,9 @@ const imageFailed = ref(false)
 const petIconUrl = computed(() =>
   typeof props.species?.presentation?.icon === 'string'
     ? props.species.presentation.icon
-    : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`),
+    : isRemoteContentActive()
+      ? unknownPet
+      : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`),
 )
 
 const { url: sourceUrl, error: sourceError } = useUncachedResource(

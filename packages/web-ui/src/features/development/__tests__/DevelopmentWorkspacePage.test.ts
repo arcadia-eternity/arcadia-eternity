@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { SkillSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import DevelopmentWorkspacePage from '../DevelopmentWorkspacePage.vue'
 
 const state = reactive({ serverUrl: 'http://127.0.0.1:8102' })
@@ -35,7 +36,19 @@ const snapshot = () => ({
   content: structuredClone(content),
   project: { projectId: 'demo', namespace: 'demo' },
 })
-const response = (data: unknown, status = 200) => ({ ok: status < 400, status, json: async () => data }) as Response
+const response = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status })
+const publicEnvironment = (id: string, namespace: string) => ({
+  id,
+  protocolVersion: 1,
+  runtime: { kind: 'native-v4', contentRevision: 'r', coreBuildId: 'c', registryBuildId: 'b' },
+  packages: [{ name: 'other', version: '1.0.0', projectId: 'other', namespace }],
+  resourceRevision: 'd'.repeat(64),
+  resources: [],
+})
+const publicSkill = (id: string, name?: string) => {
+  const { effect: _effect, ...skill } = parseWithErrors(SkillSchema, { id })
+  return name ? { ...skill, name } : skill
+}
 const mountPage = () => mount(DevelopmentWorkspacePage, { global: { stubs: { RouterLink: true } } })
 const load = async (wrapper: ReturnType<typeof mountPage>) => {
   await wrapper.get('[data-testid="development-token"]').setValue(token)
@@ -137,13 +150,10 @@ describe('development workspace page', () => {
 
   it('adds local, official and cross-package references from a selected public environment without sending its token', async () => {
     const id = 'b'.repeat(64)
-    const descriptor = { id, protocolVersion: 1, packages: [{ projectId: 'other', namespace: 'other-ns' }] }
+    const descriptor = publicEnvironment(id, 'other-ns')
     const publicContent = {
       species: [],
-      skills: [
-        { id: 'other-ns:strike', name: 'Strike' },
-        { id: 'skill_base', name: 'Base' },
-      ],
+      skills: [publicSkill('other-ns:strike', 'Strike'), publicSkill('skill_base', 'Base')],
       marks: [{ id: 'other-ns:guard' }],
     }
     const fetch = vi
@@ -205,11 +215,7 @@ describe('development workspace page', () => {
       .mockResolvedValueOnce(
         response({
           protocolVersion: 1,
-          environments: [first, second].map(id => ({
-            id,
-            protocolVersion: 1,
-            packages: [{ projectId: 'other', namespace: 'other' }],
-          })),
+          environments: [first, second].map(id => publicEnvironment(id, 'other')),
         }),
       )
       .mockImplementationOnce(
@@ -218,7 +224,7 @@ describe('development workspace page', () => {
             finishFirst = resolve
           }),
       )
-      .mockResolvedValueOnce(response({ species: [], skills: [{ id: 'other:new' }], marks: [] }))
+      .mockResolvedValueOnce(response({ species: [], skills: [publicSkill('other:new')], marks: [] }))
     vi.stubGlobal('fetch', fetch)
     const wrapper = mountPage()
     await load(wrapper)
@@ -227,7 +233,7 @@ describe('development workspace page', () => {
     await wrapper.get('[data-testid="development-reference-environment"]').setValue(first)
     await wrapper.get('[data-testid="development-reference-environment"]').setValue(second)
     await flushPromises()
-    finishFirst(response({ species: [], skills: [{ id: 'other:old' }], marks: [] }))
+    finishFirst(response({ species: [], skills: [publicSkill('other:old')], marks: [] }))
     await flushPromises()
     await wrapper.get('[data-testid="development-record"]').setValue('pet')
     expect(wrapper.get('[data-testid="development-skill-reference"]').text()).toContain('new')

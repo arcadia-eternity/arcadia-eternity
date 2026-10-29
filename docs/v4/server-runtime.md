@@ -70,7 +70,7 @@ Better Auth 1.7.12 在验证层运行：真实 `emailOTP` 插件负责验证码�
 
 ## G3 账号配置
 
-默认 `ACCOUNT_MODE=guest`（或不设置）只开放游客。部署者主动设为 `ACCOUNT_MODE=g3` 时，必须提供稳定的 `SERVER_ID`、`DATABASE_URL`、`SMTP_HOST`、`SMTP_FROM`、`GITHUB_APP_CLIENT_ID`、`GITHUB_APP_CLIENT_SECRET`、逗号分隔的 `GITHUB_APP_REDIRECT_URIS` 和明确的 `CORS_ORIGIN`；不得使用 `*`。每个回调 URL 必须是对应网页 origin 的精确 `/account` 地址，且回调 origin 集合必须与 `CORS_ORIGIN` 完全相同，避免客户端显示 GitHub 登录却没有可用回调。单一回调部署可暂时使用旧的 `GITHUB_APP_REDIRECT_URI`，但不得与复数变量同时设置。GitHub App 的 **Client ID 不是 App ID**；Client Secret 仅保存在服务端部署环境。旧的 `OIDC_*` 变量不再用于 G3，混用时启动失败。按邮件服务要求可设置 `SMTP_PORT`（默认 587）及成对的 `SMTP_USER`/`SMTP_PASSWORD`。这些凭据不写进仓库。
+默认 `ACCOUNT_MODE=guest`（或不设置）只开放游客。部署者主动设为 `ACCOUNT_MODE=g3` 时，必须提供稳定的 `SERVER_ID`、`DATABASE_URL`、`SMTP_HOST`、`SMTP_FROM`、`GITHUB_APP_CLIENT_ID`、`GITHUB_APP_CLIENT_SECRET`、逗号分隔的 `GITHUB_APP_REDIRECT_URIS` 和明确的 `CORS_ORIGIN`；不得使用 `*`。每个回调 URL 必须是对应网页 origin 的精确 `/account` 地址，且网页回调 origin 集合必须与 `CORS_ORIGIN` 中的 HTTP(S) origins 完全相同（固定桌面来源 `arcadia-client://app` 除外），避免客户端显示 GitHub 登录却没有可用回调。单一回调部署可暂时使用旧的 `GITHUB_APP_REDIRECT_URI`，但不得与复数变量同时设置。GitHub App 的 **Client ID 不是 App ID**；Client Secret 仅保存在服务端部署环境。旧的 `OIDC_*` 变量不再用于 G3，混用时启动失败。按邮件服务要求可设置 `SMTP_PORT`（默认 587）及成对的 `SMTP_USER`/`SMTP_PASSWORD`。这些凭据不写进仓库。
 
 当前官方网页仅使用一个 origin：
 
@@ -136,3 +136,7 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/se
 4. 部署工作流在发现多个存量 Machine 时失败，由管理员安排维护窗口调整规模；加 `--ha=false` 避免创建备用实例。不会通过修改配置自动删除已有机器。
 
 依据：[Fly 配置说明](https://fly.io/docs/reference/configuration/)与[部署参数](https://fly.io/docs/flyctl/deploy/)。本轮仅修改配置文件，尚未部署或验证生产环境。
+
+## 配套网页发行
+
+默认服务器发行物现在携带 `dist/web`，启动时验证兼容清单。纯 API 宿主请显式使用 `--headless`。浏览器固定绑定部署者配置的单一后端；独立网页、CORS 和升级方式见 [配套网页部署](./paired-web-deployment.md)。

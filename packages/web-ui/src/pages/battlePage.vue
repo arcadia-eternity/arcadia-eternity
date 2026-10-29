@@ -941,8 +941,8 @@ async function checkPetSpritesReady(): Promise<void> {
 const initializeBattleResources = async () => {
   resourceAttempt.value++
   await preparation.prepare([
-    { id: 'resources', label: '界面资源', required: true, run: () => resourceStore.initialize() },
-    { id: 'data', label: '游戏数据', required: true, run: () => gameDataStore.initialize() },
+    { id: 'resources', label: '界面资源', required: true, run: () => resourceStore.whenReady() },
+    { id: 'data', label: '游戏数据', required: true, run: () => gameDataStore.whenReady() },
     {
       id: 'battle',
       label: '对局数据',

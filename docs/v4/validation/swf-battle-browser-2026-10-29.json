@@ -1,0 +1,166 @@
+{
+  "date": "2026-10-29T08:23:16.809Z",
+  "status": "passed",
+  "mode": "Two clean browser contexts; paired production dist/web; admitted custom NPM fixture; original HTTPS SWFs; real UI team/room/turn actions; no network mocks or debug store imports",
+  "command": "PLAYWRIGHT_SWF_BATTLE=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.swf-battle.config.ts --output=/tmp/arcadia-original-swf-battle-artifacts",
+  "durationSeconds": 50.5,
+  "turns": 4,
+  "results": ["胜利！", "失败..."],
+  "clients": [
+    {
+      "readyInstances": ["2f11097a-889e-43de-88ee-e1eb9666391c", "2464da3d-3ad9-4542-b82f-acf8b2368dc9"],
+      "eventCounts": {
+        "ready": 2,
+        "hit": 7,
+        "complete": 11
+      },
+      "physicalHitExample": {
+        "v": 1,
+        "instance": "2464da3d-3ad9-4542-b82f-acf8b2368dc9",
+        "task": 1,
+        "seq": 2,
+        "type": "hit",
+        "state": "物理攻击"
+      },
+      "completeExample": {
+        "v": 1,
+        "instance": "2f11097a-889e-43de-88ee-e1eb9666391c",
+        "task": 1,
+        "seq": 2,
+        "type": "complete",
+        "state": "被打",
+        "duration": 0.75
+      }
+    },
+    {
+      "readyInstances": ["43b0ad2b-9077-4efd-a71f-83c7d6fbddcb", "04cc9707-0fde-4f0f-956b-9388123e8139"],
+      "eventCounts": {
+        "ready": 2,
+        "hit": 5,
+        "complete": 7
+      },
+      "physicalHitExample": {
+        "v": 1,
+        "instance": "04cc9707-0fde-4f0f-956b-9388123e8139",
+        "task": 1,
+        "seq": 2,
+        "type": "hit",
+        "state": "物理攻击"
+      },
+      "completeExample": {
+        "v": 1,
+        "instance": "43b0ad2b-9077-4efd-a71f-83c7d6fbddcb",
+        "task": 1,
+        "seq": 2,
+        "type": "complete",
+        "state": "被打",
+        "duration": 0.75
+      }
+    }
+  ],
+  "refresh": {
+    "before": ["38737325-43ed-42d3-b788-8d3338cf4663", "2dd1377f-1269-47fa-bd6b-99946c7141e7"],
+    "after": ["43b0ad2b-9077-4efd-a71f-83c7d6fbddcb", "04cc9707-0fde-4f0f-956b-9388123e8139"],
+    "allInstancesReplaced": true
+  },
+  "disposal": [
+    {
+      "type": "dispose",
+      "instance": "2464da3d-3ad9-4542-b82f-acf8b2368dc9",
+      "task": 1,
+      "seq": 11
+    },
+    {
+      "type": "dispose",
+      "instance": "2f11097a-889e-43de-88ee-e1eb9666391c",
+      "task": 1,
+      "seq": 11
+    }
+  ],
+  "mediaResponses": [
+    {
+      "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+      "status": 200
+    },
+    {
+      "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+      "status": 200
+    },
+    {
+      "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+      "status": 200
+    },
+    {
+      "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+      "status": 200
+    },
+    {
+      "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+      "status": 200
+    },
+    {
+      "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+      "status": 200
+    }
+  ],
+  "requestDiagnostics": {
+    "failedRequestCount": 417,
+    "categories": {
+      "net::ERR_ABORTED": 416,
+      "net::ERR_BLOCKED_BY_ORB": 1
+    },
+    "notes": "Navigation/refresh aborts recorded. Also one built-in petIcon/0.png response blocked by ORB; both original SWF sources had HTTP 200 and live playback."
+  },
+  "artifactDirectory": "/tmp/arcadia-original-swf-battle-artifacts/swf-battle-two-production--9e9e0-refresh-result-and-disposal",
+  "screenshots": ["original-swf-battle.png", "original-swf-result.png"],
+  "originalFailure": {
+    "error": "player.ruffle(...).play is not a function",
+    "fix": "Pinned Ruffle V1 API source map confirms suspend/resume; replaced pause/play on ruffle() API."
+  },
+  "missingMediaRegression": {
+    "status": "passed",
+    "command": "PLAYWRIGHT_UGC_SYNC=1 PLAYWRIGHT_UGC_MISSING_MEDIA=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test --config playwright.ugc-environment.config.ts",
+    "durationSeconds": 48.5
+  },
+  "cleanup": "Both clean browser contexts, standalone server and packed fixture closed in finally",
+  "sharedLifecycleRerun": {
+    "date": "2026-10-29T10:02:32.004Z",
+    "implementationCommit": "e918b365",
+    "status": "passed",
+    "durationSeconds": 49.4,
+    "turns": 3,
+    "results": ["胜利！", "失败..."],
+    "refreshReadyInstances": ["c9938581-d770-4d87-8be1-c54bd79338a8", "bbd95251-0ff7-4baa-baa6-fc1e8dc2297c"],
+    "disposeCount": 2,
+    "mediaResponses": [
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/2.swf",
+        "status": 200
+      },
+      {
+        "url": "https://seer2-pet-resource.yuuinih.com/public/fight/1.swf",
+        "status": 200
+      }
+    ],
+    "networkFailureSummary": {
+      "net::ERR_ABORTED": 414
+    },
+    "artifactDirectory": "/tmp/arcadia-shared-lifecycle-browser/swf-battle-two-production--9e9e0-refresh-result-and-disposal"
+  }
+}

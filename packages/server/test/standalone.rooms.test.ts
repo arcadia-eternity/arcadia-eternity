@@ -58,7 +58,7 @@ async function setup(prepare?: (app: ReturnType<typeof createSingleProcessApp>) 
     port: 0,
     host: '127.0.0.1',
     serverId: 'test',
-    corsOrigins: ['*'],
+    corsOrigins: [],
     reconnectGraceMs: 2000,
   })
   apps.push(app)

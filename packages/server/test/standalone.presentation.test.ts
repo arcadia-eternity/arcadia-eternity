@@ -6,7 +6,7 @@ import { createNpmFixture } from './fixtures/npm'
 
 it('publishes remote URLs without downloading and streams package files without cache, including HEAD and Range', async () => {
   const fixture = await createNpmFixture({ presentation: true })
-  const app = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: ['*'] })
+  const app = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: [] })
   try {
     const first = await app.environments.prepareNpm(fixture.directory)
     await app.start()
@@ -22,6 +22,16 @@ it('publishes remote URLs without downloading and streams package files without 
     const content = app.environments.content(first.id)
     expect(content.species.find(pet => pet.id === 'example-slow:pet')?.presentation?.battle?.renderer).toBe('seer2-swf')
     expect(content.locales?.bundles.en.species['example-slow:pet']).toEqual({ name: 'Display pet' })
+    expect(content.locales?.defaultLocale).toBe('zh-CN')
+    expect(content.locales?.bundles['zh-CN'].species.pet_dilan).toMatchObject({ name: '迪兰' })
+    expect(content.locales?.bundles['zh-CN']).not.toHaveProperty('webui')
+    expect(content.locales?.bundles['zh-CN']).not.toHaveProperty('battle')
+    expect(content.species.find(pet => pet.id === 'pet_dilan')?.presentation?.battle?.source).toMatch(/^https:\/\//)
+    expect(content.skills.every(skill => !Object.hasOwn(skill, 'effect'))).toBe(true)
+    expect(content.marks.every(mark => !Object.hasOwn(mark, 'effect') && !Object.hasOwn(mark, 'config'))).toBe(true)
+    const builtin = app.environments.list().find(entry => !entry.packages.length)!
+    const official = app.environments.content(builtin.id)
+    expect(official.locales?.bundles['zh-CN'].species.pet_dilan).toMatchObject({ name: '迪兰' })
     const resource = first.resources.find(asset => asset.id === 'assets/icon.png')!
     const response = await fetch(`${base}${resource.url}`)
     expect(response.headers.get('cache-control')).toBe('no-store')

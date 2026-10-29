@@ -1,6 +1,9 @@
 import { expect, test, type Page, type Route } from 'playwright/test'
 
-const apiBase = 'http://localhost:8102/api/v1'
+function deployedApiBase(baseURL: string | undefined): string {
+  if (!baseURL) throw new Error('Account tests require a deployed site baseURL')
+  return new URL('/api/v1', baseURL).href
+}
 const serverInfo = {
   serverId: 'g3-browser-test',
   bootId: 'g3-boot',
@@ -23,7 +26,7 @@ function accountSession(profile: { id: string; name: string }) {
   }
 }
 
-async function mockAccountApi(page: Page, completedProfiles: { id: string; name: string }[]) {
+async function mockAccountApi(page: Page, completedProfiles: { id: string; name: string }[], apiBase: string) {
   await page.route(`${apiBase}/**`, route => {
     const request = route.request()
     const path = new URL(request.url()).pathname.replace('/api/v1', '')
@@ -49,9 +52,10 @@ async function mockAccountApi(page: Page, completedProfiles: { id: string; name:
   })
 }
 
-test('first-time email verification creates an account with a valid local profile', async ({ page }) => {
+test('first-time email verification creates an account with a valid local profile', async ({ page, baseURL }) => {
+  const apiBase = deployedApiBase(baseURL)
   const completedProfiles: { id: string; name: string }[] = []
-  await mockAccountApi(page, completedProfiles)
+  await mockAccountApi(page, completedProfiles, apiBase)
   await page.goto('/account')
   await expect(page.getByText('登录或创建服务器账号')).toBeVisible()
   await expect(page.getByRole('button', { name: '使用 GitHub 登录' })).toBeVisible()
@@ -67,9 +71,11 @@ test('first-time email verification creates an account with a valid local profil
 
 test('GitHub callback is scrubbed before delayed game assets load and uses an initialized profile', async ({
   page,
+  baseURL,
 }) => {
+  const apiBase = deployedApiBase(baseURL)
   const completedProfiles: { id: string; name: string }[] = []
-  await mockAccountApi(page, completedProfiles)
+  await mockAccountApi(page, completedProfiles, apiBase)
   await page.addInitScript(({ key, value }) => sessionStorage.setItem(key, JSON.stringify(value)), {
     key: `server-github:${encodeURIComponent(apiBase)}:${serverInfo.serverId}`,
     value: {

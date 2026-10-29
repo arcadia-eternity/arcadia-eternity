@@ -1633,6 +1633,8 @@ const contentName = (id: string, ns: string | string[]) =>
 const speciesOptions = computed(() => {
   const options = gameDataStore.speciesList.map(species => ({
     value: species.id,
+    id: species.id,
+    presentation: species.presentation,
     label: contentName(species.id, 'species'),
     num: species.num,
     element: species.element,

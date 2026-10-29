@@ -1,7 +1,8 @@
-import { createServer, type Server as HttpServer } from 'node:http'
+import { createServer, type Server as HttpServer, type IncomingMessage } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import express, { type Request, type Response, type NextFunction, type Express } from 'express'
 import cors from 'cors'
+import { mountPairedWebsite } from './website'
 import { Server } from 'socket.io'
 import { SessionRegistry, SessionError, readProfile, type AccountProvider } from './session'
 import { RoomRegistry, RoomError, object, type RoomOptions } from './rooms'
@@ -21,6 +22,11 @@ export interface G3AccountServices {
 export interface SingleProcessAppOptions extends RoomOptions {
   /** Explicit administrator-only source editing; this must never be enabled on a public listener. */
   development?: { directory: string; token: string }
+  /** Internal IPC-authorized desktop host; never set on a public listener. */
+  desktopLocal?: boolean
+  /** Omit for a headless host. Missing or incompatible website fails startup. */
+  webRoot?: string
+  publicOrigin?: string
   port?: number
   host?: string
   serverId?: string
@@ -65,8 +71,11 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
     options.accounts &&
     options.corsOrigins &&
     (new Set(options.corsOrigins).size !== options.corsOrigins.length ||
-      options.accounts.github.callbackOrigins.length !== options.corsOrigins.length ||
-      options.corsOrigins.some(origin => !options.accounts!.github.callbackOrigins.includes(origin)))
+      options.accounts.github.callbackOrigins.length !==
+        options.corsOrigins.filter(origin => origin !== 'arcadia-client://app').length ||
+      options.corsOrigins.some(
+        origin => origin !== 'arcadia-client://app' && !options.accounts!.github.callbackOrigins.includes(origin),
+      ))
   )
     throw new Error('G3 GitHub App callbacks must exactly match CORS origins')
   const port = options.port ?? 8102
@@ -81,17 +90,35 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   const app = express()
   app.disable('x-powered-by')
   app.disable('etag')
-  const allowed = options.corsOrigins ?? []
-  const origin = (value: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
-    callback(null, !value || allowed.includes('*') || allowed.includes(value))
+  if (options.desktopLocal && (host !== '127.0.0.1' || options.accounts || options.webRoot))
+    throw new Error('Desktop origin exception requires an isolated loopback host')
+  const allowed = [...(options.corsOrigins ?? ['arcadia-client://app'])]
+  if (options.publicOrigin && !allowed.includes(options.publicOrigin)) allowed.push(options.publicOrigin)
+  for (const value of allowed) {
+    if (value === 'arcadia-client://app' || (value === 'null' && options.desktopLocal)) continue
+    const parsed = new URL(value)
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== value)
+      throw new Error('CORS origins must be exact HTTP(S) origins or arcadia-client://app')
   }
-  app.use(
-    cors({
-      origin,
+  const acceptsOrigin = (req: Pick<IncomingMessage, 'headers'>): boolean => {
+    const value = req.headers.origin
+    if (!value) return true
+    if (allowed.includes(value)) return true
+    // A bundled website can call its own listener without an extra origin setting.
+    // Reverse proxies terminating TLS must configure PUBLIC_ORIGIN explicitly.
+    return !!options.webRoot && value === `http://${req.headers.host}`
+  }
+  const corsOptions = (
+    req: Pick<IncomingMessage, 'headers'>,
+    callback: (error: Error | null, options?: cors.CorsOptions) => void,
+  ) => {
+    callback(null, {
+      origin: acceptsOrigin(req),
       allowedHeaders: ['Authorization', 'Content-Type'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    }),
-  )
+    })
+  }
+  app.use(cors(corsOptions))
   if (development) app.use('/api/v1/development', express.json({ limit: '2mb', strict: true }))
   app.use(express.json({ limit: '32kb', strict: true }))
   app.use((_req, res, next) => {
@@ -100,12 +127,11 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
   })
   const httpServer = createServer(app)
   const io = new Server(httpServer, {
-    cors: { origin },
+    cors: corsOptions,
     maxHttpBufferSize: 128 * 1024,
     pingInterval: 10_000,
     pingTimeout: 20_000,
-    allowRequest: (req, callback) =>
-      origin(req.headers.origin, (error, accepted) => callback(error?.message ?? null, accepted ?? false)),
+    allowRequest: (req, callback) => callback(null, acceptsOrigin(req)),
   })
   const environments = new ServerEnvironmentRegistry()
   const rooms = new RoomRegistry(io, sessions, options, environments)
@@ -436,6 +462,10 @@ export function createSingleProcessApp(options: SingleProcessAppOptions = {}): S
       res.sendStatus(204)
     })
   }
+  if (options.webRoot) mountPairedWebsite(app, options.webRoot)
+  app.use((_req, res) => {
+    res.status(404).json({ code: 'NOT_FOUND' })
+  })
   app.use((error: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {
       next(error)

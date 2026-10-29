@@ -1,175 +1,137 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ActionState } from 'seer2-pet-animator'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PetSprite from '../PetSprite.vue'
-import { ensureRuffleRuntime } from '@/bootstrap/ruffle'
-
-vi.mock('@/bootstrap/ruffle', () => ({ ensureRuffleRuntime: vi.fn(async () => {}) }))
-vi.mock('seer2-pet-animator', () => ({ ActionState: { IDLE: 'idle' } }))
+import { setServerContentText } from '@/i18n/serverContent'
+import unknownPet from '@/assets/images/unknown-pet.svg'
+import { createSwfPlayer } from '@/services/swf/adapter'
+import { readResourceBytes } from '@/services/resourceTransport'
+const pending = vi.hoisted(() => ({
+  resolve: undefined as ((states: string[]) => void) | undefined,
+  reject: undefined as ((error: Error) => void) | undefined,
+  dispose: vi.fn(),
+}))
+vi.mock('seer2-pet-animator', () => ({ ActionState: { IDLE: '待机' } }))
+vi.mock('@/services/swf/adapter', () => ({
+  createSwfPlayer: vi.fn(() => ({
+    load: () =>
+      new Promise((yes, no) => {
+        pending.resolve = yes
+        pending.reject = no
+      }),
+    configure: vi.fn(),
+    dispose: pending.dispose,
+  })),
+}))
+vi.mock('@/services/resourceTransport', () => ({ readResourceBytes: vi.fn(async () => new Uint8Array([1, 2, 3])) }))
 vi.mock('@/services/petResourceCache', () => ({
   petResourceCache: { getPetSwfUrl: vi.fn(async () => '/pet.swf'), getRemotePetUrl: vi.fn(() => '/remote.swf') },
 }))
-
-class DelayedPetRenderer extends HTMLElement {
-  updateComplete = Promise.resolve(true)
-  finish!: () => void
-  fail!: (error: Error) => void
-  callbacksReady = new Promise<void>((resolve, reject) => {
-    this.finish = resolve
-    this.fail = reject
-  })
-  async getAvailableStates() {
-    await this.callbacksReady
-    return [ActionState.IDLE]
-  }
-}
-customElements.define('pet-render', DelayedPetRenderer)
-
-afterEach(() => {
-  vi.useRealTimers()
-  vi.unstubAllGlobals()
-  vi.restoreAllMocks()
+beforeEach(() => {
+  setServerContentText(null)
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(new Uint8Array([1, 2, 3]))),
+  )
+  vi.clearAllMocks()
 })
-
-describe('PetSprite readiness', () => {
-  it('waits for the animation runtime before connecting a renderer', async () => {
-    let finishRuntime!: () => void
-    vi.mocked(ensureRuffleRuntime).mockReturnValueOnce(
-      new Promise(resolve => {
-        finishRuntime = resolve
-      }),
-    )
+afterEach(() => {
+  setServerContentText(null)
+  vi.unstubAllGlobals()
+})
+describe('isolated PetSprite readiness', () => {
+  it('waits for bounded bytes and player readiness', async () => {
     const sprite = mount(PetSprite, { props: { num: 1 } })
-    try {
-      await flushPromises()
-      expect(sprite.find('pet-render').exists()).toBe(false)
-      finishRuntime()
-      await flushPromises()
-      const renderer = sprite.get('pet-render').element as DelayedPetRenderer
-      renderer.finish()
-      await sprite.vm.ready
-      await flushPromises()
-      expect(sprite.vm.availableState).toEqual([ActionState.IDLE])
-    } finally {
-      sprite.unmount()
-    }
+    await flushPromises()
+    const ready = vi.fn()
+    void sprite.vm.ready.then(ready)
+    expect(createSwfPlayer).toHaveBeenCalledOnce()
+    expect(ready).not.toHaveBeenCalled()
+    pending.resolve?.(['待机'])
+    await flushPromises()
+    expect(ready).toHaveBeenCalledOnce()
+    expect(sprite.vm.availableState).toEqual(['待机'])
+    sprite.unmount()
+    expect(pending.dispose).toHaveBeenCalled()
   })
-
-  it('keeps readiness pending until the renderer callbacks finish, even on a slow load', async () => {
-    vi.useFakeTimers()
-    const sprite = mount(PetSprite, { props: { num: 1 } })
-    try {
-      await flushPromises()
-      const ready = vi.fn()
-      void sprite.vm.ready.then(ready)
-      await vi.advanceTimersByTimeAsync(8000)
-      expect(ready).not.toHaveBeenCalled()
-      const renderer = sprite.get('pet-render').element as DelayedPetRenderer
-      renderer.finish()
-      await flushPromises()
-      expect(ready).toHaveBeenCalledOnce()
-      expect(sprite.vm.availableState).toEqual([ActionState.IDLE])
-    } finally {
-      sprite.unmount()
-    }
-  })
-
-  it('defers recovered SWF presentation and events until the battle task ends', async () => {
+  it('defers recovered states until the battle task ends', async () => {
     const sprite = mount(PetSprite, { props: { num: 1, allowRecovery: false } })
     await flushPromises()
-    const renderer = sprite.get('pet-render').element as DelayedPetRenderer
-    renderer.finish()
+    pending.resolve?.(['待机'])
     await flushPromises()
-    await sprite.vm.ready
     expect(sprite.vm.availableState).toEqual([])
-    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(true)
-    await sprite.get('pet-render').trigger('animationComplete', { detail: {} })
-    expect(sprite.emitted('animateComplete')).toBeUndefined()
     await sprite.setProps({ allowRecovery: true })
-    expect(sprite.vm.availableState).toEqual([ActionState.IDLE])
-    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(false)
+    expect(sprite.vm.availableState).toEqual(['待机'])
     sprite.unmount()
   })
-
-  it('uses only the portrait in image mode and never requests a SWF', async () => {
-    const { petResourceCache } = await import('@/services/petResourceCache')
-    vi.mocked(petResourceCache.getPetSwfUrl).mockClear()
-    vi.mocked(ensureRuffleRuntime).mockClear()
-    const sprite = mount(PetSprite, { props: { num: 1, imageOnly: true } })
-    await flushPromises()
-    expect(sprite.find('pet-render').exists()).toBe(false)
-    expect(petResourceCache.getPetSwfUrl).not.toHaveBeenCalled()
-    expect(ensureRuffleRuntime).not.toHaveBeenCalled()
-    await sprite.get('img').trigger('load')
-    await sprite.vm.ready
-    expect(sprite.vm.availableState).toEqual([])
-    sprite.unmount()
-  })
-
-  it('waits for the custom image load callback before becoming ready', async () => {
-    const sprite = mount(PetSprite, { props: { num: 0, imageUrl: '/custom.png' } })
-    try {
-      const ready = vi.fn()
-      void sprite.vm.ready.then(ready)
-      await flushPromises()
-      expect(ready).not.toHaveBeenCalled()
-      await sprite.get('img').trigger('load')
-      await flushPromises()
-      expect(ready).toHaveBeenCalledOnce()
-    } finally {
-      sprite.unmount()
-    }
-  })
-  it('rejects a failed image instead of reporting readiness', async () => {
-    const sprite = mount(PetSprite, { props: { num: 0, imageUrl: '/broken.png' } })
-    const failure = expect(sprite.vm.ready).rejects.toThrow('精灵图片加载失败')
-    await sprite.get('img').trigger('error')
-    await failure
-    sprite.unmount()
-  })
-
-  it('rejects a renderer failure instead of silently falling back to readiness', async () => {
-    const sprite = mount(PetSprite, { props: { num: 1 } })
-    await flushPromises()
-    const failure = expect(sprite.vm.ready).rejects.toThrow('broken SWF')
-    const renderer = sprite.get('pet-render').element as DelayedPetRenderer
-    renderer.fail(new Error('broken SWF'))
-    await flushPromises()
-    await failure
-    sprite.unmount()
-  })
-
-  it('ignores an old renderer callback after changing the source', async () => {
+  it('ignores readiness from a disposed source', async () => {
     const sprite = mount(PetSprite, { props: { num: 1, swfUrl: '/first.swf' } })
     await flushPromises()
-    const oldRenderer = sprite.get('pet-render').element as DelayedPetRenderer
+    const old = pending.resolve
     await sprite.setProps({ swfUrl: '/second.swf' })
     await flushPromises()
     const ready = vi.fn()
     void sprite.vm.ready.then(ready)
-    oldRenderer.finish()
+    old?.(['待机'])
     await flushPromises()
     expect(ready).not.toHaveBeenCalled()
-    const newRenderer = sprite.get('pet-render').element as DelayedPetRenderer
-    expect(newRenderer).not.toBe(oldRenderer)
-    newRenderer.finish()
+    pending.resolve?.(['待机'])
     await flushPromises()
     expect(ready).toHaveBeenCalledOnce()
     sprite.unmount()
   })
+  it('rejects a player failure', async () => {
+    const sprite = mount(PetSprite, { props: { num: 1 } })
+    await flushPromises()
+    const failed = expect(sprite.vm.ready).rejects.toThrow('broken SWF')
+    pending.reject?.(new Error('broken SWF'))
+    await failed
+    sprite.unmount()
+  })
+  it('image mode requests no SWF player or bytes', async () => {
+    const sprite = mount(PetSprite, { props: { num: 1, imageOnly: true } })
+    await flushPromises()
+    expect(createSwfPlayer).not.toHaveBeenCalled()
+    expect(readResourceBytes).not.toHaveBeenCalled()
+    await sprite.get('img').trigger('load')
+    await sprite.vm.ready
+    sprite.unmount()
+  })
+  it('clears recovered states after a live player failure', async () => {
+    const sprite = mount(PetSprite, { props: { num: 1 } })
+    await flushPromises()
+    pending.resolve?.(['待机'])
+    await flushPromises()
+    const callback = vi.mocked(createSwfPlayer).mock.calls[0]![1]
+    callback({ v: 1, instance: 'fixture', task: 1, seq: 2, type: 'error', message: 'renderer failed' })
+    await flushPromises()
+    expect(sprite.vm.availableState).toEqual([])
+    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(true)
+    await sprite.setProps({ allowRecovery: false })
+    await sprite.setProps({ allowRecovery: true })
+    expect(sprite.vm.availableState).toEqual([])
+    sprite.unmount()
+  })
+
+  it('uses server resource URL without desktop cache', async () => {
+    const sprite = mount(PetSprite, { props: { num: 1, uncached: true } })
+    await flushPromises()
+    expect(readResourceBytes).toHaveBeenCalledWith(
+      '/remote.swf',
+      expect.objectContaining({ maxBytes: 16 * 1024 * 1024 }),
+    )
+    sprite.unmount()
+  })
 })
 
-it('bypasses the existing desktop SWF cache in server environments', async () => {
-  const { petResourceCache } = await import('@/services/petResourceCache')
-  vi.mocked(petResourceCache.getPetSwfUrl).mockClear()
-  const request = vi.fn(async () => new Response('media'))
-  vi.stubGlobal('fetch', request)
-  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:uncached')
-  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+it('never loads a same-number official movie or portrait for remote missing optional media', async () => {
+  setServerContentText({ species: [], skills: [], marks: [] })
   const sprite = mount(PetSprite, { props: { num: 1, uncached: true } })
   await flushPromises()
-  expect(petResourceCache.getPetSwfUrl).not.toHaveBeenCalled()
-  expect(petResourceCache.getRemotePetUrl).toHaveBeenCalledWith(1)
-  expect(request).toHaveBeenCalledWith('/remote.swf', expect.objectContaining({ cache: 'no-store' }))
+  expect(createSwfPlayer).not.toHaveBeenCalled()
+  expect(readResourceBytes).not.toHaveBeenCalled()
+  expect(fetch).not.toHaveBeenCalled()
+  expect(sprite.get('img').attributes('src')).toBe(unknownPet)
+  await sprite.get('img').trigger('load')
+  await sprite.vm.ready
   sprite.unmount()
 })

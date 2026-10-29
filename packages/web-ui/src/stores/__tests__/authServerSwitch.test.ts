@@ -1,3 +1,8 @@
+vi.mock('@/bootstrap/deployment', () => ({
+  getBackendOrigin: () => 'http://localhost:8102',
+  canSelectBackend: () => true,
+  checkBackendSelection: () => {},
+}))
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { createApp } from 'vue'

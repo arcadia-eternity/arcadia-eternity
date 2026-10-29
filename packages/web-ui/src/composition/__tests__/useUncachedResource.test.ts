@@ -8,7 +8,12 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 it('loads only a mounted consumer, bypasses caches and releases its bytes on source change/unmount', async () => {
-  const fetcher = vi.fn(async () => new Response('media'))
+  const image = new Uint8Array(24)
+  image.set([137, 80, 78, 71], 0)
+  image.set([73, 72, 68, 82], 12)
+  new DataView(image.buffer).setUint32(16, 1)
+  new DataView(image.buffer).setUint32(20, 1)
+  const fetcher = vi.fn(async () => new Response(image))
   vi.stubGlobal('fetch', fetcher)
   const create = vi.spyOn(URL, 'createObjectURL').mockReturnValueOnce('blob:first').mockReturnValueOnce('blob:second')
   const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})

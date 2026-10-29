@@ -139,9 +139,15 @@ export const useBattleStore = defineStore('battle', {
     },
 
     // 使用服务器提供的战斗状态初始化战斗，避免额外的 getState 调用
-    async initBattleWithState(battleInterface: IBattleSystem, playerId: string, battleState: BattleState) {
+    async initBattleWithState(
+      battleInterface: IBattleSystem,
+      playerId: string,
+      battleState: BattleState,
+      isActive: () => boolean = () => true,
+    ) {
       const generation = ++this._initializationGeneration
-      const isCurrent = () => generation === this._initializationGeneration
+      const isCurrent = () => generation === this._initializationGeneration && isActive()
+      if (!isCurrent()) return
       // 清理旧的战斗事件监听器
       if (this._battleEventUnsubscribe) {
         console.log('🔄 Cleaning up previous battle event listener')

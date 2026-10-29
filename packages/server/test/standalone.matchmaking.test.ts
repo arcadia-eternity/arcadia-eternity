@@ -16,7 +16,7 @@ async function boot(options: SingleProcessAppOptions = {}) {
   const app = createSingleProcessApp({
     port: 0,
     host: '127.0.0.1',
-    corsOrigins: ['*'],
+    corsOrigins: [],
     cleanupIntervalMs: 20,
     ...options,
   })

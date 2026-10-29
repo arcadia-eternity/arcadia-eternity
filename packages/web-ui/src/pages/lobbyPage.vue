@@ -9,7 +9,7 @@
       <p class="text-sm text-gray-600 mt-1">
         当前地址：<span data-testid="current-server-address">{{ battleClientStore.serverUrl }}</span>
       </p>
-      <div class="flex flex-col sm:flex-row gap-2 mt-3">
+      <div v-if="canSelectBackend()" class="flex flex-col sm:flex-row gap-2 mt-3">
         <el-input
           v-model="serverAddress"
           :disabled="switchingServer"
@@ -24,7 +24,7 @@
           :loading="switchingServer"
           data-testid="connect-server-button"
           @click="connectServer"
-          >连接</el-button
+          >打开联机窗口</el-button
         >
         <el-button
           v-if="canStartLocalServer"
@@ -34,7 +34,9 @@
           >由本机托管联机对战</el-button
         >
       </div>
-      <p class="text-xs text-gray-500 mt-2">切换服务器会离开当前房间；如果对局正在进行，还会终止对局。</p>
+      <p v-if="canSelectBackend()" class="text-xs text-gray-500 mt-2">
+        远程服务器在独立联机窗口中打开。本机托管会离开当前房间；正在进行的对局也会终止。
+      </p>
       <p v-if="serverSwitchError" role="alert" class="text-sm text-red-700 mt-2">{{ serverSwitchError }}</p>
     </section>
 
@@ -248,6 +250,7 @@ import { useAuthStore } from '@/stores/auth'
 import { User, Monitor, Setting, FolderOpened, Collection, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { isDesktop } from '@/utils/env'
+import { canSelectBackend, authorizeLocalBackend } from '@/bootstrap/deployment'
 import RoomBattleOptions from '@/components/RoomBattleOptions.vue'
 import MatchmakingPanel from '@/components/MatchmakingPanel.vue'
 import { createDefaultRoomBattleOptions } from '@/utils/roomBattleOptions'
@@ -301,7 +304,8 @@ async function connectServer() {
   serverSwitchPending.value = true
   serverSwitchError.value = ''
   try {
-    if (await confirmServerSwitch()) await privateRoomStore.switchServer(address)
+    if (!window.arcadiaDesktop?.openRemotePlay) throw new Error('当前桌面版本不支持远程联机窗口')
+    await window.arcadiaDesktop.openRemotePlay({ url: address })
   } catch (error) {
     serverSwitchError.value = error instanceof Error ? error.message : String(error)
   } finally {
@@ -317,7 +321,10 @@ async function startLocalServer() {
     if (!(await confirmServerSwitch())) return
     const result = await window.arcadiaDesktop.selectAndStartLocalBattle()
     if (result.status === 'failed') throw new Error(result.message)
-    if (result.status === 'running') await privateRoomStore.switchServer(result.url)
+    if (result.status === 'running') {
+      await authorizeLocalBackend()
+      await privateRoomStore.switchServer(result.url)
+    }
   } catch (error) {
     serverSwitchError.value = error instanceof Error ? error.message : String(error)
   } finally {

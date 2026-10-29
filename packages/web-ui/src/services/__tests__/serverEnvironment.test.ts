@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { SpeciesSchema, SkillSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import { createHash } from 'node:crypto'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { environmentServerUrl, listServerEnvironments, prepareServerEnvironment } from '../serverEnvironment'
@@ -23,12 +24,13 @@ const descriptor: ServerEnvironmentDescriptor = {
     },
   ],
 }
+const { effect: _effect, ...skill } = parseWithErrors(SkillSchema, { id: 'sample:strike' })
 const content = {
-  species: [{ id: 'sample:pet', assetRef: 'icon' }],
-  skills: [{ id: 'sample:strike' }],
+  species: [parseWithErrors(SpeciesSchema, { id: 'sample:pet', assetRef: 'icon' })],
+  skills: [skill],
   marks: [],
 }
-const fake = (resource = bytes, displayed = content) =>
+const fake = (resource = bytes, displayed: unknown = content) =>
   vi.fn(async (input: string | URL | Request) => {
     const url = String(input)
     if (url.endsWith('/content')) return new Response(JSON.stringify(displayed), { status: 200 })
@@ -43,6 +45,7 @@ describe('server environment display readiness', () => {
     expect(await listServerEnvironments('https://server-a.test', request)).toEqual([descriptor])
     expect(await listServerEnvironments('https://server-b.test', request)).toEqual([descriptor])
     const result = await prepareServerEnvironment('https://server-a.test', descriptor, request)
+    expect(result.readiness).toEqual({ catalog: 'ready', compatibility: 'compatible', media: 'on-demand' })
     expect(result.acceptance).toEqual({
       environmentId: descriptor.id,
       protocolVersion: 1,
@@ -72,7 +75,8 @@ describe('server environment display readiness', () => {
       ...content,
       species: [
         {
-          id: 'sample:pet',
+          ...content.species[0],
+          assetRef: undefined,
           presentation: {
             icon: 'icon',
             portrait: 'icon',
@@ -96,13 +100,49 @@ describe('server environment display readiness', () => {
   })
   it('rejects undeclared UGC references while preserving official display references', async () => {
     for (const assetRef of ['https://external.test/image.png', '../unchecked.png', 'unknown']) {
-      const displayed = { ...content, species: [{ id: 'sample:pet', assetRef }] }
+      const displayed = { ...content, species: [{ ...content.species[0], assetRef }] }
       await expect(
         prepareServerEnvironment('https://server-a.test', descriptor, fake(bytes, displayed)),
       ).rejects.toThrow('内容资源未在服务器目录声明')
     }
-    const official = { ...content, species: [{ id: 'pet_official', assetRef: 'https://official.test/pet.png' }] }
+    const official = {
+      ...content,
+      species: [{ ...content.species[0], id: 'pet_official', assetRef: 'https://official.test/pet.png' }],
+    }
     const result = await prepareServerEnvironment('https://server-a.test', descriptor, fake(bytes, official))
     expect(result.content.species[0].assetRef).toBe('https://official.test/pet.png')
   })
+})
+
+it('rejects missing definitions, server effect payloads, unsupported renderers and UI locale overrides', async () => {
+  for (const invalid of [
+    { ...content, species: [{ ...content.species[0], baseStats: undefined }] },
+    { ...content, species: [content.species[0], content.species[0]] },
+    { ...content, skills: [{ ...skill, effect: ['remote-code'] }] },
+    {
+      ...content,
+      species: [{ ...content.species[0], learnable_skills: [{ skill_id: 'missing', level: 1, hidden: false }] }],
+    },
+    {
+      ...content,
+      species: [{ ...content.species[0], presentation: { battle: { renderer: 'third-party-js', source: 'icon' } } }],
+    },
+    {
+      ...content,
+      locales: { defaultLocale: 'zh-CN', bundles: { 'zh-CN': { webui: { login: { name: 'Override' } } } } },
+    },
+  ]) {
+    await expect(prepareServerEnvironment('https://server.test', descriptor, fake(bytes, invalid))).rejects.toThrow()
+  }
+})
+
+it('rejects non-HTTP core references and excessive metadata nesting before readiness', async () => {
+  for (const assetRef of ['javascript:alert(1)', 'file:///tmp/a.png', '/local-workspace.png']) {
+    const invalid = { ...content, species: [{ ...content.species[0], id: 'pet_core', assetRef }] }
+    await expect(prepareServerEnvironment('https://server.test', descriptor, fake(bytes, invalid))).rejects.toThrow()
+  }
+  let nested: unknown = 'value'
+  for (let index = 0; index < 18; index++) nested = { next: nested }
+  const invalid = { ...content, extra: nested }
+  await expect(prepareServerEnvironment('https://server.test', descriptor, fake(bytes, invalid))).rejects.toThrow()
 })

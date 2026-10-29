@@ -18,10 +18,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
-const defaultServerUrl =
-  import.meta.env.VITE_WS_URL ||
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '') ||
-  'http://localhost:8102'
+import { checkBackendSelection } from '@/bootstrap/deployment'
 
 export const useBattleClientStore = defineStore('battleClient', () => {
   const authStore = useAuthStore()
@@ -31,7 +28,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
   // 状态
   const _instance = shallowRef<BattleClient | null>(null)
-  const selectedServerUrl = ref(authStore.hasSelectedServer ? authStore.serverUrl : defaultServerUrl)
+  const selectedServerUrl = ref(authStore.serverUrl)
   const serverUrl = computed(() => _instance.value?.serverUrl ?? selectedServerUrl.value)
   const _pendingEventHandlers = ref(new Map<string, Set<(...args: unknown[]) => void>>())
   let connectionGeneration = 0
@@ -275,6 +272,7 @@ export const useBattleClientStore = defineStore('battleClient', () => {
 
   /** Replace the socket after the old room and auth scope have been released. */
   const replaceServer = (url: string) => {
+    checkBackendSelection(url)
     disconnect()
     _instance.value = null
     isInitialized.value = false

@@ -44,5 +44,6 @@ export interface ServerEnvironmentAcceptance {
   environmentId: string
   protocolVersion: 1
   resourceRevision: string
+  /** Legacy wire name: public catalog and core display compatibility are ready; media remains on-demand. */
   resourcesReady: boolean
 }

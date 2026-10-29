@@ -1,3 +1,5 @@
+import { isRemoteContentActive } from '@/i18n/serverContent'
+import { readResourceBytes } from '@/services/resourceTransport'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { Howl } from 'howler'
 import { useGameSettingStore } from '@/stores/gameSetting'
@@ -36,7 +38,7 @@ export function useSound(
   }
 
   function registerSkillSound(id: baseSkillId) {
-    if (gameDataStore.serverFallback) return
+    if (gameDataStore.serverFallback || isRemoteContentActive()) return
     const skill = gameDataStore.getSkill(id)
     const src = resolveSkillSfxUrl(skill, resourceStore.getSkillSound)
     const howlerInstance = ensureHowlInstance(src)
@@ -50,10 +52,10 @@ export function useSound(
   }
 
   const victorySoundSrc = officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/battle/ko.mp3`)
-  if (!gameDataStore.serverFallback) ensureHowlInstance(victorySoundSrc)
+  if (!gameDataStore.serverFallback && !isRemoteContentActive()) ensureHowlInstance(victorySoundSrc)
 
   const registerPetSounds = (spriteNums: number[] | undefined) => {
-    if (gameDataStore.serverFallback) return
+    if (gameDataStore.serverFallback || isRemoteContentActive()) return
     if (spriteNums) {
       for (const num of spriteNums) {
         // Unknown/hidden pets have no official numeric sound resource.
@@ -96,7 +98,7 @@ export function useSound(
 
   const activeMedia = new Set<() => void>()
   const playOnce = async (source: string) => {
-    if (selfMute.value) return
+    if (selfMute.value || !source) return
     const controller = new AbortController()
     let url: string | undefined
     let audio: HTMLAudioElement | undefined
@@ -108,9 +110,12 @@ export function useSound(
     }
     activeMedia.add(dispose)
     try {
-      const response = await fetch(source, { cache: 'no-store', credentials: 'omit', signal: controller.signal })
-      if (!response.ok) throw new Error(`音频加载失败 (${response.status})`)
-      const blob = await response.blob()
+      const bytes = await readResourceBytes(source, { signal: controller.signal, maxBytes: 16 * 1024 * 1024 })
+      const ogg = String.fromCharCode(...bytes.subarray(0, 4)) === 'OggS'
+      const mp3 =
+        String.fromCharCode(...bytes.subarray(0, 3)) === 'ID3' || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
+      if (!ogg && !mp3) throw new Error('不支持的音频格式')
+      const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: ogg ? 'audio/ogg' : 'audio/mpeg' })
       if (controller.signal.aborted) return
       url = URL.createObjectURL(blob)
       audio = new Audio(url)
@@ -123,7 +128,7 @@ export function useSound(
     }
   }
   const playSkillSound = (id: baseSkillId) => {
-    if (gameDataStore.serverFallback) {
+    if (gameDataStore.serverFallback || isRemoteContentActive()) {
       void playOnce(resolveSkillSfxUrl(gameDataStore.getSkill(id), resourceStore.getSkillSound))
       return
     }
@@ -136,6 +141,7 @@ export function useSound(
       void playOnce(cry)
       return
     }
+    if (isRemoteContentActive()) return
     if (gameDataStore.serverFallback) {
       if (petSpriteNum > 0)
         void playOnce(officialAssetUrl(`https://seer2-resource.yuuinih.com/sound/pet/${petSpriteNum}.mp3`))
@@ -160,6 +166,7 @@ export function useSound(
   })
 
   const playVictorySound = () => {
+    if (isRemoteContentActive()) return
     if (gameDataStore.serverFallback) {
       void playOnce(victorySoundSrc)
       return

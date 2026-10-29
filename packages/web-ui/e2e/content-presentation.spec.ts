@@ -7,10 +7,11 @@ import { createNpmFixture } from '../../server/test/fixtures/npm'
 
 test('a real npm environment renders media and reactive bilingual rich text without prefetch or cache reuse', async ({
   page,
+  baseURL,
 }) => {
   test.setTimeout(60_000)
   const fixture = await createNpmFixture({ presentation: true })
-  const server = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: ['*'] })
+  const server = createSingleProcessApp({ port: 0, host: '127.0.0.1', corsOrigins: [new URL(baseURL!).origin] })
   const harness = fileURLToPath(new URL('../test-results/content-presentation.html', import.meta.url))
   try {
     const environment = await server.environments.prepareNpm(fixture.directory)

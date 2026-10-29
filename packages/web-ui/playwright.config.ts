@@ -34,7 +34,7 @@ export default defineConfig({
   webServer: onlineMode
     ? [
         {
-          command: `pnpm --filter @arcadia-eternity/server... run build && pnpm --workspace-root cli server --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
+          command: `pnpm --filter @arcadia-eternity/server... run build && pnpm --workspace-root cli server --headless --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
           url: `http://${loopbackHost}:${onlineServerPort}/health`,
           reuseExistingServer: true,
           stdout: 'ignore',
@@ -42,7 +42,7 @@ export default defineConfig({
           timeout: 180_000,
         },
         {
-          command: `pnpm --filter @arcadia-eternity/web-ui run build:deps && VITE_WS_URL=http://${loopbackHost}:${onlineServerPort} VITE_API_BASE_URL=http://${loopbackHost}:${onlineServerPort}/api/v1${
+          command: `pnpm --filter @arcadia-eternity/web-ui run build:deps && VITE_BACKEND_ORIGIN=http://${loopbackHost}:${onlineServerPort}${
             onlineP2PTransport ? ` VITE_P2P_TRANSPORT=${onlineP2PTransport}` : ''
           } pnpm --filter @arcadia-eternity/web-ui exec vite --host ${loopbackHost} --port ${onlineWebPort} --strictPort`,
           url: `http://${loopbackHost}:${onlineWebPort}`,

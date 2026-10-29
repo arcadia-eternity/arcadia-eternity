@@ -7,7 +7,7 @@ import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadi
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType, Effect } from '@arcadia-eternity/schema'
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import YAML from 'yaml'
-import { getServerContentText, setServerContentText } from '@/i18n/serverContent'
+import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
 import { listWorkspacePacks, resolveWorkspaceFileUrl, type WorkspacePackSummary } from '@/services/packWorkspace'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 
@@ -71,11 +71,33 @@ interface GameDataState {
 interface LocalDisplayScope {
   previous: GameDataState
   previousText: ServerEnvironmentContent | null
+  previousRemote: boolean
   displayed: GameDataState['species']
   parent?: LocalDisplayScope
   released: boolean
 }
 const localDisplays = new WeakMap<object, LocalDisplayScope>()
+
+// Bootstrap and the mounted battle page share initialization. Display-scope changes
+// invalidate pending local commits even when the loader itself cannot be cancelled.
+const metadataScopes = new WeakMap<
+  object,
+  { generation: number; pending?: { ready: Promise<void>; cancel: () => void } }
+>()
+function metadataScope(store: object) {
+  let scope = metadataScopes.get(store)
+  if (!scope) {
+    scope = { generation: 0 }
+    metadataScopes.set(store, scope)
+  }
+  return scope
+}
+function invalidateMetadata(store: object) {
+  const scope = metadataScope(store)
+  scope.generation++
+  scope.pending?.cancel()
+  scope.pending = undefined
+}
 
 function emptyWorkspaceRuntime(): WorkspaceRuntimeState {
   return {
@@ -165,8 +187,16 @@ export const useGameDataStore = defineStore('gameData', {
       const current = localDisplays.get(this)
       const parent = current?.displayed === this.species ? current : undefined
       const previousText = getServerContentText()
-      this.applyServerEnvironment(content)
-      const scope: LocalDisplayScope = { previous, previousText, displayed: this.species, parent, released: false }
+      const previousRemote = isRemoteContentActive()
+      this.applyServerEnvironment(content, { remote: false })
+      const scope: LocalDisplayScope = {
+        previous,
+        previousText,
+        previousRemote,
+        displayed: this.species,
+        parent,
+        released: false,
+      }
       localDisplays.set(this, scope)
       return () => {
         if (scope.released) return
@@ -180,13 +210,14 @@ export const useGameDataStore = defineStore('gameData', {
         let restore = scope
         while (restore.parent?.released) restore = restore.parent
         this.$patch(state => Object.assign(state, restore.previous))
-        setServerContentText(restore.previousText)
+        setServerContentText(restore.previousText, restore.previousRemote)
         if (restore.parent) localDisplays.set(this, restore.parent)
         else localDisplays.delete(this)
       }
     },
 
     reset() {
+      invalidateMetadata(this)
       setServerContentText(null)
       this.loaded = false
       this.gameDataLoaded = false
@@ -201,10 +232,11 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     /** Server room data is display-only; no native effect factory is loaded in the browser. */
-    applyServerEnvironment(content: ServerEnvironmentContent) {
+    applyServerEnvironment(content: ServerEnvironmentContent, options: { remote?: boolean } = {}) {
       const species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
       const skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
       const marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
+      invalidateMetadata(this)
       const previous = this.serverFallback ?? {
         species: this.species,
         skills: this.skills,
@@ -226,13 +258,14 @@ export const useGameDataStore = defineStore('gameData', {
       this.gameDataLoaded = true
       this.error = null
       this.serverFallback = previous
-      setServerContentText(content)
+      setServerContentText(content, options.remote !== false)
     },
 
     clearServerEnvironment() {
-      setServerContentText(null)
       const previous = this.serverFallback
       if (!previous) return
+      invalidateMetadata(this)
+      setServerContentText(null)
       this.species = previous.species
       this.skills = previous.skills
       this.marks = previous.marks
@@ -245,48 +278,82 @@ export const useGameDataStore = defineStore('gameData', {
       this.serverFallback = null
     },
 
+    /** Store-owned readiness. Pages only consume this shared task; they never cancel it on unmount. */
     async initialize(options?: { forceReload?: boolean }) {
       const forceReload = options?.forceReload === true
       if (this.loaded && !forceReload) return
-      if (forceReload) {
-        this.reset()
-      }
-
-      const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
-      applyRuntimeAssetBase(packRef)
-
-      try {
-        if (isWorkspacePackRef(packRef)) {
-          const enabledPacks = await this.loadEnabledWorkspacePacks()
-          if (enabledPacks.length > 0) {
-            await this.initializeFromWorkspacePacks(enabledPacks)
-            this.loaded = true
-            this.gameDataLoaded = true
-            this.error = null
-            console.log('🎮 Game data store installed (workspace incremental mode)')
-            return
+      const scope = metadataScope(this)
+      if (!forceReload && scope.pending) return scope.pending.ready
+      if (forceReload) this.reset()
+      const generation = scope.generation
+      const isCurrent = () => scope.generation === generation
+      const work = (async () => {
+        try {
+          const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
+          if (!isCurrent()) return
+          applyRuntimeAssetBase(packRef)
+          if (isWorkspacePackRef(packRef)) {
+            const enabledPacks = await this.loadEnabledWorkspacePacks()
+            if (!isCurrent()) return
+            if (enabledPacks.length > 0) {
+              await this.initializeFromWorkspacePacks(enabledPacks, isCurrent)
+              if (!isCurrent()) return
+              this.loaded = true
+              this.gameDataLoaded = true
+              this.error = null
+              console.log('🎮 Game data store installed (workspace incremental mode)')
+              return
+            }
           }
+          await this.loadFromPackRef(packRef, isCurrent)
+          if (!isCurrent()) return
+          this.loaded = true
+          this.gameDataLoaded = true
+          this.error = null
+          console.log('🎮 Game data store installed')
+        } catch (error) {
+          if (!isCurrent()) return
+          this.error = error instanceof Error ? error.message : '未知错误'
+          this.loaded = false
+          this.gameDataLoaded = false
+          const isNetworkError =
+            error instanceof TypeError ||
+            String(error).includes('Failed to fetch') ||
+            String(error).includes('NetworkError')
+          if (isNetworkError) console.warn('游戏数据加载失败：服务器未响应，部分功能不可用')
+          else console.error('❌ Game data initialization failed:', error)
+          throw error
         }
+      })()
+      let cancel!: () => void
+      const cancelled = new Promise<void>((_resolve, reject) => {
+        cancel = () => reject(new DOMException('Game data scope changed', 'AbortError'))
+      })
+      const entry = { ready: Promise.race([work, cancelled]), cancel }
+      // Scope ownership may end before all consumers start awaiting readiness.
+      void entry.ready.catch(() => {})
+      scope.pending = entry
+      try {
+        await entry.ready
+      } finally {
+        if (scope.pending === entry) scope.pending = undefined
+      }
+    },
 
-        await this.loadFromPackRef(packRef)
-        this.loaded = true
-        this.gameDataLoaded = true
-        this.error = null
-        console.log('🎮 Game data store installed')
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '未知错误'
-        this.loaded = false
-        this.gameDataLoaded = false
-        const isNetworkError =
-          error instanceof TypeError ||
-          String(error).includes('Failed to fetch') ||
-          String(error).includes('NetworkError')
-        if (isNetworkError) {
-          console.warn('游戏数据加载失败：服务器未响应，部分功能不可用')
-        } else {
-          console.error('❌ Game data initialization failed:', error)
+    /** Consumers follow a scope replacement; only this store owns cancellation. */
+    async whenReady(): Promise<void> {
+      for (;;) {
+        const generation = metadataScope(this).generation
+        try {
+          await this.initialize()
+          return
+        } catch (error) {
+          if (
+            !(error instanceof DOMException && error.name === 'AbortError') ||
+            metadataScope(this).generation === generation
+          )
+            throw error
         }
-        throw error
       }
     },
 
@@ -295,6 +362,8 @@ export const useGameDataStore = defineStore('gameData', {
     },
 
     async applyWorkspacePackToggle(input: { folderName: string; enabled: boolean }) {
+      const generation = metadataScope(this).generation
+      const isCurrent = () => metadataScope(this).generation === generation
       if (!this.loaded) {
         await this.initialize({ forceReload: true })
         return
@@ -306,6 +375,7 @@ export const useGameDataStore = defineStore('gameData', {
       }
 
       const enabledPacks = await this.loadEnabledWorkspacePacks()
+      if (!isCurrent()) return
       if (enabledPacks.length === 0) {
         await this.reload()
         return
@@ -328,6 +398,7 @@ export const useGameDataStore = defineStore('gameData', {
         }
       }
 
+      if (!isCurrent()) return
       this.workspaceRuntime = {
         active: true,
         order: nextOrder,
@@ -352,12 +423,15 @@ export const useGameDataStore = defineStore('gameData', {
       return enabledPacks
     },
 
-    async initializeFromWorkspacePacks(enabledPacks: WorkspacePackSummary[]) {
+    async initializeFromWorkspacePacks(enabledPacks: WorkspacePackSummary[], current?: () => boolean) {
+      const generation = metadataScope(this).generation
+      const isCurrent = current ?? (() => metadataScope(this).generation === generation)
       const layers: Record<string, WorkspaceGameDataLayer> = {}
       for (const pack of enabledPacks) {
         layers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName)
       }
 
+      if (!isCurrent()) return
       this.workspaceRuntime = {
         active: true,
         order: enabledPacks.map(pack => pack.folderName),
@@ -416,12 +490,15 @@ export const useGameDataStore = defineStore('gameData', {
       }
     },
 
-    async loadFromPackRef(packRef: string) {
+    async loadFromPackRef(packRef: string, current?: () => boolean) {
+      const generation = metadataScope(this).generation
+      const isCurrent = current ?? (() => metadataScope(this).generation === generation)
       const loader = createMetadataLoader()
       const result = await loader.loadMetadata(packRef, {
         source: 'http',
         enforceLockfile: true,
       })
+      if (!isCurrent()) return
       this.species = this.normalizeData(result.data.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
       this.skills = this.normalizeData(result.data.skills.map(raw => parseWithErrors(SkillSchema, raw)))
       this.marks = this.normalizeData(result.data.marks.map(raw => parseWithErrors(MarkSchema, raw)))
