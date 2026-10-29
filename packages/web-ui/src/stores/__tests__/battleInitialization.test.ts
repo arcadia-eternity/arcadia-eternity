@@ -91,3 +91,25 @@ it('a rejected action from a disposed battle cannot read or alter the next battl
   expect(store.waitingForResponse).toBe(true)
   expect(store.errorMessage).toBe('new battle message')
 })
+
+it('a reconnect snapshot action rejection cannot mutate a battle after its room scope is cancelled', async () => {
+  const store = useBattleStore(),
+    old = system()
+  let reject!: (error: Error) => void
+  vi.mocked(old.getAvailableSelection).mockReturnValue(
+    new Promise((_resolve, fail) => {
+      reject = fail
+    }),
+  )
+  let current = true
+  const restoring = store.initBattleWithState(old, 'old', state(1), () => current)
+  await vi.waitFor(() => expect(old.getAvailableSelection).toHaveBeenCalledOnce())
+  current = false
+  store.waitingForResponse = true
+  store.errorMessage = 'current scope message'
+  reject(new Error('NOT_IN_BATTLE'))
+  await restoring
+  expect(store.isBattleEnd).toBe(false)
+  expect(store.waitingForResponse).toBe(true)
+  expect(store.errorMessage).toBe('current scope message')
+})

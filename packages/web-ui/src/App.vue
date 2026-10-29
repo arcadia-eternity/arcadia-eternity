@@ -504,6 +504,14 @@ const setupBattleReconnectHandler = () => {
 
     try {
       if (data.fullBattleState) {
+        const restored = await privateRoomStore.restoreServerBattle(
+          data.roomId,
+          data.fullBattleState as unknown as BattleState,
+          () => needsOnlineConnection.value,
+        )
+        if (restored || !needsOnlineConnection.value) return
+        if (router.currentRoute.value.query.privateRoom === 'true')
+          throw new Error('无法恢复房间对战内容，请返回房间重试')
         if (router.currentRoute.value.path === '/battle') {
           // 如果已经在战斗页面，复用现有的battleInterface或创建新的
           if (battleStore.battleInterface) {
@@ -593,8 +601,8 @@ async function connectOnlineRoute() {
     isConnected: () => battleClientStore.isConnected,
     isOnlineRoute: () => needsOnlineConnection.value,
     connect: () => battleClientStore.connect(),
-    checkCurrentRoom: () => privateRoomStore.checkCurrentRoom(),
-    resumeActiveBattle: () => privateRoomStore.resumeActiveBattle(),
+    checkCurrentRoom: () => privateRoomStore.checkCurrentRoom(() => needsOnlineConnection.value),
+    resumeActiveBattle: () => privateRoomStore.resumeActiveBattle(undefined, () => needsOnlineConnection.value),
   })
   try {
     await onlineConnection
@@ -625,7 +633,7 @@ onMounted(async () => {
       phase: 'data-ready',
       order: 1,
       run: async () => {
-        await Promise.all([resourceStore.initialize(), dataStore.initialize()])
+        await Promise.all([resourceStore.whenReady(), dataStore.whenReady()])
       },
     })
     bootstrap.register({

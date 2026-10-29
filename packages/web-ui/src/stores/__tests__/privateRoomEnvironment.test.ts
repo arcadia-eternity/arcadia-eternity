@@ -4,7 +4,21 @@ import { reactive, nextTick } from 'vue'
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
-  battle: { initBattle: vi.fn(), resetBattleWithoutSurrender: vi.fn() },
+  route: { path: '/', query: {} as Record<string, string>, name: 'Lobby' },
+  battle: {
+    initBattle: vi.fn(),
+    initBattleWithState: vi.fn(),
+    resetBattleWithoutSurrender: vi.fn(),
+    battleInterface: null as unknown,
+    _initializationGeneration: 0,
+    playerId: 'host',
+    fetchAvailableSelection: vi.fn(),
+    battleState: null as unknown,
+    availableActions: [] as unknown[],
+    lastProcessedSequenceId: -1,
+    waitingForResponse: false,
+    errorMessage: null as string | null,
+  },
   client: {
     _instance: {},
     currentState: { matchmaking: 'idle' },
@@ -40,7 +54,7 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
 }))
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ currentRoute: { value: { path: '/', query: {} } }, push: mocks.push }),
+  useRouter: () => ({ currentRoute: { value: mocks.route }, push: mocks.push }),
 }))
 vi.mock('@/stores/battleClient', async () => {
   const { reactive } = await import('vue')
@@ -62,6 +76,10 @@ import { usePrivateRoomStore } from '../privateRoom'
 beforeEach(() => {
   vi.clearAllMocks()
   setActivePinia(createPinia())
+  Object.assign(mocks.route, { path: '/', query: {}, name: 'Lobby' })
+  mocks.battle.battleInterface = null
+  mocks.battle._initializationGeneration = 0
+  mocks.battle.fetchAvailableSelection.mockReset().mockResolvedValue([])
   reactive(mocks.client).serverUrl = 'https://server-a.test'
   mocks.auth.serverUrl = 'https://server-a.test'
   mocks.auth.serverGeneration = 0
@@ -311,7 +329,7 @@ for (const fails of [false, true]) {
     } as typeof store.currentRoom
     const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
     const old = handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'battle-a' } })
-    expect(mocks.battle.initBattle).toHaveBeenCalledOnce()
+    await vi.waitFor(() => expect(mocks.battle.initBattle).toHaveBeenCalledOnce())
     const isCurrent = mocks.battle.initBattle.mock.calls[0][2]
     expect(isCurrent()).toBe(true)
     await store.switchServer('https://server-b.test')
@@ -404,4 +422,136 @@ it('cancels the old matchmaking queue before switching servers', async () => {
     mocks.client.disconnect.mock.invocationCallOrder[0],
   )
   mocks.client.currentState.matchmaking = 'idle'
+})
+
+it('does not initialize or route a recovered server battle before the shared room catalog is accepted', async () => {
+  const store = usePrivateRoomStore()
+  store.currentRoom = {
+    config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
+    status: 'started',
+    players: [{ playerId: 'host', sessionId: 'host-session' }],
+    spectators: [],
+    battleRoomId: 'recovered-battle',
+    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
+  } as typeof store.currentRoom
+  let finish!: (value: unknown) => void
+  mocks.prepare.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
+  const restoring = handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'recovered-battle' } })
+  await vi.waitFor(() => expect(mocks.prepare).toHaveBeenCalledOnce())
+  expect(mocks.battle.initBattle).not.toHaveBeenCalled()
+  expect(mocks.push).not.toHaveBeenCalled()
+  finish({ content: { species: [], skills: [], marks: [] }, acceptance: {} })
+  await restoring
+  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledOnce()
+  expect(mocks.gameData.applyServerEnvironment.mock.invocationCallOrder[0]).toBeLessThan(
+    mocks.battle.initBattle.mock.invocationCallOrder[0],
+  )
+})
+
+it('restores a reconnect snapshot only after the shared server environment is ready', async () => {
+  const store = usePrivateRoomStore()
+  store.currentRoom = {
+    config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
+    status: 'started',
+    players: [{ playerId: 'host', sessionId: 'host-session' }],
+    spectators: [],
+    battleRoomId: 'recovered-battle',
+    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
+  } as typeof store.currentRoom
+  let finish!: (value: unknown) => void
+  mocks.prepare.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const state = { status: 'On', sequenceId: 5 } as import('@arcadia-eternity/const').BattleState
+  const restoring = store.restoreServerBattle('recovered-battle', state, () => true)
+  await vi.waitFor(() => expect(mocks.prepare).toHaveBeenCalledOnce())
+  expect(mocks.battle.initBattleWithState).not.toHaveBeenCalled()
+  finish({ content: { species: [], skills: [], marks: [] }, acceptance: {} })
+  await restoring
+  expect(mocks.battle.initBattleWithState).toHaveBeenCalledWith(expect.anything(), 'host', state, expect.any(Function))
+  expect(mocks.gameData.applyServerEnvironment.mock.invocationCallOrder[0]).toBeLessThan(
+    mocks.battle.initBattleWithState.mock.invocationCallOrder[0],
+  )
+})
+
+it('does not apply a late reconnect catalog or redirect after navigating to a local page', async () => {
+  const store = usePrivateRoomStore()
+  store.currentRoom = {
+    config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
+    status: 'started',
+    players: [{ playerId: 'host', sessionId: 'host-session' }],
+    spectators: [],
+    battleRoomId: 'recovered-battle',
+    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
+  } as typeof store.currentRoom
+  let finish!: (value: unknown) => void
+  let online = true
+  mocks.prepare.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const restoring = store.restoreServerBattle(
+    'recovered-battle',
+    { status: 'On' } as import('@arcadia-eternity/const').BattleState,
+    () => online,
+  )
+  await vi.waitFor(() => expect(mocks.prepare).toHaveBeenCalledOnce())
+  online = false
+  finish({ content: { species: [], skills: [], marks: [] }, acceptance: {} })
+  await restoring
+  expect(mocks.gameData.applyServerEnvironment).not.toHaveBeenCalled()
+  expect(mocks.battle.initBattleWithState).not.toHaveBeenCalled()
+  expect(mocks.push).not.toHaveBeenCalled()
+})
+
+it('fences the available-action recovery call against a newer room, interface and local navigation', async () => {
+  const store = usePrivateRoomStore()
+  store.currentRoom = {
+    config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
+    status: 'started',
+    players: [{ playerId: 'host', sessionId: 'host-session' }],
+    spectators: [],
+    battleRoomId: 'recovered-battle',
+    environment: { id: 'recovered-env', resourceRevision: 'r', packages: [] },
+  } as typeof store.currentRoom
+  mocks.route.name = 'Battle'
+  mocks.battle.battleInterface = {}
+  mocks.prepare.mockResolvedValueOnce({ content: { species: [], skills: [], marks: [] }, acceptance: {} })
+  let rejectOld!: (error: Error) => void
+  mocks.battle.fetchAvailableSelection.mockImplementationOnce(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectOld = reject
+      }),
+  )
+  let online = true
+  const restoring = store.restoreServerBattle(
+    'recovered-battle',
+    { status: 'On' } as import('@arcadia-eternity/const').BattleState,
+    () => online,
+  )
+  await vi.waitFor(() => expect(mocks.battle.fetchAvailableSelection).toHaveBeenCalledOnce())
+  const guard = mocks.battle.fetchAvailableSelection.mock.calls[0][0]
+  expect(typeof guard).toBe('function')
+  expect(guard()).toBe(true)
+  online = false
+  mocks.battle.battleInterface = {}
+  mocks.battle.waitingForResponse = true
+  mocks.battle.errorMessage = 'new scope message'
+  rejectOld(new Error('NOT_IN_BATTLE'))
+  await restoring
+  expect(guard()).toBe(false)
+  expect(mocks.battle.waitingForResponse).toBe(true)
+  expect(mocks.battle.errorMessage).toBe('new scope message')
 })

@@ -112,6 +112,27 @@ function isWorkspacePackRef(packRef: string): boolean {
   }
 }
 
+// Bootstrap and battle consumers share work owned by this store. Scope changes
+// fence late loader results even when the underlying metadata request cannot stop.
+const resourceScopes = new WeakMap<
+  object,
+  { generation: number; pending?: { ready: Promise<void>; cancel: () => void } }
+>()
+function resourceScope(store: object) {
+  let scope = resourceScopes.get(store)
+  if (!scope) {
+    scope = { generation: 0 }
+    resourceScopes.set(store, scope)
+  }
+  return scope
+}
+function invalidateResourceScope(store: object) {
+  const scope = resourceScope(store)
+  scope.generation++
+  scope.pending?.cancel()
+  scope.pending = undefined
+}
+
 export const useResourceStore = defineStore('Resource', {
   state: (): ResourceState => ({
     loaded: false,
@@ -190,6 +211,7 @@ export const useResourceStore = defineStore('Resource', {
 
   actions: {
     reset() {
+      invalidateResourceScope(this)
       this.loaded = false
       this.error = null
       this.markImage = { byId: {}, allIds: [] }
@@ -204,82 +226,123 @@ export const useResourceStore = defineStore('Resource', {
     async initialize(options?: { forceReload?: boolean }) {
       const forceReload = options?.forceReload === true
       if (this.loaded && !forceReload) return
-      if (forceReload) {
-        this.reset()
-      }
+      const scope = resourceScope(this)
+      if (!forceReload && scope.pending) return scope.pending.ready
+      if (forceReload) this.reset()
+      const generation = scope.generation
+      const isCurrent = () => scope.generation === generation
+      const work = (async () => {
+        try {
+          const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
+          if (!isCurrent()) return
+          applyRuntimeAssetBase(packRef)
+          const loader = new GameDataLoader({
+            devBasePath: '/resource',
+            prodBaseUrl: import.meta.env.VITE_API_BASE || '/resource',
+          })
+          const packLoader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
 
-      const packRef = await resolveRuntimePackRef({ forceRefresh: forceReload })
-      applyRuntimeAssetBase(packRef)
-      const loader = new GameDataLoader({
-        devBasePath: '/resource',
-        prodBaseUrl: import.meta.env.VITE_API_BASE || '/resource',
-      })
-      const packLoader = new NativePackLoader(nativeBuildIdentity, createOfficialContent)
+          const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound, rawPetSwf] = await Promise.all([
+            this.loadMarkImage(loader),
+            this.loadBackGround(loader),
+            this.loadMusic(loader),
+            this.loadSkillSound(loader),
+            this.loadPetSwf(loader),
+          ])
 
-      try {
-        const [rawMarkImage, rawBackGround, rawMusic, rawSkillSound, rawPetSwf] = await Promise.all([
-          this.loadMarkImage(loader),
-          this.loadBackGround(loader),
-          this.loadMusic(loader),
-          this.loadSkillSound(loader),
-          this.loadPetSwf(loader),
-        ])
-
-        const baseLayer: ResourceLayer = {
-          markImage: this.toStringRecord(rawMarkImage),
-          background: this.toStringRecord(rawBackGround),
-          music: this.toStringRecord(rawMusic),
-          skillSound: this.toStringRecord(rawSkillSound),
-          petSwf: this.toStringRecord(rawPetSwf),
-          petSound: {},
-        }
-
-        if (isWorkspacePackRef(packRef)) {
-          const enabledPacks = await this.loadEnabledWorkspacePacks()
-          if (enabledPacks.length > 0) {
-            await this.initializeFromWorkspacePacks(enabledPacks, baseLayer, packLoader)
-            this.loaded = true
-            this.error = null
-            console.log('📁 Resource store installed (workspace incremental mode)')
-            return
+          if (!isCurrent()) return
+          const baseLayer: ResourceLayer = {
+            markImage: this.toStringRecord(rawMarkImage),
+            background: this.toStringRecord(rawBackGround),
+            music: this.toStringRecord(rawMusic),
+            skillSound: this.toStringRecord(rawSkillSound),
+            petSwf: this.toStringRecord(rawPetSwf),
+            petSound: {},
           }
+
+          if (isWorkspacePackRef(packRef)) {
+            const enabledPacks = await this.loadEnabledWorkspacePacks()
+            if (!isCurrent()) return
+            if (enabledPacks.length > 0) {
+              await this.initializeFromWorkspacePacks(enabledPacks, baseLayer, packLoader, isCurrent)
+              if (!isCurrent()) return
+              this.loaded = true
+              this.error = null
+              console.log('📁 Resource store installed (workspace incremental mode)')
+              return
+            }
+          }
+
+          const packResult = await packLoader.loadMetadata(packRef, {
+            source: 'http',
+            enforceLockfile: false,
+          })
+
+          if (!isCurrent()) return
+          if ((packResult.assetConflicts?.length ?? 0) > 0) {
+            console.warn('Asset conflicts detected while loading pack resources', packResult.assetConflicts)
+          }
+          if ((packResult.lockfileIssues?.length ?? 0) > 0) {
+            console.warn('Pack lockfile issues detected while loading resources', packResult.lockfileIssues)
+          }
+
+          const merged = cloneLayer(baseLayer)
+          mergeLayer(merged, this.buildAssetLayer(packResult.assets ?? []))
+
+          this.workspaceRuntime = emptyWorkspaceRuntime()
+          this.applyLayerToState(merged)
+          this.validateDataIntegrity()
+
+          this.loaded = true
+          this.error = null
+          console.log('📁 Resource store installed')
+        } catch (error) {
+          if (!isCurrent()) return
+          this.error = error instanceof Error ? error.message : '未知错误'
+          this.loaded = false
+          const isNetworkError =
+            error instanceof TypeError ||
+            String(error).includes('Failed to fetch') ||
+            String(error).includes('NetworkError')
+          if (isNetworkError) {
+            console.warn('资源加载失败：服务器未响应，部分功能不可用')
+          } else {
+            console.error('❌ Resource initialization failed:', error)
+          }
+          throw error
         }
+      })()
+      let cancel!: () => void
+      const cancelled = new Promise<void>((_resolve, reject) => {
+        cancel = () => reject(new DOMException('Resource scope changed', 'AbortError'))
+      })
+      const entry = { ready: Promise.race([work, cancelled]), cancel }
+      void entry.ready.catch(() => {})
+      scope.pending = entry
+      try {
+        await entry.ready
+      } finally {
+        if (scope.pending === entry) scope.pending = undefined
+      }
+    },
 
-        const packResult = await packLoader.loadMetadata(packRef, {
-          source: 'http',
-          enforceLockfile: false,
-        })
-
-        if ((packResult.assetConflicts?.length ?? 0) > 0) {
-          console.warn('Asset conflicts detected while loading pack resources', packResult.assetConflicts)
+    /** Consumers follow scope replacements; only this store owns cancellation. */
+    async whenReady(): Promise<void> {
+      for (;;) {
+        const generation = resourceScope(this).generation
+        try {
+          await this.initialize()
+          return
+        } catch (error) {
+          if (
+            !(
+              error instanceof DOMException &&
+              error.name === 'AbortError' &&
+              resourceScope(this).generation !== generation
+            )
+          )
+            throw error
         }
-        if ((packResult.lockfileIssues?.length ?? 0) > 0) {
-          console.warn('Pack lockfile issues detected while loading resources', packResult.lockfileIssues)
-        }
-
-        const merged = cloneLayer(baseLayer)
-        mergeLayer(merged, this.buildAssetLayer(packResult.assets ?? []))
-
-        this.workspaceRuntime = emptyWorkspaceRuntime()
-        this.applyLayerToState(merged)
-        this.validateDataIntegrity()
-
-        this.loaded = true
-        this.error = null
-        console.log('📁 Resource store installed')
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : '未知错误'
-        this.loaded = false
-        const isNetworkError =
-          error instanceof TypeError ||
-          String(error).includes('Failed to fetch') ||
-          String(error).includes('NetworkError')
-        if (isNetworkError) {
-          console.warn('资源加载失败：服务器未响应，部分功能不可用')
-        } else {
-          console.error('❌ Resource initialization failed:', error)
-        }
-        throw error
       }
     },
 
@@ -288,6 +351,8 @@ export const useResourceStore = defineStore('Resource', {
     },
 
     async applyWorkspacePackToggle(input: { folderName: string; enabled: boolean }) {
+      const generation = resourceScope(this).generation
+      const isCurrent = () => resourceScope(this).generation === generation
       if (!this.loaded) {
         await this.initialize({ forceReload: true })
         return
@@ -299,6 +364,7 @@ export const useResourceStore = defineStore('Resource', {
       }
 
       const enabledPacks = await this.loadEnabledWorkspacePacks()
+      if (!isCurrent()) return
       if (enabledPacks.length === 0) {
         await this.reload()
         return
@@ -319,6 +385,7 @@ export const useResourceStore = defineStore('Resource', {
         const isTarget = normalizeFolderName(pack.folderName) === targetFolder
         if (!nextLayers[pack.folderName] || (input.enabled && isTarget)) {
           nextLayers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName, packLoader)
+          if (!isCurrent()) return
         }
       }
 
@@ -351,10 +418,14 @@ export const useResourceStore = defineStore('Resource', {
       enabledPacks: WorkspacePackSummary[],
       baseLayer: ResourceLayer,
       packLoader: NativePackLoader,
+      current?: () => boolean,
     ) {
+      const generation = resourceScope(this).generation
+      const isCurrent = current ?? (() => resourceScope(this).generation === generation)
       const layers: Record<string, ResourceLayer> = {}
       for (const pack of enabledPacks) {
         layers[pack.folderName] = await this.loadWorkspaceLayer(pack.folderName, packLoader)
+        if (!isCurrent()) return
       }
 
       this.workspaceRuntime = {

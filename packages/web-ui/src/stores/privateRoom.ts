@@ -5,7 +5,7 @@ import { useBattleClientStore } from './battleClient'
 import { useAuthStore } from './auth'
 import { usePlayerStore } from './player'
 import { usePetStorageStore } from './petStorage'
-import { DEFAULT_TIMER_CONFIG, BattleMessageType, type playerId } from '@arcadia-eternity/const'
+import { DEFAULT_TIMER_CONFIG, BattleMessageType, type BattleState, type playerId } from '@arcadia-eternity/const'
 import type {
   CreatePrivateRoomRequest,
   PrivateRoomBattleStartInfo,
@@ -251,7 +251,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       assertServerScope(scope)
     })
 
-  const roomEnvironment = async (): Promise<ServerEnvironmentAcceptance | undefined> => {
+  const roomEnvironment = async (
+    isCurrent: () => boolean = () => true,
+  ): Promise<ServerEnvironmentAcceptance | undefined> => {
+    if (!isCurrent()) throw new DOMException('Room recovery cancelled', 'AbortError')
     ++matchmakingEnvironmentGeneration
     const room = currentRoom.value
     const descriptor = room?.environment
@@ -281,6 +284,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     const activeKey =
       active && `${serverScope()}|${authStore.serverInfo?.bootId ?? ''}|${active.id}|${active.resourceRevision}`
     if (activeKey !== key || preparedEnvironment !== entry) throw new Error('房间环境已变化，请重新准备')
+    if (!isCurrent()) throw new DOMException('Room recovery cancelled', 'AbortError')
     gameDataStore.applyServerEnvironment(prepared.content)
     return prepared.acceptance
   }
@@ -1053,7 +1057,9 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   const initializeBattleStarted = async (
     battleStartInfo: PrivateRoomBattleStartInfo,
     isCurrent: () => boolean,
+    recoveredState?: BattleState,
   ): Promise<boolean> => {
+    let environmentReady = false
     try {
       if (currentRoom.value && battleStartInfo.battleMode === 'p2p') {
         const roomCode = currentRoom.value.config.roomCode
@@ -1095,6 +1101,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         throw new Error(`battleRoomId missing for private room battle start (${battleStartInfo.battleMode})`)
       }
 
+      await roomEnvironment(isCurrent)
+      if (!isCurrent()) return false
+      environmentReady = true
+
       const client = battleClientStore._instance as unknown as BattleClient
       if (!client) {
         throw new Error('BattleClient instance not available')
@@ -1112,10 +1122,17 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       }
 
       const battleStore = useBattleStore()
-      await battleStore.initBattle(new RemoteBattleSystem(client), battleClientStore.playerId, isCurrent)
+      if (recoveredState)
+        await battleStore.initBattleWithState(
+          new RemoteBattleSystem(client),
+          battleClientStore.playerId,
+          recoveredState,
+          isCurrent,
+        )
+      else await battleStore.initBattle(new RemoteBattleSystem(client), battleClientStore.playerId, isCurrent)
       if (!isCurrent()) return false
 
-      if (isSwitchingServer.value) return false
+      if (isSwitchingServer.value || !environmentReady) return false
       await router.push({
         path: '/battle',
         query: {
@@ -1150,7 +1167,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         return false
       }
 
-      if (isSwitchingServer.value) return false
+      if (isSwitchingServer.value || !environmentReady) return false
       await router.push({
         path: '/battle',
         query: {
@@ -1164,7 +1181,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const handleBattleStarted = async (battleStartInfo: PrivateRoomBattleStartInfo): Promise<void> => {
+  const handleBattleStarted = async (
+    battleStartInfo: PrivateRoomBattleStartInfo,
+    recoveredState?: BattleState,
+    shouldResume: () => boolean = () => true,
+  ): Promise<void> => {
     if (isSwitchingServer.value || !currentRoom.value) return
     const roomId = battleStartInfo.battleRoomId ?? currentRoom.value?.battleRoomId ?? ''
     if (battleStartInFlight?.roomId === roomId) {
@@ -1176,8 +1197,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     const scope = serverScope()
     const roomCode = currentRoom.value.config.roomCode
     const isCurrent = () =>
-      generation === battleStartGeneration && scope === serverScope() && currentRoom.value?.config.roomCode === roomCode
-    const task = initializeBattleStarted(battleStartInfo, isCurrent)
+      generation === battleStartGeneration &&
+      scope === serverScope() &&
+      currentRoom.value?.config.roomCode === roomCode &&
+      shouldResume()
+    const task = initializeBattleStarted(battleStartInfo, isCurrent, recoveredState)
     battleStartInFlight = { roomId, task }
     try {
       if ((await task) && isCurrent() && roomId) initializedBattleRoomId = roomId
@@ -1186,7 +1210,10 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
   }
 
-  const resumeActiveBattle = async (): Promise<void> => {
+  const resumeActiveBattle = async (
+    recoveredState?: BattleState,
+    shouldResume: () => boolean = () => true,
+  ): Promise<void> => {
     if (!currentRoom.value || currentRoom.value.status !== 'started') {
       return
     }
@@ -1199,10 +1226,47 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     const battleStore = useBattleStore()
     const currentRoute = router.currentRoute.value
     if (currentRoute.name === 'Battle' && battleStore.battleInterface) {
+      const scope = serverScope(),
+        roomCode = currentRoom.value.config.roomCode
+      const battleInterface = battleStore.battleInterface
+      const generation = battleStore._initializationGeneration
+      const isCurrent = () =>
+        shouldResume() &&
+        scope === serverScope() &&
+        currentRoom.value?.config.roomCode === roomCode &&
+        battleStore.battleInterface === battleInterface &&
+        battleStore._initializationGeneration === generation
+      await roomEnvironment(isCurrent)
+      if (!isCurrent()) return
+      if (recoveredState) {
+        battleStore.battleState = recoveredState
+        battleStore.lastProcessedSequenceId = recoveredState.sequenceId ?? -1
+        if (recoveredState.status === 'Ended' || !battleStore.playerId) {
+          battleStore.availableActions = []
+          battleStore.waitingForResponse = false
+          return
+        }
+        try {
+          const availableActions = await battleStore.fetchAvailableSelection(isCurrent)
+          if (!isCurrent()) return
+          battleStore.availableActions = availableActions
+          battleStore.waitingForResponse = false
+          battleStore.errorMessage = null
+        } catch (error) {
+          if (!isCurrent()) return
+          console.warn('Failed to refresh available actions after reconnect:', error)
+        }
+        const client = battleClientStore._instance as unknown as BattleClient
+        try {
+          await client.refreshTimerSnapshotsFromServer?.()
+        } catch (error) {
+          if (isCurrent()) console.warn('Failed to refresh timer snapshots after reconnect:', error)
+        }
+      }
       return
     }
 
-    await handleBattleStarted(battleStartInfo)
+    await handleBattleStarted(battleStartInfo, recoveredState, shouldResume)
   }
 
   const maybeResumeActiveBattle = async (throttleMs = 3000): Promise<void> => {
@@ -1423,14 +1487,14 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
   }
 
   // 全局状态检查方法
-  const checkCurrentRoom = async (): Promise<PrivateRoomInfo | null> => {
+  const checkCurrentRoom = async (isCurrent: () => boolean = () => true): Promise<PrivateRoomInfo | null> => {
     const scope = serverScope()
     try {
       const roomInfo = await battleClientStore.getCurrentPrivateRoom()
       assertServerScope(scope)
-      if (roomInfo) {
+      if (roomInfo && isCurrent()) {
         currentRoom.value = roomInfo
-        await roomEnvironment()
+        await roomEnvironment(isCurrent)
         assertServerScope(scope)
         startRoomPolling()
         initializeSelectedTeam()
@@ -1439,6 +1503,20 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     } catch (err) {
       return null
     }
+  }
+
+  const restoreServerBattle = async (
+    roomId: string,
+    recoveredState: BattleState,
+    shouldResume: () => boolean,
+  ): Promise<boolean> => {
+    const scope = serverScope()
+    const room = currentRoom.value ?? (await checkCurrentRoom(shouldResume))
+    if (!shouldResume() || scope !== serverScope()) return true
+    if (!room) return false
+    if (room.battleRoomId !== roomId || room.status !== 'started') return true
+    await resumeActiveBattle(recoveredState, shouldResume)
+    return true
   }
 
   // 页面离开时的清理
@@ -1533,6 +1611,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     initializeSelectedTeam,
     checkCurrentRoom,
     resumeActiveBattle,
+    restoreServerBattle,
     handlePageLeave,
     cleanup,
     joinSpectateBattle,
