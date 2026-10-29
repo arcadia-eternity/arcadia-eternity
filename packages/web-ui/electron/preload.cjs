@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  getBackendConfig: () => ipcRenderer.invoke('desktop:get-backend-config'),
+  openRemotePlay: input => ipcRenderer.invoke('desktop:open-remote-play', input),
   listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),
   selectContentPackageFile: options => ipcRenderer.invoke('desktop:select-content-package-file', options),
   inspectNpmContentPackage: options => ipcRenderer.invoke('desktop:inspect-npm-content-package', options),

@@ -1,12 +1,14 @@
-import { app, BrowserWindow, Menu, shell, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } from 'electron'
 import { createRequire } from 'node:module'
 import http from 'node:http'
+import { randomUUID } from 'node:crypto'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promises as fs } from 'node:fs'
 import { LocalBattleHost } from './local-battle-host.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
+import { createRemotePlayController, protectDesktopNavigation } from './remote-play.mjs'
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
 import { ContentLibrary } from './content-library.mjs'
@@ -40,6 +42,21 @@ const PET_REMOTE_BASE = 'https://seer2-pet-resource.yuuinih.com/public/fight'
 const BASE_PACK_ID = 'arcadia-eternity.base'
 const BASE_PACK_FOLDER = 'base'
 
+const remotePlay = createRemotePlayController({
+  BrowserWindow,
+  session,
+  rendererUrl,
+  preload: path.join(__dirname, 'remote-preload.cjs'),
+  isManagementUrl: value => {
+    try {
+      const url = new URL(value)
+      return ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) && Number(url.port) === localServerPort
+    } catch {
+      return true
+    }
+  },
+})
+const managementHttpToken = randomUUID()
 let mainWindow = null
 let localServer = null
 let localServerPort = null
@@ -656,7 +673,7 @@ async function downloadPetSwf(petNum, remoteUrl) {
   if (!petsDir) throw new Error('pets directory unavailable')
 
   const number = Number(petNum)
-  if (!Number.isFinite(number) || number <= 0) {
+  if (!Number.isSafeInteger(number) || number <= 0) {
     throw new Error('petNum 非法')
   }
 
@@ -665,6 +682,7 @@ async function downloadPetSwf(petNum, remoteUrl) {
     return filePath
   }
 
+  if (remoteUrl !== `${PET_REMOTE_BASE}/${number}.swf`) throw new Error('Unsupported legacy pet resource URL')
   await downloadFileToCache(remoteUrl, filePath)
   return filePath
 }
@@ -1460,6 +1478,12 @@ async function handleLocalServerRequest(req, res) {
     return
   }
 
+  // The local file endpoint is a manager capability, not a public loopback resource server.
+  if (req.headers['x-arcadia-management'] !== managementHttpToken) {
+    sendJson(res, 403, { error: 'unauthorized desktop resource request' })
+    return
+  }
+
   if (req.method !== 'GET') {
     sendJson(res, 405, { error: 'method not allowed' })
     return
@@ -1624,15 +1648,25 @@ async function downloadAndInstallUpdate() {
 }
 
 function setupIpcHandlers() {
+  // Every manager handler, including legacy workspace/download/updater APIs, shares this guard.
+  const handle = (channel, handler) =>
+    ipcMain.handle(channel, (event, ...args) => {
+      requireLocalBattleCaller(event)
+      return handler(event, ...args)
+    })
+  ipcMain.handle('remote-play:get-boot-config', event => remotePlay.getBootConfig(event))
+  ipcMain.handle('remote-play:close', event => remotePlay.close(event))
+  handle('desktop:open-remote-play', (_event, input) => remotePlay.open(input?.url))
+  handle('desktop:get-backend-config', () => ({ schemaVersion: 1, backendOrigin: 'https://test-battle.fly.dev' }))
   function requireLocalBattleCaller(event) {
     if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl))
       throw new Error('Unauthorized desktop frame')
   }
-  ipcMain.handle('desktop:list-content-packages', event => {
+  handle('desktop:list-content-packages', event => {
     requireLocalBattleCaller(event)
     return getContentLibrary().list()
   })
-  ipcMain.handle('desktop:select-content-package-file', async (event, options) => {
+  handle('desktop:select-content-package-file', async (event, options) => {
     requireLocalBattleCaller(event)
     const selected = await dialog.showOpenDialog(mainWindow, {
       title: '添加内容包',
@@ -1643,11 +1677,11 @@ function setupIpcHandlers() {
     if (selected.canceled || !selected.filePaths[0]) return null
     return getContentLibrary().stageFile(selected.filePaths[0], options?.offline === true)
   })
-  ipcMain.handle('desktop:inspect-npm-content-package', (event, options) => {
+  handle('desktop:inspect-npm-content-package', (event, options) => {
     requireLocalBattleCaller(event)
     return getContentLibrary().stageNpm(options?.spec, options?.offline === true)
   })
-  ipcMain.handle('desktop:install-content-package-file', async (event, options) => {
+  handle('desktop:install-content-package-file', async (event, options) => {
     requireLocalBattleCaller(event)
     const selected = await dialog.showOpenDialog(mainWindow, {
       title: '安装并启用内容包',
@@ -1658,11 +1692,11 @@ function setupIpcHandlers() {
     if (selected.canceled || !selected.filePaths[0]) return null
     return getContentLibrary().installFile(selected.filePaths[0], options?.offline === true)
   })
-  ipcMain.handle('desktop:install-npm-content-package', (event, options) => {
+  handle('desktop:install-npm-content-package', (event, options) => {
     requireLocalBattleCaller(event)
     return getContentLibrary().installNpm(options?.spec, options?.offline === true)
   })
-  ipcMain.handle('desktop:content-package-action', async (event, input) => {
+  handle('desktop:content-package-action', async (event, input) => {
     requireLocalBattleCaller(event)
     if (!input || typeof input.action !== 'string') throw new Error('内容包操作无效')
     const library = getContentLibrary()
@@ -1690,7 +1724,7 @@ function setupIpcHandlers() {
     }
     throw new Error('不支持的内容包操作')
   })
-  ipcMain.handle('desktop:select-and-start-local-battle', async event => {
+  handle('desktop:select-and-start-local-battle', async event => {
     requireLocalBattleCaller(event)
     const selected = await dialog.showOpenDialog(mainWindow, {
       title: '选择已安装并准入的服务器项目',
@@ -1708,15 +1742,15 @@ function setupIpcHandlers() {
       }
     }
   })
-  ipcMain.handle('desktop:get-local-battle-status', event => {
+  handle('desktop:get-local-battle-status', event => {
     requireLocalBattleCaller(event)
     return localBattleHost.status()
   })
-  ipcMain.handle('desktop:list-content-projects', event => {
+  handle('desktop:list-content-projects', event => {
     requireLocalBattleCaller(event)
     return getContentProjects().list()
   })
-  ipcMain.handle('desktop:add-content-project', async event => {
+  handle('desktop:add-content-project', async event => {
     requireLocalBattleCaller(event)
     const selected = await dialog.showOpenDialog(mainWindow, {
       title: '登记 npm 内容环境',
@@ -1726,7 +1760,7 @@ function setupIpcHandlers() {
     if (selected.canceled || !selected.filePaths[0]) return null
     return getContentProjects().add(selected.filePaths[0])
   })
-  ipcMain.handle('desktop:content-project-action', async (event, input) => {
+  handle('desktop:content-project-action', async (event, input) => {
     requireLocalBattleCaller(event)
     if (!input || typeof input.id !== 'string') throw new Error('环境标识无效')
     const manager = getContentProjects()
@@ -1742,39 +1776,39 @@ function setupIpcHandlers() {
     }
     return manager.operate(input.id, input.action, { offline: input.offline === true })
   })
-  ipcMain.handle('desktop:stop-local-battle', event => {
+  handle('desktop:stop-local-battle', event => {
     requireLocalBattleCaller(event)
     return localBattleHost.stop()
   })
-  ipcMain.handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
-  ipcMain.handle('desktop:write-work-workspace', async (_event, input) => {
+  handle('desktop:read-work-workspace', async () => (await getCreatorWorkStorage()).read())
+  handle('desktop:write-work-workspace', async (_event, input) => {
     if (!Number.isSafeInteger(input?.expected) || input.expected < 0) throw new Error('Invalid workspace revision')
     return (await getCreatorWorkStorage()).compareAndSwap(input.expected, input.workspace)
   })
 
-  ipcMain.handle('desktop:get-local-server-port', () => localServerPort)
+  handle('desktop:get-local-server-port', () => localServerPort)
 
-  ipcMain.handle('desktop:download-pet-swf', async (_event, payload) => {
+  handle('desktop:download-pet-swf', async (_event, payload) => {
     const petNum = payload?.petNum
     const remoteUrl = payload?.remoteUrl || `${PET_REMOTE_BASE}/${petNum}.swf`
     const filePath = await downloadPetSwf(petNum, remoteUrl)
     return filePath
   })
 
-  ipcMain.handle('desktop:list-cached-pets', async () => listCachedPets())
-  ipcMain.handle('desktop:clear-pet-cache', async () => clearPetCache())
+  handle('desktop:list-cached-pets', async () => listCachedPets())
+  handle('desktop:clear-pet-cache', async () => clearPetCache())
 
-  ipcMain.handle('desktop:list-pack-templates', () => listPackTemplates())
-  ipcMain.handle('desktop:list-workspace-packs', async () => buildWorkspaceIndex())
-  ipcMain.handle('desktop:create-pack-from-template', async (_event, input) => createPackFromTemplate(input))
-  ipcMain.handle('desktop:set-workspace-pack-enabled', async (_event, input) => setWorkspacePackEnabled(input))
-  ipcMain.handle('desktop:read-workspace-pack-manifest', async (_event, input) => readWorkspacePackManifest(input))
-  ipcMain.handle('desktop:write-workspace-pack-manifest', async (_event, input) => writeWorkspacePackManifest(input))
-  ipcMain.handle('desktop:list-workspace-pack-files', async (_event, input) => listWorkspacePackFiles(input))
-  ipcMain.handle('desktop:read-workspace-pack-file', async (_event, input) => readWorkspacePackFile(input))
-  ipcMain.handle('desktop:write-workspace-pack-file', async (_event, input) => writeWorkspacePackFile(input))
+  handle('desktop:list-pack-templates', () => listPackTemplates())
+  handle('desktop:list-workspace-packs', async () => buildWorkspaceIndex())
+  handle('desktop:create-pack-from-template', async (_event, input) => createPackFromTemplate(input))
+  handle('desktop:set-workspace-pack-enabled', async (_event, input) => setWorkspacePackEnabled(input))
+  handle('desktop:read-workspace-pack-manifest', async (_event, input) => readWorkspacePackManifest(input))
+  handle('desktop:write-workspace-pack-manifest', async (_event, input) => writeWorkspacePackManifest(input))
+  handle('desktop:list-workspace-pack-files', async (_event, input) => listWorkspacePackFiles(input))
+  handle('desktop:read-workspace-pack-file', async (_event, input) => readWorkspacePackFile(input))
+  handle('desktop:write-workspace-pack-file', async (_event, input) => writeWorkspacePackFile(input))
 
-  ipcMain.handle('desktop:read-all-base-pack-data', async () => {
+  handle('desktop:read-all-base-pack-data', async () => {
     const baseDir = await findBundledBasePackDir()
     if (!baseDir) throw new Error('Base pack source directory not found')
 
@@ -1804,7 +1838,7 @@ function setupIpcHandlers() {
     return result
   })
 
-  ipcMain.handle('desktop:write-base-pack-file', async (_event, input) => {
+  handle('desktop:write-base-pack-file', async (_event, input) => {
     const baseDir = await findBundledBasePackDir()
     if (!baseDir) throw new Error('Base pack source directory not found')
 
@@ -1820,7 +1854,7 @@ function setupIpcHandlers() {
     return { relativePath }
   })
 
-  ipcMain.handle('desktop:read-base-pack-file', async (_event, input) => {
+  handle('desktop:read-base-pack-file', async (_event, input) => {
     const baseDir = await findBundledBasePackDir()
     if (!baseDir) throw new Error('Base pack source directory not found')
 
@@ -1833,27 +1867,27 @@ function setupIpcHandlers() {
     const content = await fs.readFile(filePath, 'utf8')
     return { relativePath, content }
   })
-  ipcMain.handle('desktop:create-workspace-pack-folder', async (_event, input) => createWorkspacePackFolder(input))
-  ipcMain.handle('desktop:rename-workspace-pack-path', async (_event, input) => renameWorkspacePackPath(input))
-  ipcMain.handle('desktop:delete-workspace-pack-path', async (_event, input) => deleteWorkspacePackPath(input))
+  handle('desktop:create-workspace-pack-folder', async (_event, input) => createWorkspacePackFolder(input))
+  handle('desktop:rename-workspace-pack-path', async (_event, input) => renameWorkspacePackPath(input))
+  handle('desktop:delete-workspace-pack-path', async (_event, input) => deleteWorkspacePackPath(input))
 
-  ipcMain.handle('desktop:get-app-version', () => app.getVersion())
-  ipcMain.handle('desktop:check-for-updates', async () => checkForUpdates())
-  ipcMain.handle('desktop:download-and-install-update', async () => downloadAndInstallUpdate())
+  handle('desktop:get-app-version', () => app.getVersion())
+  handle('desktop:check-for-updates', async () => checkForUpdates())
+  handle('desktop:download-and-install-update', async () => downloadAndInstallUpdate())
 
-  ipcMain.handle('desktop:get-base-pack-dir', async () => {
+  handle('desktop:get-base-pack-dir', async () => {
     const dir = await findBundledBasePackDir()
     if (!dir) throw new Error('Base pack directory not found')
     return dir
   })
 
-  ipcMain.handle('desktop:show-item-in-folder', async (_event, input) => {
+  handle('desktop:show-item-in-folder', async (_event, input) => {
     const dirPath = typeof input?.path === 'string' ? input.path : ''
     if (!dirPath) throw new Error('path required')
     shell.showItemInFolder(dirPath)
   })
 
-  ipcMain.handle('desktop:relaunch', async () => {
+  handle('desktop:relaunch', async () => {
     await localBattleHost.stop()
     await stopLocalServer()
     app.relaunch()
@@ -1871,9 +1905,14 @@ function createMainWindow() {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      webviewTag: false,
+      navigateOnDragDrop: false,
     },
   })
 
+  protectDesktopNavigation(mainWindow, rendererUrl)
   setupContextMenu(mainWindow)
 
   mainWindow.webContents.on('preload-error', (_event, preloadPathOnError, error) => {
@@ -1911,6 +1950,7 @@ app.on('before-quit', event => {
   event.preventDefault()
   stoppingForQuit ??= stopForQuit(
     [
+      () => remotePlay.destroy(),
       () => contentLibrary?.close(),
       () => contentProjects?.close(),
       () => localBattleHost.stop(),
@@ -1942,6 +1982,18 @@ app
 
     await ensureAppDataDirs()
     await startLocalServer()
+    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      const headers = { ...details.requestHeaders }
+      // Inject only for the actual manager WebContents; never for remote renderers or unrelated windows.
+      if (
+        details.webContentsId === mainWindow?.webContents.id &&
+        details.frame === mainWindow?.webContents.mainFrame &&
+        new URL(details.url).origin === `http://127.0.0.1:${localServerPort}`
+      ) {
+        headers['x-arcadia-management'] = managementHttpToken
+      }
+      callback({ requestHeaders: headers })
+    })
     setupIpcHandlers()
     createMainWindow()
     void getContentLibrary()
