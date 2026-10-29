@@ -1,0 +1,25 @@
+# Desktop SWF isolation (#253)
+
+The desktop player runs the client-bundled `swf-player.html` in a disposable `WebContentsView`. The player and its SWF scripts are untrusted. The player has only the dedicated `arcadiaSwfPlayer` preload: receive bounded playback commands and emit bounded cosmetic events. It receives neither the desktop management bridge nor remote-play credentials. Hit/completion events must never enter the authoritative battle protocol.
+
+`electron/swf-host.mjs` must be imported before Electron readiness (to register the `arcadia-swf` scheme), then `createSwfHost` and `registerIpc(ipcMain)` called after readiness. Pass `isTrustedController(event)` that checks the actual registered owner main frame, and optionally `getControllerWindow(event)`. Development uses the bundled `public/swf-player.html`; packaged builds use `dist/swf-player.html`. No server webpage is loaded. Dispose the host during application shutdown.
+
+Trusted controller preloads expose `window.arcadiaSwf` with `create(input)`, `send(command)`, `bounds(input)`, `dispose(input)`, and `onEvent(callback)`. Each calls only its fixed `swf:*` channel. Both the manager and explicitly registered remote-play owner may use this bridge; no SWF frame may. The shared browser adapter owns its TypeScript interface and protocol.
+
+The host permits two views per owner. Each receives an independent nonpersistent session with HTTP caching disabled. Permissions/device requests/display capture/downloads/popups/webviews/navigation are denied. Its exact custom-protocol page is the only file the session serves. All HTTP(S), WebSocket, file, arbitrary custom-path and redirect requests are denied; blob URLs support only bytes already held inside this isolated session. There is no network/file proxy. Runtime and approved container/movie bytes arrive through the bounded load command. Resources are released at disposal; there is no asset cache or prefetch. Ruffle's networking configuration is not the outer security boundary.
+
+Input checks bound SWF file and expanded header lengths, runtime filenames/size/count, instance/task/sequence, known states, dimensions and message frequency. Header checks are not decompression or hard heap limits. The dedicated preload copies only bounded scalar event fields before IPC, so page objects and byte buffers cannot pass through the event bridge. Main-process checks independently enforce ownership and event quotas.
+
+A main-process timer watches a heartbeat from the player preload. Blocking the renderer's JavaScript also stops that heartbeat; timeout destroys the player. Before forcefully crashing a renderer, the host checks actual process IDs of all current web contents and refuses to crash a shared process. A WebContentsView alone does not guarantee an independent process. `inspect()` records actual process IDs, session storage path, bounds and sandbox preference for QA. There is no hard CPU or memory quota; native allocation/OS pressure and process-sharing cases still require platform acceptance. Disposal closes the view even when a shared process prevents an isolated crash. Recovery creates a fresh view/session and reloads bytes on demand.
+
+## Evidence (2026-10-29, macOS 26.7.2 arm64 development harness)
+
+`ARCADIA_DESKTOP_GUI_TEST=1 node --test packages/web-ui/electron/test/swf-host-electron.test.mjs` passed with Electron 41.10.7. The fixture is a deliberately small untrusted player page, not a claim of original-media compatibility.
+
+- Actual player renderer PID 10211 differed from owner PID 10190; sandbox preference was true and session storage path null.
+- View background was configured transparent and native bounds round-tripped as x=20, y=30, width=120, height=140. Visual alpha/compositing, clipping, zoom and modal occlusion remain unaccepted.
+- Page observed `process`, `arcadiaDesktop`, `arcadiaRemotePlay` and controller `arcadiaSwf` undefined. HTTPS, localhost HTTP, file and arbitrary custom-protocol path fetch attempts failed; popup attempt returned null.
+- An invalid installation command was rejected. An infinite page JavaScript loop left the trusted UI responsive; the external watchdog removed the player and creation succeeded again with PID 10247.
+- `node --test packages/web-ui/electron/test/swf-policy.test.mjs` passed protocol/byte/dimension/event/rate negative cases.
+
+Original petContainer child-SWF loading and state callbacks use the shared player implementation. Ruffle version remains pinned by the Web UI package. Original idle/attack/hit/switch, sound/hit timing, two-player battle, double-sprite cost, renderer crash/callback flood stress, packaged application, Windows and Linux still need explicit acceptance evidence. This document records implementation and measured limits, not full #253 acceptance.
