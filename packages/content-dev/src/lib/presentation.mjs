@@ -133,7 +133,7 @@ export async function buildPresentation(root, sources) {
     const [, language, namespace] = match
     const canonicalLanguage = Intl.getCanonicalLocales(language)[0]
     const text = await readFile(file, 'utf8')
-    const value = match[3] === 'json' ? JSON.parse(text) : YAML.parse(text, { uniqueKeys: true })
+    const value = match[3] === 'json' ? JSON.parse(text) : YAML.parse(text, { uniqueKeys: true, merge: true })
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Expected locale object: ${path}`)
     const records = {
       species: 'species',

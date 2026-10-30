@@ -1,0 +1,12 @@
+strike:
+  name: Frost Strike
+  description: >-
+    Attack with {power, plural, =0 {no power} one {<damage>#</damage> power point} other {<damage>#</damage> power points}}
+    and <strong>{accuracy}%</strong> accuracy.
+    {category, select, Physical {Deals physical damage.} Special {Deals special damage.} other {}}
+    On hit, apply <mark>example-pack:slow</mark>; reapplying refreshes its duration.
+rest:
+  name: Soft Tap
+  description: >-
+    Tap the opponent with <damage>{power}</damage> power and <strong>{accuracy}%</strong> accuracy.
+    This skill neither applies Slow nor restores HP.

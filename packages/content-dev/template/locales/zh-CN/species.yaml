@@ -1,0 +1,6 @@
+pet:
+  name: 霜团
+  description: 使用包内独立头像、立绘与<emphasis>静态战斗形象</emphasis>的示例精灵。
+pet-swf:
+  name: 远程外观示例
+  description: 使用远程图片与<strong>seer2-swf</strong>战斗资源；加载失败时显示包内图片。

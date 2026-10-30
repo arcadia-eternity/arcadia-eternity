@@ -1,6 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const desktopApi = {
+  author: input => ipcRenderer.invoke('desktop:author', input),
+  onAuthorChanged: callback => {
+    const listener = (_event, value) => callback(value)
+    ipcRenderer.on('desktop:author-changed', listener)
+    return () => ipcRenderer.removeListener('desktop:author-changed', listener)
+  },
   getBackendConfig: () => ipcRenderer.invoke('desktop:get-backend-config'),
   openRemotePlay: input => ipcRenderer.invoke('desktop:open-remote-play', input),
   listContentPackages: () => ipcRenderer.invoke('desktop:list-content-packages'),

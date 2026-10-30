@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import { resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 const require = createRequire(import.meta.url)
 const [command, ...args] = process.argv.slice(2)
 const help = `arcadia-content <command>
@@ -14,6 +15,7 @@ const help = `arcadia-content <command>
   demo      Run the battle configured in arcadia.config.mjs
   pack      Check, build and create an npm content package
   setup     Install the pinned development SDK and tool
+  workspace <directory> <operation> [--execute]  Structured author operations
 `
 function run(file, arguments_) {
   return new Promise((resolve, reject) => {
@@ -43,7 +45,10 @@ async function build() {
 }
 try {
   if (!command || command === '--help' || command === '-h') console.log(help)
-  else if (command === 'setup') {
+  else if (command === 'workspace') {
+    const { workspaceCli } = await import('./workspace-cli.mjs')
+    await workspaceCli(args)
+  } else if (command === 'setup') {
     const { setup } = await import('./setup.mjs')
     await setup(args)
   } else if (command === 'rename') await run(process.execPath, [modulePath('./rename.mjs'), ...args])
@@ -62,7 +67,8 @@ try {
       if (presentation.resources.length || Object.keys(presentation.locales).length) {
         if (manifest.arcadia?.presentation !== 'dist/presentation.json')
           throw new Error('Set arcadia.presentation to dist/presentation.json before packing media/locales')
-        const { stdout } = await promisify(execFile)('npm', ['pack', '--dry-run', '--ignore-scripts', '--json'], {
+        const npm = await resolveNpmInvocation(['pack', '--dry-run', '--ignore-scripts', '--json'])
+        const { stdout } = await promisify(execFile)(npm.file, npm.args, {
           cwd: process.cwd(),
         })
         const included = new Set(JSON.parse(stdout)[0].files.map(file => file.path))
@@ -74,7 +80,13 @@ try {
         for (const file of required)
           if (!included.has(file)) throw new Error(`npm files omits required presentation file: ${file}`)
       }
-      await run('npm', ['pack', '--ignore-scripts'])
+      const npm = await resolveNpmInvocation(['pack', '--ignore-scripts', '--json'])
+      const { stdout } = await promisify(execFile)(npm.file, npm.args, { cwd: process.cwd() })
+      const packed = JSON.parse(stdout)[0]
+      console.log(`Packed ${packed.filename}`)
+      console.log(
+        `ARCADIA_RESULT=${JSON.stringify({ filename: packed.filename, integrity: packed.integrity, shasum: packed.shasum, files: packed.files.map(file => file.path) })}`,
+      )
     }
   }
 } catch (error) {

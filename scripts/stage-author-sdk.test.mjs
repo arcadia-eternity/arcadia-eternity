@@ -34,6 +34,17 @@ test(
         const files = (await exec('tar', ['-tzf', archive])).stdout.split('\n')
         assert.ok(!files.some(path => /^package\/licen[sc]e(?:\.|$)/i.test(path)))
         const metadata = JSON.parse((await exec('tar', ['-xOzf', archive, 'package/package.json'])).stdout)
+        if (pkg.name === '@arcadia-eternity/content-dev') {
+          for (const path of [
+            'dist/author-api.mjs',
+            'dist/mcp.mjs',
+            'dist/template/src/effects.ts',
+            'dist/template/skills/arcadia-content-authoring/SKILL.md',
+          ])
+            assert.ok(files.includes('package/' + path), `missing author artifact: ${path}`)
+          assert.equal(metadata.exports['./workspace'], './dist/author-api.mjs')
+          assert.equal(metadata.bin['arcadia-content-mcp'], './dist/mcp.mjs')
+        }
         assert.equal(metadata.name, pkg.name)
         assert.equal(metadata.version, pkg.version)
         assert.equal(metadata.private, true)

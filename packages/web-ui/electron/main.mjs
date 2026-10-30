@@ -14,6 +14,7 @@ import { CLIENT_URL, CLIENT_ORIGIN, registerClientProtocol } from './client-prot
 import { stopForQuit } from './shutdown.mjs'
 import { ContentProjectManager, runContentCommand } from './content-projects.mjs'
 import { ContentLibrary } from './content-library.mjs'
+import { AuthorWorkspaces } from './author-workspaces.mjs'
 
 const require = createRequire(import.meta.url)
 const { autoUpdater } = require('electron-updater')
@@ -77,6 +78,33 @@ let workspacePackStatePath = null
 let creatorWorkStorage
 let contentProjects
 let contentLibrary
+let authorWorkspaces
+function getAuthorWorkspaces() {
+  authorWorkspaces ??= new AuthorWorkspaces({
+    root: path.join(app.getPath('userData'), 'ugc'),
+    api: () =>
+      import(
+        app.isPackaged
+          ? pathToFileURL(
+              path.join(
+                process.resourcesPath,
+                'arcadia-server/node_modules/@arcadia-eternity/content-dev/dist/author-api.mjs',
+              ),
+            ).href
+          : '@arcadia-eternity/content-dev/workspace'
+      ),
+    notify: event => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:author-changed', event)
+    },
+    env: {
+      ...process.env,
+      ...(app.isPackaged
+        ? { ARCADIA_NPM_CLI: path.join(process.resourcesPath, 'arcadia-server/runtime/npm/bin/npm-cli.js') }
+        : {}),
+    },
+  })
+  return authorWorkspaces
+}
 function getContentLibrary() {
   contentLibrary ??= new ContentLibrary({
     root: path.join(app.getPath('userData'), 'content-packages'),
@@ -1673,6 +1701,91 @@ function setupIpcHandlers() {
     if (!isTrustedDesktopRequest(event, mainWindow?.webContents, rendererUrl))
       throw new Error('Unauthorized desktop frame')
   }
+  handle('desktop:author', async (event, input) => {
+    try {
+      if (!input || typeof input.action !== 'string') throw new Error('作者操作无效')
+      const manager = getAuthorWorkspaces()
+      let result
+      if (input.action === 'list') result = await manager.list()
+      else if (input.action === 'create') result = await manager.create(input.name)
+      else if (input.action === 'open') {
+        const choice = await dialog.showOpenDialog(mainWindow, {
+          title: '打开内容包源项目',
+          properties: ['openDirectory'],
+        })
+        requireLocalBattleCaller(event)
+        result = choice.canceled ? null : await manager.add(choice.filePaths[0])
+      } else {
+        if (typeof input.id !== 'string') throw new Error('项目标识无效')
+        if (input.action === 'forget') result = await manager.forget(input.id)
+        else if (input.action === 'close') result = await manager.release(input.id)
+        else if (input.action === 'export') {
+          const choice = await dialog.showSaveDialog(mainWindow, {
+            title: '导出完整源项目到新目录',
+            buttonLabel: '导出项目',
+          })
+          requireLocalBattleCaller(event)
+          result = choice.canceled ? null : await manager.export(input.id, choice.filePath)
+        } else {
+          const session = await manager.session(input.id)
+          switch (input.action) {
+            case 'snapshot':
+              result = await session.workspace.snapshot()
+              break
+            case 'save-changes':
+              result = await session.workspace.saveChanges(input, { fromForm: true })
+              break
+            case 'dirty':
+              session.workspace.setDirty(input.file, input.dirty === true)
+              break
+            case 'jobs':
+              result = session.jobs.list()
+              break
+            case 'start':
+              result = await session.jobs.start({ kind: input.kind })
+              break
+            case 'cancel':
+              result = session.jobs.cancel(input.jobId)
+              break
+            case 'media':
+              result = await session.workspace.asset(input.file)
+              break
+            case 'show':
+              shell.showItemInFolder(
+                input.file
+                  ? await session.workspace.path(input.file)
+                  : path.join(session.workspace.root, 'package.json'),
+              )
+              break
+            case 'editor':
+              result = await manager.openExternal(
+                input.id,
+                input.file,
+                input.editor,
+                input.line ?? 1,
+                input.column ?? 1,
+              )
+              break
+            case 'sdk':
+              result = await (await manager.api()).connectDevelopmentSdk(session.workspace.root)
+              break
+            case 'connection':
+              result = (await manager.api()).authorConnection(
+                session.workspace.root,
+                input.execute === true,
+                manager.env,
+              )
+              break
+            default:
+              throw new Error('不支持的作者操作')
+          }
+        }
+      }
+      return { result: result ?? null }
+    } catch (error) {
+      return { error: { code: error.code ?? 'AUTHOR_FAILED', message: error.message, file: error.file } }
+    }
+  })
   handle('desktop:list-content-packages', event => {
     requireLocalBattleCaller(event)
     return getContentLibrary().list()
@@ -1965,6 +2078,7 @@ app.on('before-quit', event => {
       () => remotePlay.destroy(),
       () => contentLibrary?.close(),
       () => contentProjects?.close(),
+      () => authorWorkspaces?.close(),
       () => localBattleHost.stop(),
       () => stopLocalServer(),
     ],

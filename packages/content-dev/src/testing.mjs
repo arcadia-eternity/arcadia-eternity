@@ -13,9 +13,13 @@ import {
   createContentCatalog,
 } from '@arcadia-eternity/battle/v4'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/v4/build'
-import { prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
+import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
 
 const exec = promisify(execFile)
+async function npm(args, options) {
+  const invocation = await resolveNpmInvocation(args)
+  return exec(invocation.file, invocation.args, options)
+}
 
 /** Pack and install exactly what a consuming server receives. Approval is limited to this local demo. */
 export async function prepareContentPack(root = process.cwd(), { offline = true, cache } = {}) {
@@ -34,11 +38,9 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
     await rm(temporary, { recursive: true, force: true })
   }
   try {
-    const result = await exec(
-      'npm',
-      ['pack', '--json', '--ignore-scripts', '--pack-destination', temporary, ...cacheArgs],
-      { cwd: root },
-    )
+    const result = await npm(['pack', '--json', '--ignore-scripts', '--pack-destination', temporary, ...cacheArgs], {
+      cwd: root,
+    })
     const packed = JSON.parse(result.stdout)[0]
     const files = packed.files.map(file => file.path)
     assert.ok(files.includes(manifest.arcadia.content))
@@ -60,8 +62,7 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
         },
       }),
     )
-    await exec(
-      'npm',
+    await npm(
       [
         'install',
         ...(offline ? ['--offline'] : []),
@@ -84,6 +85,16 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
       },
       { policy: { profile: 'local-development' } },
     )
+    const candidate = {
+      packageName: manifest.name,
+      version: manifest.version,
+      integrity: packed.integrity,
+      shasum: packed.shasum,
+      sdkApi: manifest.arcadia.sdkApi,
+      build: nativeBuildIdentity,
+      environmentRevision: environment.revision,
+    }
+    if (process.env.ARCADIA_AUTHOR_RESULT === '1') console.log(`ARCADIA_RESULT=${JSON.stringify({ candidate })}`)
     function createBattle(seed = 'content-pack-template') {
       const namespace = manifest.arcadia.namespace
       const players = environment.content.parsePlayers(config.players({ namespace, manifest }))
@@ -97,6 +108,7 @@ export async function prepareContentPack(root = process.cwd(), { offline = true,
     }
     return {
       environment,
+      candidate,
       manifest,
       files,
       createBattle,

@@ -1,0 +1,10 @@
+strike:
+  name: 霜击
+  description: >-
+    {power, plural, =0 {发动不带威力的} other {以 <damage>#</damage> 威力发动}}{category, select, Physical {物理} Special {特殊} other {}}攻击，命中率 <strong>{accuracy}%</strong>。
+    命中后施加 <mark>example-pack:slow</mark>，重复施加刷新持续时间。
+rest:
+  name: 轻触
+  description: >-
+    以 <damage>{power}</damage> 威力轻触对手，命中率 <strong>{accuracy}%</strong>。
+    此技能不施加减速，也不回复体力。

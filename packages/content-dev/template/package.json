@@ -1,0 +1,45 @@
+{
+  "name": "@arcadia-eternity/content-pack-template",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "files": [
+    "data",
+    "dist",
+    "src",
+    "assets",
+    "locales",
+    "docs"
+  ],
+  "scripts": {
+    "rename": "arcadia-content rename",
+    "check": "arcadia-content check",
+    "build": "arcadia-content build",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "demo": "npm run build && arcadia-content demo",
+    "pack": "arcadia-content pack",
+    "workspace": "arcadia-content workspace . describe",
+    "mcp": "arcadia-content-mcp ."
+  },
+  "devDependencies": {
+    "@arcadia-eternity/battle": "1.0.0",
+    "@arcadia-eternity/pack-loader": "1.0.0",
+    "@types/node": "25.6.0",
+    "typescript": "6.0.3",
+    "@arcadia-eternity/content-dev": "0.1.0"
+  },
+  "arcadia": {
+    "formatVersion": 1,
+    "projectId": "example-content-pack",
+    "namespace": "example-pack",
+    "content": "dist/content.json",
+    "effects": "dist/effects.js",
+    "sdkApi": 2,
+    "presentation": "dist/presentation.json"
+  },
+  "description": "A runnable Arcadia Eternity user-defined content pack: species, skills, marks and TypeScript effects.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

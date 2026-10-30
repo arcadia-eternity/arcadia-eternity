@@ -1,0 +1,5 @@
+slow:
+  name: Slow
+  description: >-
+    <debuff>Reduces</debuff> the owner's speed. Reapplying refreshes the duration;
+    speed returns when the mark expires or is removed.

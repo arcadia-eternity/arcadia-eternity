@@ -48,6 +48,7 @@
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/client": "workspace:^",
     "@arcadia-eternity/const": "workspace:^",
+    "@arcadia-eternity/content-dev": "workspace:^",
     "@arcadia-eternity/data-pack-base": "workspace:^",
     "@arcadia-eternity/data-repository": "workspace:^",
     "@arcadia-eternity/database": "workspace:^",

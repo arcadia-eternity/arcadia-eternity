@@ -47,6 +47,15 @@ const routes: RouteRecordRaw[] = [
     path: '/creator',
     name: 'Creator',
     component: () =>
+      isDesktop
+        ? import('@/features/authoring/AuthorWorkspacePage.vue')
+        : import('@/features/content/LocalContentOnlyPage.vue'),
+    meta: { title: '创作工作台' },
+  },
+  {
+    path: '/creator/drafts',
+    name: 'CreatorDrafts',
+    component: () =>
       isDesktop ? import('@/features/creator/CreatorPage.vue') : import('@/features/content/LocalContentOnlyPage.vue'),
     meta: { title: '创作工坊' },
   },

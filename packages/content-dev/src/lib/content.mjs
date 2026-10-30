@@ -42,7 +42,7 @@ export async function readContentSources(root) {
       try {
         if (extname(file) === '.json') value = JSON.parse(text)
         else {
-          document = YAML.parseDocument(text)
+          document = YAML.parseDocument(text, { merge: true })
           if (document.errors.length) throw document.errors[0]
           value = document.toJS()
         }

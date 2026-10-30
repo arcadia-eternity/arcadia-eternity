@@ -135,6 +135,8 @@ export type LocalBattleHostStatus =
   | { status: 'failed'; code: string; message: string }
 
 export interface ArcadiaDesktopApi {
+  author?: (input: Record<string, unknown>) => Promise<{ result?: unknown; error?: { code: string; message: string; file?: string } }>
+  onAuthorChanged?: (callback: (event: { id: string; file?: string; type: string }) => void) => () => void
   getBackendConfig(): Promise<{schemaVersion:1;backendOrigin:string}>
   openRemotePlay(input: {url:string}): Promise<unknown>
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>

@@ -1,0 +1,4 @@
+slow:
+  name: 减速
+  description: >-
+    使持有者速度<debuff>降低</debuff>。重复施加只刷新持续时间；到期或被移除时恢复。

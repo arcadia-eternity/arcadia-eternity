@@ -8,10 +8,12 @@
     "node": ">=24 <25"
   },
   "bin": {
-    "arcadia-content": "./dist/cli.mjs"
+    "arcadia-content": "./dist/cli.mjs",
+    "arcadia-content-mcp": "./dist/mcp.mjs"
   },
   "exports": {
-    "./testing": "./dist/testing.mjs"
+    "./testing": "./dist/testing.mjs",
+    "./workspace": "./dist/author-api.mjs"
   },
   "files": [
     "dist"
@@ -23,7 +25,11 @@
   "dependencies": {
     "@arcadia-eternity/battle": "workspace:^",
     "@arcadia-eternity/pack-loader": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "chokidar": "^6.0.0",
     "typescript": "catalog:",
-    "yaml": "catalog:"
+    "write-file-atomic": "^8.0.0",
+    "yaml": "catalog:",
+    "zod": "3.25.76"
   }
 }

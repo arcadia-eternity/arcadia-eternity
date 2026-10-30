@@ -1,0 +1,43 @@
+# Optional visual variant. Select example-pack:pet-swf in a team to try it.
+# Reuses the starter's stats and skills; these URLs only demonstrate hosted resources.
+id: pet-swf
+num: 2
+element: Normal
+baseStats:
+  hp: 100
+  atk: 100
+  def: 100
+  spa: 100
+  spd: 100
+  spe: 100
+genderRatio: null
+heightRange:
+  - 1
+  - 2
+weightRange:
+  - 1
+  - 2
+ability: []
+emblem: []
+learnable_skills:
+  - skill_id:
+      $ref:
+        projectId: example-content-pack
+        kind: skill
+        id: strike
+    level: 1
+    hidden: false
+  - skill_id:
+      $ref:
+        projectId: example-content-pack
+        kind: skill
+        id: rest
+    level: 1
+    hidden: false
+presentation:
+  icon: https://seer2-resource.yuuinih.com/png/pet/1.png
+  portrait: https://seer2-resource.yuuinih.com/png/pet/1.png
+  battle:
+    renderer: seer2-swf
+    source: https://seer2-pet-resource.yuuinih.com/public/fight/1.swf
+    fallback: assets/pets/frostling-battle.png

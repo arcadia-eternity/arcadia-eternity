@@ -14,6 +14,9 @@ try {
     console.log(`Turn ${battle.currentTurn}: ${pets.join(' | ')}`)
   })
   console.log(`Winner: ${result.winner}; finished in ${result.turns} turns.`)
+  console.log(
+    `ARCADIA_RESULT=${JSON.stringify({ ...result, candidate: example.candidate, environmentRevision: example.environment.revision, packageName: example.manifest.name, files: example.files })}`,
+  )
 } finally {
   await example.dispose()
 }
