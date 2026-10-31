@@ -26,7 +26,7 @@ const imageFailed = ref(false)
 
 const petIconUrl = computed(() =>
   typeof props.species?.presentation?.icon === 'string'
-    ? props.species.presentation.icon
+    ? officialAssetUrl(props.species.presentation.icon)
     : isRemoteContentActive()
       ? unknownPet
       : officialAssetUrl(`https://seer2-resource.yuuinih.com/png/petIcon/${props.id}.png`),

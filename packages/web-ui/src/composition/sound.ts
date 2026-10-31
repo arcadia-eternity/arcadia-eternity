@@ -138,7 +138,7 @@ export function useSound(
   const playPetSound = (petSpriteNum: number, speciesId?: string) => {
     const cry = speciesId && gameDataStore.getSpecies(speciesId)?.presentation?.cry
     if (typeof cry === 'string') {
-      void playOnce(cry)
+      void playOnce(officialAssetUrl(cry))
       return
     }
     if (isRemoteContentActive()) return

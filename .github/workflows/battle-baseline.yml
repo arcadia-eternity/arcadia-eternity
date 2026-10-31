@@ -189,7 +189,7 @@ jobs:
         run: |
           node --test scripts/prepare-static-assets.test.mjs
           node --test packages/web-ui/scripts/build-offline.test.mjs
-          pnpm --filter @arcadia-eternity/web-ui exec vitest run src/stores/__tests__/playerIdentity.test.ts src/stores/__tests__/offlineStorage.test.ts src/app/__tests__/bootstrap.test.ts src/app/__tests__/onlineSession.test.ts src/bootstrap/__tests__/ruffle.test.ts src/utils/__tests__/officialAssetUrl.test.ts --maxWorkers=1
+          pnpm --filter @arcadia-eternity/web-ui exec vitest run src/stores/__tests__/playerIdentity.test.ts src/stores/__tests__/offlineStorage.test.ts src/app/__tests__/bootstrap.test.ts src/app/__tests__/onlineSession.test.ts src/bootstrap/__tests__/ruffle.test.ts src/utils/__tests__/officialAssetUrl.test.ts src/components/__tests__/PetIcon.test.ts src/composition/__tests__/sound.test.ts --maxWorkers=1
       - name: Build self-contained static application
         run: pnpm --filter @arcadia-eternity/web-ui run build:static-only
       - name: Verify production battles, offline reload and storage failures

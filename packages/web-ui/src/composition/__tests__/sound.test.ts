@@ -53,6 +53,7 @@ beforeEach(() => {
 afterEach(() => {
   setServerContentText(null)
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -72,6 +73,22 @@ function consumer() {
   return { wrapper, sound }
 }
 
+it.each([
+  ['1', 'https://seer2-resource.yuuinih.com/sound/pet/6.mp3', 'official-assets/resource/sound/pet/6.mp3'],
+  ['', 'https://seer2-resource.yuuinih.com/sound/pet/6.mp3', 'https://seer2-resource.yuuinih.com/sound/pet/6.mp3'],
+  ['1', 'https://creator.test/cry.mp3', 'https://creator.test/cry.mp3'],
+])('resolves declared cries in static mode %s: %s', async (mode, source, expected) => {
+  vi.stubEnv('VITE_STATIC_MODE', mode)
+  vi.stubEnv('BASE_URL', './')
+  mocks.getSpecies.mockReturnValue({ id: 'pet_xiuluosi', presentation: { cry: source } })
+  mocks.bytes.mockRejectedValue(new Error('Stop after recording the requested URL'))
+  const { wrapper, sound } = consumer()
+  sound.playPetSound(6, 'pet_xiuluosi')
+  await flushPromises()
+  wrapper.unmount()
+  expect(mocks.bytes).toHaveBeenCalledWith(new URL(expected, document.baseURI).href, expect.any(Object))
+})
+
 it('keeps missing remote skill/cry/victory media silent without consulting same-ID or numeric local media', async () => {
   setServerContentText({ species: [], skills: [], marks: [] })
   const { wrapper, sound } = consumer()
@@ -86,13 +103,15 @@ it('keeps missing remote skill/cry/victory media silent without consulting same-
   wrapper.unmount()
 })
 
-it('retains trusted local numeric/skill fallback and consumes explicit remote audio references', async () => {
+it('uses declared local skill audio, retains numeric cry fallback and consumes remote audio references', async () => {
   setServerContentText({ species: [], skills: [], marks: [] }, false)
   mocks.serverFallback = false
+  mocks.getSkill.mockReturnValue({ id: 'skill_qili', presentation: { sfx: 'https://local.test/declared.mp3' } })
   const local = consumer()
   local.sound.playSkillSound('skill_qili' as baseSkillId)
   local.sound.playPetSound(1, 'pet_dilan')
-  expect(mocks.lookupSkill).toHaveBeenCalledWith('skill_qili')
+  expect(mocks.lookupSkill).not.toHaveBeenCalled()
+  expect(mocks.howler).toHaveBeenCalledWith(expect.objectContaining({ src: ['https://local.test/declared.mp3'] }))
   expect(mocks.lookupPet).toHaveBeenCalledWith(1)
   expect(mocks.howler).toHaveBeenCalled()
   local.wrapper.unmount()
