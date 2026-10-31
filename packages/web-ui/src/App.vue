@@ -68,7 +68,7 @@
             人机对战
           </el-button>
           <el-button type="info" icon="Document" @click="router.push('/local-battle-reports')">本地战报</el-button>
-          <el-button v-if="isDesktop" @click="router.push('/creator/development')">创作</el-button>
+          <el-button v-if="isDesktop" @click="router.push('/creator')">创作</el-button>
           <el-button @click="router.push('/content')">内容包</el-button>
           <!-- 房间状态显示 -->
           <el-button
@@ -147,7 +147,7 @@
           </router-link>
           <router-link
             v-if="isDesktop"
-            to="/creator/development"
+            to="/creator"
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600"
             >创作</router-link
